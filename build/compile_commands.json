@@ -1,0 +1,626 @@
+[
+{
+  "directory": "/home/dark_side/dev/github/engine2/build",
+  "command": "/usr/bin/g++ -DCHECK_MEMORY_LEAKS -D_DEBUG -I/home/dark_side/dev/github/engine2/./src -I/home/dark_side/dev/github/engine2/src -I/home/dark_side/dev/vulkanSDK-1.3.236.0/1.3.236.0/x86_64/include -I/home/dark_side/dev/github/engine2/src/../3rd_party/vma/include -I/home/dark_side/dev/github/engine2/src/../3rd_party/glm -I/home/dark_side/dev/github/engine2/src/../3rd_party/glfw_3.3.8/include -I/home/dark_side/dev/github/engine2/src/Platform/GLFW -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/include -g -std=c++23 -o CMakeFiles/demo.dir/main.cpp.o -c /home/dark_side/dev/github/engine2/main.cpp",
+  "file": "/home/dark_side/dev/github/engine2/main.cpp",
+  "output": "CMakeFiles/demo.dir/main.cpp.o"
+},
+{
+  "directory": "/home/dark_side/dev/github/engine2/build",
+  "command": "/usr/bin/g++ -DCHECK_MEMORY_LEAKS -DENGINE_PLATFORM_LINUX -DGLFW_AVAILABLE -DGLFW_EXPOSE_NATIVE_X11 -DVK_USE_PLATFORM_XCB_KHR=1 -DVULKAN_AVAILABLE -D_DEBUG -I/home/dark_side/dev/github/engine2/src -I/home/dark_side/dev/vulkanSDK-1.3.236.0/1.3.236.0/x86_64/include -I/home/dark_side/dev/github/engine2/src/../3rd_party/vma/include -I/home/dark_side/dev/github/engine2/src/../3rd_party/glm -I/home/dark_side/dev/github/engine2/src/../3rd_party/glfw_3.3.8/include -I/home/dark_side/dev/github/engine2/src/Platform/GLFW -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/include -g -std=c++23 -o engine/CMakeFiles/engine.dir/file/common_file_system.cpp.o -c /home/dark_side/dev/github/engine2/src/file/common_file_system.cpp",
+  "file": "/home/dark_side/dev/github/engine2/src/file/common_file_system.cpp",
+  "output": "engine/CMakeFiles/engine.dir/file/common_file_system.cpp.o"
+},
+{
+  "directory": "/home/dark_side/dev/github/engine2/build",
+  "command": "/usr/bin/g++ -DCHECK_MEMORY_LEAKS -DENGINE_PLATFORM_LINUX -DGLFW_AVAILABLE -DGLFW_EXPOSE_NATIVE_X11 -DVK_USE_PLATFORM_XCB_KHR=1 -DVULKAN_AVAILABLE -D_DEBUG -I/home/dark_side/dev/github/engine2/src -I/home/dark_side/dev/vulkanSDK-1.3.236.0/1.3.236.0/x86_64/include -I/home/dark_side/dev/github/engine2/src/../3rd_party/vma/include -I/home/dark_side/dev/github/engine2/src/../3rd_party/glm -I/home/dark_side/dev/github/engine2/src/../3rd_party/glfw_3.3.8/include -I/home/dark_side/dev/github/engine2/src/Platform/GLFW -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/include -g -std=c++23 -o engine/CMakeFiles/engine.dir/graphics/render/rhi/common/renderpass.cpp.o -c /home/dark_side/dev/github/engine2/src/graphics/render/rhi/common/renderpass.cpp",
+  "file": "/home/dark_side/dev/github/engine2/src/graphics/render/rhi/common/renderpass.cpp",
+  "output": "engine/CMakeFiles/engine.dir/graphics/render/rhi/common/renderpass.cpp.o"
+},
+{
+  "directory": "/home/dark_side/dev/github/engine2/build",
+  "command": "/usr/bin/g++ -DCHECK_MEMORY_LEAKS -DENGINE_PLATFORM_LINUX -DGLFW_AVAILABLE -DGLFW_EXPOSE_NATIVE_X11 -DVK_USE_PLATFORM_XCB_KHR=1 -DVULKAN_AVAILABLE -D_DEBUG -I/home/dark_side/dev/github/engine2/src -I/home/dark_side/dev/vulkanSDK-1.3.236.0/1.3.236.0/x86_64/include -I/home/dark_side/dev/github/engine2/src/../3rd_party/vma/include -I/home/dark_side/dev/github/engine2/src/../3rd_party/glm -I/home/dark_side/dev/github/engine2/src/../3rd_party/glfw_3.3.8/include -I/home/dark_side/dev/github/engine2/src/Platform/GLFW -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/include -g -std=c++23 -o engine/CMakeFiles/engine.dir/graphics/render/rhi/vulkan/descriptor_pool_manager.cpp.o -c /home/dark_side/dev/github/engine2/src/graphics/render/rhi/vulkan/descriptor_pool_manager.cpp",
+  "file": "/home/dark_side/dev/github/engine2/src/graphics/render/rhi/vulkan/descriptor_pool_manager.cpp",
+  "output": "engine/CMakeFiles/engine.dir/graphics/render/rhi/vulkan/descriptor_pool_manager.cpp.o"
+},
+{
+  "directory": "/home/dark_side/dev/github/engine2/build",
+  "command": "/usr/bin/g++ -DCHECK_MEMORY_LEAKS -DENGINE_PLATFORM_LINUX -DGLFW_AVAILABLE -DGLFW_EXPOSE_NATIVE_X11 -DVK_USE_PLATFORM_XCB_KHR=1 -DVULKAN_AVAILABLE -D_DEBUG -I/home/dark_side/dev/github/engine2/src -I/home/dark_side/dev/vulkanSDK-1.3.236.0/1.3.236.0/x86_64/include -I/home/dark_side/dev/github/engine2/src/../3rd_party/vma/include -I/home/dark_side/dev/github/engine2/src/../3rd_party/glm -I/home/dark_side/dev/github/engine2/src/../3rd_party/glfw_3.3.8/include -I/home/dark_side/dev/github/engine2/src/Platform/GLFW -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/include -g -std=c++23 -o engine/CMakeFiles/engine.dir/graphics/render/rhi/vulkan/device.cpp.o -c /home/dark_side/dev/github/engine2/src/graphics/render/rhi/vulkan/device.cpp",
+  "file": "/home/dark_side/dev/github/engine2/src/graphics/render/rhi/vulkan/device.cpp",
+  "output": "engine/CMakeFiles/engine.dir/graphics/render/rhi/vulkan/device.cpp.o"
+},
+{
+  "directory": "/home/dark_side/dev/github/engine2/build",
+  "command": "/usr/bin/g++ -DCHECK_MEMORY_LEAKS -DENGINE_PLATFORM_LINUX -DGLFW_AVAILABLE -DGLFW_EXPOSE_NATIVE_X11 -DVK_USE_PLATFORM_XCB_KHR=1 -DVULKAN_AVAILABLE -D_DEBUG -I/home/dark_side/dev/github/engine2/src -I/home/dark_side/dev/vulkanSDK-1.3.236.0/1.3.236.0/x86_64/include -I/home/dark_side/dev/github/engine2/src/../3rd_party/vma/include -I/home/dark_side/dev/github/engine2/src/../3rd_party/glm -I/home/dark_side/dev/github/engine2/src/../3rd_party/glfw_3.3.8/include -I/home/dark_side/dev/github/engine2/src/Platform/GLFW -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/include -g -std=c++23 -o engine/CMakeFiles/engine.dir/graphics/render/rhi/vulkan/framebuffer.cpp.o -c /home/dark_side/dev/github/engine2/src/graphics/render/rhi/vulkan/framebuffer.cpp",
+  "file": "/home/dark_side/dev/github/engine2/src/graphics/render/rhi/vulkan/framebuffer.cpp",
+  "output": "engine/CMakeFiles/engine.dir/graphics/render/rhi/vulkan/framebuffer.cpp.o"
+},
+{
+  "directory": "/home/dark_side/dev/github/engine2/build",
+  "command": "/usr/bin/g++ -DCHECK_MEMORY_LEAKS -DENGINE_PLATFORM_LINUX -DGLFW_AVAILABLE -DGLFW_EXPOSE_NATIVE_X11 -DVK_USE_PLATFORM_XCB_KHR=1 -DVULKAN_AVAILABLE -D_DEBUG -I/home/dark_side/dev/github/engine2/src -I/home/dark_side/dev/vulkanSDK-1.3.236.0/1.3.236.0/x86_64/include -I/home/dark_side/dev/github/engine2/src/../3rd_party/vma/include -I/home/dark_side/dev/github/engine2/src/../3rd_party/glm -I/home/dark_side/dev/github/engine2/src/../3rd_party/glfw_3.3.8/include -I/home/dark_side/dev/github/engine2/src/Platform/GLFW -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/include -g -std=c++23 -o engine/CMakeFiles/engine.dir/graphics/render/rhi/vulkan/image.cpp.o -c /home/dark_side/dev/github/engine2/src/graphics/render/rhi/vulkan/image.cpp",
+  "file": "/home/dark_side/dev/github/engine2/src/graphics/render/rhi/vulkan/image.cpp",
+  "output": "engine/CMakeFiles/engine.dir/graphics/render/rhi/vulkan/image.cpp.o"
+},
+{
+  "directory": "/home/dark_side/dev/github/engine2/build",
+  "command": "/usr/bin/g++ -DCHECK_MEMORY_LEAKS -DENGINE_PLATFORM_LINUX -DGLFW_AVAILABLE -DGLFW_EXPOSE_NATIVE_X11 -DVK_USE_PLATFORM_XCB_KHR=1 -DVULKAN_AVAILABLE -D_DEBUG -I/home/dark_side/dev/github/engine2/src -I/home/dark_side/dev/vulkanSDK-1.3.236.0/1.3.236.0/x86_64/include -I/home/dark_side/dev/github/engine2/src/../3rd_party/vma/include -I/home/dark_side/dev/github/engine2/src/../3rd_party/glm -I/home/dark_side/dev/github/engine2/src/../3rd_party/glfw_3.3.8/include -I/home/dark_side/dev/github/engine2/src/Platform/GLFW -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/include -g -std=c++23 -o engine/CMakeFiles/engine.dir/graphics/render/rhi/vulkan/instance.cpp.o -c /home/dark_side/dev/github/engine2/src/graphics/render/rhi/vulkan/instance.cpp",
+  "file": "/home/dark_side/dev/github/engine2/src/graphics/render/rhi/vulkan/instance.cpp",
+  "output": "engine/CMakeFiles/engine.dir/graphics/render/rhi/vulkan/instance.cpp.o"
+},
+{
+  "directory": "/home/dark_side/dev/github/engine2/build",
+  "command": "/usr/bin/g++ -DCHECK_MEMORY_LEAKS -DENGINE_PLATFORM_LINUX -DGLFW_AVAILABLE -DGLFW_EXPOSE_NATIVE_X11 -DVK_USE_PLATFORM_XCB_KHR=1 -DVULKAN_AVAILABLE -D_DEBUG -I/home/dark_side/dev/github/engine2/src -I/home/dark_side/dev/vulkanSDK-1.3.236.0/1.3.236.0/x86_64/include -I/home/dark_side/dev/github/engine2/src/../3rd_party/vma/include -I/home/dark_side/dev/github/engine2/src/../3rd_party/glm -I/home/dark_side/dev/github/engine2/src/../3rd_party/glfw_3.3.8/include -I/home/dark_side/dev/github/engine2/src/Platform/GLFW -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/include -g -std=c++23 -o engine/CMakeFiles/engine.dir/graphics/render/rhi/vulkan/memory_allocator.cpp.o -c /home/dark_side/dev/github/engine2/src/graphics/render/rhi/vulkan/memory_allocator.cpp",
+  "file": "/home/dark_side/dev/github/engine2/src/graphics/render/rhi/vulkan/memory_allocator.cpp",
+  "output": "engine/CMakeFiles/engine.dir/graphics/render/rhi/vulkan/memory_allocator.cpp.o"
+},
+{
+  "directory": "/home/dark_side/dev/github/engine2/build",
+  "command": "/usr/bin/g++ -DCHECK_MEMORY_LEAKS -DENGINE_PLATFORM_LINUX -DGLFW_AVAILABLE -DGLFW_EXPOSE_NATIVE_X11 -DVK_USE_PLATFORM_XCB_KHR=1 -DVULKAN_AVAILABLE -D_DEBUG -I/home/dark_side/dev/github/engine2/src -I/home/dark_side/dev/vulkanSDK-1.3.236.0/1.3.236.0/x86_64/include -I/home/dark_side/dev/github/engine2/src/../3rd_party/vma/include -I/home/dark_side/dev/github/engine2/src/../3rd_party/glm -I/home/dark_side/dev/github/engine2/src/../3rd_party/glfw_3.3.8/include -I/home/dark_side/dev/github/engine2/src/Platform/GLFW -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/include -g -std=c++23 -o engine/CMakeFiles/engine.dir/graphics/render/rhi/vulkan/physical_device.cpp.o -c /home/dark_side/dev/github/engine2/src/graphics/render/rhi/vulkan/physical_device.cpp",
+  "file": "/home/dark_side/dev/github/engine2/src/graphics/render/rhi/vulkan/physical_device.cpp",
+  "output": "engine/CMakeFiles/engine.dir/graphics/render/rhi/vulkan/physical_device.cpp.o"
+},
+{
+  "directory": "/home/dark_side/dev/github/engine2/build",
+  "command": "/usr/bin/g++ -DCHECK_MEMORY_LEAKS -DENGINE_PLATFORM_LINUX -DGLFW_AVAILABLE -DGLFW_EXPOSE_NATIVE_X11 -DVK_USE_PLATFORM_XCB_KHR=1 -DVULKAN_AVAILABLE -D_DEBUG -I/home/dark_side/dev/github/engine2/src -I/home/dark_side/dev/vulkanSDK-1.3.236.0/1.3.236.0/x86_64/include -I/home/dark_side/dev/github/engine2/src/../3rd_party/vma/include -I/home/dark_side/dev/github/engine2/src/../3rd_party/glm -I/home/dark_side/dev/github/engine2/src/../3rd_party/glfw_3.3.8/include -I/home/dark_side/dev/github/engine2/src/Platform/GLFW -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/include -g -std=c++23 -o engine/CMakeFiles/engine.dir/graphics/render/rhi/vulkan/renderpass.cpp.o -c /home/dark_side/dev/github/engine2/src/graphics/render/rhi/vulkan/renderpass.cpp",
+  "file": "/home/dark_side/dev/github/engine2/src/graphics/render/rhi/vulkan/renderpass.cpp",
+  "output": "engine/CMakeFiles/engine.dir/graphics/render/rhi/vulkan/renderpass.cpp.o"
+},
+{
+  "directory": "/home/dark_side/dev/github/engine2/build",
+  "command": "/usr/bin/g++ -DCHECK_MEMORY_LEAKS -DENGINE_PLATFORM_LINUX -DGLFW_AVAILABLE -DGLFW_EXPOSE_NATIVE_X11 -DVK_USE_PLATFORM_XCB_KHR=1 -DVULKAN_AVAILABLE -D_DEBUG -I/home/dark_side/dev/github/engine2/src -I/home/dark_side/dev/vulkanSDK-1.3.236.0/1.3.236.0/x86_64/include -I/home/dark_side/dev/github/engine2/src/../3rd_party/vma/include -I/home/dark_side/dev/github/engine2/src/../3rd_party/glm -I/home/dark_side/dev/github/engine2/src/../3rd_party/glfw_3.3.8/include -I/home/dark_side/dev/github/engine2/src/Platform/GLFW -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/include -g -std=c++23 -o engine/CMakeFiles/engine.dir/graphics/render/rhi/vulkan/surface.cpp.o -c /home/dark_side/dev/github/engine2/src/graphics/render/rhi/vulkan/surface.cpp",
+  "file": "/home/dark_side/dev/github/engine2/src/graphics/render/rhi/vulkan/surface.cpp",
+  "output": "engine/CMakeFiles/engine.dir/graphics/render/rhi/vulkan/surface.cpp.o"
+},
+{
+  "directory": "/home/dark_side/dev/github/engine2/build",
+  "command": "/usr/bin/g++ -DCHECK_MEMORY_LEAKS -DENGINE_PLATFORM_LINUX -DGLFW_AVAILABLE -DGLFW_EXPOSE_NATIVE_X11 -DVK_USE_PLATFORM_XCB_KHR=1 -DVULKAN_AVAILABLE -D_DEBUG -I/home/dark_side/dev/github/engine2/src -I/home/dark_side/dev/vulkanSDK-1.3.236.0/1.3.236.0/x86_64/include -I/home/dark_side/dev/github/engine2/src/../3rd_party/vma/include -I/home/dark_side/dev/github/engine2/src/../3rd_party/glm -I/home/dark_side/dev/github/engine2/src/../3rd_party/glfw_3.3.8/include -I/home/dark_side/dev/github/engine2/src/Platform/GLFW -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/include -g -std=c++23 -o engine/CMakeFiles/engine.dir/graphics/render/rhi/vulkan/swapchain.cpp.o -c /home/dark_side/dev/github/engine2/src/graphics/render/rhi/vulkan/swapchain.cpp",
+  "file": "/home/dark_side/dev/github/engine2/src/graphics/render/rhi/vulkan/swapchain.cpp",
+  "output": "engine/CMakeFiles/engine.dir/graphics/render/rhi/vulkan/swapchain.cpp.o"
+},
+{
+  "directory": "/home/dark_side/dev/github/engine2/build",
+  "command": "/usr/bin/g++ -DCHECK_MEMORY_LEAKS -DENGINE_PLATFORM_LINUX -DGLFW_AVAILABLE -DGLFW_EXPOSE_NATIVE_X11 -DVK_USE_PLATFORM_XCB_KHR=1 -DVULKAN_AVAILABLE -D_DEBUG -I/home/dark_side/dev/github/engine2/src -I/home/dark_side/dev/vulkanSDK-1.3.236.0/1.3.236.0/x86_64/include -I/home/dark_side/dev/github/engine2/src/../3rd_party/vma/include -I/home/dark_side/dev/github/engine2/src/../3rd_party/glm -I/home/dark_side/dev/github/engine2/src/../3rd_party/glfw_3.3.8/include -I/home/dark_side/dev/github/engine2/src/Platform/GLFW -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/include -g -std=c++23 -o engine/CMakeFiles/engine.dir/utils/base64.cpp.o -c /home/dark_side/dev/github/engine2/src/utils/base64.cpp",
+  "file": "/home/dark_side/dev/github/engine2/src/utils/base64.cpp",
+  "output": "engine/CMakeFiles/engine.dir/utils/base64.cpp.o"
+},
+{
+  "directory": "/home/dark_side/dev/github/engine2/build",
+  "command": "/usr/bin/g++ -DCHECK_MEMORY_LEAKS -DENGINE_PLATFORM_LINUX -DGLFW_AVAILABLE -DGLFW_EXPOSE_NATIVE_X11 -DVK_USE_PLATFORM_XCB_KHR=1 -DVULKAN_AVAILABLE -D_DEBUG -I/home/dark_side/dev/github/engine2/src -I/home/dark_side/dev/vulkanSDK-1.3.236.0/1.3.236.0/x86_64/include -I/home/dark_side/dev/github/engine2/src/../3rd_party/vma/include -I/home/dark_side/dev/github/engine2/src/../3rd_party/glm -I/home/dark_side/dev/github/engine2/src/../3rd_party/glfw_3.3.8/include -I/home/dark_side/dev/github/engine2/src/Platform/GLFW -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/include -g -std=c++23 -o engine/CMakeFiles/engine.dir/utils/profile/leaks.cpp.o -c /home/dark_side/dev/github/engine2/src/utils/profile/leaks.cpp",
+  "file": "/home/dark_side/dev/github/engine2/src/utils/profile/leaks.cpp",
+  "output": "engine/CMakeFiles/engine.dir/utils/profile/leaks.cpp.o"
+},
+{
+  "directory": "/home/dark_side/dev/github/engine2/build",
+  "command": "/usr/bin/g++ -DCHECK_MEMORY_LEAKS -DENGINE_PLATFORM_LINUX -DGLFW_AVAILABLE -DGLFW_EXPOSE_NATIVE_X11 -DVK_USE_PLATFORM_XCB_KHR=1 -DVULKAN_AVAILABLE -D_DEBUG -I/home/dark_side/dev/github/engine2/src -I/home/dark_side/dev/vulkanSDK-1.3.236.0/1.3.236.0/x86_64/include -I/home/dark_side/dev/github/engine2/src/../3rd_party/vma/include -I/home/dark_side/dev/github/engine2/src/../3rd_party/glm -I/home/dark_side/dev/github/engine2/src/../3rd_party/glfw_3.3.8/include -I/home/dark_side/dev/github/engine2/src/Platform/GLFW -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/include -g -std=c++23 -o engine/CMakeFiles/engine.dir/tests/all_tests.cpp.o -c /home/dark_side/dev/github/engine2/src/tests/all_tests.cpp",
+  "file": "/home/dark_side/dev/github/engine2/src/tests/all_tests.cpp",
+  "output": "engine/CMakeFiles/engine.dir/tests/all_tests.cpp.o"
+},
+{
+  "directory": "/home/dark_side/dev/github/engine2/build",
+  "command": "/usr/bin/g++ -DCHECK_MEMORY_LEAKS -DENGINE_PLATFORM_LINUX -DGLFW_AVAILABLE -DGLFW_EXPOSE_NATIVE_X11 -DVK_USE_PLATFORM_XCB_KHR=1 -DVULKAN_AVAILABLE -D_DEBUG -I/home/dark_side/dev/github/engine2/src -I/home/dark_side/dev/vulkanSDK-1.3.236.0/1.3.236.0/x86_64/include -I/home/dark_side/dev/github/engine2/src/../3rd_party/vma/include -I/home/dark_side/dev/github/engine2/src/../3rd_party/glm -I/home/dark_side/dev/github/engine2/src/../3rd_party/glfw_3.3.8/include -I/home/dark_side/dev/github/engine2/src/Platform/GLFW -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/include -g -std=c++23 -o engine/CMakeFiles/engine.dir/device/glfw/device.cpp.o -c /home/dark_side/dev/github/engine2/src/device/glfw/device.cpp",
+  "file": "/home/dark_side/dev/github/engine2/src/device/glfw/device.cpp",
+  "output": "engine/CMakeFiles/engine.dir/device/glfw/device.cpp.o"
+},
+{
+  "directory": "/home/dark_side/dev/github/engine2/build",
+  "command": "/usr/bin/gcc -DCHECK_MEMORY_LEAKS -DENGINE_PLATFORM_LINUX -DGLFW_AVAILABLE -DGLFW_EXPOSE_NATIVE_X11 -DVK_USE_PLATFORM_XCB_KHR=1 -DVULKAN_AVAILABLE -D_DEBUG -D_GLFW_USE_CONFIG_H -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/include -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/src -I/home/dark_side/dev/github/engine2/build/3rd_party/glfw/src  -w -Wno-everything -g -std=gnu99 -fPIC -Wall -Wdeclaration-after-statement -o 3rd_party/glfw/src/CMakeFiles/glfw.dir/context.c.o -c /home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/src/context.c",
+  "file": "/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/src/context.c",
+  "output": "3rd_party/glfw/src/CMakeFiles/glfw.dir/context.c.o"
+},
+{
+  "directory": "/home/dark_side/dev/github/engine2/build",
+  "command": "/usr/bin/gcc -DCHECK_MEMORY_LEAKS -DENGINE_PLATFORM_LINUX -DGLFW_AVAILABLE -DGLFW_EXPOSE_NATIVE_X11 -DVK_USE_PLATFORM_XCB_KHR=1 -DVULKAN_AVAILABLE -D_DEBUG -D_GLFW_USE_CONFIG_H -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/include -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/src -I/home/dark_side/dev/github/engine2/build/3rd_party/glfw/src  -w -Wno-everything -g -std=gnu99 -fPIC -Wall -Wdeclaration-after-statement -o 3rd_party/glfw/src/CMakeFiles/glfw.dir/init.c.o -c /home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/src/init.c",
+  "file": "/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/src/init.c",
+  "output": "3rd_party/glfw/src/CMakeFiles/glfw.dir/init.c.o"
+},
+{
+  "directory": "/home/dark_side/dev/github/engine2/build",
+  "command": "/usr/bin/gcc -DCHECK_MEMORY_LEAKS -DENGINE_PLATFORM_LINUX -DGLFW_AVAILABLE -DGLFW_EXPOSE_NATIVE_X11 -DVK_USE_PLATFORM_XCB_KHR=1 -DVULKAN_AVAILABLE -D_DEBUG -D_GLFW_USE_CONFIG_H -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/include -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/src -I/home/dark_side/dev/github/engine2/build/3rd_party/glfw/src  -w -Wno-everything -g -std=gnu99 -fPIC -Wall -Wdeclaration-after-statement -o 3rd_party/glfw/src/CMakeFiles/glfw.dir/input.c.o -c /home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/src/input.c",
+  "file": "/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/src/input.c",
+  "output": "3rd_party/glfw/src/CMakeFiles/glfw.dir/input.c.o"
+},
+{
+  "directory": "/home/dark_side/dev/github/engine2/build",
+  "command": "/usr/bin/gcc -DCHECK_MEMORY_LEAKS -DENGINE_PLATFORM_LINUX -DGLFW_AVAILABLE -DGLFW_EXPOSE_NATIVE_X11 -DVK_USE_PLATFORM_XCB_KHR=1 -DVULKAN_AVAILABLE -D_DEBUG -D_GLFW_USE_CONFIG_H -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/include -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/src -I/home/dark_side/dev/github/engine2/build/3rd_party/glfw/src  -w -Wno-everything -g -std=gnu99 -fPIC -Wall -Wdeclaration-after-statement -o 3rd_party/glfw/src/CMakeFiles/glfw.dir/monitor.c.o -c /home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/src/monitor.c",
+  "file": "/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/src/monitor.c",
+  "output": "3rd_party/glfw/src/CMakeFiles/glfw.dir/monitor.c.o"
+},
+{
+  "directory": "/home/dark_side/dev/github/engine2/build",
+  "command": "/usr/bin/gcc -DCHECK_MEMORY_LEAKS -DENGINE_PLATFORM_LINUX -DGLFW_AVAILABLE -DGLFW_EXPOSE_NATIVE_X11 -DVK_USE_PLATFORM_XCB_KHR=1 -DVULKAN_AVAILABLE -D_DEBUG -D_GLFW_USE_CONFIG_H -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/include -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/src -I/home/dark_side/dev/github/engine2/build/3rd_party/glfw/src  -w -Wno-everything -g -std=gnu99 -fPIC -Wall -Wdeclaration-after-statement -o 3rd_party/glfw/src/CMakeFiles/glfw.dir/vulkan.c.o -c /home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/src/vulkan.c",
+  "file": "/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/src/vulkan.c",
+  "output": "3rd_party/glfw/src/CMakeFiles/glfw.dir/vulkan.c.o"
+},
+{
+  "directory": "/home/dark_side/dev/github/engine2/build",
+  "command": "/usr/bin/gcc -DCHECK_MEMORY_LEAKS -DENGINE_PLATFORM_LINUX -DGLFW_AVAILABLE -DGLFW_EXPOSE_NATIVE_X11 -DVK_USE_PLATFORM_XCB_KHR=1 -DVULKAN_AVAILABLE -D_DEBUG -D_GLFW_USE_CONFIG_H -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/include -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/src -I/home/dark_side/dev/github/engine2/build/3rd_party/glfw/src  -w -Wno-everything -g -std=gnu99 -fPIC -Wall -Wdeclaration-after-statement -o 3rd_party/glfw/src/CMakeFiles/glfw.dir/window.c.o -c /home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/src/window.c",
+  "file": "/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/src/window.c",
+  "output": "3rd_party/glfw/src/CMakeFiles/glfw.dir/window.c.o"
+},
+{
+  "directory": "/home/dark_side/dev/github/engine2/build",
+  "command": "/usr/bin/gcc -DCHECK_MEMORY_LEAKS -DENGINE_PLATFORM_LINUX -DGLFW_AVAILABLE -DGLFW_EXPOSE_NATIVE_X11 -DVK_USE_PLATFORM_XCB_KHR=1 -DVULKAN_AVAILABLE -D_DEBUG -D_GLFW_USE_CONFIG_H -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/include -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/src -I/home/dark_side/dev/github/engine2/build/3rd_party/glfw/src  -w -Wno-everything -g -std=gnu99 -fPIC -Wall -o 3rd_party/glfw/src/CMakeFiles/glfw.dir/x11_init.c.o -c /home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/src/x11_init.c",
+  "file": "/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/src/x11_init.c",
+  "output": "3rd_party/glfw/src/CMakeFiles/glfw.dir/x11_init.c.o"
+},
+{
+  "directory": "/home/dark_side/dev/github/engine2/build",
+  "command": "/usr/bin/gcc -DCHECK_MEMORY_LEAKS -DENGINE_PLATFORM_LINUX -DGLFW_AVAILABLE -DGLFW_EXPOSE_NATIVE_X11 -DVK_USE_PLATFORM_XCB_KHR=1 -DVULKAN_AVAILABLE -D_DEBUG -D_GLFW_USE_CONFIG_H -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/include -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/src -I/home/dark_side/dev/github/engine2/build/3rd_party/glfw/src  -w -Wno-everything -g -std=gnu99 -fPIC -Wall -o 3rd_party/glfw/src/CMakeFiles/glfw.dir/x11_monitor.c.o -c /home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/src/x11_monitor.c",
+  "file": "/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/src/x11_monitor.c",
+  "output": "3rd_party/glfw/src/CMakeFiles/glfw.dir/x11_monitor.c.o"
+},
+{
+  "directory": "/home/dark_side/dev/github/engine2/build",
+  "command": "/usr/bin/gcc -DCHECK_MEMORY_LEAKS -DENGINE_PLATFORM_LINUX -DGLFW_AVAILABLE -DGLFW_EXPOSE_NATIVE_X11 -DVK_USE_PLATFORM_XCB_KHR=1 -DVULKAN_AVAILABLE -D_DEBUG -D_GLFW_USE_CONFIG_H -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/include -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/src -I/home/dark_side/dev/github/engine2/build/3rd_party/glfw/src  -w -Wno-everything -g -std=gnu99 -fPIC -Wall -o 3rd_party/glfw/src/CMakeFiles/glfw.dir/x11_window.c.o -c /home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/src/x11_window.c",
+  "file": "/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/src/x11_window.c",
+  "output": "3rd_party/glfw/src/CMakeFiles/glfw.dir/x11_window.c.o"
+},
+{
+  "directory": "/home/dark_side/dev/github/engine2/build",
+  "command": "/usr/bin/gcc -DCHECK_MEMORY_LEAKS -DENGINE_PLATFORM_LINUX -DGLFW_AVAILABLE -DGLFW_EXPOSE_NATIVE_X11 -DVK_USE_PLATFORM_XCB_KHR=1 -DVULKAN_AVAILABLE -D_DEBUG -D_GLFW_USE_CONFIG_H -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/include -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/src -I/home/dark_side/dev/github/engine2/build/3rd_party/glfw/src  -w -Wno-everything -g -std=gnu99 -fPIC -Wall -o 3rd_party/glfw/src/CMakeFiles/glfw.dir/xkb_unicode.c.o -c /home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/src/xkb_unicode.c",
+  "file": "/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/src/xkb_unicode.c",
+  "output": "3rd_party/glfw/src/CMakeFiles/glfw.dir/xkb_unicode.c.o"
+},
+{
+  "directory": "/home/dark_side/dev/github/engine2/build",
+  "command": "/usr/bin/gcc -DCHECK_MEMORY_LEAKS -DENGINE_PLATFORM_LINUX -DGLFW_AVAILABLE -DGLFW_EXPOSE_NATIVE_X11 -DVK_USE_PLATFORM_XCB_KHR=1 -DVULKAN_AVAILABLE -D_DEBUG -D_GLFW_USE_CONFIG_H -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/include -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/src -I/home/dark_side/dev/github/engine2/build/3rd_party/glfw/src  -w -Wno-everything -g -std=gnu99 -fPIC -Wall -o 3rd_party/glfw/src/CMakeFiles/glfw.dir/posix_time.c.o -c /home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/src/posix_time.c",
+  "file": "/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/src/posix_time.c",
+  "output": "3rd_party/glfw/src/CMakeFiles/glfw.dir/posix_time.c.o"
+},
+{
+  "directory": "/home/dark_side/dev/github/engine2/build",
+  "command": "/usr/bin/gcc -DCHECK_MEMORY_LEAKS -DENGINE_PLATFORM_LINUX -DGLFW_AVAILABLE -DGLFW_EXPOSE_NATIVE_X11 -DVK_USE_PLATFORM_XCB_KHR=1 -DVULKAN_AVAILABLE -D_DEBUG -D_GLFW_USE_CONFIG_H -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/include -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/src -I/home/dark_side/dev/github/engine2/build/3rd_party/glfw/src  -w -Wno-everything -g -std=gnu99 -fPIC -Wall -o 3rd_party/glfw/src/CMakeFiles/glfw.dir/posix_thread.c.o -c /home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/src/posix_thread.c",
+  "file": "/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/src/posix_thread.c",
+  "output": "3rd_party/glfw/src/CMakeFiles/glfw.dir/posix_thread.c.o"
+},
+{
+  "directory": "/home/dark_side/dev/github/engine2/build",
+  "command": "/usr/bin/gcc -DCHECK_MEMORY_LEAKS -DENGINE_PLATFORM_LINUX -DGLFW_AVAILABLE -DGLFW_EXPOSE_NATIVE_X11 -DVK_USE_PLATFORM_XCB_KHR=1 -DVULKAN_AVAILABLE -D_DEBUG -D_GLFW_USE_CONFIG_H -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/include -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/src -I/home/dark_side/dev/github/engine2/build/3rd_party/glfw/src  -w -Wno-everything -g -std=gnu99 -fPIC -Wall -o 3rd_party/glfw/src/CMakeFiles/glfw.dir/glx_context.c.o -c /home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/src/glx_context.c",
+  "file": "/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/src/glx_context.c",
+  "output": "3rd_party/glfw/src/CMakeFiles/glfw.dir/glx_context.c.o"
+},
+{
+  "directory": "/home/dark_side/dev/github/engine2/build",
+  "command": "/usr/bin/gcc -DCHECK_MEMORY_LEAKS -DENGINE_PLATFORM_LINUX -DGLFW_AVAILABLE -DGLFW_EXPOSE_NATIVE_X11 -DVK_USE_PLATFORM_XCB_KHR=1 -DVULKAN_AVAILABLE -D_DEBUG -D_GLFW_USE_CONFIG_H -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/include -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/src -I/home/dark_side/dev/github/engine2/build/3rd_party/glfw/src  -w -Wno-everything -g -std=gnu99 -fPIC -Wall -Wdeclaration-after-statement -o 3rd_party/glfw/src/CMakeFiles/glfw.dir/egl_context.c.o -c /home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/src/egl_context.c",
+  "file": "/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/src/egl_context.c",
+  "output": "3rd_party/glfw/src/CMakeFiles/glfw.dir/egl_context.c.o"
+},
+{
+  "directory": "/home/dark_side/dev/github/engine2/build",
+  "command": "/usr/bin/gcc -DCHECK_MEMORY_LEAKS -DENGINE_PLATFORM_LINUX -DGLFW_AVAILABLE -DGLFW_EXPOSE_NATIVE_X11 -DVK_USE_PLATFORM_XCB_KHR=1 -DVULKAN_AVAILABLE -D_DEBUG -D_GLFW_USE_CONFIG_H -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/include -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/src -I/home/dark_side/dev/github/engine2/build/3rd_party/glfw/src  -w -Wno-everything -g -std=gnu99 -fPIC -Wall -Wdeclaration-after-statement -o 3rd_party/glfw/src/CMakeFiles/glfw.dir/osmesa_context.c.o -c /home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/src/osmesa_context.c",
+  "file": "/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/src/osmesa_context.c",
+  "output": "3rd_party/glfw/src/CMakeFiles/glfw.dir/osmesa_context.c.o"
+},
+{
+  "directory": "/home/dark_side/dev/github/engine2/build",
+  "command": "/usr/bin/gcc -DCHECK_MEMORY_LEAKS -DENGINE_PLATFORM_LINUX -DGLFW_AVAILABLE -DGLFW_EXPOSE_NATIVE_X11 -DVK_USE_PLATFORM_XCB_KHR=1 -DVULKAN_AVAILABLE -D_DEBUG -D_GLFW_USE_CONFIG_H -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/include -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/src -I/home/dark_side/dev/github/engine2/build/3rd_party/glfw/src  -w -Wno-everything -g -std=gnu99 -fPIC -Wall -o 3rd_party/glfw/src/CMakeFiles/glfw.dir/linux_joystick.c.o -c /home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/src/linux_joystick.c",
+  "file": "/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/src/linux_joystick.c",
+  "output": "3rd_party/glfw/src/CMakeFiles/glfw.dir/linux_joystick.c.o"
+},
+{
+  "directory": "/home/dark_side/dev/github/engine2/build",
+  "command": "/usr/bin/gcc -DCHECK_MEMORY_LEAKS -DENGINE_PLATFORM_LINUX -DGLFW_AVAILABLE -DGLFW_EXPOSE_NATIVE_X11 -DVK_USE_PLATFORM_XCB_KHR=1 -DVULKAN_AVAILABLE -D_DEBUG -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/include  -w -Wno-everything -g -std=gnu99 -o 3rd_party/glfw/examples/CMakeFiles/boing.dir/boing.c.o -c /home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/examples/boing.c",
+  "file": "/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/examples/boing.c",
+  "output": "3rd_party/glfw/examples/CMakeFiles/boing.dir/boing.c.o"
+},
+{
+  "directory": "/home/dark_side/dev/github/engine2/build",
+  "command": "/usr/bin/gcc -DCHECK_MEMORY_LEAKS -DENGINE_PLATFORM_LINUX -DGLFW_AVAILABLE -DGLFW_EXPOSE_NATIVE_X11 -DVK_USE_PLATFORM_XCB_KHR=1 -DVULKAN_AVAILABLE -D_DEBUG -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/include  -w -Wno-everything -g -std=gnu99 -o 3rd_party/glfw/examples/CMakeFiles/boing.dir/__/deps/glad_gl.c.o -c /home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps/glad_gl.c",
+  "file": "/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps/glad_gl.c",
+  "output": "3rd_party/glfw/examples/CMakeFiles/boing.dir/__/deps/glad_gl.c.o"
+},
+{
+  "directory": "/home/dark_side/dev/github/engine2/build",
+  "command": "/usr/bin/gcc -DCHECK_MEMORY_LEAKS -DENGINE_PLATFORM_LINUX -DGLFW_AVAILABLE -DGLFW_EXPOSE_NATIVE_X11 -DVK_USE_PLATFORM_XCB_KHR=1 -DVULKAN_AVAILABLE -D_DEBUG -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/include  -w -Wno-everything -g -std=gnu99 -o 3rd_party/glfw/examples/CMakeFiles/gears.dir/gears.c.o -c /home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/examples/gears.c",
+  "file": "/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/examples/gears.c",
+  "output": "3rd_party/glfw/examples/CMakeFiles/gears.dir/gears.c.o"
+},
+{
+  "directory": "/home/dark_side/dev/github/engine2/build",
+  "command": "/usr/bin/gcc -DCHECK_MEMORY_LEAKS -DENGINE_PLATFORM_LINUX -DGLFW_AVAILABLE -DGLFW_EXPOSE_NATIVE_X11 -DVK_USE_PLATFORM_XCB_KHR=1 -DVULKAN_AVAILABLE -D_DEBUG -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/include  -w -Wno-everything -g -std=gnu99 -o 3rd_party/glfw/examples/CMakeFiles/gears.dir/__/deps/glad_gl.c.o -c /home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps/glad_gl.c",
+  "file": "/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps/glad_gl.c",
+  "output": "3rd_party/glfw/examples/CMakeFiles/gears.dir/__/deps/glad_gl.c.o"
+},
+{
+  "directory": "/home/dark_side/dev/github/engine2/build",
+  "command": "/usr/bin/gcc -DCHECK_MEMORY_LEAKS -DENGINE_PLATFORM_LINUX -DGLFW_AVAILABLE -DGLFW_EXPOSE_NATIVE_X11 -DVK_USE_PLATFORM_XCB_KHR=1 -DVULKAN_AVAILABLE -D_DEBUG -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/include  -w -Wno-everything -g -std=gnu99 -o 3rd_party/glfw/examples/CMakeFiles/heightmap.dir/heightmap.c.o -c /home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/examples/heightmap.c",
+  "file": "/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/examples/heightmap.c",
+  "output": "3rd_party/glfw/examples/CMakeFiles/heightmap.dir/heightmap.c.o"
+},
+{
+  "directory": "/home/dark_side/dev/github/engine2/build",
+  "command": "/usr/bin/gcc -DCHECK_MEMORY_LEAKS -DENGINE_PLATFORM_LINUX -DGLFW_AVAILABLE -DGLFW_EXPOSE_NATIVE_X11 -DVK_USE_PLATFORM_XCB_KHR=1 -DVULKAN_AVAILABLE -D_DEBUG -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/include  -w -Wno-everything -g -std=gnu99 -o 3rd_party/glfw/examples/CMakeFiles/heightmap.dir/__/deps/glad_gl.c.o -c /home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps/glad_gl.c",
+  "file": "/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps/glad_gl.c",
+  "output": "3rd_party/glfw/examples/CMakeFiles/heightmap.dir/__/deps/glad_gl.c.o"
+},
+{
+  "directory": "/home/dark_side/dev/github/engine2/build",
+  "command": "/usr/bin/gcc -DCHECK_MEMORY_LEAKS -DENGINE_PLATFORM_LINUX -DGLFW_AVAILABLE -DGLFW_EXPOSE_NATIVE_X11 -DVK_USE_PLATFORM_XCB_KHR=1 -DVULKAN_AVAILABLE -D_DEBUG -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/include  -w -Wno-everything -g -std=gnu99 -o 3rd_party/glfw/examples/CMakeFiles/offscreen.dir/offscreen.c.o -c /home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/examples/offscreen.c",
+  "file": "/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/examples/offscreen.c",
+  "output": "3rd_party/glfw/examples/CMakeFiles/offscreen.dir/offscreen.c.o"
+},
+{
+  "directory": "/home/dark_side/dev/github/engine2/build",
+  "command": "/usr/bin/gcc -DCHECK_MEMORY_LEAKS -DENGINE_PLATFORM_LINUX -DGLFW_AVAILABLE -DGLFW_EXPOSE_NATIVE_X11 -DVK_USE_PLATFORM_XCB_KHR=1 -DVULKAN_AVAILABLE -D_DEBUG -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/include  -w -Wno-everything -g -std=gnu99 -o 3rd_party/glfw/examples/CMakeFiles/offscreen.dir/__/deps/glad_gl.c.o -c /home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps/glad_gl.c",
+  "file": "/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps/glad_gl.c",
+  "output": "3rd_party/glfw/examples/CMakeFiles/offscreen.dir/__/deps/glad_gl.c.o"
+},
+{
+  "directory": "/home/dark_side/dev/github/engine2/build",
+  "command": "/usr/bin/gcc -DCHECK_MEMORY_LEAKS -DENGINE_PLATFORM_LINUX -DGLFW_AVAILABLE -DGLFW_EXPOSE_NATIVE_X11 -DVK_USE_PLATFORM_XCB_KHR=1 -DVULKAN_AVAILABLE -D_DEBUG -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/include  -w -Wno-everything -g -std=gnu99 -o 3rd_party/glfw/examples/CMakeFiles/particles.dir/particles.c.o -c /home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/examples/particles.c",
+  "file": "/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/examples/particles.c",
+  "output": "3rd_party/glfw/examples/CMakeFiles/particles.dir/particles.c.o"
+},
+{
+  "directory": "/home/dark_side/dev/github/engine2/build",
+  "command": "/usr/bin/gcc -DCHECK_MEMORY_LEAKS -DENGINE_PLATFORM_LINUX -DGLFW_AVAILABLE -DGLFW_EXPOSE_NATIVE_X11 -DVK_USE_PLATFORM_XCB_KHR=1 -DVULKAN_AVAILABLE -D_DEBUG -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/include  -w -Wno-everything -g -std=gnu99 -o 3rd_party/glfw/examples/CMakeFiles/particles.dir/__/deps/tinycthread.c.o -c /home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps/tinycthread.c",
+  "file": "/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps/tinycthread.c",
+  "output": "3rd_party/glfw/examples/CMakeFiles/particles.dir/__/deps/tinycthread.c.o"
+},
+{
+  "directory": "/home/dark_side/dev/github/engine2/build",
+  "command": "/usr/bin/gcc -DCHECK_MEMORY_LEAKS -DENGINE_PLATFORM_LINUX -DGLFW_AVAILABLE -DGLFW_EXPOSE_NATIVE_X11 -DVK_USE_PLATFORM_XCB_KHR=1 -DVULKAN_AVAILABLE -D_DEBUG -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/include  -w -Wno-everything -g -std=gnu99 -o 3rd_party/glfw/examples/CMakeFiles/particles.dir/__/deps/getopt.c.o -c /home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps/getopt.c",
+  "file": "/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps/getopt.c",
+  "output": "3rd_party/glfw/examples/CMakeFiles/particles.dir/__/deps/getopt.c.o"
+},
+{
+  "directory": "/home/dark_side/dev/github/engine2/build",
+  "command": "/usr/bin/gcc -DCHECK_MEMORY_LEAKS -DENGINE_PLATFORM_LINUX -DGLFW_AVAILABLE -DGLFW_EXPOSE_NATIVE_X11 -DVK_USE_PLATFORM_XCB_KHR=1 -DVULKAN_AVAILABLE -D_DEBUG -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/include  -w -Wno-everything -g -std=gnu99 -o 3rd_party/glfw/examples/CMakeFiles/particles.dir/__/deps/glad_gl.c.o -c /home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps/glad_gl.c",
+  "file": "/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps/glad_gl.c",
+  "output": "3rd_party/glfw/examples/CMakeFiles/particles.dir/__/deps/glad_gl.c.o"
+},
+{
+  "directory": "/home/dark_side/dev/github/engine2/build",
+  "command": "/usr/bin/gcc -DCHECK_MEMORY_LEAKS -DENGINE_PLATFORM_LINUX -DGLFW_AVAILABLE -DGLFW_EXPOSE_NATIVE_X11 -DVK_USE_PLATFORM_XCB_KHR=1 -DVULKAN_AVAILABLE -D_DEBUG -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/include  -w -Wno-everything -g -std=gnu99 -o 3rd_party/glfw/examples/CMakeFiles/sharing.dir/sharing.c.o -c /home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/examples/sharing.c",
+  "file": "/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/examples/sharing.c",
+  "output": "3rd_party/glfw/examples/CMakeFiles/sharing.dir/sharing.c.o"
+},
+{
+  "directory": "/home/dark_side/dev/github/engine2/build",
+  "command": "/usr/bin/gcc -DCHECK_MEMORY_LEAKS -DENGINE_PLATFORM_LINUX -DGLFW_AVAILABLE -DGLFW_EXPOSE_NATIVE_X11 -DVK_USE_PLATFORM_XCB_KHR=1 -DVULKAN_AVAILABLE -D_DEBUG -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/include  -w -Wno-everything -g -std=gnu99 -o 3rd_party/glfw/examples/CMakeFiles/sharing.dir/__/deps/glad_gl.c.o -c /home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps/glad_gl.c",
+  "file": "/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps/glad_gl.c",
+  "output": "3rd_party/glfw/examples/CMakeFiles/sharing.dir/__/deps/glad_gl.c.o"
+},
+{
+  "directory": "/home/dark_side/dev/github/engine2/build",
+  "command": "/usr/bin/gcc -DCHECK_MEMORY_LEAKS -DENGINE_PLATFORM_LINUX -DGLFW_AVAILABLE -DGLFW_EXPOSE_NATIVE_X11 -DVK_USE_PLATFORM_XCB_KHR=1 -DVULKAN_AVAILABLE -D_DEBUG -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/include  -w -Wno-everything -g -std=gnu99 -o 3rd_party/glfw/examples/CMakeFiles/simple.dir/simple.c.o -c /home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/examples/simple.c",
+  "file": "/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/examples/simple.c",
+  "output": "3rd_party/glfw/examples/CMakeFiles/simple.dir/simple.c.o"
+},
+{
+  "directory": "/home/dark_side/dev/github/engine2/build",
+  "command": "/usr/bin/gcc -DCHECK_MEMORY_LEAKS -DENGINE_PLATFORM_LINUX -DGLFW_AVAILABLE -DGLFW_EXPOSE_NATIVE_X11 -DVK_USE_PLATFORM_XCB_KHR=1 -DVULKAN_AVAILABLE -D_DEBUG -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/include  -w -Wno-everything -g -std=gnu99 -o 3rd_party/glfw/examples/CMakeFiles/simple.dir/__/deps/glad_gl.c.o -c /home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps/glad_gl.c",
+  "file": "/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps/glad_gl.c",
+  "output": "3rd_party/glfw/examples/CMakeFiles/simple.dir/__/deps/glad_gl.c.o"
+},
+{
+  "directory": "/home/dark_side/dev/github/engine2/build",
+  "command": "/usr/bin/gcc -DCHECK_MEMORY_LEAKS -DENGINE_PLATFORM_LINUX -DGLFW_AVAILABLE -DGLFW_EXPOSE_NATIVE_X11 -DVK_USE_PLATFORM_XCB_KHR=1 -DVULKAN_AVAILABLE -D_DEBUG -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/include  -w -Wno-everything -g -std=gnu99 -o 3rd_party/glfw/examples/CMakeFiles/splitview.dir/splitview.c.o -c /home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/examples/splitview.c",
+  "file": "/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/examples/splitview.c",
+  "output": "3rd_party/glfw/examples/CMakeFiles/splitview.dir/splitview.c.o"
+},
+{
+  "directory": "/home/dark_side/dev/github/engine2/build",
+  "command": "/usr/bin/gcc -DCHECK_MEMORY_LEAKS -DENGINE_PLATFORM_LINUX -DGLFW_AVAILABLE -DGLFW_EXPOSE_NATIVE_X11 -DVK_USE_PLATFORM_XCB_KHR=1 -DVULKAN_AVAILABLE -D_DEBUG -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/include  -w -Wno-everything -g -std=gnu99 -o 3rd_party/glfw/examples/CMakeFiles/splitview.dir/__/deps/glad_gl.c.o -c /home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps/glad_gl.c",
+  "file": "/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps/glad_gl.c",
+  "output": "3rd_party/glfw/examples/CMakeFiles/splitview.dir/__/deps/glad_gl.c.o"
+},
+{
+  "directory": "/home/dark_side/dev/github/engine2/build",
+  "command": "/usr/bin/gcc -DCHECK_MEMORY_LEAKS -DENGINE_PLATFORM_LINUX -DGLFW_AVAILABLE -DGLFW_EXPOSE_NATIVE_X11 -DVK_USE_PLATFORM_XCB_KHR=1 -DVULKAN_AVAILABLE -D_DEBUG -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/include  -w -Wno-everything -g -std=gnu99 -o 3rd_party/glfw/examples/CMakeFiles/wave.dir/wave.c.o -c /home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/examples/wave.c",
+  "file": "/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/examples/wave.c",
+  "output": "3rd_party/glfw/examples/CMakeFiles/wave.dir/wave.c.o"
+},
+{
+  "directory": "/home/dark_side/dev/github/engine2/build",
+  "command": "/usr/bin/gcc -DCHECK_MEMORY_LEAKS -DENGINE_PLATFORM_LINUX -DGLFW_AVAILABLE -DGLFW_EXPOSE_NATIVE_X11 -DVK_USE_PLATFORM_XCB_KHR=1 -DVULKAN_AVAILABLE -D_DEBUG -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/include  -w -Wno-everything -g -std=gnu99 -o 3rd_party/glfw/examples/CMakeFiles/wave.dir/__/deps/glad_gl.c.o -c /home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps/glad_gl.c",
+  "file": "/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps/glad_gl.c",
+  "output": "3rd_party/glfw/examples/CMakeFiles/wave.dir/__/deps/glad_gl.c.o"
+},
+{
+  "directory": "/home/dark_side/dev/github/engine2/build",
+  "command": "/usr/bin/gcc -DCHECK_MEMORY_LEAKS -DENGINE_PLATFORM_LINUX -DGLFW_AVAILABLE -DGLFW_EXPOSE_NATIVE_X11 -DVK_USE_PLATFORM_XCB_KHR=1 -DVULKAN_AVAILABLE -D_DEBUG -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/include  -w -Wno-everything -g -std=gnu99 -o 3rd_party/glfw/tests/CMakeFiles/clipboard.dir/clipboard.c.o -c /home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/tests/clipboard.c",
+  "file": "/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/tests/clipboard.c",
+  "output": "3rd_party/glfw/tests/CMakeFiles/clipboard.dir/clipboard.c.o"
+},
+{
+  "directory": "/home/dark_side/dev/github/engine2/build",
+  "command": "/usr/bin/gcc -DCHECK_MEMORY_LEAKS -DENGINE_PLATFORM_LINUX -DGLFW_AVAILABLE -DGLFW_EXPOSE_NATIVE_X11 -DVK_USE_PLATFORM_XCB_KHR=1 -DVULKAN_AVAILABLE -D_DEBUG -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/include  -w -Wno-everything -g -std=gnu99 -o 3rd_party/glfw/tests/CMakeFiles/clipboard.dir/__/deps/getopt.c.o -c /home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps/getopt.c",
+  "file": "/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps/getopt.c",
+  "output": "3rd_party/glfw/tests/CMakeFiles/clipboard.dir/__/deps/getopt.c.o"
+},
+{
+  "directory": "/home/dark_side/dev/github/engine2/build",
+  "command": "/usr/bin/gcc -DCHECK_MEMORY_LEAKS -DENGINE_PLATFORM_LINUX -DGLFW_AVAILABLE -DGLFW_EXPOSE_NATIVE_X11 -DVK_USE_PLATFORM_XCB_KHR=1 -DVULKAN_AVAILABLE -D_DEBUG -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/include  -w -Wno-everything -g -std=gnu99 -o 3rd_party/glfw/tests/CMakeFiles/clipboard.dir/__/deps/glad_gl.c.o -c /home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps/glad_gl.c",
+  "file": "/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps/glad_gl.c",
+  "output": "3rd_party/glfw/tests/CMakeFiles/clipboard.dir/__/deps/glad_gl.c.o"
+},
+{
+  "directory": "/home/dark_side/dev/github/engine2/build",
+  "command": "/usr/bin/gcc -DCHECK_MEMORY_LEAKS -DENGINE_PLATFORM_LINUX -DGLFW_AVAILABLE -DGLFW_EXPOSE_NATIVE_X11 -DVK_USE_PLATFORM_XCB_KHR=1 -DVULKAN_AVAILABLE -D_DEBUG -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/include  -w -Wno-everything -g -std=gnu99 -o 3rd_party/glfw/tests/CMakeFiles/events.dir/events.c.o -c /home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/tests/events.c",
+  "file": "/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/tests/events.c",
+  "output": "3rd_party/glfw/tests/CMakeFiles/events.dir/events.c.o"
+},
+{
+  "directory": "/home/dark_side/dev/github/engine2/build",
+  "command": "/usr/bin/gcc -DCHECK_MEMORY_LEAKS -DENGINE_PLATFORM_LINUX -DGLFW_AVAILABLE -DGLFW_EXPOSE_NATIVE_X11 -DVK_USE_PLATFORM_XCB_KHR=1 -DVULKAN_AVAILABLE -D_DEBUG -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/include  -w -Wno-everything -g -std=gnu99 -o 3rd_party/glfw/tests/CMakeFiles/events.dir/__/deps/getopt.c.o -c /home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps/getopt.c",
+  "file": "/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps/getopt.c",
+  "output": "3rd_party/glfw/tests/CMakeFiles/events.dir/__/deps/getopt.c.o"
+},
+{
+  "directory": "/home/dark_side/dev/github/engine2/build",
+  "command": "/usr/bin/gcc -DCHECK_MEMORY_LEAKS -DENGINE_PLATFORM_LINUX -DGLFW_AVAILABLE -DGLFW_EXPOSE_NATIVE_X11 -DVK_USE_PLATFORM_XCB_KHR=1 -DVULKAN_AVAILABLE -D_DEBUG -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/include  -w -Wno-everything -g -std=gnu99 -o 3rd_party/glfw/tests/CMakeFiles/events.dir/__/deps/glad_gl.c.o -c /home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps/glad_gl.c",
+  "file": "/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps/glad_gl.c",
+  "output": "3rd_party/glfw/tests/CMakeFiles/events.dir/__/deps/glad_gl.c.o"
+},
+{
+  "directory": "/home/dark_side/dev/github/engine2/build",
+  "command": "/usr/bin/gcc -DCHECK_MEMORY_LEAKS -DENGINE_PLATFORM_LINUX -DGLFW_AVAILABLE -DGLFW_EXPOSE_NATIVE_X11 -DVK_USE_PLATFORM_XCB_KHR=1 -DVULKAN_AVAILABLE -D_DEBUG -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/include  -w -Wno-everything -g -std=gnu99 -o 3rd_party/glfw/tests/CMakeFiles/msaa.dir/msaa.c.o -c /home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/tests/msaa.c",
+  "file": "/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/tests/msaa.c",
+  "output": "3rd_party/glfw/tests/CMakeFiles/msaa.dir/msaa.c.o"
+},
+{
+  "directory": "/home/dark_side/dev/github/engine2/build",
+  "command": "/usr/bin/gcc -DCHECK_MEMORY_LEAKS -DENGINE_PLATFORM_LINUX -DGLFW_AVAILABLE -DGLFW_EXPOSE_NATIVE_X11 -DVK_USE_PLATFORM_XCB_KHR=1 -DVULKAN_AVAILABLE -D_DEBUG -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/include  -w -Wno-everything -g -std=gnu99 -o 3rd_party/glfw/tests/CMakeFiles/msaa.dir/__/deps/getopt.c.o -c /home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps/getopt.c",
+  "file": "/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps/getopt.c",
+  "output": "3rd_party/glfw/tests/CMakeFiles/msaa.dir/__/deps/getopt.c.o"
+},
+{
+  "directory": "/home/dark_side/dev/github/engine2/build",
+  "command": "/usr/bin/gcc -DCHECK_MEMORY_LEAKS -DENGINE_PLATFORM_LINUX -DGLFW_AVAILABLE -DGLFW_EXPOSE_NATIVE_X11 -DVK_USE_PLATFORM_XCB_KHR=1 -DVULKAN_AVAILABLE -D_DEBUG -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/include  -w -Wno-everything -g -std=gnu99 -o 3rd_party/glfw/tests/CMakeFiles/msaa.dir/__/deps/glad_gl.c.o -c /home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps/glad_gl.c",
+  "file": "/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps/glad_gl.c",
+  "output": "3rd_party/glfw/tests/CMakeFiles/msaa.dir/__/deps/glad_gl.c.o"
+},
+{
+  "directory": "/home/dark_side/dev/github/engine2/build",
+  "command": "/usr/bin/gcc -DCHECK_MEMORY_LEAKS -DENGINE_PLATFORM_LINUX -DGLFW_AVAILABLE -DGLFW_EXPOSE_NATIVE_X11 -DVK_USE_PLATFORM_XCB_KHR=1 -DVULKAN_AVAILABLE -D_DEBUG -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/include  -w -Wno-everything -g -std=gnu99 -o 3rd_party/glfw/tests/CMakeFiles/glfwinfo.dir/glfwinfo.c.o -c /home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/tests/glfwinfo.c",
+  "file": "/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/tests/glfwinfo.c",
+  "output": "3rd_party/glfw/tests/CMakeFiles/glfwinfo.dir/glfwinfo.c.o"
+},
+{
+  "directory": "/home/dark_side/dev/github/engine2/build",
+  "command": "/usr/bin/gcc -DCHECK_MEMORY_LEAKS -DENGINE_PLATFORM_LINUX -DGLFW_AVAILABLE -DGLFW_EXPOSE_NATIVE_X11 -DVK_USE_PLATFORM_XCB_KHR=1 -DVULKAN_AVAILABLE -D_DEBUG -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/include  -w -Wno-everything -g -std=gnu99 -o 3rd_party/glfw/tests/CMakeFiles/glfwinfo.dir/__/deps/getopt.c.o -c /home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps/getopt.c",
+  "file": "/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps/getopt.c",
+  "output": "3rd_party/glfw/tests/CMakeFiles/glfwinfo.dir/__/deps/getopt.c.o"
+},
+{
+  "directory": "/home/dark_side/dev/github/engine2/build",
+  "command": "/usr/bin/gcc -DCHECK_MEMORY_LEAKS -DENGINE_PLATFORM_LINUX -DGLFW_AVAILABLE -DGLFW_EXPOSE_NATIVE_X11 -DVK_USE_PLATFORM_XCB_KHR=1 -DVULKAN_AVAILABLE -D_DEBUG -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/include  -w -Wno-everything -g -std=gnu99 -o 3rd_party/glfw/tests/CMakeFiles/glfwinfo.dir/__/deps/glad_gl.c.o -c /home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps/glad_gl.c",
+  "file": "/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps/glad_gl.c",
+  "output": "3rd_party/glfw/tests/CMakeFiles/glfwinfo.dir/__/deps/glad_gl.c.o"
+},
+{
+  "directory": "/home/dark_side/dev/github/engine2/build",
+  "command": "/usr/bin/gcc -DCHECK_MEMORY_LEAKS -DENGINE_PLATFORM_LINUX -DGLFW_AVAILABLE -DGLFW_EXPOSE_NATIVE_X11 -DVK_USE_PLATFORM_XCB_KHR=1 -DVULKAN_AVAILABLE -D_DEBUG -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/include  -w -Wno-everything -g -std=gnu99 -o 3rd_party/glfw/tests/CMakeFiles/glfwinfo.dir/__/deps/glad_vulkan.c.o -c /home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps/glad_vulkan.c",
+  "file": "/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps/glad_vulkan.c",
+  "output": "3rd_party/glfw/tests/CMakeFiles/glfwinfo.dir/__/deps/glad_vulkan.c.o"
+},
+{
+  "directory": "/home/dark_side/dev/github/engine2/build",
+  "command": "/usr/bin/gcc -DCHECK_MEMORY_LEAKS -DENGINE_PLATFORM_LINUX -DGLFW_AVAILABLE -DGLFW_EXPOSE_NATIVE_X11 -DVK_USE_PLATFORM_XCB_KHR=1 -DVULKAN_AVAILABLE -D_DEBUG -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/include  -w -Wno-everything -g -std=gnu99 -o 3rd_party/glfw/tests/CMakeFiles/iconify.dir/iconify.c.o -c /home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/tests/iconify.c",
+  "file": "/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/tests/iconify.c",
+  "output": "3rd_party/glfw/tests/CMakeFiles/iconify.dir/iconify.c.o"
+},
+{
+  "directory": "/home/dark_side/dev/github/engine2/build",
+  "command": "/usr/bin/gcc -DCHECK_MEMORY_LEAKS -DENGINE_PLATFORM_LINUX -DGLFW_AVAILABLE -DGLFW_EXPOSE_NATIVE_X11 -DVK_USE_PLATFORM_XCB_KHR=1 -DVULKAN_AVAILABLE -D_DEBUG -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/include  -w -Wno-everything -g -std=gnu99 -o 3rd_party/glfw/tests/CMakeFiles/iconify.dir/__/deps/getopt.c.o -c /home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps/getopt.c",
+  "file": "/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps/getopt.c",
+  "output": "3rd_party/glfw/tests/CMakeFiles/iconify.dir/__/deps/getopt.c.o"
+},
+{
+  "directory": "/home/dark_side/dev/github/engine2/build",
+  "command": "/usr/bin/gcc -DCHECK_MEMORY_LEAKS -DENGINE_PLATFORM_LINUX -DGLFW_AVAILABLE -DGLFW_EXPOSE_NATIVE_X11 -DVK_USE_PLATFORM_XCB_KHR=1 -DVULKAN_AVAILABLE -D_DEBUG -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/include  -w -Wno-everything -g -std=gnu99 -o 3rd_party/glfw/tests/CMakeFiles/iconify.dir/__/deps/glad_gl.c.o -c /home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps/glad_gl.c",
+  "file": "/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps/glad_gl.c",
+  "output": "3rd_party/glfw/tests/CMakeFiles/iconify.dir/__/deps/glad_gl.c.o"
+},
+{
+  "directory": "/home/dark_side/dev/github/engine2/build",
+  "command": "/usr/bin/gcc -DCHECK_MEMORY_LEAKS -DENGINE_PLATFORM_LINUX -DGLFW_AVAILABLE -DGLFW_EXPOSE_NATIVE_X11 -DVK_USE_PLATFORM_XCB_KHR=1 -DVULKAN_AVAILABLE -D_DEBUG -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/include  -w -Wno-everything -g -std=gnu99 -o 3rd_party/glfw/tests/CMakeFiles/monitors.dir/monitors.c.o -c /home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/tests/monitors.c",
+  "file": "/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/tests/monitors.c",
+  "output": "3rd_party/glfw/tests/CMakeFiles/monitors.dir/monitors.c.o"
+},
+{
+  "directory": "/home/dark_side/dev/github/engine2/build",
+  "command": "/usr/bin/gcc -DCHECK_MEMORY_LEAKS -DENGINE_PLATFORM_LINUX -DGLFW_AVAILABLE -DGLFW_EXPOSE_NATIVE_X11 -DVK_USE_PLATFORM_XCB_KHR=1 -DVULKAN_AVAILABLE -D_DEBUG -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/include  -w -Wno-everything -g -std=gnu99 -o 3rd_party/glfw/tests/CMakeFiles/monitors.dir/__/deps/getopt.c.o -c /home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps/getopt.c",
+  "file": "/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps/getopt.c",
+  "output": "3rd_party/glfw/tests/CMakeFiles/monitors.dir/__/deps/getopt.c.o"
+},
+{
+  "directory": "/home/dark_side/dev/github/engine2/build",
+  "command": "/usr/bin/gcc -DCHECK_MEMORY_LEAKS -DENGINE_PLATFORM_LINUX -DGLFW_AVAILABLE -DGLFW_EXPOSE_NATIVE_X11 -DVK_USE_PLATFORM_XCB_KHR=1 -DVULKAN_AVAILABLE -D_DEBUG -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/include  -w -Wno-everything -g -std=gnu99 -o 3rd_party/glfw/tests/CMakeFiles/monitors.dir/__/deps/glad_gl.c.o -c /home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps/glad_gl.c",
+  "file": "/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps/glad_gl.c",
+  "output": "3rd_party/glfw/tests/CMakeFiles/monitors.dir/__/deps/glad_gl.c.o"
+},
+{
+  "directory": "/home/dark_side/dev/github/engine2/build",
+  "command": "/usr/bin/gcc -DCHECK_MEMORY_LEAKS -DENGINE_PLATFORM_LINUX -DGLFW_AVAILABLE -DGLFW_EXPOSE_NATIVE_X11 -DVK_USE_PLATFORM_XCB_KHR=1 -DVULKAN_AVAILABLE -D_DEBUG -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/include  -w -Wno-everything -g -std=gnu99 -o 3rd_party/glfw/tests/CMakeFiles/reopen.dir/reopen.c.o -c /home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/tests/reopen.c",
+  "file": "/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/tests/reopen.c",
+  "output": "3rd_party/glfw/tests/CMakeFiles/reopen.dir/reopen.c.o"
+},
+{
+  "directory": "/home/dark_side/dev/github/engine2/build",
+  "command": "/usr/bin/gcc -DCHECK_MEMORY_LEAKS -DENGINE_PLATFORM_LINUX -DGLFW_AVAILABLE -DGLFW_EXPOSE_NATIVE_X11 -DVK_USE_PLATFORM_XCB_KHR=1 -DVULKAN_AVAILABLE -D_DEBUG -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/include  -w -Wno-everything -g -std=gnu99 -o 3rd_party/glfw/tests/CMakeFiles/reopen.dir/__/deps/glad_gl.c.o -c /home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps/glad_gl.c",
+  "file": "/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps/glad_gl.c",
+  "output": "3rd_party/glfw/tests/CMakeFiles/reopen.dir/__/deps/glad_gl.c.o"
+},
+{
+  "directory": "/home/dark_side/dev/github/engine2/build",
+  "command": "/usr/bin/gcc -DCHECK_MEMORY_LEAKS -DENGINE_PLATFORM_LINUX -DGLFW_AVAILABLE -DGLFW_EXPOSE_NATIVE_X11 -DVK_USE_PLATFORM_XCB_KHR=1 -DVULKAN_AVAILABLE -D_DEBUG -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/include  -w -Wno-everything -g -std=gnu99 -o 3rd_party/glfw/tests/CMakeFiles/cursor.dir/cursor.c.o -c /home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/tests/cursor.c",
+  "file": "/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/tests/cursor.c",
+  "output": "3rd_party/glfw/tests/CMakeFiles/cursor.dir/cursor.c.o"
+},
+{
+  "directory": "/home/dark_side/dev/github/engine2/build",
+  "command": "/usr/bin/gcc -DCHECK_MEMORY_LEAKS -DENGINE_PLATFORM_LINUX -DGLFW_AVAILABLE -DGLFW_EXPOSE_NATIVE_X11 -DVK_USE_PLATFORM_XCB_KHR=1 -DVULKAN_AVAILABLE -D_DEBUG -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/include  -w -Wno-everything -g -std=gnu99 -o 3rd_party/glfw/tests/CMakeFiles/cursor.dir/__/deps/glad_gl.c.o -c /home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps/glad_gl.c",
+  "file": "/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps/glad_gl.c",
+  "output": "3rd_party/glfw/tests/CMakeFiles/cursor.dir/__/deps/glad_gl.c.o"
+},
+{
+  "directory": "/home/dark_side/dev/github/engine2/build",
+  "command": "/usr/bin/gcc -DCHECK_MEMORY_LEAKS -DENGINE_PLATFORM_LINUX -DGLFW_AVAILABLE -DGLFW_EXPOSE_NATIVE_X11 -DVK_USE_PLATFORM_XCB_KHR=1 -DVULKAN_AVAILABLE -D_DEBUG -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/include  -w -Wno-everything -g -std=gnu99 -o 3rd_party/glfw/tests/CMakeFiles/empty.dir/empty.c.o -c /home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/tests/empty.c",
+  "file": "/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/tests/empty.c",
+  "output": "3rd_party/glfw/tests/CMakeFiles/empty.dir/empty.c.o"
+},
+{
+  "directory": "/home/dark_side/dev/github/engine2/build",
+  "command": "/usr/bin/gcc -DCHECK_MEMORY_LEAKS -DENGINE_PLATFORM_LINUX -DGLFW_AVAILABLE -DGLFW_EXPOSE_NATIVE_X11 -DVK_USE_PLATFORM_XCB_KHR=1 -DVULKAN_AVAILABLE -D_DEBUG -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/include  -w -Wno-everything -g -std=gnu99 -o 3rd_party/glfw/tests/CMakeFiles/empty.dir/__/deps/tinycthread.c.o -c /home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps/tinycthread.c",
+  "file": "/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps/tinycthread.c",
+  "output": "3rd_party/glfw/tests/CMakeFiles/empty.dir/__/deps/tinycthread.c.o"
+},
+{
+  "directory": "/home/dark_side/dev/github/engine2/build",
+  "command": "/usr/bin/gcc -DCHECK_MEMORY_LEAKS -DENGINE_PLATFORM_LINUX -DGLFW_AVAILABLE -DGLFW_EXPOSE_NATIVE_X11 -DVK_USE_PLATFORM_XCB_KHR=1 -DVULKAN_AVAILABLE -D_DEBUG -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/include  -w -Wno-everything -g -std=gnu99 -o 3rd_party/glfw/tests/CMakeFiles/empty.dir/__/deps/glad_gl.c.o -c /home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps/glad_gl.c",
+  "file": "/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps/glad_gl.c",
+  "output": "3rd_party/glfw/tests/CMakeFiles/empty.dir/__/deps/glad_gl.c.o"
+},
+{
+  "directory": "/home/dark_side/dev/github/engine2/build",
+  "command": "/usr/bin/gcc -DCHECK_MEMORY_LEAKS -DENGINE_PLATFORM_LINUX -DGLFW_AVAILABLE -DGLFW_EXPOSE_NATIVE_X11 -DVK_USE_PLATFORM_XCB_KHR=1 -DVULKAN_AVAILABLE -D_DEBUG -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/include  -w -Wno-everything -g -std=gnu99 -o 3rd_party/glfw/tests/CMakeFiles/gamma.dir/gamma.c.o -c /home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/tests/gamma.c",
+  "file": "/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/tests/gamma.c",
+  "output": "3rd_party/glfw/tests/CMakeFiles/gamma.dir/gamma.c.o"
+},
+{
+  "directory": "/home/dark_side/dev/github/engine2/build",
+  "command": "/usr/bin/gcc -DCHECK_MEMORY_LEAKS -DENGINE_PLATFORM_LINUX -DGLFW_AVAILABLE -DGLFW_EXPOSE_NATIVE_X11 -DVK_USE_PLATFORM_XCB_KHR=1 -DVULKAN_AVAILABLE -D_DEBUG -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/include  -w -Wno-everything -g -std=gnu99 -o 3rd_party/glfw/tests/CMakeFiles/gamma.dir/__/deps/glad_gl.c.o -c /home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps/glad_gl.c",
+  "file": "/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps/glad_gl.c",
+  "output": "3rd_party/glfw/tests/CMakeFiles/gamma.dir/__/deps/glad_gl.c.o"
+},
+{
+  "directory": "/home/dark_side/dev/github/engine2/build",
+  "command": "/usr/bin/gcc -DCHECK_MEMORY_LEAKS -DENGINE_PLATFORM_LINUX -DGLFW_AVAILABLE -DGLFW_EXPOSE_NATIVE_X11 -DVK_USE_PLATFORM_XCB_KHR=1 -DVULKAN_AVAILABLE -D_DEBUG -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/include  -w -Wno-everything -g -std=gnu99 -o 3rd_party/glfw/tests/CMakeFiles/icon.dir/icon.c.o -c /home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/tests/icon.c",
+  "file": "/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/tests/icon.c",
+  "output": "3rd_party/glfw/tests/CMakeFiles/icon.dir/icon.c.o"
+},
+{
+  "directory": "/home/dark_side/dev/github/engine2/build",
+  "command": "/usr/bin/gcc -DCHECK_MEMORY_LEAKS -DENGINE_PLATFORM_LINUX -DGLFW_AVAILABLE -DGLFW_EXPOSE_NATIVE_X11 -DVK_USE_PLATFORM_XCB_KHR=1 -DVULKAN_AVAILABLE -D_DEBUG -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/include  -w -Wno-everything -g -std=gnu99 -o 3rd_party/glfw/tests/CMakeFiles/icon.dir/__/deps/glad_gl.c.o -c /home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps/glad_gl.c",
+  "file": "/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps/glad_gl.c",
+  "output": "3rd_party/glfw/tests/CMakeFiles/icon.dir/__/deps/glad_gl.c.o"
+},
+{
+  "directory": "/home/dark_side/dev/github/engine2/build",
+  "command": "/usr/bin/gcc -DCHECK_MEMORY_LEAKS -DENGINE_PLATFORM_LINUX -DGLFW_AVAILABLE -DGLFW_EXPOSE_NATIVE_X11 -DVK_USE_PLATFORM_XCB_KHR=1 -DVULKAN_AVAILABLE -D_DEBUG -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/include  -w -Wno-everything -g -std=gnu99 -o 3rd_party/glfw/tests/CMakeFiles/inputlag.dir/inputlag.c.o -c /home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/tests/inputlag.c",
+  "file": "/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/tests/inputlag.c",
+  "output": "3rd_party/glfw/tests/CMakeFiles/inputlag.dir/inputlag.c.o"
+},
+{
+  "directory": "/home/dark_side/dev/github/engine2/build",
+  "command": "/usr/bin/gcc -DCHECK_MEMORY_LEAKS -DENGINE_PLATFORM_LINUX -DGLFW_AVAILABLE -DGLFW_EXPOSE_NATIVE_X11 -DVK_USE_PLATFORM_XCB_KHR=1 -DVULKAN_AVAILABLE -D_DEBUG -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/include  -w -Wno-everything -g -std=gnu99 -o 3rd_party/glfw/tests/CMakeFiles/inputlag.dir/__/deps/getopt.c.o -c /home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps/getopt.c",
+  "file": "/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps/getopt.c",
+  "output": "3rd_party/glfw/tests/CMakeFiles/inputlag.dir/__/deps/getopt.c.o"
+},
+{
+  "directory": "/home/dark_side/dev/github/engine2/build",
+  "command": "/usr/bin/gcc -DCHECK_MEMORY_LEAKS -DENGINE_PLATFORM_LINUX -DGLFW_AVAILABLE -DGLFW_EXPOSE_NATIVE_X11 -DVK_USE_PLATFORM_XCB_KHR=1 -DVULKAN_AVAILABLE -D_DEBUG -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/include  -w -Wno-everything -g -std=gnu99 -o 3rd_party/glfw/tests/CMakeFiles/inputlag.dir/__/deps/glad_gl.c.o -c /home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps/glad_gl.c",
+  "file": "/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps/glad_gl.c",
+  "output": "3rd_party/glfw/tests/CMakeFiles/inputlag.dir/__/deps/glad_gl.c.o"
+},
+{
+  "directory": "/home/dark_side/dev/github/engine2/build",
+  "command": "/usr/bin/gcc -DCHECK_MEMORY_LEAKS -DENGINE_PLATFORM_LINUX -DGLFW_AVAILABLE -DGLFW_EXPOSE_NATIVE_X11 -DVK_USE_PLATFORM_XCB_KHR=1 -DVULKAN_AVAILABLE -D_DEBUG -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/include  -w -Wno-everything -g -std=gnu99 -o 3rd_party/glfw/tests/CMakeFiles/joysticks.dir/joysticks.c.o -c /home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/tests/joysticks.c",
+  "file": "/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/tests/joysticks.c",
+  "output": "3rd_party/glfw/tests/CMakeFiles/joysticks.dir/joysticks.c.o"
+},
+{
+  "directory": "/home/dark_side/dev/github/engine2/build",
+  "command": "/usr/bin/gcc -DCHECK_MEMORY_LEAKS -DENGINE_PLATFORM_LINUX -DGLFW_AVAILABLE -DGLFW_EXPOSE_NATIVE_X11 -DVK_USE_PLATFORM_XCB_KHR=1 -DVULKAN_AVAILABLE -D_DEBUG -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/include  -w -Wno-everything -g -std=gnu99 -o 3rd_party/glfw/tests/CMakeFiles/joysticks.dir/__/deps/glad_gl.c.o -c /home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps/glad_gl.c",
+  "file": "/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps/glad_gl.c",
+  "output": "3rd_party/glfw/tests/CMakeFiles/joysticks.dir/__/deps/glad_gl.c.o"
+},
+{
+  "directory": "/home/dark_side/dev/github/engine2/build",
+  "command": "/usr/bin/gcc -DCHECK_MEMORY_LEAKS -DENGINE_PLATFORM_LINUX -DGLFW_AVAILABLE -DGLFW_EXPOSE_NATIVE_X11 -DVK_USE_PLATFORM_XCB_KHR=1 -DVULKAN_AVAILABLE -D_DEBUG -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/include  -w -Wno-everything -g -std=gnu99 -o 3rd_party/glfw/tests/CMakeFiles/opacity.dir/opacity.c.o -c /home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/tests/opacity.c",
+  "file": "/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/tests/opacity.c",
+  "output": "3rd_party/glfw/tests/CMakeFiles/opacity.dir/opacity.c.o"
+},
+{
+  "directory": "/home/dark_side/dev/github/engine2/build",
+  "command": "/usr/bin/gcc -DCHECK_MEMORY_LEAKS -DENGINE_PLATFORM_LINUX -DGLFW_AVAILABLE -DGLFW_EXPOSE_NATIVE_X11 -DVK_USE_PLATFORM_XCB_KHR=1 -DVULKAN_AVAILABLE -D_DEBUG -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/include  -w -Wno-everything -g -std=gnu99 -o 3rd_party/glfw/tests/CMakeFiles/opacity.dir/__/deps/glad_gl.c.o -c /home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps/glad_gl.c",
+  "file": "/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps/glad_gl.c",
+  "output": "3rd_party/glfw/tests/CMakeFiles/opacity.dir/__/deps/glad_gl.c.o"
+},
+{
+  "directory": "/home/dark_side/dev/github/engine2/build",
+  "command": "/usr/bin/gcc -DCHECK_MEMORY_LEAKS -DENGINE_PLATFORM_LINUX -DGLFW_AVAILABLE -DGLFW_EXPOSE_NATIVE_X11 -DVK_USE_PLATFORM_XCB_KHR=1 -DVULKAN_AVAILABLE -D_DEBUG -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/include  -w -Wno-everything -g -std=gnu99 -o 3rd_party/glfw/tests/CMakeFiles/tearing.dir/tearing.c.o -c /home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/tests/tearing.c",
+  "file": "/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/tests/tearing.c",
+  "output": "3rd_party/glfw/tests/CMakeFiles/tearing.dir/tearing.c.o"
+},
+{
+  "directory": "/home/dark_side/dev/github/engine2/build",
+  "command": "/usr/bin/gcc -DCHECK_MEMORY_LEAKS -DENGINE_PLATFORM_LINUX -DGLFW_AVAILABLE -DGLFW_EXPOSE_NATIVE_X11 -DVK_USE_PLATFORM_XCB_KHR=1 -DVULKAN_AVAILABLE -D_DEBUG -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/include  -w -Wno-everything -g -std=gnu99 -o 3rd_party/glfw/tests/CMakeFiles/tearing.dir/__/deps/glad_gl.c.o -c /home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps/glad_gl.c",
+  "file": "/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps/glad_gl.c",
+  "output": "3rd_party/glfw/tests/CMakeFiles/tearing.dir/__/deps/glad_gl.c.o"
+},
+{
+  "directory": "/home/dark_side/dev/github/engine2/build",
+  "command": "/usr/bin/gcc -DCHECK_MEMORY_LEAKS -DENGINE_PLATFORM_LINUX -DGLFW_AVAILABLE -DGLFW_EXPOSE_NATIVE_X11 -DVK_USE_PLATFORM_XCB_KHR=1 -DVULKAN_AVAILABLE -D_DEBUG -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/include  -w -Wno-everything -g -std=gnu99 -o 3rd_party/glfw/tests/CMakeFiles/threads.dir/threads.c.o -c /home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/tests/threads.c",
+  "file": "/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/tests/threads.c",
+  "output": "3rd_party/glfw/tests/CMakeFiles/threads.dir/threads.c.o"
+},
+{
+  "directory": "/home/dark_side/dev/github/engine2/build",
+  "command": "/usr/bin/gcc -DCHECK_MEMORY_LEAKS -DENGINE_PLATFORM_LINUX -DGLFW_AVAILABLE -DGLFW_EXPOSE_NATIVE_X11 -DVK_USE_PLATFORM_XCB_KHR=1 -DVULKAN_AVAILABLE -D_DEBUG -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/include  -w -Wno-everything -g -std=gnu99 -o 3rd_party/glfw/tests/CMakeFiles/threads.dir/__/deps/tinycthread.c.o -c /home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps/tinycthread.c",
+  "file": "/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps/tinycthread.c",
+  "output": "3rd_party/glfw/tests/CMakeFiles/threads.dir/__/deps/tinycthread.c.o"
+},
+{
+  "directory": "/home/dark_side/dev/github/engine2/build",
+  "command": "/usr/bin/gcc -DCHECK_MEMORY_LEAKS -DENGINE_PLATFORM_LINUX -DGLFW_AVAILABLE -DGLFW_EXPOSE_NATIVE_X11 -DVK_USE_PLATFORM_XCB_KHR=1 -DVULKAN_AVAILABLE -D_DEBUG -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/include  -w -Wno-everything -g -std=gnu99 -o 3rd_party/glfw/tests/CMakeFiles/threads.dir/__/deps/glad_gl.c.o -c /home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps/glad_gl.c",
+  "file": "/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps/glad_gl.c",
+  "output": "3rd_party/glfw/tests/CMakeFiles/threads.dir/__/deps/glad_gl.c.o"
+},
+{
+  "directory": "/home/dark_side/dev/github/engine2/build",
+  "command": "/usr/bin/gcc -DCHECK_MEMORY_LEAKS -DENGINE_PLATFORM_LINUX -DGLFW_AVAILABLE -DGLFW_EXPOSE_NATIVE_X11 -DVK_USE_PLATFORM_XCB_KHR=1 -DVULKAN_AVAILABLE -D_DEBUG -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/include  -w -Wno-everything -g -std=gnu99 -o 3rd_party/glfw/tests/CMakeFiles/timeout.dir/timeout.c.o -c /home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/tests/timeout.c",
+  "file": "/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/tests/timeout.c",
+  "output": "3rd_party/glfw/tests/CMakeFiles/timeout.dir/timeout.c.o"
+},
+{
+  "directory": "/home/dark_side/dev/github/engine2/build",
+  "command": "/usr/bin/gcc -DCHECK_MEMORY_LEAKS -DENGINE_PLATFORM_LINUX -DGLFW_AVAILABLE -DGLFW_EXPOSE_NATIVE_X11 -DVK_USE_PLATFORM_XCB_KHR=1 -DVULKAN_AVAILABLE -D_DEBUG -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/include  -w -Wno-everything -g -std=gnu99 -o 3rd_party/glfw/tests/CMakeFiles/timeout.dir/__/deps/glad_gl.c.o -c /home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps/glad_gl.c",
+  "file": "/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps/glad_gl.c",
+  "output": "3rd_party/glfw/tests/CMakeFiles/timeout.dir/__/deps/glad_gl.c.o"
+},
+{
+  "directory": "/home/dark_side/dev/github/engine2/build",
+  "command": "/usr/bin/gcc -DCHECK_MEMORY_LEAKS -DENGINE_PLATFORM_LINUX -DGLFW_AVAILABLE -DGLFW_EXPOSE_NATIVE_X11 -DVK_USE_PLATFORM_XCB_KHR=1 -DVULKAN_AVAILABLE -D_DEBUG -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/include  -w -Wno-everything -g -std=gnu99 -o 3rd_party/glfw/tests/CMakeFiles/title.dir/title.c.o -c /home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/tests/title.c",
+  "file": "/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/tests/title.c",
+  "output": "3rd_party/glfw/tests/CMakeFiles/title.dir/title.c.o"
+},
+{
+  "directory": "/home/dark_side/dev/github/engine2/build",
+  "command": "/usr/bin/gcc -DCHECK_MEMORY_LEAKS -DENGINE_PLATFORM_LINUX -DGLFW_AVAILABLE -DGLFW_EXPOSE_NATIVE_X11 -DVK_USE_PLATFORM_XCB_KHR=1 -DVULKAN_AVAILABLE -D_DEBUG -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/include  -w -Wno-everything -g -std=gnu99 -o 3rd_party/glfw/tests/CMakeFiles/title.dir/__/deps/glad_gl.c.o -c /home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps/glad_gl.c",
+  "file": "/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps/glad_gl.c",
+  "output": "3rd_party/glfw/tests/CMakeFiles/title.dir/__/deps/glad_gl.c.o"
+},
+{
+  "directory": "/home/dark_side/dev/github/engine2/build",
+  "command": "/usr/bin/gcc -DCHECK_MEMORY_LEAKS -DENGINE_PLATFORM_LINUX -DGLFW_AVAILABLE -DGLFW_EXPOSE_NATIVE_X11 -DVK_USE_PLATFORM_XCB_KHR=1 -DVULKAN_AVAILABLE -D_DEBUG -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/include  -w -Wno-everything -g -std=gnu99 -o 3rd_party/glfw/tests/CMakeFiles/triangle-vulkan.dir/triangle-vulkan.c.o -c /home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/tests/triangle-vulkan.c",
+  "file": "/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/tests/triangle-vulkan.c",
+  "output": "3rd_party/glfw/tests/CMakeFiles/triangle-vulkan.dir/triangle-vulkan.c.o"
+},
+{
+  "directory": "/home/dark_side/dev/github/engine2/build",
+  "command": "/usr/bin/gcc -DCHECK_MEMORY_LEAKS -DENGINE_PLATFORM_LINUX -DGLFW_AVAILABLE -DGLFW_EXPOSE_NATIVE_X11 -DVK_USE_PLATFORM_XCB_KHR=1 -DVULKAN_AVAILABLE -D_DEBUG -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/include  -w -Wno-everything -g -std=gnu99 -o 3rd_party/glfw/tests/CMakeFiles/triangle-vulkan.dir/__/deps/glad_vulkan.c.o -c /home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps/glad_vulkan.c",
+  "file": "/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps/glad_vulkan.c",
+  "output": "3rd_party/glfw/tests/CMakeFiles/triangle-vulkan.dir/__/deps/glad_vulkan.c.o"
+},
+{
+  "directory": "/home/dark_side/dev/github/engine2/build",
+  "command": "/usr/bin/gcc -DCHECK_MEMORY_LEAKS -DENGINE_PLATFORM_LINUX -DGLFW_AVAILABLE -DGLFW_EXPOSE_NATIVE_X11 -DVK_USE_PLATFORM_XCB_KHR=1 -DVULKAN_AVAILABLE -D_DEBUG -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/include  -w -Wno-everything -g -std=gnu99 -o 3rd_party/glfw/tests/CMakeFiles/windows.dir/windows.c.o -c /home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/tests/windows.c",
+  "file": "/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/tests/windows.c",
+  "output": "3rd_party/glfw/tests/CMakeFiles/windows.dir/windows.c.o"
+},
+{
+  "directory": "/home/dark_side/dev/github/engine2/build",
+  "command": "/usr/bin/gcc -DCHECK_MEMORY_LEAKS -DENGINE_PLATFORM_LINUX -DGLFW_AVAILABLE -DGLFW_EXPOSE_NATIVE_X11 -DVK_USE_PLATFORM_XCB_KHR=1 -DVULKAN_AVAILABLE -D_DEBUG -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/include  -w -Wno-everything -g -std=gnu99 -o 3rd_party/glfw/tests/CMakeFiles/windows.dir/__/deps/getopt.c.o -c /home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps/getopt.c",
+  "file": "/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps/getopt.c",
+  "output": "3rd_party/glfw/tests/CMakeFiles/windows.dir/__/deps/getopt.c.o"
+},
+{
+  "directory": "/home/dark_side/dev/github/engine2/build",
+  "command": "/usr/bin/gcc -DCHECK_MEMORY_LEAKS -DENGINE_PLATFORM_LINUX -DGLFW_AVAILABLE -DGLFW_EXPOSE_NATIVE_X11 -DVK_USE_PLATFORM_XCB_KHR=1 -DVULKAN_AVAILABLE -D_DEBUG -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps -I/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/include  -w -Wno-everything -g -std=gnu99 -o 3rd_party/glfw/tests/CMakeFiles/windows.dir/__/deps/glad_gl.c.o -c /home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps/glad_gl.c",
+  "file": "/home/dark_side/dev/github/engine2/3rd_party/glfw_3.3.8/deps/glad_gl.c",
+  "output": "3rd_party/glfw/tests/CMakeFiles/windows.dir/__/deps/glad_gl.c.o"
+}
+]

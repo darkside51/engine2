@@ -1,0 +1,7 @@
+1. доделать тесты (не забыть stack allocator + перетащить из main код в тесты)
+2. синхронизации в fileManager (+ create_folder) - done?
+3. glfw device
+4. input
+5. json
+6. engine
+7. render

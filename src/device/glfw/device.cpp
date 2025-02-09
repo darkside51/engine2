@@ -1,0 +1,131 @@
+#include "device.h"
+
+#include "graphics/render/rhi/common/surface.h"
+
+#include <GLFW/glfw3.h>
+#include <GLFW/glfw3native.h>
+
+#include <algorithm>
+#include <thread>
+
+namespace engine {
+    
+    GLFWModule::GLFWModule() {
+        glfwInit();
+    }
+
+    GLFWModule::~GLFWModule() {
+        glfwTerminate();
+    }
+
+    GLFWDevice & GLFWModule::open(std::string_view name) {
+        return *_devices.emplace_back(std::make_unique<GLFWDevice>(name));
+    }
+
+    void GLFWModule::process(float sleepTime) {
+        while (!_devices.empty()) {
+            if (sleepTime > 0.0f) {
+                std::this_thread::sleep_for(std::chrono::duration<float>(sleepTime));
+                glfwPollEvents();
+            } else {
+                glfwWaitEvents();
+            }
+            
+            auto sz = _devices.size();
+            for (size_t i = 0u; i < sz;) {
+                auto const & device = _devices[i];
+                if (glfwWindowShouldClose(device->_window)) {
+                    std::swap(_devices[i], _devices[sz - 1]);
+                    --sz;
+                } else {
+                    ++i;
+                }
+            }
+
+            _devices.erase(_devices.end() - (_devices.size() - sz), _devices.end());
+        }
+    }
+
+    void GLFWModule::stop() {
+        for (auto & device : _devices) {
+            device->close();
+        }
+    }
+
+    //
+    void glfwOnKeyboard(GLFWwindow* window, int key, int /*scancode*/, int action, int /*mods*/) {
+        auto * device = static_cast<GLFWDevice*>(glfwGetWindowUserPointer(window));
+        switch (key) {
+        case GLFW_KEY_ESCAPE:
+            device->close();
+            // glfwSetWindowShouldClose(window, 1);
+            break;
+        default:
+            break;
+        }
+    }
+
+    GLFWDevice::GLFWDevice(GLFWDevice&& d) noexcept {
+        _window = d._window;
+        _width = d._width;
+        _height = d._height;
+        _fullscreen = d._fullscreen;
+        d._window = nullptr;
+    }
+
+    GLFWDevice& GLFWDevice::operator=(GLFWDevice&& d) noexcept {
+        if (_window) {
+            glfwDestroyWindow(_window);
+        }
+
+        _window = d._window;
+        _width = d._width;
+        _height = d._height;
+        _fullscreen = d._fullscreen;
+        d._window = nullptr;
+        return *this;
+    }
+
+    GLFWDevice::GLFWDevice(std::string_view name) {
+        glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+		glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
+
+		_width = 1024u;
+		_height = 768u;
+
+		_window = glfwCreateWindow(_width, _height, name.data(), nullptr, nullptr);
+        glfwSetWindowUserPointer(_window, this);
+
+        // //glfwSetFramebufferSizeCallback(_window, &glfwOnFrameBufferResize);
+		// glfwSetWindowSizeCallback(_window, &glfwOnWindowResize);
+		// glfwSetWindowIconifyCallback(_window, &glfwOnWindowIconify);
+
+		// // input callbacks
+		// glfwSetCursorPosCallback(_window, &glfwOnMouseMove);
+		// glfwSetMouseButtonCallback(_window, &glfwOnMouseButton);
+		// glfwSetScrollCallback(_window, &glfwOnScroll);
+		glfwSetKeyCallback(_window, &glfwOnKeyboard);
+		// glfwSetCharCallback(_window, &glfwOnChar);
+    }
+
+    GLFWDevice::~GLFWDevice() {
+        // Engine::getInstance().deviceDestroyed();
+        
+        if (_window) {
+            glfwDestroyWindow(_window);
+            _window = nullptr;
+        }
+    }
+
+	void GLFWDevice::close() {
+        glfwSetWindowShouldClose(_window, 1);
+    }
+    
+    rhi::SurfaceCreateInfo GLFWDevice::getSurfaceCreateInfo() const noexcept {
+        #ifdef GLFW_EXPOSE_NATIVE_X11
+        return {rhi::SurfaceType::eWindowSurface, glfwGetX11Display(), reinterpret_cast<void*>(glfwGetX11Window(_window))};
+        #elif defined GLFW_EXPOSE_NATIVE_WIN32
+        return {rhi::SurfaceType::eWindowSurface, nullptr, reinterpret_cast<void*>(glfwGetWin32Window(_window))};
+        #endif
+    }
+}

@@ -1,0 +1,34 @@
+#pragma once
+
+#include "graphics/render/rhi/common/framebuffer.h"
+#include "graphics/render/rhi/common/types.h"
+
+#include <vulkan/vulkan.h>
+
+#include <cstdint>
+#include <vector>
+
+namespace engine::vulkan {
+
+class Device;
+
+class FrameBuffer {
+public:
+    FrameBuffer(const Device & device, std::vector<rhi::FrameBufferAttachment> && attachemnts, VkRenderPass renderPass);
+    ~FrameBuffer();
+
+    inline VkFramebuffer operator ()() const noexcept { return _framebuffer; }
+    inline explicit operator bool() const noexcept { return _framebuffer != VK_NULL_HANDLE; }
+
+    VkRenderPass getRenderPass() const noexcept { return _renderPass; }
+    rhi::Extent2D getSize() const noexcept { return _size; }
+
+private:
+    const Device & _device;
+    rhi::Extent2D _size = {0u, 0u};
+    std::vector<rhi::FrameBufferAttachment> _attachments;
+    VkRenderPass _renderPass = VK_NULL_HANDLE;
+    VkFramebuffer _framebuffer = VK_NULL_HANDLE;
+};
+
+}
