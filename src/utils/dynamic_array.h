@@ -28,6 +28,17 @@ struct dynamic_array {
             return std::get<std::vector<T>>(data)[i];
         }
     }
+
+    template <size_t Max2>
+    inline bool operator == (const dynamic_array<T, Max2> & other) const noexcept {
+        if constexpr (Max != Max2) { return false; }
+
+        if (auto * arr = std::get_if<std::array<T, Max>>(&data)) { [[likely]]
+            return (*arr == std::get<std::array<T, Max>>(other.data));
+        } else {
+            return std::get<std::vector<T>>(data) == std::get<std::vector<T>>(other.data);
+        }
+    }
 };
 
 }

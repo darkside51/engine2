@@ -31,7 +31,7 @@ namespace engine::rhi {
         return hash;
     }
 
-    void RenderPassDescription::recalculateHash() noexcept {
+    void RenderPassDescription::calculateHash() noexcept {
         _hash = 0u;
         for (auto const & a : _attachments) {
             const auto h = hash::hash_combine(a.format, a.loadOp, a.storeOp,

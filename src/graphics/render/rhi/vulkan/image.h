@@ -20,7 +20,7 @@ struct ImageSubresourceRange {
     uint8_t baseArrayLayer;
     uint8_t layerCount;
 
-    inline bool operator == (const ImageSubresourceRange& other) const noexcept = default;
+    inline bool operator == (const ImageSubresourceRange & other) const noexcept = default;
     inline size_t hash() const noexcept {
         return (static_cast<uint32_t>(baseArrayLayer) << 0u) |
                (static_cast<uint32_t>(layerCount) << 8u) |

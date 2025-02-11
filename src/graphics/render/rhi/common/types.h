@@ -16,16 +16,6 @@ namespace engine::rhi {
     //     return static_cast<T>(std::to_underlying(a) & std::to_underlying(b));
     // }
 
-    enum class Api {
-        eVulkan = 0u,
-        eOpenGL = 1u,
-        eOpenGLES = 2u,
-        eDirectX11 = 3u,
-        eDirectX12 = 4u,
-        eMetal = 5u,
-        eMantle = 6u,
-    };
-
     struct Extent2D {
         uint32_t width = 0u;
         uint32_t height = 0u;
@@ -436,6 +426,11 @@ namespace engine::rhi {
         void setNext(void * next, size_t hash) noexcept {
             pNext = {next, hash};
         }
+
+        inline bool operator == (const AttachmentReference & other) const noexcept {
+            return attachment == other.attachment && layout == other.layout && aspectMask == other.aspectMask &&
+            pNext.second == other.pNext.second;
+        };
     };
 
     enum class PipelineStageFlags : uint32_t {

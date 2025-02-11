@@ -14,6 +14,8 @@
 #include "device/glfw/device.h"
 #include "log/log.h"
 
+#include "graphics/render/rhi/common/api.h"
+#include "graphics/render/rhi/vulkan/api.h"
 #include "graphics/render/rhi/vulkan/instance.h"
 #include "graphics/render/rhi/vulkan/physical_device.h"
 #include "graphics/render/rhi/vulkan/surface.h"
@@ -36,29 +38,33 @@ int main() {
     }, 1.0f);
     w.run();
 
+    engine::rhi::Api<engine::vulkan::Api> api;
+    using Api = decltype(api);
+
     engine::rhi::InstanceCreateInfo instanceCreateInfo {
         .apiVersion = engine::common::Version{1, 3, 0},
         .extensions = {"VK_KHR_surface", "VK_KHR_win32_surface", "VK_KHR_xcb_surface", "VK_KHR_xlib_surface", 
 		    "VK_KHR_wayland_surface", "VK_MVK_macos_surface", "VK_QNX_screen_surface", 
-            VK_EXT_DEBUG_UTILS_EXTENSION_NAME // for validation
+            Api::Impl::kDebugUtilExtName // for validation
             },
-        .layers = {"VK_LAYER_KHRONOS_validation"}, // for validation
+        .layers = {Api::Impl::kLayerValidationKHR}, // for validation
         .createDebugMessages = false,
         .allocationCallback = nullptr
     };
-    engine::vulkan::Instance instance{instanceCreateInfo};
+    
+    Api::Instance instance{instanceCreateInfo};
 
     if (!instance) {
         return 2;
     }
 
-    engine::vulkan::Surface surface{instance, window0.getSurfaceCreateInfo()};
+    Api::Surface surface{instance, window0.getSurfaceCreateInfo()};
     if (!surface) {
         return 3;
     }
 
     engine::rhi::PhysicalDeviceFeatureRequest gpuFeatures{};
-    auto devices = engine::vulkan::PhisicalDevice::getSuitableDevices(instance, {gpuFeatures, {VK_KHR_SWAPCHAIN_EXTENSION_NAME}});
+    auto devices = Api::PhisicalDevice::getSuitableDevices(instance, {gpuFeatures, {Api::Impl::kSwapchainExtName}});
 
     if (devices[0].checkSurfaceSupport(surface)) {
         const auto surfaceSupportDetails = engine::vulkan::getSurfaceSupportDetails(devices[0], surface);
@@ -68,13 +74,13 @@ int main() {
         engine::rhi::DeviceCreateInfo deviceCreateInfo{gpuFeatures};
         deviceCreateInfo.queueFamilies.push_back({index, 1u, {}});
         
-        engine::vulkan::Device device(devices[0], deviceCreateInfo);
+        Api::Device device(devices[0], deviceCreateInfo);
 
         engine::rhi::SwapchainCreateInfo swapchainCreateInfo = {};
         swapchainCreateInfo.imagesCount = 3u;
         swapchainCreateInfo.queueFamilies.push_back(index);
 
-        engine::vulkan::Swapchain swapchain(device, surface, swapchainCreateInfo);
+        Api::Swapchain swapchain(device, surface, swapchainCreateInfo);
         swapchain.resize(1024u, 768u, true);
 
         auto imageInfo = engine::rhi::ImageInfo{};

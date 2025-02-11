@@ -14,6 +14,9 @@ namespace engine::vulkan {
     }
 
     VkRenderPass RenderPassManager::getRenderPass(const rhi::RenderPassDescription & description) {
+        if (auto it = _renderPassCollection.find(description); it != _renderPassCollection.end()) {
+            return it->second;
+        }
     //     VkResult vkCreateRenderPass(
     // VkDevice                                    device,
     // const VkRenderPassCreateInfo*               pCreateInfo,

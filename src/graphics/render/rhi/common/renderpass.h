@@ -3,6 +3,7 @@
 #include "types.h"
 #include "utils/dynamic_array.h"
 
+#include <cstring>
 #include <span>
 #include <utility>
 #include <vector>
@@ -24,9 +25,16 @@ struct SubpassDescription {
         pNext = {next, hash};
     }
     inline size_t hash() const noexcept;
+
+    inline bool operator == (const SubpassDescription & other) const noexcept {
+            return viewMask == other.viewMask && depthStencilAttachment == other.depthStencilAttachment && 
+                   inputAttachments == other.inputAttachments && colorAttachments == other.colorAttachments &&
+                   resolveAttachments == other.resolveAttachments && preserveAttachments == other.preserveAttachments &&
+                   pNext.second == other.pNext.second;
+        };
 };
 
-inline constexpr uint32_t kSubpassExternal = (~0u); // ~0u == 0xff'ff'ff'ffu == VK_SUBPASS_EXTERNAL
+inline constexpr auto kSubpassExternal = uint16_t(~0u); // ~0u == 0xff'ff'ff'ffu == VK_SUBPASS_EXTERNAL, but uint16_t ~0u == 0xff'ffu
 
 struct SubpassDependency {
     PipelineStageFlags srcStageMask;
@@ -46,7 +54,7 @@ public:
             _attachments(std::move(attachments)), 
             _subpasses(std::move(subpasses)), 
             _subpassDependencies(std::move(subpassDependencies)) {
-                recalculateHash();
+                calculateHash();
             }
 
     RenderPassDescription(std::span<AttachmentDescription> attachments, 
@@ -55,15 +63,45 @@ public:
             _attachments{attachments.begin(), attachments.end()}, 
             _subpasses{subpasses.begin(), subpasses.end()}, 
             _subpassDependencies{subpassDependencies.begin(), subpassDependencies.end()} {
-                recalculateHash();
+                calculateHash();
             }
+
+    inline bool operator == (const RenderPassDescription & other) const noexcept {
+        if (_hash != other._hash) {
+            return false;
+        }
+
+        if (_subpassDependencies.size() != other._subpassDependencies.size()) {
+            return false;
+        }
+
+        if (_subpasses.size() != other._subpasses.size()) {
+            return false;
+        }
+
+        if (_attachments.size() != other._attachments.size()) {
+            return false;
+        }
+
+        if (std::memcmp(_subpassDependencies.data(), other._subpassDependencies.data(), 
+                sizeof(SubpassDependency) * _subpassDependencies.size()) != 0) {
+            return false; // _subpassDependencies no equals
+        }
+
+        if (std::memcmp(_attachments.data(), other._attachments.data(), 
+                sizeof(AttachmentDescription) * _attachments.size()) != 0) {
+            return false; // _attachments no equals
+        }
+        
+        return _subpasses == other._subpasses; // _subpasses
+    }
 
     inline size_t hash() const noexcept { // for use as unordered containers key
         return _hash;
     }
 
 private:
-    void recalculateHash() noexcept;
+    void calculateHash() noexcept;
 
     std::vector<AttachmentDescription> _attachments;
     std::vector<SubpassDescription> _subpasses;
