@@ -38,9 +38,9 @@ struct SubpassDependency {
     DependencyFlags dependencyFlags = DependencyFlags::eBy_Region;
 };
 
-class RenderPass {
+class RenderPassDescription {
 public:
-    RenderPass(std::vector<AttachmentDescription> && attachments, 
+    RenderPassDescription(std::vector<AttachmentDescription> && attachments, 
             std::vector<SubpassDescription> && subpasses,
             std::vector<SubpassDependency> && subpassDependencies) :
             _attachments(std::move(attachments)), 
@@ -49,7 +49,7 @@ public:
                 recalculateHash();
             }
 
-    RenderPass(std::span<AttachmentDescription> attachments, 
+    RenderPassDescription(std::span<AttachmentDescription> attachments, 
             std::span<SubpassDescription> subpasses,
             std::span<SubpassDependency> subpassDependencies) :
             _attachments{attachments.begin(), attachments.end()}, 

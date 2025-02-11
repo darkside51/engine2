@@ -10,8 +10,16 @@
 namespace engine::hash {
 	template <class T>
 	inline void hash_combine(std::size_t& s, T&& v) noexcept {
+		// <vulkan/hash_util.h>
+		// magic and combination algorithm based on boost::hash_combine
+    	// http://www.boost.org/doc/libs/1_43_0/doc/html/hash/reference.html#boost.hash_combine
+    	// Magic value is 2^size / ((1-sqrt(5)/2)
+    	static const uint64_t kMagic = sizeof(std::size_t) > 4u ? 
+																std::size_t(0x9e3779b97f4a7c16ul) : 
+																std::size_t(0x9e3779b9u);
+
         // https://stackoverflow.com/questions/19195183/how-to-properly-hash-the-custom-struct
-		s ^= std::hash<std::decay_t<T>>()(v) + 0x9e3779b9 + (s << 6) + (s >> 2);
+		s ^= std::hash<std::decay_t<T>>()(v) + kMagic + (s << 6) + (s >> 2);
 	}
 
 	template <typename T>
