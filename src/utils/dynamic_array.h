@@ -10,22 +10,30 @@ namespace engine {
 
 template <typename T, size_t Max>
 struct dynamic_array {
-    std::variant<std::array<T, Max>, std::vector<T>> data;
+    std::variant<std::array<T, Max>, std::vector<T>> value;
     uint32_t capacity = 0u;
 
     dynamic_array(uint32_t size) : capacity(size) {
         if (size <= Max) { [[likely]]
-            data = std::array<T, Max>{};
+            value = std::array<T, Max>{};
         } else {
-            data = std::vector<T>{size};
+            value = std::vector<T>{size};
         } 
     }
 
     inline const T & operator[](size_t i) const noexcept { 
-        if (auto * arr = std::get_if<std::array<T, Max>>(&data)) { [[likely]]
+        if (auto * arr = std::get_if<std::array<T, Max>>(&value)) { [[likely]]
             return (*arr)[i];
         } else {
-            return std::get<std::vector<T>>(data)[i];
+            return std::get<std::vector<T>>(value)[i];
+        }
+    }
+
+    inline T & operator[](size_t i) noexcept { 
+        if (auto * arr = std::get_if<std::array<T, Max>>(&value)) { [[likely]]
+            return (*arr)[i];
+        } else {
+            return std::get<std::vector<T>>(value)[i];
         }
     }
 
@@ -33,11 +41,23 @@ struct dynamic_array {
     inline bool operator == (const dynamic_array<T, Max2> & other) const noexcept {
         if constexpr (Max != Max2) { return false; }
 
-        if (auto * arr = std::get_if<std::array<T, Max>>(&data)) { [[likely]]
-            return (*arr == std::get<std::array<T, Max>>(other.data));
+        if (auto * arr = std::get_if<std::array<T, Max>>(&value)) { [[likely]]
+            return (*arr == std::get<std::array<T, Max>>(other.value));
         } else {
-            return std::get<std::vector<T>>(data) == std::get<std::vector<T>>(other.data);
+            return std::get<std::vector<T>>(value) == std::get<std::vector<T>>(other.value);
         }
+    }
+
+    inline const T* data() const noexcept {
+        if (auto * arr = std::get_if<std::array<T, Max>>(&value)) { [[likely]]
+            return arr->data();
+        } else {
+            return std::get<std::vector<T>>(value).data();
+        }
+    }
+
+    inline bool empty() const noexcept {
+        return capacity == 0u;
     }
 };
 

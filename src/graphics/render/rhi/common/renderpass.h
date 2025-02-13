@@ -10,9 +10,8 @@
 
 namespace engine::rhi {
 
-constexpr size_t kMaxAttachemts = 16u; 
-
 struct SubpassDescription {
+    static constexpr size_t kMaxAttachemts = 16u; 
     std::pair<const void*, size_t> pNext = {nullptr, 0u}; // value + hash(value) 
     AttachmentReference depthStencilAttachment = {}; // undefined as default
     dynamic_array<AttachmentReference, kMaxAttachemts> inputAttachments;
@@ -21,10 +20,15 @@ struct SubpassDescription {
     dynamic_array<uint32_t, kMaxAttachemts> preserveAttachments;
     uint32_t viewMask = 0u;
     
-    void setNext(void * next, size_t hash) noexcept {
+    inline void setNext(void * next, size_t hash) noexcept {
         pNext = {next, hash};
     }
+
     inline size_t hash() const noexcept;
+
+    inline bool hasDepthStencil() const noexcept {
+        return depthStencilAttachment.attachment != 0xff'ffu;
+    }
 
     inline bool operator == (const SubpassDescription & other) const noexcept {
             return viewMask == other.viewMask && depthStencilAttachment == other.depthStencilAttachment && 
@@ -34,15 +38,15 @@ struct SubpassDescription {
         };
 };
 
-inline constexpr auto kSubpassExternal = uint16_t(~0u); // ~0u == 0xff'ff'ff'ffu == VK_SUBPASS_EXTERNAL, but uint16_t ~0u == 0xff'ffu
+inline constexpr auto kSubpassExternal = uint32_t(~0u); // ~0u == 0xff'ff'ff'ffu == VK_SUBPASS_EXTERNAL
 
 struct SubpassDependency {
     PipelineStageFlags srcStageMask;
     PipelineStageFlags dstStageMask;
     AccessFlags srcAccessMask;
     AccessFlags dstAccessMask;
-    uint16_t srcSubpass = 0u;
-    uint16_t dstSubpass = kSubpassExternal;
+    uint32_t srcSubpass = 0u;
+    uint32_t dstSubpass = kSubpassExternal;
     DependencyFlags dependencyFlags = DependencyFlags::eBy_Region;
 };
 
@@ -99,6 +103,10 @@ public:
     inline size_t hash() const noexcept { // for use as unordered containers key
         return _hash;
     }
+
+    std::span<const AttachmentDescription> getAttachments() const noexcept { return _attachments; }
+    std::span<const SubpassDescription> getSubpasses() const noexcept { return _subpasses; }
+    std::span<const SubpassDependency> getDependencies() const noexcept { return _subpassDependencies; }
 
 private:
     void calculateHash() noexcept;
