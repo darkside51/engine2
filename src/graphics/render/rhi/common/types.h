@@ -521,6 +521,23 @@ namespace engine::rhi {
         return static_cast<DependencyFlags>(std::to_underlying(a) & std::to_underlying(b));
     }
 
+    enum class CommandPoolCreateFlags : uint8_t {
+        eTransient = 1u,
+        eReset_Command_Buffer = 2u,
+        eProtected = 4u,
+    };
+    inline CommandPoolCreateFlags operator | (CommandPoolCreateFlags a, CommandPoolCreateFlags b) {
+        return static_cast<CommandPoolCreateFlags>(std::to_underlying(a) | std::to_underlying(b));
+    }
+    inline CommandPoolCreateFlags operator & (CommandPoolCreateFlags a, CommandPoolCreateFlags b) {
+        return static_cast<CommandPoolCreateFlags>(std::to_underlying(a) & std::to_underlying(b));
+    }
+
+    enum class CommandBufferLevel : uint8_t {
+        ePrimary = 0u,
+        eSecondary = 1u,
+    };
+
     enum class CompareOp : uint8_t {
         eNever = 0u,
         eLess = 1u,

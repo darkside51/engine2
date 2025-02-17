@@ -699,6 +699,14 @@ inline VkDependencyFlags convert2vk(rhi::DependencyFlags flags) noexcept {
     return static_cast<VkDependencyFlags>(flags);
 }
 
+inline VkCommandPoolCreateFlags convert2vk(rhi::CommandPoolCreateFlags flags) noexcept {
+    return static_cast<VkCommandPoolCreateFlagBits>(flags);
+};
+
+inline VkCommandBufferLevel convert2vk(rhi::CommandBufferLevel level) noexcept {
+    return static_cast<VkCommandBufferLevel>(level);
+};
+
 }
 
 }
