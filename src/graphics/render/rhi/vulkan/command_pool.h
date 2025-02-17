@@ -1,10 +1,12 @@
 #pragma once
 
 #include "graphics/render/rhi/common/types.h"
+#include "threads/utils.h"
 
 #include <vulkan/vulkan.hpp>
 
 #include <array>
+#include <optional>
 #include <vector>
 
 namespace engine::vulkan {
@@ -31,7 +33,36 @@ private:
 
 class CommandPoolManager {
 public:
+    CommandPoolManager(const Device & device, uint8_t threadsCount) : _device(device), _pools{threadsCount} {}
+    
+    [[nodiscard]] inline CommandPool * getPool() noexcept {
+        return getPool(threads::unique_t<CommandPoolManager>::id());
+    }
+
+    [[nodiscard]] inline CommandPool * getPool(uint32_t idx) noexcept {
+        return (idx < _pools.size() ? (_pools[idx].has_value() ? &(*_pools[idx]) : nullptr) : nullptr);
+    }
+
+    CommandPool * createPool(uint8_t queueFlags, rhi::CommandPoolCreateFlags poolFlags = rhi::CommandPoolCreateFlags::eReset_Command_Buffer) noexcept {
+        return createPool(threads::unique_t<CommandPoolManager>::id(), queueFlags, poolFlags);
+    }
+
+    CommandPool * createPool(uint32_t idx, uint8_t queueFlags, rhi::CommandPoolCreateFlags poolFlags = rhi::CommandPoolCreateFlags::eReset_Command_Buffer) noexcept {
+        if (idx >= _pools.size()) {
+            return nullptr;
+        }
+
+        auto & pool = _pools[idx];
+        if (pool.has_value()) {
+            return &(*pool);
+        }
+
+        return &(pool.emplace(_device, queueFlags, poolFlags));
+    }
+
 private:
+    const Device & _device;
+    std::vector<std::optional<CommandPool>> _pools;
 };
 
 }

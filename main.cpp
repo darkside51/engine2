@@ -1,6 +1,7 @@
 #include "utils/profile/leaks.h"
 #include "threads/executor.h"
 #include "threads/worker.h"
+#include "threads/utils.h"
 
 #include "threads/thread_pool/thread_pool.h"
 
@@ -34,9 +35,17 @@ int main() {
     threads::ExecutorImpl w([](threads::Executor & w, float delta) {
         w.performTasks();
         static uint32_t a = 0u;
-        LOG_D("delta: %f, value = %d\n", delta, ++a);
+        LOG_I("threadId_0: %d, delta: %f, value = %d\n", threads::unique::id(), delta, ++a);
     }, 1.0f);
     w.run();
+    w.emplaceTasks(stl::make_vector(threads::WorkerTask{[](){
+       LOG_I("threadId_0: %d, \n", threads::unique_t<int>::id());
+    }}));
+
+    threads::ExecutorImpl w2([](threads::Executor & w, float delta) {
+        LOG_I("threadId_1: %d\n", threads::unique::id());
+    }, 0.5f);
+    w2.run();
 
     engine::rhi::Api<engine::vulkan::Api> api;
     using Api = decltype(api);

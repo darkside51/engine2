@@ -128,7 +128,7 @@ namespace threads {
         }
 
         float _frequency = 0.0f;
-        std::chrono::steady_clock::time_point _time;
+        std::chrono::steady_clock::time_point _time{};
 
         T _job;
     };
