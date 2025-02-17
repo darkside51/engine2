@@ -1,6 +1,7 @@
 #include "command_pool.h"
 #include "device.h"
 #include "physical_device.h"
+#include "instance.h"
 #include "vk_types.h"
 
 #include "log/log.h"
@@ -31,7 +32,7 @@ namespace engine::vulkan {
     }
 
     VkCommandBuffer CommandPool::allocCommandBuffer(rhi::CommandBufferLevel level) {
-        if (_flags & rhi::CommandPoolCreateFlags::eReset_Command_Buffer) {
+        if (std::to_underlying(_flags & rhi::CommandPoolCreateFlags::eReset_Command_Buffer) != 0u) {
             auto & buffers = _freeBuffers[static_cast<uint8_t>(level)];
             if (!buffers.empty()) {
                 VkCommandBuffer commandBuffer = buffers.back();
@@ -56,7 +57,7 @@ namespace engine::vulkan {
     }
 
     void CommandPool::deallocCommandBuffer(rhi::CommandBufferLevel level, VkCommandBuffer commandBuffer) {
-        if (_flags & rhi::CommandPoolCreateFlags::eReset_Command_Buffer) {
+        if (std::to_underlying(_flags & rhi::CommandPoolCreateFlags::eReset_Command_Buffer) != 0u) {
             const auto result = vkResetCommandBuffer(commandBuffer, 0);
             assert(result == VK_SUCCESS);
             _freeBuffers[static_cast<uint8_t>(level)].push_back(commandBuffer);
