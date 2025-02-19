@@ -538,6 +538,11 @@ namespace engine::rhi {
         eSecondary = 1u,
     };
 
+    enum class SubpassContents : uint8_t {
+        ePrimaryBufferInline = 0u,
+        eSecondaryBuffers = 1u
+    };
+
     enum class CompareOp : uint8_t {
         eNever = 0u,
         eLess = 1u,

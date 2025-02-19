@@ -30,6 +30,12 @@ public:
     uint32_t getImagesCount() const noexcept;
     VkImageView getImageView(uint8_t index) noexcept { return _imageViews[index]; }
 
+    rhi::Format getFormat() const noexcept { return _format; }
+    rhi::ColorSpace getColorSpace() const noexcept { return _colorSpace; }
+
+    const Image & getImage(uint8_t index) const noexcept { return _images[index]; }
+    Image & getImage(uint8_t index) noexcept { return _images[index]; }
+
 private:
     void destroy(VkSwapchainKHR swapchain);
     VkSwapchainKHR _swapchain = VK_NULL_HANDLE;
@@ -40,6 +46,8 @@ private:
     std::vector<VkSemaphore> _imageAvailableSemaphores;
 
     rhi::SwapchainCreateInfo _info;
+    rhi::Format _format;
+    rhi::ColorSpace _colorSpace;
 };
 
 

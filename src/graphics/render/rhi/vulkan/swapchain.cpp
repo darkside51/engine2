@@ -82,6 +82,9 @@ namespace engine::vulkan {
 			}
 		}
 
+        _format = utils::convert2rhi(surfaceFormat.format);
+        _colorSpace = utils::convert2rhi(surfaceFormat.colorSpace);
+
         // the VK_PRESENT_MODE_FIFO_KHR mode must always be present as per spec
 		// this mode waits for the vertical blank ("v-sync")
 		VkPresentModeKHR presentMode = VK_PRESENT_MODE_FIFO_KHR;

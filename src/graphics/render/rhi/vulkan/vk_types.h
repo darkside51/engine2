@@ -72,6 +72,41 @@ inline VkColorSpaceKHR convert2vk(rhi::ColorSpace colorSpace) noexcept {
     }
 }
 
+inline rhi::ColorSpace convert2rhi(VkColorSpaceKHR colorSpace) noexcept {
+    switch (colorSpace) {
+        case VK_COLOR_SPACE_SRGB_NONLINEAR_KHR:
+            return rhi::ColorSpace::eSRGB_Nonlinear;
+        case VK_COLOR_SPACE_DISPLAY_P3_NONLINEAR_EXT:
+            return rhi::ColorSpace::eDISPLAY_P3_Nonlinear;
+        case VK_COLOR_SPACE_EXTENDED_SRGB_LINEAR_EXT:
+            return rhi::ColorSpace::eEXTENDED_SRGB_linear;
+        case VK_COLOR_SPACE_DISPLAY_P3_LINEAR_EXT:
+            return rhi::ColorSpace::eDISPLAY_P3_linear;
+        case VK_COLOR_SPACE_DCI_P3_NONLINEAR_EXT:
+            return rhi::ColorSpace::eDCI_P3_Nonlinear;
+        case VK_COLOR_SPACE_BT709_LINEAR_EXT:
+            return rhi::ColorSpace::eBT709_linear;
+        case VK_COLOR_SPACE_BT709_NONLINEAR_EXT:
+            return rhi::ColorSpace::eBT709_Nonlinear;
+        case VK_COLOR_SPACE_BT2020_LINEAR_EXT:
+            return rhi::ColorSpace::eBT2020_linear;
+        case VK_COLOR_SPACE_HDR10_ST2084_EXT:
+            return rhi::ColorSpace::eHDR10_ST2084;
+        case VK_COLOR_SPACE_DOLBYVISION_EXT:
+            return rhi::ColorSpace::eDOLBYVISION;
+        case VK_COLOR_SPACE_HDR10_HLG_EXT:
+            return rhi::ColorSpace::eHDR10_HLG;
+        case VK_COLOR_SPACE_ADOBERGB_LINEAR_EXT:
+            return rhi::ColorSpace::eADOBERGB_linear;
+        case VK_COLOR_SPACE_ADOBERGB_NONLINEAR_EXT:
+            return rhi::ColorSpace::eADOBERGB_Nonlinear;
+        case VK_COLOR_SPACE_PASS_THROUGH_EXT:
+            return rhi::ColorSpace::ePASS_THROUGH;
+        case VK_COLOR_SPACE_EXTENDED_SRGB_NONLINEAR_EXT:
+            return rhi::ColorSpace::eEXTENDED_SRGB_Nonlinear;
+    }
+}
+
 inline VkPresentModeKHR convert2vk(rhi::PresentMode mode) noexcept {
     switch (mode) {
         case rhi::PresentMode::eFifo:
@@ -662,28 +697,28 @@ inline VkAttachmentStoreOp convert2vk(rhi::AttachmentStoreOp op) noexcept {
 
 inline VkImageLayout convert2vk(rhi::ImageLayout layout) noexcept {
     switch (layout) {
-        case rhi::ImageLayout::eUndefined: VkImageLayout::VK_IMAGE_LAYOUT_UNDEFINED;
-        case rhi::ImageLayout::eGeneral: VkImageLayout::VK_IMAGE_LAYOUT_GENERAL;
-        case rhi::ImageLayout::eColor_Attachment_Optimal: VkImageLayout::VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-        case rhi::ImageLayout::eDepth_Stencil_Attachment_Optimal: VkImageLayout::VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-        case rhi::ImageLayout::eDepth_Stencil_Read_Only_Optimal: VkImageLayout::VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
-        case rhi::ImageLayout::eShader_Read_Only_Optimal: VkImageLayout::VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        case rhi::ImageLayout::eTransfer_Src_Optimal: VkImageLayout::VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-        case rhi::ImageLayout::eTransfer_Dst_Optimal: VkImageLayout::VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-        case rhi::ImageLayout::ePreinitialized : VkImageLayout::VK_IMAGE_LAYOUT_PREINITIALIZED;
-        case rhi::ImageLayout::eDepth_Read_Only_Stencil_Attachment_Optimal: VkImageLayout::VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_STENCIL_ATTACHMENT_OPTIMAL;
-        case rhi::ImageLayout::eDepth_Attachment_Stencil_Read_Only_Optimal: VkImageLayout::VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_STENCIL_READ_ONLY_OPTIMAL;
-        case rhi::ImageLayout::eDepth_Attachment_Optimal: VkImageLayout::VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
-        case rhi::ImageLayout::eDepth_Read_Only_Optimal: VkImageLayout::VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL;
-        case rhi::ImageLayout::eStencil_Attachment_Optimal : VkImageLayout::VK_IMAGE_LAYOUT_STENCIL_ATTACHMENT_OPTIMAL;
-        case rhi::ImageLayout::eStencil_Read_Only_Optimal: VkImageLayout::VK_IMAGE_LAYOUT_STENCIL_READ_ONLY_OPTIMAL;
-        case rhi::ImageLayout::eRead_Only_Optimal: VkImageLayout::VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL;
-        case rhi::ImageLayout::eAttachment_Optimal: VkImageLayout::VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
-        case rhi::ImageLayout::ePresent_Src: VkImageLayout::VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-        case rhi::ImageLayout::eShared_Present: VkImageLayout::VK_IMAGE_LAYOUT_SHARED_PRESENT_KHR;
-        case rhi::ImageLayout::eFragment_Density_Map_Optimal_Ext: VkImageLayout::VK_IMAGE_LAYOUT_FRAGMENT_DENSITY_MAP_OPTIMAL_EXT;
-        case rhi::ImageLayout::eFragment_Shading_Rate_Attachment_Optimal: VkImageLayout::VK_IMAGE_LAYOUT_FRAGMENT_SHADING_RATE_ATTACHMENT_OPTIMAL_KHR;
-        case rhi::ImageLayout::eAttachment_Feedback_Loop_Optimal_Ext: VkImageLayout::VK_IMAGE_LAYOUT_ATTACHMENT_FEEDBACK_LOOP_OPTIMAL_EXT;
+        case rhi::ImageLayout::eUndefined: return VkImageLayout::VK_IMAGE_LAYOUT_UNDEFINED;
+        case rhi::ImageLayout::eGeneral: return VkImageLayout::VK_IMAGE_LAYOUT_GENERAL;
+        case rhi::ImageLayout::eColor_Attachment_Optimal: return VkImageLayout::VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        case rhi::ImageLayout::eDepth_Stencil_Attachment_Optimal: return VkImageLayout::VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+        case rhi::ImageLayout::eDepth_Stencil_Read_Only_Optimal: return VkImageLayout::VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
+        case rhi::ImageLayout::eShader_Read_Only_Optimal: return VkImageLayout::VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        case rhi::ImageLayout::eTransfer_Src_Optimal: return VkImageLayout::VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+        case rhi::ImageLayout::eTransfer_Dst_Optimal: return VkImageLayout::VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+        case rhi::ImageLayout::ePreinitialized : return VkImageLayout::VK_IMAGE_LAYOUT_PREINITIALIZED;
+        case rhi::ImageLayout::eDepth_Read_Only_Stencil_Attachment_Optimal: return VkImageLayout::VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_STENCIL_ATTACHMENT_OPTIMAL;
+        case rhi::ImageLayout::eDepth_Attachment_Stencil_Read_Only_Optimal: return VkImageLayout::VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_STENCIL_READ_ONLY_OPTIMAL;
+        case rhi::ImageLayout::eDepth_Attachment_Optimal: return VkImageLayout::VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
+        case rhi::ImageLayout::eDepth_Read_Only_Optimal: return VkImageLayout::VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL;
+        case rhi::ImageLayout::eStencil_Attachment_Optimal : return VkImageLayout::VK_IMAGE_LAYOUT_STENCIL_ATTACHMENT_OPTIMAL;
+        case rhi::ImageLayout::eStencil_Read_Only_Optimal: return VkImageLayout::VK_IMAGE_LAYOUT_STENCIL_READ_ONLY_OPTIMAL;
+        case rhi::ImageLayout::eRead_Only_Optimal: return VkImageLayout::VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL;
+        case rhi::ImageLayout::eAttachment_Optimal: return VkImageLayout::VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
+        case rhi::ImageLayout::ePresent_Src: return VkImageLayout::VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+        case rhi::ImageLayout::eShared_Present: return VkImageLayout::VK_IMAGE_LAYOUT_SHARED_PRESENT_KHR;
+        case rhi::ImageLayout::eFragment_Density_Map_Optimal_Ext: return VkImageLayout::VK_IMAGE_LAYOUT_FRAGMENT_DENSITY_MAP_OPTIMAL_EXT;
+        case rhi::ImageLayout::eFragment_Shading_Rate_Attachment_Optimal: return VkImageLayout::VK_IMAGE_LAYOUT_FRAGMENT_SHADING_RATE_ATTACHMENT_OPTIMAL_KHR;
+        case rhi::ImageLayout::eAttachment_Feedback_Loop_Optimal_Ext: return VkImageLayout::VK_IMAGE_LAYOUT_ATTACHMENT_FEEDBACK_LOOP_OPTIMAL_EXT;
     }
 }
 
@@ -701,11 +736,20 @@ inline VkDependencyFlags convert2vk(rhi::DependencyFlags flags) noexcept {
 
 inline VkCommandPoolCreateFlags convert2vk(rhi::CommandPoolCreateFlags flags) noexcept {
     return static_cast<VkCommandPoolCreateFlagBits>(flags);
-};
+}
 
 inline VkCommandBufferLevel convert2vk(rhi::CommandBufferLevel level) noexcept {
     return static_cast<VkCommandBufferLevel>(level);
-};
+}
+
+inline VkSubpassContents convert2vk(rhi::SubpassContents contents) noexcept {
+    switch (contents) {
+        case rhi::SubpassContents::ePrimaryBufferInline:
+            return VkSubpassContents::VK_SUBPASS_CONTENTS_INLINE;
+        case rhi::SubpassContents::eSecondaryBuffers:
+            return VkSubpassContents::VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS;
+    }
+}
 
 }
 

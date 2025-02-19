@@ -13,7 +13,8 @@ namespace engine::vulkan {
 
 FrameBuffer::FrameBuffer(const Device & device, std::vector<rhi::FrameBufferAttachment> && fbAttachemnts, VkRenderPass renderPass) :
     _device(device),
-    _attachments(std::move(fbAttachemnts)) {
+    _attachments(std::move(fbAttachemnts)),
+    _renderPass(renderPass) {
 
     std::vector<VkImageView> attachments;
     attachments.reserve(_attachments.size());
@@ -38,6 +39,7 @@ FrameBuffer::FrameBuffer(const Device & device, std::vector<rhi::FrameBufferAtta
     if (auto result = vkCreateFramebuffer(_device(), &info, allocationCallbacks, &_framebuffer); result != VK_SUCCESS) {
         LOG_E("vulkan: vkCreateFramebuffer result: %d", result);
         _framebuffer = VK_NULL_HANDLE;
+        _renderPass = VK_NULL_HANDLE;
         return;
     }
 
@@ -48,6 +50,7 @@ FrameBuffer::~FrameBuffer() {
     const auto * allocationCallbacks = _device.gpu().getInstance().getAllocationCallbacks();
     vkDestroyFramebuffer(_device(), _framebuffer, allocationCallbacks);
     _framebuffer = VK_NULL_HANDLE;
+    _renderPass = VK_NULL_HANDLE;
     _size = {0u, 0u};
     LOG_I("vulkan: framebuffer destroyed");
 }

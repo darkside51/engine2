@@ -84,6 +84,8 @@ public:
     void assignLayout(VkImageLayout dstLayout, uint8_t baseLayer, uint8_t layersCount, 
                     uint8_t baseLevel, uint8_t levelsCount) noexcept;
 
+    rhi::Extent3D getExtent() const noexcept { return _info.extent; }
+
 private:
     Device & _device;
     VkImage _image = VK_NULL_HANDLE;

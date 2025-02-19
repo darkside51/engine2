@@ -21,6 +21,8 @@ namespace engine::rhi {
         using PhisicalDevice = T::PhisicalDevice;
         using Surface = T::Surface;
         using Swapchain = T::Swapchain;
+        using Image = T::Image;
+        using FrameBuffer = T::FrameBuffer;
 
         static consteval ApiType type() noexcept {
             return T::type();

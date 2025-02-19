@@ -23,6 +23,8 @@
 #include "graphics/render/rhi/vulkan/device.h"
 #include "graphics/render/rhi/vulkan/swapchain.h"
 #include "graphics/render/rhi/vulkan/image.h"
+#include "graphics/render/rhi/vulkan/renderpass.h"
+#include "graphics/render/rhi/vulkan/framebuffer.h"
 
 int main() {
     engine::common::Version v(0, 0, 4);
@@ -92,24 +94,92 @@ int main() {
         Api::Swapchain swapchain(device, surface, swapchainCreateInfo);
         swapchain.resize(1024u, 768u, true);
 
-        auto imageInfo = engine::rhi::ImageInfo{};
-        imageInfo.usage = engine::rhi::ImageUsageFlags::eSampled | engine::rhi::ImageUsageFlags::eTransfer_Dst;
-        imageInfo.extent = {1, 1, 1};
-        imageInfo.format = engine::rhi::Format::eR8G8B8A8_Unorm;
-        imageInfo.tiling = engine::rhi::ImageTiling::eOptimal;
+        auto depthImageInfo = engine::rhi::ImageInfo{};
+        depthImageInfo.usage = engine::rhi::ImageUsageFlags::eDepth_Stencil_Attachment;
+        depthImageInfo.extent = {1024u, 768u, 1u};
+        depthImageInfo.format = depthFormat;
+        depthImageInfo.tiling = engine::rhi::ImageTiling::eOptimal;
+        Api::Image depthImage(device, depthImageInfo);
 
-        engine::vulkan::Image image(device, imageInfo);
-        image.changeLayout(VkImageLayout::VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL, 
-                           VkPipelineStageFlagBits::VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
-                           VkPipelineStageFlagBits::VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT, 
-                           VkAccessFlagBits::VK_ACCESS_COLOR_ATTACHMENT_READ_BIT,
-                           VkAccessFlagBits::VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, 1, 0, 1, 0, 1);
+        engine::vulkan::RenderPassManager renderPassManager{device};
 
-         image.changeLayout(VkImageLayout::VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL, 
-                           VkPipelineStageFlagBits::VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
-                           VkPipelineStageFlagBits::VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT, 
-                           VkAccessFlagBits::VK_ACCESS_COLOR_ATTACHMENT_READ_BIT,
-                           VkAccessFlagBits::VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, 1, 0, 1, 0, 1);
+        std::vector<engine::rhi::SubpassDependency> dependencies(2u);
+        dependencies[0].srcSubpass = engine::rhi::kSubpassExternal;
+        dependencies[0].dstSubpass = 0u;
+        dependencies[0].srcStageMask = engine::rhi::PipelineStageFlags::eColor_Attachment_Output; // VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT
+		dependencies[0].dstStageMask = engine::rhi::PipelineStageFlags::eEarly_Fragment_Tests | engine::rhi::PipelineStageFlags::eColor_Attachment_Output; // (VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT - https://vkguide.dev/docs/chapter-4/double_buffering/) is a loadOp stage for color attachments
+		dependencies[0].srcAccessMask = engine::rhi::AccessFlags::eNone; // semaphore wait already does memory dependency for us
+		dependencies[0].dstAccessMask = engine::rhi::AccessFlags::eColor_Attachment_Write; // is a loadOp CLEAR access mask for color attachments
+		dependencies[0].dependencyFlags = engine::rhi::DependencyFlags::eBy_Region;
+
+        dependencies[1].srcSubpass = 0u;
+        dependencies[1].dstSubpass = engine::rhi::kSubpassExternal;
+        dependencies[1].srcStageMask = engine::rhi::PipelineStageFlags::eColor_Attachment_Output; // VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT
+		dependencies[1].dstStageMask = engine::rhi::PipelineStageFlags::eBottom_Of_Pipe; // Do not block any subsequent work
+		dependencies[1].srcAccessMask = engine::rhi::AccessFlags::eColor_Attachment_Write; // semaphore wait already does memory dependency for us
+		dependencies[1].dstAccessMask = engine::rhi::AccessFlags::eNone;         // is a loadOp CLEAR access mask for color attachments
+		dependencies[1].dependencyFlags = engine::rhi::DependencyFlags::eBy_Region;
+
+        std::vector<engine::rhi::AttachmentDescription> attachments(2u);
+        attachments[0].format = swapchain.getFormat();
+        attachments[0].loadOp = engine::rhi::AttachmentLoadOp::eClear;
+        attachments[0].storeOp = engine::rhi::AttachmentStoreOp::eStore;
+        attachments[0].stencilLoadOp = engine::rhi::AttachmentLoadOp::eDont_Care;
+        attachments[0].stencilStoreOp = engine::rhi::AttachmentStoreOp::eDont_Care;
+        attachments[0].initialLayout = engine::rhi::ImageLayout::eColor_Attachment_Optimal;
+        attachments[0].finalLayout = engine::rhi::ImageLayout::ePresent_Src;
+
+        attachments[1].format = depthFormat;
+        attachments[1].loadOp = engine::rhi::AttachmentLoadOp::eClear;
+        attachments[1].storeOp = engine::rhi::AttachmentStoreOp::eDont_Care;
+        attachments[1].stencilLoadOp = engine::rhi::AttachmentLoadOp::eDont_Care;
+        attachments[1].stencilStoreOp = engine::rhi::AttachmentStoreOp::eDont_Care;
+        attachments[1].initialLayout = engine::rhi::ImageLayout::eDepth_Stencil_Attachment_Optimal;
+        attachments[1].finalLayout = engine::rhi::ImageLayout::eDepth_Stencil_Attachment_Optimal;
+
+        std::vector<engine::rhi::SubpassDescription> subpasses{};
+
+        engine::rhi::RenderPassDescription renderPassDescription{
+            std::move(attachments), 
+            std::move(subpasses), 
+            std::move(dependencies)
+        };
+
+        auto renderPass = renderPassManager.getRenderPass(renderPassDescription);
+
+        std::vector<Api::FrameBuffer> frameBuffers;
+        frameBuffers.reserve(swapchain.getImagesCount());
+        for (uint32_t i = 0; i < swapchain.getImagesCount(); ++i) {
+            auto & image = swapchain.getImage(i);
+            std::vector<engine::rhi::FrameBufferAttachment> fbAttachemnts{2u};
+            fbAttachemnts[0].image = &image;
+            fbAttachemnts[0].imageSize = {image.getExtent().width, image.getExtent().height};
+
+            fbAttachemnts[1].image = &depthImage;
+            fbAttachemnts[1].imageSize = {depthImage.getExtent().width, depthImage.getExtent().height};
+
+            frameBuffers.emplace_back(device, std::move(fbAttachemnts), renderPass);
+        }
+
+
+        // auto imageInfo = engine::rhi::ImageInfo{};
+        // imageInfo.usage = engine::rhi::ImageUsageFlags::eSampled | engine::rhi::ImageUsageFlags::eTransfer_Dst;
+        // imageInfo.extent = {1, 1, 1};
+        // imageInfo.format = engine::rhi::Format::eR8G8B8A8_Unorm;
+        // imageInfo.tiling = engine::rhi::ImageTiling::eOptimal;
+
+        // engine::vulkan::Image image(device, imageInfo);
+        // image.changeLayout(VkImageLayout::VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL, 
+        //                    VkPipelineStageFlagBits::VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+        //                    VkPipelineStageFlagBits::VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT, 
+        //                    VkAccessFlagBits::VK_ACCESS_COLOR_ATTACHMENT_READ_BIT,
+        //                    VkAccessFlagBits::VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, 1, 0, 1, 0, 1);
+
+        // image.changeLayout(VkImageLayout::VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL, 
+        //                 VkPipelineStageFlagBits::VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+        //                 VkPipelineStageFlagBits::VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT, 
+        //                 VkAccessFlagBits::VK_ACCESS_COLOR_ATTACHMENT_READ_BIT,
+        //                 VkAccessFlagBits::VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, 1, 0, 1, 0, 1);
 
         int a = 0;
     }

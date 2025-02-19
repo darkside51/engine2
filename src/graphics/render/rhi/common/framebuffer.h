@@ -15,8 +15,8 @@ struct FrameBufferAttachment {
     uint8_t layer = 0u;
     uint8_t level = 0u;
 
-    FrameBufferAttachment(FrameBufferAttachment &&) noexcept = default;
-    FrameBufferAttachment(const FrameBufferAttachment &) = default;
+    // FrameBufferAttachment(FrameBufferAttachment &&) noexcept = default;
+    // FrameBufferAttachment(const FrameBufferAttachment &) = default;
 };
 
 }
