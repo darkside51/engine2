@@ -190,6 +190,7 @@ namespace engine::vulkan {
         imageInfo.type = rhi::ImageType::eType_2D;
         imageInfo.aspectFlags = rhi::ImageAspectFlags::eColor;
         imageInfo.queueFamilyIndices = _info.queueFamilies;
+        imageInfo.usage = rhi::ImageUsageFlags::eColor_Attachment;
         for (uint32_t i = 0u; i < realImagesCount; ++i) {
             auto & image = _images.emplace_back(const_cast<Device&>(_device), imageInfo, images[i]);
             _imageViews[i] = image.getImageView(rhi::ImageViewType::eType_2D, 0u, 1u, 0, 1u, rhi::ImageAspectFlags::eColor);

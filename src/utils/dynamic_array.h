@@ -13,12 +13,24 @@ struct dynamic_array {
     std::variant<std::array<T, Max>, std::vector<T>> value;
     uint32_t capacity = 0u;
 
+    dynamic_array() = default;
+
     dynamic_array(uint32_t size) : capacity(size) {
         if (size <= Max) { [[likely]]
             value = std::array<T, Max>{};
         } else {
             value = std::vector<T>{size};
         } 
+    }
+
+    void reserve(uint32_t size) {
+        if (capacity != 0u) { return; }
+        if (size <= Max) { [[likely]]
+            value = std::array<T, Max>{};
+        } else {
+            value = std::vector<T>{size};
+        }
+        capacity = size;
     }
 
     inline const T & operator[](size_t i) const noexcept { 
