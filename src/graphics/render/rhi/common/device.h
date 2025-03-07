@@ -118,6 +118,7 @@ struct DeviceCreateInfo {
         uint32_t index = 0u;
         uint32_t queueCount = 0u;
         std::vector<float> priorities = {};
+        uint8_t flags = 0u;
     };
     std::vector<QueueFamilyInfo> queueFamilies;
 };

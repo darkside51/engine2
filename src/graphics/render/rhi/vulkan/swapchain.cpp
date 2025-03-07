@@ -198,20 +198,33 @@ namespace engine::vulkan {
 
         // create semaphores
         _imageAvailableSemaphores.resize(images.size());
-        VkSemaphoreCreateInfo semaphoreCreateInfo;
-        semaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-		semaphoreCreateInfo.pNext = nullptr;
-		semaphoreCreateInfo.flags = 0;
+        VkSemaphoreCreateInfo semaphoreCreateInfo{
+            .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
+		    .pNext = nullptr,
+		    .flags = 0
+        };
         for (auto & semaphore : _imageAvailableSemaphores) {
             vkCreateSemaphore(_device(), &semaphoreCreateInfo, allocationCallbacks, &semaphore);
         }
 
+        VkFenceCreateInfo fenceCreateInfo{
+            .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
+            .pNext = nullptr,
+            .flags = 0
+        };
+        vkCreateFence(_device(), &fenceCreateInfo, allocationCallbacks, &_imageAvailableFence);
+
         LOG_I("vulkan: swapchain resized, image count = %d", realImagesCount);
+    }
+
+    void Swapchain::waitFenceAndReset(uint64_t timeout) noexcept {
+        vkWaitForFences(_device(), 1, &_imageAvailableFence, VK_TRUE, timeout);
+        vkResetFences(_device(), 1, &_imageAvailableFence);
     }
 
     std::pair<uint32_t, bool> Swapchain::acquireNextImage(uint32_t frameIndex) const noexcept {
         uint32_t imageIndex = 0u;
-        VkResult result = vkAcquireNextImageKHR(_device(), _swapchain, UINT64_MAX, _imageAvailableSemaphores[frameIndex], VK_NULL_HANDLE, &imageIndex);
+        VkResult result = vkAcquireNextImageKHR(_device(), _swapchain, UINT64_MAX, _imageAvailableSemaphores[frameIndex], _imageAvailableFence, &imageIndex);
         bool success = true;
         switch (result) {
         case VK_SUCCESS:
@@ -230,6 +243,11 @@ namespace engine::vulkan {
 
     void Swapchain::destroy(VkSwapchainKHR swapchain) {
         const auto * allocationCallbacks = _device.gpu().getInstance().getAllocationCallbacks();
+
+        if (_imageAvailableFence != VK_NULL_HANDLE) {
+            vkResetFences(_device(), 1, &_imageAvailableFence);
+        }
+        vkDestroyFence(_device(), _imageAvailableFence, allocationCallbacks);
 
         for (auto & s: _imageAvailableSemaphores) {
             vkDestroySemaphore(_device(), s, allocationCallbacks);

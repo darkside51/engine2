@@ -16,7 +16,9 @@
 #include "log/log.h"
 
 #include "graphics/render/rhi/common/api.h"
+#include "graphics/render/rhi/common/utils.h"
 #include "graphics/render/rhi/vulkan/api.h"
+#include "graphics/render/rhi/vulkan/vk_types.h"
 #include "graphics/render/rhi/vulkan/instance.h"
 #include "graphics/render/rhi/vulkan/physical_device.h"
 #include "graphics/render/rhi/vulkan/surface.h"
@@ -26,6 +28,70 @@
 #include "graphics/render/rhi/vulkan/renderpass.h"
 #include "graphics/render/rhi/vulkan/framebuffer.h"
 #include "graphics/render/rhi/vulkan/command_pool.h"
+
+engine::rhi::RenderPassDescription createRenderPassDescription(engine::rhi::Format colorFormat, engine::rhi::Format depthFormat) {
+    std::vector<engine::rhi::SubpassDependency> dependencies(2u);
+    dependencies[0].srcSubpass = engine::rhi::kSubpassExternal;
+    dependencies[0].dstSubpass = 0u;
+    dependencies[0].srcStageMask = engine::rhi::PipelineStageFlags::eColor_Attachment_Output; // VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT
+    dependencies[0].dstStageMask = engine::rhi::PipelineStageFlags::eEarly_Fragment_Tests | engine::rhi::PipelineStageFlags::eColor_Attachment_Output; // (VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT - https://vkguide.dev/docs/chapter-4/double_buffering/) is a loadOp stage for color attachments
+    dependencies[0].srcAccessMask = engine::rhi::AccessFlags::eNone; // semaphore wait already does memory dependency for us
+    dependencies[0].dstAccessMask = engine::rhi::AccessFlags::eColor_Attachment_Write; // is a loadOp CLEAR access mask for color attachments
+    dependencies[0].dependencyFlags = engine::rhi::DependencyFlags::eBy_Region;
+
+    dependencies[1].srcSubpass = 0u;
+    dependencies[1].dstSubpass = engine::rhi::kSubpassExternal;
+    dependencies[1].srcStageMask = engine::rhi::PipelineStageFlags::eColor_Attachment_Output; // VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT
+    dependencies[1].dstStageMask = engine::rhi::PipelineStageFlags::eBottom_Of_Pipe; // Do not block any subsequent work
+    dependencies[1].srcAccessMask = engine::rhi::AccessFlags::eColor_Attachment_Write; // semaphore wait already does memory dependency for us
+    dependencies[1].dstAccessMask = engine::rhi::AccessFlags::eNone;         // is a loadOp CLEAR access mask for color attachments
+    dependencies[1].dependencyFlags = engine::rhi::DependencyFlags::eBy_Region;
+
+    std::vector<engine::rhi::AttachmentDescription> attachments(2u);
+    attachments[0].format = colorFormat;
+    attachments[0].loadStoreOp = {engine::rhi::AttachmentLoadOp::eClear, engine::rhi::AttachmentStoreOp::eStore};
+    attachments[0].stencilLoadStoreOp = {engine::rhi::AttachmentLoadOp::eDont_Care, engine::rhi::AttachmentStoreOp::eDont_Care};
+    attachments[0].initialLayout = engine::rhi::ImageLayout::eColor_Attachment_Optimal;
+    attachments[0].finalLayout = engine::rhi::ImageLayout::ePresent_Src;
+
+    attachments[1].format = depthFormat;
+    attachments[1].loadStoreOp = {engine::rhi::AttachmentLoadOp::eClear, engine::rhi::AttachmentStoreOp::eDont_Care};
+    attachments[1].stencilLoadStoreOp = {engine::rhi::AttachmentLoadOp::eDont_Care, engine::rhi::AttachmentStoreOp::eDont_Care};
+    attachments[1].initialLayout = engine::rhi::ImageLayout::eDepth_Stencil_Attachment_Optimal;
+    attachments[1].finalLayout = engine::rhi::ImageLayout::eDepth_Stencil_Attachment_Optimal;
+
+    engine::rhi::AttachmentReference colorReference;
+    colorReference.attachment = 0u;
+    colorReference.layout = engine::rhi::ImageLayout::eColor_Attachment_Optimal;
+    colorReference.aspectMask = engine::rhi::ImageAspectFlags::eColor;
+
+    engine::rhi::AttachmentReference depthReference;
+    depthReference.attachment = 1u;
+    depthReference.layout = engine::rhi::ImageLayout::eDepth_Stencil_Attachment_Optimal;
+    depthReference.aspectMask = engine::rhi::ImageAspectFlags::eDepthStencil;
+
+    std::vector<engine::rhi::SubpassDescription> subpasses{1};
+    subpasses[0].colorAttachments.reserve(1u);
+    subpasses[0].colorAttachments[0] = colorReference;
+    subpasses[0].depthStencilAttachment = depthReference;
+
+    // VkSubpassDescription subpassDescription = {};
+    // subpassDescription.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+    // subpassDescription.colorAttachmentCount = 1;
+    // subpassDescription.pColorAttachments = &colorReference;
+    // subpassDescription.pDepthStencilAttachment = &depthReference;
+    // subpassDescription.inputAttachmentCount = 0;
+    // subpassDescription.pInputAttachments = nullptr;
+    // subpassDescription.preserveAttachmentCount = 0;
+    // subpassDescription.pPreserveAttachments = nullptr;
+    // subpassDescription.pResolveAttachments = nullptr;
+
+    return engine::rhi::RenderPassDescription{
+        std::move(attachments), 
+        std::move(subpasses), 
+        std::move(dependencies)
+    };
+}
 
 int main() {
     engine::common::Version v(0, 0, 4);
@@ -66,9 +132,10 @@ int main() {
         const auto surfaceSupportDetails = engine::vulkan::getSurfaceSupportDetails(devices[0], surface);
         auto depthFormat = devices[0].getSupportedDepthFormat(32u, true);
 
-        auto [index, family] = devices[0].getQueueFamily(engine::rhi::queue_flags::graphics | engine::rhi::queue_flags::present);
+        const auto queueFlags = engine::rhi::queue_flags::graphics | engine::rhi::queue_flags::present;
+        auto [index, family] = devices[0].getQueueFamily(queueFlags);
         engine::rhi::DeviceCreateInfo deviceCreateInfo{gpuFeatures};
-        deviceCreateInfo.queueFamilies.push_back({index, 1u, {}});
+        deviceCreateInfo.queueFamilies.push_back({index, 1u, {}, queueFlags});
         
         Api::Device device(devices[0], deviceCreateInfo);
 
@@ -88,76 +155,8 @@ int main() {
         depthImageInfo.queueFamilyIndices = {index};
         Api::Image depthImage(device, depthImageInfo);
 
-        engine::vulkan::RenderPassManager renderPassManager{device};
-
-        std::vector<engine::rhi::SubpassDependency> dependencies(2u);
-        dependencies[0].srcSubpass = engine::rhi::kSubpassExternal;
-        dependencies[0].dstSubpass = 0u;
-        dependencies[0].srcStageMask = engine::rhi::PipelineStageFlags::eColor_Attachment_Output; // VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT
-		dependencies[0].dstStageMask = engine::rhi::PipelineStageFlags::eEarly_Fragment_Tests | engine::rhi::PipelineStageFlags::eColor_Attachment_Output; // (VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT - https://vkguide.dev/docs/chapter-4/double_buffering/) is a loadOp stage for color attachments
-		dependencies[0].srcAccessMask = engine::rhi::AccessFlags::eNone; // semaphore wait already does memory dependency for us
-		dependencies[0].dstAccessMask = engine::rhi::AccessFlags::eColor_Attachment_Write; // is a loadOp CLEAR access mask for color attachments
-		dependencies[0].dependencyFlags = engine::rhi::DependencyFlags::eBy_Region;
-
-        dependencies[1].srcSubpass = 0u;
-        dependencies[1].dstSubpass = engine::rhi::kSubpassExternal;
-        dependencies[1].srcStageMask = engine::rhi::PipelineStageFlags::eColor_Attachment_Output; // VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT
-		dependencies[1].dstStageMask = engine::rhi::PipelineStageFlags::eBottom_Of_Pipe; // Do not block any subsequent work
-		dependencies[1].srcAccessMask = engine::rhi::AccessFlags::eColor_Attachment_Write; // semaphore wait already does memory dependency for us
-		dependencies[1].dstAccessMask = engine::rhi::AccessFlags::eNone;         // is a loadOp CLEAR access mask for color attachments
-		dependencies[1].dependencyFlags = engine::rhi::DependencyFlags::eBy_Region;
-
-        std::vector<engine::rhi::AttachmentDescription> attachments(2u);
-        attachments[0].format = swapchain.getFormat();
-        attachments[0].loadOp = engine::rhi::AttachmentLoadOp::eClear;
-        attachments[0].storeOp = engine::rhi::AttachmentStoreOp::eStore;
-        attachments[0].stencilLoadOp = engine::rhi::AttachmentLoadOp::eDont_Care;
-        attachments[0].stencilStoreOp = engine::rhi::AttachmentStoreOp::eDont_Care;
-        attachments[0].initialLayout = engine::rhi::ImageLayout::eColor_Attachment_Optimal;
-        attachments[0].finalLayout = engine::rhi::ImageLayout::ePresent_Src;
-
-        attachments[1].format = depthFormat;
-        attachments[1].loadOp = engine::rhi::AttachmentLoadOp::eClear;
-        attachments[1].storeOp = engine::rhi::AttachmentStoreOp::eDont_Care;
-        attachments[1].stencilLoadOp = engine::rhi::AttachmentLoadOp::eDont_Care;
-        attachments[1].stencilStoreOp = engine::rhi::AttachmentStoreOp::eDont_Care;
-        attachments[1].initialLayout = engine::rhi::ImageLayout::eDepth_Stencil_Attachment_Optimal;
-        attachments[1].finalLayout = engine::rhi::ImageLayout::eDepth_Stencil_Attachment_Optimal;
-
-        engine::rhi::AttachmentReference colorReference;
-        colorReference.attachment = 0;
-        colorReference.layout = engine::rhi::ImageLayout::eColor_Attachment_Optimal;
-        colorReference.aspectMask = engine::rhi::ImageAspectFlags::eColor;
-
-        engine::rhi::AttachmentReference depthReference;
-        depthReference.attachment = 1;
-        depthReference.layout = engine::rhi::ImageLayout::eDepth_Stencil_Attachment_Optimal;
-        depthReference.aspectMask = engine::rhi::ImageAspectFlags::eDepthStencil;
-
-        std::vector<engine::rhi::SubpassDescription> subpasses{1};
-        subpasses[0].colorAttachments.reserve(1u);
-        subpasses[0].colorAttachments[0] = colorReference;
-        subpasses[0].depthStencilAttachment = depthReference;
-
-        // VkSubpassDescription subpassDescription = {};
-        // subpassDescription.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-        // subpassDescription.colorAttachmentCount = 1;
-        // subpassDescription.pColorAttachments = &colorReference;
-        // subpassDescription.pDepthStencilAttachment = &depthReference;
-        // subpassDescription.inputAttachmentCount = 0;
-        // subpassDescription.pInputAttachments = nullptr;
-        // subpassDescription.preserveAttachmentCount = 0;
-        // subpassDescription.pPreserveAttachments = nullptr;
-        // subpassDescription.pResolveAttachments = nullptr;
-
-
-        engine::rhi::RenderPassDescription renderPassDescription{
-            std::move(attachments), 
-            std::move(subpasses), 
-            std::move(dependencies)
-        };
-
-        auto renderPass = renderPassManager.getRenderPass(renderPassDescription);
+        Api::RenderPassManager renderPassManager{device};
+        auto renderPass = renderPassManager.getRenderPass(createRenderPassDescription(swapchain.getFormat(), depthFormat));
 
         std::vector<Api::FrameBuffer> frameBuffers;
         frameBuffers.reserve(swapchain.getImagesCount());
@@ -176,17 +175,20 @@ int main() {
 
         engine::vulkan::CommandPoolManager commandPoolManager{device, 1u};
         engine::vulkan::CommandPool * commandPool = nullptr;
+        
+        // vulkan code
         std::vector<VkCommandBuffer> cmdBuffers;
         cmdBuffers.reserve(swapchain.getImagesCount());
 
-        std::vector<VkFence> waitFences(swapchain.getImagesCount());
-        VkFenceCreateInfo fenceCreateInfo = {};
-        fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-        fenceCreateInfo.pNext = nullptr;
-        fenceCreateInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+        std::vector<VkFence> submitCompleteFences(swapchain.getImagesCount());
+        VkFenceCreateInfo fenceCreateInfo = {
+            .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
+            .pNext = nullptr,
+            .flags = VK_FENCE_CREATE_SIGNALED_BIT
+        };
 
         for (size_t i = 0; i < swapchain.getImagesCount(); ++i) {
-            vkCreateFence(device(), &fenceCreateInfo, nullptr/*allocator*/, &waitFences[i]);
+            vkCreateFence(device(), &fenceCreateInfo, nullptr/*allocator*/, &submitCompleteFences[i]);
         }
 
         std::vector<VkSemaphore> presentReadySemaphores(swapchain.getImagesCount());
@@ -198,10 +200,10 @@ int main() {
             vkCreateSemaphore(device(), &semaphoreCreateInfo, nullptr/*allocator*/, &semaphore);
         }
 
-        const auto & queueFamilies = device.getQueueFamilies();
-        auto queue = queueFamilies[0].queues[0];
+        auto * queueFamily = device.findQueueFamily(engine::rhi::queue_flags::graphics | engine::rhi::queue_flags::present);
+        auto queue = queueFamily->queues[0];
 
-        uint32_t frameIdx = 0u;
+        engine::rhi::FrameIndex frameIndex{swapchain.getImagesCount()};
 
         VkPipelineStageFlags submitPipelineStages = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 
@@ -226,41 +228,43 @@ int main() {
                 // static uint32_t a = 0u;
                 // LOG_I("threadId_0: %d, delta: %f, value = %d\n", threads::unique::id(), delta, ++a);
 
-                const auto result = vkWaitForFences(device(), 1, &waitFences[frameIdx], VK_TRUE, 5000/*UINT64_MAX*/); 
+                const auto result = vkWaitForFences(device(), 1, &submitCompleteFences[frameIndex()], VK_TRUE, UINT64_MAX); 
                 if (result != VK_SUCCESS) {
                     return;
                 }
+                vkResetFences(device(), 1, &submitCompleteFences[frameIndex()]);
 
-                auto [imageIndex, success] = swapchain.acquireNextImage(frameIdx);
+                auto [imageIndex, success] = swapchain.acquireNextImage(frameIndex());
 
                 if (!success) {
                     return;
                 }
 
-                vkResetFences(device(), 1, &waitFences[frameIdx]);
-
                 submitInfo.commandBufferCount = 1u;
-                submitInfo.pCommandBuffers = &cmdBuffers[frameIdx];
-                submitInfo.pWaitSemaphores = &swapchain.getImageAvailableSemaphore(frameIdx);
-                submitInfo.pSignalSemaphores = &presentReadySemaphores[frameIdx];
+                submitInfo.pCommandBuffers = &cmdBuffers[frameIndex()];
+                submitInfo.pWaitSemaphores = &swapchain.getImageAvailableSemaphore(frameIndex());
+                submitInfo.pSignalSemaphores = &presentReadySemaphores[frameIndex()];
                 
-                const VkResult queueResult = vkQueueSubmit(queue, 1, &submitInfo, waitFences[frameIdx]);
+                const VkResult queueResult = vkQueueSubmit(queue, 1, &submitInfo, submitCompleteFences[frameIndex()]);
 
-                presentInfo.pWaitSemaphores = &presentReadySemaphores[frameIdx];
+                presentInfo.pWaitSemaphores = &presentReadySemaphores[frameIndex()];
                 presentInfo.pImageIndices = &imageIndex;
 
                 VkResult presentResult = vkQueuePresentKHR(queue, &presentInfo);
 
-                frameIdx = (frameIdx + 1u) % swapchain.getImagesCount();
+                frameIndex.nextFrame();
             }
-        }, 1.0f);
+        }, 0.25f);
         w.run();
         w.emplaceTasks(stl::make_vector(threads::WorkerTask{[&](){
             commandPool = commandPoolManager.createPool(engine::rhi::queue_flags::graphics | engine::rhi::queue_flags::present);
 
-            VkClearValue clearValues[2];
-            clearValues[0].color = {{0.25f, 0.25f, 0.25f, 1.0f}};
-            clearValues[1].depthStencil = {1.0f, 0};
+            const std::array clearValues2 {
+                engine::rhi::ClearValue{0x77'ff'77'ffu},
+                engine::rhi::ClearValue{1.0f, 255}
+            };
+
+            auto clearValues = engine::vulkan::utils::convert2vk(clearValues2);
 
             VkRenderPassBeginInfo renderPassBeginInfo = {};
             renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -268,8 +272,8 @@ int main() {
 
             renderPassBeginInfo.renderPass = renderPass;
             renderPassBeginInfo.renderArea = { {0, 0}, {1024, 768} };
-            renderPassBeginInfo.clearValueCount = 2;
-            renderPassBeginInfo.pClearValues = clearValues;
+            renderPassBeginInfo.clearValueCount = clearValues.size();
+            renderPassBeginInfo.pClearValues = clearValues.data();
 
             VkCommandBufferBeginInfo beginInfo;
 			beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -281,8 +285,10 @@ int main() {
 	        const VkRect2D scissor{{0, 0}, {1024, 768}};
 
             for (size_t i = 0; i < swapchain.getImagesCount(); ++i) {
-                clearValues[0].color = {{0.25f + i * 0.25f, 0.25f, 0.25f, 1.0f}};
-                renderPassBeginInfo.pClearValues = clearValues;
+                if (i > 0u) {
+                    clearValues[0].color = {{0.25f + i * 0.25f, 0.25f, 0.25f, 1.0f}};
+                }
+                renderPassBeginInfo.pClearValues = clearValues.data();
 
                 renderPassBeginInfo.framebuffer = frameBuffers[i]();
 

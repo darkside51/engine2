@@ -23,6 +23,7 @@ namespace engine::rhi {
         using Swapchain = T::Swapchain;
         using Image = T::Image;
         using FrameBuffer = T::FrameBuffer;
+        using RenderPassManager = T::RenderPassManager;
 
         static consteval ApiType type() noexcept {
             return T::type();

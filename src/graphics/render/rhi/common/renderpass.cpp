@@ -34,8 +34,8 @@ namespace engine::rhi {
     void RenderPassDescription::calculateHash() noexcept {
         _hash = 0u;
         for (auto const & a : _attachments) {
-            const auto h = hash::hash_combine(a.format, a.loadOp, a.storeOp,
-                                            a.stencilLoadOp, a.stencilStoreOp, a.initialLayout, 
+            const auto h = hash::hash_combine(a.format, a.loadStoreOp.mask,
+                                            a.stencilLoadStoreOp.mask, a.initialLayout, 
                                             a.finalLayout, a.samples, a.aliasFlag);
             hash::hash_combine(_hash, h);
         }

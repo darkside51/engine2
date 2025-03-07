@@ -4,6 +4,7 @@
 #include "memory_allocator.h"
 
 #include <vulkan/vulkan.h>
+
 #include <cstdint>
 #include <vector>
 
@@ -14,6 +15,7 @@ class PhisicalDevice;
 struct DeviceQueueFamily {
     uint32_t index = 0u;
     std::vector<VkQueue> queues;
+    uint8_t flags = 0u;
 };
 
 class Device {
@@ -27,6 +29,7 @@ public:
     inline const PhisicalDevice & gpu() const noexcept { return _gpu; }
 
     const std::vector<DeviceQueueFamily> & getQueueFamilies() const noexcept { return _queueFamilies; }
+    const DeviceQueueFamily * findQueueFamily(uint8_t flags, uint32_t start = 0u) const noexcept;
     
     const GPUMemoryAllocator & getMemoryAllocator() const noexcept { return _memoryAllocator; }
     GPUMemoryAllocator & getMemoryAllocator() noexcept { return _memoryAllocator; }

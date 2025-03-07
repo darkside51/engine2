@@ -16,6 +16,17 @@ namespace engine::rhi {
     //     return static_cast<T>(std::to_underlying(a) & std::to_underlying(b));
     // }
 
+    struct Offset2D {
+        int32_t x;
+        int32_t y;
+    };
+    
+    struct Offset3D {
+        int32_t x;
+        int32_t y;
+        int32_t z;
+    };
+    
     struct Extent2D {
         uint32_t width = 0u;
         uint32_t height = 0u;
@@ -27,6 +38,31 @@ namespace engine::rhi {
         uint32_t depth = 0u;
     };
     
+    struct ClearColorValue {
+        float value[4];
+    };
+    
+    struct ClearDepthStencilValue {
+        float depth;
+        uint32_t stencil;
+    };
+    
+    union ClearValue {
+        ClearColorValue color;
+        ClearDepthStencilValue depthStencil;
+
+        explicit ClearValue(uint32_t color) : 
+        color{
+            static_cast<float>(0xffu & (color >> 24u)) / 255.0f, 
+            static_cast<float>(0xffu & (color >> 16u)) / 255.0f, 
+            static_cast<float>(0xffu & (color >> 8u)) / 255.0f, 
+            static_cast<float>(0xffu & (color >> 0u)) / 255.0f
+        } {}
+
+        ClearValue(float r, float g, float b, float a) :  color{r, g, b, a} {}   
+        ClearValue(float depth, uint32_t stencil) : depthStencil{depth, stencil} {}
+    };
+
     enum class MemoryPropertyFlags :uint8_t {
         eUndefined = 0u,
         eDeviceLocal = 1u,
@@ -380,6 +416,24 @@ namespace engine::rhi {
         eNone = 2u
     };
 
+    struct AttachmentLoadStoreOp {
+        uint8_t mask = 0u;
+        
+        AttachmentLoadStoreOp() : mask(std::to_underlying(AttachmentLoadOp::eDont_Care) | 
+                                      (std::to_underlying(AttachmentStoreOp::eDont_Care) << 4u)) {}
+
+        AttachmentLoadStoreOp(AttachmentLoadOp loadOp, AttachmentStoreOp storeOp) : mask(std::to_underlying(loadOp) | 
+                                                                                        (std::to_underlying(storeOp) << 4u)) {}
+
+        inline AttachmentLoadOp loadOp() const noexcept {
+            return static_cast<AttachmentLoadOp>(mask & 0b0011u);
+        }
+
+        inline AttachmentStoreOp storeOp() const noexcept {
+            return static_cast<AttachmentStoreOp>((mask >> 4u) & 0b0011u);
+        }
+    };
+
     enum class ImageLayout : uint8_t {
         eUndefined = 0u,
         eGeneral = 1u,
@@ -407,10 +461,8 @@ namespace engine::rhi {
 
     struct AttachmentDescription {
         Format format = Format::eR8G8B8A8_Unorm;
-        AttachmentLoadOp loadOp = AttachmentLoadOp::eDont_Care;
-        AttachmentStoreOp storeOp = AttachmentStoreOp::eDont_Care;
-        AttachmentLoadOp stencilLoadOp = AttachmentLoadOp::eDont_Care;
-        AttachmentStoreOp stencilStoreOp = AttachmentStoreOp::eDont_Care;
+        AttachmentLoadStoreOp loadStoreOp{};
+        AttachmentLoadStoreOp stencilLoadStoreOp{};
         ImageLayout initialLayout = ImageLayout::eUndefined;
         ImageLayout finalLayout = ImageLayout::eColor_Attachment_Optimal;
         uint8_t samples = 1u;

@@ -16,10 +16,10 @@ namespace engine::vulkan {
             description.aliasFlag ? VK_ATTACHMENT_DESCRIPTION_MAY_ALIAS_BIT : 0,
             utils::convert2vk(description.format),
             utils::convert2vk(description.samples),
-            utils::convert2vk(description.loadOp),
-            utils::convert2vk(description.storeOp),
-            utils::convert2vk(description.stencilLoadOp),
-            utils::convert2vk(description.stencilStoreOp),
+            utils::convert2vk(description.loadStoreOp.loadOp()),
+            utils::convert2vk(description.loadStoreOp.storeOp()),
+            utils::convert2vk(description.stencilLoadStoreOp.loadOp()),
+            utils::convert2vk(description.stencilLoadStoreOp.storeOp()),
             utils::convert2vk(description.initialLayout),
             utils::convert2vk(description.finalLayout)
         };

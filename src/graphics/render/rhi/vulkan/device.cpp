@@ -5,13 +5,15 @@
 
 #include "log/log.h"
 
+#include <algorithm>
 #include <vector>
 
 namespace engine::vulkan {
 
     Device::Device(const PhisicalDevice & gpu, const rhi::DeviceCreateInfo & info) : _gpu(gpu) {
 
-        std::vector<VkDeviceQueueCreateInfo> queueCreateInfos(info.queueFamilies.size());
+        std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
+        queueCreateInfos.reserve(info.queueFamilies.size());
         for (const auto & family : info.queueFamilies) {
             VkDeviceQueueCreateInfo queueCreateInfo = {};
             queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
@@ -58,6 +60,7 @@ namespace engine::vulkan {
         for (auto & family : _queueFamilies) {
             const auto & srcFamily = info.queueFamilies[i];
             family.index = srcFamily.index;
+            family.flags = srcFamily.flags;
             family.queues.resize(srcFamily.queueCount);
             for (uint32_t j = 0u; j < srcFamily.queueCount; ++j) {
                 vkGetDeviceQueue(_device, family.index, j, &family.queues[j]);
@@ -121,6 +124,15 @@ namespace engine::vulkan {
 
     void Device::destroyAllocator() noexcept {
         _memoryAllocator.destroy();
+    }
+
+    const DeviceQueueFamily * Device::findQueueFamily(uint8_t flags, uint32_t start) const noexcept {
+        if (auto it = std::find_if(_queueFamilies.begin() + start, _queueFamilies.end(), [flags](auto const & queue) {
+            return (queue.flags & flags) == flags;
+        }); it != _queueFamilies.end()) {
+            return &(*it);
+        }
+        return nullptr;
     }
 
 }

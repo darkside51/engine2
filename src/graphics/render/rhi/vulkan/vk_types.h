@@ -1,9 +1,11 @@
 #pragma once
 
+#include "graphics/render/rhi/common/device.h"
 #include "graphics/render/rhi/common/types.h"
 
 #include <vulkan/vulkan.h>
 
+#include <array>
 #include <cassert>
 #include <cstdint>
 #include <cstring>
@@ -12,12 +14,36 @@
 namespace engine::vulkan {
 namespace utils {
 
+inline VkOffset2D convert2vk(const rhi::Offset2D & offset) noexcept {
+    return {.x = offset.x, .y = offset.y};
+}
+
+inline VkOffset3D convert2vk(const rhi::Offset3D & offset) noexcept {
+    return {.x = offset.x, .y = offset.y, .z = offset.z};
+}
+
 inline VkExtent2D convert2vk(const rhi::Extent2D & extent) noexcept {
     return {.width = extent.width, .height = extent.height};
 }
 
 inline VkExtent3D convert2vk(const rhi::Extent3D & extent) noexcept {
     return {.width = extent.width, .height = extent.height, .depth = extent.depth};
+}
+
+inline VkClearValue convert2vk(const rhi::ClearValue & clearValue) noexcept {
+    return {clearValue.color.value[0u], 
+            clearValue.color.value[1u], 
+            clearValue.color.value[2u], 
+            clearValue.color.value[3u]};
+}
+
+template<size_t N>
+inline auto convert2vk(const std::array<rhi::ClearValue, N> & array) -> std::array<VkClearValue, N> {
+    std::array<VkClearValue, N> result;
+    for (size_t i = 0; i < N; ++i) {
+        result[i] = convert2vk(array[i]);
+    }
+    return result;
 }
 
 inline VkPhysicalDeviceFeatures convert2vk(const rhi::PhysicalDeviceFeatures & features) noexcept {
