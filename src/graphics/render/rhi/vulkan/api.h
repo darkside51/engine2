@@ -13,6 +13,7 @@ namespace engine::vulkan {
     class Image;
     class FrameBuffer;
     class RenderPassManager;
+    class Queue;
     
     class Api {
     public:
@@ -24,6 +25,7 @@ namespace engine::vulkan {
         using Image = vulkan::Image;
         using FrameBuffer = vulkan::FrameBuffer;
         using RenderPassManager = vulkan::RenderPassManager;
+        using Queue = vulkan::Queue;
 
         static constexpr auto kSwapchainExtName = VK_KHR_SWAPCHAIN_EXTENSION_NAME;
         static constexpr auto kDebugUtilExtName = VK_EXT_DEBUG_UTILS_EXTENSION_NAME;
@@ -31,6 +33,10 @@ namespace engine::vulkan {
         
         static consteval rhi::ApiType type() noexcept {
             return rhi::ApiType::eVulkan;
+        }
+
+        static consteval const char* name() noexcept {
+            return "vulkan";
         }
     };
 }

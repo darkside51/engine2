@@ -9,40 +9,36 @@
 
 namespace engine::vulkan {
 
-Image::Image(Device & device, const rhi::ImageInfo info) : 
+Image::Image(Device & device, const rhi::ImageInfo & info) : 
     _device(device), 
     _info(info),
     _imageSubStates(_info.arrayLayers * _info.mipLevels) {
 
-    VkImageCreateInfo imageInfo = {};
-    imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-    imageInfo.flags = utils::convert2vk(_info.flags);
-    imageInfo.imageType = utils::convert2vk(_info.type);
-    imageInfo.format = utils::convert2vk(_info.format);
-    imageInfo.extent = utils::convert2vk(_info.extent);
-    imageInfo.mipLevels = _info.mipLevels;
-    imageInfo.arrayLayers = _info.arrayLayers;
-    imageInfo.samples = utils::convert2vk(_info.samples);
-    imageInfo.tiling = utils::convert2vk(_info.tiling);
-    imageInfo.usage = utils::convert2vk(_info.usage);
-    imageInfo.sharingMode = utils::convert2vk(_info.sharing);
-    imageInfo.queueFamilyIndexCount = _info.queueFamilyIndices.size();
-    imageInfo.pQueueFamilyIndices = _info.queueFamilyIndices.data();
-    imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    const VkImageCreateInfo imageInfo = {
+        .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+        .pNext = nullptr,
+        .flags = utils::convert2vk(_info.flags),
+        .imageType = utils::convert2vk(_info.type),
+        .format = utils::convert2vk(_info.format),
+        .extent = utils::convert2vk(_info.extent),
+        .mipLevels = _info.mipLevels,
+        .arrayLayers = _info.arrayLayers,
+        .samples = utils::convert2vk(_info.samples),
+        .tiling = utils::convert2vk(_info.tiling),
+        .usage = utils::convert2vk(_info.usage),
+        .sharingMode = utils::convert2vk(_info.sharing),
+        .queueFamilyIndexCount = static_cast<uint32_t>(_info.queueFamilyIndices.size()),
+        .pQueueFamilyIndices = _info.queueFamilyIndices.data(),
+        .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED
+    };
 
     if (auto result = _device.getMemoryAllocator().createImage(imageInfo, _image, _allocation); result != VK_SUCCESS) {
         LOG_E("vulkan: vkCreateImage error: %d", result);
         return;
     }
-
-    // const auto * allocationCallbacks = _device.gpu().getInstance().getAllocationCallbacks();
-    // if (auto result = vkCreateImage(_device(), &imageInfo, allocationCallbacks, &_image); result != VK_SUCCESS) {
-    //     LOG_E("vulkan: vkCreateImage error: %d", result);
-    //     return;
-    // }
 }
 
-Image::Image(Device & device, const rhi::ImageInfo info, VkImage externalImage) :
+Image::Image(Device & device, const rhi::ImageInfo & info, VkImage externalImage) :
     _device(device), 
     _image(externalImage),
     _info(info),
@@ -81,23 +77,32 @@ VkImageView Image::getImageView(rhi::ImageViewType viewType,
         return it->second;
     }
 
-    VkImageViewCreateInfo viewInfo = {};
-    viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-    viewInfo.image = _image;
-
-    viewInfo.viewType = utils::convert2vk(viewType);
-    viewInfo.format = utils::convert2vk(_info.format);
-
-    viewInfo.components.r = VK_COMPONENT_SWIZZLE_R;
-    viewInfo.components.g = VK_COMPONENT_SWIZZLE_G;
-    viewInfo.components.b = VK_COMPONENT_SWIZZLE_B;
-    viewInfo.components.a = VK_COMPONENT_SWIZZLE_A;
-
-    viewInfo.subresourceRange.aspectMask = utils::convert2vk(_info.aspectFlags & aspectFlags);
-    viewInfo.subresourceRange.baseMipLevel = baseLevel;
-    viewInfo.subresourceRange.levelCount = levelsCount;
-    viewInfo.subresourceRange.baseArrayLayer = baseLayer;
-    viewInfo.subresourceRange.layerCount = layersCount;
+    const VkImageViewCreateInfo viewInfo = {
+        .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+        .pNext = nullptr,
+        .flags = 0,
+        .image = _image,
+        .viewType = utils::convert2vk(viewType),
+        .format = utils::convert2vk(_info.format),
+        .components = rhi::isDepthFormat(_info.format) ? VkComponentMapping {
+            .r = VK_COMPONENT_SWIZZLE_IDENTITY,
+            .g = VK_COMPONENT_SWIZZLE_IDENTITY,
+            .b = VK_COMPONENT_SWIZZLE_IDENTITY,
+            .a = VK_COMPONENT_SWIZZLE_IDENTITY
+        } : VkComponentMapping {
+            .r = VK_COMPONENT_SWIZZLE_R,
+            .g = VK_COMPONENT_SWIZZLE_G,
+            .b = VK_COMPONENT_SWIZZLE_B,
+            .a = VK_COMPONENT_SWIZZLE_A
+        },
+        .subresourceRange = {
+            .aspectMask = utils::convert2vk(_info.aspectFlags & aspectFlags),
+            .baseMipLevel = baseLevel,
+            .levelCount = levelsCount,
+            .baseArrayLayer = baseLayer,
+            .layerCount = layersCount
+        }
+    };
 
     VkImageView imageView;
     const auto * allocationCallbacks = _device.gpu().getInstance().getAllocationCallbacks();

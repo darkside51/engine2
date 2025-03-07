@@ -146,14 +146,20 @@ int main() {
         Api::Swapchain swapchain(device, surface, swapchainCreateInfo);
         swapchain.resize(1024u, 768u, true);
 
-        auto depthImageInfo = engine::rhi::ImageInfo{};
-        depthImageInfo.usage = engine::rhi::ImageUsageFlags::eDepth_Stencil_Attachment;
-        depthImageInfo.extent = {1024u, 768u, 1u};
-        depthImageInfo.format = depthFormat;
-        depthImageInfo.tiling = engine::rhi::ImageTiling::eOptimal;
-        depthImageInfo.aspectFlags = engine::rhi::ImageAspectFlags::eDepthStencil;
-        depthImageInfo.queueFamilyIndices = {index};
-        Api::Image depthImage(device, depthImageInfo);
+        Api::Image depthImage{device, {
+            .type = engine::rhi::ImageType::eType_2D,
+            .usage = engine::rhi::ImageUsageFlags::eDepth_Stencil_Attachment,
+            .sharing = engine::rhi::SharingMode::eExclusive,
+            .format = depthFormat,
+            .aspectFlags = engine::rhi::ImageAspectFlags::eDepthStencil,
+            .tiling = engine::rhi::ImageTiling::eOptimal,
+            .flags = engine::rhi::ImageCreateFlags::eNone,
+            .extent = {1024u, 768u, 1u},
+            .mipLevels = 1u,
+            .arrayLayers = 1u,
+            .samples = 1u,
+            .queueFamilyIndices = {index}
+        }};
 
         Api::RenderPassManager renderPassManager{device};
         auto renderPass = renderPassManager.getRenderPass(createRenderPassDescription(swapchain.getFormat(), depthFormat));
@@ -203,7 +209,7 @@ int main() {
         auto * queueFamily = device.findQueueFamily(engine::rhi::queue_flags::graphics | engine::rhi::queue_flags::present);
         auto queue = queueFamily->queues[0];
 
-        engine::rhi::FrameIndex frameIndex{swapchain.getImagesCount()};
+        engine::rhi::FrameIndex frameIndex{static_cast<uint8_t>(swapchain.getImagesCount())};
 
         VkPipelineStageFlags submitPipelineStages = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 

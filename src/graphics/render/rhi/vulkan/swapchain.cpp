@@ -241,6 +241,9 @@ namespace engine::vulkan {
         return {imageIndex, success};
     }
 
+    const Image & Swapchain::getImage(uint8_t index) const noexcept { return _images[index]; }
+    Image & Swapchain::getImage(uint8_t index) noexcept { return _images[index]; }
+
     void Swapchain::destroy(VkSwapchainKHR swapchain) {
         const auto * allocationCallbacks = _device.gpu().getInstance().getAllocationCallbacks();
 

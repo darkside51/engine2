@@ -282,6 +282,25 @@ namespace engine::rhi {
         eASTC_12x12_Srgb_Block = 184u,
     };
 
+    inline bool isDepthFormat(Format format) noexcept {
+        switch (format) {
+            case Format::eD16_Unorm: [[fallthrough]];
+            case Format::eX8_D24_Unorm_Pack32: [[fallthrough]];
+            case Format::eD32_Sfloat: [[fallthrough]];
+            case Format::eS8_Uint: [[fallthrough]];
+            case Format::eD16_Unorm_S8_Uint: [[fallthrough]];
+            case Format::eD24_Unorm_S8_Uint: [[fallthrough]];
+            case Format::eD32_Sfloat_S8_Uint:
+            return true;
+        default:
+            return false;
+        }
+    }
+
+    inline bool isColorFormat(Format format) noexcept {
+        return !isDepthFormat(format);
+    }
+
     enum class ColorSpace : uint8_t {
         eSRGB_Nonlinear = 0u,
         eDISPLAY_P3_Nonlinear = 1u,

@@ -109,7 +109,7 @@ struct PhysicalDeviceRequirements {
     const PhysicalDeviceFeatureRequest & featureRequest;
     std::vector<const char*> requiredExtensions;
     std::optional<DeviceType> requiredDeviceType;
-    uint8_t requiredQueueFlags = queue_flags::graphics || queue_flags::present;
+    uint8_t requiredQueueFlags = queue_flags::graphics | queue_flags::present;
 };
 
 struct DeviceCreateInfo {

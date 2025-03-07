@@ -36,8 +36,8 @@ public:
     rhi::Format getFormat() const noexcept { return _format; }
     rhi::ColorSpace getColorSpace() const noexcept { return _colorSpace; }
 
-    const Image & getImage(uint8_t index) const noexcept { return _images[index]; }
-    Image & getImage(uint8_t index) noexcept { return _images[index]; }
+    const Image & getImage(uint8_t index) const noexcept;
+    Image & getImage(uint8_t index) noexcept;
 
     void present(const Queue & queue, uint8_t imageIndex) noexcept; // need to set presentInfo
 

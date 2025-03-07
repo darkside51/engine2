@@ -13,7 +13,7 @@ namespace engine::vulkan {
 
     VkAttachmentDescription convert2vk(const rhi::AttachmentDescription & description) noexcept {
         return {
-            description.aliasFlag ? VK_ATTACHMENT_DESCRIPTION_MAY_ALIAS_BIT : 0,
+            description.aliasFlag ? VK_ATTACHMENT_DESCRIPTION_MAY_ALIAS_BIT : VkAttachmentDescriptionFlags{0},
             utils::convert2vk(description.format),
             utils::convert2vk(description.samples),
             utils::convert2vk(description.loadStoreOp.loadOp()),

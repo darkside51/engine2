@@ -24,9 +24,14 @@ namespace engine::rhi {
         using Image = T::Image;
         using FrameBuffer = T::FrameBuffer;
         using RenderPassManager = T::RenderPassManager;
+        using Queue = T::Queue;
 
         static consteval ApiType type() noexcept {
             return T::type();
+        }
+
+        static consteval const char* name() noexcept {
+            return T::name();
         }
     };
 }

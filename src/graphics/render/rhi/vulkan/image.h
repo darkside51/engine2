@@ -63,8 +63,8 @@ class Image {
     
 public:
 
-    Image(Device & device, const rhi::ImageInfo imageInfo);
-    Image(Device & device, const rhi::ImageInfo imageInfo, VkImage externalImage);
+    Image(Device & device, const rhi::ImageInfo & imageInfo);
+    Image(Device & device, const rhi::ImageInfo & imageInfo, VkImage externalImage);
     ~Image();
 
     inline explicit operator bool() const noexcept { return _image != VK_NULL_HANDLE; }
