@@ -11,4 +11,7 @@ namespace engine::vulkan {
         std::span<VkSemaphore> signalSemaphores;
     };
 
+    class CommandBuffer {
+
+    };
 }

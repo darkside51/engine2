@@ -4,6 +4,8 @@
 
 #include <vulkan/vulkan.h>
 
+#include <string_view>
+
 namespace engine::vulkan {
     class Instance;
     class PhisicalDevice;
@@ -13,6 +15,7 @@ namespace engine::vulkan {
     class Image;
     class FrameBuffer;
     class RenderPassManager;
+    class CommandBuffer;
     class Queue;
     
     class Api {
@@ -25,6 +28,7 @@ namespace engine::vulkan {
         using Image = vulkan::Image;
         using FrameBuffer = vulkan::FrameBuffer;
         using RenderPassManager = vulkan::RenderPassManager;
+        using CommandBuffer = vulkan::CommandBuffer;
         using Queue = vulkan::Queue;
 
         static constexpr auto kSwapchainExtName = VK_KHR_SWAPCHAIN_EXTENSION_NAME;
@@ -35,7 +39,7 @@ namespace engine::vulkan {
             return rhi::ApiType::eVulkan;
         }
 
-        static consteval const char* name() noexcept {
+        static consteval std::string_view name() noexcept {
             return "vulkan";
         }
     };

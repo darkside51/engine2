@@ -97,9 +97,6 @@ int main() {
     engine::common::Version v(0, 0, 4);
     engine::tests::execute_tests();
 
-    engine::GLFWModule glfwModule;
-    const auto & window0 = glfwModule.open("window0");
-
     engine::rhi::Api<engine::vulkan::Api> api;
     using Api = decltype(api);
 
@@ -120,6 +117,9 @@ int main() {
         return 2;
     }
 
+    engine::GLFWModule glfwModule;
+    const auto & window0 = glfwModule.open(Api::name().data());
+
     Api::Surface surface{instance, window0.getSurfaceCreateInfo()};
     if (!surface) {
         return 3;
@@ -129,7 +129,7 @@ int main() {
     auto devices = Api::PhisicalDevice::getSuitableDevices(instance, {gpuFeatures, {Api::Impl::kSwapchainExtName}});
 
     if (devices[0].checkSurfaceSupport(surface)) {
-        const auto surfaceSupportDetails = engine::vulkan::getSurfaceSupportDetails(devices[0], surface);
+        // const auto surfaceSupportDetails = engine::vulkan::getSurfaceSupportDetails(devices[0], surface);
         auto depthFormat = devices[0].getSupportedDepthFormat(32u, true);
 
         const auto queueFlags = engine::rhi::queue_flags::graphics | engine::rhi::queue_flags::present;

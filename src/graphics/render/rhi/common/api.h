@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string_view>
+
 namespace engine::rhi {
 
     enum class ApiType : uint8_t {
@@ -24,13 +26,14 @@ namespace engine::rhi {
         using Image = T::Image;
         using FrameBuffer = T::FrameBuffer;
         using RenderPassManager = T::RenderPassManager;
+        using CommandBuffer = T::CommandBuffer;
         using Queue = T::Queue;
 
         static consteval ApiType type() noexcept {
             return T::type();
         }
 
-        static consteval const char* name() noexcept {
+        static consteval std::string_view name() noexcept {
             return T::name();
         }
     };
