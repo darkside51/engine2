@@ -12,7 +12,8 @@ namespace engine::vulkan {
 
     Device::Device(const PhisicalDevice & gpu, const rhi::DeviceCreateInfo & info) : 
         _gpu(gpu), 
-        _commandPoolManager(*this, info.commandPoolThreadsCount) {
+        _commandPoolManager(*this, info.commandPoolThreadsCount),
+        _renderpassManager(*this) {
 
         std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
         queueCreateInfos.reserve(info.queueFamilies.size());

@@ -161,8 +161,7 @@ int main() {
             .queueFamilyIndices = {index}
         }};
 
-        Api::RenderPassManager renderPassManager{device};
-        auto renderPass = renderPassManager.getRenderPass(createRenderPassDescription(swapchain.getFormat(), depthFormat));
+        auto renderPass = device.getRenderPass(createRenderPassDescription(swapchain.getFormat(), depthFormat));
 
         std::vector<Api::FrameBuffer> frameBuffers;
         frameBuffers.reserve(swapchain.getImagesCount());
@@ -179,16 +178,12 @@ int main() {
             frameBuffers.emplace_back(device, std::move(fbAttachemnts), renderPass);
         }
 
-        // vulkan code
-        std::vector<VkCommandBuffer> cmdBuffers;
-        cmdBuffers.reserve(swapchain.getImagesCount());
-
-        std::vector<VkFence> submitCompleteFences(swapchain.getImagesCount());
+        std::vector<Api::Device::Fence> submitCompleteFences(swapchain.getImagesCount());
         for (size_t i = 0; i < swapchain.getImagesCount(); ++i) {
             submitCompleteFences[i] = device.createFence(engine::rhi::FenceCreateFlags::eSignaled);
         }
 
-        std::vector<VkSemaphore> presentReadySemaphores(swapchain.getImagesCount());
+        std::vector<Api::Device::Semaphore> presentReadySemaphores(swapchain.getImagesCount());
         for (auto & semaphore : presentReadySemaphores) {
             semaphore = device.createSemaphore();
         }
@@ -198,6 +193,7 @@ int main() {
 
         engine::rhi::FrameIndex frameIndex{static_cast<uint8_t>(swapchain.getImagesCount())};
 
+        // vulkan code
         VkPipelineStageFlags submitPipelineStages = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 
         VkSubmitInfo submitInfo = {
@@ -215,6 +211,9 @@ int main() {
 		presentInfo.pSwapchains = &swapchain();
         presentInfo.waitSemaphoreCount = 1u;
 		presentInfo.pResults = nullptr;
+
+        std::vector<VkCommandBuffer> cmdBuffers;
+        cmdBuffers.reserve(swapchain.getImagesCount());
 
         bool renderInited = false;
 

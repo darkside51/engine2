@@ -3,6 +3,7 @@
 #include "graphics/render/rhi/common/device.h"
 #include "memory_allocator.h"
 #include "command_pool.h"
+#include "renderpass.h"
 
 #include <vulkan/vulkan.h>
 
@@ -21,6 +22,10 @@ struct DeviceQueueFamily {
 
 class Device {
 public:
+    using RenderPass = VkRenderPass;
+    using Fence = VkFence;
+    using Semaphore = VkSemaphore;
+    
     Device(const PhisicalDevice & gpu, const rhi::DeviceCreateInfo & info);
     ~Device();
 
@@ -44,8 +49,12 @@ public:
         return _commandPoolManager.acquirePool(idx, queueFlags, poolFlags);
     }
 
-    VkFence createFence(rhi::FenceCreateFlags flags) noexcept;
-    VkSemaphore createSemaphore() noexcept;
+    RenderPass getRenderPass(const rhi::RenderPassDescription & description) {
+        return _renderpassManager.getRenderPass(description);
+    }
+
+    Fence createFence(rhi::FenceCreateFlags flags) noexcept;
+    Semaphore createSemaphore() noexcept;
 
 private:
     void createAllocator() noexcept;
@@ -57,6 +66,7 @@ private:
 
     GPUMemoryAllocator _memoryAllocator;
     CommandPoolManager _commandPoolManager;
+    RenderPassManager _renderpassManager;
 };
 
 }
