@@ -121,6 +121,7 @@ struct DeviceCreateInfo {
         uint8_t flags = 0u;
     };
     std::vector<QueueFamilyInfo> queueFamilies;
+    uint8_t commandPoolThreadsCount = 1u;
 };
 
 }

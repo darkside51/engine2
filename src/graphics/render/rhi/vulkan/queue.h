@@ -20,12 +20,14 @@ namespace engine::vulkan {
         inline explicit operator bool() const noexcept { return _queue != VK_NULL_HANDLE; }
 
         bool waitIdle() noexcept;
-        bool waitSubmitComplete(uint8_t frameIdx) noexcept;
-        void submit(uint8_t frameIdx, std::span<CommandBuffer> commandBuffers, const SubmitSemaphores & semaphores) noexcept;
+        bool waitSubmitComplete(uint8_t frameIdx, std::span<VkFence> fences, uint64_t timeout = UINT64_MAX) noexcept;
+        VkSubmitInfo submitInfo(const CommandBuffer & commandBuffer, const SubmitSemaphores & semaphores) noexcept;
+        void submit(uint8_t frameIdx, std::span<VkFence> fences) noexcept;
 
     private:
         std::vector<VkFence> _submitCompleteFences;
         VkQueue _queue = VK_NULL_HANDLE;
+        Device & _device;
     };
 
 }

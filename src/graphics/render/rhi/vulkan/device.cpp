@@ -10,7 +10,9 @@
 
 namespace engine::vulkan {
 
-    Device::Device(const PhisicalDevice & gpu, const rhi::DeviceCreateInfo & info) : _gpu(gpu) {
+    Device::Device(const PhisicalDevice & gpu, const rhi::DeviceCreateInfo & info) : 
+        _gpu(gpu), 
+        _commandPoolManager(*this, info.commandPoolThreadsCount) {
 
         std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
         queueCreateInfos.reserve(info.queueFamilies.size());
@@ -133,6 +135,30 @@ namespace engine::vulkan {
             return &(*it);
         }
         return nullptr;
+    }
+
+    VkFence Device::createFence(rhi::FenceCreateFlags flags) noexcept {
+        VkFenceCreateInfo fenceCreateInfo {
+            .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
+            .pNext = nullptr,
+            .flags = utils::convert2vk(flags)
+        };
+
+        VkFence result;
+        vkCreateFence(_device, &fenceCreateInfo, _gpu.getInstance().getAllocationCallbacks(), &result);
+        return result;
+    }
+
+    VkSemaphore Device::createSemaphore() noexcept {
+        VkSemaphoreCreateInfo semaphoreCreateInfo {
+            .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
+            .pNext = nullptr,
+            .flags = 0
+        };
+
+        VkSemaphore result;
+        vkCreateSemaphore(_device, &semaphoreCreateInfo, _gpu.getInstance().getAllocationCallbacks(), &result);
+        return result;
     }
 
 }

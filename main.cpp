@@ -33,19 +33,30 @@ engine::rhi::RenderPassDescription createRenderPassDescription(engine::rhi::Form
     std::vector<engine::rhi::SubpassDependency> dependencies(2u);
     dependencies[0].srcSubpass = engine::rhi::kSubpassExternal;
     dependencies[0].dstSubpass = 0u;
-    dependencies[0].srcStageMask = engine::rhi::PipelineStageFlags::eColor_Attachment_Output; // VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT
-    dependencies[0].dstStageMask = engine::rhi::PipelineStageFlags::eEarly_Fragment_Tests | engine::rhi::PipelineStageFlags::eColor_Attachment_Output; // (VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT - https://vkguide.dev/docs/chapter-4/double_buffering/) is a loadOp stage for color attachments
-    dependencies[0].srcAccessMask = engine::rhi::AccessFlags::eNone; // semaphore wait already does memory dependency for us
-    dependencies[0].dstAccessMask = engine::rhi::AccessFlags::eColor_Attachment_Write; // is a loadOp CLEAR access mask for color attachments
-    dependencies[0].dependencyFlags = engine::rhi::DependencyFlags::eBy_Region;
-
     dependencies[1].srcSubpass = 0u;
     dependencies[1].dstSubpass = engine::rhi::kSubpassExternal;
-    dependencies[1].srcStageMask = engine::rhi::PipelineStageFlags::eColor_Attachment_Output; // VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT
-    dependencies[1].dstStageMask = engine::rhi::PipelineStageFlags::eBottom_Of_Pipe; // Do not block any subsequent work
-    dependencies[1].srcAccessMask = engine::rhi::AccessFlags::eColor_Attachment_Write; // semaphore wait already does memory dependency for us
-    dependencies[1].dstAccessMask = engine::rhi::AccessFlags::eNone;         // is a loadOp CLEAR access mask for color attachments
-    dependencies[1].dependencyFlags = engine::rhi::DependencyFlags::eBy_Region;
+
+    dependencies[0].stages = {
+        .src = {
+            .stage = engine::rhi::PipelineStageFlags::eColor_Attachment_Output,
+            .accessMask = engine::rhi::AccessFlags::eNone // semaphore wait already does memory dependency for us
+        },
+        .dst = {
+            .stage = engine::rhi::PipelineStageFlags::eEarly_Fragment_Tests | engine::rhi::PipelineStageFlags::eColor_Attachment_Output, // (VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT - https://vkguide.dev/docs/chapter-4/double_buffering/) is a loadOp stage for color attachments
+            .accessMask = engine::rhi::AccessFlags::eColor_Attachment_Write // is a loadOp CLEAR access mask for color attachments
+        }
+    };
+
+    dependencies[1].stages = {
+        .src = {
+            .stage = engine::rhi::PipelineStageFlags::eColor_Attachment_Output,
+            .accessMask = engine::rhi::AccessFlags::eColor_Attachment_Write // semaphore wait already does memory dependency for us
+        },
+        .dst = {
+            .stage = engine::rhi::PipelineStageFlags::eBottom_Of_Pipe, // Do not block any subsequent work
+            .accessMask = engine::rhi::AccessFlags::eNone // is a loadOp CLEAR access mask for color attachments
+        }
+    };
 
     std::vector<engine::rhi::AttachmentDescription> attachments(2u);
     attachments[0].format = colorFormat;
@@ -75,17 +86,6 @@ engine::rhi::RenderPassDescription createRenderPassDescription(engine::rhi::Form
     subpasses[0].colorAttachments[0] = colorReference;
     subpasses[0].depthStencilAttachment = depthReference;
 
-    // VkSubpassDescription subpassDescription = {};
-    // subpassDescription.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-    // subpassDescription.colorAttachmentCount = 1;
-    // subpassDescription.pColorAttachments = &colorReference;
-    // subpassDescription.pDepthStencilAttachment = &depthReference;
-    // subpassDescription.inputAttachmentCount = 0;
-    // subpassDescription.pInputAttachments = nullptr;
-    // subpassDescription.preserveAttachmentCount = 0;
-    // subpassDescription.pPreserveAttachments = nullptr;
-    // subpassDescription.pResolveAttachments = nullptr;
-
     return engine::rhi::RenderPassDescription{
         std::move(attachments), 
         std::move(subpasses), 
@@ -94,7 +94,6 @@ engine::rhi::RenderPassDescription createRenderPassDescription(engine::rhi::Form
 }
 
 int main() {
-    engine::common::Version v(0, 0, 4);
     engine::tests::execute_tests();
 
     engine::rhi::Api<engine::vulkan::Api> api;
@@ -136,6 +135,7 @@ int main() {
         auto [index, family] = devices[0].getQueueFamily(queueFlags);
         engine::rhi::DeviceCreateInfo deviceCreateInfo{gpuFeatures};
         deviceCreateInfo.queueFamilies.push_back({index, 1u, {}, queueFlags});
+        deviceCreateInfo.commandPoolThreadsCount = 1u;
         
         Api::Device device(devices[0], deviceCreateInfo);
 
@@ -179,43 +179,31 @@ int main() {
             frameBuffers.emplace_back(device, std::move(fbAttachemnts), renderPass);
         }
 
-        engine::vulkan::CommandPoolManager commandPoolManager{device, 1u};
-        engine::vulkan::CommandPool * commandPool = nullptr;
-        
         // vulkan code
         std::vector<VkCommandBuffer> cmdBuffers;
         cmdBuffers.reserve(swapchain.getImagesCount());
 
         std::vector<VkFence> submitCompleteFences(swapchain.getImagesCount());
-        VkFenceCreateInfo fenceCreateInfo = {
-            .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
-            .pNext = nullptr,
-            .flags = VK_FENCE_CREATE_SIGNALED_BIT
-        };
-
         for (size_t i = 0; i < swapchain.getImagesCount(); ++i) {
-            vkCreateFence(device(), &fenceCreateInfo, nullptr/*allocator*/, &submitCompleteFences[i]);
+            submitCompleteFences[i] = device.createFence(engine::rhi::FenceCreateFlags::eSignaled);
         }
 
         std::vector<VkSemaphore> presentReadySemaphores(swapchain.getImagesCount());
-        VkSemaphoreCreateInfo semaphoreCreateInfo;
-        semaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-		semaphoreCreateInfo.pNext = nullptr;
-		semaphoreCreateInfo.flags = 0;
         for (auto & semaphore : presentReadySemaphores) {
-            vkCreateSemaphore(device(), &semaphoreCreateInfo, nullptr/*allocator*/, &semaphore);
+            semaphore = device.createSemaphore();
         }
 
         auto * queueFamily = device.findQueueFamily(engine::rhi::queue_flags::graphics | engine::rhi::queue_flags::present);
-        auto queue = queueFamily->queues[0];
+        auto queue = queueFamily->queues[0u];
 
         engine::rhi::FrameIndex frameIndex{static_cast<uint8_t>(swapchain.getImagesCount())};
 
         VkPipelineStageFlags submitPipelineStages = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 
-        VkSubmitInfo submitInfo = {};
-        submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-        submitInfo.pNext = nullptr;
+        VkSubmitInfo submitInfo = {
+            .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+            .pNext = nullptr
+        };
         submitInfo.waitSemaphoreCount = 1u;
         submitInfo.signalSemaphoreCount = 1u;
         submitInfo.pWaitDstStageMask = &submitPipelineStages;
@@ -228,9 +216,11 @@ int main() {
         presentInfo.waitSemaphoreCount = 1u;
 		presentInfo.pResults = nullptr;
 
+        bool renderInited = false;
+
         threads::ExecutorImpl w([&](threads::Executor & w, float delta) {
             w.performTasks();
-            if (commandPool) {
+            if (renderInited) {
                 // static uint32_t a = 0u;
                 // LOG_I("threadId_0: %d, delta: %f, value = %d\n", threads::unique::id(), delta, ++a);
 
@@ -263,7 +253,7 @@ int main() {
         }, 0.25f);
         w.run();
         w.emplaceTasks(stl::make_vector(threads::WorkerTask{[&](){
-            commandPool = commandPoolManager.createPool(engine::rhi::queue_flags::graphics | engine::rhi::queue_flags::present);
+            auto * commandPool = device.acquireCommandPool(engine::rhi::queue_flags::graphics | engine::rhi::queue_flags::present);
 
             const std::array clearValues2 {
                 engine::rhi::ClearValue{0x77'ff'77'ffu},
@@ -308,6 +298,7 @@ int main() {
                 vkCmdEndRenderPass(cmdBuff);
                 result = vkEndCommandBuffer(cmdBuff);
             }
+            renderInited = true;
         //    LOG_I("threadId_0: %d, \n", threads::unique_t<int>::id());
         }}));
     

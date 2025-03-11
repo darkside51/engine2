@@ -222,9 +222,9 @@ namespace engine::vulkan {
         vkResetFences(_device(), 1, &_imageAvailableFence);
     }
 
-    std::pair<uint32_t, bool> Swapchain::acquireNextImage(uint32_t frameIndex) const noexcept {
+    std::pair<uint32_t, bool> Swapchain::acquireNextImage(uint32_t frameIndex, uint64_t timeout) const noexcept {
         uint32_t imageIndex = 0u;
-        VkResult result = vkAcquireNextImageKHR(_device(), _swapchain, UINT64_MAX, _imageAvailableSemaphores[frameIndex], _imageAvailableFence, &imageIndex);
+        VkResult result = vkAcquireNextImageKHR(_device(), _swapchain, timeout, _imageAvailableSemaphores[frameIndex], _imageAvailableFence, &imageIndex);
         bool success = true;
         switch (result) {
         case VK_SUCCESS:

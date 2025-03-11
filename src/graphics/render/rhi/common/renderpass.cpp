@@ -45,8 +45,8 @@ namespace engine::rhi {
         }
 
         for (auto const & d : _subpassDependencies) {
-            const auto h = hash::hash_combine(d.srcStageMask, d.dstStageMask, 
-                                            d.srcAccessMask, d.dstAccessMask, 
+            const auto h = hash::hash_combine(d.stages.src.stage, d.stages.dst.stage,
+                                            d.stages.src.accessMask, d.stages.dst.accessMask,
                                             d.srcSubpass, d.dstSubpass, d.dependencyFlags);
             hash::hash_combine(_hash, h);
         }

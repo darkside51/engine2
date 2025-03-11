@@ -2,6 +2,7 @@
 
 #include "graphics/render/rhi/common/device.h"
 #include "memory_allocator.h"
+#include "command_pool.h"
 
 #include <vulkan/vulkan.h>
 
@@ -34,6 +35,18 @@ public:
     const GPUMemoryAllocator & getMemoryAllocator() const noexcept { return _memoryAllocator; }
     GPUMemoryAllocator & getMemoryAllocator() noexcept { return _memoryAllocator; }
 
+    CommandPool * acquireCommandPool(uint8_t queueFlags, 
+        rhi::CommandPoolCreateFlags poolFlags = rhi::CommandPoolCreateFlags::eReset_Command_Buffer) noexcept {
+        return _commandPoolManager.acquirePool(queueFlags, poolFlags);
+    }
+    CommandPool * acquireCommandPool(uint32_t idx, uint8_t queueFlags, 
+        rhi::CommandPoolCreateFlags poolFlags = rhi::CommandPoolCreateFlags::eReset_Command_Buffer) noexcept {
+        return _commandPoolManager.acquirePool(idx, queueFlags, poolFlags);
+    }
+
+    VkFence createFence(rhi::FenceCreateFlags flags) noexcept;
+    VkSemaphore createSemaphore() noexcept;
+
 private:
     void createAllocator() noexcept;
     void destroyAllocator() noexcept;
@@ -41,7 +54,9 @@ private:
     VkDevice _device = VK_NULL_HANDLE;
     const PhisicalDevice & _gpu;
     std::vector<DeviceQueueFamily> _queueFamilies;
+
     GPUMemoryAllocator _memoryAllocator;
+    CommandPoolManager _commandPoolManager;
 };
 
 }

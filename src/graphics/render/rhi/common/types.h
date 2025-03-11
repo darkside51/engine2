@@ -593,6 +593,7 @@ namespace engine::rhi {
     }
 
     enum class CommandPoolCreateFlags : uint8_t {
+        eNone = 0u,
         eTransient = 1u,
         eReset_Command_Buffer = 2u,
         eProtected = 4u,
@@ -607,6 +608,11 @@ namespace engine::rhi {
     enum class CommandBufferLevel : uint8_t {
         ePrimary = 0u,
         eSecondary = 1u,
+    };
+
+    enum class FenceCreateFlags : uint8_t {
+        eNone = 0u,
+        eSignaled = 1u
     };
 
     enum class SubpassContents : uint8_t {

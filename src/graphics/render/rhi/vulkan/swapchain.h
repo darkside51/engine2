@@ -25,7 +25,7 @@ public:
 
     void resize(uint32_t w, uint32_t h, bool vsync);
 
-    std::pair<uint32_t, bool> acquireNextImage(uint32_t frameIndex) const noexcept;
+    std::pair<uint32_t, bool> acquireNextImage(uint32_t frameIndex, uint64_t timeout = UINT64_MAX) const noexcept;
 
     const VkSemaphore & getImageAvailableSemaphore(uint32_t frameIndex) const noexcept { return _imageAvailableSemaphores[frameIndex]; }
     void waitFenceAndReset(uint64_t timeout = UINT64_MAX) noexcept;

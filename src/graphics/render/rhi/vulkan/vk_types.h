@@ -777,6 +777,16 @@ inline VkSubpassContents convert2vk(rhi::SubpassContents contents) noexcept {
     }
 }
 
+inline VkFenceCreateFlags convert2vk(rhi::FenceCreateFlags flags) noexcept {
+    switch (flags) {
+        case rhi::FenceCreateFlags::eSignaled:
+            return VkFenceCreateFlagBits::VK_FENCE_CREATE_SIGNALED_BIT;
+        default:
+        return 0;
+    }
+}
+
+
 }
 
 }

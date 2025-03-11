@@ -29,10 +29,10 @@ namespace engine::vulkan {
         return {
             dependency.srcSubpass,
             dependency.dstSubpass,
-            utils::convert2vk(dependency.srcStageMask),
-            utils::convert2vk(dependency.dstStageMask),
-            utils::convert2vk(dependency.srcAccessMask),
-            utils::convert2vk(dependency.dstStageMask),
+            utils::convert2vk(dependency.stages.src.stage),
+            utils::convert2vk(dependency.stages.dst.stage),
+            utils::convert2vk(dependency.stages.src.accessMask),
+            utils::convert2vk(dependency.stages.dst.accessMask),
             utils::convert2vk(dependency.dependencyFlags)
         };
     }

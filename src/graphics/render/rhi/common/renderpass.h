@@ -41,10 +41,18 @@ struct SubpassDescription {
 inline constexpr auto kSubpassExternal = uint32_t(~0u); // ~0u == 0xff'ff'ff'ffu == VK_SUBPASS_EXTERNAL
 
 struct SubpassDependency {
-    PipelineStageFlags srcStageMask;
-    PipelineStageFlags dstStageMask;
-    AccessFlags srcAccessMask;
-    AccessFlags dstAccessMask;
+    struct StageAndAccessMask {
+        PipelineStageFlags stage;
+        AccessFlags accessMask;
+    };
+
+    struct Stages {
+        StageAndAccessMask src;
+        StageAndAccessMask dst;
+    };
+
+    Stages stages;
+
     uint32_t srcSubpass = 0u;
     uint32_t dstSubpass = kSubpassExternal;
     DependencyFlags dependencyFlags = DependencyFlags::eBy_Region;

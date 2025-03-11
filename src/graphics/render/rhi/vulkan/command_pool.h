@@ -43,11 +43,11 @@ public:
         return (idx < _pools.size() ? (_pools[idx].has_value() ? &(*_pools[idx]) : nullptr) : nullptr);
     }
 
-    CommandPool * createPool(uint8_t queueFlags, rhi::CommandPoolCreateFlags poolFlags = rhi::CommandPoolCreateFlags::eReset_Command_Buffer) noexcept {
-        return createPool(threads::unique_t<CommandPoolManager>::id(), queueFlags, poolFlags);
+    CommandPool * acquirePool(uint8_t queueFlags, rhi::CommandPoolCreateFlags poolFlags = rhi::CommandPoolCreateFlags::eReset_Command_Buffer) noexcept {
+        return acquirePool(threads::unique_t<CommandPoolManager>::id(), queueFlags, poolFlags);
     }
 
-    CommandPool * createPool(uint32_t idx, uint8_t queueFlags, rhi::CommandPoolCreateFlags poolFlags = rhi::CommandPoolCreateFlags::eReset_Command_Buffer) noexcept {
+    CommandPool * acquirePool(uint32_t idx, uint8_t queueFlags, rhi::CommandPoolCreateFlags poolFlags = rhi::CommandPoolCreateFlags::eReset_Command_Buffer) noexcept {
         if (idx >= _pools.size()) {
             return nullptr;
         }
