@@ -30,7 +30,7 @@ namespace engine::vulkan {
         return vkQueueWaitIdle(_queue) == VK_SUCCESS;
     }
 
-    bool Queue::waitSubmitComplete(uint8_t frameIdx, std::span<VkFence> fences, uint64_t timeout) noexcept {
+    bool Queue::waitSubmitComplete(uint8_t frameIdx, uint64_t timeout, std::span<VkFence> fences) noexcept {
         const auto * fence = fences.empty() ? &_submitCompleteFences[frameIdx] : &fences[frameIdx];
         const auto result = vkWaitForFences(_device(), 1, fence, VK_TRUE, timeout); 
         if (result != VK_SUCCESS) {

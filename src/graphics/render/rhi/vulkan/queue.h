@@ -22,9 +22,9 @@ namespace engine::vulkan {
 
         bool waitIdle() noexcept;
         
-        bool waitSubmitComplete(uint8_t frameIdx, std::span<VkFence> fences, uint64_t timeout = UINT64_MAX) noexcept;
+        bool waitSubmitComplete(uint8_t frameIdx, uint64_t timeout = UINT64_MAX, std::span<VkFence> fences = {}) noexcept;
         VkSubmitInfo submitInfo(std::span<const VkCommandBuffer> commandBuffers, const SubmitSyncInfo & syncInfo) noexcept;
-        VkResult submit(std::span<const VkSubmitInfo> submitInfos, uint8_t frameIdx, std::span<VkFence> fences) noexcept;
+        VkResult submit(std::span<const VkSubmitInfo> submitInfos, uint8_t frameIdx, std::span<VkFence> fences = {}) noexcept;
 
     private:
         std::vector<VkFence> _submitCompleteFences;

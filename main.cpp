@@ -212,7 +212,7 @@ int main() {
                 const auto frameId = frameIndex();
                 // static uint32_t a = 0u;
                 // LOG_I("threadId_0: %d, delta: %f, value = %d\n", threads::unique::id(), delta, ++a);
-                queue.waitSubmitComplete(frameId, {}); // result!!!
+                queue.waitSubmitComplete(frameId); // result!!!
                 
                 auto [imageIndex, success] = swapchain.acquireNextImage(frameId);
 
@@ -226,7 +226,7 @@ int main() {
 
                 const auto submitSyncInfo = Api::CommandBuffer::createSubmitSyncInfo(waitStages, waitSemaphores, signalSemaphores);
 
-                queue.submit(std::array{queue.submitInfo(std::array{cmdBuffers[frameId]()}, submitSyncInfo)}, frameId, {});
+                queue.submit(std::array{queue.submitInfo(std::array{cmdBuffers[frameId]()}, submitSyncInfo)}, frameId);
 
                 presentInfo.pWaitSemaphores = &presentReadySemaphores[frameId];
                 presentInfo.pImageIndices = &imageIndex;
