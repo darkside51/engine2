@@ -10,6 +10,7 @@ namespace engine::vulkan {
 
     class Device;
     class CommandBuffer;
+    class Swapchain;
     struct SubmitSyncInfo;
 
     class Queue {
@@ -22,10 +23,12 @@ namespace engine::vulkan {
 
         bool waitIdle() noexcept;
         
-        bool waitSubmitComplete(uint8_t frameIdx, uint64_t timeout = UINT64_MAX, std::span<VkFence> fences = {}) noexcept;
+        bool waitSubmitComplete(uint8_t frameIdx, uint64_t timeout = UINT64_MAX, VkFence f = VK_NULL_HANDLE) noexcept;
         VkSubmitInfo submitInfo(std::span<const VkCommandBuffer> commandBuffers, const SubmitSyncInfo & syncInfo) noexcept;
-        VkResult submit(std::span<const VkSubmitInfo> submitInfos, uint8_t frameIdx, std::span<VkFence> fences = {}) noexcept;
+        VkResult submit(std::span<const VkSubmitInfo> submitInfos, uint8_t frameIdx, VkFence f = VK_NULL_HANDLE) noexcept;
 
+        VkResult present(std::span<const VkSwapchainKHR> swapchains, std::span<const uint32_t> imageIdxs, std::span<const VkSemaphore> waitSemaphores);
+        
     private:
         std::vector<VkFence> _submitCompleteFences;
         VkQueue _queue = VK_NULL_HANDLE;

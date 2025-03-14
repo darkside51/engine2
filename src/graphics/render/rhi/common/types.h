@@ -38,6 +38,11 @@ namespace engine::rhi {
         uint32_t depth = 0u;
     };
     
+    struct Rect2D {
+        Offset2D offset{};
+        Extent2D extent{};
+    };
+
     struct ClearColorValue {
         float value[4];
     };

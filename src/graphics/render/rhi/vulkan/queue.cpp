@@ -21,6 +21,7 @@ namespace engine::vulkan {
     }
 
     Queue::~Queue() {
+        waitIdle();
         for (auto & f : _submitCompleteFences) {
             _device.destroyFence(f);
         }
@@ -30,8 +31,8 @@ namespace engine::vulkan {
         return vkQueueWaitIdle(_queue) == VK_SUCCESS;
     }
 
-    bool Queue::waitSubmitComplete(uint8_t frameIdx, uint64_t timeout, std::span<VkFence> fences) noexcept {
-        const auto * fence = fences.empty() ? &_submitCompleteFences[frameIdx] : &fences[frameIdx];
+    bool Queue::waitSubmitComplete(uint8_t frameIdx, uint64_t timeout, VkFence f) noexcept {
+        const auto * fence = (f == VK_NULL_HANDLE ? &_submitCompleteFences[frameIdx] : &f);
         const auto result = vkWaitForFences(_device(), 1, fence, VK_TRUE, timeout); 
         if (result != VK_SUCCESS) {
             return false;
@@ -54,9 +55,24 @@ namespace engine::vulkan {
         };
     }
 
-    VkResult Queue::submit(std::span<const VkSubmitInfo> submitInfos, uint8_t frameIdx, std::span<VkFence> fences) noexcept {
-        const auto & fence = fences.empty() ? _submitCompleteFences[frameIdx] : fences[frameIdx];
+    VkResult Queue::submit(std::span<const VkSubmitInfo> submitInfos, uint8_t frameIdx, VkFence f) noexcept {
+        const auto & fence = (f == VK_NULL_HANDLE ? _submitCompleteFences[frameIdx] : f);
         return vkQueueSubmit(_queue, submitInfos.size(), submitInfos.data(), fence);
+    }
+
+    VkResult Queue::present(std::span<const VkSwapchainKHR> swapchains, std::span<const uint32_t> imageIdxs, std::span<const VkSemaphore> waitSemaphores) {
+        VkPresentInfoKHR presentInfo = {
+            .sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
+		    .pNext = nullptr,
+            .waitSemaphoreCount = static_cast<uint32_t>(waitSemaphores.size()),
+            .pWaitSemaphores = waitSemaphores.data(),
+            .swapchainCount = static_cast<uint32_t>(swapchains.size()),
+		    .pSwapchains = swapchains.data(),
+            .pImageIndices = imageIdxs.data(),
+            .pResults = nullptr // todo!
+        };
+
+        return vkQueuePresentKHR(_queue, &presentInfo);
     }
 
 }

@@ -13,7 +13,7 @@ namespace engine::vulkan {
 class Device;
 class Surface;
 class Image;
-class Queue;
+// class Queue;
 
 class Swapchain {
 public:
@@ -39,7 +39,7 @@ public:
     const Image & getImage(uint8_t index) const noexcept;
     Image & getImage(uint8_t index) noexcept;
 
-    void present(const Queue & queue, uint8_t imageIndex) noexcept; // need to set presentInfo
+    // void present(const Queue & queue, uint8_t imageIndex) noexcept; // need to set presentInfo
 
 private:
     void destroy(VkSwapchainKHR swapchain);

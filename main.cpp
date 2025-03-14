@@ -99,7 +99,13 @@ engine::rhi::RenderPassDescription createRenderPassDescription(engine::rhi::Form
 int main() {
     engine::tests::execute_tests();
 
-    engine::rhi::Api<engine::vulkan::Api> api;
+    // std::variant<std::monostate, engine::vulkan::Api, int> api2;
+    // api2.emplace<engine::vulkan::Api>();
+    // const auto apiIdx = api2.index();
+    // const auto & api2Impl = std::get<engine::vulkan::Api>(api2);
+    // using Api2 = std::decay_t<decltype(api2Impl)>;
+
+    const engine::rhi::Api<engine::vulkan::Api> api;
     using Api = decltype(api);
 
     engine::rhi::InstanceCreateInfo instanceCreateInfo {
@@ -189,18 +195,6 @@ int main() {
         Api::Queue queue(device, engine::rhi::queue_flags::graphics | engine::rhi::queue_flags::present, 0u, swapchain.getImagesCount());
         engine::rhi::FrameIndex frameIndex{static_cast<uint8_t>(swapchain.getImagesCount())};
 
-        // vulkan code
-        VkPresentInfoKHR presentInfo = {};
-        presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-		presentInfo.pNext = nullptr;
-		presentInfo.swapchainCount = 1u;
-		presentInfo.pSwapchains = &swapchain();
-        presentInfo.waitSemaphoreCount = 1u;
-		presentInfo.pResults = nullptr;
-
-        // std::vector<VkCommandBuffer> cmdBuffers;
-        // cmdBuffers.reserve(swapchain.getImagesCount());
-
         std::vector<Api::CommandBuffer> cmdBuffers;
         cmdBuffers.reserve(swapchain.getImagesCount());
 
@@ -212,76 +206,53 @@ int main() {
                 const auto frameId = frameIndex();
                 // static uint32_t a = 0u;
                 // LOG_I("threadId_0: %d, delta: %f, value = %d\n", threads::unique::id(), delta, ++a);
-                queue.waitSubmitComplete(frameId); // result!!!
+                auto const waitSubmitResult = queue.waitSubmitComplete(frameId); // result!!!
                 
-                auto [imageIndex, success] = swapchain.acquireNextImage(frameId);
+                const auto [imageIndex, success] = swapchain.acquireNextImage(frameId);
 
                 if (!success) {
                     return;
                 }
 
+                // submit
                 const auto waitSemaphores = std::array{swapchain.getImageAvailableSemaphore(frameId)};
                 const auto signalSemaphores = std::array{presentReadySemaphores[frameId]};
                 const auto waitStages = Api::Helper::convert2api(std::array{engine::rhi::PipelineStageFlags::eColor_Attachment_Output});
 
                 const auto submitSyncInfo = Api::CommandBuffer::createSubmitSyncInfo(waitStages, waitSemaphores, signalSemaphores);
-
-                queue.submit(std::array{queue.submitInfo(std::array{cmdBuffers[frameId]()}, submitSyncInfo)}, frameId);
-
-                presentInfo.pWaitSemaphores = &presentReadySemaphores[frameId];
-                presentInfo.pImageIndices = &imageIndex;
-
-                VkResult presentResult = vkQueuePresentKHR(queue(), &presentInfo);
-
+                auto const submitResult = queue.submit(std::array{queue.submitInfo(std::array{cmdBuffers[frameId]()}, submitSyncInfo)}, frameId);
                 ++frameIndex;
+
+                // present
+                auto const presentResult = queue.present(std::array{swapchain()}, std::array{imageIndex}, signalSemaphores);
             }
-        }, 0.5f);
+        }, 0.25f);
+
         w.run();
+
         w.emplaceTasks(stl::make_vector(threads::WorkerTask{[&](){
             auto * commandPool = device.acquireCommandPool(engine::rhi::queue_flags::graphics | engine::rhi::queue_flags::present);
 
-            const std::array clearValues2 {
+            /*const*/ auto clearValues = Api::Helper::convert2api(std::array{
                 engine::rhi::ClearValue{0x77'ff'77'ffu},
                 engine::rhi::ClearValue{1.0f, 255}
-            };
-
-            auto clearValues = engine::vulkan::utils::convert2vk(clearValues2);
-
-            VkRenderPassBeginInfo renderPassBeginInfo = {};
-            renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-            renderPassBeginInfo.pNext = nullptr;
-
-            renderPassBeginInfo.renderPass = renderPass;
-            renderPassBeginInfo.renderArea = { {0, 0}, {1024, 768} };
-            renderPassBeginInfo.clearValueCount = clearValues.size();
-            renderPassBeginInfo.pClearValues = clearValues.data();
-
-            VkCommandBufferBeginInfo beginInfo;
-			beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-			beginInfo.pNext = nullptr;
-			beginInfo.flags = 0; // VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT - it here
-			beginInfo.pInheritanceInfo = nullptr;
-
-            const VkViewport viewport{0.0f, 0.0f, 1024.0f, 768.0f, 0.0f, 1.0f};
-	        const VkRect2D scissor{{0, 0}, {1024, 768}};
+            });
 
             for (size_t i = 0; i < swapchain.getImagesCount(); ++i) {
                 if (i > 0u) {
                     clearValues[0].color = {{0.25f + i * 0.25f, 0.25f, 0.25f, 1.0f}};
                 }
-                renderPassBeginInfo.pClearValues = clearValues.data();
 
-                renderPassBeginInfo.framebuffer = frameBuffers[i]();
+                auto & commandBuffer = cmdBuffers.emplace_back(*commandPool, engine::rhi::CommandBufferLevel::ePrimary);
+                commandBuffer.begin();
 
-                auto & cmdBuff = cmdBuffers.emplace_back(*commandPool, engine::rhi::CommandBufferLevel::ePrimary);
-                auto result = vkBeginCommandBuffer(cmdBuff(), &beginInfo);
-                vkCmdBeginRenderPass(cmdBuff(), &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+                commandBuffer.beginRenderPass(renderPass, frameBuffers[i], clearValues, {{0, 0}, {1024, 768}});
 
-                vkCmdSetViewport(cmdBuff(), 0, 1, &viewport);
-                vkCmdSetScissor(cmdBuff(), 0, 1, &scissor);
+                commandBuffer.setViewport(0.0f, 0.0f, 1024.0f, 768.0f, 0.0f, 1.0f);
+                commandBuffer.setScissorRect({{0, 0}, {1024, 768}});
 
-                vkCmdEndRenderPass(cmdBuff());
-                result = vkEndCommandBuffer(cmdBuff());
+                commandBuffer.endRenderPass();
+                commandBuffer.end();
             }
             renderInited = true;
         //    LOG_I("threadId_0: %d, \n", threads::unique_t<int>::id());
