@@ -44,7 +44,7 @@ namespace threads {
     }
 
     class PoolWorkerView {
-        friend class Executor;
+        friend class ExecutionContext;
 
     public:
         inline std::size_t id() const noexcept { return _worker._id; }

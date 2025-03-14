@@ -34,7 +34,7 @@ int main() {
     const auto & window0 = glfwModule.open("window0");
     glfwModule.open("window1");
 
-    threads::ExecutorImpl w([](threads::Executor & w, float delta) {
+    threads::ExecutorImpl w([](threads::ExecutionContext & w, float delta) {
         w.performTasks();
         static uint32_t a = 0u;
         LOG_I("threadId_0: %d, delta: %f, value = %d\n", threads::unique::id(), delta, ++a);
@@ -44,7 +44,7 @@ int main() {
        LOG_I("threadId_0: %d, \n", threads::unique_t<int>::id());
     }}));
 
-    threads::ExecutorImpl w2([](threads::Executor & w, float delta) {
+    threads::ExecutorImpl w2([](threads::ExecutionContext & w, float delta) {
         LOG_I("threadId_1: %d\n", threads::unique::id());
     }, 0.5f);
     w2.run();
@@ -332,7 +332,7 @@ int main() {
 
 
     if (false) {
-        threads::ExecutorImpl w([](threads::Executor & w, float delta) {
+        threads::ExecutorImpl w([](threads::ExecutionContext & w, float delta) {
             w.performTasks();
             static int a = 0;
             std::printf("dt: %f, a = %d\n", delta, ++a);

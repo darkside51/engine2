@@ -206,8 +206,8 @@ int main() {
 
         bool renderInited = false;
 
-        threads::ExecutorImpl w([&](threads::Executor & w, float delta) {
-            w.performTasks();
+        threads::Executor w([&](auto & executionContext, float delta) {
+            executionContext.performTasks();
             if (renderInited) {
                 const auto frameId = frameIndex();
                 // static uint32_t a = 0u;

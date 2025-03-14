@@ -8,9 +8,9 @@
 
 namespace threads {
 
-    class Executor {
+    class ExecutionContext {
     public:
-        ~Executor() {
+        ~ExecutionContext() {
             stop();
         }
 
@@ -85,14 +85,14 @@ namespace threads {
     };
 
     template <typename T>
-    class ExecutorImpl : public Executor {
+    class Executor : public ExecutionContext {
     public:
-        ExecutorImpl(T && job, float frequency) : _job(std::move(job)), _frequency(frequency) {}
+        Executor(T && job, float frequency) : _job(std::move(job)), _frequency(frequency) {}
 
         inline void run() {
             _running.test_and_set(std::memory_order_relaxed);
             _time = std::chrono::steady_clock::now();
-            _thread = std::thread(&ExecutorImpl::loop, this);
+            _thread = std::thread(&Executor::loop, this);
         }
 
     private:
