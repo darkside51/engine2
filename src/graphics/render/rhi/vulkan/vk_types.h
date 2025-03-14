@@ -752,6 +752,16 @@ inline VkPipelineStageFlags convert2vk(rhi::PipelineStageFlags flags) noexcept {
     return static_cast<VkPipelineStageFlags>(flags);
 }
 
+template<size_t N>
+inline auto convert2vk(const std::array<rhi::PipelineStageFlags, N> & array) -> std::array<VkPipelineStageFlags, N> {
+    std::array<VkPipelineStageFlags, N> result;
+    for (size_t i = 0; i < N; ++i) {
+        result[i] = convert2vk(array[i]);
+    }
+    return result;
+}
+
+
 inline VkAccessFlags convert2vk(rhi::AccessFlags flags) noexcept {
     return static_cast<VkAccessFlags>(flags);
 }

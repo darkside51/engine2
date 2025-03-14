@@ -17,6 +17,7 @@ namespace engine::vulkan {
     class RenderPassManager;
     class CommandBuffer;
     class Queue;
+    struct Helper;
     
     class Api {
     public:
@@ -27,9 +28,9 @@ namespace engine::vulkan {
         using Swapchain = vulkan::Swapchain;
         using Image = vulkan::Image;
         using FrameBuffer = vulkan::FrameBuffer;
-        using RenderPassManager = vulkan::RenderPassManager;
         using CommandBuffer = vulkan::CommandBuffer;
         using Queue = vulkan::Queue;
+        using Helper = vulkan::Helper;
 
         static constexpr auto kSwapchainExtName = VK_KHR_SWAPCHAIN_EXTENSION_NAME;
         static constexpr auto kDebugUtilExtName = VK_EXT_DEBUG_UTILS_EXTENSION_NAME;

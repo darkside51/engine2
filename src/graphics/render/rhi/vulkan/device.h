@@ -53,8 +53,11 @@ public:
         return _renderpassManager.getRenderPass(description);
     }
 
-    Fence createFence(rhi::FenceCreateFlags flags) noexcept;
-    Semaphore createSemaphore() noexcept;
+    Fence createFence(rhi::FenceCreateFlags flags) const noexcept;
+    Semaphore createSemaphore() const noexcept;
+
+    void destroyFence(const Fence & fence) const noexcept;
+    void destroySemaphore(const Semaphore & semaphore) const noexcept;
 
 private:
     void createAllocator() noexcept;

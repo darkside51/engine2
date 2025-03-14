@@ -28,6 +28,9 @@
 #include "graphics/render/rhi/vulkan/renderpass.h"
 #include "graphics/render/rhi/vulkan/framebuffer.h"
 #include "graphics/render/rhi/vulkan/command_pool.h"
+#include "graphics/render/rhi/vulkan/command_buffer.h"
+#include "graphics/render/rhi/vulkan/queue.h"
+#include "graphics/render/rhi/vulkan/utils.h"
 
 engine::rhi::RenderPassDescription createRenderPassDescription(engine::rhi::Format colorFormat, engine::rhi::Format depthFormat) {
     std::vector<engine::rhi::SubpassDependency> dependencies(2u);
@@ -178,32 +181,15 @@ int main() {
             frameBuffers.emplace_back(device, std::move(fbAttachemnts), renderPass);
         }
 
-        std::vector<Api::Device::Fence> submitCompleteFences(swapchain.getImagesCount());
-        for (size_t i = 0; i < swapchain.getImagesCount(); ++i) {
-            submitCompleteFences[i] = device.createFence(engine::rhi::FenceCreateFlags::eSignaled);
-        }
-
         std::vector<Api::Device::Semaphore> presentReadySemaphores(swapchain.getImagesCount());
         for (auto & semaphore : presentReadySemaphores) {
             semaphore = device.createSemaphore();
         }
 
-        auto * queueFamily = device.findQueueFamily(engine::rhi::queue_flags::graphics | engine::rhi::queue_flags::present);
-        auto queue = queueFamily->queues[0u];
-
+        Api::Queue queue(device, engine::rhi::queue_flags::graphics | engine::rhi::queue_flags::present, 0u, swapchain.getImagesCount());
         engine::rhi::FrameIndex frameIndex{static_cast<uint8_t>(swapchain.getImagesCount())};
 
         // vulkan code
-        VkPipelineStageFlags submitPipelineStages = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-
-        VkSubmitInfo submitInfo = {
-            .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
-            .pNext = nullptr
-        };
-        submitInfo.waitSemaphoreCount = 1u;
-        submitInfo.signalSemaphoreCount = 1u;
-        submitInfo.pWaitDstStageMask = &submitPipelineStages;
-        
         VkPresentInfoKHR presentInfo = {};
         presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
 		presentInfo.pNext = nullptr;
@@ -212,7 +198,10 @@ int main() {
         presentInfo.waitSemaphoreCount = 1u;
 		presentInfo.pResults = nullptr;
 
-        std::vector<VkCommandBuffer> cmdBuffers;
+        // std::vector<VkCommandBuffer> cmdBuffers;
+        // cmdBuffers.reserve(swapchain.getImagesCount());
+
+        std::vector<Api::CommandBuffer> cmdBuffers;
         cmdBuffers.reserve(swapchain.getImagesCount());
 
         bool renderInited = false;
@@ -220,36 +209,33 @@ int main() {
         threads::ExecutorImpl w([&](threads::Executor & w, float delta) {
             w.performTasks();
             if (renderInited) {
+                const auto frameId = frameIndex();
                 // static uint32_t a = 0u;
                 // LOG_I("threadId_0: %d, delta: %f, value = %d\n", threads::unique::id(), delta, ++a);
-
-                const auto result = vkWaitForFences(device(), 1, &submitCompleteFences[frameIndex()], VK_TRUE, UINT64_MAX); 
-                if (result != VK_SUCCESS) {
-                    return;
-                }
-                vkResetFences(device(), 1, &submitCompleteFences[frameIndex()]);
-
-                auto [imageIndex, success] = swapchain.acquireNextImage(frameIndex());
+                queue.waitSubmitComplete(frameId, {}); // result!!!
+                
+                auto [imageIndex, success] = swapchain.acquireNextImage(frameId);
 
                 if (!success) {
                     return;
                 }
 
-                submitInfo.commandBufferCount = 1u;
-                submitInfo.pCommandBuffers = &cmdBuffers[frameIndex()];
-                submitInfo.pWaitSemaphores = &swapchain.getImageAvailableSemaphore(frameIndex());
-                submitInfo.pSignalSemaphores = &presentReadySemaphores[frameIndex()];
-                
-                const VkResult queueResult = vkQueueSubmit(queue, 1, &submitInfo, submitCompleteFences[frameIndex()]);
+                const auto waitSemaphores = std::array{swapchain.getImageAvailableSemaphore(frameId)};
+                const auto signalSemaphores = std::array{presentReadySemaphores[frameId]};
+                const auto waitStages = Api::Helper::convert2api(std::array{engine::rhi::PipelineStageFlags::eColor_Attachment_Output});
 
-                presentInfo.pWaitSemaphores = &presentReadySemaphores[frameIndex()];
+                const auto submitSyncInfo = Api::CommandBuffer::createSubmitSyncInfo(waitStages, waitSemaphores, signalSemaphores);
+
+                queue.submit(std::array{queue.submitInfo(std::array{cmdBuffers[frameId]()}, submitSyncInfo)}, frameId, {});
+
+                presentInfo.pWaitSemaphores = &presentReadySemaphores[frameId];
                 presentInfo.pImageIndices = &imageIndex;
 
-                VkResult presentResult = vkQueuePresentKHR(queue, &presentInfo);
+                VkResult presentResult = vkQueuePresentKHR(queue(), &presentInfo);
 
-                frameIndex.nextFrame();
+                ++frameIndex;
             }
-        }, 0.25f);
+        }, 0.5f);
         w.run();
         w.emplaceTasks(stl::make_vector(threads::WorkerTask{[&](){
             auto * commandPool = device.acquireCommandPool(engine::rhi::queue_flags::graphics | engine::rhi::queue_flags::present);
@@ -287,15 +273,15 @@ int main() {
 
                 renderPassBeginInfo.framebuffer = frameBuffers[i]();
 
-                auto & cmdBuff = cmdBuffers.emplace_back(commandPool->allocCommandBuffer(engine::rhi::CommandBufferLevel::ePrimary));
-                auto result = vkBeginCommandBuffer(cmdBuff, &beginInfo);
-                vkCmdBeginRenderPass(cmdBuff, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+                auto & cmdBuff = cmdBuffers.emplace_back(*commandPool, engine::rhi::CommandBufferLevel::ePrimary);
+                auto result = vkBeginCommandBuffer(cmdBuff(), &beginInfo);
+                vkCmdBeginRenderPass(cmdBuff(), &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-                vkCmdSetViewport(cmdBuff, 0, 1, &viewport);
-                vkCmdSetScissor(cmdBuff, 0, 1, &scissor);
+                vkCmdSetViewport(cmdBuff(), 0, 1, &viewport);
+                vkCmdSetScissor(cmdBuff(), 0, 1, &scissor);
 
-                vkCmdEndRenderPass(cmdBuff);
-                result = vkEndCommandBuffer(cmdBuff);
+                vkCmdEndRenderPass(cmdBuff());
+                result = vkEndCommandBuffer(cmdBuff());
             }
             renderInited = true;
         //    LOG_I("threadId_0: %d, \n", threads::unique_t<int>::id());

@@ -60,6 +60,14 @@ public:
         return &(pool.emplace(_device, queueFlags, poolFlags));
     }
 
+    bool registerThread() noexcept {
+        return threads::unique_t<CommandPoolManager>::id() < _pools.size();
+    }
+
+    void destroy() noexcept {
+        _pools.clear();
+    }
+
 private:
     const Device & _device;
     std::vector<std::optional<CommandPool>> _pools;

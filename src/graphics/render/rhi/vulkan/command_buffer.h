@@ -8,22 +8,51 @@
 
 namespace engine::vulkan {
 
-    struct SubmitSemaphores {
+    class CommandPool;
+
+    struct SubmitSyncInfo {
         struct Wait {
-            std::span<VkSemaphore> semaphores;
-            std::span<VkPipelineStageFlags> dstStages;
+            std::span<const VkSemaphore> semaphores;
+            std::span<const VkPipelineStageFlags> dstStages;
         };
         Wait wait;
-        std::span<VkSemaphore> signalSemaphores;
+        std::span<const VkSemaphore> signalSemaphores;
     };
 
     class CommandBuffer {
     public:
-        inline VkCommandBuffer operator ()() const noexcept { return _commandBuffer; }
+        CommandBuffer(CommandPool & pool, rhi::CommandBufferLevel level);
+        ~CommandBuffer();
+        
+        inline const VkCommandBuffer & operator ()() const noexcept { return _commandBuffer; }
         inline explicit operator bool() const noexcept { return _commandBuffer != VK_NULL_HANDLE; }
-        inline const VkCommandBuffer* getVkBufferPtr() const noexcept { return &_commandBuffer; }
+
+        rhi::Result begin() noexcept;
+        rhi::Result end() noexcept;
+
+        void beginRenderPass() noexcept;
+        void endRenderPass() noexcept;
+
+        void setViewport() noexcept;
+        void setScissorRect() noexcept;
+
+        static SubmitSyncInfo createSubmitSyncInfo(
+            std::span<const VkPipelineStageFlags> waitStages,
+            std::span<const VkSemaphore> waitSemaphores,
+            std::span<const VkSemaphore> signalSemaphores
+        ) noexcept {
+            return {
+                .wait {
+                    .semaphores = waitSemaphores,
+                    .dstStages = waitStages
+                },
+                .signalSemaphores = signalSemaphores
+            };
+        }
 
     private:
+        CommandPool & _pool;
+        rhi::CommandBufferLevel _level{};
         VkCommandBuffer _commandBuffer = VK_NULL_HANDLE;
     };
 }

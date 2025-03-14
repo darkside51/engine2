@@ -77,8 +77,10 @@ namespace engine::vulkan {
     }
 
     Device::~Device() {
+        _renderpassManager.destroy();
+        _commandPoolManager.destroy();
         destroyAllocator();
-
+        
         if (_device) {
             vkDestroyDevice(_device, _gpu.getInstance().getAllocationCallbacks());
             _device = VK_NULL_HANDLE;
@@ -138,7 +140,7 @@ namespace engine::vulkan {
         return nullptr;
     }
 
-    VkFence Device::createFence(rhi::FenceCreateFlags flags) noexcept {
+    VkFence Device::createFence(rhi::FenceCreateFlags flags) const noexcept {
         VkFenceCreateInfo fenceCreateInfo {
             .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
             .pNext = nullptr,
@@ -150,7 +152,7 @@ namespace engine::vulkan {
         return result;
     }
 
-    VkSemaphore Device::createSemaphore() noexcept {
+    VkSemaphore Device::createSemaphore() const noexcept {
         VkSemaphoreCreateInfo semaphoreCreateInfo {
             .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
             .pNext = nullptr,
@@ -160,6 +162,15 @@ namespace engine::vulkan {
         VkSemaphore result;
         vkCreateSemaphore(_device, &semaphoreCreateInfo, _gpu.getInstance().getAllocationCallbacks(), &result);
         return result;
+    }
+
+    void Device::destroyFence(const Fence & fence) const noexcept {
+        vkResetFences(_device, 1, &fence);
+        vkDestroyFence(_device, fence, _gpu.getInstance().getAllocationCallbacks());
+    }
+
+    void Device::destroySemaphore(const Semaphore & semaphore) const noexcept {
+        vkDestroySemaphore(_device, semaphore, _gpu.getInstance().getAllocationCallbacks());
     }
 
 }

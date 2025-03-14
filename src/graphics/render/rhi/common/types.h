@@ -63,6 +63,10 @@ namespace engine::rhi {
         ClearValue(float depth, uint32_t stencil) : depthStencil{depth, stencil} {}
     };
 
+    enum class Result : int8_t {
+        eSuccess = 0u,
+    };
+
     enum class MemoryPropertyFlags :uint8_t {
         eUndefined = 0u,
         eDeviceLocal = 1u,

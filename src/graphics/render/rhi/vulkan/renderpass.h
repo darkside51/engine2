@@ -20,6 +20,8 @@ public:
 
     VkRenderPass getRenderPass(const rhi::RenderPassDescription & description);
 
+    void destroy() noexcept;
+
 private:
     const Device & _device;
     RenderPassMap _renderPassCollection;

@@ -55,6 +55,10 @@ namespace engine::vulkan {
     }
 
     RenderPassManager::~RenderPassManager() {
+        destroy();
+    }
+
+    void RenderPassManager::destroy() noexcept {
         const auto * allocationCallbacks = _device.gpu().getInstance().getAllocationCallbacks();
         for (auto & [key, pass] : _renderPassCollection) {
             vkDestroyRenderPass(_device(), pass, allocationCallbacks);

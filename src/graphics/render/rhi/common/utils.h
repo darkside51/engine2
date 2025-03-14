@@ -17,11 +17,13 @@ public:
     explicit FrameIndex(uint8_t framesCount) : _framesCount(framesCount) {}
 
     inline uint8_t operator()() const noexcept { return _idx; }
+    inline uint8_t size() const noexcept { return _framesCount; }
     
-    inline void nextFrame() noexcept {
+    inline uint8_t operator++() noexcept { 
         _idx = (_idx + 1u) % _framesCount;
+        return _idx; 
     }
-
+    
 private:
     uint8_t _framesCount = 1u;
     uint8_t _idx = 0u;
