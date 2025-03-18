@@ -619,6 +619,40 @@ namespace engine::rhi {
         eSecondary = 1u,
     };
 
+    enum class QueryPipelineStatisticFlags : uint16_t {
+        eNone = 0u,
+        eInputAssemblyVertices = 0x00000001u,
+        eInputAssemblyPrimitives = 0x00000002u,
+        eVertexShaderInvocations = 0x00000004u,
+        eGeometryShaderInvocations = 0x00000008u,
+        eGeometryShaderPrimitives = 0x00000010u,
+        eClippingInvocations = 0x00000020u,
+        eClippingPrimitives = 0x00000040u,
+        eFragmentShaderInvocations = 0x00000080u,
+        eTessellationControlShaderPatches = 0x00000100u,
+        eTessellationEvaluationShaderInvocations = 0x00000200u,
+        eComputeShaderInvocations = 0x00000400u,
+        eTaskShaderInvocationsEXT = 0x00000800u,
+        eMeshShaderInvocationsEXT = 0x00001000u
+    };
+    inline QueryPipelineStatisticFlags operator | (QueryPipelineStatisticFlags a, QueryPipelineStatisticFlags b) {
+        return static_cast<QueryPipelineStatisticFlags>(std::to_underlying(a) | std::to_underlying(b));
+    }
+    inline QueryPipelineStatisticFlags operator & (QueryPipelineStatisticFlags a, QueryPipelineStatisticFlags b) {
+        return static_cast<QueryPipelineStatisticFlags>(std::to_underlying(a) & std::to_underlying(b));
+    }
+
+    enum class QueryControlFlags : uint8_t {
+        eNone = 0u,
+        ePrecise = 0x00000001u
+    };
+    inline QueryControlFlags operator | (QueryControlFlags a, QueryControlFlags b) {
+        return static_cast<QueryControlFlags>(std::to_underlying(a) | std::to_underlying(b));
+    }
+    inline QueryControlFlags operator & (QueryControlFlags a, QueryControlFlags b) {
+        return static_cast<QueryControlFlags>(std::to_underlying(a) & std::to_underlying(b));
+    }
+
     enum class FenceCreateFlags : uint8_t {
         eNone = 0u,
         eSignaled = 1u

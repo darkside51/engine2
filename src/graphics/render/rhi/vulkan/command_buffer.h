@@ -20,6 +20,17 @@ namespace engine::vulkan {
         std::span<const VkSemaphore> signalSemaphores;
     };
 
+    struct CommandBufferInheritanceInfo {
+        VkRenderPass renderPass;
+        uint32_t subpass;
+        rhi::QueryControlFlags pipelineStatistics;
+        rhi::QueryControlFlags queryFlags;
+        const FrameBuffer & framebuffer;
+        bool occlusionQueryEnable;
+
+        VkCommandBufferInheritanceInfo operator()() const noexcept;
+    };
+
     class CommandBuffer {
     public:
         CommandBuffer(CommandPool & pool, rhi::CommandBufferLevel level);
@@ -28,24 +39,25 @@ namespace engine::vulkan {
         inline const VkCommandBuffer & operator ()() const noexcept { return _commandBuffer; }
         inline explicit operator bool() const noexcept { return _commandBuffer != VK_NULL_HANDLE; }
 
-        rhi::Result begin() noexcept;
+        rhi::Result begin(const CommandBufferInheritanceInfo * inheritanceInfo = nullptr) const noexcept;
 
-        inline rhi::Result end() noexcept {
+        inline rhi::Result end() const noexcept {
             vkEndCommandBuffer(_commandBuffer);
             return rhi::Result::eSuccess;
         }
 
         void beginRenderPass(VkRenderPass renderPass, const FrameBuffer & framebuffer, 
             std::span<VkClearValue> clearValues, const rhi::Rect2D & area/*, 
-            rhi::SubpassContents contents = rhi::SubpassContents::ePrimaryBufferInline*/) noexcept;
+            rhi::SubpassContents contents = rhi::SubpassContents::ePrimaryBufferInline*/) const noexcept;
 
-        inline void endRenderPass() noexcept {
+        inline void endRenderPass() const noexcept {
             vkCmdEndRenderPass(_commandBuffer);
         }
 
-        void nextSubpass() noexcept { // todo!
-            // vkCmdNextSubpass2();
-            // vkCmdNextSubpass();
+        void nextSubpass(rhi::SubpassContents contents) const noexcept;
+
+        void executeCommands(std::span<const VkCommandBuffer> secondaryCommandBuffers) const noexcept {
+            vkCmdExecuteCommands(_commandBuffer, secondaryCommandBuffers.size(), secondaryCommandBuffers.data());
         }
 
         void setViewport(float x, float y, float w, float h, float minDepth, float maxDepth) noexcept;

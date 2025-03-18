@@ -786,6 +786,74 @@ inline VkSubpassContents convert2vk(rhi::SubpassContents contents) noexcept {
     }
 }
 
+inline VkQueryPipelineStatisticFlags convert2vk(rhi::QueryPipelineStatisticFlags flags) noexcept {
+    VkQueryPipelineStatisticFlags result = static_cast<VkQueryPipelineStatisticFlagBits>(0);
+
+    if (std::to_underlying(flags & rhi::QueryPipelineStatisticFlags::eInputAssemblyVertices)) {
+        result |= VkQueryPipelineStatisticFlagBits::VK_QUERY_PIPELINE_STATISTIC_INPUT_ASSEMBLY_VERTICES_BIT;
+    }
+
+    if (std::to_underlying(flags & rhi::QueryPipelineStatisticFlags::eInputAssemblyPrimitives)) {
+        result |= VkQueryPipelineStatisticFlagBits::VK_QUERY_PIPELINE_STATISTIC_INPUT_ASSEMBLY_PRIMITIVES_BIT;
+    }
+
+    if (std::to_underlying(flags & rhi::QueryPipelineStatisticFlags::eVertexShaderInvocations)) {
+        result |= VkQueryPipelineStatisticFlagBits::VK_QUERY_PIPELINE_STATISTIC_VERTEX_SHADER_INVOCATIONS_BIT;
+    }
+
+    if (std::to_underlying(flags & rhi::QueryPipelineStatisticFlags::eGeometryShaderInvocations)) {
+        result |= VkQueryPipelineStatisticFlagBits::VK_QUERY_PIPELINE_STATISTIC_GEOMETRY_SHADER_INVOCATIONS_BIT;
+    }
+
+    if (std::to_underlying(flags & rhi::QueryPipelineStatisticFlags::eGeometryShaderPrimitives)) {
+        result |= VkQueryPipelineStatisticFlagBits::VK_QUERY_PIPELINE_STATISTIC_GEOMETRY_SHADER_PRIMITIVES_BIT;
+    }
+
+    if (std::to_underlying(flags & rhi::QueryPipelineStatisticFlags::eClippingInvocations)) {
+        result |= VkQueryPipelineStatisticFlagBits::VK_QUERY_PIPELINE_STATISTIC_CLIPPING_INVOCATIONS_BIT;
+    }
+
+    if (std::to_underlying(flags & rhi::QueryPipelineStatisticFlags::eClippingPrimitives)) {
+        result |= VkQueryPipelineStatisticFlagBits::VK_QUERY_PIPELINE_STATISTIC_CLIPPING_PRIMITIVES_BIT;
+    }
+
+    if (std::to_underlying(flags & rhi::QueryPipelineStatisticFlags::eFragmentShaderInvocations)) {
+        result |= VkQueryPipelineStatisticFlagBits::VK_QUERY_PIPELINE_STATISTIC_FRAGMENT_SHADER_INVOCATIONS_BIT;
+    }
+
+    if (std::to_underlying(flags & rhi::QueryPipelineStatisticFlags::eTessellationControlShaderPatches)) {
+        result |= VkQueryPipelineStatisticFlagBits::VK_QUERY_PIPELINE_STATISTIC_TESSELLATION_CONTROL_SHADER_PATCHES_BIT;
+    }
+
+    if (std::to_underlying(flags & rhi::QueryPipelineStatisticFlags::eTessellationEvaluationShaderInvocations)) {
+        result |= VkQueryPipelineStatisticFlagBits::VK_QUERY_PIPELINE_STATISTIC_TESSELLATION_EVALUATION_SHADER_INVOCATIONS_BIT;
+    }
+
+    if (std::to_underlying(flags & rhi::QueryPipelineStatisticFlags::eComputeShaderInvocations)) {
+        result |= VkQueryPipelineStatisticFlagBits::VK_QUERY_PIPELINE_STATISTIC_COMPUTE_SHADER_INVOCATIONS_BIT;
+    }
+
+    if (std::to_underlying(flags & rhi::QueryPipelineStatisticFlags::eTaskShaderInvocationsEXT)) {
+        result |= VkQueryPipelineStatisticFlagBits::VK_QUERY_PIPELINE_STATISTIC_TASK_SHADER_INVOCATIONS_BIT_EXT;
+    }
+
+    if (std::to_underlying(flags & rhi::QueryPipelineStatisticFlags::eMeshShaderInvocationsEXT)) {
+        result |= VkQueryPipelineStatisticFlagBits::VK_QUERY_PIPELINE_STATISTIC_MESH_SHADER_INVOCATIONS_BIT_EXT;
+    }
+
+    return result;
+}
+
+inline VkQueryControlFlags convert2vk(rhi::QueryControlFlags flags) noexcept {
+    VkQueryControlFlags result = static_cast<VkQueryControlFlags>(0);
+
+    if (std::to_underlying(flags & rhi::QueryControlFlags::ePrecise)) {
+        result |= VkQueryControlFlagBits::VK_QUERY_CONTROL_PRECISE_BIT;
+    }
+
+    return result;
+}
+
 inline VkFenceCreateFlags convert2vk(rhi::FenceCreateFlags flags) noexcept {
     switch (flags) {
         case rhi::FenceCreateFlags::eSignaled:
