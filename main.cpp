@@ -85,8 +85,7 @@ engine::rhi::RenderPassDescription createRenderPassDescription(engine::rhi::Form
     depthReference.aspectMask = engine::rhi::ImageAspectFlags::eDepthStencil;
 
     std::vector<engine::rhi::SubpassDescription> subpasses{1};
-    subpasses[0].colorAttachments.reserve(1u);
-    subpasses[0].colorAttachments[0] = colorReference;
+    subpasses[0].colorAttachments = {colorReference};
     subpasses[0].depthStencilAttachment = depthReference;
 
     return engine::rhi::RenderPassDescription{

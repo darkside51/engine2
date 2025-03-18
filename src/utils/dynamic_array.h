@@ -2,6 +2,7 @@
 
 #include <array>
 #include <cstddef>
+#include <initializer_list>
 #include <span>
 #include <variant>
 #include <vector>
@@ -15,11 +16,20 @@ struct dynamic_array {
 
     dynamic_array() = default;
 
+    dynamic_array(std::initializer_list<T> list) : capacity(list.size()) {
+        if (capacity <= Max) { [[likely]]
+            value = std::array<T, Max>{};
+            std::copy(list.begin(), list.end(), std::get<std::array<T, Max>>(value).data());
+        } else {
+            value = std::vector<T>{list};
+        } 
+    }
+
     dynamic_array(uint32_t size) : capacity(size) {
-        if (size <= Max) { [[likely]]
+        if (capacity <= Max) { [[likely]]
             value = std::array<T, Max>{};
         } else {
-            value = std::vector<T>{size};
+            value = std::vector<T>{capacity};
         } 
     }
 
