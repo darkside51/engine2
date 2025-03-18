@@ -32,7 +32,7 @@ Image::Image(Device & device, const rhi::ImageInfo & info) :
         .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED
     };
 
-    if (auto result = _device.getMemoryAllocator().createImage(imageInfo, _image, _allocation); result != VK_SUCCESS) {
+    if (auto result = _device.getMemoryAllocator().createImage(imageInfo, utils::convert2vk(_info.memoryFlags), info.memoryExtFlags, _image, _allocation); result != VK_SUCCESS) {
         LOG_E("vulkan: vkCreateImage error: %d", result);
         return;
     }

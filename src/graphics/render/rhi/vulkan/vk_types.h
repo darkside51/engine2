@@ -144,6 +144,142 @@ inline VkPresentModeKHR convert2vk(rhi::PresentMode mode) noexcept {
     }
 }
 
+inline VkMemoryPropertyFlags convert2vk(rhi::MemoryPropertyFlags flags) noexcept {
+    VkMemoryPropertyFlags result = 0u;
+
+    if (std::to_underlying(flags & rhi::MemoryPropertyFlags::eDeviceLocal)) {
+        result |= VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+    }
+
+    if (std::to_underlying(flags & rhi::MemoryPropertyFlags::eHostVisible)) {
+        result |= VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
+    }
+
+    if (std::to_underlying(flags & rhi::MemoryPropertyFlags::eHostCoherent)) {
+        result |= VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+    }
+
+    if (std::to_underlying(flags & rhi::MemoryPropertyFlags::eHostCached)) {
+        result |= VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_CACHED_BIT;
+    }
+
+    if (std::to_underlying(flags & rhi::MemoryPropertyFlags::eLazilyAllocated)) {
+        result |= VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT;
+    }
+
+    if (std::to_underlying(flags & rhi::MemoryPropertyFlags::eProtected)) {
+        result |= VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_PROTECTED_BIT;
+    }
+
+    return result;
+}
+
+inline VkBufferUsageFlags convert2vk(rhi::BufferUsageFlags flags) noexcept {
+    VkBufferUsageFlags result = 0;
+
+    if (std::to_underlying(flags & rhi::BufferUsageFlags::eTransfer_Src)) {
+        result |= VkBufferUsageFlagBits::VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+    }
+
+    if (std::to_underlying(flags & rhi::BufferUsageFlags::eTransfer_Dst)) {
+        result |= VkBufferUsageFlagBits::VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+    }
+
+    if (std::to_underlying(flags & rhi::BufferUsageFlags::eUniform_Texel_Buffer)) {
+        result |= VkBufferUsageFlagBits::VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT;
+    }
+
+    if (std::to_underlying(flags & rhi::BufferUsageFlags::eStorage_Texel_Buffer)) {
+        result |= VkBufferUsageFlagBits::VK_BUFFER_USAGE_STORAGE_TEXEL_BUFFER_BIT;
+    }
+
+    if (std::to_underlying(flags & rhi::BufferUsageFlags::eUniform_Buffer)) {
+        result |= VkBufferUsageFlagBits::VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+    }
+
+    if (std::to_underlying(flags & rhi::BufferUsageFlags::eStorage_Buffer)) {
+        result |= VkBufferUsageFlagBits::VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+    }
+
+    if (std::to_underlying(flags & rhi::BufferUsageFlags::eIndex_Buffer)) {
+        result |= VkBufferUsageFlagBits::VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+    }
+
+    if (std::to_underlying(flags & rhi::BufferUsageFlags::eVertex_Buffer)) {
+        result |= VkBufferUsageFlagBits::VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+    }
+
+    if (std::to_underlying(flags & rhi::BufferUsageFlags::eIndirect_Buffer)) {
+        result |= VkBufferUsageFlagBits::VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT;
+    }
+
+    if (std::to_underlying(flags & rhi::BufferUsageFlags::eShader_Device_Address)) {
+        // result |= VkBufferUsageFlagBits::VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
+    }
+
+    if (std::to_underlying(flags & rhi::BufferUsageFlags::eVideo_Decode_Src_Khr)) {
+        // result |= VkBufferUsageFlagBits::VK_BUFFER_USAGE_VIDEO_DECODE_SRC_BIT_KHR;
+    }
+
+    if (std::to_underlying(flags & rhi::BufferUsageFlags::eTransform_Feedback_Buffer_Ext)) {
+        result |= VkBufferUsageFlagBits::VK_BUFFER_USAGE_TRANSFORM_FEEDBACK_BUFFER_BIT_EXT;
+    }
+
+    if (std::to_underlying(flags & rhi::BufferUsageFlags::eTransform_Feedback_Counter_Buffer_Ext)) {
+        result |= VkBufferUsageFlagBits::VK_BUFFER_USAGE_TRANSFORM_FEEDBACK_COUNTER_BUFFER_BIT_EXT;
+    }
+
+    if (std::to_underlying(flags & rhi::BufferUsageFlags::eConditional_Rendering_Ext)) {
+        result |= VkBufferUsageFlagBits::VK_BUFFER_USAGE_CONDITIONAL_RENDERING_BIT_EXT;
+    }
+
+    if (std::to_underlying(flags & rhi::BufferUsageFlags::eAcceleration_Structure_Build_Input_Read_Only_Khr)) {
+        result |= VkBufferUsageFlagBits::VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR;
+    }
+
+    if (std::to_underlying(flags & rhi::BufferUsageFlags::eAcceleration_Structure_Storage_Khr)) {
+        result |= VkBufferUsageFlagBits::VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR;
+    }
+
+    if (std::to_underlying(flags & rhi::BufferUsageFlags::eShader_Binding_Table_Khr)) {
+        result |= VkBufferUsageFlagBits::VK_BUFFER_USAGE_SHADER_BINDING_TABLE_BIT_KHR;
+    }
+
+    if (std::to_underlying(flags & rhi::BufferUsageFlags::eVideo_Encode_Dst_Khr)) {
+        // result |= VkBufferUsageFlagBits::VK_BUFFER_USAGE_VIDEO_ENCODE_DST_BIT_KHR;
+    }
+
+    if (std::to_underlying(flags & rhi::BufferUsageFlags::eVideo_Encode_Src_Khr)) {
+        // result |= VkBufferUsageFlagBits::VK_BUFFER_USAGE_VIDEO_ENCODE_SRC_BIT_KHR;
+    }
+
+    if (std::to_underlying(flags & rhi::BufferUsageFlags::eSampler_Descriptor_Buffer_Ext)) {
+        result |= VkBufferUsageFlagBits::VK_BUFFER_USAGE_SAMPLER_DESCRIPTOR_BUFFER_BIT_EXT;
+    }
+
+    if (std::to_underlying(flags & rhi::BufferUsageFlags::eResource_Descriptor_Buffer_Ext)) {
+        result |= VkBufferUsageFlagBits::VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT;
+    }
+
+    if (std::to_underlying(flags & rhi::BufferUsageFlags::ePush_Descriptors_Descriptor_Buffer_Ext)) {
+        result |= VkBufferUsageFlagBits::VK_BUFFER_USAGE_PUSH_DESCRIPTORS_DESCRIPTOR_BUFFER_BIT_EXT;
+    }
+
+    if (std::to_underlying(flags & rhi::BufferUsageFlags::eMicromap_Build_Input_Read_Only_Ext)) {
+        result |= VkBufferUsageFlagBits::VK_BUFFER_USAGE_MICROMAP_BUILD_INPUT_READ_ONLY_BIT_EXT;
+    }
+
+    if (std::to_underlying(flags & rhi::BufferUsageFlags::eMicromap_Storage_Ext)) {
+        result |= VkBufferUsageFlagBits::VK_BUFFER_USAGE_MICROMAP_STORAGE_BIT_EXT;
+    }
+
+    if (std::to_underlying(flags & rhi::BufferUsageFlags::eRay_Tracing_NV)) {
+        result |= VkBufferUsageFlagBits::VK_BUFFER_USAGE_RAY_TRACING_BIT_NV;
+    }
+
+    return result;
+}
+
 inline VkImageType convert2vk(rhi::ImageType type) noexcept {
     switch (type) {
         case rhi::ImageType::eType_1D:

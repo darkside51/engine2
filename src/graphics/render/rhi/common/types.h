@@ -72,7 +72,7 @@ namespace engine::rhi {
         eSuccess = 0u,
     };
 
-    enum class MemoryPropertyFlags :uint8_t {
+    enum class MemoryPropertyFlags : uint8_t {
         eUndefined = 0u,
         eDeviceLocal = 1u,
         eHostVisible = 2u,
@@ -86,6 +86,18 @@ namespace engine::rhi {
     }
     inline MemoryPropertyFlags operator & (MemoryPropertyFlags a, MemoryPropertyFlags b) {
         return static_cast<MemoryPropertyFlags>(std::to_underlying(a) & std::to_underlying(b));
+    }
+
+    enum class MemoryExtendedFlags : uint8_t {
+        eNone = 0u,
+        eDedicated = 1u, // Use it for special, big resources, like fullscreen images used as attachments.
+        eTryNoAllocateNew = 2u
+    };
+    inline MemoryExtendedFlags operator | (MemoryExtendedFlags a, MemoryExtendedFlags b) {
+        return static_cast<MemoryExtendedFlags>(std::to_underlying(a) | std::to_underlying(b));
+    }
+    inline MemoryExtendedFlags operator & (MemoryExtendedFlags a, MemoryExtendedFlags b) {
+        return static_cast<MemoryExtendedFlags>(std::to_underlying(a) & std::to_underlying(b));
     }
 
     enum class SharingMode : uint8_t {
@@ -335,6 +347,42 @@ namespace engine::rhi {
         eFifo = 2u
     };
 
+    enum class BufferUsageFlags : uint32_t {
+        eNone = 0u,
+        eTransfer_Src = 0x00000001u,
+        eTransfer_Dst = 0x00000002u,
+        eUniform_Texel_Buffer = 0x00000004u,
+        eStorage_Texel_Buffer = 0x00000008u,
+        eUniform_Buffer = 0x00000010u,
+        eStorage_Buffer = 0x00000020u,
+        eIndex_Buffer = 0x00000040u,
+        eVertex_Buffer = 0x00000080u,
+        eIndirect_Buffer = 0x00000100u,
+        eShader_Device_Address = 0x00020000u,
+        eVideo_Decode_Src_Khr = 0x00002000u,
+        eVideo_Decode_Dst_Khr = 0x00004000u,
+        eTransform_Feedback_Buffer_Ext = 0x00000800u,
+        eTransform_Feedback_Counter_Buffer_Ext = 0x00001000u,
+        eConditional_Rendering_Ext = 0x00000200u,
+        eAcceleration_Structure_Build_Input_Read_Only_Khr = 0x00080000u,
+        eAcceleration_Structure_Storage_Khr = 0x00100000u,
+        eShader_Binding_Table_Khr = 0x00000400u, // KHR_ray_tracing_pipeline
+        eVideo_Encode_Dst_Khr = 0x00008000u,
+        eVideo_Encode_Src_Khr = 0x00010000u,
+        eSampler_Descriptor_Buffer_Ext = 0x00200000u, // EXT_descriptor_buffer
+        eResource_Descriptor_Buffer_Ext = 0x00400000u, // EXT_descriptor_buffer
+        ePush_Descriptors_Descriptor_Buffer_Ext = 0x04000000u, // EXT_descriptor_buffer
+        eMicromap_Build_Input_Read_Only_Ext = 0x00800000u, // EXT_opacity_micromap
+        eMicromap_Storage_Ext = 0x01000000u, // EXT_opacity_micromap
+        eRay_Tracing_NV = eShader_Binding_Table_Khr,
+    };
+    inline BufferUsageFlags operator | (BufferUsageFlags a, BufferUsageFlags b) {
+        return static_cast<BufferUsageFlags>(std::to_underlying(a) | std::to_underlying(b));
+    }
+    inline BufferUsageFlags operator & (BufferUsageFlags a, BufferUsageFlags b) {
+        return static_cast<BufferUsageFlags>(std::to_underlying(a) & std::to_underlying(b));
+    }
+
     enum class ImageType : uint8_t {
         eType_1D = 0u,
         eType_2D = 1u,
@@ -410,6 +458,8 @@ namespace engine::rhi {
         ImageAspectFlags aspectFlags = ImageAspectFlags::eColor;
         ImageTiling tiling = ImageTiling::eOptimal;
         ImageCreateFlags flags = ImageCreateFlags::eNone;
+        MemoryPropertyFlags memoryFlags = MemoryPropertyFlags::eDeviceLocal;
+        MemoryExtendedFlags memoryExtFlags = MemoryExtendedFlags::eNone;
         Extent3D extent;
         uint8_t mipLevels = 1u;
         uint8_t arrayLayers = 1u;

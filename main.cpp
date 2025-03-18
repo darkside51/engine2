@@ -162,6 +162,8 @@ int main() {
             .aspectFlags = engine::rhi::ImageAspectFlags::eDepthStencil,
             .tiling = engine::rhi::ImageTiling::eOptimal,
             .flags = engine::rhi::ImageCreateFlags::eNone,
+            .memoryFlags = engine::rhi::MemoryPropertyFlags::eDeviceLocal,
+            .memoryExtFlags = engine::rhi::MemoryExtendedFlags::eDedicated,
             .extent = {1024u, 768u, 1u},
             .mipLevels = 1u,
             .arrayLayers = 1u,

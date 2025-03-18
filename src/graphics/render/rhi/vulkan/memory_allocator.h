@@ -1,5 +1,7 @@
 #pragma once
 
+#include "graphics/render/rhi/common/types.h"
+
 #include <vk_mem_alloc.h>
 #include <vulkan/vulkan.h>
 
@@ -32,8 +34,21 @@ public:
     void create(VkInstance instance, VkPhysicalDevice gpu, VkDevice device, const AllocatorCreateInfo & info);
     void destroy();
     
-    VkResult createImage(const VkImageCreateInfo & info, VkImage & image, MemoryAllocation & allocation);
+    VkResult createBuffer(const VkBufferCreateInfo & info, VkMemoryPropertyFlags requiredFlags, 
+        rhi::MemoryExtendedFlags memoryExtFlags, VkBuffer & buffer, MemoryAllocation & allocation);
+
+    void destroyBuffer(VkBuffer & buffer, MemoryAllocation & allocation);
+
+    VkResult createImage(const VkImageCreateInfo & info, VkMemoryPropertyFlags requiredFlags, 
+        rhi::MemoryExtendedFlags memoryExtFlags, VkImage & image, MemoryAllocation & allocation);
+        
     void destroyImage(VkImage & image, MemoryAllocation & allocation);
+
+    void * mapMemory(const MemoryAllocation & allocation);
+    void unmapMemory(const MemoryAllocation & allocation);
+
+    VkResult flushMemory(const MemoryAllocation & allocation, VkDeviceSize offset = 0u, VkDeviceSize size = VK_WHOLE_SIZE);
+    VkResult InvalidateMemory(const MemoryAllocation & allocation, VkDeviceSize offset = 0u, VkDeviceSize size = VK_WHOLE_SIZE);
 
 private:
     VmaAllocator _allocator = VK_NULL_HANDLE;

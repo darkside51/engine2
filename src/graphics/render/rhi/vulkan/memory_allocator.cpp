@@ -82,13 +82,65 @@ namespace engine::vulkan {
 // #endif
 // }
 
-    VkResult GPUMemoryAllocator::createImage(const VkImageCreateInfo & info, VkImage & image, MemoryAllocation & allocation) {
-        VmaAllocationCreateInfo imageAllocCreateInfo = {};
-        // imageAllocCreateInfo.flags = ; // check usage for set it
-        imageAllocCreateInfo.usage = VMA_MEMORY_USAGE_AUTO; // VMA_MEMORY_USAGE_GPU_ONLY ?
-        imageAllocCreateInfo.requiredFlags = info.flags;
+    void * GPUMemoryAllocator::mapMemory(const MemoryAllocation & allocation) {
+        void * ptr;
+        auto result = vmaMapMemory(_allocator, allocation.allocation, &ptr);
+        if (result = VK_SUCCESS) {
+            return ptr;
+        }
 
-        return vmaCreateImage(_allocator, &info, &imageAllocCreateInfo, &image, &allocation.allocation, &allocation.info);
+        return nullptr;
+    }
+
+    void GPUMemoryAllocator::unmapMemory(const MemoryAllocation & allocation) {
+        vmaUnmapMemory(_allocator, allocation.allocation);
+    }
+
+    VkResult GPUMemoryAllocator::flushMemory(const MemoryAllocation & allocation, VkDeviceSize offset, VkDeviceSize size ) {
+        return vmaFlushAllocation(_allocator, allocation.allocation, offset, size);
+    }
+
+    VkResult GPUMemoryAllocator::InvalidateMemory(const MemoryAllocation & allocation, VkDeviceSize offset, VkDeviceSize size) {
+        return vmaInvalidateAllocation(_allocator, allocation.allocation, offset, size);
+    }
+
+    inline VmaAllocationCreateFlags receiveAllocationCreateFlags(rhi::MemoryExtendedFlags memoryExtFlags) noexcept {
+        VmaAllocationCreateFlags result = 0;
+        if (std::to_underlying(memoryExtFlags & rhi::MemoryExtendedFlags::eDedicated)) {
+            result |= VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
+        }
+
+        if (std::to_underlying(memoryExtFlags & rhi::MemoryExtendedFlags::eTryNoAllocateNew)) {
+            result |= VMA_ALLOCATION_CREATE_NEVER_ALLOCATE_BIT;
+        }
+        
+        return result;
+    }
+
+    VkResult GPUMemoryAllocator::createBuffer(const VkBufferCreateInfo & info, VkMemoryPropertyFlags requiredFlags, 
+        rhi::MemoryExtendedFlags memoryExtFlags, VkBuffer & buffer, MemoryAllocation & allocation) {
+        VmaAllocationCreateInfo vmaInfo = {};
+
+        vmaInfo.flags = receiveAllocationCreateFlags(memoryExtFlags);
+        vmaInfo.usage = VMA_MEMORY_USAGE_AUTO; // VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE or VMA_MEMORY_USAGE_AUTO_PREFER_HOST
+        vmaInfo.requiredFlags = requiredFlags;
+        return vmaCreateBuffer(_allocator, &info, &vmaInfo, &buffer, &allocation.allocation, &allocation.info);
+    }
+
+    void GPUMemoryAllocator::destroyBuffer(VkBuffer & buffer, MemoryAllocation & allocation) {
+        vmaDestroyBuffer(_allocator, buffer, allocation.allocation);
+    }
+
+    VkResult GPUMemoryAllocator::createImage(const VkImageCreateInfo & info, VkMemoryPropertyFlags requiredFlags, rhi::MemoryExtendedFlags memoryExtFlags,
+        VkImage & image, MemoryAllocation & allocation) {
+        VmaAllocationCreateInfo vmaInfo = {};
+
+        vmaInfo.flags = receiveAllocationCreateFlags(memoryExtFlags);
+        // vmaInfo.flags = ; // check usage for set it
+        vmaInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE; // VMA_MEMORY_USAGE_GPU_ONLY ? // VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE or VMA_MEMORY_USAGE_AUTO_PREFER_HOST
+        vmaInfo.requiredFlags = requiredFlags;
+
+        return vmaCreateImage(_allocator, &info, &vmaInfo, &image, &allocation.allocation, &allocation.info);
     }
 
     void GPUMemoryAllocator::destroyImage(VkImage & image, MemoryAllocation & allocation) {
