@@ -20,19 +20,20 @@ namespace engine::vulkan {
         std::span<const VkSemaphore> signalSemaphores;
     };
 
-    struct CommandBufferInheritanceInfo {
-        VkRenderPass renderPass;
-        uint32_t subpass;
-        rhi::QueryControlFlags pipelineStatistics;
-        rhi::QueryControlFlags queryFlags;
-        const FrameBuffer & framebuffer;
-        bool occlusionQueryEnable;
-
-        VkCommandBufferInheritanceInfo operator()() const noexcept;
-    };
-
     class CommandBuffer {
     public:
+        struct CommandBufferInheritanceInfo {
+            VkRenderPass renderPass;
+            uint32_t subpass;
+            rhi::QueryControlFlags pipelineStatistics;
+            rhi::QueryControlFlags queryFlags;
+            const FrameBuffer & framebuffer;
+            bool occlusionQueryEnable;
+
+            VkCommandBufferInheritanceInfo operator()() const noexcept;
+        };
+
+
         CommandBuffer(CommandPool & pool, rhi::CommandBufferLevel level);
         ~CommandBuffer();
         

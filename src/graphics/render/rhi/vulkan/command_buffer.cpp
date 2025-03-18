@@ -5,7 +5,7 @@
 
 namespace engine::vulkan {
 
-    VkCommandBufferInheritanceInfo CommandBufferInheritanceInfo::operator()() const noexcept {
+    VkCommandBufferInheritanceInfo CommandBuffer::CommandBufferInheritanceInfo::operator()() const noexcept {
         return {
             .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO,
             .pNext = nullptr,   // VUID-VkCommandBufferInheritanceInfo-pNext-pNext
