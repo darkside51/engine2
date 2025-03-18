@@ -14,6 +14,8 @@ inline Extent2D getMipLevelSize(Extent2D size, uint8_t level) noexcept {
 
 class FrameIndex {
 public:
+    inline static constexpr uint8_t kUndefinedFrame = 0xffu;
+    
     explicit FrameIndex(uint8_t framesCount) : _framesCount(framesCount) {}
 
     inline uint8_t operator()() const noexcept { return _idx; }

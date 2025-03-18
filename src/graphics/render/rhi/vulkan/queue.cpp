@@ -10,14 +10,14 @@ namespace engine::vulkan {
     Queue::Queue(const Device & device, uint8_t familyFlags, uint8_t queueIdx, uint8_t framesCount) :
         _submitCompleteFences(framesCount), 
         _device(device) {
-            const auto * queueFamily = device.findQueueFamily(familyFlags);
-            if (queueFamily && queueIdx < queueFamily->queues.size()) {
-                _queue = queueFamily->queues[queueIdx];
+        const auto * queueFamily = device.findQueueFamily(familyFlags);
+        if (queueFamily && queueIdx < queueFamily->queues.size()) {
+            _queue = queueFamily->queues[queueIdx];
 
-                for (size_t i = 0; i < framesCount; ++i) {
-                    _submitCompleteFences[i] = device.createFence(engine::rhi::FenceCreateFlags::eSignaled);
-                }
+            for (size_t i = 0; i < framesCount; ++i) {
+                _submitCompleteFences[i] = device.createFence(engine::rhi::FenceCreateFlags::eSignaled);
             }
+        }
     }
 
     Queue::~Queue() {
@@ -60,7 +60,30 @@ namespace engine::vulkan {
         return vkQueueSubmit(_queue, submitInfos.size(), submitInfos.data(), fence);
     }
 
-    VkResult Queue::present(std::span<const VkSwapchainKHR> swapchains, std::span<const uint32_t> imageIdxs, std::span<const VkSemaphore> waitSemaphores) {
+    VkResult Queue::flushCommandBuffers(std::span<const VkCommandBuffer> commandBuffers, VkFence extenalFence) noexcept {
+        auto fence = (extenalFence == VK_NULL_HANDLE ? _device.createFence(engine::rhi::FenceCreateFlags::eNone) : extenalFence);
+
+        const std::array submitInfos = {
+            submitInfo(commandBuffers, {
+                .wait {
+                    .semaphores = {},
+                    .dstStages = {}
+            },
+            .signalSemaphores = {}})
+        };
+
+        constexpr uint8_t kUndefinedFrame = 0xffu;
+
+        auto result = submit(submitInfos, kUndefinedFrame, fence);
+        waitSubmitComplete(kUndefinedFrame, UINT64_MAX, fence);
+
+        if (extenalFence == VK_NULL_HANDLE) {
+            _device.destroyFence(fence);
+        }
+        return result;
+    }
+
+    VkResult Queue::present(std::span<const VkSwapchainKHR> swapchains, std::span<const uint32_t> imageIdxs, std::span<const VkSemaphore> waitSemaphores) noexcept {
         VkPresentInfoKHR presentInfo = {
             .sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
 		    .pNext = nullptr,

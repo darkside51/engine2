@@ -27,8 +27,10 @@ namespace engine::vulkan {
         VkSubmitInfo submitInfo(std::span<const VkCommandBuffer> commandBuffers, const SubmitSyncInfo & syncInfo) noexcept;
         VkResult submit(std::span<const VkSubmitInfo> submitInfos, uint8_t frameIdx, VkFence f = VK_NULL_HANDLE) noexcept;
 
-        VkResult present(std::span<const VkSwapchainKHR> swapchains, std::span<const uint32_t> imageIdxs, std::span<const VkSemaphore> waitSemaphores);
+        VkResult present(std::span<const VkSwapchainKHR> swapchains, std::span<const uint32_t> imageIdxs, std::span<const VkSemaphore> waitSemaphores) noexcept;
         
+        VkResult flushCommandBuffers(std::span<const VkCommandBuffer> commandBuffers, VkFence extenalFence = VK_NULL_HANDLE) noexcept;
+
     private:
         std::vector<VkFence> _submitCompleteFences;
         VkQueue _queue = VK_NULL_HANDLE;
