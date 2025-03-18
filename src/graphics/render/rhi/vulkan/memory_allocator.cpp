@@ -106,12 +106,21 @@ namespace engine::vulkan {
 
     inline VmaAllocationCreateFlags receiveAllocationCreateFlags(rhi::MemoryExtendedFlags memoryExtFlags) noexcept {
         VmaAllocationCreateFlags result = 0;
+        
         if (std::to_underlying(memoryExtFlags & rhi::MemoryExtendedFlags::eDedicated)) {
             result |= VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
         }
 
-        if (std::to_underlying(memoryExtFlags & rhi::MemoryExtendedFlags::eTryNoAllocateNew)) {
+        if (std::to_underlying(memoryExtFlags & rhi::MemoryExtendedFlags::eTry_No_Allocate_New)) {
             result |= VMA_ALLOCATION_CREATE_NEVER_ALLOCATE_BIT;
+        }
+
+        if (std::to_underlying(memoryExtFlags & rhi::MemoryExtendedFlags::eMapped)) {
+            result |= VMA_ALLOCATION_CREATE_MAPPED_BIT;
+        }
+
+        if (std::to_underlying(memoryExtFlags & rhi::MemoryExtendedFlags::eCan_Alias)) {
+            result |= VMA_ALLOCATION_CREATE_CAN_ALIAS_BIT;
         }
         
         return result;

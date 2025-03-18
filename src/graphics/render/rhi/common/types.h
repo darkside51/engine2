@@ -91,7 +91,9 @@ namespace engine::rhi {
     enum class MemoryExtendedFlags : uint8_t {
         eNone = 0u,
         eDedicated = 1u, // Use it for special, big resources, like fullscreen images used as attachments.
-        eTryNoAllocateNew = 2u
+        eTry_No_Allocate_New = 2u,
+        eMapped = 4u,
+        eCan_Alias = 8u
     };
     inline MemoryExtendedFlags operator | (MemoryExtendedFlags a, MemoryExtendedFlags b) {
         return static_cast<MemoryExtendedFlags>(std::to_underlying(a) | std::to_underlying(b));
