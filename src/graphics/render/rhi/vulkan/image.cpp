@@ -48,13 +48,13 @@ Image::Image(Device & device, const rhi::ImageInfo & info, VkImage externalImage
     }
 
 Image::~Image() {
-    if (_image && !_externalImage) {
-        _device.getMemoryAllocator().destroyImage(_image, _allocation);
-    }
-
     const auto * allocationCallbacks = _device.gpu().getInstance().getAllocationCallbacks();
     for (auto it = _imageViews.begin(); it != _imageViews.end(); ++it) {
         vkDestroyImageView(_device(), it->second, allocationCallbacks);
+    }
+
+    if (_image && !_externalImage) {
+        _device.getMemoryAllocator().destroyImage(_image, _allocation);
     }
 }
 
