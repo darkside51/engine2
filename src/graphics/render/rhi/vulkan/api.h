@@ -12,6 +12,7 @@ namespace engine::vulkan {
     class Device;
     class Surface;
     class Swapchain;
+    class Buffer;
     class Image;
     class FrameBuffer;
     class RenderPassManager;
@@ -26,6 +27,7 @@ namespace engine::vulkan {
         using PhisicalDevice = vulkan::PhisicalDevice;
         using Surface = vulkan::Surface;
         using Swapchain = vulkan::Swapchain;
+        using Buffer = vulkan::Buffer;
         using Image = vulkan::Image;
         using FrameBuffer = vulkan::FrameBuffer;
         using CommandBuffer = vulkan::CommandBuffer;

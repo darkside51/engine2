@@ -34,13 +34,18 @@ namespace engine::vulkan {
     }
 
     void CommandBuffer::setViewport(float x, float y, float w, float h, float minDepth, float maxDepth) noexcept {
-        const VkViewport viewport{x, y, w, h, minDepth, maxDepth};
-        vkCmdSetViewport(_commandBuffer, 0, 1, &viewport);
+        if (_state.setViewPort({{{static_cast<int32_t>(x), static_cast<int32_t>(y)}, 
+            {static_cast<uint32_t>(w), static_cast<uint32_t>(h)}}, minDepth, maxDepth})) {
+            const VkViewport viewport{x, y, w, h, minDepth, maxDepth};
+            vkCmdSetViewport(_commandBuffer, 0, 1, &viewport);
+        }
     }
 
     void CommandBuffer::setScissorRect(const rhi::Rect2D & area) noexcept {
         const VkRect2D scissor{utils::convert2vk(area.offset), utils::convert2vk(area.extent)};
-        vkCmdSetScissor(_commandBuffer, 0, 1, &scissor);
+        if (_state.setScissor(area)) {
+            vkCmdSetScissor(_commandBuffer, 0, 1, &scissor);
+        }
     }
 
     rhi::Result CommandBuffer::begin(const CommandBufferInheritanceInfo * inheritanceInfo) const noexcept {
@@ -87,6 +92,22 @@ namespace engine::vulkan {
     void CommandBuffer::nextSubpass(rhi::SubpassContents contents) const noexcept {
         // vkCmdNextSubpass2();  // want it?
         vkCmdNextSubpass(_commandBuffer, utils::convert2vk(contents));
+    }
+
+    void CommandBuffer::copyBuffer2Buffer(const Buffer & src, const Buffer & dst, std::span<VkBufferCopy> copyInfo) const noexcept {
+        // vkCmdCopyBuffer2(); // ?
+        vkCmdCopyBuffer(_commandBuffer, src(), dst(), copyInfo.size(), copyInfo.data());
+    }
+
+    void CommandBuffer::copyBufferToImage(const Buffer & src, const Image & dst, std::span<VkBufferImageCopy> copyInfo) const noexcept {
+        // vkCmdCopyBufferToImage2; // ?
+
+        const auto info = dst.getInfo();
+        const auto & subresource = copyInfo[0u].imageSubresource;
+        const auto baseLayoutIdx = subresource.baseArrayLayer * info.mipLevels + subresource.mipLevel;
+        const auto baseLayout = dst.getSubStates()[baseLayoutIdx].layout;
+
+        vkCmdCopyBufferToImage(_commandBuffer, src(), dst(), baseLayout, copyInfo.size(), copyInfo.data());
     }
 
 }

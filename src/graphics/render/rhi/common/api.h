@@ -23,6 +23,7 @@ namespace engine::rhi {
         using PhisicalDevice = T::PhisicalDevice;
         using Surface = T::Surface;
         using Swapchain = T::Swapchain;
+        using Buffer = T::Buffer;
         using Image = T::Image;
         using FrameBuffer = T::FrameBuffer;
         using CommandBuffer = T::CommandBuffer;

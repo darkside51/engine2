@@ -24,6 +24,7 @@
 #include "graphics/render/rhi/vulkan/surface.h"
 #include "graphics/render/rhi/vulkan/device.h"
 #include "graphics/render/rhi/vulkan/swapchain.h"
+#include "graphics/render/rhi/vulkan/buffer.h"
 #include "graphics/render/rhi/vulkan/image.h"
 #include "graphics/render/rhi/vulkan/renderpass.h"
 #include "graphics/render/rhi/vulkan/framebuffer.h"
@@ -93,6 +94,35 @@ engine::rhi::RenderPassDescription createRenderPassDescription(engine::rhi::Form
         std::move(subpasses), 
         std::move(dependencies)
     };
+}
+
+void createBuffers(auto & device) {
+    using namespace engine::rhi;
+    using Api = std::decay_t<decltype(device)>::Api;
+
+    engine::rhi::BufferInfo info{
+        .usage = BufferUsageFlags::eVertex_Buffer,
+        .memoryFlags = MemoryPropertyFlags::eHostVisible,
+        .memoryExtFlags = MemoryExtendedFlags::eNone,
+        .flags = BufferCreateFlags::eNone,
+        .sharing = SharingMode::eExclusive,
+        .queueFamilyIndices = {0}
+    };
+
+    typename Api::Buffer buffer{device, info, sizeof(float) * 4u};
+    auto * map = buffer.template map2<float>();
+    map[0u] = 10.0f;
+    map[1u] = 20.0f;
+    map[2u] = 30.0f;
+    map[3u] = 40.0f;
+    buffer.flush();
+    buffer.unmap();
+
+    auto name = buffer.getName();
+    buffer.setName("buffer0");
+    name = buffer.getName();
+    int a = 0;
+
 }
 
 int main() {
@@ -199,6 +229,10 @@ int main() {
         std::vector<Api::CommandBuffer> cmdBuffers;
         cmdBuffers.reserve(swapchain.getImagesCount());
 
+        //
+        createBuffers(device);
+
+        //
         bool renderInited = false;
 
         threads::Executor w([&](auto & executionContext, float delta) {

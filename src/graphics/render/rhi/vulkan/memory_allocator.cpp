@@ -84,8 +84,8 @@ namespace engine::vulkan {
 
     void * GPUMemoryAllocator::mapMemory(const MemoryAllocation & allocation) {
         void * ptr;
-        auto result = vmaMapMemory(_allocator, allocation.allocation, &ptr);
-        if (result = VK_SUCCESS) {
+        const auto result = vmaMapMemory(_allocator, allocation.allocation, &ptr);
+        if (result == VK_SUCCESS) {
             return ptr;
         }
 
@@ -100,7 +100,7 @@ namespace engine::vulkan {
         return vmaFlushAllocation(_allocator, allocation.allocation, offset, size);
     }
 
-    VkResult GPUMemoryAllocator::InvalidateMemory(const MemoryAllocation & allocation, VkDeviceSize offset, VkDeviceSize size) {
+    VkResult GPUMemoryAllocator::invalidateMemory(const MemoryAllocation & allocation, VkDeviceSize offset, VkDeviceSize size) {
         return vmaInvalidateAllocation(_allocator, allocation.allocation, offset, size);
     }
 
@@ -133,6 +133,17 @@ namespace engine::vulkan {
         vmaInfo.flags = receiveAllocationCreateFlags(memoryExtFlags);
         vmaInfo.usage = VMA_MEMORY_USAGE_AUTO; // VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE or VMA_MEMORY_USAGE_AUTO_PREFER_HOST
         vmaInfo.requiredFlags = requiredFlags;
+
+        if (requiredFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT ) {
+            if (requiredFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_CACHED_BIT) { 
+                // host cached memory type is preferred for random access
+                vmaInfo.flags |= VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT;
+            } else {
+                // use sequental write for no host cached memory
+                vmaInfo.flags |= VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
+            }
+        }
+         
         return vmaCreateBuffer(_allocator, &info, &vmaInfo, &buffer, &allocation.allocation, &allocation.info);
     }
 

@@ -46,6 +46,14 @@ inline auto convert2vk(const std::array<rhi::ClearValue, N> & array) -> std::arr
     return result;
 }
 
+inline VkBufferCopy convert2vk(const rhi::CopyInfo & info) noexcept {
+    return VkBufferCopy {
+        .srcOffset = info.srcOffset,
+        .dstOffset = info.dstOffset,
+        .size = info.size
+    };
+}
+
 inline VkPhysicalDeviceFeatures convert2vk(const rhi::PhysicalDeviceFeatures & features) noexcept {
     VkPhysicalDeviceFeatures result = {};
     std::memset(&result, 0, sizeof(VkPhysicalDeviceFeatures));
@@ -411,6 +419,23 @@ inline VkImageCreateFlags convert2vk(rhi::ImageCreateFlags flags) noexcept {
     }
     if (std::to_underlying(flags & rhi::ImageCreateFlags::eCube_Compatible)) {
         result |= VkImageCreateFlagBits::VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
+    }
+    return result;
+}
+
+inline VkBufferCreateFlags convert2vk(rhi::BufferCreateFlags flags) noexcept {
+    VkBufferCreateFlags result = 0;
+    if (std::to_underlying(flags & rhi::BufferCreateFlags::eSparse_Binding)) {
+        result |= VkBufferCreateFlagBits::VK_BUFFER_CREATE_SPARSE_BINDING_BIT;
+    }
+    if (std::to_underlying(flags & rhi::BufferCreateFlags::eSparse_Residency)) {
+        result |= VkBufferCreateFlagBits::VK_BUFFER_CREATE_SPARSE_RESIDENCY_BIT;
+    }
+    if (std::to_underlying(flags & rhi::BufferCreateFlags::eSparse_Aliased)) {
+        result |= VkBufferCreateFlagBits::VK_BUFFER_CREATE_SPARSE_ALIASED_BIT;
+    }
+    if (std::to_underlying(flags & rhi::BufferCreateFlags::eProtected)) {
+        result |= VkBufferCreateFlagBits::VK_BUFFER_CREATE_PROTECTED_BIT;
     }
     return result;
 }

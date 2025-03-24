@@ -12,6 +12,7 @@
 
 namespace engine::vulkan {
 
+class Api;
 class PhisicalDevice;
 
 struct DeviceQueueFamily {
@@ -22,6 +23,7 @@ struct DeviceQueueFamily {
 
 class Device {
 public:
+    using Api = vulkan::Api;
     using RenderPass = VkRenderPass;
     using Fence = VkFence;
     using Semaphore = VkSemaphore;

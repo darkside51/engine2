@@ -17,30 +17,48 @@ namespace engine::rhi {
     // }
 
     struct Offset2D {
-        int32_t x;
-        int32_t y;
+        int32_t x {};
+        int32_t y {};
+
+        inline bool operator == (const Offset2D & offset) const noexcept = default;
     };
     
     struct Offset3D {
-        int32_t x;
-        int32_t y;
-        int32_t z;
+        int32_t x {};
+        int32_t y {};
+        int32_t z {};
+
+        inline bool operator == (const Offset3D & offset) const noexcept = default;
     };
     
     struct Extent2D {
         uint32_t width = 0u;
         uint32_t height = 0u;
+
+        inline bool operator == (const Extent2D & extent) const noexcept = default;
     };
 
     struct Extent3D {
         uint32_t width = 0u;
         uint32_t height = 0u;
         uint32_t depth = 0u;
+
+        inline bool operator == (const Extent3D & extent) const noexcept = default;
     };
     
     struct Rect2D {
         Offset2D offset{};
         Extent2D extent{};
+
+        inline bool operator == (const Rect2D & rect) const noexcept = default;
+    };
+
+    struct Viewport {
+        Rect2D screenRect{};
+        float minDepth = 0.0f;
+        float maxDepth = 0.0f;
+
+        inline bool operator == (const Viewport & viewport) const noexcept = default;
     };
 
     struct ClearColorValue {
@@ -66,6 +84,12 @@ namespace engine::rhi {
 
         ClearValue(float r, float g, float b, float a) :  color{r, g, b, a} {}   
         ClearValue(float depth, uint32_t stencil) : depthStencil{depth, stencil} {}
+    };
+
+    struct CopyInfo {
+        size_t srcOffset = 0u;
+        size_t dstOffset = 0u;
+        size_t size = 0u;
     };
 
     enum class Result : int8_t {
@@ -466,6 +490,29 @@ namespace engine::rhi {
         uint8_t mipLevels = 1u;
         uint8_t arrayLayers = 1u;
         uint8_t samples = 1u;
+        std::vector<uint32_t> queueFamilyIndices = {};
+    };
+
+    enum class BufferCreateFlags : uint8_t {
+        eNone = 0u,
+        eSparse_Binding = 1u,
+        eSparse_Residency = 2u,
+        eSparse_Aliased = 4u,
+        eProtected = 8u
+    };
+    inline BufferCreateFlags operator | (BufferCreateFlags a, BufferCreateFlags b) {
+        return static_cast<BufferCreateFlags>(std::to_underlying(a) | std::to_underlying(b));
+    }
+    inline BufferCreateFlags operator & (BufferCreateFlags a, BufferCreateFlags b) {
+        return static_cast<BufferCreateFlags>(std::to_underlying(a) & std::to_underlying(b));
+    }
+
+    struct BufferInfo {
+        BufferUsageFlags usage = BufferUsageFlags::eNone;
+        MemoryPropertyFlags memoryFlags = MemoryPropertyFlags::eDeviceLocal;
+        MemoryExtendedFlags memoryExtFlags = MemoryExtendedFlags::eNone;
+        BufferCreateFlags flags = BufferCreateFlags::eNone;
+        SharingMode sharing = SharingMode::eExclusive;
         std::vector<uint32_t> queueFamilyIndices = {};
     };
 

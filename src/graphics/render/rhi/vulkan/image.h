@@ -7,6 +7,7 @@
 #include <vulkan/vulkan.h>
 #include <cstdint>
 #include <unordered_map>
+#include <span>
 #include <utility>
 #include <vector>
 
@@ -75,7 +76,7 @@ public:
                                uint32_t baseLevel, uint32_t levelsCount, 
                                rhi::ImageAspectFlags aspectFlags);
 
-    std::vector<ImageMemoryBarrierInfo> changeLayout(VkImageLayout dstLayout, 
+    std::vector<ImageMemoryBarrierInfo> transition(VkImageLayout dstLayout, 
                         VkPipelineStageFlags srcStage, VkPipelineStageFlags dstStage, 
                         VkAccessFlags srcAccessFlags, VkAccessFlags dstAccessFlags,
                         uint32_t queueFamily, uint8_t baseLayer, uint8_t layersCount, 
@@ -84,7 +85,10 @@ public:
     void assignLayout(VkImageLayout dstLayout, uint8_t baseLayer, uint8_t layersCount, 
                     uint8_t baseLevel, uint8_t levelsCount) noexcept;
 
+    const rhi::ImageInfo & getInfo() const noexcept { return _info; }
     rhi::Extent3D getExtent() const noexcept { return _info.extent; }
+
+    std::span<const ImageSubState> getSubStates() const noexcept { return _imageSubStates; }
 
 private:
     Device & _device;

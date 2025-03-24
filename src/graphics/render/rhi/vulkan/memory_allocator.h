@@ -48,7 +48,7 @@ public:
     void unmapMemory(const MemoryAllocation & allocation);
 
     VkResult flushMemory(const MemoryAllocation & allocation, VkDeviceSize offset = 0u, VkDeviceSize size = VK_WHOLE_SIZE);
-    VkResult InvalidateMemory(const MemoryAllocation & allocation, VkDeviceSize offset = 0u, VkDeviceSize size = VK_WHOLE_SIZE);
+    VkResult invalidateMemory(const MemoryAllocation & allocation, VkDeviceSize offset = 0u, VkDeviceSize size = VK_WHOLE_SIZE);
 
 private:
     VmaAllocator _allocator = VK_NULL_HANDLE;

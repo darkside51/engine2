@@ -1,6 +1,9 @@
 #pragma once
 
+#include "graphics/render/rhi/common/command_buffer.h"
 #include "graphics/render/rhi/common/types.h"
+#include "buffer.h"
+#include "image.h"
 
 #include <vulkan/vulkan.h>
 
@@ -40,6 +43,8 @@ namespace engine::vulkan {
         inline const VkCommandBuffer & operator ()() const noexcept { return _commandBuffer; }
         inline explicit operator bool() const noexcept { return _commandBuffer != VK_NULL_HANDLE; }
 
+        const rhi::CommandBufferState & getState() const noexcept { return _state; }
+
         rhi::Result begin(const CommandBufferInheritanceInfo * inheritanceInfo = nullptr) const noexcept;
 
         inline rhi::Result end() const noexcept {
@@ -64,6 +69,9 @@ namespace engine::vulkan {
         void setViewport(float x, float y, float w, float h, float minDepth, float maxDepth) noexcept;
         void setScissorRect(const rhi::Rect2D & area) noexcept;
 
+        void copyBuffer2Buffer(const Buffer & src, const Buffer & dst, std::span<VkBufferCopy> copyInfo) const noexcept;
+        void copyBufferToImage(const Buffer & src, const Image & dst, std::span<VkBufferImageCopy> copyInfo) const noexcept;
+
         static SubmitSyncInfo createSubmitSyncInfo(
             std::span<const VkPipelineStageFlags> waitStages,
             std::span<const VkSemaphore> waitSemaphores,
@@ -79,6 +87,7 @@ namespace engine::vulkan {
         }
 
     private:
+        rhi::CommandBufferState _state{};
         CommandPool & _pool;
         rhi::CommandBufferLevel _level{};
         VkCommandBuffer _commandBuffer = VK_NULL_HANDLE;

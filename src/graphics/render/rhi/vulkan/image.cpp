@@ -125,7 +125,7 @@ void Image::assignLayout(VkImageLayout dstLayout, uint8_t baseLayer, uint8_t lay
     }
 }
 
-std::vector<ImageMemoryBarrierInfo> Image::changeLayout(VkImageLayout dstLayout, 
+std::vector<ImageMemoryBarrierInfo> Image::transition(VkImageLayout dstLayout, 
                         VkPipelineStageFlags srcStage,
                         VkPipelineStageFlags dstStage, 
                         VkAccessFlags srcAccessFlags, VkAccessFlags dstAccessFlags,
