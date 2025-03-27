@@ -32,6 +32,7 @@
 #include "graphics/render/rhi/vulkan/command_buffer.h"
 #include "graphics/render/rhi/vulkan/queue.h"
 #include "graphics/render/rhi/vulkan/utils.h"
+#include "graphics/render/rhi/vulkan/descriptor_pool_manager.h"
 
 engine::rhi::RenderPassDescription createRenderPassDescription(engine::rhi::Format colorFormat, engine::rhi::Format depthFormat) {
     std::vector<engine::rhi::SubpassDependency> dependencies(2u);
@@ -121,6 +122,17 @@ void createBuffers(auto & device) {
     auto name = buffer.getName();
     buffer.setName("buffer0");
     name = buffer.getName();
+
+    engine::vulkan::DescriptorPoolMask m(shaders::ResourceType::eSampler, shaders::ResourceType::eSampler, shaders::ResourceType::eUniform_Buffer, shaders::ResourceType::eStorage_Buffer);
+    engine::vulkan::DescriptorPoolMask m2(shaders::ResourceType::eSampler, shaders::ResourceType::eUniform_Buffer);
+    m2.addResources(shaders::ResourceType::eStorage_Buffer);
+    m2.removeResources(shaders::ResourceType::eStorage_Buffer, shaders::ResourceType::eSampler);
+    auto r0 = m2[shaders::ResourceType::eUniform_Buffer];
+    auto r1 = m2[shaders::ResourceType::eSampler];
+    auto r2 = m2.compatibleWith(m);
+    auto r3 = m.compatibleWith(m2);
+    // engine::vulkan::DescriptorPoolMask m(std::array{shaders::ResourceType::eSampler, shaders::ResourceType::eSampler, shaders::ResourceType::eUniform_Buffer});
+    // engine::vulkan::DescriptorPoolMask m2(std::array{shaders::ResourceType::eSampler, shaders::ResourceType::eUniform_Buffer});
     int a = 0;
 
 }

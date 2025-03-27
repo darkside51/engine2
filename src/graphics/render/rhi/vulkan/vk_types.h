@@ -1024,6 +1024,24 @@ inline VkFenceCreateFlags convert2vk(rhi::FenceCreateFlags flags) noexcept {
     }
 }
 
+inline VkDescriptorType convert2vk(rhi::shaders::DescriptorType type) noexcept {
+    using namespace rhi::shaders;
+    switch(type) {
+        case DescriptorType::eSampler: return VkDescriptorType::VK_DESCRIPTOR_TYPE_SAMPLER;
+        case DescriptorType::eCombined_Image_Sampler: return VkDescriptorType::VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER; 
+        case DescriptorType::eSampled_Image: return VkDescriptorType::VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE; 
+        case DescriptorType::eStorage_Image: return VkDescriptorType::VK_DESCRIPTOR_TYPE_STORAGE_IMAGE; 
+        case DescriptorType::eUniform_Texel_Buffer: return VkDescriptorType::VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER; 
+        case DescriptorType::eStorage_Texel_Buffer: return VkDescriptorType::VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER; 
+        case DescriptorType::eUniform_Buffer: return VkDescriptorType::VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER; 
+        case DescriptorType::eStorage_Buffer: return VkDescriptorType::VK_DESCRIPTOR_TYPE_STORAGE_BUFFER; 
+        case DescriptorType::eUniform_Buffer_Dynamic: return VkDescriptorType::VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC; 
+        case DescriptorType::eStorage_Buffer_Dynamic: return VkDescriptorType::VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC; 
+        case DescriptorType::eInput_Attachment: return VkDescriptorType::VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT; 
+        case DescriptorType::eInline_Uniform_Block: return VkDescriptorType::VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK;
+        case DescriptorType::eAcceleretion_Structure: return VkDescriptorType::VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR; 
+    }
+}
 
 }
 

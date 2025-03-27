@@ -790,7 +790,7 @@ namespace engine::rhi {
         eOne_Minus_Dst_Color = 5u,
         eSrc_Alpha = 6u,
         eOne_Minus_Src_Alpha = 7u,
-        eDst_Alpha= 8u,
+        eDst_Alpha = 8u,
         eOne_Minus_Dst_Alpha = 9u,
         eConst_Color = 10u,
         eOne_Minus_Const_Color = 11u,
@@ -802,4 +802,27 @@ namespace engine::rhi {
         eSrc1_Alpha = 17u,
         eOne_Minus_Src1_Alpha = 18u,
     };
+
+    ///// shader types
+    namespace shaders {
+        enum class DescriptorType : uint16_t {
+            eSampler = 0u,
+            eCombined_Image_Sampler = 1u,
+            eSampled_Image = 2u,
+            eStorage_Image = 3u,
+            eUniform_Texel_Buffer = 4u,
+            eStorage_Texel_Buffer = 5u,
+            eUniform_Buffer = 6u,
+            eStorage_Buffer = 7u,
+            eUniform_Buffer_Dynamic = 8u,
+            eStorage_Buffer_Dynamic = 9u,
+            eInput_Attachment = 10u,
+            eInline_Uniform_Block = 11u,
+            eAcceleretion_Structure = 12u,
+            eCount = 13u
+        };
+
+        using ResourceType = DescriptorType;
+    }
+    
 }
