@@ -897,12 +897,11 @@ namespace engine::rhi {
         struct BindingSetLayout {
             inline static constexpr uint32_t kMaxBindingsInSetOnStack = 16u; 
             BindingSetLayout(dynamic_array<BindingLayout, kMaxBindingsInSetOnStack> && l) : layouts(std::move(l)) {
-                layouts.sort([](const auto & l0, const auto & l1) {
-                    return l0.binding < l1.binding;
-                });
+                auto view = layouts.view();
+                std::sort(view.begin(), view.end(), [](const auto & l0, const auto & l1){ return l0.binding < l1.binding; });
 
-                for (size_t i = 0; i < layouts.size(); ++i) {
-                    hash::hash_combo(hashValue, layouts[i].hash());
+                for (const auto & layout : view) {
+                    hash::hash_combo(hashValue, layout.hash());
                 }
                 hash::hash_combo(hashValue, std::to_underlying(flags));
             }

@@ -12,20 +12,24 @@ namespace engine::rhi {
     inline size_t SubpassDescription::hash() const noexcept {
         size_t hash = hash::hash_combine(pNext.second, viewMask, attachmentRefHash(depthStencilAttachment));
 
-        for (size_t i = 0u; i < inputAttachments.capacity; ++i) {
-            hash::hash_combine(hash, attachmentRefHash(inputAttachments[i]));
+        const auto attachmentsView = inputAttachments.view();
+        for (const auto & attachment : attachmentsView) {
+            hash::hash_combine(hash, attachmentRefHash(attachment));
         }
 
-        for (size_t i = 0u; i < colorAttachments.capacity; ++i) {
-            hash::hash_combine(hash, attachmentRefHash(colorAttachments[i]));
+        const auto colorAttachmentsView = colorAttachments.view();
+        for (const auto & attachment : colorAttachmentsView) {
+            hash::hash_combine(hash, attachmentRefHash(attachment));
         }
 
-        for (size_t i = 0u; i < resolveAttachments.capacity; ++i) {
-            hash::hash_combine(hash, attachmentRefHash(resolveAttachments[i]));
+        const auto resolveAttachmentsView = resolveAttachments.view();
+        for (const auto & attachment : resolveAttachmentsView) {
+            hash::hash_combine(hash, attachmentRefHash(attachment));
         }
         
-        for (size_t i = 0u; i < preserveAttachments.capacity; ++i) {
-            hash::hash_combine(hash, preserveAttachments[i]);
+        const auto preserveAttachmentsView = preserveAttachments.view();
+        for (auto attachment : preserveAttachmentsView) {
+            hash::hash_combine(hash, attachment);
         }
 
         return hash;

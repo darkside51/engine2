@@ -43,22 +43,6 @@ struct dynamic_array {
         capacity = size;
     }
 
-    inline const T & operator[](size_t i) const noexcept { 
-        if (auto * arr = std::get_if<std::array<T, Max>>(&value)) { [[likely]]
-            return (*arr)[i];
-        } else {
-            return std::get<std::vector<T>>(value)[i];
-        }
-    }
-
-    inline T & operator[](size_t i) noexcept { 
-        if (auto * arr = std::get_if<std::array<T, Max>>(&value)) { [[likely]]
-            return (*arr)[i];
-        } else {
-            return std::get<std::vector<T>>(value)[i];
-        }
-    }
-
     template <size_t Max2>
     inline bool operator == (const dynamic_array<T, Max2> & other) const noexcept {
         if constexpr (Max != Max2) { return false; }
@@ -78,13 +62,19 @@ struct dynamic_array {
         }
     }
 
-    template <typename F>
-    void sort(F && f) noexcept {
+    std::span<T> view() noexcept {
         if (auto * arr = std::get_if<std::array<T, Max>>(&value)) { [[likely]]
-            std::sort(arr->begin(), arr->end(), std::forward<F>(f));
+            return {arr->begin(), arr->begin() + capacity};
         } else {
-            auto & v = std::get<std::vector<T>>(value);
-            std::sort(v.begin(), v.end(), std::forward<F>(f));
+            return std::get<std::vector<T>>(value);
+        }
+    }
+
+    std::span<const T> view() const noexcept {
+        if (auto * arr = std::get_if<std::array<T, Max>>(&value)) { [[likely]]
+            return {arr->begin(), arr->begin() + capacity};
+        } else {
+            return std::get<std::vector<T>>(value);
         }
     }
 

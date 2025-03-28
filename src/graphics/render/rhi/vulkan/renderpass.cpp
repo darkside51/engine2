@@ -111,18 +111,30 @@ namespace engine::vulkan {
             );
 
             auto & inputAttachmentReferences = inputAttachmentReferencesVec.emplace_back(subpass.inputAttachments.capacity);
-            for (size_t i = 0u; i < subpass.inputAttachments.capacity; ++i) {
-                inputAttachmentReferences[i] = convert2vk(subpass.inputAttachments[i]); 
+            const auto inputAttachmentReferencesView = inputAttachmentReferences.view();
+            const auto attachmentsView = subpass.inputAttachments.view();
+            size_t i = 0u;
+            for (const auto & attachment : attachmentsView) {
+                inputAttachmentReferencesView[i] = convert2vk(attachment);
+                ++i; 
             }
 
             auto & colorAttachmentReferences = colorAttachmentReferencesVec.emplace_back(subpass.colorAttachments.capacity);
-            for (size_t i = 0u; i < subpass.colorAttachments.capacity; ++i) {
-                colorAttachmentReferences[i] = convert2vk(subpass.colorAttachments[i]); 
+            const auto colorAttachmentReferencesView = colorAttachmentReferences.view();
+            const auto colorAttachmentsView = subpass.colorAttachments.view();
+            i = 0u;
+            for (const auto & attachment : colorAttachmentsView) {
+                colorAttachmentReferencesView[i] = convert2vk(attachment);
+                ++i;
             }
 
             auto & resolveAttachmentReferences = resolveAttachmentReferencesVec.emplace_back(subpass.resolveAttachments.capacity);
-            for (size_t i = 0u; i < subpass.resolveAttachments.capacity; ++i) {
-                resolveAttachmentReferences[i] = convert2vk(subpass.resolveAttachments[i]); 
+            const auto resolveAttachmentReferencesView = resolveAttachmentReferences.view();
+            const auto resolveAttachmentsView = subpass.resolveAttachments.view();
+            i = 0u;
+            for (const auto & attachment : resolveAttachmentsView) {
+                resolveAttachmentReferencesView[i] = convert2vk(attachment); 
+                ++i;
             }
 
             VkAttachmentReference * depthStencilRef = nullptr;

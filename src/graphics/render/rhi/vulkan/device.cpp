@@ -179,32 +179,35 @@ namespace engine::vulkan {
         using array_type = dynamic_array<VkDescriptorSetLayoutBinding, rhi::shaders::BindingSetLayout::kMaxBindingsInSetOnStack>;
         array_type bindings{layout.layouts.size()};
 
-            for (size_t i = 0; i < layout.layouts.size(); ++i) {
-                const auto & l = layout.layouts[i];
-                bindings[i] = VkDescriptorSetLayoutBinding {
-                    .binding = l.binding,
-                    .descriptorType = utils::convert2vk(l.type),
-                    .descriptorCount = l.count,
-                    .stageFlags = utils::convert2vk(l.shaderStages),
-                    .pImmutableSamplers = nullptr
-                };
-            }
+        const auto bindingsView = bindings.view();
+        const auto layoutsView = layout.layouts.view();
 
-            VkDescriptorSetLayoutCreateInfo info {
-                .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
-                .pNext = nullptr,
-                .flags = utils::convert2vk(layout.flags),
-                .bindingCount = static_cast<uint32_t>(layout.layouts.size()),
-                .pBindings = bindings.data()
+        for (size_t i = 0; i < layoutsView.size(); ++i) {
+            const auto & l = layoutsView[i];
+            bindingsView[i] = VkDescriptorSetLayoutBinding {
+                .binding = l.binding,
+                .descriptorType = utils::convert2vk(l.type),
+                .descriptorCount = l.count,
+                .stageFlags = utils::convert2vk(l.shaderStages),
+                .pImmutableSamplers = nullptr
             };
+        }
 
-            VkDescriptorSetLayout descriptorSetLayout;
-            if (vkCreateDescriptorSetLayout(_device, &info, _gpu.getInstance().getAllocationCallbacks(),
-                &descriptorSetLayout) != VK_SUCCESS) {
-                return VK_NULL_HANDLE;
-            }
+        VkDescriptorSetLayoutCreateInfo info {
+            .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+            .pNext = nullptr,
+            .flags = utils::convert2vk(layout.flags),
+            .bindingCount = static_cast<uint32_t>(layout.layouts.size()),
+            .pBindings = bindings.data()
+        };
 
-            return descriptorSetLayout;
+        VkDescriptorSetLayout descriptorSetLayout;
+        if (vkCreateDescriptorSetLayout(_device, &info, _gpu.getInstance().getAllocationCallbacks(),
+            &descriptorSetLayout) != VK_SUCCESS) {
+            return VK_NULL_HANDLE;
+        }
+
+        return descriptorSetLayout;
     }
 
     void Device::destroyDescriptorSetLayout(VkDescriptorSetLayout layout) const noexcept {
