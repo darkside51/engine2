@@ -1,5 +1,9 @@
 #pragma once
 
+#include "common/hash.h"
+#include "utils/dynamic_array.h"
+
+#include <algorithm>
 #include <array>
 #include <cstdint>
 #include <utility>
@@ -803,7 +807,6 @@ namespace engine::rhi {
         eOne_Minus_Src1_Alpha = 18u,
     };
 
-    ///// shader types
     namespace shaders {
         enum class DescriptorType : uint16_t {
             eSampler = 0u,
@@ -823,6 +826,96 @@ namespace engine::rhi {
         };
 
         using ResourceType = DescriptorType;
+
+        enum class DescriptorPoolFlags : uint8_t {
+            eNone = 0u, 
+            eFree_Descriptor_Set = 1u,
+            eUpdate_After_Bind = 2u
+        };
+        inline DescriptorPoolFlags operator | (DescriptorPoolFlags a, DescriptorPoolFlags b) {
+            return static_cast<DescriptorPoolFlags>(std::to_underlying(a) | std::to_underlying(b));
+        }
+        inline DescriptorPoolFlags operator & (DescriptorPoolFlags a, DescriptorPoolFlags b) {
+            return static_cast<DescriptorPoolFlags>(std::to_underlying(a) & std::to_underlying(b));
+        }
+
+        enum class DescriptorSetLayoutFlags : uint8_t {
+            eNone = 0u,
+            eUpdate_After_Bind_Pool = 1u,
+            ePush_Descriptor = 2u,
+            eDescriptor_Buffer = 3u, // _descriptor_buffer
+            eEmbedded_Immutable_Samplers = 4u, // _descriptor_buffer
+        };
+        inline DescriptorSetLayoutFlags operator | (DescriptorSetLayoutFlags a, DescriptorSetLayoutFlags b) {
+            return static_cast<DescriptorSetLayoutFlags>(std::to_underlying(a) | std::to_underlying(b));
+        }
+        inline DescriptorSetLayoutFlags operator & (DescriptorSetLayoutFlags a, DescriptorSetLayoutFlags b) {
+            return static_cast<DescriptorSetLayoutFlags>(std::to_underlying(a) & std::to_underlying(b));
+        }
+
+        enum class Stages : uint16_t {
+            eNone = 0u,
+            eVertex = 1u,
+            eTesselation_Control = 2u,
+            eTesselation_Evaluation = 4u,
+            eGeometry = 8u,
+            eFragment = 16u,
+            eCompute = 32u,
+            eRaygen = 64u,
+            eAny_Hit = 128u,        // ray_tracing_pipeline
+            eClosest_Hit = 256u,    // ray_tracing_pipeline
+            eMiss = 512u,           // ray_tracing_pipeline
+            eIntersection = 1024u,  // ray_tracing_pipeline
+            eCallable = 2048u,      // ray_tracing_pipeline
+            eTask = 4096u,          // mesh_shader
+            eMesh = 8192u,          // mesh_shader
+        };
+        inline Stages operator | (Stages a, Stages b) {
+            return static_cast<Stages>(std::to_underlying(a) | std::to_underlying(b));
+        }
+        inline Stages operator & (Stages a, Stages b) {
+            return static_cast<Stages>(std::to_underlying(a) & std::to_underlying(b));
+        }
+
+        struct BindingLayout {
+            uint16_t binding = 0xff'ffu;
+            DescriptorType type = DescriptorType::eCount;
+            Stages shaderStages = Stages::eNone;
+            uint16_t count = 1u;
+            
+            inline uint64_t hash64() const noexcept {
+                return static_cast<uint64_t>(shaderStages) << 48u |
+                       static_cast<uint64_t>(count) << 32u |
+                       static_cast<uint64_t>(type) << 16u |
+                       static_cast<uint64_t>(binding) << 0u;
+            }
+
+            inline size_t hash() const noexcept { return static_cast<size_t>(hash64()); }
+            inline bool operator == (const BindingLayout & other) const noexcept = default;
+        };
+
+        struct BindingSetLayout {
+            inline static constexpr uint32_t kMaxBindingsInSetOnStack = 16u; 
+            BindingSetLayout(dynamic_array<BindingLayout, kMaxBindingsInSetOnStack> && l) : layouts(std::move(l)) {
+                layouts.sort([](const auto & l0, const auto & l1) {
+                    return l0.binding < l1.binding;
+                });
+
+                for (size_t i = 0; i < layouts.size(); ++i) {
+                    hash::hash_combo(hashValue, layouts[i].hash());
+                }
+                hash::hash_combo(hashValue, std::to_underlying(flags));
+            }
+
+            inline size_t hash() const noexcept {
+                return hashValue;
+            }
+            inline bool operator == (const BindingSetLayout & other) const noexcept = default;
+
+            dynamic_array<BindingLayout, kMaxBindingsInSetOnStack> layouts;
+            DescriptorSetLayoutFlags flags = DescriptorSetLayoutFlags::eNone;
+            size_t hashValue = 0u;
+        };
     }
     
 }

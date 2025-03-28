@@ -15,7 +15,7 @@ namespace engine::vulkan {
             .size = size,
             .usage = utils::convert2vk(info.usage),
             .sharingMode = utils::convert2vk(info.sharing),
-            .queueFamilyIndexCount = info.queueFamilyIndices.size(),
+            .queueFamilyIndexCount = static_cast<uint32_t>(info.queueFamilyIndices.size()),
             .pQueueFamilyIndices = info.queueFamilyIndices.data()
         };
 

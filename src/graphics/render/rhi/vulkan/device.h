@@ -61,6 +61,9 @@ public:
     void destroyFence(const Fence & fence) const noexcept;
     void destroySemaphore(const Semaphore & semaphore) const noexcept;
 
+    VkDescriptorSetLayout createDescriptorSetLayout(const rhi::shaders::BindingSetLayout & layout) const noexcept;
+    void destroyDescriptorSetLayout(VkDescriptorSetLayout layout) const noexcept;
+
 private:
     void createAllocator() noexcept;
     void destroyAllocator() noexcept;

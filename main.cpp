@@ -133,8 +133,45 @@ void createBuffers(auto & device) {
     auto r3 = m.compatibleWith(m2);
     // engine::vulkan::DescriptorPoolMask m(std::array{shaders::ResourceType::eSampler, shaders::ResourceType::eSampler, shaders::ResourceType::eUniform_Buffer});
     // engine::vulkan::DescriptorPoolMask m2(std::array{shaders::ResourceType::eSampler, shaders::ResourceType::eUniform_Buffer});
-    int a = 0;
+    
+    shaders::BindingSetLayout setLayout {
+        {
+            {
+                .binding = 0u,
+                .type = shaders::DescriptorType::eUniform_Buffer,
+                .shaderStages = shaders::Stages::eVertex,
+                .count = 1u
+            },
+            {
+                .binding = 1u,
+                .type = shaders::DescriptorType::eStorage_Buffer,
+                .shaderStages = shaders::Stages::eVertex,
+                .count = 1u
+            }
+        }
+    };
+    
+    shaders::BindingSetLayout setLayout2 {
+        {
+            {
+                .binding = 1u,
+                .type = shaders::DescriptorType::eUniform_Buffer,
+                .shaderStages = shaders::Stages::eVertex,
+                .count = 1u
+            },
+            {
+                .binding = 0u,
+                .type = shaders::DescriptorType::eStorage_Buffer,
+                .shaderStages = shaders::Stages::eVertex,
+                .count = 1u
+            }
+        }
+    };
 
+    auto setLayoutImpl = device.createDescriptorSetLayout(setLayout);
+    device.destroyDescriptorSetLayout(setLayoutImpl);
+
+    int a = 0;
 }
 
 int main() {

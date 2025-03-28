@@ -78,6 +78,20 @@ struct dynamic_array {
         }
     }
 
+    template <typename F>
+    void sort(F && f) noexcept {
+        if (auto * arr = std::get_if<std::array<T, Max>>(&value)) { [[likely]]
+            std::sort(arr->begin(), arr->end(), std::forward<F>(f));
+        } else {
+            auto & v = std::get<std::vector<T>>(value);
+            std::sort(v.begin(), v.end(), std::forward<F>(f));
+        }
+    }
+
+    inline uint32_t size() const noexcept {
+        return capacity;
+    } 
+
     inline bool empty() const noexcept {
         return capacity == 0u;
     }

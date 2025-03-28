@@ -3,6 +3,7 @@
 #include "physical_device.h"
 #include "vk_types.h"
 
+#include "utils/dynamic_array.h"
 #include "log/log.h"
 
 #include <algorithm>
@@ -171,6 +172,43 @@ namespace engine::vulkan {
 
     void Device::destroySemaphore(const Semaphore & semaphore) const noexcept {
         vkDestroySemaphore(_device, semaphore, _gpu.getInstance().getAllocationCallbacks());
+    }
+
+    VkDescriptorSetLayout Device::createDescriptorSetLayout(
+        const rhi::shaders::BindingSetLayout & layout) const noexcept {
+        using array_type = dynamic_array<VkDescriptorSetLayoutBinding, rhi::shaders::BindingSetLayout::kMaxBindingsInSetOnStack>;
+        array_type bindings{layout.layouts.size()};
+
+            for (size_t i = 0; i < layout.layouts.size(); ++i) {
+                const auto & l = layout.layouts[i];
+                bindings[i] = VkDescriptorSetLayoutBinding {
+                    .binding = l.binding,
+                    .descriptorType = utils::convert2vk(l.type),
+                    .descriptorCount = l.count,
+                    .stageFlags = utils::convert2vk(l.shaderStages),
+                    .pImmutableSamplers = nullptr
+                };
+            }
+
+            VkDescriptorSetLayoutCreateInfo info {
+                .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+                .pNext = nullptr,
+                .flags = utils::convert2vk(layout.flags),
+                .bindingCount = static_cast<uint32_t>(layout.layouts.size()),
+                .pBindings = bindings.data()
+            };
+
+            VkDescriptorSetLayout descriptorSetLayout;
+            if (vkCreateDescriptorSetLayout(_device, &info, _gpu.getInstance().getAllocationCallbacks(),
+                &descriptorSetLayout) != VK_SUCCESS) {
+                return VK_NULL_HANDLE;
+            }
+
+            return descriptorSetLayout;
+    }
+
+    void Device::destroyDescriptorSetLayout(VkDescriptorSetLayout layout) const noexcept {
+        vkDestroyDescriptorSetLayout(_device, layout, _gpu.getInstance().getAllocationCallbacks());
     }
 
 }

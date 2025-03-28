@@ -1043,6 +1043,103 @@ inline VkDescriptorType convert2vk(rhi::shaders::DescriptorType type) noexcept {
     }
 }
 
+inline VkDescriptorPoolCreateFlags convert2vk(rhi::shaders::DescriptorPoolFlags flags) noexcept {
+    VkDescriptorPoolCreateFlags result = static_cast<VkDescriptorPoolCreateFlags>(0);
+
+    if (std::to_underlying(flags & rhi::shaders::DescriptorPoolFlags::eFree_Descriptor_Set)) {
+        result |= VkDescriptorPoolCreateFlagBits::VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
+    }
+
+    if (std::to_underlying(flags & rhi::shaders::DescriptorPoolFlags::eUpdate_After_Bind)) {
+        result |= VkDescriptorPoolCreateFlagBits::VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT;
+    }
+
+    return result;
+}
+
+inline VkDescriptorSetLayoutCreateFlags convert2vk(rhi::shaders::DescriptorSetLayoutFlags flags) noexcept {
+    VkDescriptorSetLayoutCreateFlags result = static_cast<VkDescriptorSetLayoutCreateFlags>(0);
+
+    if (std::to_underlying(flags & rhi::shaders::DescriptorSetLayoutFlags::eUpdate_After_Bind_Pool)) {
+        result |= VkDescriptorSetLayoutCreateFlagBits::VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT;
+    }
+
+    if (std::to_underlying(flags & rhi::shaders::DescriptorSetLayoutFlags::ePush_Descriptor)) {
+        result |= VkDescriptorSetLayoutCreateFlagBits::VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR;
+    }
+
+    if (std::to_underlying(flags & rhi::shaders::DescriptorSetLayoutFlags::eDescriptor_Buffer)) {
+        result |= VkDescriptorSetLayoutCreateFlagBits::VK_DESCRIPTOR_SET_LAYOUT_CREATE_DESCRIPTOR_BUFFER_BIT_EXT;
+    }
+
+    if (std::to_underlying(flags & rhi::shaders::DescriptorSetLayoutFlags::eEmbedded_Immutable_Samplers)) {
+        result |= VkDescriptorSetLayoutCreateFlagBits::VK_DESCRIPTOR_SET_LAYOUT_CREATE_EMBEDDED_IMMUTABLE_SAMPLERS_BIT_EXT;
+    }
+
+    return result;
+}
+
+inline VkShaderStageFlags convert2vk(rhi::shaders::Stages stages) noexcept {
+    VkShaderStageFlags result = static_cast<VkShaderStageFlags>(0);
+
+    if (std::to_underlying(stages & rhi::shaders::Stages::eVertex)) {
+        result |= VkShaderStageFlagBits::VK_SHADER_STAGE_VERTEX_BIT;
+    }
+
+    if (std::to_underlying(stages & rhi::shaders::Stages::eTesselation_Control)) {
+        result |= VkShaderStageFlagBits::VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT;
+    }
+
+    if (std::to_underlying(stages & rhi::shaders::Stages::eTesselation_Evaluation)) {
+        result |= VkShaderStageFlagBits::VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT;
+    }
+
+    if (std::to_underlying(stages & rhi::shaders::Stages::eGeometry)) {
+        result |= VkShaderStageFlagBits::VK_SHADER_STAGE_GEOMETRY_BIT;
+    }
+
+    if (std::to_underlying(stages & rhi::shaders::Stages::eFragment)) {
+        result |= VkShaderStageFlagBits::VK_SHADER_STAGE_FRAGMENT_BIT;
+    }
+
+    if (std::to_underlying(stages & rhi::shaders::Stages::eCompute)) {
+        result |= VkShaderStageFlagBits::VK_SHADER_STAGE_COMPUTE_BIT;
+    }
+
+    if (std::to_underlying(stages & rhi::shaders::Stages::eRaygen)) {
+        result |= VkShaderStageFlagBits::VK_SHADER_STAGE_RAYGEN_BIT_KHR;
+    }
+
+    if (std::to_underlying(stages & rhi::shaders::Stages::eAny_Hit)) {
+        result |= VkShaderStageFlagBits::VK_SHADER_STAGE_ANY_HIT_BIT_KHR;
+    }
+
+    if (std::to_underlying(stages & rhi::shaders::Stages::eClosest_Hit)) {
+        result |= VkShaderStageFlagBits::VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
+    }
+
+    if (std::to_underlying(stages & rhi::shaders::Stages::eMiss)) {
+        result |= VkShaderStageFlagBits::VK_SHADER_STAGE_MISS_BIT_KHR;
+    }
+
+    if (std::to_underlying(stages & rhi::shaders::Stages::eIntersection)) {
+        result |= VkShaderStageFlagBits::VK_SHADER_STAGE_INTERSECTION_BIT_KHR;
+    }
+
+    if (std::to_underlying(stages & rhi::shaders::Stages::eCallable)) {
+        result |= VkShaderStageFlagBits::VK_SHADER_STAGE_CALLABLE_BIT_KHR;
+    }
+
+    if (std::to_underlying(stages & rhi::shaders::Stages::eTask)) {
+        result |= VkShaderStageFlagBits::VK_SHADER_STAGE_TASK_BIT_EXT;
+    }
+
+    if (std::to_underlying(stages & rhi::shaders::Stages::eMesh)) {
+        result |= VkShaderStageFlagBits::VK_SHADER_STAGE_MESH_BIT_EXT;
+    }
+    return result;
+}
+
 }
 
 }
