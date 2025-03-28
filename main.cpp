@@ -161,15 +161,16 @@ void createBuffers(auto & device) {
             },
             {
                 .binding = 0u,
-                .type = shaders::DescriptorType::eStorage_Buffer,
+                .type = shaders::DescriptorType::eUniform_Buffer,
                 .shaderStages = shaders::Stages::eVertex,
                 .count = 1u
             }
         }
     };
 
-    auto setLayoutImpl = device.createDescriptorSetLayout(setLayout);
-    device.destroyDescriptorSetLayout(setLayoutImpl);
+    auto setLayoutImpl = device.getDescriptorSetLayoutManager().getSetlayout(setLayout);
+    auto setLayoutImpl2 = device.getDescriptorSetLayoutManager().getSetlayout(setLayout2);
+    device.getDescriptorSetLayoutManager().eraseSetLayout(setLayout);
 
     int a = 0;
 }

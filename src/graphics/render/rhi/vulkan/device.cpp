@@ -14,7 +14,8 @@ namespace engine::vulkan {
     Device::Device(const PhisicalDevice & gpu, const rhi::DeviceCreateInfo & info) : 
         _gpu(gpu), 
         _commandPoolManager(*this, info.commandPoolThreadsCount),
-        _renderpassManager(*this) {
+        _renderpassManager(*this),
+        _descriptorSetLayoutManager(*this) {
 
         std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
         queueCreateInfos.reserve(info.queueFamilies.size());
@@ -80,6 +81,7 @@ namespace engine::vulkan {
     Device::~Device() {
         _renderpassManager.destroy();
         _commandPoolManager.destroy();
+        _descriptorSetLayoutManager.destroy();
         destroyAllocator();
         
         if (_device) {

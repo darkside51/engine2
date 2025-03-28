@@ -4,6 +4,7 @@
 #include "memory_allocator.h"
 #include "command_pool.h"
 #include "renderpass.h"
+#include "descriptor_set_layout_manager.h"
 
 #include <vulkan/vulkan.h>
 
@@ -64,6 +65,10 @@ public:
     VkDescriptorSetLayout createDescriptorSetLayout(const rhi::shaders::BindingSetLayout & layout) const noexcept;
     void destroyDescriptorSetLayout(VkDescriptorSetLayout layout) const noexcept;
 
+    DescriptorSetLayoutManager & getDescriptorSetLayoutManager() noexcept {
+        return _descriptorSetLayoutManager;
+    }
+
 private:
     void createAllocator() noexcept;
     void destroyAllocator() noexcept;
@@ -75,6 +80,7 @@ private:
     GPUMemoryAllocator _memoryAllocator;
     CommandPoolManager _commandPoolManager;
     RenderPassManager _renderpassManager;
+    DescriptorSetLayoutManager _descriptorSetLayoutManager;
 };
 
 }

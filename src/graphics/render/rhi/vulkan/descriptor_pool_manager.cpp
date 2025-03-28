@@ -41,7 +41,7 @@ namespace engine::vulkan {
         };
 
         const auto * allocationCallbacks = _device.gpu().getInstance().getAllocationCallbacks();
-        if (!vkCreateDescriptorPool(_device(), &poolInfo, allocationCallbacks, &_pool) == VK_SUCCESS) {
+        if (vkCreateDescriptorPool(_device(), &poolInfo, allocationCallbacks, &_pool) != VK_SUCCESS) {
             for (auto & r : _resources) {
                 r = {0u, 0u};
             }
