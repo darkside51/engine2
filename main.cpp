@@ -35,34 +35,6 @@
 #include "graphics/render/rhi/vulkan/descriptor_pool_manager.h"
 
 engine::rhi::RenderPassDescription createRenderPassDescription(engine::rhi::Format colorFormat, engine::rhi::Format depthFormat) {
-    std::vector<engine::rhi::SubpassDependency> dependencies(2u);
-    dependencies[0].srcSubpass = engine::rhi::kSubpassExternal;
-    dependencies[0].dstSubpass = 0u;
-    dependencies[1].srcSubpass = 0u;
-    dependencies[1].dstSubpass = engine::rhi::kSubpassExternal;
-
-    dependencies[0].stages = {
-        .src = {
-            .stage = engine::rhi::PipelineStageFlags::eColor_Attachment_Output,
-            .accessMask = engine::rhi::AccessFlags::eNone // semaphore wait already does memory dependency for us
-        },
-        .dst = {
-            .stage = engine::rhi::PipelineStageFlags::eEarly_Fragment_Tests | engine::rhi::PipelineStageFlags::eColor_Attachment_Output, // (VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT - https://vkguide.dev/docs/chapter-4/double_buffering/) is a loadOp stage for color attachments
-            .accessMask = engine::rhi::AccessFlags::eColor_Attachment_Write // is a loadOp CLEAR access mask for color attachments
-        }
-    };
-
-    dependencies[1].stages = {
-        .src = {
-            .stage = engine::rhi::PipelineStageFlags::eColor_Attachment_Output,
-            .accessMask = engine::rhi::AccessFlags::eColor_Attachment_Write // semaphore wait already does memory dependency for us
-        },
-        .dst = {
-            .stage = engine::rhi::PipelineStageFlags::eBottom_Of_Pipe, // Do not block any subsequent work
-            .accessMask = engine::rhi::AccessFlags::eNone // is a loadOp CLEAR access mask for color attachments
-        }
-    };
-
     std::vector<engine::rhi::AttachmentDescription> attachments(2u);
     attachments[0].format = colorFormat;
     attachments[0].loadStoreOp = {engine::rhi::AttachmentLoadOp::eClear, engine::rhi::AttachmentStoreOp::eStore};
@@ -76,24 +48,24 @@ engine::rhi::RenderPassDescription createRenderPassDescription(engine::rhi::Form
     attachments[1].initialLayout = engine::rhi::ImageLayout::eDepth_Stencil_Attachment_Optimal;
     attachments[1].finalLayout = engine::rhi::ImageLayout::eDepth_Stencil_Attachment_Optimal;
 
-    engine::rhi::AttachmentReference colorReference;
-    colorReference.attachment = 0u;
-    colorReference.layout = engine::rhi::ImageLayout::eColor_Attachment_Optimal;
-    colorReference.aspectMask = engine::rhi::ImageAspectFlags::eColor;
-
-    engine::rhi::AttachmentReference depthReference;
-    depthReference.attachment = 1u;
-    depthReference.layout = engine::rhi::ImageLayout::eDepth_Stencil_Attachment_Optimal;
-    depthReference.aspectMask = engine::rhi::ImageAspectFlags::eDepthStencil;
-
     std::vector<engine::rhi::SubpassDescription> subpasses{1};
-    subpasses[0].colorAttachments = {colorReference};
-    subpasses[0].depthStencilAttachment = depthReference;
+    subpasses[0].colorAttachments = {{
+        .pNext = {nullptr, 0u},
+        .attachment = 0u,
+        .layout = engine::rhi::ImageLayout::eColor_Attachment_Optimal,
+        .aspectMask = engine::rhi::ImageAspectFlags::eColor
+    }};
+    subpasses[0].depthStencilAttachment = {
+        .pNext = {nullptr, 0u},
+        .attachment = 1u,
+        .layout = engine::rhi::ImageLayout::eDepth_Stencil_Attachment_Optimal,
+        .aspectMask = engine::rhi::ImageAspectFlags::eDepthStencil
+    };
 
     return engine::rhi::RenderPassDescription{
         std::move(attachments), 
         std::move(subpasses), 
-        std::move(dependencies)
+        {} // std::vector<engine::rhi::SubpassDependency>
     };
 }
 
@@ -234,22 +206,27 @@ int main() {
         Api::Swapchain swapchain(device, surface, swapchainCreateInfo);
         swapchain.resize(1024u, 768u, true);
 
-        Api::Image depthImage{device, {
-            .type = engine::rhi::ImageType::eType_2D,
-            .usage = engine::rhi::ImageUsageFlags::eDepth_Stencil_Attachment,
-            .sharing = engine::rhi::SharingMode::eExclusive,
-            .format = depthFormat,
-            .aspectFlags = engine::rhi::ImageAspectFlags::eDepthStencil,
-            .tiling = engine::rhi::ImageTiling::eOptimal,
-            .flags = engine::rhi::ImageCreateFlags::eNone,
-            .memoryFlags = engine::rhi::MemoryPropertyFlags::eDeviceLocal,
-            .memoryExtFlags = engine::rhi::MemoryExtendedFlags::eDedicated,
-            .extent = {1024u, 768u, 1u},
-            .mipLevels = 1u,
-            .arrayLayers = 1u,
-            .samples = 1u,
-            .queueFamilyIndices = {index}
-        }};
+        std::vector<Api::Image> depthImages;
+        depthImages.reserve(swapchain.getImagesCount());
+        for (uint32_t i = 0u; i < swapchain.getImagesCount(); ++i) {
+            depthImages.emplace_back(device, engine::rhi::ImageInfo{
+                                            .type = engine::rhi::ImageType::eType_2D,
+                                            .usage = engine::rhi::ImageUsageFlags::eDepth_Stencil_Attachment,
+                                            .sharing = engine::rhi::SharingMode::eExclusive,
+                                            .format = depthFormat,
+                                            .aspectFlags = engine::rhi::ImageAspectFlags::eDepthStencil,
+                                            .tiling = engine::rhi::ImageTiling::eOptimal,
+                                            .flags = engine::rhi::ImageCreateFlags::eNone,
+                                            .memoryFlags = engine::rhi::MemoryPropertyFlags::eDeviceLocal,
+                                            .memoryExtFlags = engine::rhi::MemoryExtendedFlags::eDedicated,
+                                            .extent = {1024u, 768u, 1u},
+                                            .mipLevels = 1u,
+                                            .arrayLayers = 1u,
+                                            .samples = 1u,
+                                            .queueFamilyIndices = {index}
+                                        }
+                                    );
+        }
 
         auto renderPass = device.getRenderPass(createRenderPassDescription(swapchain.getFormat(), depthFormat));
 
@@ -261,6 +238,7 @@ int main() {
             fbAttachemnts[0].image = &image;
             fbAttachemnts[0].imageSize = {image.getExtent().width, image.getExtent().height};
 
+            auto & depthImage = depthImages[i];
             fbAttachemnts[1].image = &depthImage;
             fbAttachemnts[1].imageSize = {depthImage.getExtent().width, depthImage.getExtent().height};
             fbAttachemnts[1].aspect = engine::rhi::ImageAspectFlags::eDepthStencil;
@@ -312,7 +290,7 @@ int main() {
                 // present
                 auto const presentResult = queue.present(std::array{swapchain()}, std::array{imageIndex}, signalSemaphores);
             }
-        }, 0.25f);
+        }, 0.5f);
 
         w.run();
 
@@ -320,13 +298,15 @@ int main() {
             auto * commandPool = device.acquireCommandPool(engine::rhi::queue_flags::graphics | engine::rhi::queue_flags::present);
 
             /*const*/ auto clearValues = Api::Helper::convert2api(std::array{
-                engine::rhi::ClearValue{0x77'ff'77'ffu},
+                engine::rhi::ClearValue{0xff'77'77'ffu},
                 engine::rhi::ClearValue{1.0f, 255}
             });
 
             for (size_t i = 0; i < swapchain.getImagesCount(); ++i) {
-                if (i > 0u) {
-                    clearValues[0].color = {{0.25f + i * 0.25f, 0.25f, 0.25f, 1.0f}};
+                if (i == 1) {
+                    clearValues[0].color = {{0.7f, 1.0f, 0.7f, 1.0f}};
+                } else if (i == 2) {
+                    clearValues[0].color = {{0.7f, 0.7f, 1.0f, 1.0f}};
                 }
 
                 auto & commandBuffer = cmdBuffers.emplace_back(*commandPool, engine::rhi::CommandBufferLevel::ePrimary);
