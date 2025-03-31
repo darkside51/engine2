@@ -5,6 +5,7 @@
 #include "command_pool.h"
 #include "renderpass.h"
 #include "descriptor_set_layout_manager.h"
+#include "descriptor_pool_manager.h"
 
 #include <vulkan/vulkan.h>
 
@@ -69,6 +70,10 @@ public:
         return _descriptorSetLayoutManager;
     }
 
+    DescriptorPoolManager & getDescriptorPoolManager() noexcept {
+        return _descriptorPoolManager;
+    }
+
 private:
     void createAllocator() noexcept;
     void destroyAllocator() noexcept;
@@ -81,6 +86,7 @@ private:
     CommandPoolManager _commandPoolManager;
     RenderPassManager _renderpassManager;
     DescriptorSetLayoutManager _descriptorSetLayoutManager;
+    DescriptorPoolManager _descriptorPoolManager;
 };
 
 }

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "graphics/render/rhi/common/types.h"
+#include "descriptor_set.h"
 
 #include <vulkan/vulkan.h>
 
@@ -13,36 +14,12 @@
 namespace engine::vulkan {
 
     class Device;
-    class DescriptorPool;
-
-    struct DescriptorSet {
-        DescriptorSet(const DescriptorSet &) = delete;
-        DescriptorSet & operator= (const DescriptorSet &) = delete;
-
-        DescriptorSet(DescriptorSet && other) noexcept : pool(other.pool), set(other.set) {
-            other.pool = nullptr;
-            other.set = VK_NULL_HANDLE;
-        }
-
-        DescriptorSet & operator= (DescriptorSet && other) noexcept {
-            pool = other.pool;
-            set = other.set;
-            other.pool = nullptr;
-            other.set = VK_NULL_HANDLE;
-            return *this;
-        }
-
-        ~DescriptorSet();
-
-        inline VkDescriptorSet operator ()() const noexcept { return set; }
-        inline explicit operator bool() const noexcept { return set != VK_NULL_HANDLE; }
-
-        VkDescriptorSet set = VK_NULL_HANDLE;
-        DescriptorPool * pool = nullptr;
-    };
 
     class DescriptorPoolMask {
     public:
+        DescriptorPoolMask() = default;
+        explicit DescriptorPoolMask(uint32_t m) : _mask(m) {}
+
         template<typename... Ts>
         explicit DescriptorPoolMask(Ts... resources) {
             addResources(resources...);
@@ -102,8 +79,10 @@ namespace engine::vulkan {
 
     class DescriptorPool {
     public:
-        DescriptorPool(const Device & device, std::span<const std::pair<rhi::shaders::ResourceType, uint32_t>> resources, 
+        DescriptorPool(Device & device, std::span<const std::pair<rhi::shaders::ResourceType, uint32_t>> resources, 
             rhi::shaders::DescriptorPoolFlags f = rhi::shaders::DescriptorPoolFlags::eNone, uint32_t maxSets = 64u);
+
+        ~DescriptorPool();
 
         inline VkDescriptorPool operator ()() const noexcept { return _pool; }
         inline explicit operator bool() const noexcept { return _pool != VK_NULL_HANDLE; }
@@ -114,6 +93,10 @@ namespace engine::vulkan {
 
         uint32_t count(rhi::shaders::ResourceType type) const noexcept {
             return _resources[std::to_underlying(type)].current;
+        }
+
+        bool hasResources(rhi::shaders::ResourceType type, uint32_t count) const noexcept {
+            return _resources[std::to_underlying(type)].current >= count;
         }
 
         bool getResources(rhi::shaders::ResourceType type, uint32_t count) noexcept {
@@ -132,9 +115,11 @@ namespace engine::vulkan {
             return true;
         }
 
-        // vkAllocateDescriptorSets, vkFreeDescriptorSets, and vkResetDescriptorPool 
+        // allocateDescriptorSets, freeDescriptorSets, and resetDescriptorPool 
         void reset() noexcept;
         bool freeDescriptorSets(std::span<const VkDescriptorSet> sets) noexcept;
+        bool freeDescriptorSet(const DescriptorSet & set) noexcept;
+        DescriptorSet allocateDescriptorSet(const rhi::shaders::BindingSetLayout & layout) noexcept;
         
     private:
         struct ResourceCount {
@@ -142,18 +127,35 @@ namespace engine::vulkan {
             uint32_t current = 0u;
         };
 
-        const Device & _device;
+        Device & _device;
         VkDescriptorPool _pool = VK_NULL_HANDLE;
-        std::array<ResourceCount, std::to_underlying(rhi::shaders::ResourceType::eCount)> _resources;
+        std::array<ResourceCount, std::to_underlying(rhi::shaders::ResourceType::eCount)> _resources{};
         uint32_t _allocatedSets = 0u;
-        uint32_t _maxSets;
-        rhi::shaders::DescriptorPoolFlags _flags;
+        uint32_t _maxSets = 0u;
+        rhi::shaders::DescriptorPoolFlags _flags = rhi::shaders::DescriptorPoolFlags::eNone;
     };
 
     class DescriptorPoolManager {
     public:
+        DescriptorPoolManager(Device & device) : _device(device) {}
 
+        void destroy() noexcept {
+            for (auto & [_, pools] : _pools) {
+                for (auto & pool : pools) {
+                    pool.reset();
+                }
+            }
+
+            _pools.clear();
+        }
+
+
+        DescriptorPool & createPool(std::span<const std::pair<rhi::shaders::ResourceType, uint32_t>> resources, 
+            rhi::shaders::DescriptorPoolFlags f = rhi::shaders::DescriptorPoolFlags::eNone, uint32_t maxSets = 64u);
+
+        DescriptorPool & getCompatiblePool(const rhi::shaders::BindingSetLayout & layout);
     private:
+        Device & _device;
         std::unordered_map<uint32_t, std::list<DescriptorPool>> _pools;
     };
 

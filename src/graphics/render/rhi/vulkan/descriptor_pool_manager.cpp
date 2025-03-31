@@ -9,15 +9,7 @@
 
 namespace engine::vulkan {
     
-    DescriptorSet::~DescriptorSet() {
-        if (pool && set) {
-            pool->freeDescriptorSets(std::array{set});
-        }
-        pool = nullptr;
-        set = VK_NULL_HANDLE;
-    }
-
-    DescriptorPool::DescriptorPool(const Device & device, std::span<const std::pair<rhi::shaders::ResourceType, uint32_t>> resources,
+    DescriptorPool::DescriptorPool(Device & device, std::span<const std::pair<rhi::shaders::ResourceType, uint32_t>> resources,
         rhi::shaders::DescriptorPoolFlags f, uint32_t maxSets) : _device(device), _flags(f) {
 
         std::vector<VkDescriptorPoolSize> poolSizes;
@@ -49,6 +41,11 @@ namespace engine::vulkan {
         }
     }
 
+    DescriptorPool::~DescriptorPool() {
+        const auto * allocationCallbacks = _device.gpu().getInstance().getAllocationCallbacks();
+        vkDestroyDescriptorPool(_device(), _pool, allocationCallbacks);
+    }
+
     void DescriptorPool::reset() noexcept {
         if (vkResetDescriptorPool(_device(), _pool, 0) == VK_SUCCESS) {
             _allocatedSets = 0u;
@@ -56,7 +53,6 @@ namespace engine::vulkan {
                 r.current = r.max;
             }
         }
-        assert(false);
     }
 
     bool DescriptorPool::freeDescriptorSets(std::span<const VkDescriptorSet> sets) noexcept {
@@ -69,4 +65,126 @@ namespace engine::vulkan {
         return true;
     }
 
+    bool DescriptorPool::freeDescriptorSet(const DescriptorSet & set) noexcept {
+        if (!std::to_underlying(_flags & rhi::shaders::DescriptorPoolFlags::eFree_Descriptor_Set)) {
+            return false;
+        }
+
+        for (size_t i = 0u; i < std::to_underlying(rhi::shaders::ResourceType::eCount); ++i) {
+            if (auto const count = set.resources[i]; count > 0u) {
+                returnResources(static_cast<rhi::shaders::ResourceType>(i), count);
+            }
+        }
+
+        freeDescriptorSets(std::array{set()});
+        --_allocatedSets;
+
+        return true;
+    }
+
+    DescriptorSet DescriptorPool::allocateDescriptorSet(const rhi::shaders::BindingSetLayout & layout) noexcept {
+        if (_allocatedSets >= _maxSets) {
+            return {layout, VK_NULL_HANDLE, *this};
+        }
+
+        ++_allocatedSets;
+
+        std::array<uint32_t, std::to_underlying(rhi::shaders::ResourceType::eCount)> resources{};
+        for (const rhi::shaders::BindingLayout & l : layout.layouts.view()) {
+            resources[std::to_underlying(l.type)] += l.count;
+        }
+
+        for (size_t i = 0u; i < std::to_underlying(rhi::shaders::ResourceType::eCount); ++i) {
+            if (!hasResources(static_cast<rhi::shaders::ResourceType>(i), resources[i])) {
+                return {layout, VK_NULL_HANDLE, *this};
+            }
+        }
+
+        for (size_t i = 0u; i < std::to_underlying(rhi::shaders::ResourceType::eCount); ++i) {
+            if (auto const count = resources[i]; count > 0u) {
+                getResources(static_cast<rhi::shaders::ResourceType>(i), count);
+            }
+        }
+
+        auto setLayout = _device.getDescriptorSetLayoutManager().getSetlayout(layout);
+        VkDescriptorSet set = VK_NULL_HANDLE;
+
+        const VkDescriptorSetAllocateInfo info = {
+            .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+            .pNext = nullptr,
+            .descriptorPool = _pool,
+            .descriptorSetCount = 1u,
+            .pSetLayouts = &setLayout
+        };
+
+        if (const auto result = vkAllocateDescriptorSets(_device(), &info, &set); result != VK_SUCCESS) {
+            // todo!
+            assert(false);
+            return {layout, VK_NULL_HANDLE, *this};
+        }
+
+        return {layout, set, *this};
+    }
+
+
+    ////////////
+    DescriptorPool & DescriptorPoolManager::createPool(std::span<const std::pair<rhi::shaders::ResourceType, uint32_t>> resources, 
+        rhi::shaders::DescriptorPoolFlags f, uint32_t maxSets) {
+        engine::vulkan::DescriptorPoolMask mask;
+        for (const auto & [type, _] : resources) {
+            mask.addResources(type);
+        }
+
+        return _pools[mask()].emplace_back(_device, resources, f, maxSets);
+    }
+
+    DescriptorPool & DescriptorPoolManager::getCompatiblePool(const rhi::shaders::BindingSetLayout & layout) {
+        engine::vulkan::DescriptorPoolMask mask;
+        std::array<uint32_t, std::to_underlying(rhi::shaders::ResourceType::eCount)> resources{};
+        for (const auto & setLayout : layout.layouts.view()) {
+            mask.addResources(setLayout.type);
+            resources[std::to_underlying(setLayout.type)] += setLayout.count;
+        }
+
+        auto findSuitablePool = [&](std::list<DescriptorPool> & pools)-> DescriptorPool* {
+            for (auto & pool : pools) {
+                bool suitable = true;
+                for (size_t i = 0u; i < std::to_underlying(rhi::shaders::ResourceType::eCount); ++i) {
+                    if (!pool.hasResources(static_cast<rhi::shaders::ResourceType>(i), resources[i])) {
+                        suitable = false;
+                        break;
+                    }
+                }
+
+                if (suitable) {
+                    return &pool;
+                }
+            }
+            return nullptr;
+        };
+        
+        if (auto it = _pools.find(mask()); it != _pools.end()) { // strike!!!
+            if (auto * pool = findSuitablePool(it->second)) {
+                return *pool;
+            }
+            
+            //auto & pool = it->second.emplace_back(_device, resources, f, maxSets);
+            //return pool.allocateDescriptorSet(layout);
+        } else {
+            // find compatible pools
+            for (auto & [m, pools] : _pools) {
+                if (mask.compatibleWith(DescriptorPoolMask{m})) {
+                    if (auto * pool = findSuitablePool(pools)) {
+                        return *pool;
+                    }
+                }
+            }
+
+            // if no compatible - create strick mask pools
+            // auto [it2, success] = _pools.try_emplace(mask(), _device, resources, f, maxSets);
+            // if (success) {
+            //     return it2->second.begin().allocateDescriptorSet(layout);
+            // }
+        }
+    }
 }
