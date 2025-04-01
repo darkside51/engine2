@@ -91,66 +91,18 @@ void createDescriptors(auto & device) {
     };
 
     auto & descriptorPoolManager = device.getDescriptorPoolManager();
+
     auto & descriptorPool = descriptorPoolManager.createPool(
         std::array{
             std::pair{shaders::DescriptorType::eUniform_Buffer, 10u},
             std::pair{shaders::DescriptorType::eStorage_Buffer, 10u}
-        });
+        }
+    );
 
-    auto const descriptorSet = descriptorPool.allocateDescriptorSet(setLayout);
-
+    auto & pool = descriptorPoolManager.getCompatiblePool(setLayout);
+    auto const descriptorSet = pool.allocateDescriptorSet(setLayout);
+    
     int a = 0;
-
-    // engine::vulkan::DescriptorPoolMask m(shaders::ResourceType::eSampler, shaders::ResourceType::eSampler, shaders::ResourceType::eUniform_Buffer, shaders::ResourceType::eStorage_Buffer);
-    // engine::vulkan::DescriptorPoolMask m2(shaders::ResourceType::eSampler, shaders::ResourceType::eUniform_Buffer);
-    // m2.addResources(shaders::ResourceType::eStorage_Buffer);
-    // m2.removeResources(shaders::ResourceType::eStorage_Buffer, shaders::ResourceType::eSampler);
-    // auto r0 = m2[shaders::ResourceType::eUniform_Buffer];
-    // auto r1 = m2[shaders::ResourceType::eSampler];
-    // auto r2 = m2.compatibleWith(m);
-    // auto r3 = m.compatibleWith(m2);
-    // // engine::vulkan::DescriptorPoolMask m(std::array{shaders::ResourceType::eSampler, shaders::ResourceType::eSampler, shaders::ResourceType::eUniform_Buffer});
-    // // engine::vulkan::DescriptorPoolMask m2(std::array{shaders::ResourceType::eSampler, shaders::ResourceType::eUniform_Buffer});
-    
-    // shaders::BindingSetLayout setLayout {
-    //     {
-    //         {
-    //             .binding = 0u,
-    //             .type = shaders::DescriptorType::eUniform_Buffer,
-    //             .shaderStages = shaders::Stages::eVertex,
-    //             .count = 1u
-    //         },
-    //         {
-    //             .binding = 1u,
-    //             .type = shaders::DescriptorType::eStorage_Buffer,
-    //             .shaderStages = shaders::Stages::eVertex,
-    //             .count = 1u
-    //         }
-    //     }
-    // };
-    
-    // shaders::BindingSetLayout setLayout2 {
-    //     {
-    //         {
-    //             .binding = 1u,
-    //             .type = shaders::DescriptorType::eUniform_Buffer,
-    //             .shaderStages = shaders::Stages::eVertex,
-    //             .count = 1u
-    //         },
-    //         {
-    //             .binding = 0u,
-    //             .type = shaders::DescriptorType::eUniform_Buffer,
-    //             .shaderStages = shaders::Stages::eVertex,
-    //             .count = 1u
-    //         }
-    //     }
-    // };
-
-    // auto setLayoutImpl = device.getDescriptorSetLayoutManager().getSetlayout(setLayout);
-    // auto setLayoutImpl2 = device.getDescriptorSetLayoutManager().getSetlayout(setLayout2);
-    // device.getDescriptorSetLayoutManager().eraseSetLayout(setLayout);
-
-    // int a = 0;
 }
 
 void createBuffers(auto & device) {
