@@ -909,7 +909,18 @@ namespace engine::rhi {
             inline size_t hash() const noexcept {
                 return hashValue;
             }
+
             inline bool operator == (const BindingSetLayout & other) const noexcept = default;
+
+            const BindingLayout * findLayout(uint32_t binding) const noexcept {
+                auto const view = layouts.view();
+                if (auto it = std::find_if(view.begin(), view.end(), [binding](const BindingLayout & l) noexcept {
+                    return l.binding == binding;
+                }); it != view.end()) {
+                    return &(*it);
+                }
+                return nullptr;
+            }
 
             dynamic_array<BindingLayout, kMaxBindingsInSetOnStack> layouts;
             DescriptorSetLayoutFlags flags = DescriptorSetLayoutFlags::eNone;

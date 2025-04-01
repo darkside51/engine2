@@ -69,6 +69,52 @@ engine::rhi::RenderPassDescription createRenderPassDescription(engine::rhi::Form
     };
 }
 
+void updateDescriptorSet(auto & device, const engine::vulkan::DescriptorSet & set, const engine::rhi::shaders::BindingSetLayout & layout, 
+    std::span<const std::pair<engine::vulkan::Buffer*, uint32_t>> bufferBindings, std::span<const std::pair<void*, uint32_t>> imageBindings,
+    std::span<const std::pair<void*, uint32_t>> texelBufferBindings) {
+    using namespace engine::rhi;
+    using Api = std::decay_t<decltype(device)>::Api;
+
+    engine::dynamic_array<VkDescriptorBufferInfo, 8u> bufferInfos;
+    engine::dynamic_array<VkDescriptorImageInfo, 8u> imageInfos;
+    engine::dynamic_array<VkBufferView, 8u> texelBufferInfos;
+
+    engine::dynamic_array<VkWriteDescriptorSet, 16u> writes;
+
+    bufferInfos.reserve(bufferBindings.size());
+    imageInfos.reserve(imageBindings.size());
+    texelBufferInfos.reserve(texelBufferInfos.size());
+
+    writes.reserve(bufferInfos.size() + imageInfos.size() + texelBufferInfos.size());
+
+    auto & bufferInfosView = bufferInfos.view();
+    auto & writeViews = writes.view();
+
+    uint32_t wi = 0u;
+    for (size_t i = 0u; i < bufferBindings.size(); ++i, ++wi) {
+        bufferInfosView[i] = {
+            .buffer = bufferBindings[i].first->operator()(),
+            .offset = 0u,
+            .range = bufferBindings[i].first->getSize()
+        };
+
+        writeViews[wi] = {
+            .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+            .pNext = nullptr,
+            .dstSet = set(),
+            .dstBinding = bufferBindings[i].second,
+            .dstArrayElement = 0u,
+            .descriptorCount = 1u,
+            .descriptorType = engine::vulkan::utils::convert2vk(layout.findLayout(bufferBindings[i].second)->type),
+            .pImageInfo = nullptr,
+            .pBufferInfo = &bufferInfosView[i],
+            .pTexelBufferView = nullptr
+        };
+    }
+
+    vkUpdateDescriptorSets(device(), writeViews.size(), writeViews.data(), 0u, nullptr);
+}
+
 void createDescriptors(auto & device) {
     using namespace engine::rhi;
     using Api = std::decay_t<decltype(device)>::Api;

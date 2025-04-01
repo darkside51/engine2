@@ -27,7 +27,6 @@ namespace engine::vulkan {
             return *this;
         }
 
-
         DescriptorSet(const rhi::shaders::BindingSetLayout & layout, VkDescriptorSet set, DescriptorPool & pool);
         ~DescriptorSet();
 

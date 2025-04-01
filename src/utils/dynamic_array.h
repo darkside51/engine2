@@ -35,8 +35,8 @@ struct dynamic_array {
 
     void reserve(uint32_t size) {
         if (capacity != 0u) { return; }
-        if (size <= Max) { [[likely]]
-            value = std::array<T, Max>{};
+        if (size <= Max) { [[likely]];
+            //value = std::array<T, Max>{}; // already array as default
         } else {
             value = std::vector<T>{size};
         }
