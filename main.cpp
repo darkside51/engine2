@@ -95,7 +95,8 @@ void createDescriptors(auto & device) {
     auto & descriptorPool = descriptorPoolManager.createPool(
         std::array{
             std::pair{shaders::DescriptorType::eUniform_Buffer, 10u},
-            std::pair{shaders::DescriptorType::eStorage_Buffer, 10u}
+            std::pair{shaders::DescriptorType::eStorage_Buffer, 10u},
+            std::pair{shaders::DescriptorType::eCombined_Image_Sampler, 10u}
         }
     );
 
