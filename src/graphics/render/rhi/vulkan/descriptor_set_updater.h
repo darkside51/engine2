@@ -18,6 +18,7 @@ namespace engine::vulkan {
     
     class Device;
     class Buffer;
+    class Image;
     class DescriptorSet;
 
     class DescriptorSetUpdater {
@@ -28,7 +29,7 @@ namespace engine::vulkan {
         explicit DescriptorSetUpdater(const Device & device, const engine::rhi::shaders::BindingSetLayout & layout);
 
         void updateBuffers(std::span<const std::pair<Buffer*, uint32_t>> bufferBindings) noexcept;
-        void updateImages(std::span<const std::pair<void*, uint32_t>> imageBindings) noexcept;
+        void updateImages(std::span<const std::tuple<VkSampler, VkImageView, VkImageLayout, uint32_t>> imageBindings) noexcept;
         void updatetexelBuffers(std::span<const std::tuple<Buffer*, rhi::Format, uint32_t>> texelBufferBindings) noexcept;
 
         void flush(const DescriptorSet & set) noexcept;

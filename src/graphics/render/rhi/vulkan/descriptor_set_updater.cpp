@@ -23,6 +23,8 @@ namespace engine::vulkan {
             case rhi::shaders::DescriptorType::eStorage_Buffer_Dynamic :
                 buffersCount += layout.count;
                 break;
+            case rhi::shaders::DescriptorType::eInput_Attachment: [[fallthrough]]; // https://registry.khronos.org/vulkan/specs/latest/man/html/VkDescriptorImageInfo.html
+            case rhi::shaders::DescriptorType::eSampler: [[fallthrough]];
             case rhi::shaders::DescriptorType::eSampled_Image: [[fallthrough]];
             case rhi::shaders::DescriptorType::eCombined_Image_Sampler:
                 imagesCount += layout.count;
@@ -55,8 +57,17 @@ namespace engine::vulkan {
         }
     }
 
-    void DescriptorSetUpdater::updateImages(std::span<const std::pair<void*, uint32_t>> imageBindings) noexcept {
-        // todo!
+    void DescriptorSetUpdater::updateImages(std::span<const std::tuple<VkSampler, VkImageView, VkImageLayout, uint32_t>> imageBindings) noexcept {
+        for (const auto & [sampler, view, layout, binding] : imageBindings) {
+            _imagesInfo.view()[_updateImageIndex++] = {
+                {
+                .sampler = sampler,
+                .imageView = view, 
+                .imageLayout = layout // must be VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, or can be VK_IMAGE_LAYOUT_GENERAL sometimes (storage image)?
+                },
+                binding
+            };
+        }
     }
 
     void DescriptorSetUpdater::updatetexelBuffers(std::span<const std::tuple<Buffer*, rhi::Format, uint32_t>> texelBufferBindings) noexcept {
@@ -119,7 +130,7 @@ namespace engine::vulkan {
             };
         }
 
-        vkUpdateDescriptorSets(_device(), writeViews.size(), writeViews.data(), 0u, nullptr); // need copy stets
+        vkUpdateDescriptorSets(_device(), writeViews.size(), writeViews.data(), 0u, nullptr); // need copy sets?
     }
 
 }
