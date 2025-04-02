@@ -1,11 +1,13 @@
 #pragma once
 
 #include "utils/dynamic_array.h"
+#include "graphics/render/rhi/common/types.h"
 
 #include <vulkan/vulkan.h>
 
 #include <cstdint>
 #include <span>
+#include <tuple>
 #include <utility>
 
 namespace engine::rhi::shaders {
@@ -27,7 +29,7 @@ namespace engine::vulkan {
 
         void updateBuffers(std::span<const std::pair<Buffer*, uint32_t>> bufferBindings) noexcept;
         void updateImages(std::span<const std::pair<void*, uint32_t>> imageBindings) noexcept;
-        void updatetexelBuffers(std::span<const std::pair<void*, uint32_t>> texelBufferBindings) noexcept;
+        void updatetexelBuffers(std::span<const std::tuple<Buffer*, rhi::Format, uint32_t>> texelBufferBindings) noexcept;
 
         void flush(const DescriptorSet & set) noexcept;
 

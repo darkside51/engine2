@@ -59,8 +59,13 @@ namespace engine::vulkan {
         // todo!
     }
 
-    void DescriptorSetUpdater::updatetexelBuffers(std::span<const std::pair<void*, uint32_t>> texelBufferBindings) noexcept {
-        // todo!
+    void DescriptorSetUpdater::updatetexelBuffers(std::span<const std::tuple<Buffer*, rhi::Format, uint32_t>> texelBufferBindings) noexcept {
+        for (const auto & [buffer, format, binding] : texelBufferBindings) {
+            _texelBuffersInfo.view()[_updateTexelBufferIndex++] = {
+                buffer->recieveView(format),
+                binding
+            };
+        }
     }
 
     void DescriptorSetUpdater::flush(const DescriptorSet & set) noexcept {

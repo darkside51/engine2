@@ -1,6 +1,8 @@
 #include "buffer.h"
 
 #include "device.h"
+#include "instance.h"
+#include "physical_device.h"
 #include "vk_types.h"
 
 #include "log/log.h"
@@ -30,6 +32,35 @@ namespace engine::vulkan {
         if (_buffer) {
             _device->getMemoryAllocator().destroyBuffer(_buffer, _allocation);
         }
+
+        const auto * allocationCallbacks = _device->gpu().getInstance().getAllocationCallbacks();
+        for (auto & [_, bufferView] : _bufferViews) {
+            vkDestroyBufferView(_device->operator()(), bufferView, allocationCallbacks);
+        }
+    }
+
+    VkBufferView Buffer::recieveView(rhi::Format format) noexcept {
+        if (auto it = _bufferViews.find(format); it != _bufferViews.end()) {
+            return it->second;
+        }
+
+        VkBufferViewCreateInfo info {
+            .sType = VK_STRUCTURE_TYPE_BUFFER_VIEW_CREATE_INFO,
+            .pNext = nullptr,
+            .flags = 0u,
+            .buffer = _buffer,
+            .format = utils::convert2vk(format),
+            .offset = 0u,
+            .range = VK_WHOLE_SIZE
+        };
+
+        VkBufferView bufferView = VK_NULL_HANDLE;
+        const auto * allocationCallbacks = _device->gpu().getInstance().getAllocationCallbacks();
+        if (vkCreateBufferView(_device->operator()(), &info, allocationCallbacks, &bufferView) == VK_SUCCESS) {
+            _bufferViews.emplace(format, bufferView);
+        }
+        
+        return bufferView;   
     }
 
     VkBufferMemoryBarrier Buffer::transition(VkAccessFlags srcAccessFlags, VkAccessFlags dstAccessFlags, 

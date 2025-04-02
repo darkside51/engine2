@@ -7,6 +7,7 @@
 
 #include <cstdint>
 #include <string_view>
+#include <unordered_map>
 
 namespace engine::vulkan {
 
@@ -21,7 +22,8 @@ namespace engine::vulkan {
         Buffer & operator= (const Buffer &) = delete;
 
         Buffer(Buffer && other) noexcept : _device(other._device), _buffer(other._buffer), 
-            _allocation(other._allocation), _queueFamilyIndex(other._queueFamilyIndex), _size(other._size) {
+            _allocation(other._allocation), _bufferViews(std::move(other._bufferViews)),
+            _queueFamilyIndex(other._queueFamilyIndex), _size(other._size) {
             other._device = nullptr;
             other._buffer = VK_NULL_HANDLE;
             other._allocation = {};
@@ -31,6 +33,7 @@ namespace engine::vulkan {
             _device = other._device;
             _buffer = other._buffer; 
             _allocation = other._allocation;
+            _bufferViews = std::move(other._bufferViews);
             _queueFamilyIndex = other._queueFamilyIndex;
             _size = other._size;
 
@@ -59,11 +62,20 @@ namespace engine::vulkan {
 
         void setName(std::string_view name) noexcept;
         std::string_view getName() const noexcept;
+
+        VkBufferView recieveView(rhi::Format format) noexcept;
+        VkBufferView getView(rhi::Format format) const noexcept { 
+            if (auto it = _bufferViews.find(format); it != _bufferViews.end()) {
+                return it->second;
+            }
+            return VK_NULL_HANDLE;
+        }
         
     private:
         Device * _device = nullptr;
         VkBuffer _buffer = VK_NULL_HANDLE;
         MemoryAllocation _allocation;
+        std::unordered_map<rhi::Format, VkBufferView> _bufferViews;
         uint32_t _queueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
         size_t _size = 0u;
     };
