@@ -81,7 +81,6 @@ set(
 	graphics/render
 	graphics/render/rhi/common
 	graphics/render/rhi/opengl
-	graphics/render/rhi/vulkan
 	input
 	log
 	math
@@ -94,6 +93,23 @@ set(
 
 	tests
 )
+
+if (VULKAN_AVAILABLE)
+	set(
+		ENGINE_SRC_DIRS ${ENGINE_SRC_DIRS}
+		graphics/render/rhi/vulkan
+	)
+
+	# for spirv-reflect
+	set(
+		ENGINE_HEADERS ${ENGINE_HEADERS}
+		${CMAKE_CURRENT_SOURCE_DIR}/../3rd_party/SPIRV-Reflect/spirv_reflect.h
+	)
+	set(
+		ENGINE_SOURCES ${ENGINE_SOURCES}
+		${CMAKE_CURRENT_SOURCE_DIR}/../3rd_party/SPIRV-Reflect/spirv_reflect.c
+	)
+endif()
 
 if (USE_GLFW)
 	set(
@@ -182,6 +198,7 @@ if (VULKAN_AVAILABLE) #### vulkan lib
 	endif()
 
 	target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../3rd_party/vma/include)
+	target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../3rd_party/SPIRV-Reflect)
 endif()
 
 #### 3rd_party libraries

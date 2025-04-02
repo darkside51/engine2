@@ -34,6 +34,7 @@
 #include "graphics/render/rhi/vulkan/utils.h"
 #include "graphics/render/rhi/vulkan/descriptor_pool_manager.h"
 #include "graphics/render/rhi/vulkan/descriptor_set_updater.h"
+#include <spirv_reflect.h>
 
 engine::rhi::RenderPassDescription createRenderPassDescription(engine::rhi::Format colorFormat, engine::rhi::Format depthFormat) {
     std::vector<engine::rhi::AttachmentDescription> attachments(2u);
@@ -160,7 +161,6 @@ void createBuffers(auto & device) {
         uniformBuffer.flush();
         uniformBuffer.unmap();
     }
-
 
     typename Api::Buffer storageBuffer{device, storageInfo, sizeof(float) * 2u};
     {
