@@ -6,16 +6,36 @@
 namespace engine::vulkan {
     
     DescriptorPool & DescriptorPoolManager::createPool(std::span<const std::pair<rhi::shaders::ResourceType, uint32_t>> resources, 
-        rhi::shaders::DescriptorPoolFlags f, uint32_t maxSets) {
+        uint8_t frameIdx, rhi::shaders::DescriptorPoolFlags f, uint32_t maxSets) {
         engine::vulkan::DescriptorPoolMask mask;
         for (const auto & [type, _] : resources) {
             mask.addResources(type);
         }
 
-        return _pools[mask()].emplace_back(_device, resources, f, maxSets);
+        frameIdx += 1u; // frame 0 - use _pools[1], frame 1 - use _pools[2], ..., frame kGlobalPoolsIndex - use _pools[0]
+        return _pools[frameIdx][mask()].list.emplace_back(_device, resources, f, maxSets);
     }
 
-    DescriptorPool & DescriptorPoolManager::getCompatiblePool(const rhi::shaders::BindingSetLayout & layout, rhi::shaders::DescriptorPoolFlags flags) {
+    void DescriptorPoolManager::resetPools(uint8_t frameIdx) noexcept {
+        constexpr uint16_t kUnusedFramesToRemovePool = 0x0ff0u; // 4080 frames
+        // frame 0 - use _pools[1], frame 1 - use _pools[2], ..., frame kGlobalPoolsIndex - use _pools[0]
+        auto & framePools = _pools[++frameIdx];
+        for (auto & [mask, pools] : framePools) {
+            if (pools.list.empty()) { // has been unused on last frame
+                if (++pools.count == kUnusedFramesToRemovePool) {
+                    framePools.erase(mask);
+                }
+            } else {
+                for (auto & pool : pools.list) {
+                    pool.reset();
+                }
+                pools.count = 0u;
+            }
+        }
+    }
+
+    DescriptorPool & DescriptorPoolManager::getCompatiblePool(const rhi::shaders::BindingSetLayout & layout, uint8_t frameIdx,
+        rhi::shaders::DescriptorPoolFlags flags) {
         engine::vulkan::DescriptorPoolMask mask{flags};
         std::array<uint32_t, std::to_underlying(rhi::shaders::ResourceType::eCount)> resources{};
         for (const auto & setLayout : layout.layouts.view()) {
@@ -52,25 +72,27 @@ namespace engine::vulkan {
             return setResources;
         };
         
-        if (auto it = _pools.find(mask()); it != _pools.end()) { // strike!!!
-            if (auto * pool = findSuitablePool(it->second)) {
+        // frame 0 - use _pools[1], frame 1 - use _pools[2], ..., frame kGlobalPoolsIndex - use _pools[0]
+        auto & framePools = _pools[++frameIdx];
+        if (auto it = framePools.find(mask()); it != framePools.end()) { // strike!!!
+            if (auto * pool = findSuitablePool(it->second.list)) {
                 return *pool;
             }
             
-            auto const maxSets = it->second.back().maxSets();
-            return it->second.emplace_back(_device, createNewPoolResources(), flags, maxSets);
+            auto const maxSets = it->second.list.back().maxSets();
+            return it->second.list.emplace_back(_device, createNewPoolResources(), flags, maxSets);
         } else {
             // find compatible pools
-            for (auto & [m, pools] : _pools) {
+            for (auto & [m, pools] : framePools) {
                 if (mask.compatibleWith(DescriptorPoolMask{m})) {
-                    if (auto * pool = findSuitablePool(pools)) {
+                    if (auto * pool = findSuitablePool(pools.list)) {
                         return *pool;
                     }
                 }
             }
 
             // if no compatible - create strick mask pools
-            auto & list = _pools[mask()];
+            auto & list = framePools[mask()].list;
             return list.emplace_back(_device, createNewPoolResources(), flags);
         }
     }

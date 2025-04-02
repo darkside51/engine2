@@ -8,6 +8,7 @@
 #include <list>
 #include <span>
 #include <unordered_map>
+#include <vector>
 #include <utility>
 
 namespace engine::vulkan {
@@ -92,27 +93,44 @@ namespace engine::vulkan {
     class DescriptorPoolManager {
         inline static constexpr uint32_t kDefaultMaxSets = 64u;
         inline static constexpr uint32_t kDefaultResourcesInSet = 64u;
+        inline static constexpr uint8_t kGlobalPoolsIndex = 0xffu;
+
     public:
         DescriptorPoolManager(Device & device) : _device(device) {}
+        
+        void useFrames(uint8_t framesCount) {
+            _pools.resize(framesCount + 1u);
+        }
 
         void destroy() noexcept {
-            for (auto & [_, pools] : _pools) {
-                for (auto & pool : pools) {
-                    pool.reset();
+            for (auto & poolsMap : _pools) {
+                for (auto & [_, pools] : poolsMap) {
+                    for (auto & pool : pools.list) {
+                        pool.reset();
+                    }
+                    pools.count = 0u;
                 }
             }
 
             _pools.clear();
         }
 
-        DescriptorPool & createPool(std::span<const std::pair<rhi::shaders::ResourceType, uint32_t>> resources, 
+        void resetPools(uint8_t frameIdx) noexcept;
+
+        DescriptorPool & createPool(std::span<const std::pair<rhi::shaders::ResourceType, uint32_t>> resources, uint8_t frameIdx = kGlobalPoolsIndex,
             rhi::shaders::DescriptorPoolFlags f = rhi::shaders::DescriptorPoolFlags::eNone, uint32_t maxSets = kDefaultMaxSets);
 
-        DescriptorPool & getCompatiblePool(const rhi::shaders::BindingSetLayout & layout, 
+        DescriptorPool & getCompatiblePool(const rhi::shaders::BindingSetLayout & layout, uint8_t frameIdx = kGlobalPoolsIndex,
             rhi::shaders::DescriptorPoolFlags flags = rhi::shaders::DescriptorPoolFlags::eNone);
+    
     private:
+        struct PoolList {
+            std::list<DescriptorPool> list;
+            uint16_t count = 0u; // count unused in frames
+        };
+        using DescriptorPools = std::unordered_map<uint32_t, PoolList>;
         Device & _device;
-        std::unordered_map<uint32_t, std::list<DescriptorPool>> _pools;
+        std::vector<DescriptorPools> _pools;
     };
 
 }

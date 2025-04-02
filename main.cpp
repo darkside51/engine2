@@ -283,11 +283,14 @@ int main() {
         }
 
         Api::Queue queue(device, engine::rhi::queue_flags::graphics | engine::rhi::queue_flags::present, 0u, swapchain.getImagesCount());
-        engine::rhi::FrameIndex frameIndex{static_cast<uint8_t>(swapchain.getImagesCount())};
-
         std::vector<Api::CommandBuffer> cmdBuffers;
-        cmdBuffers.reserve(swapchain.getImagesCount());
 
+        // reserve frames data
+        cmdBuffers.reserve(swapchain.getImagesCount());
+        device.getDescriptorPoolManager().useFrames(swapchain.getImagesCount());
+        engine::rhi::FrameIndex frameIndex{static_cast<uint8_t>(swapchain.getImagesCount())};
+        
+        
         //
         createBuffers(device);
 
@@ -307,6 +310,8 @@ int main() {
                 if (!success) {
                     return;
                 }
+
+                device.getDescriptorPoolManager().resetPools(frameId); // reset temp pools
 
                 // submit
                 const auto waitSemaphores = std::array{swapchain.getImageAvailableSemaphore(frameId)};
