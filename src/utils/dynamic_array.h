@@ -2,6 +2,7 @@
 
 #include <array>
 #include <cstddef>
+#include <cstdint>
 #include <initializer_list>
 #include <span>
 #include <variant>

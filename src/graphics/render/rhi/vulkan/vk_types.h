@@ -387,6 +387,7 @@ inline VkSharingMode convert2vk(rhi::SharingMode mode) noexcept {
         case rhi::SharingMode::eConcurrent:
             return VK_SHARING_MODE_CONCURRENT;
     }
+    return VK_SHARING_MODE_EXCLUSIVE;
 }
 
 inline VkSampleCountFlagBits convert2vk(uint8_t bits) noexcept {
@@ -401,6 +402,7 @@ inline VkSampleCountFlagBits convert2vk(uint8_t bits) noexcept {
         case 32: return VK_SAMPLE_COUNT_32_BIT;
         case 64: return VK_SAMPLE_COUNT_64_BIT;
     }
+    return VK_SAMPLE_COUNT_1_BIT;
 }
 
 inline VkImageTiling convert2vk(rhi::ImageTiling tiling) noexcept {
@@ -410,6 +412,7 @@ inline VkImageTiling convert2vk(rhi::ImageTiling tiling) noexcept {
         case rhi::ImageTiling::eLinear:
             return VK_IMAGE_TILING_LINEAR;
     }
+    return VK_IMAGE_TILING_OPTIMAL;
 }
 
 inline VkImageCreateFlags convert2vk(rhi::ImageCreateFlags flags) noexcept {
@@ -945,6 +948,7 @@ inline VkSubpassContents convert2vk(rhi::SubpassContents contents) noexcept {
         case rhi::SubpassContents::eSecondaryBuffers:
             return VkSubpassContents::VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS;
     }
+    return VK_SUBPASS_CONTENTS_INLINE;
 }
 
 inline VkQueryPipelineStatisticFlags convert2vk(rhi::QueryPipelineStatisticFlags flags) noexcept {

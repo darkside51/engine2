@@ -32,7 +32,7 @@ namespace engine::vulkan {
 
         void unmap() noexcept;
 
-        size_t getSize() const noexcept { return _allocation.info.size; }
+        size_t size() const noexcept { return _size; }
 
         void setName(std::string_view name) noexcept;
         std::string_view getName() const noexcept;
@@ -42,5 +42,6 @@ namespace engine::vulkan {
         VkBuffer _buffer = VK_NULL_HANDLE;
         MemoryAllocation _allocation;
         uint32_t _queueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        size_t _size = 0u;
     };
 }

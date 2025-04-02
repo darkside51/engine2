@@ -33,6 +33,7 @@
 #include "graphics/render/rhi/vulkan/queue.h"
 #include "graphics/render/rhi/vulkan/utils.h"
 #include "graphics/render/rhi/vulkan/descriptor_pool_manager.h"
+#include "graphics/render/rhi/vulkan/descriptor_set_updater.h"
 
 engine::rhi::RenderPassDescription createRenderPassDescription(engine::rhi::Format colorFormat, engine::rhi::Format depthFormat) {
     std::vector<engine::rhi::AttachmentDescription> attachments(2u);
@@ -69,72 +70,9 @@ engine::rhi::RenderPassDescription createRenderPassDescription(engine::rhi::Form
     };
 }
 
-void updateDescriptorSet(auto & device, const engine::vulkan::DescriptorSet & set, const engine::rhi::shaders::BindingSetLayout & layout, 
-    std::span<const std::pair<engine::vulkan::Buffer*, uint32_t>> bufferBindings, std::span<const std::pair<void*, uint32_t>> imageBindings,
-    std::span<const std::pair<void*, uint32_t>> texelBufferBindings) {
+auto createDescriptorSets(auto & device, const engine::rhi::shaders::BindingSetLayout & setLayout) {
     using namespace engine::rhi;
     using Api = std::decay_t<decltype(device)>::Api;
-
-    engine::dynamic_array<VkDescriptorBufferInfo, 8u> bufferInfos;
-    engine::dynamic_array<VkDescriptorImageInfo, 8u> imageInfos;
-    engine::dynamic_array<VkBufferView, 8u> texelBufferInfos;
-
-    engine::dynamic_array<VkWriteDescriptorSet, 16u> writes;
-
-    bufferInfos.reserve(bufferBindings.size());
-    imageInfos.reserve(imageBindings.size());
-    texelBufferInfos.reserve(texelBufferInfos.size());
-
-    writes.reserve(bufferInfos.size() + imageInfos.size() + texelBufferInfos.size());
-
-    auto & bufferInfosView = bufferInfos.view();
-    auto & writeViews = writes.view();
-
-    uint32_t wi = 0u;
-    for (size_t i = 0u; i < bufferBindings.size(); ++i, ++wi) {
-        bufferInfosView[i] = {
-            .buffer = bufferBindings[i].first->operator()(),
-            .offset = 0u,
-            .range = bufferBindings[i].first->getSize()
-        };
-
-        writeViews[wi] = {
-            .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-            .pNext = nullptr,
-            .dstSet = set(),
-            .dstBinding = bufferBindings[i].second,
-            .dstArrayElement = 0u,
-            .descriptorCount = 1u,
-            .descriptorType = engine::vulkan::utils::convert2vk(layout.findLayout(bufferBindings[i].second)->type),
-            .pImageInfo = nullptr,
-            .pBufferInfo = &bufferInfosView[i],
-            .pTexelBufferView = nullptr
-        };
-    }
-
-    vkUpdateDescriptorSets(device(), writeViews.size(), writeViews.data(), 0u, nullptr);
-}
-
-void createDescriptors(auto & device) {
-    using namespace engine::rhi;
-    using Api = std::decay_t<decltype(device)>::Api;
-
-    shaders::BindingSetLayout setLayout {
-        {
-            {
-                .binding = 0u,
-                .type = shaders::DescriptorType::eUniform_Buffer,
-                .shaderStages = shaders::Stages::eVertex,
-                .count = 1u
-            },
-            {
-                .binding = 1u,
-                .type = shaders::DescriptorType::eStorage_Buffer,
-                .shaderStages = shaders::Stages::eVertex,
-                .count = 1u
-            }
-        }
-    };
 
     auto & descriptorPoolManager = device.getDescriptorPoolManager();
 
@@ -147,9 +85,7 @@ void createDescriptors(auto & device) {
     );
 
     auto & pool = descriptorPoolManager.getCompatiblePool(setLayout);
-    auto const descriptorSet = pool.allocateDescriptorSet(setLayout);
-    
-    int a = 0;
+    return pool.allocateDescriptorSet(setLayout);
 }
 
 void createBuffers(auto & device) {
@@ -177,6 +113,69 @@ void createBuffers(auto & device) {
     auto name = buffer.getName();
     buffer.setName("buffer0");
     name = buffer.getName();
+
+    ///////////////////
+    shaders::BindingSetLayout setLayout {
+        {
+            {
+                .binding = 0u,
+                .type = shaders::DescriptorType::eUniform_Buffer,
+                .shaderStages = shaders::Stages::eVertex,
+                .count = 1u
+            },
+            {
+                .binding = 1u,
+                .type = shaders::DescriptorType::eStorage_Buffer,
+                .shaderStages = shaders::Stages::eVertex,
+                .count = 1u
+            }
+        }
+    };
+
+    auto descriptorSet = createDescriptorSets(device, setLayout);
+
+    engine::rhi::BufferInfo uniformInfo{
+        .usage = BufferUsageFlags::eUniform_Buffer,
+        .memoryFlags = MemoryPropertyFlags::eHostVisible,
+        .memoryExtFlags = MemoryExtendedFlags::eNone,
+        .flags = BufferCreateFlags::eNone,
+        .sharing = SharingMode::eExclusive,
+        .queueFamilyIndices = {0}
+    };
+
+    engine::rhi::BufferInfo storageInfo{
+        .usage = BufferUsageFlags::eStorage_Buffer,
+        .memoryFlags = MemoryPropertyFlags::eHostVisible,
+        .memoryExtFlags = MemoryExtendedFlags::eNone,
+        .flags = BufferCreateFlags::eNone,
+        .sharing = SharingMode::eExclusive,
+        .queueFamilyIndices = {0}
+    };
+
+    typename Api::Buffer uniformBuffer{device, uniformInfo, sizeof(float) * 2u};
+    {
+        auto * map = uniformBuffer.template map2<float>();
+        map[0u] = 10.0f;
+        map[1u] = 20.0f;
+        uniformBuffer.flush();
+        uniformBuffer.unmap();
+    }
+
+
+    typename Api::Buffer storageBuffer{device, storageInfo, sizeof(float) * 2u};
+    {
+        auto * map = storageBuffer.template map2<float>();
+        map[0u] = 10.0f;
+        map[1u] = 20.0f;
+        storageBuffer.flush();
+        storageBuffer.unmap();
+    }
+    
+    engine::vulkan::DescriptorSetUpdater updater{device, setLayout};
+    // updater.updateBuffers(std::array{std::pair{&uniformBuffer, 0u}, std::pair{&storageBuffer, 1u}});
+    updater.updateBuffers(std::array{std::pair{&uniformBuffer, 0u}});
+    updater.updateBuffers(std::array{std::pair{&storageBuffer, 1u}});
+    updater.flush(descriptorSet);
 }
 
 int main() {
@@ -290,7 +289,6 @@ int main() {
         cmdBuffers.reserve(swapchain.getImagesCount());
 
         //
-        createDescriptors(device);
         createBuffers(device);
 
         //

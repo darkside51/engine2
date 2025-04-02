@@ -7,7 +7,7 @@
 
 namespace engine::vulkan {
 
-    Buffer::Buffer(Device & device, const rhi::BufferInfo & info, size_t size) : _device(device) {
+    Buffer::Buffer(Device & device, const rhi::BufferInfo & info, size_t size) : _device(device), _size(size) {
         const VkBufferCreateInfo createInfo = {
             .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
             .pNext = nullptr,
