@@ -23,7 +23,8 @@ namespace engine::vulkan {
             case rhi::shaders::DescriptorType::eStorage_Buffer_Dynamic :
                 buffersCount += layout.count;
                 break;
-            case rhi::shaders::DescriptorType::eSampled_Image:
+            case rhi::shaders::DescriptorType::eSampled_Image: [[fallthrough]];
+            case rhi::shaders::DescriptorType::eCombined_Image_Sampler:
                 imagesCount += layout.count;
                 break;
             case rhi::shaders::DescriptorType::eUniform_Texel_Buffer: [[fallthrough]];

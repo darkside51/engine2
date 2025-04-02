@@ -7,7 +7,7 @@
 
 namespace engine::vulkan {
 
-    Buffer::Buffer(Device & device, const rhi::BufferInfo & info, size_t size) : _device(device), _size(size) {
+    Buffer::Buffer(Device & device, const rhi::BufferInfo & info, size_t size) : _device(&device), _size(size) {
         const VkBufferCreateInfo createInfo = {
             .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
             .pNext = nullptr,
@@ -19,7 +19,7 @@ namespace engine::vulkan {
             .pQueueFamilyIndices = info.queueFamilyIndices.data()
         };
 
-        if (auto result = _device.getMemoryAllocator().createBuffer(createInfo, utils::convert2vk(info.memoryFlags), 
+        if (auto result = _device->getMemoryAllocator().createBuffer(createInfo, utils::convert2vk(info.memoryFlags), 
             info.memoryExtFlags, _buffer, _allocation); result != VK_SUCCESS) {
             LOG_E("vulkan: vkCreateBuffer error: %d", result);
             return;
@@ -28,7 +28,7 @@ namespace engine::vulkan {
 
     Buffer::~Buffer() {
         if (_buffer) {
-            _device.getMemoryAllocator().destroyBuffer(_buffer, _allocation);
+            _device->getMemoryAllocator().destroyBuffer(_buffer, _allocation);
         }
     }
 
@@ -50,19 +50,19 @@ namespace engine::vulkan {
     }
 
     void Buffer::flush(size_t offset, size_t size) noexcept {
-        _device.getMemoryAllocator().flushMemory(_allocation, offset, size);
+        _device->getMemoryAllocator().flushMemory(_allocation, offset, size);
     }
 
     void Buffer::invalidate(size_t offset, size_t size) noexcept {
-        _device.getMemoryAllocator().invalidateMemory(_allocation, offset, size);
+        _device->getMemoryAllocator().invalidateMemory(_allocation, offset, size);
     }
 
     void * Buffer::map() noexcept {
-        return _device.getMemoryAllocator().mapMemory(_allocation);
+        return _device->getMemoryAllocator().mapMemory(_allocation);
     }
 
     void Buffer::unmap() noexcept {
-        _device.getMemoryAllocator().unmapMemory(_allocation);
+        _device->getMemoryAllocator().unmapMemory(_allocation);
     }
 
     void Buffer::setName(std::string_view name) noexcept {

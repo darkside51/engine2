@@ -63,10 +63,37 @@ class Image {
     using ImageViewMap = std::unordered_map<ImageViewDescription, VkImageView, hash::Hasher<ImageViewDescription>, std::equal_to<>>;
     
 public:
-
     Image(Device & device, const rhi::ImageInfo & imageInfo);
     Image(Device & device, const rhi::ImageInfo & imageInfo, VkImage externalImage);
     ~Image();
+
+    Image(const Image &) = delete;
+    Image & operator= (const Image &) = delete;
+
+    Image(Image && other) noexcept : _device(other._device), _image(other._image), 
+            _allocation(other._allocation), _info(std::move(other._info)), 
+            _imageViews(std::move(other._imageViews)), _imageSubStates(std::move(other._imageSubStates)),
+            _imageStatesIdentical(other._imageStatesIdentical), _externalImage(other._externalImage) {
+            other._device = nullptr;
+            other._image = VK_NULL_HANDLE;
+            other._allocation = {};
+        }
+
+    Image & operator= (Image && other) noexcept {
+        _device = other._device;
+        _image = other._image; 
+        _allocation = other._allocation;
+        _info = std::move(other._info);
+        _imageViews = std::move(other._imageViews);
+        _imageSubStates = std::move(other._imageSubStates);
+        _imageStatesIdentical = other._imageStatesIdentical;
+        _externalImage = other._externalImage;
+
+        other._device = nullptr;
+        other._image = VK_NULL_HANDLE;
+        other._allocation = {};
+        return *this;
+    }
 
     inline explicit operator bool() const noexcept { return _image != VK_NULL_HANDLE; }
     inline VkImage operator ()() const noexcept { return _image; }
@@ -91,7 +118,7 @@ public:
     std::span<const ImageSubState> getSubStates() const noexcept { return _imageSubStates; }
 
 private:
-    Device & _device;
+    Device * _device;
     VkImage _image = VK_NULL_HANDLE;
     MemoryAllocation _allocation;
 

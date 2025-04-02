@@ -16,6 +16,29 @@ namespace engine::vulkan {
     public:
         Buffer(Device & device, const rhi::BufferInfo & info, size_t size);
         ~Buffer();
+        
+        Buffer(const Buffer &) = delete;
+        Buffer & operator= (const Buffer &) = delete;
+
+        Buffer(Buffer && other) noexcept : _device(other._device), _buffer(other._buffer), 
+            _allocation(other._allocation), _queueFamilyIndex(other._queueFamilyIndex), _size(other._size) {
+            other._device = nullptr;
+            other._buffer = VK_NULL_HANDLE;
+            other._allocation = {};
+        }
+
+        Buffer & operator= (Buffer && other) noexcept {
+            _device = other._device;
+            _buffer = other._buffer; 
+            _allocation = other._allocation;
+            _queueFamilyIndex = other._queueFamilyIndex;
+            _size = other._size;
+
+            other._device = nullptr;
+            other._buffer = VK_NULL_HANDLE;
+            other._allocation = {};
+            return *this;
+        }
 
         VkBufferMemoryBarrier transition(VkAccessFlags srcAccessFlags, VkAccessFlags dstAccessFlags, 
             size_t offset = 0u, size_t size = VK_WHOLE_SIZE, uint32_t queueFamily = VK_QUEUE_FAMILY_IGNORED) noexcept;
@@ -38,7 +61,7 @@ namespace engine::vulkan {
         std::string_view getName() const noexcept;
         
     private:
-        Device & _device;
+        Device * _device = nullptr;
         VkBuffer _buffer = VK_NULL_HANDLE;
         MemoryAllocation _allocation;
         uint32_t _queueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;

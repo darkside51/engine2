@@ -10,7 +10,7 @@
 namespace engine::vulkan {
 
 Image::Image(Device & device, const rhi::ImageInfo & info) : 
-    _device(device), 
+    _device(&device), 
     _info(info),
     _imageSubStates(_info.arrayLayers * _info.mipLevels) {
 
@@ -32,14 +32,14 @@ Image::Image(Device & device, const rhi::ImageInfo & info) :
         .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED
     };
 
-    if (auto result = _device.getMemoryAllocator().createImage(imageInfo, utils::convert2vk(_info.memoryFlags), info.memoryExtFlags, _image, _allocation); result != VK_SUCCESS) {
+    if (auto result = _device->getMemoryAllocator().createImage(imageInfo, utils::convert2vk(_info.memoryFlags), info.memoryExtFlags, _image, _allocation); result != VK_SUCCESS) {
         LOG_E("vulkan: vkCreateImage error: %d", result);
         return;
     }
 }
 
 Image::Image(Device & device, const rhi::ImageInfo & info, VkImage externalImage) :
-    _device(device), 
+    _device(&device), 
     _image(externalImage),
     _info(info),
     _imageSubStates(_info.arrayLayers * _info.mipLevels),
@@ -48,13 +48,13 @@ Image::Image(Device & device, const rhi::ImageInfo & info, VkImage externalImage
     }
 
 Image::~Image() {
-    const auto * allocationCallbacks = _device.gpu().getInstance().getAllocationCallbacks();
+    const auto * allocationCallbacks = _device->gpu().getInstance().getAllocationCallbacks();
     for (auto it = _imageViews.begin(); it != _imageViews.end(); ++it) {
-        vkDestroyImageView(_device(), it->second, allocationCallbacks);
+        vkDestroyImageView(_device->operator()(), it->second, allocationCallbacks);
     }
 
     if (_image && !_externalImage) {
-        _device.getMemoryAllocator().destroyImage(_image, _allocation);
+        _device->getMemoryAllocator().destroyImage(_image, _allocation);
     }
 }
 
@@ -105,8 +105,8 @@ VkImageView Image::getImageView(rhi::ImageViewType viewType,
     };
 
     VkImageView imageView;
-    const auto * allocationCallbacks = _device.gpu().getInstance().getAllocationCallbacks();
-    if (auto result = vkCreateImageView(_device(), &viewInfo, allocationCallbacks, &imageView); 
+    const auto * allocationCallbacks = _device->gpu().getInstance().getAllocationCallbacks();
+    if (auto result = vkCreateImageView(_device->operator()(), &viewInfo, allocationCallbacks, &imageView); 
         result != VK_SUCCESS) {
         LOG_E("vulkan: vkCreateImageView error: %d", result);
         return VK_NULL_HANDLE;
