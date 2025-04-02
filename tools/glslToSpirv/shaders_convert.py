@@ -76,4 +76,4 @@ if __name__ == '__main__':
                 convert(inputFolder, path, outputFolder, glslc_path)
 
         os.rmdir(tmpDir)
-        print('*conversion complete*')
+        print('*glsl->spirv conversion complete*')

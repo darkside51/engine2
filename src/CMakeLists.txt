@@ -12,6 +12,7 @@ message("SYSTEM_NAME: ${CMAKE_SYSTEM_NAME}")
 
 option(USE_GLFW "Use glfw window" OFF)
 option(VULKAN_AVAILABLE OFF)
+option(OPENGL_AVAILABLE OFF)
 
 if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
 	add_definitions(-DENGINE_PLATFORM_WINDOWS)
@@ -31,15 +32,16 @@ elseif (CMAKE_SYSTEM_NAME STREQUAL "Linux")
 
 	add_definitions(-DGLFW_AVAILABLE)
 	add_definitions(-DVULKAN_AVAILABLE)
+	add_definitions(-DOPENGL_AVAILABLE)
 
 	set(USE_GLFW ON)
 	set(VULKAN_AVAILABLE ON)
+	set(OPENGL_AVAILABLE ON)
 else()
 	set(USE_GLFW OFF)
 	set(VULKAN_AVAILABLE OFF)
+	set(OPENGL_AVAILABLE OFF)
 endif()
-
-
 
 if (NOT (CMAKE_SYSTEM_NAME STREQUAL "Windows"))
 	set(CMAKE_CXX_FLAGS_DEBUG "-g")
@@ -80,7 +82,6 @@ set(
 	graphics
 	graphics/render
 	graphics/render/rhi/common
-	graphics/render/rhi/opengl
 	input
 	log
 	math
@@ -93,6 +94,13 @@ set(
 
 	tests
 )
+
+if (OPENGL_AVAILABLE)
+	set(
+		ENGINE_SRC_DIRS ${ENGINE_SRC_DIRS}
+		graphics/render/rhi/opengl
+	)
+endif()
 
 if (VULKAN_AVAILABLE)
 	set(
