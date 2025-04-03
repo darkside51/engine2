@@ -34,6 +34,8 @@ namespace engine::vulkan {
 
         void flush(const DescriptorSet & set) noexcept;
 
+        void resetIndexes() noexcept;
+
     private:
         template <typename T>
         struct DescriptorInfo{
@@ -46,9 +48,10 @@ namespace engine::vulkan {
         engine::dynamic_array<DescriptorInfo<VkDescriptorBufferInfo>, kDescriptorsOnStackLimit> _buffersInfo;
         engine::dynamic_array<DescriptorInfo<VkDescriptorImageInfo>, kDescriptorsOnStackLimit> _imagesInfo;
         engine::dynamic_array<DescriptorInfo<VkBufferView>, kDescriptorsOnStackLimit> _texelBuffersInfo;
-        uint8_t _updateBufferIndex = 0u;
-        uint8_t _updateImageIndex = 0u;
-        uint8_t _updateTexelBufferIndex = 0u;
+        bool _buffersDirty = false;
+        bool _imagesDirty = false;
+        bool _texelBufferDirty = false;
+        VkDescriptorSet _set = VK_NULL_HANDLE;
     };
     
 }
