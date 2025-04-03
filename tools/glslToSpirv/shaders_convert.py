@@ -30,11 +30,8 @@ def convert(inDir, fileName, outDir, glslcPath):
     file3.write(fileData)
     file3.close()
 
-    VULKAN_SDK_PATH = os.getenv('VULKAN_SDK')
-    converterUtilPath = VULKAN_SDK_PATH + glslcPath
-
     outFile = outDir + fileName.replace('.glsl', '.spv')
-    subprocess.run([converterUtilPath, tmpFileName, '-o', outFile])
+    subprocess.run(['glslc', tmpFileName, '-o', outFile])
     os.remove(tmpFileName)
 
 def checkIsShaderFile(fileName):
@@ -43,12 +40,12 @@ def checkIsShaderFile(fileName):
 #entry point
 if __name__ == '__main__':
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "i:o:p:", ["ifolder=", "ofolder=", "glslc_path="])
+        opts, args = getopt.getopt(sys.argv[1:], "i:o:", ["ifolder=", "ofolder="])
     except getopt.GetoptError:
         sys.exit(1)
 
     # check parameters length
-    if len(opts) < 2:
+    if len(opts) < 1:
         sys.exit(2)
 
     # parse parameters
@@ -60,8 +57,6 @@ if __name__ == '__main__':
             inputFolder = arg
         elif opt in ("-o", "--ofolder"):
             outputFolder = arg
-        elif opt in ("-p", "--glslc_path"):
-            glslc_path = arg
 
     if (os.path.exists(inputFolder)):
         if not os.path.exists(outputFolder):

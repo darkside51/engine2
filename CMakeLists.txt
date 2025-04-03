@@ -8,7 +8,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 if (NOT (CMAKE_SYSTEM_NAME STREQUAL "Windows"))
 	set(CMAKE_CXX_FLAGS_DEBUG "-g")
 	set(CMAKE_CXX_FLAGS_RELEASE "-O3")
-	message("engine cmake flags (debug+release) configured")
+	message("demo cmake flags (debug+release) configured")
 endif()
 
 if (MSVC)
@@ -33,5 +33,28 @@ add_executable(${PROJECT_NAME} main.cpp)
 ########## подключаем engine
 target_link_libraries(${PROJECT_NAME} engine)
 include_directories(./src)
+
+########## ресурсы
+set(resources_src_dir "${CMAKE_CURRENT_SOURCE_DIR}/resources")
+
+if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
+	set(resources_dst_dir "${PROJECT_BINARY_DIR}/$<CONFIG>/resources")
+elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+	set(resources_dst_dir "${PROJECT_BINARY_DIR}/resources")
+endif()
+
+add_custom_command(TARGET ${PROJECT_NAME}
+				  POST_BUILD
+	              COMMAND ${CMAKE_COMMAND}
+    	          -Dsrc_dir="${resources_src_dir}/assets"
+    	          -Ddst_dir="${resources_dst_dir}/assets"
+    	          -P "${CMAKE_CURRENT_SOURCE_DIR}/tools/cmake/update_directory.cmake"
+	              )
+
+add_custom_command(TARGET ${PROJECT_NAME}
+                   POST_BUILD
+                   COMMAND ${CMAKE_COMMAND} -E make_directory ${resources_dst_dir}/shaders
+                   COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/tools/glslToSpirv/shaders_convert.py -i ${resources_src_dir}/shaders/ -o ${resources_dst_dir}/shaders/
+                   )
 
 message(STATUS "!!!!!project generate complete!!!!!")
