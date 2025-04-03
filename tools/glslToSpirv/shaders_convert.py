@@ -24,7 +24,7 @@ def convert(inDir, fileName, outDir, glslcPath):
     file.close();
 
     tmpFileName = inDir + '/tmp/' + fileName
-    tmpFileName = tmpFileName.replace('.glsl', '.spv')
+    tmpFileName = tmpFileName.replace('.glsl', '')
 
     file3 = open(tmpFileName, 'w')
     file3.write(fileData)
@@ -33,7 +33,8 @@ def convert(inDir, fileName, outDir, glslcPath):
     VULKAN_SDK_PATH = os.getenv('VULKAN_SDK')
     converterUtilPath = VULKAN_SDK_PATH + glslcPath
 
-    subprocess.run([converterUtilPath, tmpFileName, '-o', outDir + fileName + '.spv'])
+    outFile = outDir + fileName.replace('.glsl', '.spv')
+    subprocess.run([converterUtilPath, tmpFileName, '-o', outFile])
     os.remove(tmpFileName)
 
 def checkIsShaderFile(fileName):
