@@ -14,6 +14,9 @@
 //
 #include "device/glfw/device.h"
 #include "log/log.h"
+#include "file/file_manager.h"
+#include "file/common_file_system.h"
+
 
 #include "graphics/render/rhi/common/api.h"
 #include "graphics/render/rhi/common/utils.h"
@@ -34,7 +37,7 @@
 #include "graphics/render/rhi/vulkan/utils.h"
 #include "graphics/render/rhi/vulkan/descriptor_pool_manager.h"
 #include "graphics/render/rhi/vulkan/descriptor_set_updater.h"
-#include <spirv_reflect.h>
+#include "graphics/render/rhi/vulkan/gpu_program.h"
 
 engine::rhi::RenderPassDescription createRenderPassDescription(engine::rhi::Format colorFormat, engine::rhi::Format depthFormat) {
     std::vector<engine::rhi::AttachmentDescription> attachments(2u);
@@ -87,6 +90,22 @@ auto createDescriptorSets(auto & device, const engine::rhi::shaders::BindingSetL
 
     auto & pool = descriptorPoolManager.getCompatiblePool(setLayout);
     return pool.allocateDescriptorSet(setLayout);
+}
+
+void loadShaders(auto & device) {
+    using namespace engine::rhi;
+    using Api = std::decay_t<decltype(device)>::Api;
+
+    engine::FileManager fm;
+    auto * fsystem = fm.createFileSystem<engine::CommonFileSystem>("main", engine::CommonFileSystem::getCurrentDirectory() + "resources/");
+
+    auto const vBytes = fsystem->readFile("shaders/simple.vert.spv");
+    auto const fBytes = fsystem->readFile("shaders/simple.frag.spv");
+
+    engine::vulkan::ShaderModule vsModule{device, engine::rhi::shaders::Stages::eVertex, vBytes};
+    engine::vulkan::ShaderModule fsModule{device, engine::rhi::shaders::Stages::eFragment, fBytes};
+
+    int a = 0;
 }
 
 void createBuffers(auto & device) {
@@ -292,6 +311,7 @@ int main() {
         
         
         //
+        loadShaders(device);
         createBuffers(device);
 
         //

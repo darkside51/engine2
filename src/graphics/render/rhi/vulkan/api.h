@@ -18,6 +18,7 @@ namespace engine::vulkan {
     class RenderPassManager;
     class CommandBuffer;
     class Queue;
+    class GpuProgram;
     struct Helper;
     
     class Api {
@@ -32,6 +33,7 @@ namespace engine::vulkan {
         using FrameBuffer = vulkan::FrameBuffer;
         using CommandBuffer = vulkan::CommandBuffer;
         using Queue = vulkan::Queue;
+        using GpuProgram = vulkan::GpuProgram;
         using Helper = vulkan::Helper;
 
         static constexpr auto kSwapchainExtName = VK_KHR_SWAPCHAIN_EXTENSION_NAME;

@@ -896,7 +896,8 @@ namespace engine::rhi {
 
         struct BindingSetLayout {
             inline static constexpr uint32_t kMaxBindingsInSetOnStack = 16u; 
-            BindingSetLayout(dynamic_array<BindingLayout, kMaxBindingsInSetOnStack> && l) : layouts(std::move(l)) {
+            // BindingSetLayout() = default;
+            explicit BindingSetLayout(dynamic_array<BindingLayout, kMaxBindingsInSetOnStack> && l) : layouts(std::move(l)) {
                 auto view = layouts.view();
                 std::sort(view.begin(), view.end(), [](const auto & l0, const auto & l1){ return l0.binding < l1.binding; });
 

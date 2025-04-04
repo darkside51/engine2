@@ -97,7 +97,7 @@ namespace engine::vulkan {
     }
 
     void DescriptorSetUpdater::updateBuffers(std::span<const std::pair<Buffer*, uint32_t>> bufferBindings) noexcept {
-        const auto & view = _buffersInfo.view();
+        const auto view = _buffersInfo.view();
         for (const auto & [buffer, binding] : bufferBindings) {
             const auto it = std::find_if(view.begin(), view.end(), [binding](const DescriptorInfo<VkDescriptorBufferInfo> & info) {
                 return info.binding == binding;
@@ -117,7 +117,7 @@ namespace engine::vulkan {
     }
 
     void DescriptorSetUpdater::updateImages(std::span<const std::tuple<VkSampler, VkImageView, VkImageLayout, uint32_t>> imageBindings) noexcept {
-        const auto & view = _imagesInfo.view();
+        const auto view = _imagesInfo.view();
         for (const auto & [sampler, imageView, layout, binding] : imageBindings) {
             const auto it = std::find_if(view.begin(), view.end(), [binding](const DescriptorInfo<VkDescriptorImageInfo> & info) {
                 return info.binding == binding;
@@ -128,7 +128,7 @@ namespace engine::vulkan {
                 if (info.imageView != imageView || info.sampler != sampler || info.imageLayout != layout) {
                     info.sampler = sampler;
                     info.imageView = imageView;
-                    info.imageLayout = layout;
+                    info.imageLayout = layout; // must be VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, or can be VK_IMAGE_LAYOUT_GENERAL sometimes (DescriptorType::eStorage_Image)?
                     _imagesDirty = true;
                 }
             }
@@ -136,7 +136,7 @@ namespace engine::vulkan {
     }
 
     void DescriptorSetUpdater::updatetexelBuffers(std::span<const std::tuple<Buffer*, rhi::Format, uint32_t>> texelBufferBindings) noexcept {
-        const auto & view = _texelBuffersInfo.view();
+        const auto view = _texelBuffersInfo.view();
         for (const auto & [buffer, format, binding] : texelBufferBindings) {
             const auto it = std::find_if(view.begin(), view.end(), [binding](const DescriptorInfo<VkBufferView> & info) {
                 return info.binding == binding;
@@ -164,7 +164,7 @@ namespace engine::vulkan {
 
         engine::dynamic_array<VkWriteDescriptorSet, kWritesOnStackLimit> writes;
         writes.reserve(_buffersInfo.size() + _imagesInfo.size() + _texelBuffersInfo.size());
-        const auto & writeViews = writes.view();
+        const auto writeViews = writes.view();
         
         uint32_t wi = 0u;
         if (_buffersDirty || setChanged) {
