@@ -895,7 +895,7 @@ namespace engine::rhi {
         };
 
         struct BindingSetLayout {
-            inline static constexpr uint32_t kMaxBindingsInSetOnStack = 16u; 
+            inline static constexpr uint32_t kMaxBindingsInSetOnStack = 8u; 
             // BindingSetLayout() = default;
             explicit BindingSetLayout(dynamic_array<BindingLayout, kMaxBindingsInSetOnStack> && l) : layouts(std::move(l)) {
                 auto view = layouts.view();
@@ -914,6 +914,16 @@ namespace engine::rhi {
             inline bool operator == (const BindingSetLayout & other) const noexcept = default;
 
             const BindingLayout * findLayout(uint32_t binding) const noexcept {
+                auto const view = layouts.view();
+                if (auto it = std::find_if(view.begin(), view.end(), [binding](const BindingLayout & l) noexcept {
+                    return l.binding == binding;
+                }); it != view.end()) {
+                    return &(*it);
+                }
+                return nullptr;
+            }
+
+            BindingLayout * findLayout(uint32_t binding) noexcept {
                 auto const view = layouts.view();
                 if (auto it = std::find_if(view.begin(), view.end(), [binding](const BindingLayout & l) noexcept {
                     return l.binding == binding;

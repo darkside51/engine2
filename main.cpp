@@ -80,13 +80,13 @@ auto createDescriptorSets(auto & device, const engine::rhi::shaders::BindingSetL
 
     auto & descriptorPoolManager = device.getDescriptorPoolManager();
 
-    auto & descriptorPool = descriptorPoolManager.createPool(
-        std::array{
-            std::pair{shaders::DescriptorType::eUniform_Buffer, 10u},
-            std::pair{shaders::DescriptorType::eStorage_Buffer, 10u},
-            std::pair{shaders::DescriptorType::eCombined_Image_Sampler, 10u}
-        }
-    );
+    // auto & descriptorPool = descriptorPoolManager.createPool(
+    //     std::array{
+    //         std::pair{shaders::DescriptorType::eUniform_Buffer, 10u},
+    //         std::pair{shaders::DescriptorType::eStorage_Buffer, 10u},
+    //         std::pair{shaders::DescriptorType::eCombined_Image_Sampler, 10u}
+    //     }
+    // );
 
     auto & pool = descriptorPoolManager.getCompatiblePool(setLayout);
     return pool.allocateDescriptorSet(setLayout);
@@ -102,8 +102,10 @@ void loadShaders(auto & device) {
     auto const vBytes = fsystem->readFile("shaders/simple.vert.spv");
     auto const fBytes = fsystem->readFile("shaders/simple.frag.spv");
 
-    engine::vulkan::ShaderModule vsModule{device, engine::rhi::shaders::Stages::eVertex, vBytes};
-    engine::vulkan::ShaderModule fsModule{device, engine::rhi::shaders::Stages::eFragment, fBytes};
+    const engine::vulkan::ShaderModule vsModule{device, engine::rhi::shaders::Stages::eVertex, vBytes};
+    const engine::vulkan::ShaderModule fsModule{device, engine::rhi::shaders::Stages::eFragment, fBytes};
+
+    engine::vulkan::GpuProgram program0{std::array{vsModule.view(), fsModule.view()}};
 
     int a = 0;
 }
@@ -256,9 +258,12 @@ int main() {
         Api::Swapchain swapchain(device, surface, swapchainCreateInfo);
         swapchain.resize(1024u, 768u, true);
 
+        // const uint32_t frameBuffersCount = std::min(3u, swapchain.getImagesCount());
+        const uint32_t frameBuffersCount = swapchain.getImagesCount();
+
         std::vector<Api::Image> depthImages;
-        depthImages.reserve(swapchain.getImagesCount());
-        for (uint32_t i = 0u; i < swapchain.getImagesCount(); ++i) {
+        depthImages.reserve(frameBuffersCount);
+        for (uint32_t i = 0u; i < frameBuffersCount; ++i) {
             depthImages.emplace_back(device, engine::rhi::ImageInfo{
                                             .type = engine::rhi::ImageType::eType_2D,
                                             .usage = engine::rhi::ImageUsageFlags::eDepth_Stencil_Attachment,
@@ -281,8 +286,8 @@ int main() {
         auto renderPass = device.getRenderPass(createRenderPassDescription(swapchain.getFormat(), depthFormat));
 
         std::vector<Api::FrameBuffer> frameBuffers;
-        frameBuffers.reserve(swapchain.getImagesCount());
-        for (uint32_t i = 0; i < swapchain.getImagesCount(); ++i) {
+        frameBuffers.reserve(frameBuffersCount);
+        for (uint32_t i = 0; i < frameBuffersCount; ++i) {
             auto & image = swapchain.getImage(i);
             std::vector<engine::rhi::FrameBufferAttachment> fbAttachemnts{2u};
             fbAttachemnts[0].image = &image;
@@ -296,18 +301,18 @@ int main() {
             frameBuffers.emplace_back(device, std::move(fbAttachemnts), renderPass);
         }
 
-        std::vector<Api::Device::Semaphore> presentReadySemaphores(swapchain.getImagesCount());
+        std::vector<Api::Device::Semaphore> presentReadySemaphores(frameBuffersCount);
         for (auto & semaphore : presentReadySemaphores) {
             semaphore = device.createSemaphore();
         }
 
-        Api::Queue queue(device, engine::rhi::queue_flags::graphics | engine::rhi::queue_flags::present, 0u, swapchain.getImagesCount());
+        Api::Queue queue(device, engine::rhi::queue_flags::graphics | engine::rhi::queue_flags::present, 0u, frameBuffersCount);
         std::vector<Api::CommandBuffer> cmdBuffers;
 
         // reserve frames data
-        cmdBuffers.reserve(swapchain.getImagesCount());
-        device.getDescriptorPoolManager().useFrames(swapchain.getImagesCount());
-        engine::rhi::FrameIndex frameIndex{static_cast<uint8_t>(swapchain.getImagesCount())};
+        cmdBuffers.reserve(frameBuffersCount);
+        device.getDescriptorPoolManager().useFrames(frameBuffersCount);
+        engine::rhi::FrameIndex frameIndex{static_cast<uint8_t>(frameBuffersCount)};
         
         
         //
@@ -332,6 +337,8 @@ int main() {
                 }
 
                 device.getDescriptorPoolManager().resetPools(frameId); // reset temp pools
+
+                // if we refill cmdBuffers here - we can use less buffers count!
 
                 // submit
                 const auto waitSemaphores = std::array{swapchain.getImageAvailableSemaphore(frameId)};
@@ -358,7 +365,7 @@ int main() {
                 engine::rhi::ClearValue{1.0f, 255}
             });
 
-            for (size_t i = 0; i < swapchain.getImagesCount(); ++i) {
+            for (size_t i = 0; i < frameBuffersCount; ++i) {
                 if (i == 1) {
                     clearValues[0].color = {{0.7f, 1.0f, 0.7f, 1.0f}};
                 } else if (i == 2) {

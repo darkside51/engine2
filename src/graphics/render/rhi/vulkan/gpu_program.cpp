@@ -7,6 +7,7 @@
 
 #include <spirv_reflect.h>
 
+#include <algorithm>
 #include <cassert>
 
 namespace {
@@ -74,7 +75,8 @@ namespace {
 
 namespace engine::vulkan {
     
-    ModuleReflection::ModuleReflection(rhi::shaders::Stages stage, std::span<const std::byte> code) {
+    ModuleReflection::ModuleReflection(rhi::shaders::Stages stage, std::span<const std::byte> code) : 
+        stage(stage) {
         SpvReflectShaderModule reflectedModule;
 		SpvReflectResult result = spvReflectCreateShaderModule(code.size(), code.data(), &reflectedModule);
 		if (result != SPV_REFLECT_RESULT_SUCCESS) {
@@ -116,7 +118,7 @@ namespace engine::vulkan {
                 };
             }
 
-            sets.emplace_back(std::move(layouts));
+            sets.emplace_back(std::move(layouts), set->set);
         }
 
         // push constatns
@@ -157,6 +159,65 @@ namespace engine::vulkan {
             const auto * allocationCallbacks = _device->gpu().getInstance().getAllocationCallbacks();
             vkDestroyShaderModule(_device->operator()(), _shaderModule, allocationCallbacks);
         }
+    }
+
+    ///////////////////////////
+    GpuProgram::GpuProgram(std::span<const ShaderModule::View> moduleViews) {
+
+        uint32_t setsCount = 0u;
+        _shaderStages.reserve(moduleViews.size());
+        for (const auto & view : moduleViews) {
+            setsCount += view.reflection->sets.size();
+            _shaderStages.push_back(VkPipelineShaderStageCreateInfo{
+                    .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+                    .pNext = nullptr,
+                    .flags = 0u, // VkPipelineShaderStageCreateFlagBits - todo!
+                    .stage = static_cast<VkShaderStageFlagBits>(utils::convert2vk(view.reflection->stage)),
+                    .module = view.shaderModule,
+                    .pName = "main",
+                    .pSpecializationInfo = nullptr // todo!
+                }
+            );
+        }
+
+        _sets.reserve(setsCount);
+        
+        for (const auto & view : moduleViews) {
+            for (const auto & set : view.reflection->sets) {
+                auto it = std::find_if(_sets.begin(), _sets.end(), [setId = set.second](const auto & set){
+                    return set.second == setId;
+                });
+
+                if (it == _sets.end()) {
+                    _sets.emplace_back(set);
+                } else {
+                    const auto & layoutsView = set.first.layouts.view();
+                    for (auto & l : layoutsView) {
+                        if (auto * layout = it->first.findLayout(l.binding)) {
+                            layout->shaderStages = layout->shaderStages | view.reflection->stage;
+                        } else {
+                            it->first.layouts.emplace_back(l);
+                        }
+                    }
+                }
+            }
+        }
+
+        _sets.shrink_to_fit();
+
+        std::sort(_sets.begin(), _sets.end(), [](const auto & s0, const auto & s1) noexcept {
+            return s0.second < s1.second;
+        });
+    }
+
+    const rhi::shaders::BindingSetLayout * GpuProgram::getLayout(uint8_t setId) const noexcept {
+        if (auto it = std::find_if(_sets.begin(), _sets.end(), [setId](const auto & set){
+            return set.second == setId;
+        }); it != _sets.end()) {
+            return &it->first;
+        }
+
+        return nullptr;
     }
 
 }

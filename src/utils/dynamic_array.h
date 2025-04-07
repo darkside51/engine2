@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <cassert>
 #include <cstddef>
 #include <cstdint>
 #include <initializer_list>
@@ -76,6 +77,20 @@ struct dynamic_array {
             return {arr->begin(), arr->begin() + capacity};
         } else {
             return std::get<std::vector<T>>(value);
+        }
+    }
+
+    template <typename U>
+    void emplace_back(U && v) {
+        if (auto * arr = std::get_if<std::array<T, Max>>(&value)) { [[likely]]
+            if (capacity < Max - 1) {
+                (*arr)[capacity++] = std::forward<U>(v);
+            } else {
+                assert(false); // todo!
+            }
+        } else {
+            std::get<std::vector<T>>(value).emplace_back(v);
+            ++capacity;
         }
     }
 
