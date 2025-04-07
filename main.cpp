@@ -97,15 +97,15 @@ void loadShaders(auto & device) {
     using Api = std::decay_t<decltype(device)>::Api;
 
     engine::FileManager fm;
-    auto * fsystem = fm.createFileSystem<engine::CommonFileSystem>("main", engine::CommonFileSystem::getCurrentDirectory() + "resources/");
+    auto * fsystem = fm.createFileSystem<engine::CommonFileSystem>("main", engine::CommonFileSystem::getCurrentDirectory() + "./resources/");
 
-    auto const vBytes = fsystem->readFile("shaders/simple.vert.spv");
-    auto const fBytes = fsystem->readFile("shaders/simple.frag.spv");
+    auto const vBytes = fm.readFile("shaders/simple.vert.spv");
+    auto const fBytes = fm.readFile("shaders/simple.frag.spv");
 
     const engine::vulkan::ShaderModule vsModule{device, engine::rhi::shaders::Stages::eVertex, vBytes};
     const engine::vulkan::ShaderModule fsModule{device, engine::rhi::shaders::Stages::eFragment, fBytes};
 
-    engine::vulkan::GpuProgram program0{std::array{vsModule.view(), fsModule.view()}};
+    typename Api::GpuProgram program0{std::array{vsModule.view(), fsModule.view()}};
 
     int a = 0;
 }
