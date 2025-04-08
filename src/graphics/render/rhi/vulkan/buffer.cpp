@@ -40,6 +40,7 @@ namespace engine::vulkan {
     }
 
     VkBufferView Buffer::recieveView(rhi::Format format) noexcept {
+        // todo: use composite key format + offset + range
         if (auto it = _bufferViews.find(format); it != _bufferViews.end()) {
             return it->second;
         }

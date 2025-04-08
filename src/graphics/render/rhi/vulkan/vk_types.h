@@ -925,6 +925,15 @@ inline auto convert2vk(const std::array<rhi::PipelineStageFlags, N> & array) -> 
     return result;
 }
 
+inline VkPipelineBindPoint convert2vk(rhi::PipelineBindPoint bindPoint) noexcept {
+    switch (bindPoint) {
+        case rhi::PipelineBindPoint::eGraphics : return VkPipelineBindPoint::VK_PIPELINE_BIND_POINT_GRAPHICS;
+        case rhi::PipelineBindPoint::eCompute : return VkPipelineBindPoint::VK_PIPELINE_BIND_POINT_COMPUTE;
+        case rhi::PipelineBindPoint::eRay_Tracing : return VkPipelineBindPoint::VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR;
+    }
+    return VkPipelineBindPoint::VK_PIPELINE_BIND_POINT_MAX_ENUM;
+}
+
 inline VkAccessFlags convert2vk(rhi::AccessFlags flags) noexcept {
     return static_cast<VkAccessFlags>(flags);
 }

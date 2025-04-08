@@ -652,6 +652,12 @@ namespace engine::rhi {
         return static_cast<PipelineStageFlags>(std::to_underlying(a) & std::to_underlying(b));
     }
 
+    enum class PipelineBindPoint : uint8_t {
+        eGraphics = 0u,
+        eCompute = 1u,
+        eRay_Tracing = 2u
+    };
+
     enum class AccessFlags : uint32_t {
         eNone = 0u,
         eIndirect_Command_Read = 0x00000001u,
