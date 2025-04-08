@@ -5,6 +5,8 @@
 #include "instance.h"
 #include "vk_types.h"
 
+#include "common/hash.h"
+
 #include <spirv_reflect.h>
 
 #include <algorithm>
@@ -162,9 +164,11 @@ namespace engine::vulkan {
     }
 
     ///////////////////////////
-    GpuProgram::GpuProgram(uint16_t id, std::span<const ShaderModule::View> moduleViews) : _id(id) {
+    GpuProgram::GpuProgram(Device & device, std::span<const ShaderModule::View> moduleViews) : _device(&device) {
         uint32_t setsCount = 0u;
         _shaderStages.reserve(moduleViews.size());
+
+        size_t hash = 0u;
         for (const auto & view : moduleViews) {
             setsCount += view.reflection->sets.size();
             _shaderStages.push_back(VkPipelineShaderStageCreateInfo{
@@ -177,7 +181,14 @@ namespace engine::vulkan {
                     .pSpecializationInfo = nullptr // todo!
                 }
             );
+
+            hash::hash_combo(hash, view.shaderModule);
+            // if (pSpecializationInfo) { // todo!
+            //     hash::hash_combo(hash, pSpecializationInfo);
+            // }
         }
+
+        _id = static_cast<uint64_t>(hash);
 
         _sets.reserve(setsCount);
         
@@ -207,10 +218,47 @@ namespace engine::vulkan {
         std::sort(_sets.begin(), _sets.end(), [](const auto & s0, const auto & s1) noexcept {
             return s0.second < s1.second;
         });
+
+        // create pipeline layout
+        std::vector<VkDescriptorSetLayout> vkSetLayouts; // vector?
+        vkSetLayouts.reserve(_sets.size());
+        auto & descriptorSetLayoutManager = _device->getDescriptorSetLayoutManager();
+        for (const auto & [layout, _] : _sets) {
+            vkSetLayouts.push_back(descriptorSetLayoutManager.getSetlayout(layout));
+        }
+
+        auto const pipelineLayoutCreateInfo = VkPipelineLayoutCreateInfo{
+            .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+            .pNext = nullptr,
+            .flags = 0, // VK_PIPELINE_LAYOUT_CREATE_INDEPENDENT_SETS_BIT_EXT 
+                        // specifies that implementations must ensure that the properties and/or absence 
+                        // of a particular descriptor set do not influence any other properties of the pipeline layout. 
+                        // This allows pipelines libraries linked without VK_PIPELINE_CREATE_LINK_TIME_OPTIMIZATION_BIT_EXT 
+                        // to be created with a subset of the total descriptor sets.
+            .setLayoutCount =  static_cast<uint32_t>(vkSetLayouts.size()),
+            .pSetLayouts = vkSetLayouts.data(),
+            .pushConstantRangeCount = 0u, // todo!
+            .pPushConstantRanges = nullptr           
+        };
+
+        const auto * allocationCallbacks = _device->gpu().getInstance().getAllocationCallbacks();
+        auto const result = vkCreatePipelineLayout(_device->operator()(), &pipelineLayoutCreateInfo, 
+                                                   allocationCallbacks, &_pipelineLayout); // maybe need to cache it?
+        if (result != VK_SUCCESS) {
+            assert(false);
+        }
+    }
+
+    GpuProgram::~GpuProgram() {
+        if (_pipelineLayout) {
+            const auto * allocationCallbacks = _device->gpu().getInstance().getAllocationCallbacks();
+            vkDestroyPipelineLayout(_device->operator()(), _pipelineLayout, allocationCallbacks);
+            _pipelineLayout = VK_NULL_HANDLE;
+        }
     }
 
     const rhi::shaders::BindingSetLayout * GpuProgram::getLayout(uint8_t setId) const noexcept {
-        if (auto it = std::find_if(_sets.begin(), _sets.end(), [setId](const auto & set){
+        if (auto it = std::find_if(_sets.begin(), _sets.end(), [setId](const auto & set) {
             return set.second == setId;
         }); it != _sets.end()) {
             return &it->first;

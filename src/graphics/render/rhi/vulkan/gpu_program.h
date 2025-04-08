@@ -69,7 +69,8 @@ private:
 
 class GpuProgram {
 public:
-    GpuProgram(uint16_t id, std::span<const ShaderModule::View> moduleViews);
+    GpuProgram(Device & device, std::span<const ShaderModule::View> moduleViews);
+    ~GpuProgram();
 
     std::span<const VkPipelineShaderStageCreateInfo> stages() const noexcept {
         return _shaderStages;
@@ -81,12 +82,17 @@ public:
         return _sets;
     }
 
-    uint16_t id() const noexcept { return _id; }
+    uint64_t id() const noexcept { return _id; }
+
+    VkPipelineLayout pipelineLayout() const noexcept { return _pipelineLayout; }
+    inline explicit operator bool() const noexcept { return _pipelineLayout != VK_NULL_HANDLE; }
 
 private:
     std::vector<std::pair<rhi::shaders::BindingSetLayout, uint8_t>> _sets;
     std::vector<VkPipelineShaderStageCreateInfo> _shaderStages;
-    uint16_t _id = 0u;
+    Device * _device = nullptr; 
+    VkPipelineLayout _pipelineLayout = VK_NULL_HANDLE;
+    uint64_t _id = 0u;
 };
 
 }

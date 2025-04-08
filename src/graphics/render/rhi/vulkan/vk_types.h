@@ -925,15 +925,6 @@ inline auto convert2vk(const std::array<rhi::PipelineStageFlags, N> & array) -> 
     return result;
 }
 
-inline VkPipelineBindPoint convert2vk(rhi::PipelineBindPoint bindPoint) noexcept {
-    switch (bindPoint) {
-        case rhi::PipelineBindPoint::eGraphics : return VkPipelineBindPoint::VK_PIPELINE_BIND_POINT_GRAPHICS;
-        case rhi::PipelineBindPoint::eCompute : return VkPipelineBindPoint::VK_PIPELINE_BIND_POINT_COMPUTE;
-        case rhi::PipelineBindPoint::eRay_Tracing : return VkPipelineBindPoint::VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR;
-    }
-    return VkPipelineBindPoint::VK_PIPELINE_BIND_POINT_MAX_ENUM;
-}
-
 inline VkAccessFlags convert2vk(rhi::AccessFlags flags) noexcept {
     return static_cast<VkAccessFlags>(flags);
 }
@@ -1151,6 +1142,136 @@ inline VkShaderStageFlags convert2vk(rhi::shaders::Stages stages) noexcept {
         result |= VkShaderStageFlagBits::VK_SHADER_STAGE_MESH_BIT_EXT;
     }
     return result;
+}
+
+///////////////////////
+inline VkPipelineBindPoint convert2vk(rhi::PipelineBindPoint bindPoint) noexcept {
+    switch (bindPoint) {
+        case rhi::PipelineBindPoint::eGraphics : return VkPipelineBindPoint::VK_PIPELINE_BIND_POINT_GRAPHICS;
+        case rhi::PipelineBindPoint::eCompute : return VkPipelineBindPoint::VK_PIPELINE_BIND_POINT_COMPUTE;
+        case rhi::PipelineBindPoint::eRay_Tracing : return VkPipelineBindPoint::VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR;
+    }
+    return VkPipelineBindPoint::VK_PIPELINE_BIND_POINT_MAX_ENUM;
+}
+
+inline VkCompareOp convert2vk(rhi::CompareOp op) noexcept {
+    switch (op) {
+        case rhi::CompareOp::eNever: return VkCompareOp::VK_COMPARE_OP_NEVER;
+        case rhi::CompareOp::eLess: return VkCompareOp::VK_COMPARE_OP_LESS;
+        case rhi::CompareOp::eEqual: return VkCompareOp::VK_COMPARE_OP_EQUAL;
+        case rhi::CompareOp::eLequal: return VkCompareOp::VK_COMPARE_OP_LESS_OR_EQUAL;
+        case rhi::CompareOp::eGreater: return VkCompareOp::VK_COMPARE_OP_GREATER;
+        case rhi::CompareOp::eNot_Equal: return VkCompareOp::VK_COMPARE_OP_NOT_EQUAL;
+        case rhi::CompareOp::eGequal: return VkCompareOp::VK_COMPARE_OP_GREATER_OR_EQUAL;
+        case rhi::CompareOp::eAlways: return VkCompareOp::VK_COMPARE_OP_ALWAYS;
+    }
+    return VkCompareOp::VK_COMPARE_OP_NEVER;
+}
+
+inline VkStencilOp convert2vk(rhi::StencilOp op) noexcept {
+    switch (op) {
+        case rhi::StencilOp::eKeep: return VkStencilOp::VK_STENCIL_OP_KEEP;
+        case rhi::StencilOp::eZero: return VkStencilOp::VK_STENCIL_OP_ZERO;
+        case rhi::StencilOp::eReplace: return VkStencilOp::VK_STENCIL_OP_REPLACE;
+        case rhi::StencilOp::eInc_And_Clamp: return VkStencilOp::VK_STENCIL_OP_INCREMENT_AND_CLAMP;
+        case rhi::StencilOp::eDec_And_Clamp: return VkStencilOp::VK_STENCIL_OP_DECREMENT_AND_CLAMP;
+        case rhi::StencilOp::eInvert: return VkStencilOp::VK_STENCIL_OP_INVERT;
+        case rhi::StencilOp::eInc_And_Wrap: return VkStencilOp::VK_STENCIL_OP_INCREMENT_AND_WRAP;
+        case rhi::StencilOp::eDec_And_Wrap: return VkStencilOp::VK_STENCIL_OP_DECREMENT_AND_WRAP;
+    }
+    return VkStencilOp::VK_STENCIL_OP_KEEP;
+}
+
+inline VkBlendOp convert2vk(rhi::BlendOp op) noexcept {
+    switch (op) {
+        case rhi::BlendOp::eAdd: return VkBlendOp::VK_BLEND_OP_ADD;
+        case rhi::BlendOp::eSubtract: return VkBlendOp::VK_BLEND_OP_SUBTRACT;
+        case rhi::BlendOp::eReverse_Subtract: return VkBlendOp::VK_BLEND_OP_REVERSE_SUBTRACT;
+        case rhi::BlendOp::eMin: return VkBlendOp::VK_BLEND_OP_MIN;
+        case rhi::BlendOp::eMax: return VkBlendOp::VK_BLEND_OP_MAX;
+    }
+    return VkBlendOp::VK_BLEND_OP_ADD;
+}
+
+inline VkBlendFactor convert2vk(rhi::BlendFactor factor) noexcept {
+    switch (factor) {
+        case rhi::BlendFactor::eZero: return VkBlendFactor::VK_BLEND_FACTOR_ZERO;
+        case rhi::BlendFactor::eOne: return VkBlendFactor::VK_BLEND_FACTOR_ONE;
+        case rhi::BlendFactor::eSrc_Color: return VkBlendFactor::VK_BLEND_FACTOR_SRC_COLOR;
+        case rhi::BlendFactor::eOne_Minus_Src_Color: return VkBlendFactor::VK_BLEND_FACTOR_ONE_MINUS_SRC_COLOR;
+        case rhi::BlendFactor::eDst_Color: return VkBlendFactor::VK_BLEND_FACTOR_DST_COLOR;
+        case rhi::BlendFactor::eOne_Minus_Dst_Color: return VkBlendFactor::VK_BLEND_FACTOR_ONE_MINUS_DST_COLOR;
+        case rhi::BlendFactor::eSrc_Alpha: return VkBlendFactor::VK_BLEND_FACTOR_SRC_ALPHA;
+        case rhi::BlendFactor::eOne_Minus_Src_Alpha: return VkBlendFactor::VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+        case rhi::BlendFactor::eDst_Alpha: return VkBlendFactor::VK_BLEND_FACTOR_DST_ALPHA;
+        case rhi::BlendFactor::eOne_Minus_Dst_Alpha: return VkBlendFactor::VK_BLEND_FACTOR_ONE_MINUS_DST_ALPHA;
+        case rhi::BlendFactor::eConst_Color: return VkBlendFactor::VK_BLEND_FACTOR_CONSTANT_COLOR;
+        case rhi::BlendFactor::eOne_Minus_Const_Color: return VkBlendFactor::VK_BLEND_FACTOR_ONE_MINUS_CONSTANT_COLOR;
+        case rhi::BlendFactor::eConst_Alpha: return VkBlendFactor::VK_BLEND_FACTOR_CONSTANT_ALPHA;
+        case rhi::BlendFactor::eOne_Minus_Const_Alpha: return VkBlendFactor::VK_BLEND_FACTOR_ONE_MINUS_CONSTANT_ALPHA;
+        case rhi::BlendFactor::eSrc_Alpha_Saturate: return VkBlendFactor::VK_BLEND_FACTOR_SRC_ALPHA_SATURATE;
+        case rhi::BlendFactor::eSrc1_Color: return VkBlendFactor::VK_BLEND_FACTOR_SRC1_COLOR;
+        case rhi::BlendFactor::eOne_Minus_Src1_Color: return VkBlendFactor::VK_BLEND_FACTOR_ONE_MINUS_SRC1_COLOR;
+        case rhi::BlendFactor::eSrc1_Alpha: return VkBlendFactor::VK_BLEND_FACTOR_SRC1_ALPHA;
+        case rhi::BlendFactor::eOne_Minus_Src1_Alpha: return VkBlendFactor::VK_BLEND_FACTOR_ONE_MINUS_SRC1_ALPHA;
+    }
+    return VkBlendFactor::VK_BLEND_FACTOR_ZERO;
+}
+
+inline VkPrimitiveTopology convert2vk(rhi::PrimitiveTopology topology) noexcept {
+    switch (topology) {
+        case rhi::PrimitiveTopology::ePoints: return VkPrimitiveTopology::VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
+        case rhi::PrimitiveTopology::eLines: return VkPrimitiveTopology::VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
+        case rhi::PrimitiveTopology::eLine_Strip: return VkPrimitiveTopology::VK_PRIMITIVE_TOPOLOGY_LINE_STRIP;
+        case rhi::PrimitiveTopology::eTriangles: return VkPrimitiveTopology::VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+        case rhi::PrimitiveTopology::eTriangle_Strip: return VkPrimitiveTopology::VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
+        case rhi::PrimitiveTopology::eTriangle_Fan: return VkPrimitiveTopology::VK_PRIMITIVE_TOPOLOGY_TRIANGLE_FAN;
+        case rhi::PrimitiveTopology::eLines_With_Adjacency: return VkPrimitiveTopology::VK_PRIMITIVE_TOPOLOGY_LINE_LIST_WITH_ADJACENCY;
+        case rhi::PrimitiveTopology::eLine_Strip_With_Adjacency: return VkPrimitiveTopology::VK_PRIMITIVE_TOPOLOGY_LINE_STRIP_WITH_ADJACENCY;
+        case rhi::PrimitiveTopology::eTriangles_With_Adjacency: return VkPrimitiveTopology::VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST_WITH_ADJACENCY;
+        case rhi::PrimitiveTopology::eTriangle_Strip_With_Adjacency: return VkPrimitiveTopology::VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP_WITH_ADJACENCY;
+        case rhi::PrimitiveTopology::ePatchs: return VkPrimitiveTopology::VK_PRIMITIVE_TOPOLOGY_PATCH_LIST;
+    }
+    return VkPrimitiveTopology::VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+}
+
+inline VkPolygonMode convert2vk(rhi::PolygonMode mode) noexcept {
+    switch (mode) {
+        case rhi::PolygonMode::eFill: return VkPolygonMode::VK_POLYGON_MODE_FILL;
+        case rhi::PolygonMode::eLine: return VkPolygonMode::VK_POLYGON_MODE_LINE;
+        case rhi::PolygonMode::ePoint: return VkPolygonMode::VK_POLYGON_MODE_POINT;
+    }
+    return VkPolygonMode::VK_POLYGON_MODE_FILL;
+}
+
+inline VkFrontFace convert2vk(rhi::FrontFace mode) noexcept {
+    switch (mode) {
+        case rhi::FrontFace::eCounter_Clockwise: return VkFrontFace::VK_FRONT_FACE_COUNTER_CLOCKWISE;
+        case rhi::FrontFace::eClockwise: return VkFrontFace::VK_FRONT_FACE_CLOCKWISE;
+    }
+    return VkFrontFace::VK_FRONT_FACE_COUNTER_CLOCKWISE;
+}
+
+inline VkCullModeFlags convert2vk(rhi::CullMode mode) noexcept {
+    switch (mode) {
+        case rhi::CullMode::eNone: return VkCullModeFlagBits::VK_CULL_MODE_NONE;
+        case rhi::CullMode::eFront: return VkCullModeFlagBits::VK_CULL_MODE_FRONT_BIT;
+        case rhi::CullMode::eBack: return VkCullModeFlagBits::VK_CULL_MODE_BACK_BIT;
+        case rhi::CullMode::eFront_And_Back: return VkCullModeFlagBits::VK_CULL_MODE_FRONT_AND_BACK;
+    }
+    return VkCullModeFlagBits::VK_CULL_MODE_BACK_BIT;
+}
+
+inline VkStencilOpState convert2vk(rhi::StencilOpState state) noexcept {
+    return {
+        .failOp = convert2vk(state.failOp),
+        .passOp = convert2vk(state.passOp),
+        .depthFailOp = convert2vk(state.depthFailOp),
+        .compareOp = convert2vk(state.compareOp),
+        .compareMask = state.compareMask,
+        .writeMask = state.writeMask,
+        .reference = state.reference
+    };
 }
 
 }
