@@ -104,7 +104,6 @@ namespace engine::vulkan {
 
         sets.reserve(setsCount);
 
-        size_t s = 0u;
         for (const auto & set : reflectSets) {
             engine::dynamic_array<rhi::shaders::BindingLayout, rhi::shaders::BindingSetLayout::kMaxBindingsInSetOnStack> layouts;
             layouts.reserve(set->binding_count);
@@ -132,6 +131,7 @@ namespace engine::vulkan {
         pushConstants.reserve(pushConstantsCount);
 
         for (const auto * pushConstant : reflectPushConstants) {
+            // pushConstant->spirv_id;
             pushConstants.emplace_back(engine::vulkan::utils::convert2vk(stage), pushConstant->offset, pushConstant->size);
         }
 
