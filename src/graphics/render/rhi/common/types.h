@@ -652,12 +652,6 @@ namespace engine::rhi {
         return static_cast<PipelineStageFlags>(std::to_underlying(a) & std::to_underlying(b));
     }
 
-    enum class PipelineBindPoint : uint8_t {
-        eGraphics = 0u,
-        eCompute = 1u,
-        eRay_Tracing = 2u
-    };
-
     enum class AccessFlags : uint32_t {
         eNone = 0u,
         eIndirect_Command_Read = 0x00000001u,
@@ -772,6 +766,12 @@ namespace engine::rhi {
         eSecondaryBuffers = 1u
     };
 
+    enum class PipelineBindPoint : uint8_t {
+        eGraphics = 0u,
+        eCompute = 1u,
+        eRay_Tracing = 2u
+    };
+
     enum class CompareOp : uint8_t {
         eNever = 0u,
         eLess = 1u,
@@ -781,6 +781,17 @@ namespace engine::rhi {
         eNot_Equal = 5u,
         eGequal = 6u,
         eAlways = 7u,
+    };
+
+    enum class StencilOp : uint8_t {
+        eKeep = 0u,
+        eZero = 1u,
+        eReplace = 2u,
+        eInc_And_Clamp = 3u,
+        eDec_And_Clamp = 4u,
+        eInvert = 5u,
+        eInc_And_Wrap = 6u,
+        eDec_And_Wrap = 7u,
     };
 
     enum class BlendOp : uint8_t {
@@ -812,6 +823,82 @@ namespace engine::rhi {
         eSrc1_Alpha = 17u,
         eOne_Minus_Src1_Alpha = 18u,
     };
+
+    enum class PrimitiveTopology : uint8_t {
+        ePoints = 0u,
+        eLines = 1u,
+        eLine_Strip = 2u,
+        eTriangles = 3u,
+        eTriangle_Strip = 4u,
+        eTriangle_Fan = 5u,
+        eLines_With_Adjacency = 6u,
+        eLine_Strip_With_Adjacency = 7u,
+        eTriangles_With_Adjacency = 8u,
+        eTriangle_Strip_With_Adjacency = 9u,
+        ePatchs = 10u,
+    };
+
+    enum class PolygonMode : uint8_t {
+        eFill = 0u,
+        eLine = 1u,
+        ePoint = 2u,
+    };
+
+    enum class FrontFace : uint8_t {
+        eCounter_Clockwise = 0u,
+        eClockwise = 1u,
+    };
+
+    enum class CullMode: uint8_t {
+        eNone = 0u,
+        eFront = 1u,
+        eBack = 2u,
+        eFront_And_Back = 3u,
+    };
+
+    struct StencilOpState {
+        uint32_t compareMask = 0u;
+        uint32_t writeMask = 0u;
+        uint32_t reference = 0u;
+        StencilOp failOp{};
+        StencilOp passOp{};
+        StencilOp depthFailOp{};
+        CompareOp compareOp{};
+    };
+
+    enum class DynamicState : uint32_t {
+        eViewport = 0u,
+        eScissor = 1u << 0u,
+        eLine_Width = 1u << 1u,
+        eDepth_Bias = 1u << 2u,
+        eBlend_Constants = 1u << 3u,
+        eDepth_Bounds = 1u << 4u,
+        eStencil_Compare_Mask = 1u << 5u,
+        eStencil_Write_Mask = 1u << 6u,
+        eStencil_Refference = 1u << 7u,
+        eCull_Mode = 1u << 8u,
+        eFront_Face = 1u << 9u,
+        ePrimitive_Topology = 1u << 10u,
+        eViewport_With_Count = 1u << 11u,
+        eScissor_With_Count = 1u << 12u,
+        eVertex_Input_Binding_Stride = 1u << 13u,
+        eDepth_Test_Enable = 1u << 14u,
+        eDepth_Write_Enable = 1u << 15u,
+        eDepth_Compare_Op = 1u << 16u,
+        eDepth_Bounds_Test_Enable = 1u << 17u,
+        eStencil_Test_Enable = 1u << 18u,
+        eStencil_Op = 1u << 19u,
+        eRasterizer_Discard_Enable = 1u << 20u,
+        eDepth_Bias_Enable = 1u << 21u,
+        ePrimitive_Restart_Enable = 1u << 22u,
+        eAll = 0x7f'ff'ff'ffu
+    };
+    inline DynamicState operator | (DynamicState a, DynamicState b) {
+        return static_cast<DynamicState>(std::to_underlying(a) | std::to_underlying(b));
+    }
+    inline DynamicState operator & (DynamicState a, DynamicState b) {
+        return static_cast<DynamicState>(std::to_underlying(a) & std::to_underlying(b));
+    }
 
     namespace shaders {
         enum class DescriptorType : uint16_t {

@@ -162,8 +162,7 @@ namespace engine::vulkan {
     }
 
     ///////////////////////////
-    GpuProgram::GpuProgram(std::span<const ShaderModule::View> moduleViews) {
-
+    GpuProgram::GpuProgram(uint16_t id, std::span<const ShaderModule::View> moduleViews) : _id(id) {
         uint32_t setsCount = 0u;
         _shaderStages.reserve(moduleViews.size());
         for (const auto & view : moduleViews) {

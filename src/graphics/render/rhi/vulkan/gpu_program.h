@@ -69,7 +69,7 @@ private:
 
 class GpuProgram {
 public:
-    GpuProgram(std::span<const ShaderModule::View> moduleViews);
+    GpuProgram(uint16_t id, std::span<const ShaderModule::View> moduleViews);
 
     std::span<const VkPipelineShaderStageCreateInfo> stages() const noexcept {
         return _shaderStages;
@@ -81,9 +81,12 @@ public:
         return _sets;
     }
 
+    uint16_t id() const noexcept { return _id; }
+
 private:
     std::vector<std::pair<rhi::shaders::BindingSetLayout, uint8_t>> _sets;
     std::vector<VkPipelineShaderStageCreateInfo> _shaderStages;
+    uint16_t _id = 0u;
 };
 
 }

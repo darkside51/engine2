@@ -105,7 +105,7 @@ void loadShaders(auto & device) {
     const engine::vulkan::ShaderModule vsModule{device, engine::rhi::shaders::Stages::eVertex, vBytes};
     const engine::vulkan::ShaderModule fsModule{device, engine::rhi::shaders::Stages::eFragment, fBytes};
 
-    typename Api::GpuProgram program0{std::array{vsModule.view(), fsModule.view()}};
+    typename Api::GpuProgram program0{0u, std::array{vsModule.view(), fsModule.view()}};
 
     int a = 0;
 }
