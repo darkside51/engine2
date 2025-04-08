@@ -36,6 +36,7 @@ namespace engine {
             case LogLevel::eUser:
                 return "u:";
         }
+        return "";
     }
 
     template <typename P>

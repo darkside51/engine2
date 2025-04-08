@@ -76,6 +76,7 @@ namespace engine::vulkan {
 
         LOG_I("vulkan: device create successful");
 
+        createPipelineCache();
         createAllocator();
     }
 
@@ -85,6 +86,7 @@ namespace engine::vulkan {
         _descriptorPoolManager.destroy();
         _descriptorSetLayoutManager.destroy();
 
+        destroyPipelineCache();
         destroyAllocator();
         
         if (_device) {
@@ -92,6 +94,21 @@ namespace engine::vulkan {
             _device = VK_NULL_HANDLE;
             LOG_I("vulkan: device destroyed");
         }
+    }
+
+    void Device::createPipelineCache() noexcept {
+        const VkPipelineCacheCreateInfo pipelineCacheCreateInfo = {
+            .sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO,
+            .pNext = nullptr,
+            .flags = 0u,
+            .initialDataSize = 0u,
+            .pInitialData = nullptr
+        };
+		vkCreatePipelineCache(_device, &pipelineCacheCreateInfo, _gpu.getInstance().getAllocationCallbacks(), &_pipelineCache);
+    }
+
+    void Device::destroyPipelineCache() noexcept {
+        vkDestroyPipelineCache(_device, _pipelineCache, _gpu.getInstance().getAllocationCallbacks());
     }
 
     void Device::createAllocator() noexcept {

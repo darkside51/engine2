@@ -78,6 +78,9 @@ private:
     void createAllocator() noexcept;
     void destroyAllocator() noexcept;
 
+    void createPipelineCache() noexcept;
+    void destroyPipelineCache() noexcept;
+
     VkDevice _device = VK_NULL_HANDLE;
     const PhisicalDevice & _gpu;
     std::vector<DeviceQueueFamily> _queueFamilies;
@@ -87,6 +90,7 @@ private:
     RenderPassManager _renderpassManager;
     DescriptorSetLayoutManager _descriptorSetLayoutManager;
     DescriptorPoolManager _descriptorPoolManager;
+    VkPipelineCache _pipelineCache = VK_NULL_HANDLE;
 };
 
 }

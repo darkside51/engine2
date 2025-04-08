@@ -54,6 +54,7 @@ namespace {
             case SPV_REFLECT_FORMAT_R64G64B64A64_SINT: return Format::eR64G64B64A64_Sint;
             case SPV_REFLECT_FORMAT_R64G64B64A64_SFLOAT: return Format::eR64G64B64A64_Sfloat;
         }
+        return Format::eUndefined;
     }
 
     engine::rhi::shaders::DescriptorType convert2Rhi(SpvReflectDescriptorType type) noexcept {
@@ -72,6 +73,7 @@ namespace {
             case SPV_REFLECT_DESCRIPTOR_TYPE_INPUT_ATTACHMENT: return DescriptorType::eInput_Attachment;
             case SPV_REFLECT_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR: return DescriptorType::eAcceleretion_Structure;
         }
+        return DescriptorType::eCount;
     }
 }
 
@@ -130,8 +132,7 @@ namespace engine::vulkan {
 
         pushConstants.reserve(pushConstantsCount);
 
-        for (const auto * pushConstant : reflectPushConstants) {
-            // pushConstant->spirv_id;
+        for (const auto * pushConstant : reflectPushConstants) { // in can be 0 ar 1 per shader stage
             pushConstants.emplace_back(engine::vulkan::utils::convert2vk(stage), pushConstant->offset, pushConstant->size);
         }
 
@@ -166,11 +167,14 @@ namespace engine::vulkan {
     ///////////////////////////
     GpuProgram::GpuProgram(Device & device, std::span<const ShaderModule::View> moduleViews) : _device(&device) {
         uint32_t setsCount = 0u;
+        uint32_t pushConstantsCount = 0u;
         _shaderStages.reserve(moduleViews.size());
 
         size_t hash = 0u;
         for (const auto & view : moduleViews) {
             setsCount += view.reflection->sets.size();
+            pushConstantsCount += view.reflection->pushConstants.size();
+
             _shaderStages.push_back(VkPipelineShaderStageCreateInfo{
                     .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
                     .pNext = nullptr,
@@ -191,10 +195,13 @@ namespace engine::vulkan {
         _id = static_cast<uint64_t>(hash);
 
         _sets.reserve(setsCount);
+
+        std::vector<VkPushConstantRange> pushConstants; // vector?
+        pushConstants.reserve(pushConstantsCount); 
         
         for (const auto & view : moduleViews) {
             for (const auto & set : view.reflection->sets) {
-                auto it = std::find_if(_sets.begin(), _sets.end(), [setId = set.second](const auto & set){
+                auto it = std::find_if(_sets.begin(), _sets.end(), [setId = set.second](const auto & set) {
                     return set.second == setId;
                 });
 
@@ -211,6 +218,10 @@ namespace engine::vulkan {
                     }
                 }
             }
+
+            for (const auto & pconst : view.reflection->pushConstants) { // can be 0 ar 1 per stage
+                pushConstants.emplace_back(pconst);
+            }
         }
 
         _sets.shrink_to_fit();
@@ -222,6 +233,7 @@ namespace engine::vulkan {
         // create pipeline layout
         std::vector<VkDescriptorSetLayout> vkSetLayouts; // vector?
         vkSetLayouts.reserve(_sets.size());
+
         auto & descriptorSetLayoutManager = _device->getDescriptorSetLayoutManager();
         for (const auto & [layout, _] : _sets) {
             vkSetLayouts.push_back(descriptorSetLayoutManager.getSetlayout(layout));
@@ -237,8 +249,8 @@ namespace engine::vulkan {
                         // to be created with a subset of the total descriptor sets.
             .setLayoutCount =  static_cast<uint32_t>(vkSetLayouts.size()),
             .pSetLayouts = vkSetLayouts.data(),
-            .pushConstantRangeCount = 0u, // todo!
-            .pPushConstantRanges = nullptr           
+            .pushConstantRangeCount = static_cast<uint32_t>(pushConstants.size()),
+            .pPushConstantRanges = pushConstants.data()      
         };
 
         const auto * allocationCallbacks = _device->gpu().getInstance().getAllocationCallbacks();

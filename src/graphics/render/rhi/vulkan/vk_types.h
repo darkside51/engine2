@@ -1274,6 +1274,85 @@ inline VkStencilOpState convert2vk(rhi::StencilOpState state) noexcept {
     };
 }
 
+inline std::pair<std::array<VkDynamicState, rhi::kDynamicStatesCount>, uint8_t> convert2vk(rhi::DynamicState states) noexcept {
+    std::pair<std::array<VkDynamicState, rhi::kDynamicStatesCount>, uint8_t> result = {};
+    auto & [resultStates, count] = result;
+
+    if (std::to_underlying(states & rhi::DynamicState::eViewport)) {
+        resultStates[count++] = VkDynamicState::VK_DYNAMIC_STATE_VIEWPORT;
+    } 
+    if (std::to_underlying(states & rhi::DynamicState::eScissor)) {
+        resultStates[count++] = VkDynamicState::VK_DYNAMIC_STATE_SCISSOR;
+    }
+    if (std::to_underlying(states & rhi::DynamicState::eLine_Width)) {
+        resultStates[count++] = VkDynamicState::VK_DYNAMIC_STATE_LINE_WIDTH;
+    }
+    if (std::to_underlying(states & rhi::DynamicState::eDepth_Bias)) {
+        resultStates[count++] = VkDynamicState::VK_DYNAMIC_STATE_DEPTH_BIAS;
+    }
+    if (std::to_underlying(states & rhi::DynamicState::eBlend_Constants)) {
+        resultStates[count++] = VkDynamicState::VK_DYNAMIC_STATE_BLEND_CONSTANTS;
+    }
+    if (std::to_underlying(states & rhi::DynamicState::eDepth_Bounds)) {
+        resultStates[count++] = VkDynamicState::VK_DYNAMIC_STATE_DEPTH_BOUNDS;
+    }
+    if (std::to_underlying(states & rhi::DynamicState::eStencil_Compare_Mask)) {
+        resultStates[count++] = VkDynamicState::VK_DYNAMIC_STATE_STENCIL_COMPARE_MASK;
+    }
+    if (std::to_underlying(states & rhi::DynamicState::eStencil_Write_Mask)) {
+        resultStates[count++] = VkDynamicState::VK_DYNAMIC_STATE_STENCIL_WRITE_MASK;
+    }
+    if (std::to_underlying(states & rhi::DynamicState::eStencil_Refference)) {
+        resultStates[count++] = VkDynamicState::VK_DYNAMIC_STATE_STENCIL_REFERENCE;
+    }
+    if (std::to_underlying(states & rhi::DynamicState::eCull_Mode)) {
+        resultStates[count++] = VkDynamicState::VK_DYNAMIC_STATE_CULL_MODE;
+    }
+    if (std::to_underlying(states & rhi::DynamicState::eFront_Face)) {
+        resultStates[count++] = VkDynamicState::VK_DYNAMIC_STATE_FRONT_FACE;
+    }
+    if (std::to_underlying(states & rhi::DynamicState::ePrimitive_Topology)) {
+        resultStates[count++] = VkDynamicState::VK_DYNAMIC_STATE_PRIMITIVE_TOPOLOGY;
+    }
+    if (std::to_underlying(states & rhi::DynamicState::eViewport_With_Count)) {
+        resultStates[count++] = VkDynamicState::VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT;
+    }
+    if (std::to_underlying(states & rhi::DynamicState::eScissor_With_Count)) {
+        resultStates[count++] = VkDynamicState::VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT;
+    }
+    if (std::to_underlying(states & rhi::DynamicState::eVertex_Input_Binding_Stride)) {
+        resultStates[count++] = VkDynamicState::VK_DYNAMIC_STATE_VERTEX_INPUT_BINDING_STRIDE;
+    }
+    if (std::to_underlying(states & rhi::DynamicState::eDepth_Test_Enable)) {
+        resultStates[count++] = VkDynamicState::VK_DYNAMIC_STATE_DEPTH_TEST_ENABLE;
+    }
+    if (std::to_underlying(states & rhi::DynamicState::eDepth_Write_Enable)) {
+        resultStates[count++] = VkDynamicState::VK_DYNAMIC_STATE_DEPTH_WRITE_ENABLE;
+    }
+    if (std::to_underlying(states & rhi::DynamicState::eDepth_Compare_Op)) {
+        resultStates[count++] = VkDynamicState::VK_DYNAMIC_STATE_DEPTH_COMPARE_OP;
+    }
+    if (std::to_underlying(states & rhi::DynamicState::eDepth_Bounds_Test_Enable)) {
+        resultStates[count++] = VkDynamicState::VK_DYNAMIC_STATE_DEPTH_BOUNDS_TEST_ENABLE;
+    }
+    if (std::to_underlying(states & rhi::DynamicState::eStencil_Test_Enable)) {
+        resultStates[count++] = VkDynamicState::VK_DYNAMIC_STATE_STENCIL_TEST_ENABLE;
+    }
+    if (std::to_underlying(states & rhi::DynamicState::eStencil_Op)) {
+        resultStates[count++] = VkDynamicState::VK_DYNAMIC_STATE_STENCIL_OP;
+    }
+    if (std::to_underlying(states & rhi::DynamicState::eRasterizer_Discard_Enable)) {
+        resultStates[count++] = VkDynamicState::VK_DYNAMIC_STATE_RASTERIZER_DISCARD_ENABLE;
+    }
+    if (std::to_underlying(states & rhi::DynamicState::eDepth_Bias_Enable)) {
+        resultStates[count++] = VkDynamicState::VK_DYNAMIC_STATE_DEPTH_BIAS_ENABLE;
+    }
+    if (std::to_underlying(states & rhi::DynamicState::ePrimitive_Restart_Enable)) {
+        resultStates[count++] = VkDynamicState::VK_DYNAMIC_STATE_PRIMITIVE_RESTART_ENABLE;
+    }
+    return result;
+}
+
 }
 
 }
