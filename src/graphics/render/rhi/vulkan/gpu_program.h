@@ -19,6 +19,7 @@ struct ModuleReflection {
         rhi::Format format = rhi::Format::eUndefined;
     };
 
+    ModuleReflection() = default;
     ModuleReflection(rhi::shaders::Stages stage, std::span<const std::byte> code);
     std::vector<InValue> in;
     std::vector<std::pair<rhi::shaders::BindingSetLayout, uint8_t>> sets; // pair of BindingSetLayout and set id
@@ -33,6 +34,7 @@ public:
         const ModuleReflection * reflection;  
     };
 
+    ShaderModule() = default;
     ShaderModule(const Device & device, rhi::shaders::Stages stage, std::span<const std::byte> code);
     ~ShaderModule();
 
@@ -61,6 +63,8 @@ public:
         return {_shaderModule, &_reflection};
     }
 
+    void destroy() noexcept;
+
 private:
     const Device * _device = nullptr; 
     VkShaderModule _shaderModule = VK_NULL_HANDLE;
@@ -69,6 +73,7 @@ private:
 
 class GpuProgram {
 public:
+    GpuProgram() = default;
     GpuProgram(Device & device, std::span<const ShaderModule::View> moduleViews);
     ~GpuProgram();
 
@@ -86,6 +91,8 @@ public:
 
     VkPipelineLayout pipelineLayout() const noexcept { return _pipelineLayout; }
     inline explicit operator bool() const noexcept { return _pipelineLayout != VK_NULL_HANDLE; }
+
+    void destroy() noexcept;
 
 private:
     std::vector<std::pair<rhi::shaders::BindingSetLayout, uint8_t>> _sets;

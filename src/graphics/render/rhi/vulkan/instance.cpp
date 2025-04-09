@@ -8,8 +8,24 @@
 
 namespace engine::vulkan {
 
-    VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData) {
-        LOG_E("vulkan error: %s", pCallbackData->pMessage);
+    VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, 
+        VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData) {
+
+        switch (messageType) {
+        case VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT: [[fallthrough]]
+        case VK_DEBUG_UTILS_MESSAGE_TYPE_DEVICE_ADDRESS_BINDING_BIT_EXT:
+            LOG_I("vulkan: %s", pCallbackData->pMessage);
+            break;
+        case VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT:
+            LOG_E("vulkan error: %s", pCallbackData->pMessage);
+            break;
+        case VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT: 
+            LOG_D("vulkan warning: %s", pCallbackData->pMessage);
+            break;
+        default:
+            break;
+        }
+        
         return VK_FALSE;
     }
 

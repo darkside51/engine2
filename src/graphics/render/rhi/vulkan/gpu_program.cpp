@@ -158,9 +158,14 @@ namespace engine::vulkan {
     }
 
     ShaderModule::~ShaderModule() {
+        destroy();
+    }
+
+    void ShaderModule::destroy() noexcept {
         if (_shaderModule != VK_NULL_HANDLE) {
             const auto * allocationCallbacks = _device->gpu().getInstance().getAllocationCallbacks();
             vkDestroyShaderModule(_device->operator()(), _shaderModule, allocationCallbacks);
+            _shaderModule = VK_NULL_HANDLE;
         }
     }
 
@@ -262,6 +267,10 @@ namespace engine::vulkan {
     }
 
     GpuProgram::~GpuProgram() {
+        destroy();
+    }
+
+    void GpuProgram::destroy() noexcept {
         if (_pipelineLayout) {
             const auto * allocationCallbacks = _device->gpu().getInstance().getAllocationCallbacks();
             vkDestroyPipelineLayout(_device->operator()(), _pipelineLayout, allocationCallbacks);

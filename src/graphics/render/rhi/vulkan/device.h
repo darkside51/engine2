@@ -74,6 +74,10 @@ public:
         return _descriptorPoolManager;
     }
 
+    VkPipelineCache pipelineCache() const noexcept {
+        return _pipelineCache;
+    }
+
 private:
     void createAllocator() noexcept;
     void destroyAllocator() noexcept;

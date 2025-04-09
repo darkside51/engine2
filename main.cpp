@@ -39,6 +39,8 @@
 #include "graphics/render/rhi/vulkan/descriptor_set_updater.h"
 #include "graphics/render/rhi/vulkan/gpu_program.h"
 
+using gApi = engine::rhi::Api<engine::vulkan::Api>;
+
 engine::rhi::RenderPassDescription createRenderPassDescription(engine::rhi::Format colorFormat, engine::rhi::Format depthFormat) {
     std::vector<engine::rhi::AttachmentDescription> attachments(2u);
     attachments[0].format = colorFormat;
@@ -92,7 +94,150 @@ auto createDescriptorSets(auto & device, const engine::rhi::shaders::BindingSetL
     return pool.allocateDescriptorSet(setLayout);
 }
 
+engine::vulkan::ShaderModule vsModule0;
+engine::vulkan::ShaderModule fsModule0;
+gApi::GpuProgram gProgram0;
+VkPipeline gPipeline = VK_NULL_HANDLE;
+
+void createPipeline(gApi::Device & device, VkRenderPass renderPass) {
+    using Api = gApi;
+
+    engine::FileManager fm;
+    auto * fsystem = fm.createFileSystem<engine::CommonFileSystem>("main", engine::CommonFileSystem::getCurrentDirectory() + "./resources/");
+
+    auto const vBytes = fm.readFile("shaders/simple.vert.spv");
+    auto const fBytes = fm.readFile("shaders/simple.frag.spv");
+
+    vsModule0 = {device, engine::rhi::shaders::Stages::eVertex, vBytes};
+    fsModule0 = {device, engine::rhi::shaders::Stages::eFragment, fBytes};
+
+    gProgram0 = {device, std::array{vsModule0.view(), fsModule0.view()}};
+
+    ///////////////////////////////
+
+    // viewport state sets the number of viewports and scissor used in this pipeline
+    // this is actually overridden by the dynamic states (see below)
+    VkPipelineViewportStateCreateInfo viewportState = {};
+    viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+    viewportState.viewportCount = 1u;
+    viewportState.scissorCount = 1u;
+
+    // enable dynamic states
+    // most states are baked into the pipeline, but there are still a few dynamic states that can be changed within a command buffer
+    // to be able to change these we need do specify which dynamic states will be changed using this pipeline.
+    // Their actual states are set later on in the command buffer.
+    // todo: need setup this?
+    std::vector<VkDynamicState> dynamicStateEnables;
+    dynamicStateEnables.push_back(VK_DYNAMIC_STATE_VIEWPORT);
+    dynamicStateEnables.push_back(VK_DYNAMIC_STATE_SCISSOR);
+
+    VkPipelineDynamicStateCreateInfo dynamicState = {};
+    dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+    dynamicState.pDynamicStates = dynamicStateEnables.data();
+    dynamicState.dynamicStateCount = static_cast<uint32_t>(dynamicStateEnables.size());
+
+    // multi sampling state
+    // todo: setup this
+    VkPipelineMultisampleStateCreateInfo multisampleState = {};
+    multisampleState.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+    multisampleState.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT; // no multisampling
+    multisampleState.pSampleMask = nullptr;
+
+    ///////////// input assembly
+    VkPipelineInputAssemblyStateCreateInfo inputAssemblyState;
+    inputAssemblyState.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+    inputAssemblyState.pNext = nullptr;
+    inputAssemblyState.flags = 0;
+    inputAssemblyState.primitiveRestartEnable = false;
+    inputAssemblyState.topology = VkPrimitiveTopology::VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+
+    ////////////// depthStencil
+    VkPipelineDepthStencilStateCreateInfo depthStencilState = {};
+    depthStencilState.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+
+    // depth state
+    depthStencilState.depthTestEnable = false;
+    depthStencilState.depthWriteEnable = false;
+    depthStencilState.depthCompareOp = VkCompareOp::VK_COMPARE_OP_ALWAYS;
+
+    // stencil state
+    // states for back faces and front faces
+    depthStencilState.stencilTestEnable = false;
+
+    // vertex input binding
+    const size_t vertexBindingsSize = 1u;
+    std::vector<VkVertexInputBindingDescription> vertexInputBindings(vertexBindingsSize);
+    for (size_t i = 0u; i < vertexBindingsSize; ++i) {
+        vertexInputBindings[i].binding = 0u;
+        vertexInputBindings[i].stride = 12u; // for vec3
+        vertexInputBindings[i].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+    }
+
+    // vertex input state used for pipeline creation
+    std::vector<VkVertexInputAttributeDescription> attributes(1u);
+    attributes[0].binding = 0u;
+    attributes[0].location = 0u;
+    attributes[0].offset = 0u;
+    attributes[0].format = VkFormat::VK_FORMAT_R32G32B32_SFLOAT;
+
+    VkPipelineVertexInputStateCreateInfo vertexInputState = {};
+    vertexInputState.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+    vertexInputState.vertexBindingDescriptionCount = vertexBindingsSize;
+    vertexInputState.pVertexBindingDescriptions = vertexInputBindings.data();
+    vertexInputState.vertexAttributeDescriptionCount = attributes.size();
+    vertexInputState.pVertexAttributeDescriptions = attributes.data();
+
+    // rasterizationInfo
+    VkPipelineRasterizationStateCreateInfo rasterizationInfo = {};
+    rasterizationInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+    rasterizationInfo.pNext = nullptr;
+    rasterizationInfo.cullMode = VK_CULL_MODE_NONE;
+    rasterizationInfo.frontFace = VK_FRONT_FACE_CLOCKWISE;
+    rasterizationInfo.lineWidth = 1.0f;
+    rasterizationInfo.polygonMode = VK_POLYGON_MODE_FILL;
+    rasterizationInfo.depthBiasEnable = false;
+    rasterizationInfo.depthClampEnable = false;
+
+    std::vector<VkPipelineColorBlendAttachmentState> blendAttachmentState(1);
+    blendAttachmentState[0].blendEnable = false;
+
+    VkPipelineColorBlendStateCreateInfo colorBlendInfo = {};
+	colorBlendInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+	colorBlendInfo.attachmentCount = static_cast<uint32_t>(blendAttachmentState.size());
+	colorBlendInfo.pAttachments = blendAttachmentState.data();
+
+    //////////////////
+    VkGraphicsPipelineCreateInfo pipelineCreateInfo = {};
+    pipelineCreateInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+
+    pipelineCreateInfo.pViewportState		= &viewportState;
+    pipelineCreateInfo.pDynamicState		= &dynamicState;
+    pipelineCreateInfo.pMultisampleState	= &multisampleState;
+
+    pipelineCreateInfo.pInputAssemblyState	= &inputAssemblyState;
+    pipelineCreateInfo.pRasterizationState	= &rasterizationInfo;
+    pipelineCreateInfo.pColorBlendState		= &colorBlendInfo;
+    pipelineCreateInfo.pDepthStencilState	= &depthStencilState;
+    pipelineCreateInfo.pVertexInputState	= &vertexInputState;
+
+    // set pipeline shader stage info
+    auto const stages = gProgram0.stages();
+    pipelineCreateInfo.stageCount = static_cast<uint32_t>(stages.size());
+    pipelineCreateInfo.pStages = stages.data();
+
+    // the layout used for this pipeline (can be shared among multiple pipelines using the same layout)
+    pipelineCreateInfo.layout = gProgram0.pipelineLayout();
+    // renderpass this pipeline is attached to
+    pipelineCreateInfo.renderPass = renderPass;
+    pipelineCreateInfo.subpass = 0u;
+
+    vkCreateGraphicsPipelines(device(), device.pipelineCache(), 1, &pipelineCreateInfo, nullptr, &gPipeline);
+
+    int a = 0;
+}
+
 void loadShaders(auto & device) {
+    return;
     using namespace engine::rhi;
     using Api = std::decay_t<decltype(device)>::Api;
 
@@ -211,6 +356,8 @@ int main() {
     const engine::rhi::Api<engine::vulkan::Api> api;
     using Api = decltype(api);
 
+    bool const kUseApiDebugMessages = true;
+
     engine::rhi::InstanceCreateInfo instanceCreateInfo {
         .apiVersion = engine::common::Version{1, 3, 0},
         .extensions = {"VK_KHR_surface", "VK_KHR_win32_surface", "VK_KHR_xcb_surface", "VK_KHR_xlib_surface", 
@@ -218,7 +365,7 @@ int main() {
             Api::Impl::kDebugUtilExtName // for validation
             },
         .layers = {Api::Impl::kLayerValidationKHR}, // for validation
-        .createDebugMessages = false,
+        .createDebugMessages = kUseApiDebugMessages,
         .allocationCallback = nullptr
     };
     
@@ -316,6 +463,7 @@ int main() {
         
         
         //
+        createPipeline(device, renderPass);
         loadShaders(device);
         createBuffers(device);
 
