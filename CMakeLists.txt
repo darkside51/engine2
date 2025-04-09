@@ -43,18 +43,32 @@ elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
 	set(resources_dst_dir "${PROJECT_BINARY_DIR}/resources")
 endif()
 
-add_custom_command(TARGET ${PROJECT_NAME}
-				  POST_BUILD
-	              COMMAND ${CMAKE_COMMAND}
-    	          -Dsrc_dir="${resources_src_dir}/assets"
-    	          -Ddst_dir="${resources_dst_dir}/assets"
-    	          -P "${CMAKE_CURRENT_SOURCE_DIR}/tools/cmake/update_directory.cmake"
-	              )
+# add_custom_command(TARGET ${PROJECT_NAME}
+# 				  POST_BUILD
+# 	              COMMAND ${CMAKE_COMMAND}
+#     	          -Dsrc_dir="${resources_src_dir}/assets"
+#     	          -Ddst_dir="${resources_dst_dir}/assets"
+#     	          -P "${CMAKE_CURRENT_SOURCE_DIR}/tools/cmake/update_directory.cmake"
+# 	              )
 
-add_custom_command(TARGET ${PROJECT_NAME}
-                   POST_BUILD
-                   COMMAND ${CMAKE_COMMAND} -E make_directory ${resources_dst_dir}/shaders
-                   COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/tools/glslToSpirv/shaders_convert.py -i ${resources_src_dir}/shaders/ -o ${resources_dst_dir}/shaders/
-                   )
+#add_custom_command(TARGET ${PROJECT_NAME}
+#                   POST_BUILD
+#                   COMMAND ${CMAKE_COMMAND} -E make_directory ${resources_dst_dir}/shaders
+#                   COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/tools/glslToSpirv/shaders_convert.py -i ${resources_src_dir}/shaders/ -o ${resources_dst_dir}/shaders/
+#                   )
+
+
+add_custom_target(resources
+				  COMMAND ${CMAKE_COMMAND}
+				  -Dsrc_dir="${resources_src_dir}/assets"
+				  -Ddst_dir="${resources_dst_dir}/assets"
+				  -P "${CMAKE_CURRENT_SOURCE_DIR}/tools/cmake/update_directory.cmake"
+)
+
+add_custom_target(shaders
+                  COMMAND ${CMAKE_COMMAND} -E make_directory ${resources_dst_dir}/shaders
+                  COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/tools/glslToSpirv/shaders_convert.py -i ${resources_src_dir}/shaders/ -o ${resources_dst_dir}/shaders/
+)
+add_dependencies(${PROJECT_NAME} resources shaders)
 
 message(STATUS "!!!!!project generate complete!!!!!")
