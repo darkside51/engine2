@@ -138,7 +138,10 @@ inline rhi::ColorSpace convert2rhi(VkColorSpaceKHR colorSpace) noexcept {
             return rhi::ColorSpace::ePASS_THROUGH;
         case VK_COLOR_SPACE_EXTENDED_SRGB_NONLINEAR_EXT:
             return rhi::ColorSpace::eEXTENDED_SRGB_Nonlinear;
+        default: return rhi::ColorSpace::eSRGB_Nonlinear;
     }
+
+    return rhi::ColorSpace::eSRGB_Nonlinear;
 }
 
 inline VkPresentModeKHR convert2vk(rhi::PresentMode mode) noexcept {
@@ -840,6 +843,7 @@ inline rhi::Format convert2rhi(VkFormat format) noexcept {
         case VK_FORMAT_ASTC_12x10_SRGB_BLOCK: return rhi::Format::eASTC_12x10_Srgb_Block;
         case VK_FORMAT_ASTC_12x12_UNORM_BLOCK: return rhi::Format::eASTC_12x12_Unorm_Block;
         case VK_FORMAT_ASTC_12x12_SRGB_BLOCK: return rhi::Format::eASTC_12x12_Srgb_Block;
+        default: return rhi::Format::eUndefined;
     }
 
     assert(false); // unknown format
@@ -1044,7 +1048,10 @@ inline VkDescriptorType convert2vk(rhi::shaders::DescriptorType type) noexcept {
         case DescriptorType::eInput_Attachment: return VkDescriptorType::VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT; 
         case DescriptorType::eInline_Uniform_Block: return VkDescriptorType::VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK;
         case DescriptorType::eAcceleretion_Structure: return VkDescriptorType::VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR; 
+        default: return VkDescriptorType::VK_DESCRIPTOR_TYPE_MAX_ENUM;
     }
+
+    return VkDescriptorType::VK_DESCRIPTOR_TYPE_MAX_ENUM;
 }
 
 inline VkDescriptorPoolCreateFlags convert2vk(rhi::shaders::DescriptorPoolFlags flags) noexcept {
@@ -1142,6 +1149,15 @@ inline VkShaderStageFlags convert2vk(rhi::shaders::Stages stages) noexcept {
         result |= VkShaderStageFlagBits::VK_SHADER_STAGE_MESH_BIT_EXT;
     }
     return result;
+}
+
+inline VkIndexType convert2vk(rhi::IndexType type) noexcept {
+    switch (type) {
+        case rhi::IndexType::eU16: return VkIndexType::VK_INDEX_TYPE_UINT16;
+        case rhi::IndexType::eU32: return VkIndexType::VK_INDEX_TYPE_UINT32;
+        case rhi::IndexType::eU8: return VkIndexType::VK_INDEX_TYPE_UINT8_EXT;
+    }
+    return VkIndexType::VK_INDEX_TYPE_UINT16;
 }
 
 ///////////////////////

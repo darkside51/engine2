@@ -4,6 +4,7 @@
 #include "graphics/render/rhi/common/types.h"
 #include "buffer.h"
 #include "image.h"
+#include "pipeline.h"
 
 #include <vulkan/vulkan.h>
 
@@ -66,6 +67,13 @@ namespace engine::vulkan {
             vkCmdExecuteCommands(_commandBuffer, secondaryCommandBuffers.size(), secondaryCommandBuffers.data());
         }
 
+        void bindPipeline(Pipeline const & pipeline) noexcept;
+        void bindVertexBuffers(std::span<const VkBuffer> buffers, std::span<const VkDeviceSize> offsets, uint32_t firstBinding = 0u) noexcept;
+        void bindIndexBuffer(VkBuffer buffer, VkDeviceSize offset, rhi::IndexType type = rhi::IndexType::eU32) noexcept;
+        void bindDescriptorSets(std::span<const VkDescriptorSet> sets, std::span<const uint32_t> dynamicOffsets, uint32_t firstSet = 0u) noexcept;
+
+        void draw(uint32_t vertexCount, uint32_t instanceCount = 1u, uint32_t firstVertex = 0u, uint32_t firstInstance = 0u) const noexcept;
+
         void setViewport(float x, float y, float w, float h, float minDepth, float maxDepth) noexcept;
         void setScissorRect(const rhi::Rect2D & area) noexcept;
 
@@ -91,5 +99,6 @@ namespace engine::vulkan {
         CommandPool & _pool;
         rhi::CommandBufferLevel _level{};
         VkCommandBuffer _commandBuffer = VK_NULL_HANDLE;
+        Pipeline _pipeline{};
     };
 }

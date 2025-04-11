@@ -3,6 +3,7 @@
 
 #include "log/log.h"
 
+#include <algorithm>
 #include <cstring>
 #include <vector>
 
@@ -12,7 +13,7 @@ namespace engine::vulkan {
         VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData) {
 
         switch (messageType) {
-        case VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT: [[fallthrough]]
+        case VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT: [[fallthrough]];
         case VK_DEBUG_UTILS_MESSAGE_TYPE_DEVICE_ADDRESS_BINDING_BIT_EXT:
             LOG_I("vulkan: %s", pCallbackData->pMessage);
             break;

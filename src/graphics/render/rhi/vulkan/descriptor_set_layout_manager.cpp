@@ -19,7 +19,14 @@ namespace engine::vulkan {
             return it->second;
         }
 
-        return _layouts.emplace(key, _device.createDescriptorSetLayout(key)).first->second;
+        const auto [it, success] = _layouts.emplace(key, _device.createDescriptorSetLayout(key));
+
+        if (success) {
+            return it->second;
+        }
+
+        assert(false);
+        return VK_NULL_HANDLE;
     }
 
     void DescriptorSetLayoutManager::eraseSetLayout(const rhi::shaders::BindingSetLayout & key) noexcept {

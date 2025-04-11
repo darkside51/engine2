@@ -766,6 +766,12 @@ namespace engine::rhi {
         eSecondaryBuffers = 1u
     };
 
+    enum class IndexType : uint8_t {
+        eU16 = 0u,
+        eU32 = 1u,
+        eU8 = 2u, // index_type_uint8
+    };
+
     enum class PipelineBindPoint : uint8_t {
         eGraphics = 0u,
         eCompute = 1u,

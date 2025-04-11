@@ -252,7 +252,7 @@ namespace engine::vulkan {
                         // of a particular descriptor set do not influence any other properties of the pipeline layout. 
                         // This allows pipelines libraries linked without VK_PIPELINE_CREATE_LINK_TIME_OPTIMIZATION_BIT_EXT 
                         // to be created with a subset of the total descriptor sets.
-            .setLayoutCount =  static_cast<uint32_t>(vkSetLayouts.size()),
+            .setLayoutCount = static_cast<uint32_t>(vkSetLayouts.size()),
             .pSetLayouts = vkSetLayouts.data(),
             .pushConstantRangeCount = static_cast<uint32_t>(pushConstants.size()),
             .pPushConstantRanges = pushConstants.data()      

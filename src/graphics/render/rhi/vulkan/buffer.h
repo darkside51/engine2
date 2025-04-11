@@ -15,6 +15,7 @@ namespace engine::vulkan {
 
     class Buffer {
     public:
+        Buffer() = default;
         Buffer(Device & device, const rhi::BufferInfo & info, size_t size);
         ~Buffer();
         
@@ -74,7 +75,7 @@ namespace engine::vulkan {
     private:
         Device * _device = nullptr;
         VkBuffer _buffer = VK_NULL_HANDLE;
-        MemoryAllocation _allocation;
+        MemoryAllocation _allocation{};
         std::unordered_map<rhi::Format, VkBufferView> _bufferViews;
         uint32_t _queueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
         size_t _size = 0u;

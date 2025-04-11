@@ -29,6 +29,10 @@ namespace engine::vulkan {
     }
 
     Buffer::~Buffer() {
+        if (!_device) {
+            return;
+        }
+
         if (_buffer) {
             _device->getMemoryAllocator().destroyBuffer(_buffer, _allocation);
         }

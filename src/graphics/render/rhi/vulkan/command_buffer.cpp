@@ -110,4 +110,34 @@ namespace engine::vulkan {
         vkCmdCopyBufferToImage(_commandBuffer, src(), dst(), baseLayout, copyInfo.size(), copyInfo.data());
     }
 
+    void CommandBuffer::bindPipeline(Pipeline const & pipeline) noexcept {
+        if (_pipeline.pipeline != pipeline.pipeline) {
+            vkCmdBindPipeline(_commandBuffer, pipeline.bindPoint, pipeline.pipeline);
+            _pipeline = pipeline;
+        }
+    }
+
+    void CommandBuffer::bindVertexBuffers(std::span<const VkBuffer> buffers, std::span<const VkDeviceSize> offsets, uint32_t firstBinding) noexcept {
+        vkCmdBindVertexBuffers(_commandBuffer, firstBinding, buffers.size(), buffers.data(), offsets.data());
+    }
+
+    void CommandBuffer::bindIndexBuffer(VkBuffer buffer, VkDeviceSize offset, rhi::IndexType type) noexcept {
+        vkCmdBindIndexBuffer(_commandBuffer, buffer, offset, utils::convert2vk(type));
+    }
+
+    void CommandBuffer::bindDescriptorSets(std::span<const VkDescriptorSet> sets, std::span<const uint32_t> dynamicOffsets, uint32_t firstSet) noexcept {
+        vkCmdBindDescriptorSets(
+            _commandBuffer, 
+            _pipeline.bindPoint,
+            _pipeline.layout,
+            firstSet, 
+            sets.size(), sets.data(),
+            dynamicOffsets.size(), dynamicOffsets.data()
+        );
+    }
+
+    void CommandBuffer::draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) const noexcept {
+        vkCmdDraw(_commandBuffer, vertexCount, instanceCount, firstVertex, firstInstance);
+    }
+
 }
