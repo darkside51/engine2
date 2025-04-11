@@ -69,13 +69,13 @@ namespace engine::vulkan {
 
         void bindPipeline(Pipeline const & pipeline) noexcept;
         void bindVertexBuffers(std::span<const VkBuffer> buffers, std::span<const VkDeviceSize> offsets, uint32_t firstBinding = 0u) noexcept;
-        void bindIndexBuffer(VkBuffer buffer, VkDeviceSize offset, rhi::IndexType type = rhi::IndexType::eU32) noexcept;
+        void bindIndexBuffer(VkBuffer buffer, uint32_t offset, rhi::IndexType type = rhi::IndexType::eU32) noexcept;
         void bindDescriptorSets(std::span<const VkDescriptorSet> sets, std::span<const uint32_t> dynamicOffsets, uint32_t firstSet = 0u) noexcept;
 
         void draw(uint32_t vertexCount, uint32_t instanceCount = 1u, uint32_t firstVertex = 0u, uint32_t firstInstance = 0u) const noexcept;
 
-        void setViewport(float x, float y, float w, float h, float minDepth, float maxDepth) noexcept;
-        void setScissorRect(const rhi::Rect2D & area) noexcept;
+        void setViewport(float x, float y, float w, float h, float minDepth = 0.0f, float maxDepth = 1.0f, uint32_t viewportIdx = 0u) noexcept;
+        void setScissorRect(const rhi::Rect2D & area, uint32_t scessorIdx = 0u) noexcept;
 
         void copyBuffer2Buffer(const Buffer & src, const Buffer & dst, std::span<VkBufferCopy> copyInfo) const noexcept;
         void copyBufferToImage(const Buffer & src, const Image & dst, std::span<VkBufferImageCopy> copyInfo) const noexcept;

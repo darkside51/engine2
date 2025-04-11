@@ -130,6 +130,20 @@ namespace engine::rhi {
         return static_cast<MemoryExtendedFlags>(std::to_underlying(a) & std::to_underlying(b));
     }
 
+    enum class ColorComponent : uint8_t {
+        eNone = 0u,
+        eR = 1u,
+        eG = 2u,
+        eB = 4u, 
+        eA = 8u
+    };
+    inline constexpr ColorComponent operator | (ColorComponent a, ColorComponent b) {
+        return static_cast<ColorComponent>(std::to_underlying(a) | std::to_underlying(b));
+    }
+    inline constexpr ColorComponent operator & (ColorComponent a, ColorComponent b) {
+        return static_cast<ColorComponent>(std::to_underlying(a) & std::to_underlying(b));
+    }
+    
     enum class SharingMode : uint8_t {
         eExclusive = 0u,
         eConcurrent = 1u
@@ -800,7 +814,7 @@ namespace engine::rhi {
         eDec_And_Wrap = 7u,
     };
 
-    enum class BlendOp : uint8_t {
+    enum class BlendOp : uint8_t { // 3 bits
         eAdd = 0u,
         eSubtract = 1u,
         eReverse_Subtract = 2u,
@@ -808,7 +822,7 @@ namespace engine::rhi {
         eMax = 4u,
     };
 
-    enum class BlendFactor : uint8_t {
+    enum class BlendFactor : uint8_t { // 4 bits
         eZero = 0u,
         eOne = 1u,
         eSrc_Color = 2u,
@@ -824,10 +838,6 @@ namespace engine::rhi {
         eConst_Alpha = 12u,
         eOne_Minus_Const_Alpha = 13u,
         eSrc_Alpha_Saturate = 14u,
-        eSrc1_Color = 15u,
-        eOne_Minus_Src1_Color = 16u,
-        eSrc1_Alpha = 17u,
-        eOne_Minus_Src1_Alpha = 18u,
     };
 
     enum class PrimitiveTopology : uint8_t {
@@ -871,6 +881,113 @@ namespace engine::rhi {
         StencilOp depthFailOp{};
         CompareOp compareOp{};
     };
+
+    struct DepthState {
+        bool depthTestEnable = false;
+        bool depthWriteEnable = false;
+        CompareOp depthCompareOp = CompareOp::eAlways;
+        bool depthBoundsTestEnable = false;
+        float minDepthBounds = 0.0f;
+        float maxDepthBounds = 1.0f;
+    };
+
+    struct StencilState {
+        StencilOpState front{};
+        StencilOpState back{};
+        bool stencilTestEnable = false;
+    };
+
+    struct BlendMode {
+        bool blendEnable = false;                           // 1bit
+        BlendFactor srcColorFactor = BlendFactor::eZero;    // 4bits
+        BlendFactor dstColorFactor = BlendFactor::eZero;    // 4bits
+        BlendOp colorBlendOp = BlendOp::eAdd;               // 3bits
+        BlendFactor srcAlphaFactor = BlendFactor::eZero;    // 4bits
+        BlendFactor dstAlphaFactor = BlendFactor::eZero;    // 4bits
+        BlendOp alphaBlendOp = BlendOp::eAdd;               // 3bits
+        ColorComponent colorWriteMask = ColorComponent::eR | ColorComponent::eG | ColorComponent::eB | ColorComponent::eA;  // 4bits
+
+        constexpr BlendMode(
+            bool blendEnable,
+            BlendFactor srcColorFactor = BlendFactor::eZero,
+            BlendFactor dstColorFactor = BlendFactor::eZero,
+            BlendFactor srcAlphaFactor = BlendFactor::eZero,
+            BlendFactor dstAlphaFactor = BlendFactor::eZero,
+            BlendOp colorBlendOp = BlendOp::eAdd,
+            BlendOp alphaBlendOp = BlendOp::eAdd,
+            ColorComponent colorWriteMask = ColorComponent::eR | ColorComponent::eG | ColorComponent::eB | ColorComponent::eA
+        ) :
+            blendEnable(blendEnable),
+            srcColorFactor(srcColorFactor),
+            dstColorFactor(dstColorFactor),
+            colorBlendOp(colorBlendOp),
+            srcAlphaFactor(srcAlphaFactor),
+            dstAlphaFactor(dstAlphaFactor),
+            alphaBlendOp(alphaBlendOp),
+            colorWriteMask(colorWriteMask) {
+        }
+
+        constexpr BlendMode(uint32_t blendValue) : 
+            blendEnable((blendValue >> 0u) & 0b0001u),
+            srcColorFactor(static_cast<BlendFactor>((blendValue >> 1u) & 0b1111u)),
+            dstColorFactor(static_cast<BlendFactor>((blendValue >> 5u) & 0b1111u)),
+            colorBlendOp(static_cast<BlendOp>((blendValue >> 9u) & 0b0111u)),
+            srcAlphaFactor(static_cast<BlendFactor>((blendValue >> 12u) & 0b1111u)),
+            dstAlphaFactor(static_cast<BlendFactor>((blendValue >> 16u) & 0b1111u)),
+            alphaBlendOp(static_cast<BlendOp>((blendValue >> 20u) & 0b0111u)),
+            colorWriteMask(static_cast<ColorComponent>((blendValue >> 23u) & 0b1111u)) {
+        }
+
+        constexpr uint32_t asNumber() const noexcept {
+            if (!blendEnable) return static_cast<uint32_t>(colorWriteMask) << 23u;
+
+            return static_cast<uint32_t>(blendEnable) << 0u | // + 1u
+                   static_cast<uint32_t>(srcColorFactor) << 1u | // + 4u
+                   static_cast<uint32_t>(dstColorFactor) << 5u | // + 4u
+                   static_cast<uint32_t>(colorBlendOp) << 9u | // + 3u
+                   static_cast<uint32_t>(srcAlphaFactor) << 12u | // + 4u
+                   static_cast<uint32_t>(dstAlphaFactor) << 16u | // + 4u
+                   static_cast<uint32_t>(alphaBlendOp) << 20u | // + 3u
+                   static_cast<uint32_t>(colorWriteMask) << 23u; // + 4u
+        }
+    }; // 4bits * 5 + 3bits * 2 + 1bit = 27bit
+
+    namespace common_blend_modes {
+        // normal modes
+        inline constexpr static uint32_t blend_none	    = BlendMode(false).asNumber();
+        inline constexpr static uint32_t blend_alpha	= BlendMode(
+            true, BlendFactor::eSrc_Alpha, 
+            BlendFactor::eOne_Minus_Src_Alpha, 
+            BlendFactor::eSrc_Alpha, 
+            BlendFactor::eOne_Minus_Src_Alpha).asNumber();
+
+        inline constexpr static uint32_t blend_add	= BlendMode(
+            true, BlendFactor::eSrc_Alpha, 
+            BlendFactor::eOne, 
+            BlendFactor::eSrc_Alpha, 
+            BlendFactor::eOne).asNumber();
+
+        inline constexpr static uint32_t blend_multiply	= BlendMode(
+            true, BlendFactor::eDst_Color, 
+            BlendFactor::eZero, 
+            BlendFactor::eDst_Color, 
+            BlendFactor::eZero).asNumber();
+        // premultiply alpha modes
+        // https://gamedev.ru/code/articles/PremultipliedAlpha
+        // https://habr.com/ru/company/playrix/blog/336304/
+        // https://apoorvaj.io/alpha-compositing-opengl-blending-and-premultiplied-alpha/
+        inline constexpr static uint32_t blend_alpha_pma	= BlendMode(
+            true, BlendFactor::eOne, 
+            BlendFactor::eOne_Minus_Src_Alpha, 
+            BlendFactor::eOne, 
+            BlendFactor::eOne_Minus_Src_Alpha).asNumber();
+
+        inline constexpr static uint32_t blend_add_pma	= BlendMode(
+            true, BlendFactor::eOne, 
+            BlendFactor::eOne, 
+            BlendFactor::eOne, 
+            BlendFactor::eOne).asNumber();    
+	};
 
     inline constexpr uint8_t kDynamicStatesCount = 24u;
     enum class DynamicState : uint32_t {

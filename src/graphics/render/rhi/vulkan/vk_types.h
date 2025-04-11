@@ -54,6 +54,23 @@ inline VkBufferCopy convert2vk(const rhi::CopyInfo & info) noexcept {
     };
 }
 
+inline VkColorComponentFlags convert2vk(rhi::ColorComponent c) noexcept {
+    VkColorComponentFlags result = 0;
+    if (std::to_underlying(c & rhi::ColorComponent::eR)) {
+        result |= VK_COLOR_COMPONENT_R_BIT;
+    }
+    if (std::to_underlying(c & rhi::ColorComponent::eG)) {
+        result |= VK_COLOR_COMPONENT_G_BIT;
+    }
+    if (std::to_underlying(c & rhi::ColorComponent::eB)) {
+        result |= VK_COLOR_COMPONENT_B_BIT;
+    }
+    if (std::to_underlying(c & rhi::ColorComponent::eA)) {
+        result |= VK_COLOR_COMPONENT_A_BIT;
+    }
+    return result;
+}
+
 inline VkPhysicalDeviceFeatures convert2vk(const rhi::PhysicalDeviceFeatures & features) noexcept {
     VkPhysicalDeviceFeatures result = {};
     std::memset(&result, 0, sizeof(VkPhysicalDeviceFeatures));
@@ -1226,10 +1243,11 @@ inline VkBlendFactor convert2vk(rhi::BlendFactor factor) noexcept {
         case rhi::BlendFactor::eConst_Alpha: return VkBlendFactor::VK_BLEND_FACTOR_CONSTANT_ALPHA;
         case rhi::BlendFactor::eOne_Minus_Const_Alpha: return VkBlendFactor::VK_BLEND_FACTOR_ONE_MINUS_CONSTANT_ALPHA;
         case rhi::BlendFactor::eSrc_Alpha_Saturate: return VkBlendFactor::VK_BLEND_FACTOR_SRC_ALPHA_SATURATE;
-        case rhi::BlendFactor::eSrc1_Color: return VkBlendFactor::VK_BLEND_FACTOR_SRC1_COLOR;
-        case rhi::BlendFactor::eOne_Minus_Src1_Color: return VkBlendFactor::VK_BLEND_FACTOR_ONE_MINUS_SRC1_COLOR;
-        case rhi::BlendFactor::eSrc1_Alpha: return VkBlendFactor::VK_BLEND_FACTOR_SRC1_ALPHA;
-        case rhi::BlendFactor::eOne_Minus_Src1_Alpha: return VkBlendFactor::VK_BLEND_FACTOR_ONE_MINUS_SRC1_ALPHA;
+        default: return VkBlendFactor::VK_BLEND_FACTOR_ZERO;
+        // case rhi::BlendFactor::eSrc1_Color: return VkBlendFactor::VK_BLEND_FACTOR_SRC1_COLOR;
+        // case rhi::BlendFactor::eOne_Minus_Src1_Color: return VkBlendFactor::VK_BLEND_FACTOR_ONE_MINUS_SRC1_COLOR;
+        // case rhi::BlendFactor::eSrc1_Alpha: return VkBlendFactor::VK_BLEND_FACTOR_SRC1_ALPHA;
+        // case rhi::BlendFactor::eOne_Minus_Src1_Alpha: return VkBlendFactor::VK_BLEND_FACTOR_ONE_MINUS_SRC1_ALPHA;
     }
     return VkBlendFactor::VK_BLEND_FACTOR_ZERO;
 }
@@ -1287,6 +1305,19 @@ inline VkStencilOpState convert2vk(rhi::StencilOpState state) noexcept {
         .compareMask = state.compareMask,
         .writeMask = state.writeMask,
         .reference = state.reference
+    };
+}
+
+inline VkPipelineColorBlendAttachmentState convert2vk(rhi::BlendMode mode) noexcept {
+    return {
+        .blendEnable = mode.blendEnable,
+        .srcColorBlendFactor = convert2vk(mode.srcColorFactor),
+        .dstColorBlendFactor = convert2vk(mode.dstColorFactor),
+        .colorBlendOp = convert2vk(mode.colorBlendOp),
+        .srcAlphaBlendFactor = convert2vk(mode.srcAlphaFactor),
+        .dstAlphaBlendFactor = convert2vk(mode.dstAlphaFactor),
+        .alphaBlendOp = convert2vk(mode.alphaBlendOp),
+        .colorWriteMask = convert2vk(mode.colorWriteMask),
     };
 }
 

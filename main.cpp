@@ -38,6 +38,7 @@
 #include "graphics/render/rhi/vulkan/descriptor_pool_manager.h"
 #include "graphics/render/rhi/vulkan/descriptor_set_updater.h"
 #include "graphics/render/rhi/vulkan/gpu_program.h"
+#include "graphics/render/rhi/vulkan/pipeline.h"
 
 using gApi = engine::rhi::Api<engine::vulkan::Api>;
 
@@ -101,6 +102,7 @@ VkPipeline gPipeline = VK_NULL_HANDLE;
 gApi::Buffer vtxBuffer{};
 
 void createPipeline(gApi::Device & device, VkRenderPass renderPass) {
+    using namespace engine;
     using Api = gApi;
 
     engine::FileManager fm;
@@ -115,60 +117,22 @@ void createPipeline(gApi::Device & device, VkRenderPass renderPass) {
     gProgram0 = new gApi::GpuProgram{device, std::array{vsModule0.view(), fsModule0.view()}};
 
     ///////////////////////////////
+    auto const viewportState = vulkan::pipelineViewportStateInfo(1u, 1u);
+    const auto statesArray = vulkan::utils::convert2vk(rhi::DynamicState::eViewport | rhi::DynamicState::eScissor);
+    const auto dynamicState = vulkan::pipelineDynamicStateInfo(statesArray);
+    const auto multisampleState = vulkan::pipelineMultisampleStateInfo();
+    const auto rasterizationInfo = vulkan::rasterizationStateInfo(rhi::PolygonMode::eFill, rhi::CullMode::eBack);
+    const auto inputAssemblyState = vulkan::pipelineInputAssemblyStateInfo(rhi::PrimitiveTopology::eTriangles);
+    const auto depthStencilState = vulkan::pipelineDepthStencilStateInfo({
+        .depthTestEnable = false,
+        .depthWriteEnable = false,
+        .depthCompareOp = rhi::CompareOp::eAlways
+    }, {});
 
-    // viewport state sets the number of viewports and scissor used in this pipeline
-    // this is actually overridden by the dynamic states (see below)
-    VkPipelineViewportStateCreateInfo viewportState = {};
-    viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
-    viewportState.viewportCount = 1u;
-    viewportState.scissorCount = 1u;
-
-    // enable dynamic states
-    // most states are baked into the pipeline, but there are still a few dynamic states that can be changed within a command buffer
-    // to be able to change these we need do specify which dynamic states will be changed using this pipeline.
-    // Their actual states are set later on in the command buffer.
-    // todo: need setup this?
-    std::vector<VkDynamicState> dynamicStateEnables;
-    dynamicStateEnables.push_back(VK_DYNAMIC_STATE_VIEWPORT);
-    dynamicStateEnables.push_back(VK_DYNAMIC_STATE_SCISSOR);
-
-    VkPipelineDynamicStateCreateInfo dynamicState = {};
-    dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-    dynamicState.pDynamicStates = dynamicStateEnables.data();
-    dynamicState.dynamicStateCount = static_cast<uint32_t>(dynamicStateEnables.size());
-
-    // multi sampling state
-    // todo: setup this
-    VkPipelineMultisampleStateCreateInfo multisampleState = {};
-    multisampleState.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-    multisampleState.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT; // no multisampling
-    multisampleState.pSampleMask = nullptr;
-
-    ///////////// input assembly
-    VkPipelineInputAssemblyStateCreateInfo inputAssemblyState;
-    inputAssemblyState.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-    inputAssemblyState.pNext = nullptr;
-    inputAssemblyState.flags = 0;
-    inputAssemblyState.primitiveRestartEnable = false;
-    inputAssemblyState.topology = VkPrimitiveTopology::VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-
-    ////////////// depthStencil
-    VkPipelineDepthStencilStateCreateInfo depthStencilState = {};
-    depthStencilState.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-
-    // depth state
-    depthStencilState.depthTestEnable = false;
-    depthStencilState.depthWriteEnable = false;
-    depthStencilState.depthCompareOp = VkCompareOp::VK_COMPARE_OP_ALWAYS;
-
-    // stencil state
-    // states for back faces and front faces
-    depthStencilState.stencilTestEnable = false;
-
-    depthStencilState.front = depthStencilState.back;
-    depthStencilState.minDepthBounds = 0.0f;
-	depthStencilState.maxDepthBounds = 1.0f;
-	depthStencilState.depthBoundsTestEnable = VK_FALSE;
+    const auto blendAttachmentState = vulkan::pipelineBlendAttachmentState(
+        std::array{rhi::common_blend_modes::blend_none}
+    );
+    auto const colorBlendInfo = vulkan::pipelineColorBlendStateCreateInfo(blendAttachmentState);
 
     // vertex input binding
     std::vector<VkVertexInputBindingDescription> vertexInputBindings(1);
@@ -191,39 +155,6 @@ void createPipeline(gApi::Device & device, VkRenderPass renderPass) {
     vertexInputState.pVertexBindingDescriptions = vertexInputBindings.data();
     vertexInputState.vertexAttributeDescriptionCount = attributes.size();
     vertexInputState.pVertexAttributeDescriptions = attributes.data();
-
-    // rasterizationInfo
-    VkPipelineRasterizationStateCreateInfo rasterizationInfo = {};
-    rasterizationInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
-    rasterizationInfo.pNext = nullptr;
-    rasterizationInfo.flags = 0u;
-    rasterizationInfo.cullMode = VK_CULL_MODE_NONE;
-    rasterizationInfo.frontFace = VK_FRONT_FACE_CLOCKWISE;
-    rasterizationInfo.lineWidth = 1.0f;
-    rasterizationInfo.polygonMode = VK_POLYGON_MODE_FILL;
-    rasterizationInfo.depthBiasEnable = false;
-    rasterizationInfo.depthClampEnable = false;
-    rasterizationInfo.depthBiasClamp = 0.0f;
-    rasterizationInfo.depthBiasSlopeFactor = 0.0f;
-    rasterizationInfo.depthBiasConstantFactor = 0.0f;
-    rasterizationInfo.rasterizerDiscardEnable = false;
-
-    std::vector<VkPipelineColorBlendAttachmentState> blendAttachmentState(1);
-    blendAttachmentState[0].colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-    blendAttachmentState[0].blendEnable = false;
-    blendAttachmentState[0].srcColorBlendFactor = VkBlendFactor::VK_BLEND_FACTOR_ZERO;
-    blendAttachmentState[0].dstColorBlendFactor = VkBlendFactor::VK_BLEND_FACTOR_ZERO;;
-    blendAttachmentState[0].colorBlendOp = VkBlendOp::VK_BLEND_OP_ADD;
-    blendAttachmentState[0].srcAlphaBlendFactor = VkBlendFactor::VK_BLEND_FACTOR_ZERO;;
-    blendAttachmentState[0].dstAlphaBlendFactor = VkBlendFactor::VK_BLEND_FACTOR_ZERO;;
-    blendAttachmentState[0].alphaBlendOp = VkBlendOp::VK_BLEND_OP_ADD;
-
-    VkPipelineColorBlendStateCreateInfo colorBlendInfo = {};
-	colorBlendInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
-    colorBlendInfo.flags = 0;
-    colorBlendInfo.logicOpEnable = false;
-	colorBlendInfo.attachmentCount = static_cast<uint32_t>(blendAttachmentState.size());
-	colorBlendInfo.pAttachments = blendAttachmentState.data();
 
     //////////////////
     VkGraphicsPipelineCreateInfo pipelineCreateInfo = {};
@@ -562,7 +493,7 @@ int main() {
 
                 commandBuffer.beginRenderPass(renderPass, frameBuffers[i], clearValues, {{0, 0}, {1024, 768}});
 
-                commandBuffer.setViewport(0.0f, 0.0f, 1024.0f, 768.0f, 0.0f, 1.0f);
+                commandBuffer.setViewport(0.0f, 0.0f, 1024.0f, 768.0f);
                 commandBuffer.setScissorRect({{0, 0}, {1024, 768}});
 
                 commandBuffer.bindPipeline({
@@ -571,7 +502,7 @@ int main() {
                     Api::Helper::convert2api(engine::rhi::PipelineBindPoint::eGraphics)
                 });
 
-                commandBuffer.bindVertexBuffers(std::array{vtxBuffer()}, std::array{VkDeviceSize(0u)});
+                commandBuffer.bindVertexBuffers(std::array{vtxBuffer()}, std::array{uint64_t{0u}});
                 commandBuffer.draw(3u);
                 
                 commandBuffer.endRenderPass();

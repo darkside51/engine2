@@ -33,18 +33,18 @@ namespace engine::vulkan {
         _pool.deallocCommandBuffer(_level, _commandBuffer);
     }
 
-    void CommandBuffer::setViewport(float x, float y, float w, float h, float minDepth, float maxDepth) noexcept {
+    void CommandBuffer::setViewport(float x, float y, float w, float h, float minDepth, float maxDepth, uint32_t viewportIdx) noexcept {
         if (_state.setViewPort({{{static_cast<int32_t>(x), static_cast<int32_t>(y)}, 
             {static_cast<uint32_t>(w), static_cast<uint32_t>(h)}}, minDepth, maxDepth})) {
             const VkViewport viewport{x, y, w, h, minDepth, maxDepth};
-            vkCmdSetViewport(_commandBuffer, 0, 1, &viewport);
+            vkCmdSetViewport(_commandBuffer, viewportIdx, 1, &viewport);
         }
     }
 
-    void CommandBuffer::setScissorRect(const rhi::Rect2D & area) noexcept {
+    void CommandBuffer::setScissorRect(const rhi::Rect2D & area, uint32_t scessorIdx) noexcept {
         const VkRect2D scissor{utils::convert2vk(area.offset), utils::convert2vk(area.extent)};
         if (_state.setScissor(area)) {
-            vkCmdSetScissor(_commandBuffer, 0, 1, &scissor);
+            vkCmdSetScissor(_commandBuffer, scessorIdx, 1, &scissor);
         }
     }
 
@@ -121,8 +121,8 @@ namespace engine::vulkan {
         vkCmdBindVertexBuffers(_commandBuffer, firstBinding, buffers.size(), buffers.data(), offsets.data());
     }
 
-    void CommandBuffer::bindIndexBuffer(VkBuffer buffer, VkDeviceSize offset, rhi::IndexType type) noexcept {
-        vkCmdBindIndexBuffer(_commandBuffer, buffer, offset, utils::convert2vk(type));
+    void CommandBuffer::bindIndexBuffer(VkBuffer buffer, uint32_t offset, rhi::IndexType type) noexcept {
+        vkCmdBindIndexBuffer(_commandBuffer, buffer, static_cast<VkDeviceSize>(offset), utils::convert2vk(type));
     }
 
     void CommandBuffer::bindDescriptorSets(std::span<const VkDescriptorSet> sets, std::span<const uint32_t> dynamicOffsets, uint32_t firstSet) noexcept {
