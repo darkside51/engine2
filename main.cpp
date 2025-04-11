@@ -118,8 +118,8 @@ void createPipeline(gApi::Device & device, VkRenderPass renderPass) {
 
     ///////////////////////////////
     auto const viewportState = vulkan::pipelineViewportStateInfo(1u, 1u);
-    const auto statesArray = vulkan::utils::convert2vk(rhi::DynamicState::eViewport | rhi::DynamicState::eScissor);
-    const auto dynamicState = vulkan::pipelineDynamicStateInfo(statesArray);
+    const auto dynStatesArray = vulkan::utils::convert2vk(rhi::DynamicState::eViewport | rhi::DynamicState::eScissor);
+    const auto dynamicState = vulkan::pipelineDynamicStateInfo(dynStatesArray);
     const auto multisampleState = vulkan::pipelineMultisampleStateInfo();
     const auto rasterizationInfo = vulkan::rasterizationStateInfo(rhi::PolygonMode::eFill, rhi::CullMode::eBack);
     const auto inputAssemblyState = vulkan::pipelineInputAssemblyStateInfo(rhi::PrimitiveTopology::eTriangles);
