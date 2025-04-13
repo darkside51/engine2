@@ -19,6 +19,7 @@ namespace engine::vulkan {
     class CommandBuffer;
     class Queue;
     class GpuProgram;
+    class Pipeline;
     struct Helper;
     
     class Api {
@@ -34,6 +35,7 @@ namespace engine::vulkan {
         using CommandBuffer = vulkan::CommandBuffer;
         using Queue = vulkan::Queue;
         using GpuProgram = vulkan::GpuProgram;
+        using Pipeline = vulkan::Pipeline;
         using Helper = vulkan::Helper;
 
         static constexpr auto kSwapchainExtName = VK_KHR_SWAPCHAIN_EXTENSION_NAME;

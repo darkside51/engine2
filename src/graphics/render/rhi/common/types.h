@@ -87,7 +87,7 @@ namespace engine::rhi {
         } {}
 
         ClearValue(float r, float g, float b, float a) :  color{r, g, b, a} {}   
-        ClearValue(float depth, uint32_t stencil) : depthStencil{depth, stencil} {}
+        ClearValue(float depth, uint32_t stencil = 0u) : depthStencil{depth, stencil} {}
     };
 
     struct CopyInfo {
@@ -786,6 +786,11 @@ namespace engine::rhi {
         eU8 = 2u, // index_type_uint8
     };
 
+    enum class VertexInputRate : uint8_t {
+        eVertex = 0u,
+        eInstance = 1u,
+    };
+
     enum class PipelineBindPoint : uint8_t {
         eGraphics = 0u,
         eCompute = 1u,
@@ -1024,6 +1029,28 @@ namespace engine::rhi {
     inline DynamicState operator & (DynamicState a, DynamicState b) {
         return static_cast<DynamicState>(std::to_underlying(a) & std::to_underlying(b));
     }
+
+    struct VertexInputBinding {
+        uint16_t stride = 0u;
+        uint8_t binding = 0u;
+        VertexInputRate inputRate = VertexInputRate::eVertex;
+
+        template <typename T>
+        static VertexInputBinding create(uint8_t binding, VertexInputRate inputRate = VertexInputRate::eVertex) noexcept {
+            return {
+                .stride = sizeof(T),
+                .binding = binding, 
+                .inputRate = inputRate 
+            };
+        }
+    };
+
+    struct VertexInputAttribute {
+        uint8_t location = 0u;
+        uint8_t binding = 0u;
+        Format format = Format::eUndefined;
+        uint32_t offset = 0u;
+    };
 
     namespace shaders {
         enum class DescriptorType : uint16_t {

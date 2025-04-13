@@ -73,7 +73,6 @@ private:
 
 class GpuProgram {
 public:
-    GpuProgram() = default;
     GpuProgram(Device & device, std::span<const ShaderModule::View> moduleViews);
     ~GpuProgram();
 

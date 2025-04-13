@@ -1,6 +1,11 @@
 #include "pipeline.h"
+#include "device.h"
+#include "physical_device.h"
+#include "instance.h"
 
 #include "vk_types.h"
+
+#include "log/log.h"
 
 namespace engine::vulkan {
 
@@ -103,5 +108,113 @@ namespace engine::vulkan {
                 .pAttachments = blendStates.data(),
                 .blendConstants = {0.0f, 0.0f, 0.0f, 0.0f}
             };
+        }
+
+        VkPipelineTessellationStateCreateInfo pipelineTessellationStateInfo(uint32_t patchControlPoints) noexcept {
+            return {
+                .sType = VK_STRUCTURE_TYPE_PIPELINE_TESSELLATION_STATE_CREATE_INFO,
+                .pNext = nullptr,
+                .flags = 0,
+                .patchControlPoints = patchControlPoints
+            };
+        }
+
+        VkPipelineVertexInputStateCreateInfo pipelineVertexInputStateInfo(
+            std::span<const VkVertexInputBindingDescription> inputBindings,
+            std::span<const VkVertexInputAttributeDescription> attributes
+        ) noexcept {
+            return {
+                .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
+                .pNext = nullptr,
+                .flags = 0,
+                .vertexBindingDescriptionCount = static_cast<uint32_t>(inputBindings.size()),
+                .pVertexBindingDescriptions = inputBindings.data(),
+                .vertexAttributeDescriptionCount = static_cast<uint32_t>(attributes.size()),
+                .pVertexAttributeDescriptions = attributes.data()
+            };
+        }
+
+        VkComputePipelineCreateInfo computePipelineCreateInfo(
+            const GpuProgram & program,
+            VkPipeline basePipelineHandle,
+            int32_t basePipelineIndex
+        ) noexcept {
+            return {
+                .sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO,
+                .pNext = nullptr,
+                .flags = 0,
+                .stage = program.stages()[0],
+                .layout = program.pipelineLayout(),
+                .basePipelineHandle = basePipelineHandle,
+                .basePipelineIndex = basePipelineIndex
+            };
+        }
+
+        VkGraphicsPipelineCreateInfo graphicsPipelineCreateInfo(
+            const GpuProgram & program, 
+            const VkPipelineVertexInputStateCreateInfo * vertexInputState,
+            const VkPipelineInputAssemblyStateCreateInfo * inputAssemblyState,
+            const VkPipelineTessellationStateCreateInfo * tessellationState,
+            const VkPipelineViewportStateCreateInfo * viewportState,
+            const VkPipelineRasterizationStateCreateInfo * rasterizationState,
+            const VkPipelineMultisampleStateCreateInfo * multisampleState,
+            const VkPipelineDepthStencilStateCreateInfo * depthStencilState,
+            const VkPipelineColorBlendStateCreateInfo * colorBlendState,
+            const VkPipelineDynamicStateCreateInfo * dynamicState,
+            VkRenderPass renderPass,
+            uint32_t subpass,
+            VkPipeline basePipelineHandle,
+            int32_t basePipelineIndex
+        ) noexcept {
+            auto const stages = program.stages();
+            return {
+                .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
+                .pNext = nullptr,
+                .flags = 0,
+                .stageCount = static_cast<uint32_t>(stages.size()),
+                .pStages = stages.data(),
+                .pVertexInputState = vertexInputState,
+                .pInputAssemblyState = inputAssemblyState,
+                .pTessellationState = tessellationState,
+                .pViewportState = viewportState,
+                .pRasterizationState = rasterizationState,
+                .pMultisampleState = multisampleState,
+                .pDepthStencilState = depthStencilState,
+                .pColorBlendState = colorBlendState,
+                .pDynamicState = dynamicState,
+                .layout = program.pipelineLayout(),
+                .renderPass = renderPass,
+                .subpass = subpass,
+                .basePipelineHandle = basePipelineHandle,
+                .basePipelineIndex = basePipelineIndex
+            };
+        }
+
+        ///////
+        Pipeline::Pipeline(Device & device, const VkComputePipelineCreateInfo & info) : 
+            _device(&device),
+            bindPoint(VkPipelineBindPoint::VK_PIPELINE_BIND_POINT_COMPUTE) {
+            auto const allocationCallbacks = device.gpu().getInstance().getAllocationCallbacks();
+            if (auto result = vkCreateComputePipelines(device(), device.pipelineCache(), 1, &info, allocationCallbacks, &pipeline); 
+                result != VK_SUCCESS) {
+                LOG_E("vulkan error : pipeline create no success!");
+            }
+        }
+
+        Pipeline::Pipeline(Device & device, const VkGraphicsPipelineCreateInfo & info) :
+            _device(&device),
+            bindPoint(VkPipelineBindPoint::VK_PIPELINE_BIND_POINT_GRAPHICS) {
+            auto const allocationCallbacks = device.gpu().getInstance().getAllocationCallbacks();
+            if (auto result = vkCreateGraphicsPipelines(device(), device.pipelineCache(), 1, &info, allocationCallbacks, &pipeline); 
+                result != VK_SUCCESS) {
+                LOG_E("vulkan error : pipeline create no success!");
+            }
+        }
+
+        Pipeline::~Pipeline() {
+            if (_device && pipeline) {
+                auto const allocationCallbacks = _device->gpu().getInstance().getAllocationCallbacks();
+                vkDestroyPipeline((*_device)(), pipeline, allocationCallbacks);
+            }
         }
 }

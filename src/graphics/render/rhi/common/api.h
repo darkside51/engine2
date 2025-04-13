@@ -29,6 +29,7 @@ namespace engine::rhi {
         using CommandBuffer = T::CommandBuffer;
         using Queue = T::Queue;
         using GpuProgram = T::GpuProgram;
+        using Pipeline = T::Pipeline;
         using Helper = T::Helper;
 
         static consteval ApiType type() noexcept {

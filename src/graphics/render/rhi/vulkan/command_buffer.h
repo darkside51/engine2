@@ -66,14 +66,7 @@ namespace engine::vulkan {
         void executeCommands(std::span<const VkCommandBuffer> secondaryCommandBuffers) const noexcept {
             vkCmdExecuteCommands(_commandBuffer, secondaryCommandBuffers.size(), secondaryCommandBuffers.data());
         }
-
-        void bindPipeline(Pipeline const & pipeline) noexcept;
-        void bindVertexBuffers(std::span<const VkBuffer> buffers, std::span<const VkDeviceSize> offsets, uint32_t firstBinding = 0u) noexcept;
-        void bindIndexBuffer(VkBuffer buffer, uint32_t offset, rhi::IndexType type = rhi::IndexType::eU32) noexcept;
-        void bindDescriptorSets(std::span<const VkDescriptorSet> sets, std::span<const uint32_t> dynamicOffsets, uint32_t firstSet = 0u) noexcept;
-
-        void draw(uint32_t vertexCount, uint32_t instanceCount = 1u, uint32_t firstVertex = 0u, uint32_t firstInstance = 0u) const noexcept;
-
+        
         void setViewport(float x, float y, float w, float h, float minDepth = 0.0f, float maxDepth = 1.0f, uint32_t viewportIdx = 0u) noexcept;
         void setScissorRect(const rhi::Rect2D & area, uint32_t scessorIdx = 0u) noexcept;
 
@@ -94,11 +87,27 @@ namespace engine::vulkan {
             };
         }
 
+        // bind commands
+        void bindPipeline(Pipeline const & pipeline) noexcept;
+        void bindVertexBuffers(std::span<const VkBuffer> buffers, std::span<const VkDeviceSize> offsets, uint32_t firstBinding = 0u) noexcept;
+        void bindIndexBuffer(VkBuffer buffer, uint32_t offset, rhi::IndexType type = rhi::IndexType::eU32) noexcept;
+        void bindDescriptorSets(std::span<const VkDescriptorSet> sets, std::span<const uint32_t> dynamicOffsets, uint32_t firstSet = 0u) noexcept;
+
+        // draw commands
+        void draw(uint32_t vertexCount, uint32_t instanceCount = 1u, uint32_t firstVertex = 0u, uint32_t firstInstance = 0u) const noexcept;
+        void drawIndexed(uint32_t indexCount, uint32_t instanceCount = 1u, uint32_t firstIndex = 0u, int32_t vertexOffset = 0u,
+            uint32_t firstInstance = 0u) const noexcept;
+
     private:
+        struct UsedPipeline {
+            VkPipeline pipeline = VK_NULL_HANDLE;
+            VkPipelineLayout layout = VK_NULL_HANDLE;
+            VkPipelineBindPoint bindPoint = VkPipelineBindPoint::VK_PIPELINE_BIND_POINT_COMPUTE;
+        }; 
         rhi::CommandBufferState _state{};
         CommandPool & _pool;
         rhi::CommandBufferLevel _level{};
         VkCommandBuffer _commandBuffer = VK_NULL_HANDLE;
-        Pipeline _pipeline{};
+        UsedPipeline _pipeline{};
     };
 }

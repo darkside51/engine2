@@ -113,7 +113,7 @@ namespace engine::vulkan {
     void CommandBuffer::bindPipeline(Pipeline const & pipeline) noexcept {
         if (_pipeline.pipeline != pipeline.pipeline) {
             vkCmdBindPipeline(_commandBuffer, pipeline.bindPoint, pipeline.pipeline);
-            _pipeline = pipeline;
+            _pipeline = { pipeline.pipeline, pipeline.layout, pipeline.bindPoint };
         }
     }
 
@@ -138,6 +138,11 @@ namespace engine::vulkan {
 
     void CommandBuffer::draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) const noexcept {
         vkCmdDraw(_commandBuffer, vertexCount, instanceCount, firstVertex, firstInstance);
+    }
+
+    void CommandBuffer::drawIndexed(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t vertexOffset,
+        uint32_t firstInstance) const noexcept {
+        vkCmdDrawIndexed(_commandBuffer, indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
     }
 
 }

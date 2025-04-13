@@ -3,12 +3,15 @@
 #include "graphics/render/rhi/common/device.h"
 #include "graphics/render/rhi/common/types.h"
 
+#include "utils/dynamic_array.h"
+
 #include <vulkan/vulkan.h>
 
 #include <array>
 #include <cassert>
 #include <cstdint>
 #include <cstring>
+#include <span>
 #include <utility>
 
 namespace engine::vulkan {
@@ -40,7 +43,7 @@ inline VkClearValue convert2vk(const rhi::ClearValue & clearValue) noexcept {
 template<size_t N>
 inline auto convert2vk(const std::array<rhi::ClearValue, N> & array) -> std::array<VkClearValue, N> {
     std::array<VkClearValue, N> result;
-    for (size_t i = 0; i < N; ++i) {
+    for (size_t i = 0u; i < N; ++i) {
         result[i] = convert2vk(array[i]);
     }
     return result;
@@ -121,6 +124,9 @@ inline VkColorSpaceKHR convert2vk(rhi::ColorSpace colorSpace) noexcept {
         case rhi::ColorSpace::eDCI_P3_linear:
             return VK_COLOR_SPACE_DCI_P3_LINEAR_EXT;
     }
+
+    assert(false);
+    return VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
 }
 
 inline rhi::ColorSpace convert2rhi(VkColorSpaceKHR colorSpace) noexcept {
@@ -158,6 +164,7 @@ inline rhi::ColorSpace convert2rhi(VkColorSpaceKHR colorSpace) noexcept {
         default: return rhi::ColorSpace::eSRGB_Nonlinear;
     }
 
+    assert(false);
     return rhi::ColorSpace::eSRGB_Nonlinear;
 }
 
@@ -661,6 +668,9 @@ inline VkFormat convert2vk(rhi::Format format) noexcept {
         case rhi::Format::eASTC_12x12_Unorm_Block: return VK_FORMAT_ASTC_12x12_UNORM_BLOCK;
         case rhi::Format::eASTC_12x12_Srgb_Block: return VK_FORMAT_ASTC_12x12_SRGB_BLOCK;
     }
+
+    assert(false);
+    return VK_FORMAT_UNDEFINED;
 }
 
 inline rhi::Format convert2rhi(VkFormat format) noexcept {
@@ -940,7 +950,7 @@ inline VkPipelineStageFlags convert2vk(rhi::PipelineStageFlags flags) noexcept {
 template<size_t N>
 inline auto convert2vk(const std::array<rhi::PipelineStageFlags, N> & array) -> std::array<VkPipelineStageFlags, N> {
     std::array<VkPipelineStageFlags, N> result;
-    for (size_t i = 0; i < N; ++i) {
+    for (size_t i = 0u; i < N; ++i) {
         result[i] = convert2vk(array[i]);
     }
     return result;
@@ -1177,6 +1187,13 @@ inline VkIndexType convert2vk(rhi::IndexType type) noexcept {
     return VkIndexType::VK_INDEX_TYPE_UINT16;
 }
 
+inline VkVertexInputRate convert2vk(rhi::VertexInputRate rate) noexcept {
+    switch (rate) {
+        case rhi::VertexInputRate::eVertex: return VkVertexInputRate::VK_VERTEX_INPUT_RATE_VERTEX;
+        case rhi::VertexInputRate::eInstance: return VkVertexInputRate::VK_VERTEX_INPUT_RATE_INSTANCE;
+    }
+}
+
 ///////////////////////
 inline VkPipelineBindPoint convert2vk(rhi::PipelineBindPoint bindPoint) noexcept {
     switch (bindPoint) {
@@ -1399,6 +1416,63 @@ inline std::pair<std::array<VkDynamicState, rhi::kDynamicStatesCount>, uint8_t> 
     }
     return result;
 }
+
+
+inline VkVertexInputBindingDescription convert2vk(rhi::VertexInputBinding description) noexcept {
+    return {
+        .binding = description.binding,
+        .stride = description.stride,
+        .inputRate = convert2vk(description.inputRate)
+    };
+}
+
+template<size_t N>
+inline auto convert2vk(const std::array<rhi::VertexInputBinding, N> & array) noexcept -> std::array<VkVertexInputBindingDescription, N> {
+    std::array<VkVertexInputBindingDescription, N> result;
+    for (size_t i = 0u; i < N; ++i) {
+        result[i] = convert2vk(array[i]);
+    }
+    return result;
+}
+
+inline auto convert2vk(std::span<const rhi::VertexInputBinding> array) {
+    dynamic_array<VkVertexInputBindingDescription, 4u> result;
+    result.reserve(array.size());
+    auto view = result.view();
+    for (size_t i = 0u; i < array.size(); ++i) {
+        view[i] = convert2vk(array[i]);
+    }
+    return result;
+}
+
+inline VkVertexInputAttributeDescription convert2vk(rhi::VertexInputAttribute attribute) noexcept {
+    return {
+        .location = attribute.location,
+        .binding = attribute.binding,
+        .format = convert2vk(attribute.format),
+        .offset = attribute.offset
+    };
+}
+
+template<size_t N>
+inline auto convert2vk(const std::array<rhi::VertexInputAttribute, N> & array) noexcept -> std::array<VkVertexInputAttributeDescription, N> {
+    std::array<VkVertexInputAttributeDescription, N> result;
+    for (size_t i = 0u; i < N; ++i) {
+        result[i] = convert2vk(array[i]);
+    }
+    return result;
+}
+
+inline auto convert2vk(std::span<const rhi::VertexInputAttribute> array) {
+    dynamic_array<VkVertexInputAttributeDescription, 8u> result;
+    result.reserve(array.size());
+    auto view = result.view();
+    for (size_t i = 0u; i < array.size(); ++i) {
+        view[i] = convert2vk(array[i]);
+    }
+    return result;
+}
+
 
 }
 

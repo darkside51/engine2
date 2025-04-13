@@ -98,26 +98,14 @@ auto createDescriptorSets(auto & device, const engine::rhi::shaders::BindingSetL
 engine::vulkan::ShaderModule vsModule0;
 engine::vulkan::ShaderModule fsModule0;
 gApi::GpuProgram *gProgram0;
-VkPipeline gPipeline = VK_NULL_HANDLE;
-gApi::Buffer vtxBuffer{};
+gApi::Buffer *vtxBuffer;
+gApi::Pipeline *pipeline = nullptr;
 
-void createPipeline(gApi::Device & device, VkRenderPass renderPass) {
+gApi::Pipeline createPipeline(gApi::Device & device, VkRenderPass renderPass) {
     using namespace engine;
     using Api = gApi;
 
-    engine::FileManager fm;
-    auto * fsystem = fm.createFileSystem<engine::CommonFileSystem>("main", engine::CommonFileSystem::getCurrentDirectory() + "resources/");
-
-    static auto const vBytes = fm.readFile("shaders/simple.vert.spv");
-    static auto const fBytes = fm.readFile("shaders/simple.frag.spv");
-
-    vsModule0 = {device, engine::rhi::shaders::Stages::eVertex, vBytes};
-    fsModule0 = {device, engine::rhi::shaders::Stages::eFragment, fBytes};
-
-    gProgram0 = new gApi::GpuProgram{device, std::array{vsModule0.view(), fsModule0.view()}};
-
-    ///////////////////////////////
-    auto const viewportState = vulkan::pipelineViewportStateInfo(1u, 1u);
+    const auto viewportState = vulkan::pipelineViewportStateInfo(1u, 1u);
     const auto dynStatesArray = vulkan::utils::convert2vk(rhi::DynamicState::eViewport | rhi::DynamicState::eScissor);
     const auto dynamicState = vulkan::pipelineDynamicStateInfo(dynStatesArray);
     const auto multisampleState = vulkan::pipelineMultisampleStateInfo();
@@ -132,69 +120,40 @@ void createPipeline(gApi::Device & device, VkRenderPass renderPass) {
     const auto blendAttachmentState = vulkan::pipelineBlendAttachmentState(
         std::array{rhi::common_blend_modes::blend_none}
     );
-    auto const colorBlendInfo = vulkan::pipelineColorBlendStateCreateInfo(blendAttachmentState);
+    const auto colorBlendInfo = vulkan::pipelineColorBlendStateCreateInfo(blendAttachmentState);
 
     // vertex input binding
-    std::vector<VkVertexInputBindingDescription> vertexInputBindings(1);
-    for (size_t i = 0u; i < 1; ++i) {
-        vertexInputBindings[i].binding = 0u;
-        vertexInputBindings[i].stride = 12u; // for vec3
-        vertexInputBindings[i].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-    }
+    const auto vertexInputBindings = Api::Helper::convert2api(std::array{rhi::VertexInputBinding::create<float[3]>(0u)});
+    // vertex attributes
+    const auto attributes = Api::Helper::convert2api(std::array{rhi::VertexInputAttribute{
+        .location = 0u,
+        .binding = 0u,
+        .format = rhi::Format::eR32G32B32_Sfloat,
+        .offset = 0u
+    }});
 
-    // vertex input state used for pipeline creation
-    std::vector<VkVertexInputAttributeDescription> attributes(1u);
-    attributes[0].binding = 0u;
-    attributes[0].location = 0u;
-    attributes[0].offset = 0u;
-    attributes[0].format = VkFormat::VK_FORMAT_R32G32B32_SFLOAT;
-
-    VkPipelineVertexInputStateCreateInfo vertexInputState = {};
-    vertexInputState.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-    vertexInputState.vertexBindingDescriptionCount = vertexInputBindings.size();
-    vertexInputState.pVertexBindingDescriptions = vertexInputBindings.data();
-    vertexInputState.vertexAttributeDescriptionCount = attributes.size();
-    vertexInputState.pVertexAttributeDescriptions = attributes.data();
+    const auto vertexInputState = vulkan::pipelineVertexInputStateInfo(vertexInputBindings, attributes);
+    // const auto tesselationState = vulkan::pipelineTessellationStateInfo(0u);
 
     //////////////////
-    VkGraphicsPipelineCreateInfo pipelineCreateInfo = {};
-    pipelineCreateInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-    pipelineCreateInfo.pNext = nullptr;
-    pipelineCreateInfo.flags = 0;
+    auto const pipelineCreateInfo = vulkan::graphicsPipelineCreateInfo(
+        *gProgram0, 
+        &vertexInputState,
+        &inputAssemblyState,
+        nullptr, // tessellationState
+        &viewportState,
+        &rasterizationInfo,
+        &multisampleState,
+        &depthStencilState,
+        &colorBlendInfo,
+        &dynamicState,
+        renderPass
+    );
 
-    pipelineCreateInfo.pViewportState		= &viewportState;
-    pipelineCreateInfo.pDynamicState		= &dynamicState;
-    pipelineCreateInfo.pMultisampleState	= &multisampleState;
-
-    pipelineCreateInfo.pInputAssemblyState	= &inputAssemblyState;
-    pipelineCreateInfo.pRasterizationState	= &rasterizationInfo;
-    pipelineCreateInfo.pColorBlendState		= &colorBlendInfo;
-    pipelineCreateInfo.pDepthStencilState	= &depthStencilState;
-    pipelineCreateInfo.pVertexInputState	= &vertexInputState;
-
-    // set pipeline shader stage info
-    auto const stages = gProgram0->stages();
-    pipelineCreateInfo.stageCount = static_cast<uint32_t>(stages.size());
-    pipelineCreateInfo.pStages = stages.data();
-
-    // the layout used for this pipeline (can be shared among multiple pipelines using the same layout)
-    pipelineCreateInfo.layout = gProgram0->pipelineLayout();
-    // renderpass this pipeline is attached to
-    pipelineCreateInfo.renderPass = renderPass;
-    pipelineCreateInfo.subpass = 0u;
-    pipelineCreateInfo.basePipelineHandle = VK_NULL_HANDLE;
-    pipelineCreateInfo.basePipelineIndex = 0;
-
-    const auto * allocationCallbacks = device.gpu().getInstance().getAllocationCallbacks();
-    auto result = vkCreateGraphicsPipelines(device(), device.pipelineCache(), 1, &pipelineCreateInfo, allocationCallbacks, &gPipeline);
-
-    LOG_D("pipeline create result = %d", result);
-
-    int a = 0;
+    return gApi::Pipeline{device, pipelineCreateInfo};
 }
 
-void loadShaders(auto & device) {
-    return;
+gApi::GpuProgram loadShaders(auto & device) {
     using namespace engine::rhi;
     using Api = std::decay_t<decltype(device)>::Api;
 
@@ -207,12 +166,10 @@ void loadShaders(auto & device) {
     const engine::vulkan::ShaderModule vsModule{device, engine::rhi::shaders::Stages::eVertex, vBytes};
     const engine::vulkan::ShaderModule fsModule{device, engine::rhi::shaders::Stages::eFragment, fBytes};
 
-    typename Api::GpuProgram program0{device, std::array{vsModule.view(), fsModule.view()}};
-
-    int a = 0;
+    return {device, std::array{vsModule.view(), fsModule.view()}};
 }
 
-void createBuffers(auto & device) {
+gApi::Buffer createBuffers(auto & device) {
     using namespace engine::rhi;
     using Api = std::decay_t<decltype(device)>::Api;
 
@@ -239,16 +196,6 @@ void createBuffers(auto & device) {
     auto name = buffer.getName();
     buffer.setName("buffer0");
     name = buffer.getName();
-
-    vtxBuffer = typename Api::Buffer{device, info, sizeof(float) * 9u};
-    {
-        auto * map = vtxBuffer.template map2<float>();
-        map[0u] = -0.5f; map[1u] = 0.5f; map[2u] = 0.1f;
-        map[3u] = 0.5f; map[4u] = 0.5f; map[5u] = 0.1f;
-        map[6u] = 0.0f; map[7u] = -0.5f; map[8u] = 0.1f;
-        vtxBuffer.flush();
-        vtxBuffer.unmap();
-    }
 
     ///////////////////
     shaders::BindingSetLayout setLayout {
@@ -311,6 +258,19 @@ void createBuffers(auto & device) {
     updater.updateBuffers(std::array{std::pair{&uniformBuffer, 0u}});
     updater.updateBuffers(std::array{std::pair{&storageBuffer, 1u}});
     updater.flush(descriptorSet);
+
+    ///////////////////////////
+    auto resultBuffer = typename Api::Buffer{device, info, sizeof(float) * 9u};
+    {
+        auto * map = resultBuffer.template map2<float>();
+        map[0u] = -0.5f; map[1u] = 0.5f; map[2u] = 0.1f;
+        map[3u] = 0.5f; map[4u] = 0.5f; map[5u] = 0.1f;
+        map[6u] = 0.0f; map[7u] = -0.5f; map[8u] = 0.1f;
+        resultBuffer.flush();
+        resultBuffer.unmap();
+    }
+
+    return resultBuffer;
 }
 
 int main() {
@@ -431,10 +391,12 @@ int main() {
         engine::rhi::FrameIndex frameIndex{static_cast<uint8_t>(frameBuffersCount)};
         
         //
-        createPipeline(device, renderPass);
-        // loadShaders(device);
-        createBuffers(device);
-
+        auto program = loadShaders(device);
+        gProgram0 = &program;
+        auto pipeline0 = createPipeline(device, renderPass);
+        pipeline = &pipeline0;
+        auto buffer = createBuffers(device);
+        vtxBuffer = &buffer;
         //
         bool renderInited = false;
 
@@ -477,8 +439,8 @@ int main() {
             auto * commandPool = device.acquireCommandPool(engine::rhi::queue_flags::graphics | engine::rhi::queue_flags::present);
 
             /*const*/ auto clearValues = Api::Helper::convert2api(std::array{
-                engine::rhi::ClearValue{0xff'77'77'ffu},
-                engine::rhi::ClearValue{1.0f, 255}
+                engine::rhi::ClearValue{0x77'77'77'ffu},
+                engine::rhi::ClearValue{1.0f}
             });
 
             for (size_t i = 0; i < frameBuffersCount; ++i) {
@@ -496,13 +458,9 @@ int main() {
                 commandBuffer.setViewport(0.0f, 0.0f, 1024.0f, 768.0f);
                 commandBuffer.setScissorRect({{0, 0}, {1024, 768}});
 
-                commandBuffer.bindPipeline({
-                    gPipeline, 
-                    gProgram0->pipelineLayout(), 
-                    Api::Helper::convert2api(engine::rhi::PipelineBindPoint::eGraphics)
-                });
+                commandBuffer.bindPipeline(*pipeline);
 
-                commandBuffer.bindVertexBuffers(std::array{vtxBuffer()}, std::array{uint64_t{0u}});
+                commandBuffer.bindVertexBuffers(std::array{(*vtxBuffer)()}, std::array{uint64_t{0u}});
                 commandBuffer.draw(3u);
                 
                 commandBuffer.endRenderPass();
