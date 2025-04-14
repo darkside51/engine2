@@ -11,7 +11,7 @@ namespace engine::vulkan {
 
     VkPipelineViewportStateCreateInfo pipelineViewportStateInfo(uint32_t viewportCount, uint32_t scissorCount) noexcept {
         return {
-            .sType =VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
+            .sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
             .pNext = nullptr,
             .flags = 0,
             .viewportCount = viewportCount,

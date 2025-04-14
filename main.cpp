@@ -126,8 +126,7 @@ auto createPipeline(gApi::Device & device, VkRenderPass renderPass) {
                 .offset = 0u
             }
         }
-    )
-    .tessellationStateInfo(0u);
+    );
 
     return typename Api::Pipeline{device, info.create(*gProgram0, renderPass)};
 }
