@@ -47,7 +47,7 @@ namespace engine::vulkan {
         };
     }
 
-    VkPipelineRasterizationStateCreateInfo rasterizationStateInfo(
+    VkPipelineRasterizationStateCreateInfo pipelineRasterizationStateInfo(
         rhi::PolygonMode polygonMode, 
         rhi::CullMode cullmode, 
         rhi::FrontFace frontFace
@@ -189,6 +189,96 @@ namespace engine::vulkan {
                 .basePipelineIndex = basePipelineIndex
             };
         }
+
+        ///////
+        GraphicsPipelineInfo & GraphicsPipelineInfo::viewportStateInfo(uint32_t viewportCount, uint32_t scissorCount) noexcept {
+            _viewportState = pipelineViewportStateInfo(viewportCount, scissorCount);
+            return *this;
+        }
+
+        GraphicsPipelineInfo & GraphicsPipelineInfo::dynamicStateInfo(rhi::DynamicState states) noexcept {
+            _statesArray = utils::convert2vk(states);
+            _dynamicState = pipelineDynamicStateInfo(_statesArray);
+            return *this;
+        }
+
+        GraphicsPipelineInfo & GraphicsPipelineInfo::multisampleStateInfo() noexcept {
+            _multisampleState = pipelineMultisampleStateInfo();
+            return *this;
+        }
+
+        GraphicsPipelineInfo & GraphicsPipelineInfo::rasterizationStateInfo(
+            rhi::PolygonMode polygonMode, 
+            rhi::CullMode cullmode, 
+            rhi::FrontFace frontFace) noexcept {
+            _rasterizationState = pipelineRasterizationStateInfo(polygonMode, cullmode, frontFace);
+            return *this;
+        }
+
+        GraphicsPipelineInfo & GraphicsPipelineInfo::inputAssemblyStateInfo(rhi::PrimitiveTopology topology,
+            bool restartEnabled) noexcept {
+            _inputAssemblyState = pipelineInputAssemblyStateInfo(topology, restartEnabled);
+            return *this;
+        }
+
+        GraphicsPipelineInfo & GraphicsPipelineInfo::depthStencilStateInfo(const rhi::DepthState & depth, 
+            const rhi::StencilState & stencil) noexcept {
+            _depthStencilState = pipelineDepthStencilStateInfo(depth, stencil);
+            return *this;
+        }
+
+        GraphicsPipelineInfo & GraphicsPipelineInfo::tessellationStateInfo(uint32_t patchControlPoints) noexcept {
+            _tessellationState = pipelineTessellationStateInfo(patchControlPoints);
+            return *this;
+        }
+
+        GraphicsPipelineInfo & GraphicsPipelineInfo::colorBlendStateCreateInfo(
+            std::span<const rhi::EncodedBlendMode> blendModes) noexcept {
+                _blendAttachmentState.reserve(blendModes.size());
+                auto view = _blendAttachmentState.view();
+                size_t i = 0u;
+                for (const auto blendValue : blendModes) {
+                    view[i++] = utils::convert2vk(rhi::BlendMode{blendValue});
+                }
+  
+            _colorBlendState = pipelineColorBlendStateCreateInfo(view);
+
+            return *this; 
+        }
+
+        GraphicsPipelineInfo & GraphicsPipelineInfo::vertexInputStateInfo(
+            std::span<const rhi::VertexInputBinding> inputBindings,
+            std::span<const rhi::VertexInputAttribute> attributes
+            ) noexcept {
+            _vertexBindings = utils::convert2vk(inputBindings);
+            _vertexAttributes = utils::convert2vk(attributes);
+            _vertexInputState = vulkan::pipelineVertexInputStateInfo(_vertexBindings.view(), _vertexAttributes.view());
+            return *this;
+        }
+
+        VkGraphicsPipelineCreateInfo GraphicsPipelineInfo::create(
+            const GpuProgram & program, 
+            VkRenderPass renderPass,
+            uint32_t subpass,
+            VkPipeline basePipelineHandle,
+            int32_t basePipelineIndex) noexcept {
+                return graphicsPipelineCreateInfo(
+                    program,
+                    &_vertexInputState,
+                    &_inputAssemblyState,
+                    &_tessellationState,
+                    &_viewportState,
+                    &_rasterizationState,
+                    &_multisampleState,
+                    &_depthStencilState,
+                    &_colorBlendState,
+                    &_dynamicState,
+                    renderPass,
+                    subpass,
+                    basePipelineHandle,
+                    basePipelineIndex
+                );
+            }
 
         ///////
         Pipeline::Pipeline(Device & device, const VkComputePipelineCreateInfo & info) : 

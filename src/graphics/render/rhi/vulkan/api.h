@@ -20,6 +20,7 @@ namespace engine::vulkan {
     class Queue;
     class GpuProgram;
     class Pipeline;
+    class GraphicsPipelineInfo;
     struct Helper;
     
     class Api {
@@ -36,6 +37,7 @@ namespace engine::vulkan {
         using Queue = vulkan::Queue;
         using GpuProgram = vulkan::GpuProgram;
         using Pipeline = vulkan::Pipeline;
+        using GraphicsPipelineInfo = vulkan::GraphicsPipelineInfo;
         using Helper = vulkan::Helper;
 
         static constexpr auto kSwapchainExtName = VK_KHR_SWAPCHAIN_EXTENSION_NAME;

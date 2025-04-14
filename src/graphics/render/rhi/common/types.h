@@ -957,22 +957,24 @@ namespace engine::rhi {
         }
     }; // 4bits * 5 + 3bits * 2 + 1bit = 27bit
 
+    using EncodedBlendMode = uint32_t;
+
     namespace common_blend_modes {
         // normal modes
-        inline constexpr static uint32_t blend_none	    = BlendMode(false).asNumber();
-        inline constexpr static uint32_t blend_alpha	= BlendMode(
+        inline constexpr static EncodedBlendMode blend_none	    = BlendMode(false).asNumber();
+        inline constexpr static EncodedBlendMode blend_alpha	= BlendMode(
             true, BlendFactor::eSrc_Alpha, 
             BlendFactor::eOne_Minus_Src_Alpha, 
             BlendFactor::eSrc_Alpha, 
             BlendFactor::eOne_Minus_Src_Alpha).asNumber();
 
-        inline constexpr static uint32_t blend_add	= BlendMode(
+        inline constexpr static EncodedBlendMode blend_add	= BlendMode(
             true, BlendFactor::eSrc_Alpha, 
             BlendFactor::eOne, 
             BlendFactor::eSrc_Alpha, 
             BlendFactor::eOne).asNumber();
 
-        inline constexpr static uint32_t blend_multiply	= BlendMode(
+        inline constexpr static EncodedBlendMode blend_multiply	= BlendMode(
             true, BlendFactor::eDst_Color, 
             BlendFactor::eZero, 
             BlendFactor::eDst_Color, 
@@ -981,13 +983,13 @@ namespace engine::rhi {
         // https://gamedev.ru/code/articles/PremultipliedAlpha
         // https://habr.com/ru/company/playrix/blog/336304/
         // https://apoorvaj.io/alpha-compositing-opengl-blending-and-premultiplied-alpha/
-        inline constexpr static uint32_t blend_alpha_pma	= BlendMode(
+        inline constexpr static EncodedBlendMode blend_alpha_pma	= BlendMode(
             true, BlendFactor::eOne, 
             BlendFactor::eOne_Minus_Src_Alpha, 
             BlendFactor::eOne, 
             BlendFactor::eOne_Minus_Src_Alpha).asNumber();
 
-        inline constexpr static uint32_t blend_add_pma	= BlendMode(
+        inline constexpr static EncodedBlendMode blend_add_pma	= BlendMode(
             true, BlendFactor::eOne, 
             BlendFactor::eOne, 
             BlendFactor::eOne, 

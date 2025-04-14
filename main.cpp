@@ -101,59 +101,38 @@ gApi::GpuProgram *gProgram0;
 gApi::Buffer *vtxBuffer;
 gApi::Pipeline *pipeline = nullptr;
 
-gApi::Pipeline createPipeline(gApi::Device & device, VkRenderPass renderPass) {
+auto createPipeline(gApi::Device & device, VkRenderPass renderPass) {
     using namespace engine;
     using Api = gApi;
 
-    const auto viewportState = vulkan::pipelineViewportStateInfo(1u, 1u);
-    const auto dynStatesArray = vulkan::utils::convert2vk(rhi::DynamicState::eViewport | rhi::DynamicState::eScissor);
-    const auto dynamicState = vulkan::pipelineDynamicStateInfo(dynStatesArray);
-    const auto multisampleState = vulkan::pipelineMultisampleStateInfo();
-    const auto rasterizationInfo = vulkan::rasterizationStateInfo(rhi::PolygonMode::eFill, rhi::CullMode::eBack);
-    const auto inputAssemblyState = vulkan::pipelineInputAssemblyStateInfo(rhi::PrimitiveTopology::eTriangles);
-    const auto depthStencilState = vulkan::pipelineDepthStencilStateInfo({
-        .depthTestEnable = false,
-        .depthWriteEnable = false,
-        .depthCompareOp = rhi::CompareOp::eAlways
-    }, {});
+    Api::GraphicsPipelineInfo info{};
+    info.viewportStateInfo(1u, 1u)
+    .dynamicStateInfo(rhi::DynamicState::eViewport | rhi::DynamicState::eScissor)
+    .multisampleStateInfo()
+    .rasterizationStateInfo(rhi::PolygonMode::eFill, rhi::CullMode::eBack)
+    .inputAssemblyStateInfo(rhi::PrimitiveTopology::eTriangles)
+    .depthStencilStateInfo({
+            .depthTestEnable = false,
+            .depthWriteEnable = false,
+            .depthCompareOp = rhi::CompareOp::eAlways
+        }, {})
+    .colorBlendStateCreateInfo(std::array{rhi::common_blend_modes::blend_none})
+    .vertexInputStateInfo(
+        std::array{rhi::VertexInputBinding::create<float[3]>(0u)},
+        std::array{rhi::VertexInputAttribute{
+                .location = 0u,
+                .binding = 0u,
+                .format = rhi::Format::eR32G32B32_Sfloat,
+                .offset = 0u
+            }
+        }
+    )
+    .tessellationStateInfo(0u);
 
-    const auto blendAttachmentState = vulkan::pipelineBlendAttachmentState(
-        std::array{rhi::common_blend_modes::blend_none}
-    );
-    const auto colorBlendInfo = vulkan::pipelineColorBlendStateCreateInfo(blendAttachmentState);
-
-    // vertex input binding
-    const auto vertexInputBindings = Api::Helper::convert2api(std::array{rhi::VertexInputBinding::create<float[3]>(0u)});
-    // vertex attributes
-    const auto attributes = Api::Helper::convert2api(std::array{rhi::VertexInputAttribute{
-        .location = 0u,
-        .binding = 0u,
-        .format = rhi::Format::eR32G32B32_Sfloat,
-        .offset = 0u
-    }});
-
-    const auto vertexInputState = vulkan::pipelineVertexInputStateInfo(vertexInputBindings, attributes);
-    // const auto tesselationState = vulkan::pipelineTessellationStateInfo(0u);
-
-    //////////////////
-    auto const pipelineCreateInfo = vulkan::graphicsPipelineCreateInfo(
-        *gProgram0, 
-        &vertexInputState,
-        &inputAssemblyState,
-        nullptr, // tessellationState
-        &viewportState,
-        &rasterizationInfo,
-        &multisampleState,
-        &depthStencilState,
-        &colorBlendInfo,
-        &dynamicState,
-        renderPass
-    );
-
-    return gApi::Pipeline{device, pipelineCreateInfo};
+    return typename Api::Pipeline{device, info.create(*gProgram0, renderPass)};
 }
 
-gApi::GpuProgram loadShaders(auto & device) {
+auto loadShaders(auto & device) {
     using namespace engine::rhi;
     using Api = std::decay_t<decltype(device)>::Api;
 
@@ -166,10 +145,10 @@ gApi::GpuProgram loadShaders(auto & device) {
     const engine::vulkan::ShaderModule vsModule{device, engine::rhi::shaders::Stages::eVertex, vBytes};
     const engine::vulkan::ShaderModule fsModule{device, engine::rhi::shaders::Stages::eFragment, fBytes};
 
-    return {device, std::array{vsModule.view(), fsModule.view()}};
+    return typename Api::GpuProgram{device, std::array{vsModule.view(), fsModule.view()}};
 }
 
-gApi::Buffer createBuffers(auto & device) {
+auto createBuffers(auto & device) {
     using namespace engine::rhi;
     using Api = std::decay_t<decltype(device)>::Api;
 
@@ -399,6 +378,8 @@ int main() {
         vtxBuffer = &buffer;
         //
         bool renderInited = false;
+        constexpr float inputCheckTime = 1.0f / 60.0f;
+        constexpr float redrawTime = 1.0f / 120.0f;
 
         threads::Executor w([&](auto & executionContext, float delta) {
             executionContext.performTasks();
@@ -431,7 +412,7 @@ int main() {
                 // present
                 auto const presentResult = queue.present(std::array{swapchain()}, std::array{imageIndex}, signalSemaphores);
             }
-        }, 0.016667f);
+        }, redrawTime);
 
         w.run();
 
@@ -470,7 +451,7 @@ int main() {
         //    LOG_I("threadId_0: %d, \n", threads::unique_t<int>::id());
         }}));
     
-        glfwModule.process(1.0f / 60.0f);
+        glfwModule.process(inputCheckTime);
     }
 
     return 1;

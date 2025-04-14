@@ -5,6 +5,8 @@
 #include "graphics/render/rhi/common/types.h"
 #include "vk_types.h"
 
+#include "utils/dynamic_array.h"
+
 #include <vulkan/vulkan.h>
 
 #include <array>
@@ -23,7 +25,7 @@ namespace engine::vulkan {
 
     VkPipelineMultisampleStateCreateInfo pipelineMultisampleStateInfo() noexcept;
 
-    VkPipelineRasterizationStateCreateInfo rasterizationStateInfo(
+    VkPipelineRasterizationStateCreateInfo pipelineRasterizationStateInfo(
         rhi::PolygonMode polygonMode, 
         rhi::CullMode cullmode, 
         rhi::FrontFace frontFace = rhi::FrontFace::eCounter_Clockwise) noexcept;
@@ -34,7 +36,7 @@ namespace engine::vulkan {
     VkPipelineDepthStencilStateCreateInfo pipelineDepthStencilStateInfo(const rhi::DepthState & depth, const rhi::StencilState & stencil) noexcept;
 
     template <size_t S>
-    std::array<VkPipelineColorBlendAttachmentState, S> pipelineBlendAttachmentState(const std::array<uint32_t, S> & blendModes) noexcept {
+    std::array<VkPipelineColorBlendAttachmentState, S> pipelineBlendAttachmentState(const std::array<rhi::EncodedBlendMode, S> & blendModes) noexcept {
         std::array<VkPipelineColorBlendAttachmentState, S> blendAttachmentState;
         size_t i = 0u;
         for (const auto blendValue : blendModes) {
@@ -106,6 +108,57 @@ namespace engine::vulkan {
     //     VkPipeline                                    basePipelineHandle;
     //     int32_t                                       basePipelineIndex;
     // } VkRayTracingPipelineCreateInfoNV;
+
+    class GraphicsPipelineInfo {
+    public:
+        GraphicsPipelineInfo & viewportStateInfo(uint32_t viewportCount = 1u, uint32_t scissorCount = 1u) noexcept;
+        GraphicsPipelineInfo & dynamicStateInfo(rhi::DynamicState states) noexcept;
+
+        GraphicsPipelineInfo & multisampleStateInfo() noexcept;
+
+        GraphicsPipelineInfo & rasterizationStateInfo(
+            rhi::PolygonMode polygonMode, 
+            rhi::CullMode cullmode, 
+            rhi::FrontFace frontFace = rhi::FrontFace::eCounter_Clockwise) noexcept;
+
+        GraphicsPipelineInfo & inputAssemblyStateInfo(rhi::PrimitiveTopology topology,
+            bool restartEnabled = false) noexcept;
+
+        GraphicsPipelineInfo & depthStencilStateInfo(const rhi::DepthState & depth, const rhi::StencilState & stencil) noexcept;
+
+        GraphicsPipelineInfo & tessellationStateInfo(uint32_t patchControlPoints) noexcept;
+
+        GraphicsPipelineInfo & colorBlendStateCreateInfo(
+            std::span<const rhi::EncodedBlendMode> blendModes) noexcept;
+
+        GraphicsPipelineInfo & vertexInputStateInfo(
+            std::span<const rhi::VertexInputBinding> inputBindings,
+            std::span<const rhi::VertexInputAttribute> attributes
+        ) noexcept;
+
+        VkGraphicsPipelineCreateInfo create(
+            const GpuProgram & program, 
+            VkRenderPass renderPass,
+            uint32_t subpass = 0u,
+            VkPipeline basePipelineHandle = VK_NULL_HANDLE,
+            int32_t basePipelineIndex = 0) noexcept;
+
+    private:
+        std::pair<std::array<VkDynamicState, rhi::kDynamicStatesCount>, uint8_t> _statesArray{};
+        dynamic_array<VkVertexInputBindingDescription, 4u> _vertexBindings;
+        dynamic_array<VkVertexInputAttributeDescription, 8u> _vertexAttributes;
+        dynamic_array<VkPipelineColorBlendAttachmentState, 4u> _blendAttachmentState;
+
+        VkPipelineVertexInputStateCreateInfo _vertexInputState{};
+        VkPipelineInputAssemblyStateCreateInfo _inputAssemblyState{};
+        VkPipelineTessellationStateCreateInfo _tessellationState{};
+        VkPipelineViewportStateCreateInfo _viewportState{};
+        VkPipelineRasterizationStateCreateInfo _rasterizationState{};
+        VkPipelineMultisampleStateCreateInfo _multisampleState{};
+        VkPipelineDepthStencilStateCreateInfo _depthStencilState{};
+        VkPipelineColorBlendStateCreateInfo _colorBlendState{};
+        VkPipelineDynamicStateCreateInfo _dynamicState{};
+    };
 
     class Pipeline {
     public:
