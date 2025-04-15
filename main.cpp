@@ -263,6 +263,8 @@ public:
     virtual std::unique_ptr<engine::rhi::runtime::Device> createDevice(uint8_t idx, const engine::rhi::DeviceCreateInfo & info) = 0;
     virtual std::unique_ptr<engine::rhi::runtime::Swapchain> createSwapchain(const std::unique_ptr<engine::rhi::runtime::Device> & device, 
         const std::unique_ptr<engine::rhi::runtime::Surface> & surface, const engine::rhi::SwapchainCreateInfo & info) = 0;
+    virtual std::unique_ptr<engine::rhi::runtime::Image> createImage(std::unique_ptr<engine::rhi::runtime::Device> & device,
+            const engine::rhi::ImageInfo & imageInfo) const noexcept = 0;
 };
 
 class VkRuntimeApi final : public RuntimeApi {
@@ -297,6 +299,11 @@ public:
     std::span<const std::unique_ptr<engine::rhi::runtime::PhysicalDevice>> physicalDevices() const noexcept override {
         return _physicalDevices;
     }
+
+    std::unique_ptr<engine::rhi::runtime::Image> createImage(std::unique_ptr<engine::rhi::runtime::Device> & device,
+        const engine::rhi::ImageInfo & info) const noexcept override {
+            return std::make_unique<Api::Image>(static_cast<Api::Device &>(*device), info);
+    };
 
 private:
     Api::Instance _instance;
@@ -334,10 +341,59 @@ int main() {
     constexpr bool kUseRuntimeApi = false;
     if constexpr (kUseRuntimeApi) {
         std::unique_ptr<RuntimeApi> rApi = std::make_unique<VkRuntimeApi>(instanceCreateInfo);
-        const auto surface0 = rApi->createSurface(window0.getSurfaceCreateInfo());
-        engine::rhi::PhysicalDeviceFeatureRequest gpuFeatures0{};
-        rApi->enumerateDevices({gpuFeatures0, {VkRuntimeApi::Api::Impl::kSwapchainExtName}});
-        const auto support = rApi->physicalDevices()[0]->checkSurfaceSupport(*surface0);
+
+        engine::rhi::PhysicalDeviceFeatureRequest gpuFeatures{};
+        rApi->enumerateDevices({gpuFeatures, {VkRuntimeApi::Api::Impl::kSwapchainExtName}});
+
+        const auto surface = rApi->createSurface(window0.getSurfaceCreateInfo());
+        if (auto const & gpuDevice = rApi->physicalDevices()[0u]; gpuDevice->checkSurfaceSupport(*surface)) {
+
+            const auto queueFlags = engine::rhi::queue_flags::graphics | engine::rhi::queue_flags::present;
+            const auto [index, family] = gpuDevice->getQueueFamily(queueFlags);
+
+            engine::rhi::DeviceCreateInfo deviceCreateInfo{gpuFeatures};
+            deviceCreateInfo.queueFamilies.push_back({index, 1u, {}, queueFlags});
+            deviceCreateInfo.commandPoolThreadsCount = 1u;
+
+            auto device = rApi->createDevice(0u, deviceCreateInfo);
+
+            engine::rhi::SwapchainCreateInfo swapchainCreateInfo = {};
+            swapchainCreateInfo.imagesCount = 3u;
+            swapchainCreateInfo.queueFamilies.push_back(index);
+
+            auto swapchain = rApi->createSwapchain(device, surface, swapchainCreateInfo);
+
+            auto const [width, height] = window0.getSize();
+            swapchain->resize(width, height, false);
+
+            const uint32_t frameBuffersCount = swapchain->getImagesCount();
+            const auto depthFormat = device->getSupportedDepthFormat(32u, false);
+
+            std::vector<std::unique_ptr<engine::rhi::runtime::Image>> depthImages;
+            depthImages.reserve(frameBuffersCount);
+            const auto imageInfo = engine::rhi::ImageInfo{
+                .type = engine::rhi::ImageType::eType_2D,
+                .usage = engine::rhi::ImageUsageFlags::eDepth_Stencil_Attachment,
+                .sharing = engine::rhi::SharingMode::eExclusive,
+                .format = depthFormat,
+                .aspectFlags = engine::rhi::ImageAspectFlags::eDepthStencil,
+                .tiling = engine::rhi::ImageTiling::eOptimal,
+                .flags = engine::rhi::ImageCreateFlags::eNone,
+                .memoryFlags = engine::rhi::MemoryPropertyFlags::eDeviceLocal,
+                .memoryExtFlags = engine::rhi::MemoryExtendedFlags::eDedicated,
+                .extent = {1024u, 768u, 1u},
+                .mipLevels = 1u,
+                .arrayLayers = 1u,
+                .samples = 1u,
+                .queueFamilyIndices = {index}
+            }; 
+
+            for (uint32_t i = 0u; i < frameBuffersCount; ++i) {
+                depthImages.emplace_back(std::move(rApi->createImage(device, imageInfo)));
+            }
+
+            int a = 0;
+        }
         return 0;
     }
 
@@ -381,24 +437,25 @@ int main() {
 
         std::vector<Api::Image> depthImages;
         depthImages.reserve(frameBuffersCount);
+
+        const auto imageInfo = engine::rhi::ImageInfo{
+            .type = engine::rhi::ImageType::eType_2D,
+            .usage = engine::rhi::ImageUsageFlags::eDepth_Stencil_Attachment,
+            .sharing = engine::rhi::SharingMode::eExclusive,
+            .format = depthFormat,
+            .aspectFlags = engine::rhi::ImageAspectFlags::eDepthStencil,
+            .tiling = engine::rhi::ImageTiling::eOptimal,
+            .flags = engine::rhi::ImageCreateFlags::eNone,
+            .memoryFlags = engine::rhi::MemoryPropertyFlags::eDeviceLocal,
+            .memoryExtFlags = engine::rhi::MemoryExtendedFlags::eDedicated,
+            .extent = {1024u, 768u, 1u},
+            .mipLevels = 1u,
+            .arrayLayers = 1u,
+            .samples = 1u,
+            .queueFamilyIndices = {index}
+        };
         for (uint32_t i = 0u; i < frameBuffersCount; ++i) {
-            depthImages.emplace_back(device, engine::rhi::ImageInfo{
-                                            .type = engine::rhi::ImageType::eType_2D,
-                                            .usage = engine::rhi::ImageUsageFlags::eDepth_Stencil_Attachment,
-                                            .sharing = engine::rhi::SharingMode::eExclusive,
-                                            .format = depthFormat,
-                                            .aspectFlags = engine::rhi::ImageAspectFlags::eDepthStencil,
-                                            .tiling = engine::rhi::ImageTiling::eOptimal,
-                                            .flags = engine::rhi::ImageCreateFlags::eNone,
-                                            .memoryFlags = engine::rhi::MemoryPropertyFlags::eDeviceLocal,
-                                            .memoryExtFlags = engine::rhi::MemoryExtendedFlags::eDedicated,
-                                            .extent = {1024u, 768u, 1u},
-                                            .mipLevels = 1u,
-                                            .arrayLayers = 1u,
-                                            .samples = 1u,
-                                            .queueFamilyIndices = {index}
-                                        }
-                                    );
+            depthImages.emplace_back(device, imageInfo);
         }
 
         auto renderPass = device.getRenderPass(createRenderPassDescription(swapchain.getFormat(), depthFormat));

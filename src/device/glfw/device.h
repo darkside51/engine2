@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <memory>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 struct GLFWwindow;
@@ -31,6 +32,10 @@ namespace rhi {
 
         rhi::SurfaceCreateInfo getSurfaceCreateInfo() const noexcept;
 
+        std::pair<uint16_t, uint16_t> getSize() const noexcept {
+            return {_width, _height};
+        }
+        
     private:
         GLFWwindow* _window = nullptr;
 		uint16_t _width = 0u;

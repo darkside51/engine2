@@ -1,6 +1,7 @@
 #include "surface.h"
 
 #include "instance.h"
+#include "log/log.h"
 
 #include <any>
 #include <cassert>
@@ -79,6 +80,7 @@ namespace engine::vulkan {
     Surface::~Surface() {
         if (_surface) {
             vkDestroySurfaceKHR(_instance(), _surface, _instance.getAllocationCallbacks());
+            LOG_I("vulkan: surface destroyed");
         }
     }
 }

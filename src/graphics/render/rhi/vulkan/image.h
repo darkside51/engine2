@@ -2,6 +2,8 @@
 
 #include "common/hash.h"
 #include "graphics/render/rhi/common/types.h"
+#include "graphics/render/rhi/common/runtime.h"
+
 #include "memory_allocator.h"
 
 #include <vulkan/vulkan.h>
@@ -59,7 +61,7 @@ struct ImageSubState {
     inline bool operator == (const ImageSubState& other) const noexcept = default;
 };
 
-class Image {
+class Image : public rhi::runtime::Image {
     using ImageViewMap = std::unordered_map<ImageViewDescription, VkImageView, hash::Hasher<ImageViewDescription>, std::equal_to<>>;
     
 public:

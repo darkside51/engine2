@@ -46,4 +46,9 @@ protected:
     ColorSpace _colorSpace = ColorSpace::eSRGB_Nonlinear;
 };
 
+class Image {
+public:
+    virtual ~Image() = default;
+};
+
 }
