@@ -257,11 +257,11 @@ public:
     virtual ~RuntimeApi() = default;
 
     virtual engine::rhi::runtime::Instance & getInstance() noexcept = 0;
-    virtual std::span<const std::unique_ptr<engine::rhi::runtime::PhysicalDevice>> enumerateDevices(
+    virtual std::vector<std::unique_ptr<engine::rhi::runtime::PhysicalDevice>> enumerateDevices(
         const engine::rhi::PhysicalDeviceRequirements & info) = 0;
-    virtual std::span<const std::unique_ptr<engine::rhi::runtime::PhysicalDevice>> physicalDevices() const noexcept = 0;
     virtual std::unique_ptr<engine::rhi::runtime::Surface> createSurface(const engine::rhi::SurfaceCreateInfo & info) = 0;
-    virtual std::unique_ptr<engine::rhi::runtime::Device> createDevice(uint8_t idx, const engine::rhi::DeviceCreateInfo & info) = 0;
+    virtual std::unique_ptr<engine::rhi::runtime::Device> createDevice(std::unique_ptr<engine::rhi::runtime::PhysicalDevice> & gpu,
+        const engine::rhi::DeviceCreateInfo & info) = 0;
     virtual std::unique_ptr<engine::rhi::runtime::Swapchain> createSwapchain(const std::unique_ptr<engine::rhi::runtime::Device> & device, 
         const std::unique_ptr<engine::rhi::runtime::Surface> & surface, const engine::rhi::SwapchainCreateInfo & info) = 0;
 
@@ -303,32 +303,31 @@ public:
 
     engine::rhi::runtime::Instance & getInstance() noexcept override { return _instance; }
 
-    std::span<const std::unique_ptr<engine::rhi::runtime::PhysicalDevice>> enumerateDevices(
+    std::vector<std::unique_ptr<engine::rhi::runtime::PhysicalDevice>> enumerateDevices(
         const engine::rhi::PhysicalDeviceRequirements & info) override {
-        auto physicalDevices = Api::PhysicalDevice::getSuitableDevices(_instance, info);
-        _physicalDevices.reserve(physicalDevices.size());
-        for (auto & d : physicalDevices) {
-            _physicalDevices.emplace_back(std::make_unique<Api::PhysicalDevice>(std::move(d)));
+        auto apiPhysicalDevices = Api::PhysicalDevice::getSuitableDevices(_instance, info);
+        
+        std::vector<std::unique_ptr<engine::rhi::runtime::PhysicalDevice>> physicalDevices;
+        physicalDevices.reserve(physicalDevices.size());
+        for (auto & d : apiPhysicalDevices) {
+            physicalDevices.emplace_back(std::make_unique<Api::PhysicalDevice>(std::move(d)));
         }
-        return _physicalDevices;
+        return physicalDevices;
     }
 
     std::unique_ptr<engine::rhi::runtime::Surface> createSurface(const engine::rhi::SurfaceCreateInfo & info) override {
         return std::make_unique<Api::Surface>(_instance, info);
     }
 
-    std::unique_ptr<engine::rhi::runtime::Device> createDevice(uint8_t idx, const engine::rhi::DeviceCreateInfo & info) override {
-        return std::make_unique<Api::Device>(static_cast<Api::PhysicalDevice &>(*_physicalDevices[idx]), info);
+    std::unique_ptr<engine::rhi::runtime::Device> createDevice(std::unique_ptr<engine::rhi::runtime::PhysicalDevice> & gpu, 
+        const engine::rhi::DeviceCreateInfo & info) override {
+        return std::make_unique<Api::Device>(static_cast<Api::PhysicalDevice &>(*gpu), info);
     }
 
     std::unique_ptr<engine::rhi::runtime::Swapchain> createSwapchain(const std::unique_ptr<engine::rhi::runtime::Device> & device, 
         const std::unique_ptr<engine::rhi::runtime::Surface> & surface, const engine::rhi::SwapchainCreateInfo & info) override {
         return std::make_unique<Api::Swapchain>(static_cast<const Api::Device &>(*device), 
             static_cast<const Api::Surface &>(*surface), info);
-    }
-
-    std::span<const std::unique_ptr<engine::rhi::runtime::PhysicalDevice>> physicalDevices() const noexcept override {
-        return _physicalDevices;
     }
 
     std::unique_ptr<engine::rhi::runtime::Image> createImage(const std::unique_ptr<engine::rhi::runtime::Device> & device,
@@ -395,7 +394,6 @@ public:
 
 private:
     Api::Instance _instance;
-    std::vector<std::unique_ptr<engine::rhi::runtime::PhysicalDevice>> _physicalDevices;
 };
 
 int main() {
@@ -426,16 +424,15 @@ int main() {
     engine::GLFWModule glfwModule;
     const auto & window0 = glfwModule.open(Api::name().data());
 
-    constexpr bool kUseRuntimeApi = 0;
+    constexpr bool kUseRuntimeApi = false;
     if constexpr (kUseRuntimeApi) {
         std::unique_ptr<RuntimeApi> rApi = std::make_unique<VkRuntimeApi>(instanceCreateInfo);
 
         engine::rhi::PhysicalDeviceFeatureRequest gpuFeatures{};
-        auto const gpuDevices = rApi->enumerateDevices({gpuFeatures, {VkRuntimeApi::Api::Impl::kSwapchainExtName}});
+        auto gpuDevices = rApi->enumerateDevices({gpuFeatures, {VkRuntimeApi::Api::Impl::kSwapchainExtName}});
 
         const auto surface = rApi->createSurface(window0.getSurfaceCreateInfo());
-        if (auto const & gpuDevice = gpuDevices[0u]; gpuDevice->checkSurfaceSupport(*surface)) {
-
+        if (auto & gpuDevice = gpuDevices[0u]; gpuDevice->checkSurfaceSupport(*surface)) {
             const auto queueFlags = engine::rhi::queue_flags::graphics | engine::rhi::queue_flags::present;
             const auto [index, family] = gpuDevice->getQueueFamily(queueFlags);
 
@@ -443,7 +440,7 @@ int main() {
             deviceCreateInfo.queueFamilies.push_back({index, 1u, {}, queueFlags});
             deviceCreateInfo.commandPoolThreadsCount = 1u;
 
-            auto device = rApi->createDevice(0u, deviceCreateInfo);
+            auto device = rApi->createDevice(gpuDevice, deviceCreateInfo);
 
             engine::rhi::SwapchainCreateInfo swapchainCreateInfo = {};
             swapchainCreateInfo.imagesCount = 3u;
@@ -456,6 +453,7 @@ int main() {
 
             const uint32_t frameBuffersCount = swapchain->getImagesCount();
             device->reserveResourcesForFrames(frameBuffersCount);
+
             const auto depthFormat = device->getSupportedDepthFormat(32u, false);
 
             std::vector<std::unique_ptr<engine::rhi::runtime::Image>> depthImages;
@@ -603,7 +601,7 @@ int main() {
         engine::rhi::FrameIndex frameIndex{static_cast<uint8_t>(frameBuffersCount)};
 
         //
-        engine::rhi::ShaderModulesManager<gApi> shaderModulesManager;
+        engine::rhi::ShaderModulesManager<Api> shaderModulesManager;
         auto program = loadShaders(device, shaderModulesManager);
         gProgram0 = &program;
         auto pipeline0 = createPipeline(device, renderPass);
