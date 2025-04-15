@@ -8,7 +8,7 @@
 
 namespace engine::vulkan {
     class Instance;
-    class PhisicalDevice;
+    class PhysicalDevice;
     class Device;
     class Surface;
     class Swapchain;
@@ -27,7 +27,7 @@ namespace engine::vulkan {
     public:
         using Instance = vulkan::Instance;
         using Device = vulkan::Device;
-        using PhisicalDevice = vulkan::PhisicalDevice;
+        using PhysicalDevice = vulkan::PhysicalDevice;
         using Surface = vulkan::Surface;
         using Swapchain = vulkan::Swapchain;
         using Buffer = vulkan::Buffer;

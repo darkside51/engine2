@@ -251,6 +251,58 @@ auto createBuffers(auto & device) {
     return resultBuffer;
 }
 
+#include <memory>
+class RuntimeApi {
+public:
+    virtual ~RuntimeApi() = default;
+
+    virtual engine::rhi::runtime::Instance & getInstance() noexcept = 0;
+    virtual void enumerateDevices(const engine::rhi::PhysicalDeviceRequirements & info) = 0;
+    virtual std::span<const std::unique_ptr<engine::rhi::runtime::PhysicalDevice>> physicalDevices() const noexcept = 0;
+    virtual std::unique_ptr<engine::rhi::runtime::Surface> createSurface(const engine::rhi::SurfaceCreateInfo & info) = 0;
+    virtual std::unique_ptr<engine::rhi::runtime::Device> createDevice(uint8_t idx, const engine::rhi::DeviceCreateInfo & info) = 0;
+    virtual std::unique_ptr<engine::rhi::runtime::Swapchain> createSwapchain(const std::unique_ptr<engine::rhi::runtime::Device> & device, 
+        const std::unique_ptr<engine::rhi::runtime::Surface> & surface, const engine::rhi::SwapchainCreateInfo & info) = 0;
+};
+
+class VkRuntimeApi final : public RuntimeApi {
+public:
+    using Api = engine::rhi::Api<engine::vulkan::Api>;
+    explicit VkRuntimeApi(const engine::rhi::InstanceCreateInfo & instanceCreateInfo) : _instance(instanceCreateInfo) {}
+
+    engine::rhi::runtime::Instance & getInstance() noexcept override { return _instance; }
+
+    void enumerateDevices(const engine::rhi::PhysicalDeviceRequirements & info) override {
+        auto physicalDevices = Api::PhysicalDevice::getSuitableDevices(_instance, info);
+        _physicalDevices.reserve(physicalDevices.size());
+        for (auto & d : physicalDevices) {
+            _physicalDevices.emplace_back(std::make_unique<Api::PhysicalDevice>(std::move(d)));
+        }
+    }
+
+    std::unique_ptr<engine::rhi::runtime::Surface> createSurface(const engine::rhi::SurfaceCreateInfo & info) override {
+        return std::make_unique<Api::Surface>(_instance, info);
+    }
+
+    std::unique_ptr<engine::rhi::runtime::Device> createDevice(uint8_t idx, const engine::rhi::DeviceCreateInfo & info) override {
+        return std::make_unique<Api::Device>(static_cast<Api::PhysicalDevice &>(*_physicalDevices[idx]), info);
+    }
+
+    std::unique_ptr<engine::rhi::runtime::Swapchain> createSwapchain(const std::unique_ptr<engine::rhi::runtime::Device> & device, 
+        const std::unique_ptr<engine::rhi::runtime::Surface> & surface, const engine::rhi::SwapchainCreateInfo & info) override {
+        return std::make_unique<Api::Swapchain>(static_cast<const Api::Device &>(*device), 
+            static_cast<const Api::Surface &>(*surface), info);
+    }
+
+    std::span<const std::unique_ptr<engine::rhi::runtime::PhysicalDevice>> physicalDevices() const noexcept override {
+        return _physicalDevices;
+    }
+
+private:
+    Api::Instance _instance;
+    std::vector<std::unique_ptr<engine::rhi::runtime::PhysicalDevice>> _physicalDevices;
+};
+
 int main() {
     engine::tests::execute_tests();
 
@@ -275,15 +327,26 @@ int main() {
         .createDebugMessages = kUseApiDebugMessages,
         .allocationCallback = nullptr
     };
-    
+
+    engine::GLFWModule glfwModule;
+    const auto & window0 = glfwModule.open(Api::name().data());
+
+    constexpr bool kUseRuntimeApi = false;
+    if constexpr (kUseRuntimeApi) {
+        std::unique_ptr<RuntimeApi> rApi = std::make_unique<VkRuntimeApi>(instanceCreateInfo);
+        const auto surface0 = rApi->createSurface(window0.getSurfaceCreateInfo());
+        engine::rhi::PhysicalDeviceFeatureRequest gpuFeatures0{};
+        rApi->enumerateDevices({gpuFeatures0, {VkRuntimeApi::Api::Impl::kSwapchainExtName}});
+        const auto support = rApi->physicalDevices()[0]->checkSurfaceSupport(*surface0);
+        return 0;
+    }
+
+
     Api::Instance instance{instanceCreateInfo};
 
     if (!instance) {
         return 2;
     }
-
-    engine::GLFWModule glfwModule;
-    const auto & window0 = glfwModule.open(Api::name().data());
 
     Api::Surface surface{instance, window0.getSurfaceCreateInfo()};
     if (!surface) {
@@ -291,11 +354,10 @@ int main() {
     }
 
     engine::rhi::PhysicalDeviceFeatureRequest gpuFeatures{};
-    auto devices = Api::PhisicalDevice::getSuitableDevices(instance, {gpuFeatures, {Api::Impl::kSwapchainExtName}});
+    auto devices = Api::PhysicalDevice::getSuitableDevices(instance, {gpuFeatures, {Api::Impl::kSwapchainExtName}});
 
     if (devices[0].checkSurfaceSupport(surface)) {
         // const auto surfaceSupportDetails = engine::vulkan::getSurfaceSupportDetails(devices[0], surface);
-        auto depthFormat = devices[0].getSupportedDepthFormat(32u, true);
 
         const auto queueFlags = engine::rhi::queue_flags::graphics | engine::rhi::queue_flags::present;
         auto [index, family] = devices[0].getQueueFamily(queueFlags);
@@ -314,6 +376,8 @@ int main() {
 
         // const uint32_t frameBuffersCount = std::min(3u, swapchain.getImagesCount());
         const uint32_t frameBuffersCount = swapchain.getImagesCount();
+
+        const auto depthFormat = device.getSupportedDepthFormat(32u, true);
 
         std::vector<Api::Image> depthImages;
         depthImages.reserve(frameBuffersCount);

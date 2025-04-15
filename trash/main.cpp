@@ -75,7 +75,7 @@ int main() {
     }
 
     engine::rhi::PhysicalDeviceFeatureRequest gpuFeatures{};
-    auto devices = Api::PhisicalDevice::getSuitableDevices(instance, {gpuFeatures, {Api::Impl::kSwapchainExtName}});
+    auto devices = Api::PhysicalDevice::getSuitableDevices(instance, {gpuFeatures, {Api::Impl::kSwapchainExtName}});
 
     if (devices[0].checkSurfaceSupport(surface)) {
         const auto surfaceSupportDetails = engine::vulkan::getSurfaceSupportDetails(devices[0], surface);

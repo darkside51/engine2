@@ -11,7 +11,7 @@
 
 namespace engine::vulkan {
 
-    Device::Device(const PhisicalDevice & gpu, const rhi::DeviceCreateInfo & info) : 
+    Device::Device(const PhysicalDevice & gpu, const rhi::DeviceCreateInfo & info) : 
         _gpu(gpu), 
         _commandPoolManager(*this, info.commandPoolThreadsCount),
         _renderpassManager(*this),
@@ -96,6 +96,10 @@ namespace engine::vulkan {
         }
     }
 
+    rhi::Format Device::getSupportedDepthFormat(uint8_t desiredBpp, bool withStencil, bool samplingSupport) const noexcept {
+        return _gpu.getSupportedDepthFormat(desiredBpp, withStencil, samplingSupport);
+    }
+
     void Device::createPipelineCache() noexcept {
         const VkPipelineCacheCreateInfo pipelineCacheCreateInfo = {
             .sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO,
@@ -154,7 +158,7 @@ namespace engine::vulkan {
         _memoryAllocator.destroy();
     }
 
-    const DeviceQueueFamily * Device::findQueueFamily(uint8_t flags, uint32_t start) const noexcept {
+    const DeviceQueueFamily * Device::findQueueFamily(rhi::queue_flags::flags flags, uint32_t start) const noexcept {
         if (auto it = std::find_if(_queueFamilies.begin() + start, _queueFamilies.end(), [flags](auto const & queue) {
             return (queue.flags & flags) == flags;
         }); it != _queueFamilies.end()) {

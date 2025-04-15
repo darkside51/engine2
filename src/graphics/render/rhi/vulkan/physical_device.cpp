@@ -51,7 +51,7 @@ namespace engine::vulkan {
         }
     }
 
-    SurfaceSupportDetails getSurfaceSupportDetails(const PhisicalDevice & gpu, const Surface & surface) noexcept {
+    SurfaceSupportDetails getSurfaceSupportDetails(const PhysicalDevice & gpu, const Surface & surface) noexcept {
         auto vkSurface = surface.getVkSurface();
         auto vkGpu = gpu();
         SurfaceSupportDetails surfaceSupportDetails;
@@ -61,7 +61,7 @@ namespace engine::vulkan {
         return surfaceSupportDetails;
     }
 
-    std::vector<PhisicalDevice> PhisicalDevice::getSuitableDevices(const Instance & instance, const rhi::PhysicalDeviceRequirements & info) {
+    std::vector<PhysicalDevice> PhysicalDevice::getSuitableDevices(const Instance & instance, const rhi::PhysicalDeviceRequirements & info) {
         std::vector<VkPhysicalDevice> devices;
         helper::getVulkanPhysicalDevices(instance.vkInstance(), devices);
 
@@ -69,11 +69,11 @@ namespace engine::vulkan {
             return {};
         }
 
-        std::vector<PhisicalDevice> result;
+        std::vector<PhysicalDevice> result;
         result.reserve(devices.size());
 
         for (auto & device : devices) {
-            PhisicalDevice gpu{instance, device, info};
+            PhysicalDevice gpu{instance, device, info};
             if (gpu) {
                 result.push_back(std::move(gpu));
             }
@@ -83,8 +83,8 @@ namespace engine::vulkan {
         return result;
     }
 
-    PhisicalDevice::PhisicalDevice(const Instance & instance, VkPhysicalDevice device, const rhi::PhysicalDeviceRequirements & info) :
-    _instance(instance) {
+    PhysicalDevice::PhysicalDevice(const Instance & instance, VkPhysicalDevice device, const rhi::PhysicalDeviceRequirements & info) :
+    _instance(&instance) {
         const auto checkFeature = [](bool required, VkBool32 checked) noexcept -> bool {
             return (required & checked) == required;
         };
@@ -191,7 +191,11 @@ namespace engine::vulkan {
         vkGetPhysicalDeviceMemoryProperties(_gpu, &_memoryProperties);
     }
 
-    bool PhisicalDevice::checkSurfaceSupport(const Surface & surface) noexcept {
+    bool PhysicalDevice::checkSurfaceSupport(const rhi::runtime::Surface & surface) noexcept {
+        return checkSurfaceSupport(static_cast<const Surface &>(surface));
+    }
+
+    bool PhysicalDevice::checkSurfaceSupport(const Surface & surface) noexcept {
         auto vkSurface = surface.getVkSurface();
 
         uint32_t num = 0u;
@@ -208,7 +212,7 @@ namespace engine::vulkan {
 		return result;
     }
 
-    PhisicalDevice::DepthFormatSupport PhisicalDevice::isDepthFormatSupported(VkFormat format, bool samplingSupport) const noexcept {
+    PhysicalDevice::DepthFormatSupport PhysicalDevice::isDepthFormatSupported(VkFormat format, bool samplingSupport) const noexcept {
         VkFormatProperties formatProperties;
 		vkGetPhysicalDeviceFormatProperties(_gpu, format, &formatProperties);
 
@@ -229,7 +233,7 @@ namespace engine::vulkan {
         return support;
     }
 
-    rhi::Format PhisicalDevice::getSupportedDepthFormat(uint8_t desiredBpp, bool withStencil, bool samplingSupport) const noexcept {
+    rhi::Format PhysicalDevice::getSupportedDepthFormat(uint8_t desiredBpp, bool withStencil, bool samplingSupport) const noexcept {
         static constexpr std::array depthFormats = { VK_FORMAT_D16_UNORM, 
                                                      VK_FORMAT_D16_UNORM_S8_UINT, 
                                                      VK_FORMAT_X8_D24_UNORM_PACK32, 
@@ -275,7 +279,7 @@ namespace engine::vulkan {
         return static_cast<rhi::Format>(result);
     }
 
-    uint32_t PhisicalDevice::getMemoryType(uint32_t requiredTypeBits, rhi::MemoryPropertyFlags properties) const noexcept {
+    uint32_t PhysicalDevice::getMemoryType(uint32_t requiredTypeBits, rhi::MemoryPropertyFlags properties) const noexcept {
         const auto asIntegerProperties = std::to_underlying(properties);
 		for (uint32_t i = 0u; i < _memoryProperties.memoryTypeCount; ++i) {
 			if (requiredTypeBits & (1 << i)) {
@@ -288,7 +292,7 @@ namespace engine::vulkan {
 		return 0xff'ff'ff'ffu;
 	}
 
-    std::pair<uint32_t, const rhi::QueueFamily*> PhisicalDevice::getQueueFamily(uint8_t flags, uint32_t start) const noexcept {
+    std::pair<uint32_t, const rhi::QueueFamily*> PhysicalDevice::getQueueFamily(uint8_t flags, uint32_t start) const noexcept {
         for (uint32_t i = start; i < _queues.size(); ++i) {
             if (_queues[i].supportFlags(flags)) {
                 return {i, &_queues[i]};

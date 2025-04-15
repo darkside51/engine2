@@ -67,6 +67,7 @@ struct PhysicalDeviceFeatures {
 };
 
 namespace queue_flags {
+    using flags = uint8_t;
     constexpr uint8_t graphics = 1u;
     constexpr uint8_t compute = 2u;
     constexpr uint8_t transfrer = 4u;

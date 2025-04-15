@@ -1,12 +1,13 @@
 #pragma once
 
 #include "graphics/render/rhi/common/instance.h"
+#include "graphics/render/rhi/common/runtime.h"
 #include <vulkan/vulkan.h>
 #include <vector>
 
 namespace engine::vulkan {
 
-class Instance {
+class Instance final : public rhi::runtime::Instance {
 public:
     Instance(const rhi::InstanceCreateInfo & info);
     ~Instance();

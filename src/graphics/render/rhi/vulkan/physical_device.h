@@ -1,6 +1,7 @@
 #pragma once
 
 #include "graphics/render/rhi/common/device.h"
+#include "graphics/render/rhi/common/runtime.h"
 
 #include <vulkan/vulkan.h>
 
@@ -12,7 +13,7 @@ namespace engine::vulkan {
 
 class Instance;
 class Surface;
-class PhisicalDevice;
+class PhysicalDevice;
 
 struct SurfaceSupportDetails {
     VkSurfaceCapabilitiesKHR capabilities;
@@ -28,18 +29,18 @@ struct PhysicalDeviceExtFeatures {
 };
 
 void createFeatures2Chain(void ** featuresNext, PhysicalDeviceExtFeatures & features2Ext, const rhi::PhysicalDeviceExtFeatures & targetFeatures) noexcept;
-SurfaceSupportDetails getSurfaceSupportDetails(const PhisicalDevice & gpu, const Surface & surface) noexcept;
+SurfaceSupportDetails getSurfaceSupportDetails(const PhysicalDevice & gpu, const Surface & surface) noexcept;
 
-class PhisicalDevice {
+class PhysicalDevice final : public rhi::runtime::PhysicalDevice {
 public:
-    static std::vector<PhisicalDevice> getSuitableDevices(const Instance & instance, const rhi::PhysicalDeviceRequirements & info);
+    static std::vector<PhysicalDevice> getSuitableDevices(const Instance & instance, const rhi::PhysicalDeviceRequirements & info);
 
-    PhisicalDevice(PhisicalDevice &&) noexcept = default;
-    PhisicalDevice(const Instance & instance, VkPhysicalDevice device, const rhi::PhysicalDeviceRequirements & info);
+    PhysicalDevice(PhysicalDevice &&) noexcept = default;
+    PhysicalDevice(const Instance & instance, VkPhysicalDevice device, const rhi::PhysicalDeviceRequirements & info);
 
     inline explicit operator bool() const noexcept { return _gpu != VK_NULL_HANDLE; }
 
-    inline const Instance & getInstance() const noexcept {return _instance; }
+    inline const Instance & getInstance() const noexcept {return *_instance; }
     inline VkPhysicalDevice gpu() const noexcept { return _gpu; }
     inline VkPhysicalDevice operator()() const noexcept { return _gpu; }
 
@@ -52,6 +53,8 @@ public:
     
     inline std::vector<rhi::QueueFamily> & queues() noexcept { return _queues; }
     inline const std::vector<rhi::QueueFamily> & queues() const noexcept { return _queues; }
+
+    bool checkSurfaceSupport(const rhi::runtime::Surface & surface) noexcept override;
 
     bool checkSurfaceSupport(const Surface & surface) noexcept;
     
@@ -67,10 +70,10 @@ public:
 
     uint32_t getMemoryType(uint32_t requiredTypeBits, rhi::MemoryPropertyFlags properties) const noexcept;
 
-    std::pair<uint32_t, const rhi::QueueFamily*> getQueueFamily(uint8_t flags, uint32_t start = 0u) const noexcept;
+    std::pair<uint32_t, const rhi::QueueFamily*> getQueueFamily(uint8_t flags, uint32_t start = 0u) const noexcept override;
 
 private:
-    const Instance & _instance;
+    const Instance * _instance = nullptr;
     VkPhysicalDevice _gpu = VK_NULL_HANDLE;
     VkPhysicalDeviceMemoryProperties _memoryProperties;
     VkPhysicalDeviceProperties _properties;

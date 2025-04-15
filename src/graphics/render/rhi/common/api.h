@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <string_view>
 
 namespace engine::rhi {
@@ -20,7 +21,7 @@ namespace engine::rhi {
         using Impl = T;
         using Instance = T::Instance;
         using Device = T::Device;
-        using PhisicalDevice = T::PhisicalDevice;
+        using PhysicalDevice = T::PhysicalDevice;
         using Surface = T::Surface;
         using Swapchain = T::Swapchain;
         using Buffer = T::Buffer;

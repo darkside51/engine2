@@ -63,7 +63,7 @@ namespace engine::vulkan {
     return surface;
     }
 
-    Surface::Surface(const Instance & instance, const rhi::SurfaceCreateInfo & info) : _type(info.type) {
+    Surface::Surface(const Instance & instance, const rhi::SurfaceCreateInfo & info) : _type(info.type), _instance(instance) {
         switch(_type) {
             case rhi::SurfaceType::eWindowSurface :
                 _surface = createWindowSurface(instance, info);
@@ -76,4 +76,9 @@ namespace engine::vulkan {
         }
     }
 
+    Surface::~Surface() {
+        if (_surface) {
+            vkDestroySurfaceKHR(_instance(), _surface, _instance.getAllocationCallbacks());
+        }
+    }
 }
