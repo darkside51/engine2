@@ -37,16 +37,16 @@ public:
 };
 
 class Image {
-    public:
-        Image(const rhi::ImageInfo & imageInfo) : _info(imageInfo) {}
-        virtual ~Image() = default;
-    
-        const rhi::ImageInfo & getInfo() const noexcept { return _info; }
-        rhi::Extent3D getExtent() const noexcept { return _info.extent; }
-    
-    protected:
-        rhi::ImageInfo _info;
-    };
+public:
+    Image(const rhi::ImageInfo & imageInfo) : _info(imageInfo) {}
+    virtual ~Image() = default;
+
+    const rhi::ImageInfo & getInfo() const noexcept { return _info; }
+    rhi::Extent3D getExtent() const noexcept { return _info.extent; }
+
+protected:
+    rhi::ImageInfo _info;
+};
 
 class Swapchain {
 public:

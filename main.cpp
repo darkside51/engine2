@@ -267,8 +267,10 @@ public:
 
     virtual std::unique_ptr<engine::rhi::runtime::Image> createImage(const std::unique_ptr<engine::rhi::runtime::Device> & device,
             const engine::rhi::ImageInfo & imageInfo) const noexcept = 0;
+            
     virtual engine::rhi::runtime::RenderPass getRenderPass(std::unique_ptr<engine::rhi::runtime::Device> & device, 
             const engine::rhi::RenderPassDescription & description) noexcept = 0;
+
     virtual std::unique_ptr<engine::rhi::runtime::FrameBuffer> createFrameBuffer(
         const std::unique_ptr<engine::rhi::runtime::Device> & device, 
         std::vector<engine::rhi::FrameBufferAttachment> && attachemnts, 
@@ -397,7 +399,7 @@ int main() {
     engine::GLFWModule glfwModule;
     const auto & window0 = glfwModule.open(Api::name().data());
 
-    constexpr bool kUseRuntimeApi = 0;
+    constexpr bool kUseRuntimeApi = true;
     if constexpr (kUseRuntimeApi) {
         std::unique_ptr<RuntimeApi> rApi = std::make_unique<VkRuntimeApi>(instanceCreateInfo);
 
