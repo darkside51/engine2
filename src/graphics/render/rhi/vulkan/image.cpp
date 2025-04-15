@@ -10,8 +10,8 @@
 namespace engine::vulkan {
 
 Image::Image(Device & device, const rhi::ImageInfo & info) : 
+    rhi::runtime::Image(std::move(info)),
     _device(&device), 
-    _info(info),
     _imageSubStates(_info.arrayLayers * _info.mipLevels) {
 
     const VkImageCreateInfo imageInfo = {
@@ -39,9 +39,9 @@ Image::Image(Device & device, const rhi::ImageInfo & info) :
 }
 
 Image::Image(Device & device, const rhi::ImageInfo & info, VkImage externalImage) :
+    rhi::runtime::Image(std::move(info)),
     _device(&device), 
     _image(externalImage),
-    _info(info),
     _imageSubStates(_info.arrayLayers * _info.mipLevels),
     _externalImage(true)  {
 

@@ -2,6 +2,7 @@
 
 #include "graphics/render/rhi/common/swapchain.h"
 #include "graphics/render/rhi/common/runtime.h"
+#include "image.h"
 
 #include <vulkan/vulkan.h>
 
@@ -13,7 +14,7 @@ namespace engine::vulkan {
 
 class Device;
 class Surface;
-class Image;
+// class Image;
 // class Queue;
 
 class Swapchain final : public rhi::runtime::Swapchain {
@@ -34,8 +35,8 @@ public:
     uint32_t getImagesCount() const noexcept override;
     VkImageView getImageView(uint8_t index) noexcept { return _imageViews[index]; }
 
-    const Image & getImage(uint8_t index) const noexcept;
-    Image & getImage(uint8_t index) noexcept;
+    const Image & getImage(uint8_t index) const noexcept override;
+    Image & getImage(uint8_t index) noexcept override;
 
     // void present(const Queue & queue, uint8_t imageIndex) noexcept; // need to set presentInfo
 

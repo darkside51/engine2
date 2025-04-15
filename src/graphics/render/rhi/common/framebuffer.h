@@ -4,12 +4,16 @@
 
 #include <cstdint>
 
+
+
 namespace engine::rhi {
 
-using Image = void*;
+namespace runtime {
+    class Image;
+}
 
 struct FrameBufferAttachment {
-    Image image = nullptr;
+    runtime::Image *image = nullptr;
     Extent2D imageSize = {0u, 0u};
     ImageAspectFlags aspect = ImageAspectFlags::eColor;
     uint8_t layer = 0u;

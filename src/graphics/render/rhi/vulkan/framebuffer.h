@@ -2,6 +2,7 @@
 
 #include "graphics/render/rhi/common/framebuffer.h"
 #include "graphics/render/rhi/common/types.h"
+#include "graphics/render/rhi/common/runtime.h"
 
 #include <vulkan/vulkan.h>
 
@@ -12,7 +13,7 @@ namespace engine::vulkan {
 
 class Device;
 
-class FrameBuffer {
+class FrameBuffer final : public rhi::runtime::FrameBuffer {
 public:
     FrameBuffer(const Device & device, std::vector<rhi::FrameBufferAttachment> && attachemnts, VkRenderPass renderPass);
     ~FrameBuffer();

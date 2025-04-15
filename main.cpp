@@ -257,14 +257,35 @@ public:
     virtual ~RuntimeApi() = default;
 
     virtual engine::rhi::runtime::Instance & getInstance() noexcept = 0;
-    virtual void enumerateDevices(const engine::rhi::PhysicalDeviceRequirements & info) = 0;
+    virtual std::span<const std::unique_ptr<engine::rhi::runtime::PhysicalDevice>> enumerateDevices(
+        const engine::rhi::PhysicalDeviceRequirements & info) = 0;
     virtual std::span<const std::unique_ptr<engine::rhi::runtime::PhysicalDevice>> physicalDevices() const noexcept = 0;
     virtual std::unique_ptr<engine::rhi::runtime::Surface> createSurface(const engine::rhi::SurfaceCreateInfo & info) = 0;
     virtual std::unique_ptr<engine::rhi::runtime::Device> createDevice(uint8_t idx, const engine::rhi::DeviceCreateInfo & info) = 0;
     virtual std::unique_ptr<engine::rhi::runtime::Swapchain> createSwapchain(const std::unique_ptr<engine::rhi::runtime::Device> & device, 
         const std::unique_ptr<engine::rhi::runtime::Surface> & surface, const engine::rhi::SwapchainCreateInfo & info) = 0;
-    virtual std::unique_ptr<engine::rhi::runtime::Image> createImage(std::unique_ptr<engine::rhi::runtime::Device> & device,
+
+    virtual std::unique_ptr<engine::rhi::runtime::Image> createImage(const std::unique_ptr<engine::rhi::runtime::Device> & device,
             const engine::rhi::ImageInfo & imageInfo) const noexcept = 0;
+    virtual engine::rhi::runtime::RenderPass getRenderPass(std::unique_ptr<engine::rhi::runtime::Device> & device, 
+            const engine::rhi::RenderPassDescription & description) noexcept = 0;
+    virtual std::unique_ptr<engine::rhi::runtime::FrameBuffer> createFrameBuffer(
+        const std::unique_ptr<engine::rhi::runtime::Device> & device, 
+        std::vector<engine::rhi::FrameBufferAttachment> && attachemnts, 
+        const engine::rhi::runtime::RenderPass & renderPass) noexcept = 0;
+
+    virtual std::unique_ptr<engine::rhi::runtime::Queue> getQueue(const std::unique_ptr<engine::rhi::runtime::Device> & device, 
+        engine::rhi::queue_flags::flags familyFlags, uint8_t queueIdx, uint8_t framesCount) = 0;
+
+    virtual engine::rhi::runtime::Fence createFence(const std::unique_ptr<engine::rhi::runtime::Device> & device, 
+        engine::rhi::FenceCreateFlags flags) const noexcept = 0;
+    virtual engine::rhi::runtime::Semaphore createSemaphore(
+        const std::unique_ptr<engine::rhi::runtime::Device> & device) const noexcept = 0;
+
+    virtual void destroyFence(const std::unique_ptr<engine::rhi::runtime::Device> & device, 
+        const engine::rhi::runtime::Fence & fence) const noexcept = 0;
+    virtual void destroySemaphore(const std::unique_ptr<engine::rhi::runtime::Device> & device, 
+        const engine::rhi::runtime::Semaphore & semaphore) const noexcept = 0;
 };
 
 class VkRuntimeApi final : public RuntimeApi {
@@ -274,12 +295,14 @@ public:
 
     engine::rhi::runtime::Instance & getInstance() noexcept override { return _instance; }
 
-    void enumerateDevices(const engine::rhi::PhysicalDeviceRequirements & info) override {
+    std::span<const std::unique_ptr<engine::rhi::runtime::PhysicalDevice>> enumerateDevices(
+        const engine::rhi::PhysicalDeviceRequirements & info) override {
         auto physicalDevices = Api::PhysicalDevice::getSuitableDevices(_instance, info);
         _physicalDevices.reserve(physicalDevices.size());
         for (auto & d : physicalDevices) {
             _physicalDevices.emplace_back(std::make_unique<Api::PhysicalDevice>(std::move(d)));
         }
+        return _physicalDevices;
     }
 
     std::unique_ptr<engine::rhi::runtime::Surface> createSurface(const engine::rhi::SurfaceCreateInfo & info) override {
@@ -300,10 +323,46 @@ public:
         return _physicalDevices;
     }
 
-    std::unique_ptr<engine::rhi::runtime::Image> createImage(std::unique_ptr<engine::rhi::runtime::Device> & device,
+    std::unique_ptr<engine::rhi::runtime::Image> createImage(const std::unique_ptr<engine::rhi::runtime::Device> & device,
         const engine::rhi::ImageInfo & info) const noexcept override {
             return std::make_unique<Api::Image>(static_cast<Api::Device &>(*device), info);
-    };
+    }
+
+    engine::rhi::runtime::RenderPass getRenderPass(std::unique_ptr<engine::rhi::runtime::Device> & device, 
+        const engine::rhi::RenderPassDescription & description) noexcept override {
+        return static_cast<Api::Device &>(*device).getRenderPass(description);
+    }
+
+    std::unique_ptr<engine::rhi::runtime::FrameBuffer> createFrameBuffer(
+        const std::unique_ptr<engine::rhi::runtime::Device> & device, 
+        std::vector<engine::rhi::FrameBufferAttachment> && attachemnts, 
+        const engine::rhi::runtime::RenderPass & renderPass) noexcept override {
+        return std::make_unique<Api::FrameBuffer>(static_cast<const Api::Device &>(*device), 
+            std::move(attachemnts), static_cast<VkRenderPass>(renderPass));
+    }
+
+    std::unique_ptr<engine::rhi::runtime::Queue> getQueue(const std::unique_ptr<engine::rhi::runtime::Device> & device, 
+        engine::rhi::queue_flags::flags familyFlags, uint8_t queueIdx, uint8_t framesCount) override {
+        return std::make_unique<Api::Queue>(static_cast<const Api::Device &>(*device), familyFlags, queueIdx, framesCount); 
+    }
+
+    engine::rhi::runtime::Fence createFence(const std::unique_ptr<engine::rhi::runtime::Device> & device, 
+        engine::rhi::FenceCreateFlags flags) const noexcept override {
+        return static_cast<const Api::Device &>(*device).createFence(flags);
+    }
+    engine::rhi::runtime::Semaphore createSemaphore(
+        const std::unique_ptr<engine::rhi::runtime::Device> & device) const noexcept override {
+        return static_cast<const Api::Device &>(*device).createSemaphore();
+    }
+
+    void destroyFence(const std::unique_ptr<engine::rhi::runtime::Device> & device, 
+        const engine::rhi::runtime::Fence & fence) const noexcept override {
+        static_cast<const Api::Device &>(*device).destroyFence(static_cast<VkFence>(fence));
+    }
+    void destroySemaphore(const std::unique_ptr<engine::rhi::runtime::Device> & device, 
+        const engine::rhi::runtime::Semaphore & semaphore) const noexcept override {
+        static_cast<const Api::Device &>(*device).destroySemaphore(static_cast<VkSemaphore>(semaphore));
+    }
 
 private:
     Api::Instance _instance;
@@ -338,15 +397,15 @@ int main() {
     engine::GLFWModule glfwModule;
     const auto & window0 = glfwModule.open(Api::name().data());
 
-    constexpr bool kUseRuntimeApi = false;
+    constexpr bool kUseRuntimeApi = 0;
     if constexpr (kUseRuntimeApi) {
         std::unique_ptr<RuntimeApi> rApi = std::make_unique<VkRuntimeApi>(instanceCreateInfo);
 
         engine::rhi::PhysicalDeviceFeatureRequest gpuFeatures{};
-        rApi->enumerateDevices({gpuFeatures, {VkRuntimeApi::Api::Impl::kSwapchainExtName}});
+        auto const gpuDevices = rApi->enumerateDevices({gpuFeatures, {VkRuntimeApi::Api::Impl::kSwapchainExtName}});
 
         const auto surface = rApi->createSurface(window0.getSurfaceCreateInfo());
-        if (auto const & gpuDevice = rApi->physicalDevices()[0u]; gpuDevice->checkSurfaceSupport(*surface)) {
+        if (auto const & gpuDevice = gpuDevices[0u]; gpuDevice->checkSurfaceSupport(*surface)) {
 
             const auto queueFlags = engine::rhi::queue_flags::graphics | engine::rhi::queue_flags::present;
             const auto [index, family] = gpuDevice->getQueueFamily(queueFlags);
@@ -367,16 +426,17 @@ int main() {
             swapchain->resize(width, height, false);
 
             const uint32_t frameBuffersCount = swapchain->getImagesCount();
+            device->reserveResourcesForFrames(frameBuffersCount);
             const auto depthFormat = device->getSupportedDepthFormat(32u, false);
 
             std::vector<std::unique_ptr<engine::rhi::runtime::Image>> depthImages;
             depthImages.reserve(frameBuffersCount);
-            const auto imageInfo = engine::rhi::ImageInfo{
+            const auto imageInfo = engine::rhi::ImageInfo{ // todo! simplify it
                 .type = engine::rhi::ImageType::eType_2D,
                 .usage = engine::rhi::ImageUsageFlags::eDepth_Stencil_Attachment,
                 .sharing = engine::rhi::SharingMode::eExclusive,
                 .format = depthFormat,
-                .aspectFlags = engine::rhi::ImageAspectFlags::eDepthStencil,
+                .aspectFlags = engine::rhi::ImageAspectFlags::eDepth, // can get it from depthFormat?
                 .tiling = engine::rhi::ImageTiling::eOptimal,
                 .flags = engine::rhi::ImageCreateFlags::eNone,
                 .memoryFlags = engine::rhi::MemoryPropertyFlags::eDeviceLocal,
@@ -391,6 +451,33 @@ int main() {
             for (uint32_t i = 0u; i < frameBuffersCount; ++i) {
                 depthImages.emplace_back(std::move(rApi->createImage(device, imageInfo)));
             }
+
+            auto renderPass = rApi->getRenderPass(device, createRenderPassDescription(swapchain->getFormat(), depthFormat));
+
+            std::vector<std::unique_ptr<engine::rhi::runtime::FrameBuffer>> frameBuffers;
+            frameBuffers.reserve(frameBuffersCount);
+            for (uint32_t i = 0; i < frameBuffersCount; ++i) {
+                auto & image = swapchain->getImage(i);
+                std::vector<engine::rhi::FrameBufferAttachment> fbAttachemnts{2u};
+                fbAttachemnts[0].image = &image;
+                fbAttachemnts[0].imageSize = {image.getExtent().width, image.getExtent().height};
+    
+                auto & depthImage = depthImages[i];
+                fbAttachemnts[1].image = depthImage.get();
+                fbAttachemnts[1].imageSize = {depthImage->getExtent().width, depthImage->getExtent().height};
+                fbAttachemnts[1].aspect = engine::rhi::ImageAspectFlags::eDepth;  // can get it from depthImage?
+    
+                frameBuffers.emplace_back(rApi->createFrameBuffer(device,std::move(fbAttachemnts), renderPass));
+            }
+
+            auto queue = rApi->getQueue(device, engine::rhi::queue_flags::graphics | engine::rhi::queue_flags::present, 0u, frameBuffersCount);
+
+            std::vector<engine::rhi::runtime::Semaphore> presentReadySemaphores(frameBuffersCount);
+            for (auto & semaphore : presentReadySemaphores) {
+                semaphore = rApi->createSemaphore(device);
+            }
+
+            engine::rhi::FrameIndex frameIndex{static_cast<uint8_t>(frameBuffersCount)};
 
             int a = 0;
         }
@@ -433,6 +520,7 @@ int main() {
         // const uint32_t frameBuffersCount = std::min(3u, swapchain.getImagesCount());
         const uint32_t frameBuffersCount = swapchain.getImagesCount();
 
+        device.reserveResourcesForFrames(frameBuffersCount);
         const auto depthFormat = device.getSupportedDepthFormat(32u, true);
 
         std::vector<Api::Image> depthImages;
@@ -476,19 +564,15 @@ int main() {
             frameBuffers.emplace_back(device, std::move(fbAttachemnts), renderPass);
         }
 
+        Api::Queue queue(device, engine::rhi::queue_flags::graphics | engine::rhi::queue_flags::present, 0u, frameBuffersCount);
+        
         std::vector<Api::Device::Semaphore> presentReadySemaphores(frameBuffersCount);
         for (auto & semaphore : presentReadySemaphores) {
             semaphore = device.createSemaphore();
         }
 
-        Api::Queue queue(device, engine::rhi::queue_flags::graphics | engine::rhi::queue_flags::present, 0u, frameBuffersCount);
-        std::vector<Api::CommandBuffer> cmdBuffers;
-
-        // reserve frames data
-        cmdBuffers.reserve(frameBuffersCount);
-        device.getDescriptorPoolManager().useFrames(frameBuffersCount);
         engine::rhi::FrameIndex frameIndex{static_cast<uint8_t>(frameBuffersCount)};
-        
+
         //
         auto program = loadShaders(device);
         gProgram0 = &program;
@@ -497,6 +581,11 @@ int main() {
         auto buffer = createBuffers(device);
         vtxBuffer = &buffer;
         //
+
+        // reserve frames data
+        std::vector<Api::CommandBuffer> cmdBuffers;
+        cmdBuffers.reserve(frameBuffersCount);
+        
         bool renderInited = false;
         constexpr float inputCheckTime = 1.0f / 60.0f;
         constexpr float redrawTime = 1.0f / 120.0f;

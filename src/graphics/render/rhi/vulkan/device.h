@@ -81,6 +81,10 @@ public:
         return _pipelineCache;
     }
 
+    void reserveResourcesForFrames(uint8_t framesCount) noexcept override {
+        _descriptorPoolManager.useFrames(framesCount);
+    }
+
 private:
     void createAllocator() noexcept;
     void destroyAllocator() noexcept;

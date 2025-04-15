@@ -1,5 +1,7 @@
 #pragma once
 
+#include "graphics/render/rhi/common/runtime.h"
+
 #include <vulkan/vulkan.h>
 
 #include <cstdint>
@@ -13,9 +15,9 @@ namespace engine::vulkan {
     class Swapchain;
     struct SubmitSyncInfo;
 
-    class Queue {
+    class Queue final : public rhi::runtime::Queue {
     public:
-        Queue(const Device & device, uint8_t familyFlags, uint8_t queueIdx, uint8_t framesCount);
+        Queue(const Device & device, rhi::queue_flags::flags familyFlags, uint8_t queueIdx, uint8_t framesCount);
         ~Queue();
     
         inline VkQueue operator ()() const noexcept { return _queue; }

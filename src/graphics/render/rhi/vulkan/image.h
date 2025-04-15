@@ -61,7 +61,7 @@ struct ImageSubState {
     inline bool operator == (const ImageSubState& other) const noexcept = default;
 };
 
-class Image : public rhi::runtime::Image {
+class Image final : public rhi::runtime::Image {
     using ImageViewMap = std::unordered_map<ImageViewDescription, VkImageView, hash::Hasher<ImageViewDescription>, std::equal_to<>>;
     
 public:
@@ -72,8 +72,8 @@ public:
     Image(const Image &) = delete;
     Image & operator= (const Image &) = delete;
 
-    Image(Image && other) noexcept : _device(other._device), _image(other._image), 
-            _allocation(other._allocation), _info(std::move(other._info)), 
+    Image(Image && other) noexcept : rhi::runtime::Image(std::move(other._info)), _device(other._device), _image(other._image), 
+            _allocation(other._allocation), 
             _imageViews(std::move(other._imageViews)), _imageSubStates(std::move(other._imageSubStates)),
             _imageStatesIdentical(other._imageStatesIdentical), _externalImage(other._externalImage) {
             other._device = nullptr;
@@ -114,17 +114,12 @@ public:
     void assignLayout(VkImageLayout dstLayout, uint8_t baseLayer, uint8_t layersCount, 
                     uint8_t baseLevel, uint8_t levelsCount) noexcept;
 
-    const rhi::ImageInfo & getInfo() const noexcept { return _info; }
-    rhi::Extent3D getExtent() const noexcept { return _info.extent; }
-
     std::span<const ImageSubState> getSubStates() const noexcept { return _imageSubStates; }
 
 private:
     Device * _device;
     VkImage _image = VK_NULL_HANDLE;
     MemoryAllocation _allocation;
-
-    rhi::ImageInfo _info;
 
     ImageViewMap _imageViews;
     std::vector<ImageSubState> _imageSubStates; // size must be _layers * _mipLevels

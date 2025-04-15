@@ -7,7 +7,7 @@
 
 namespace engine::vulkan {
     
-    Queue::Queue(const Device & device, uint8_t familyFlags, uint8_t queueIdx, uint8_t framesCount) :
+    Queue::Queue(const Device & device, rhi::queue_flags::flags familyFlags, uint8_t queueIdx, uint8_t framesCount) :
         _submitCompleteFences(framesCount), 
         _device(device) {
         const auto * queueFamily = device.findQueueFamily(familyFlags);
