@@ -20,6 +20,8 @@
 //
 #include "graphics/render/rhi/common/api.h"
 #include "graphics/render/rhi/common/utils.h"
+#include "graphics/render/rhi/common/shader_module.h"
+
 #include "graphics/render/rhi/vulkan/api.h"
 #include "graphics/render/rhi/vulkan/vk_types.h"
 #include "graphics/render/rhi/vulkan/instance.h"
@@ -95,8 +97,6 @@ auto createDescriptorSets(auto & device, const engine::rhi::shaders::BindingSetL
     return pool.allocateDescriptorSet(setLayout);
 }
 
-engine::vulkan::ShaderModule vsModule0;
-engine::vulkan::ShaderModule fsModule0;
 gApi::GpuProgram *gProgram0;
 gApi::Buffer *vtxBuffer;
 gApi::Pipeline *pipeline = nullptr;
@@ -131,7 +131,7 @@ auto createPipeline(gApi::Device & device, VkRenderPass renderPass) {
     return typename Api::Pipeline{device, info.create(*gProgram0, renderPass)};
 }
 
-auto loadShaders(auto & device) {
+auto loadShaders(auto & device, auto & shaderModulesManager) {
     using namespace engine::rhi;
     using Api = std::decay_t<decltype(device)>::Api;
 
@@ -141,8 +141,8 @@ auto loadShaders(auto & device) {
     auto const vBytes = fm.readFile("shaders/simple.vert.spv");
     auto const fBytes = fm.readFile("shaders/simple.frag.spv");
 
-    const engine::vulkan::ShaderModule vsModule{device, engine::rhi::shaders::Stages::eVertex, vBytes};
-    const engine::vulkan::ShaderModule fsModule{device, engine::rhi::shaders::Stages::eFragment, fBytes};
+    const auto & vsModule = shaderModulesManager.registerModule("simple.vert", device, engine::rhi::shaders::Stages::eVertex, vBytes); // call overloaded function
+    const auto & fsModule = shaderModulesManager.registerModule("simple.frag", {device, engine::rhi::shaders::Stages::eFragment, fBytes});
 
     return typename Api::GpuProgram{device, std::array{vsModule.view(), fsModule.view()}};
 }
@@ -288,6 +288,12 @@ public:
         const engine::rhi::runtime::Fence & fence) const noexcept = 0;
     virtual void destroySemaphore(const std::unique_ptr<engine::rhi::runtime::Device> & device, 
         const engine::rhi::runtime::Semaphore & semaphore) const noexcept = 0;
+
+    virtual std::unique_ptr<engine::rhi::runtime::ShaderModulesManager> createShaderModulesManager() const = 0;
+
+    virtual std::unique_ptr<engine::rhi::runtime::GpuProgram> createProgram(
+        std::unique_ptr<engine::rhi::runtime::Device> & device, std::span<const engine::rhi::runtime::ShaderModuleView> moduleViews
+    ) const = 0;
 };
 
 class VkRuntimeApi final : public RuntimeApi {
@@ -366,6 +372,27 @@ public:
         static_cast<const Api::Device &>(*device).destroySemaphore(static_cast<VkSemaphore>(semaphore));
     }
 
+    std::unique_ptr<engine::rhi::runtime::ShaderModulesManager> createShaderModulesManager() const override {
+        return std::make_unique<engine::rhi::ShaderModulesManager<Api>>();
+    }
+
+    std::unique_ptr<engine::rhi::runtime::GpuProgram> createProgram(
+        std::unique_ptr<engine::rhi::runtime::Device> & device, 
+        std::span<const engine::rhi::runtime::ShaderModuleView> moduleViews
+    ) const override {
+        std::array<Api::ShaderModule::View, engine::rhi::shaders::kStagesCount> apiModules;
+        size_t i = 0u;
+        for (const auto & view : moduleViews) {
+            apiModules[i++] = {
+                static_cast<VkShaderModule>(view.shaderModule), 
+                static_cast<const engine::vulkan::ModuleReflection*>(view.reflection)
+            };
+        }
+
+        return std::make_unique<Api::GpuProgram>(static_cast<Api::Device &>(*device), 
+            std::span{apiModules.begin(), apiModules.begin() + moduleViews.size()});
+    }
+
 private:
     Api::Instance _instance;
     std::vector<std::unique_ptr<engine::rhi::runtime::PhysicalDevice>> _physicalDevices;
@@ -399,7 +426,7 @@ int main() {
     engine::GLFWModule glfwModule;
     const auto & window0 = glfwModule.open(Api::name().data());
 
-    constexpr bool kUseRuntimeApi = true;
+    constexpr bool kUseRuntimeApi = 0;
     if constexpr (kUseRuntimeApi) {
         std::unique_ptr<RuntimeApi> rApi = std::make_unique<VkRuntimeApi>(instanceCreateInfo);
 
@@ -576,7 +603,8 @@ int main() {
         engine::rhi::FrameIndex frameIndex{static_cast<uint8_t>(frameBuffersCount)};
 
         //
-        auto program = loadShaders(device);
+        engine::rhi::ShaderModulesManager<gApi> shaderModulesManager;
+        auto program = loadShaders(device, shaderModulesManager);
         gProgram0 = &program;
         auto pipeline0 = createPipeline(device, renderPass);
         pipeline = &pipeline0;

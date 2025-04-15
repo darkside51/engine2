@@ -1123,6 +1123,7 @@ namespace engine::rhi {
         inline Stages operator & (Stages a, Stages b) {
             return static_cast<Stages>(std::to_underlying(a) & std::to_underlying(b));
         }
+        inline constexpr uint8_t kStagesCount = 15u;
 
         struct BindingLayout {
             uint16_t binding = 0xff'ffu;

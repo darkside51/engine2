@@ -3,7 +3,9 @@
 #include "device.h"
 #include "types.h"
 
+#include <cstddef>
 #include <cstdint>
+#include <span>
 #include <utility>
 
 namespace engine::rhi::runtime {
@@ -75,6 +77,28 @@ public:
     virtual ~Queue() = default;
 };
 
+struct ShaderModuleView {
+    void * shaderModule;
+    const void * reflection;  
+};
 
+class ShaderModule {
+public:
+    virtual ~ShaderModule() = default;
+    virtual ShaderModuleView getView() const noexcept = 0;
+};
+
+class ShaderModulesManager {
+public:
+    virtual ~ShaderModulesManager() = default;
+    virtual const ShaderModule & registerModule(std::string key, const Device & device, 
+        rhi::shaders::Stages stage, std::span<const std::byte> code) = 0;
+    virtual const ShaderModule * getModule(std::string_view key) const noexcept = 0;
+};
+
+class GpuProgram {
+public:
+    ~GpuProgram() = default;
+};
 
 }

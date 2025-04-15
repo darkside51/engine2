@@ -18,6 +18,7 @@ namespace engine::vulkan {
     class RenderPassManager;
     class CommandBuffer;
     class Queue;
+    class ShaderModule;
     class GpuProgram;
     class Pipeline;
     class GraphicsPipelineInfo;
@@ -35,6 +36,7 @@ namespace engine::vulkan {
         using FrameBuffer = vulkan::FrameBuffer;
         using CommandBuffer = vulkan::CommandBuffer;
         using Queue = vulkan::Queue;
+        using ShaderModule = vulkan::ShaderModule;
         using GpuProgram = vulkan::GpuProgram;
         using Pipeline = vulkan::Pipeline;
         using GraphicsPipelineInfo = vulkan::GraphicsPipelineInfo;

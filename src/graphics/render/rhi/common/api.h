@@ -29,6 +29,7 @@ namespace engine::rhi {
         using FrameBuffer = T::FrameBuffer;
         using CommandBuffer = T::CommandBuffer;
         using Queue = T::Queue;
+        using ShaderModule = T::ShaderModule;
         using GpuProgram = T::GpuProgram;
         using Pipeline = T::Pipeline;
         using GraphicsPipelineInfo = T::GraphicsPipelineInfo;

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "graphics/render/rhi/common/types.h"
+#include "graphics/render/rhi/common/runtime.h"
 
 #include <vulkan/vulkan.h>
 
@@ -27,7 +28,7 @@ struct ModuleReflection {
     rhi::shaders::Stages stage = rhi::shaders::Stages::eNone;
 };
 
-class ShaderModule {
+class ShaderModule final : public rhi::runtime::ShaderModule {
 public:
     struct View {
         VkShaderModule shaderModule;
@@ -63,6 +64,10 @@ public:
         return {_shaderModule, &_reflection};
     }
 
+    rhi::runtime::ShaderModuleView getView() const noexcept override {
+        return {_shaderModule, &_reflection};
+    }
+
     void destroy() noexcept;
 
 private:
@@ -71,7 +76,7 @@ private:
     ModuleReflection _reflection;
 };
 
-class GpuProgram {
+class GpuProgram final : public rhi::runtime::GpuProgram {
 public:
     GpuProgram(Device & device, std::span<const ShaderModule::View> moduleViews);
     ~GpuProgram();
