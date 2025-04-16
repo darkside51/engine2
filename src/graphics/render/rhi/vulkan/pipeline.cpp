@@ -256,12 +256,23 @@ namespace engine::vulkan {
             return *this;
         }
 
+        GraphicsPipelineInfo::GraphicsPipelineInfo(const rhi::GraphicsPipelineStatesInfo & info) {
+            vertexInputStateInfo(info.vertexInputState.inputBindings, info.vertexInputState.attributes);
+            tessellationStateInfo(info.tessellationState.patchControlPoints);
+            viewportStateInfo(info.viewportState.viewportCount, info.viewportState.scissorCount);
+            rasterizationStateInfo(info.rasterisationState.polygonMode, info.rasterisationState.cullmode, info.rasterisationState.frontFace);
+            multisampleStateInfo();
+            depthStencilStateInfo(info.depthStencilState.depth, info.depthStencilState.stencil);
+            colorBlendStateCreateInfo(info.blendModes);
+            dynamicStateInfo(info.dynamicStates);
+        }
+
         VkGraphicsPipelineCreateInfo GraphicsPipelineInfo::create(
             const GpuProgram & program, 
             VkRenderPass renderPass,
             uint32_t subpass,
             VkPipeline basePipelineHandle,
-            int32_t basePipelineIndex) noexcept {
+            int32_t basePipelineIndex) const noexcept {
                 return graphicsPipelineCreateInfo(
                     program,
                     &_vertexInputState,
@@ -298,13 +309,16 @@ namespace engine::vulkan {
             if (auto result = vkCreateGraphicsPipelines(device(), device.pipelineCache(), 1, &info, allocationCallbacks, &pipeline); 
                 result != VK_SUCCESS) {
                 LOG_E("vulkan error : pipeline create no success!");
+                return;
             }
+            LOG_I("vulkan: pipeline created");
         }
 
         Pipeline::~Pipeline() {
             if (_device && pipeline) {
                 auto const allocationCallbacks = _device->gpu().getInstance().getAllocationCallbacks();
                 vkDestroyPipeline((*_device)(), pipeline, allocationCallbacks);
+                LOG_I("vulkan: pipeline destroyed");
             }
         }
 }

@@ -7,6 +7,7 @@
 #include <cstdint>
 #include <span>
 #include <utility>
+#include <vector>
 
 namespace engine::rhi::runtime {
 
@@ -98,7 +99,12 @@ public:
 
 class GpuProgram {
 public:
-    ~GpuProgram() = default;
+    virtual ~GpuProgram() = default;
+};
+
+class Pipeline {
+public:
+    virtual ~Pipeline() = default;
 };
 
 }

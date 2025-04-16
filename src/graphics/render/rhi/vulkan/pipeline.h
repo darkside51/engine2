@@ -3,6 +3,8 @@
 #include "gpu_program.h"
 
 #include "graphics/render/rhi/common/types.h"
+#include "graphics/render/rhi/common/pipeline.h"
+#include "graphics/render/rhi/common/runtime.h"
 #include "vk_types.h"
 
 #include "utils/dynamic_array.h"
@@ -111,6 +113,9 @@ namespace engine::vulkan {
 
     class GraphicsPipelineInfo {
     public:
+        GraphicsPipelineInfo() = default;
+        GraphicsPipelineInfo(const rhi::GraphicsPipelineStatesInfo & info);
+
         GraphicsPipelineInfo & viewportStateInfo(uint32_t viewportCount = 1u, uint32_t scissorCount = 1u) noexcept;
         GraphicsPipelineInfo & dynamicStateInfo(rhi::DynamicState states) noexcept;
 
@@ -141,7 +146,7 @@ namespace engine::vulkan {
             VkRenderPass renderPass,
             uint32_t subpass = 0u,
             VkPipeline basePipelineHandle = VK_NULL_HANDLE,
-            int32_t basePipelineIndex = 0) noexcept;
+            int32_t basePipelineIndex = 0) const noexcept;
 
     private:
         std::pair<std::array<VkDynamicState, rhi::kDynamicStatesCount>, uint8_t> _statesArray{};
@@ -160,7 +165,7 @@ namespace engine::vulkan {
         VkPipelineDynamicStateCreateInfo _dynamicState{};
     };
 
-    class Pipeline {
+    class Pipeline final : public rhi::runtime::Pipeline {
     public:
         Pipeline(Device & device, const VkComputePipelineCreateInfo & info);
         Pipeline(Device & device, const VkGraphicsPipelineCreateInfo & info);

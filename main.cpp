@@ -294,6 +294,16 @@ public:
     virtual std::unique_ptr<engine::rhi::runtime::GpuProgram> createProgram(
         std::unique_ptr<engine::rhi::runtime::Device> & device, std::span<const engine::rhi::runtime::ShaderModuleView> moduleViews
     ) const = 0;
+
+    virtual std::unique_ptr<engine::rhi::runtime::Pipeline> createComputePipeline(
+        std::unique_ptr<engine::rhi::runtime::Device> & device,
+        const std::unique_ptr<engine::rhi::runtime::GpuProgram> & program) noexcept = 0;
+
+    virtual std::unique_ptr<engine::rhi::runtime::Pipeline> createGraphicsPipeline(
+        std::unique_ptr<engine::rhi::runtime::Device> & device,
+        engine::rhi::runtime::RenderPass renderPass,
+        const std::unique_ptr<engine::rhi::runtime::GpuProgram> & program,
+        const engine::rhi::GraphicsPipelineStatesInfo & info) noexcept = 0;
 };
 
 class VkRuntimeApi final : public RuntimeApi {
@@ -392,9 +402,80 @@ public:
             std::span{apiModules.begin(), apiModules.begin() + moduleViews.size()});
     }
 
+    std::unique_ptr<engine::rhi::runtime::Pipeline> createComputePipeline(
+        std::unique_ptr<engine::rhi::runtime::Device> & device,
+        const std::unique_ptr<engine::rhi::runtime::GpuProgram> & program) noexcept override {
+        return std::make_unique<Api::Pipeline>(static_cast<Api::Device &>(*device),
+            engine::vulkan::computePipelineCreateInfo(static_cast<const Api::GpuProgram&>(*program)));
+    }
+
+    std::unique_ptr<engine::rhi::runtime::Pipeline> createGraphicsPipeline(
+        std::unique_ptr<engine::rhi::runtime::Device> & device,
+        engine::rhi::runtime::RenderPass renderPass,
+        const std::unique_ptr<engine::rhi::runtime::GpuProgram> & program,
+        const engine::rhi::GraphicsPipelineStatesInfo & info) noexcept override {
+
+        const Api::GraphicsPipelineInfo pipelineInfo{info};
+        return std::make_unique<Api::Pipeline>(static_cast<Api::Device &>(*device), 
+            pipelineInfo.create(static_cast<const Api::GpuProgram&>(*program), 
+            static_cast<VkRenderPass>(renderPass)));
+    }
+
 private:
     Api::Instance _instance;
 };
+
+////
+auto loadShadersRuntime(const std::unique_ptr<RuntimeApi> & api, 
+    std::unique_ptr<engine::rhi::runtime::Device> & device, 
+    std::unique_ptr<engine::rhi::runtime::ShaderModulesManager> & shaderModulesManager) {
+
+    engine::FileManager fm;
+    auto * fsystem = fm.createFileSystem<engine::CommonFileSystem>("main", engine::CommonFileSystem::getCurrentDirectory() + "./resources/");
+
+    auto const vBytes = fm.readFile("shaders/simple.vert.spv");
+    auto const fBytes = fm.readFile("shaders/simple.frag.spv");
+
+    const auto & vsModule = shaderModulesManager->registerModule("simple.vert", *device, engine::rhi::shaders::Stages::eVertex, vBytes); // call overloaded function
+    const auto & fsModule = shaderModulesManager->registerModule("simple.frag", *device, engine::rhi::shaders::Stages::eFragment, fBytes);
+
+    return api->createProgram(device, std::array{vsModule.getView(), fsModule.getView()});
+}
+
+auto createPipelineRuntime(const std::unique_ptr<RuntimeApi> & api,
+    std::unique_ptr<engine::rhi::runtime::Device> & device,
+    engine::rhi::runtime::RenderPass renderPass,
+    const std::unique_ptr<engine::rhi::runtime::GpuProgram> & program) {
+    using namespace engine::rhi;
+
+    GraphicsPipelineStatesInfo info;
+    info.viewportState = {1u, 1u};
+    info.blendModes = {common_blend_modes::blend_none};
+    info.depthStencilState = {
+        {
+            .depthTestEnable = false,
+            .depthWriteEnable = false,
+            .depthCompareOp = CompareOp::eAlways
+        }, 
+        {}
+    };
+    info.dynamicStates = DynamicState::eViewport | DynamicState::eScissor;
+    info.rasterisationState = {PolygonMode::eFill, CullMode::eBack};
+    info.inputAssemblyState = {PrimitiveTopology::eTriangles, false};
+    info.vertexInputState = {
+        std::vector{VertexInputBinding::create<float[3]>(0u)},
+        std::vector{
+            VertexInputAttribute{
+                .location = 0u,
+                .binding = 0u,
+                .format = Format::eR32G32B32_Sfloat,
+                .offset = 0u
+            }
+        }
+    };
+
+   return api->createGraphicsPipeline(device, renderPass, program, info);
+}
 
 int main() {
     engine::tests::execute_tests();
@@ -424,7 +505,7 @@ int main() {
     engine::GLFWModule glfwModule;
     const auto & window0 = glfwModule.open(Api::name().data());
 
-    constexpr bool kUseRuntimeApi = false;
+    constexpr bool kUseRuntimeApi = 0;
     if constexpr (kUseRuntimeApi) {
         std::unique_ptr<RuntimeApi> rApi = std::make_unique<VkRuntimeApi>(instanceCreateInfo);
 
@@ -505,6 +586,10 @@ int main() {
             }
 
             engine::rhi::FrameIndex frameIndex{static_cast<uint8_t>(frameBuffersCount)};
+
+            auto shaderModulesManager = rApi->createShaderModulesManager();
+            auto program = loadShadersRuntime(rApi, device, shaderModulesManager);
+            auto pipeline = createPipelineRuntime(rApi, device, renderPass, program);
 
             int a = 0;
         }
