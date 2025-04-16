@@ -26,6 +26,7 @@ namespace engine::rhi {
         using Swapchain = T::Swapchain;
         using Buffer = T::Buffer;
         using Image = T::Image;
+        using RenderPass = T::RenderPass;
         using FrameBuffer = T::FrameBuffer;
         using CommandBuffer = T::CommandBuffer;
         using Queue = T::Queue;

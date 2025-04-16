@@ -11,7 +11,7 @@
 namespace engine::rhi {
 
 template<typename Api>
-class ShaderModulesManager final : public runtime::ShaderModulesManager{
+class ShaderModulesManager final : public runtime::ShaderModulesManager {
     using ModulesMap = std::unordered_map<std::string, typename Api::ShaderModule, hash::String_hash, std::equal_to<>>;
 
 public:

@@ -9,6 +9,10 @@
 #include <utility>
 #include <vector>
 
+namespace engine::rhi {
+struct GraphicsPipelineStatesInfo;
+}
+
 namespace engine::rhi::runtime {
 
 using RenderPass = void*;
@@ -105,6 +109,14 @@ public:
 class Pipeline {
 public:
     virtual ~Pipeline() = default;
+};
+
+class PipelinesManager {
+public:
+    virtual ~PipelinesManager() = default;
+    virtual const Pipeline & getGraphicsPipeline(Device & device, const GpuProgram & program, 
+        RenderPass renderpass, const rhi::GraphicsPipelineStatesInfo & info) = 0;
+    virtual const Pipeline & getComputePipeline(Device & device, const GpuProgram & program) = 0;
 };
 
 }

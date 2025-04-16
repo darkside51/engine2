@@ -33,6 +33,7 @@ namespace engine::vulkan {
         using Swapchain = vulkan::Swapchain;
         using Buffer = vulkan::Buffer;
         using Image = vulkan::Image;
+        using RenderPass = VkRenderPass;
         using FrameBuffer = vulkan::FrameBuffer;
         using CommandBuffer = vulkan::CommandBuffer;
         using Queue = vulkan::Queue;

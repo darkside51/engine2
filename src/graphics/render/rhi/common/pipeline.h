@@ -1,6 +1,7 @@
 #pragma once
 
 #include "types.h"
+#include "runtime.h"
 
 namespace engine::rhi {
 
@@ -43,5 +44,16 @@ namespace engine::rhi {
             std::vector<rhi::VertexInputAttribute> attributes;
         } vertexInputState;
     };
-    
+
+
+template<typename Api>
+class PipelinesManager final : public runtime::PipelinesManager {
+public:
+    const Api::Pipeline & getGraphicsPipeline(Api::Device & device, const Api::GpuProgram & program, 
+        Api::RenderPass renderpass, const GraphicsPipelineStatesInfo & info) override;
+    const Api::Pipeline & getComputePipeline(Api::Device & device, const Api::GpuProgram & program) override;
+
+private:
+};
+
 }

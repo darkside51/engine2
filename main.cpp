@@ -405,6 +405,7 @@ public:
     std::unique_ptr<engine::rhi::runtime::Pipeline> createComputePipeline(
         std::unique_ptr<engine::rhi::runtime::Device> & device,
         const std::unique_ptr<engine::rhi::runtime::GpuProgram> & program) noexcept override {
+        //кэшировать и ссылку? или можно cache как для shaderModules - а он тогда ссылку
         return std::make_unique<Api::Pipeline>(static_cast<Api::Device &>(*device),
             engine::vulkan::computePipelineCreateInfo(static_cast<const Api::GpuProgram&>(*program)));
     }
@@ -414,7 +415,7 @@ public:
         engine::rhi::runtime::RenderPass renderPass,
         const std::unique_ptr<engine::rhi::runtime::GpuProgram> & program,
         const engine::rhi::GraphicsPipelineStatesInfo & info) noexcept override {
-
+        //кэшировать и ссылку? или можно cache как для shaderModules - а он тогда ссылку
         const Api::GraphicsPipelineInfo pipelineInfo{info};
         return std::make_unique<Api::Pipeline>(static_cast<Api::Device &>(*device), 
             pipelineInfo.create(static_cast<const Api::GpuProgram&>(*program), 
