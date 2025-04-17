@@ -1,10 +1,16 @@
 #pragma once
 
+#include "instance.h"
 #include "device.h"
+#include "framebuffer.h"
+#include "renderpass.h"
+#include "surface.h"
+#include "swapchain.h"
 #include "types.h"
 
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 #include <span>
 #include <utility>
 #include <vector>
@@ -119,4 +125,53 @@ public:
     virtual const Pipeline & getComputePipeline(Device & device, const GpuProgram & program) = 0;
 };
 
+using SurfacePtr = std::unique_ptr<Surface>;
+using PysicalDevicePtr = std::unique_ptr<PhysicalDevice>;
+using DevicePtr = std::unique_ptr<Device>;
+using ImagePtr = std::unique_ptr<Image>;
+using SwapchainPtr = std::unique_ptr<Swapchain>;
+using FrameBufferPtr = std::unique_ptr<FrameBuffer>;
+using QueuePtr = std::unique_ptr<Queue>;
+using ShaderModulesManagerPtr = std::unique_ptr<ShaderModulesManager>;
+using GpuProgramPtr = std::unique_ptr<GpuProgram>;
+using PipelinePtr = std::unique_ptr<Pipeline>;
+using PipelinesManagerPtr = std::unique_ptr<PipelinesManager>;
+
+class Rhi {
+public:
+    virtual ~Rhi() = default;
+
+    virtual Instance & getInstance() noexcept = 0;
+
+    virtual SurfacePtr createSurface(const SurfaceCreateInfo & info) const = 0;
+
+    virtual std::vector<PysicalDevicePtr> enumerateDevices(const PhysicalDeviceRequirements & info) const = 0;
+    virtual DevicePtr createDevice(PysicalDevicePtr & gpu, const DeviceCreateInfo & info) const = 0;
+
+    virtual SwapchainPtr createSwapchain(const DevicePtr & device, const SurfacePtr & surface, const SwapchainCreateInfo & info) const = 0;
+
+    virtual ImagePtr createImage(const DevicePtr & device, const ImageInfo & imageInfo) const noexcept = 0;
+            
+    virtual RenderPass getRenderPass(DevicePtr & device, const RenderPassDescription & description) const noexcept = 0;
+
+    virtual FrameBufferPtr createFrameBuffer(const DevicePtr & device,  std::vector<FrameBufferAttachment> && attachemnts, 
+        const RenderPass & renderPass) const noexcept = 0;
+
+    virtual QueuePtr getQueue(const DevicePtr & device, queue_flags::flags familyFlags, uint8_t queueIdx, uint8_t framesCount) const = 0;
+
+    virtual Fence createFence(const DevicePtr & device, FenceCreateFlags flags) const noexcept = 0;
+    virtual Semaphore createSemaphore(const DevicePtr & device) const noexcept = 0;
+
+    virtual void destroyFence(const DevicePtr & device, const Fence & fence) const noexcept = 0;
+    virtual void destroySemaphore(const DevicePtr & device, const Semaphore & semaphore) const noexcept = 0;
+
+    virtual ShaderModulesManagerPtr createShaderModulesManager() const = 0;
+
+    virtual GpuProgramPtr createProgram(DevicePtr & device, std::span<const ShaderModuleView> moduleViews) const = 0;
+
+    virtual PipelinePtr createComputePipeline(DevicePtr & device, const GpuProgramPtr & program) const noexcept = 0;
+
+    virtual PipelinePtr createGraphicsPipeline(DevicePtr & device, RenderPass renderPass,
+        const GpuProgramPtr & program, const GraphicsPipelineStatesInfo & info) const noexcept = 0;
+};
 }

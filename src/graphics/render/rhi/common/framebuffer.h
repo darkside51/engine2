@@ -4,8 +4,6 @@
 
 #include <cstdint>
 
-
-
 namespace engine::rhi {
 
 namespace runtime {

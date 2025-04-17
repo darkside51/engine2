@@ -42,6 +42,8 @@
 #include "graphics/render/rhi/vulkan/gpu_program.h"
 #include "graphics/render/rhi/vulkan/pipeline.h"
 
+#include "graphics/render/rhi/vulkan/runtime.h"
+
 using gApi = engine::rhi::Api<engine::vulkan::Api>;
 
 engine::rhi::RenderPassDescription createRenderPassDescription(engine::rhi::Format colorFormat, engine::rhi::Format depthFormat) {
@@ -251,183 +253,8 @@ auto createBuffers(auto & device) {
     return resultBuffer;
 }
 
-#include <memory>
-class RuntimeApi {
-public:
-    virtual ~RuntimeApi() = default;
-
-    virtual engine::rhi::runtime::Instance & getInstance() noexcept = 0;
-    virtual std::vector<std::unique_ptr<engine::rhi::runtime::PhysicalDevice>> enumerateDevices(
-        const engine::rhi::PhysicalDeviceRequirements & info) = 0;
-    virtual std::unique_ptr<engine::rhi::runtime::Surface> createSurface(const engine::rhi::SurfaceCreateInfo & info) = 0;
-    virtual std::unique_ptr<engine::rhi::runtime::Device> createDevice(std::unique_ptr<engine::rhi::runtime::PhysicalDevice> & gpu,
-        const engine::rhi::DeviceCreateInfo & info) = 0;
-    virtual std::unique_ptr<engine::rhi::runtime::Swapchain> createSwapchain(const std::unique_ptr<engine::rhi::runtime::Device> & device, 
-        const std::unique_ptr<engine::rhi::runtime::Surface> & surface, const engine::rhi::SwapchainCreateInfo & info) = 0;
-
-    virtual std::unique_ptr<engine::rhi::runtime::Image> createImage(const std::unique_ptr<engine::rhi::runtime::Device> & device,
-            const engine::rhi::ImageInfo & imageInfo) const noexcept = 0;
-            
-    virtual engine::rhi::runtime::RenderPass getRenderPass(std::unique_ptr<engine::rhi::runtime::Device> & device, 
-            const engine::rhi::RenderPassDescription & description) noexcept = 0;
-
-    virtual std::unique_ptr<engine::rhi::runtime::FrameBuffer> createFrameBuffer(
-        const std::unique_ptr<engine::rhi::runtime::Device> & device, 
-        std::vector<engine::rhi::FrameBufferAttachment> && attachemnts, 
-        const engine::rhi::runtime::RenderPass & renderPass) noexcept = 0;
-
-    virtual std::unique_ptr<engine::rhi::runtime::Queue> getQueue(const std::unique_ptr<engine::rhi::runtime::Device> & device, 
-        engine::rhi::queue_flags::flags familyFlags, uint8_t queueIdx, uint8_t framesCount) = 0;
-
-    virtual engine::rhi::runtime::Fence createFence(const std::unique_ptr<engine::rhi::runtime::Device> & device, 
-        engine::rhi::FenceCreateFlags flags) const noexcept = 0;
-    virtual engine::rhi::runtime::Semaphore createSemaphore(
-        const std::unique_ptr<engine::rhi::runtime::Device> & device) const noexcept = 0;
-
-    virtual void destroyFence(const std::unique_ptr<engine::rhi::runtime::Device> & device, 
-        const engine::rhi::runtime::Fence & fence) const noexcept = 0;
-    virtual void destroySemaphore(const std::unique_ptr<engine::rhi::runtime::Device> & device, 
-        const engine::rhi::runtime::Semaphore & semaphore) const noexcept = 0;
-
-    virtual std::unique_ptr<engine::rhi::runtime::ShaderModulesManager> createShaderModulesManager() const = 0;
-
-    virtual std::unique_ptr<engine::rhi::runtime::GpuProgram> createProgram(
-        std::unique_ptr<engine::rhi::runtime::Device> & device, std::span<const engine::rhi::runtime::ShaderModuleView> moduleViews
-    ) const = 0;
-
-    virtual std::unique_ptr<engine::rhi::runtime::Pipeline> createComputePipeline(
-        std::unique_ptr<engine::rhi::runtime::Device> & device,
-        const std::unique_ptr<engine::rhi::runtime::GpuProgram> & program) noexcept = 0;
-
-    virtual std::unique_ptr<engine::rhi::runtime::Pipeline> createGraphicsPipeline(
-        std::unique_ptr<engine::rhi::runtime::Device> & device,
-        engine::rhi::runtime::RenderPass renderPass,
-        const std::unique_ptr<engine::rhi::runtime::GpuProgram> & program,
-        const engine::rhi::GraphicsPipelineStatesInfo & info) noexcept = 0;
-};
-
-class VkRuntimeApi final : public RuntimeApi {
-public:
-    using Api = engine::rhi::Api<engine::vulkan::Api>;
-    explicit VkRuntimeApi(const engine::rhi::InstanceCreateInfo & instanceCreateInfo) : _instance(instanceCreateInfo) {}
-
-    engine::rhi::runtime::Instance & getInstance() noexcept override { return _instance; }
-
-    std::vector<std::unique_ptr<engine::rhi::runtime::PhysicalDevice>> enumerateDevices(
-        const engine::rhi::PhysicalDeviceRequirements & info) override {
-        auto apiPhysicalDevices = Api::PhysicalDevice::getSuitableDevices(_instance, info);
-        
-        std::vector<std::unique_ptr<engine::rhi::runtime::PhysicalDevice>> physicalDevices;
-        physicalDevices.reserve(physicalDevices.size());
-        for (auto & d : apiPhysicalDevices) {
-            physicalDevices.emplace_back(std::make_unique<Api::PhysicalDevice>(std::move(d)));
-        }
-        return physicalDevices;
-    }
-
-    std::unique_ptr<engine::rhi::runtime::Surface> createSurface(const engine::rhi::SurfaceCreateInfo & info) override {
-        return std::make_unique<Api::Surface>(_instance, info);
-    }
-
-    std::unique_ptr<engine::rhi::runtime::Device> createDevice(std::unique_ptr<engine::rhi::runtime::PhysicalDevice> & gpu, 
-        const engine::rhi::DeviceCreateInfo & info) override {
-        return std::make_unique<Api::Device>(static_cast<Api::PhysicalDevice &>(*gpu), info);
-    }
-
-    std::unique_ptr<engine::rhi::runtime::Swapchain> createSwapchain(const std::unique_ptr<engine::rhi::runtime::Device> & device, 
-        const std::unique_ptr<engine::rhi::runtime::Surface> & surface, const engine::rhi::SwapchainCreateInfo & info) override {
-        return std::make_unique<Api::Swapchain>(static_cast<const Api::Device &>(*device), 
-            static_cast<const Api::Surface &>(*surface), info);
-    }
-
-    std::unique_ptr<engine::rhi::runtime::Image> createImage(const std::unique_ptr<engine::rhi::runtime::Device> & device,
-        const engine::rhi::ImageInfo & info) const noexcept override {
-            return std::make_unique<Api::Image>(static_cast<Api::Device &>(*device), info);
-    }
-
-    engine::rhi::runtime::RenderPass getRenderPass(std::unique_ptr<engine::rhi::runtime::Device> & device, 
-        const engine::rhi::RenderPassDescription & description) noexcept override {
-        return static_cast<Api::Device &>(*device).getRenderPass(description);
-    }
-
-    std::unique_ptr<engine::rhi::runtime::FrameBuffer> createFrameBuffer(
-        const std::unique_ptr<engine::rhi::runtime::Device> & device, 
-        std::vector<engine::rhi::FrameBufferAttachment> && attachemnts, 
-        const engine::rhi::runtime::RenderPass & renderPass) noexcept override {
-        return std::make_unique<Api::FrameBuffer>(static_cast<const Api::Device &>(*device), 
-            std::move(attachemnts), static_cast<VkRenderPass>(renderPass));
-    }
-
-    std::unique_ptr<engine::rhi::runtime::Queue> getQueue(const std::unique_ptr<engine::rhi::runtime::Device> & device, 
-        engine::rhi::queue_flags::flags familyFlags, uint8_t queueIdx, uint8_t framesCount) override {
-        return std::make_unique<Api::Queue>(static_cast<const Api::Device &>(*device), familyFlags, queueIdx, framesCount); 
-    }
-
-    engine::rhi::runtime::Fence createFence(const std::unique_ptr<engine::rhi::runtime::Device> & device, 
-        engine::rhi::FenceCreateFlags flags) const noexcept override {
-        return static_cast<const Api::Device &>(*device).createFence(flags);
-    }
-    engine::rhi::runtime::Semaphore createSemaphore(
-        const std::unique_ptr<engine::rhi::runtime::Device> & device) const noexcept override {
-        return static_cast<const Api::Device &>(*device).createSemaphore();
-    }
-
-    void destroyFence(const std::unique_ptr<engine::rhi::runtime::Device> & device, 
-        const engine::rhi::runtime::Fence & fence) const noexcept override {
-        static_cast<const Api::Device &>(*device).destroyFence(static_cast<VkFence>(fence));
-    }
-    void destroySemaphore(const std::unique_ptr<engine::rhi::runtime::Device> & device, 
-        const engine::rhi::runtime::Semaphore & semaphore) const noexcept override {
-        static_cast<const Api::Device &>(*device).destroySemaphore(static_cast<VkSemaphore>(semaphore));
-    }
-
-    std::unique_ptr<engine::rhi::runtime::ShaderModulesManager> createShaderModulesManager() const override {
-        return std::make_unique<engine::rhi::ShaderModulesManager<Api>>();
-    }
-
-    std::unique_ptr<engine::rhi::runtime::GpuProgram> createProgram(
-        std::unique_ptr<engine::rhi::runtime::Device> & device, 
-        std::span<const engine::rhi::runtime::ShaderModuleView> moduleViews
-    ) const override {
-        std::array<Api::ShaderModule::View, engine::rhi::shaders::kStagesCount> apiModules;
-        size_t i = 0u;
-        for (const auto & view : moduleViews) {
-            apiModules[i++] = {
-                static_cast<VkShaderModule>(view.shaderModule), 
-                static_cast<const engine::vulkan::ModuleReflection*>(view.reflection)
-            };
-        }
-
-        return std::make_unique<Api::GpuProgram>(static_cast<Api::Device &>(*device), 
-            std::span{apiModules.begin(), apiModules.begin() + moduleViews.size()});
-    }
-
-    std::unique_ptr<engine::rhi::runtime::Pipeline> createComputePipeline(
-        std::unique_ptr<engine::rhi::runtime::Device> & device,
-        const std::unique_ptr<engine::rhi::runtime::GpuProgram> & program) noexcept override {
-        //кэшировать и ссылку? или можно cache как для shaderModules - а он тогда ссылку
-        return std::make_unique<Api::Pipeline>(static_cast<Api::Device &>(*device),
-            engine::vulkan::computePipelineCreateInfo(static_cast<const Api::GpuProgram&>(*program)));
-    }
-
-    std::unique_ptr<engine::rhi::runtime::Pipeline> createGraphicsPipeline(
-        std::unique_ptr<engine::rhi::runtime::Device> & device,
-        engine::rhi::runtime::RenderPass renderPass,
-        const std::unique_ptr<engine::rhi::runtime::GpuProgram> & program,
-        const engine::rhi::GraphicsPipelineStatesInfo & info) noexcept override {
-        //кэшировать и ссылку? или можно cache как для shaderModules - а он тогда ссылку
-        const Api::GraphicsPipelineInfo pipelineInfo{info};
-        return std::make_unique<Api::Pipeline>(static_cast<Api::Device &>(*device), 
-            pipelineInfo.create(static_cast<const Api::GpuProgram&>(*program), 
-            static_cast<VkRenderPass>(renderPass)));
-    }
-
-private:
-    Api::Instance _instance;
-};
-
 ////
-auto loadShadersRuntime(const std::unique_ptr<RuntimeApi> & api, 
+auto loadShadersRuntime(const std::unique_ptr<engine::rhi::runtime::Rhi> & api, 
     std::unique_ptr<engine::rhi::runtime::Device> & device, 
     std::unique_ptr<engine::rhi::runtime::ShaderModulesManager> & shaderModulesManager) {
 
@@ -443,7 +270,7 @@ auto loadShadersRuntime(const std::unique_ptr<RuntimeApi> & api,
     return api->createProgram(device, std::array{vsModule.getView(), fsModule.getView()});
 }
 
-auto createPipelineRuntime(const std::unique_ptr<RuntimeApi> & api,
+auto createPipelineRuntime(const std::unique_ptr<engine::rhi::runtime::Rhi> & api,
     std::unique_ptr<engine::rhi::runtime::Device> & device,
     engine::rhi::runtime::RenderPass renderPass,
     const std::unique_ptr<engine::rhi::runtime::GpuProgram> & program) {
@@ -506,12 +333,12 @@ int main() {
     engine::GLFWModule glfwModule;
     const auto & window0 = glfwModule.open(Api::name().data());
 
-    constexpr bool kUseRuntimeApi = 0;
+    constexpr bool kUseRuntimeApi = false;
     if constexpr (kUseRuntimeApi) {
-        std::unique_ptr<RuntimeApi> rApi = std::make_unique<VkRuntimeApi>(instanceCreateInfo);
+        std::unique_ptr<engine::rhi::runtime::Rhi> rApi = std::make_unique<engine::vulkan::runtime::Rhi>(instanceCreateInfo);
 
         engine::rhi::PhysicalDeviceFeatureRequest gpuFeatures{};
-        auto gpuDevices = rApi->enumerateDevices({gpuFeatures, {VkRuntimeApi::Api::Impl::kSwapchainExtName}});
+        auto gpuDevices = rApi->enumerateDevices({gpuFeatures, {engine::vulkan::runtime::Rhi::Api::Impl::kSwapchainExtName}});
 
         const auto surface = rApi->createSurface(window0.getSurfaceCreateInfo());
         if (auto & gpuDevice = gpuDevices[0u]; gpuDevice->checkSurfaceSupport(*surface)) {
