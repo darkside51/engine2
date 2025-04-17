@@ -1,6 +1,7 @@
 #pragma once
 
 #include "graphics/render/rhi/common/types.h"
+#include "graphics/render/rhi/common/runtime.h"
 #include "memory_allocator.h"
 
 #include <vulkan/vulkan.h>
@@ -13,18 +14,18 @@ namespace engine::vulkan {
 
     class Device;
 
-    class Buffer {
+    class Buffer final : public rhi::runtime::Buffer {
     public:
         Buffer() = default;
-        Buffer(Device & device, const rhi::BufferInfo & info, size_t size);
+        Buffer(Device & device, const rhi::BufferInfo & info, size_t sizeInBytes);
         ~Buffer();
         
         Buffer(const Buffer &) = delete;
         Buffer & operator= (const Buffer &) = delete;
 
-        Buffer(Buffer && other) noexcept : _device(other._device), _buffer(other._buffer), 
-            _allocation(other._allocation), _bufferViews(std::move(other._bufferViews)),
-            _queueFamilyIndex(other._queueFamilyIndex), _size(other._size) {
+        Buffer(Buffer && other) noexcept : rhi::runtime::Buffer(other._size), _device(other._device), 
+            _buffer(other._buffer), _allocation(other._allocation), _bufferViews(std::move(other._bufferViews)),
+            _queueFamilyIndex(other._queueFamilyIndex) {
             other._device = nullptr;
             other._buffer = VK_NULL_HANDLE;
             other._allocation = {};
@@ -50,17 +51,14 @@ namespace engine::vulkan {
         inline explicit operator bool() const noexcept { return _buffer != VK_NULL_HANDLE; }
         inline VkBuffer operator ()() const noexcept { return _buffer; }
 
-        void flush(size_t offset = 0u, size_t size = VK_WHOLE_SIZE) noexcept;
-        void invalidate(size_t offset = 0u, size_t size = VK_WHOLE_SIZE) noexcept;
+        void * map() noexcept override;
+        void unmap() noexcept override;
+        void flush(size_t offset = 0u, size_t size = VK_WHOLE_SIZE) noexcept override;
+        void invalidate(size_t offset = 0u, size_t size = VK_WHOLE_SIZE) noexcept override;
 
-        void * map() noexcept;
         template <typename T>
         inline T * map2() noexcept { return static_cast<T*>(map()); }
-
-        void unmap() noexcept;
-
-        size_t size() const noexcept { return _size; }
-
+        
         void setName(std::string_view name) noexcept;
         std::string_view getName() const noexcept;
 
@@ -78,6 +76,5 @@ namespace engine::vulkan {
         MemoryAllocation _allocation{};
         std::unordered_map<rhi::Format, VkBufferView> _bufferViews;
         uint32_t _queueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-        size_t _size = 0u;
     };
 }

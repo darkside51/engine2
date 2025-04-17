@@ -109,7 +109,7 @@ namespace engine::vulkan {
                 if (info.buffer != vkBuffer) {
                     info.buffer = vkBuffer;
                     info.offset = 0u;
-                    info.range = buffer->size();
+                    info.range = static_cast<VkDeviceSize>(buffer->sizeInBytes());
                     _buffersDirty = true;
                 }
             }

@@ -50,7 +50,7 @@ namespace rhi {
 
         GLFWDevice & open(std::string_view name);
 
-        void process(float sleepTime);
+        bool process();
         void stop();
 
     private:

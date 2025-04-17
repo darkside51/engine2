@@ -21,6 +21,8 @@ struct GraphicsPipelineStatesInfo;
 
 namespace engine::rhi::runtime {
 
+constexpr size_t kWholeSize = (~0ULL);
+
 using RenderPass = void*;
 using Fence = void*;
 using Semaphore = void*;
@@ -125,6 +127,26 @@ public:
     virtual const Pipeline & getComputePipeline(Device & device, const GpuProgram & program) = 0;
 };
 
+class Buffer {
+public:
+    virtual ~Buffer() = default;
+    Buffer() = default;
+    Buffer(uint32_t sizeInBytes) : _size(sizeInBytes) {}
+
+    uint32_t sizeInBytes() const noexcept { return _size; }
+
+    virtual void * map() noexcept = 0;
+    virtual void unmap() noexcept = 0;
+    virtual void flush(size_t offset = 0u, size_t size = kWholeSize) noexcept = 0;
+    virtual void invalidate(size_t offset = 0u, size_t size = kWholeSize) noexcept = 0;
+
+    template <typename T>
+    inline T * map2() noexcept { return static_cast<T*>(map()); }
+
+protected:
+    uint32_t _size = 0u;
+};
+
 using SurfacePtr = std::unique_ptr<Surface>;
 using PysicalDevicePtr = std::unique_ptr<PhysicalDevice>;
 using DevicePtr = std::unique_ptr<Device>;
@@ -136,6 +158,7 @@ using ShaderModulesManagerPtr = std::unique_ptr<ShaderModulesManager>;
 using GpuProgramPtr = std::unique_ptr<GpuProgram>;
 using PipelinePtr = std::unique_ptr<Pipeline>;
 using PipelinesManagerPtr = std::unique_ptr<PipelinesManager>;
+using BufferPtr = std::unique_ptr<Buffer>;
 
 class Rhi {
 public:
@@ -169,9 +192,11 @@ public:
 
     virtual GpuProgramPtr createProgram(DevicePtr & device, std::span<const ShaderModuleView> moduleViews) const = 0;
 
-    virtual PipelinePtr createComputePipeline(DevicePtr & device, const GpuProgramPtr & program) const noexcept = 0;
+    virtual PipelinePtr createComputePipeline(DevicePtr & device, const GpuProgramPtr & program) const = 0;
 
     virtual PipelinePtr createGraphicsPipeline(DevicePtr & device, RenderPass renderPass,
-        const GpuProgramPtr & program, const GraphicsPipelineStatesInfo & info) const noexcept = 0;
+        const GpuProgramPtr & program, const GraphicsPipelineStatesInfo & info) const = 0;
+
+    virtual BufferPtr createBuffer(DevicePtr & device, const rhi::BufferInfo & info, size_t size) const = 0;    
 };
 }

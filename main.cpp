@@ -99,11 +99,7 @@ auto createDescriptorSets(auto & device, const engine::rhi::shaders::BindingSetL
     return pool.allocateDescriptorSet(setLayout);
 }
 
-gApi::GpuProgram *gProgram0;
-gApi::Buffer *vtxBuffer;
-gApi::Pipeline *pipeline = nullptr;
-
-auto createPipeline(gApi::Device & device, VkRenderPass renderPass) {
+auto createPipeline(gApi::Device & device, VkRenderPass renderPass, gApi::GpuProgram & program) {
     using namespace engine;
     using Api = gApi;
 
@@ -130,7 +126,7 @@ auto createPipeline(gApi::Device & device, VkRenderPass renderPass) {
         }
     );
 
-    return typename Api::Pipeline{device, info.create(*gProgram0, renderPass)};
+    return typename Api::Pipeline{device, info.create(program, renderPass)};
 }
 
 auto loadShaders(auto & device, auto & shaderModulesManager) {
@@ -147,6 +143,49 @@ auto loadShaders(auto & device, auto & shaderModulesManager) {
     const auto & fsModule = shaderModulesManager.registerModule("simple.frag", {device, engine::rhi::shaders::Stages::eFragment, fBytes});
 
     return typename Api::GpuProgram{device, std::array{vsModule.view(), fsModule.view()}};
+}
+
+auto createUniformBufferAndDescriptorSet(auto & device) {
+    using namespace engine::rhi;
+    using Api = std::decay_t<decltype(device)>::Api;
+
+    engine::rhi::BufferInfo uniformInfo{
+        .usage = BufferUsageFlags::eUniform_Buffer,
+        .memoryFlags = MemoryPropertyFlags::eHostVisible,
+        .memoryExtFlags = MemoryExtendedFlags::eNone,
+        .flags = BufferCreateFlags::eNone,
+        .sharing = SharingMode::eExclusive,
+        .queueFamilyIndices = {0}
+    };
+
+    typename Api::Buffer uniformBuffer{device, uniformInfo, sizeof(float) * 2u};
+    {
+        auto * map = uniformBuffer.template map2<float>();
+        map[0u] = -0.5f;
+        map[1u] = 0.0f;
+        uniformBuffer.flush();
+        uniformBuffer.unmap();
+    }
+
+    shaders::BindingSetLayout setLayout {
+        {
+            {
+                .binding = 0u,
+                .type = shaders::DescriptorType::eUniform_Buffer,
+                .shaderStages = shaders::Stages::eVertex,
+                .count = 1u
+            }
+        }
+    };
+
+    auto & pool = device.getDescriptorPoolManager().getCompatiblePool(setLayout);
+    auto descriptorSet = pool.allocateDescriptorSet(setLayout);
+
+    engine::vulkan::DescriptorSetUpdater updater{device, setLayout};
+    updater.updateBuffers(std::array{std::pair{&uniformBuffer, 0u}});
+    updater.flush(descriptorSet);
+
+    return std::pair<typename Api::Buffer, engine::vulkan::DescriptorSet>{std::move(uniformBuffer), std::move(descriptorSet)};
 }
 
 auto createBuffers(auto & device) {
@@ -305,6 +344,32 @@ auto createPipelineRuntime(const std::unique_ptr<engine::rhi::runtime::Rhi> & ap
    return api->createGraphicsPipeline(device, renderPass, program, info);
 }
 
+auto createBuffersRuntime(const std::unique_ptr<engine::rhi::runtime::Rhi> & api,
+    std::unique_ptr<engine::rhi::runtime::Device> & device) {
+    using namespace engine::rhi;
+
+    engine::rhi::BufferInfo info{
+        .usage = BufferUsageFlags::eVertex_Buffer,
+        .memoryFlags = MemoryPropertyFlags::eHostVisible,
+        .memoryExtFlags = MemoryExtendedFlags::eNone,
+        .flags = BufferCreateFlags::eNone,
+        .sharing = SharingMode::eExclusive,
+        .queueFamilyIndices = {0}
+    };
+
+    auto resultBuffer = api->createBuffer(device, info, sizeof(float) * 9u);
+    {
+        auto * map = resultBuffer->map2<float>();
+        map[0u] = -0.5f; map[1u] = 0.5f; map[2u] = 0.1f;
+        map[3u] = 0.5f; map[4u] = 0.5f; map[5u] = 0.1f;
+        map[6u] = 0.0f; map[7u] = -0.5f; map[8u] = 0.1f;
+        resultBuffer->flush();
+        resultBuffer->unmap();
+    }
+
+    return resultBuffer;
+}
+
 int main() {
     engine::tests::execute_tests();
 
@@ -418,6 +483,7 @@ int main() {
             auto shaderModulesManager = rApi->createShaderModulesManager();
             auto program = loadShadersRuntime(rApi, device, shaderModulesManager);
             auto pipeline = createPipelineRuntime(rApi, device, renderPass, program);
+            auto buffer = createBuffersRuntime(rApi, device);
 
             int a = 0;
         }
@@ -516,11 +582,9 @@ int main() {
         //
         engine::rhi::ShaderModulesManager<Api> shaderModulesManager;
         auto program = loadShaders(device, shaderModulesManager);
-        gProgram0 = &program;
-        auto pipeline0 = createPipeline(device, renderPass);
-        pipeline = &pipeline0;
+        auto pipeline = createPipeline(device, renderPass, program);
         auto buffer = createBuffers(device);
-        vtxBuffer = &buffer;
+        auto [ubo, descriptorSet] = createUniformBufferAndDescriptorSet(device);
         //
 
         // reserve frames data
@@ -548,6 +612,15 @@ int main() {
                 device.getDescriptorPoolManager().resetPools(frameId); // reset temp pools
 
                 // if we refill cmdBuffers here - we can use less buffers count!
+
+                { // test ubo update
+                    auto * map = ubo.map2<float>();
+                    map[0u] += 0.001f;
+                    map[1u] = 0.0f;
+                    ubo.flush();
+                    ubo.unmap();
+                }
+
 
                 // submit
                 const auto waitSemaphores = std::array{swapchain.getImageAvailableSemaphore(frameId)};
@@ -589,9 +662,10 @@ int main() {
                 commandBuffer.setViewport(0.0f, 0.0f, 1024.0f, 768.0f);
                 commandBuffer.setScissorRect({{0, 0}, {1024, 768}});
 
-                commandBuffer.bindPipeline(*pipeline);
+                commandBuffer.bindPipeline(pipeline);
 
-                commandBuffer.bindVertexBuffers(std::array{(*vtxBuffer)()}, std::array{uint64_t{0u}});
+                commandBuffer.bindDescriptorSets(std::array{descriptorSet()}, {}, 0u);
+                commandBuffer.bindVertexBuffers(std::array{buffer()}, std::array{uint64_t{0u}});
                 commandBuffer.draw(3u);
                 
                 commandBuffer.endRenderPass();
@@ -601,7 +675,9 @@ int main() {
         //    LOG_I("threadId_0: %d, \n", threads::unique_t<int>::id());
         }}));
     
-        glfwModule.process(inputCheckTime);
+        while (glfwModule.process()) {
+            std::this_thread::sleep_for(std::chrono::duration<float>(inputCheckTime));
+        }
     }
 
     return 1;

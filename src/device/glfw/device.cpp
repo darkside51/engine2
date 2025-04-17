@@ -6,7 +6,6 @@
 #include <GLFW/glfw3native.h>
 
 #include <algorithm>
-#include <thread>
 
 namespace engine {
     
@@ -22,15 +21,10 @@ namespace engine {
         return *_devices.emplace_back(std::make_unique<GLFWDevice>(name));
     }
 
-    void GLFWModule::process(float sleepTime) {
-        while (!_devices.empty()) {
-            if (sleepTime > 0.0f) {
-                std::this_thread::sleep_for(std::chrono::duration<float>(sleepTime));
-                glfwPollEvents();
-            } else {
-                glfwWaitEvents();
-            }
-            
+    bool GLFWModule::process() {
+        if (!_devices.empty()) {
+            glfwPollEvents();
+
             auto sz = _devices.size();
             for (size_t i = 0u; i < sz;) {
                 auto const & device = _devices[i];
@@ -43,7 +37,9 @@ namespace engine {
             }
 
             _devices.erase(_devices.end() - (_devices.size() - sz), _devices.end());
+            return true;
         }
+        return false;
     }
 
     void GLFWModule::stop() {

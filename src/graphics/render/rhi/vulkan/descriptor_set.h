@@ -14,7 +14,7 @@ namespace engine::vulkan {
         DescriptorSet(const DescriptorSet &) = delete;
         DescriptorSet & operator= (const DescriptorSet &) = delete;
 
-        DescriptorSet(DescriptorSet && other) noexcept : pool(other.pool), set(other.set) {
+        DescriptorSet(DescriptorSet && other) noexcept : pool(other.pool), set(other.set), resources(other.resources) {
             other.pool = nullptr;
             other.set = VK_NULL_HANDLE;
         }
@@ -22,6 +22,7 @@ namespace engine::vulkan {
         DescriptorSet & operator= (DescriptorSet && other) noexcept {
             pool = other.pool;
             set = other.set;
+            resources = other.resources;
             other.pool = nullptr;
             other.set = VK_NULL_HANDLE;
             return *this;

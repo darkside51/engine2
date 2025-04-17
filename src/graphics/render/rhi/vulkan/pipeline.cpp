@@ -293,8 +293,10 @@ namespace engine::vulkan {
 
         ///////
         Pipeline::Pipeline(Device & device, const VkComputePipelineCreateInfo & info) : 
+            layout(info.layout),
             _device(&device),
             bindPoint(VkPipelineBindPoint::VK_PIPELINE_BIND_POINT_COMPUTE) {
+
             auto const allocationCallbacks = device.gpu().getInstance().getAllocationCallbacks();
             if (auto result = vkCreateComputePipelines(device(), device.pipelineCache(), 1, &info, allocationCallbacks, &pipeline); 
                 result != VK_SUCCESS) {
@@ -303,6 +305,7 @@ namespace engine::vulkan {
         }
 
         Pipeline::Pipeline(Device & device, const VkGraphicsPipelineCreateInfo & info) :
+            layout(info.layout),
             _device(&device),
             bindPoint(VkPipelineBindPoint::VK_PIPELINE_BIND_POINT_GRAPHICS) {
             auto const allocationCallbacks = device.gpu().getInstance().getAllocationCallbacks();

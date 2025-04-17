@@ -52,16 +52,19 @@ namespace engine::vulkan::runtime {
             std::span<const rhi::runtime::ShaderModuleView> moduleViews
         ) const override;
     
-        std::unique_ptr<engine::rhi::runtime::Pipeline> createComputePipeline(
+        rhi::runtime::PipelinePtr createComputePipeline(
             rhi::runtime::DevicePtr & device,
-            const rhi::runtime::GpuProgramPtr & program) const noexcept override;
+            const rhi::runtime::GpuProgramPtr & program) const override;
     
-        std::unique_ptr<engine::rhi::runtime::Pipeline> createGraphicsPipeline(
+        rhi::runtime::PipelinePtr createGraphicsPipeline(
             rhi::runtime::DevicePtr & device,
             rhi::runtime::RenderPass renderPass,
             const rhi::runtime::GpuProgramPtr & program,
-            const rhi::GraphicsPipelineStatesInfo & info) const noexcept override;
+            const rhi::GraphicsPipelineStatesInfo & info) const override;
     
+        rhi::runtime::BufferPtr createBuffer(rhi::runtime::DevicePtr & device, 
+            const rhi::BufferInfo & info, size_t size) const override; 
+
     private:
         Api::Instance _instance;
     };

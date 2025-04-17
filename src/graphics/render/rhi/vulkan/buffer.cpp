@@ -9,12 +9,12 @@
 
 namespace engine::vulkan {
 
-    Buffer::Buffer(Device & device, const rhi::BufferInfo & info, size_t size) : _device(&device), _size(size) {
+    Buffer::Buffer(Device & device, const rhi::BufferInfo & info, size_t sizeInBytes) : rhi::runtime::Buffer(sizeInBytes), _device(&device) {
         const VkBufferCreateInfo createInfo = {
             .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
             .pNext = nullptr,
             .flags = utils::convert2vk(info.flags),
-            .size = size,
+            .size = sizeInBytes,
             .usage = utils::convert2vk(info.usage),
             .sharingMode = utils::convert2vk(info.sharing),
             .queueFamilyIndexCount = static_cast<uint32_t>(info.queueFamilyIndices.size()),

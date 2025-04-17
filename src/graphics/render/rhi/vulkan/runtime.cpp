@@ -8,6 +8,7 @@
 #include "queue.h"
 #include "gpu_program.h"
 #include "pipeline.h"
+#include "buffer.h"
 
 #include "graphics/render/rhi/common/shader_module.h"
 
@@ -102,7 +103,7 @@ namespace engine::vulkan::runtime {
 
     std::unique_ptr<engine::rhi::runtime::Pipeline> Rhi::createComputePipeline(
         rhi::runtime::DevicePtr & device,
-        const rhi::runtime::GpuProgramPtr & program) const noexcept {
+        const rhi::runtime::GpuProgramPtr & program) const {
 
         return std::make_unique<Api::Pipeline>(static_cast<Api::Device &>(*device),
             computePipelineCreateInfo(static_cast<const Api::GpuProgram&>(*program)));
@@ -112,7 +113,7 @@ namespace engine::vulkan::runtime {
         rhi::runtime::DevicePtr & device,
         rhi::runtime::RenderPass renderPass,
         const rhi::runtime::GpuProgramPtr & program,
-        const rhi::GraphicsPipelineStatesInfo & info) const noexcept {
+        const rhi::GraphicsPipelineStatesInfo & info) const {
 
         const Api::GraphicsPipelineInfo pipelineInfo{info};
         return std::make_unique<Api::Pipeline>(static_cast<Api::Device &>(*device), 
@@ -120,4 +121,8 @@ namespace engine::vulkan::runtime {
             static_cast<VkRenderPass>(renderPass)));
     }
 
+    rhi::runtime::BufferPtr Rhi::createBuffer(rhi::runtime::DevicePtr & device, 
+        const rhi::BufferInfo & info, size_t size) const {
+        return std::make_unique<Api::Buffer>(static_cast<Api::Device &>(*device), info, size);
+    }
 }
