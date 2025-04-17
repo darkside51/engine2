@@ -117,6 +117,10 @@ namespace engine::vulkan {
         }
     }
 
+    void CommandBuffer::bindVertexBuffer(uint32_t binding, const VkBuffer buffer, VkDeviceSize offset) noexcept {
+        vkCmdBindVertexBuffers(_commandBuffer, binding, 1u, &buffer, &offset);
+    }
+
     void CommandBuffer::bindVertexBuffers(std::span<const VkBuffer> buffers, std::span<const VkDeviceSize> offsets, uint32_t firstBinding) noexcept {
         vkCmdBindVertexBuffers(_commandBuffer, firstBinding, buffers.size(), buffers.data(), offsets.data());
     }

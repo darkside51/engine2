@@ -664,8 +664,9 @@ int main() {
 
                 commandBuffer.bindPipeline(pipeline);
 
-                commandBuffer.bindDescriptorSets(std::array{descriptorSet()}, {}, 0u);
-                commandBuffer.bindVertexBuffers(std::array{buffer()}, std::array{uint64_t{0u}});
+                commandBuffer.bindDescriptorSets(std::array{descriptorSet()});
+                commandBuffer.bindVertexBuffer(0u, buffer());
+                // commandBuffer.bindVertexBuffers(std::array{buffer()}, std::array{uint64_t{0u}});
                 commandBuffer.draw(3u);
                 
                 commandBuffer.endRenderPass();

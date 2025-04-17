@@ -89,9 +89,10 @@ namespace engine::vulkan {
 
         // bind commands
         void bindPipeline(Pipeline const & pipeline) noexcept;
+        void bindVertexBuffer(uint32_t binding, const VkBuffer buffer, VkDeviceSize offset = 0u) noexcept;
         void bindVertexBuffers(std::span<const VkBuffer> buffers, std::span<const VkDeviceSize> offsets, uint32_t firstBinding = 0u) noexcept;
         void bindIndexBuffer(VkBuffer buffer, uint32_t offset, rhi::IndexType type = rhi::IndexType::eU32) noexcept;
-        void bindDescriptorSets(std::span<const VkDescriptorSet> sets, std::span<const uint32_t> dynamicOffsets, uint32_t firstSet = 0u) noexcept;
+        void bindDescriptorSets(std::span<const VkDescriptorSet> sets, std::span<const uint32_t> dynamicOffsets = {}, uint32_t firstSet = 0u) noexcept;
 
         // draw commands
         void draw(uint32_t vertexCount, uint32_t instanceCount = 1u, uint32_t firstVertex = 0u, uint32_t firstInstance = 0u) const noexcept;
