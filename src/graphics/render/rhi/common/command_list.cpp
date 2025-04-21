@@ -3,6 +3,7 @@
 namespace engine::rhi::runtime {
 
     void CommandList::begin() {
+        _commands->clear();
         _commands->create<BeginCommand>();
     }
 
@@ -11,6 +12,7 @@ namespace engine::rhi::runtime {
     }
 
     void CommandList::reset(CommandBufferResetFlags flags) {
+        _commands->clear();
         _commands->create<ResetCommand>(flags);
     }
 
