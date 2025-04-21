@@ -37,12 +37,12 @@ namespace allocators {
         }
 
         template <typename T, typename...Args>
-        [[nodiscard]] T * create(Args&&... args) {
+        T * create(Args&&... args) {
             return new(alloc(sizeof(T))) T(std::forward<Args>(args)...);
         }
 
         template <typename T, typename...Args>
-        [[nodiscard]] T * createAligned(size_t align, Args&&... args) {
+        T * createAligned(size_t align, Args&&... args) {
             return new(allocAligned(sizeof(T), align)) T(std::forward<Args>(args)...);
         }
 
@@ -88,13 +88,16 @@ namespace allocators {
         size_t _head = 0u;
     };
 
-    template<size_t sizeInBytes>
+    template<size_t sizeInBytes, bool top_down = true>
     class StackAllocator final {
-        using type = StackAllocatorImpl<sizeInBytes, true>;
+        using type = StackAllocatorImpl<sizeInBytes, top_down>;
     public:
         StackAllocator() : _stack(_memory) {}
         inline type &stack() noexcept { return _stack; }
         inline type* operator->() noexcept { return &_stack; }
+
+        inline std::span<const std::byte> memory() const noexcept { return _memory; }
+        inline std::span<std::byte> memory() noexcept { return _memory; }
 
     private:
         std::array<std::byte, sizeInBytes> _memory;

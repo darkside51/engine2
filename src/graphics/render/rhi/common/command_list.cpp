@@ -1,0 +1,68 @@
+#include "command_list.h"
+
+namespace engine::rhi::runtime {
+
+    void CommandList::begin() {
+        _commands->create<BeginCommand>();
+    }
+
+    void CommandList::end() {
+        _commands->create<EndCommand>();
+    }
+
+    void CommandList::reset(CommandBufferResetFlags flags) {
+        _commands->create<ResetCommand>(flags);
+    }
+
+    void CommandList::beginRenderPass(RenderPass renderPass, const FrameBufferPtr & framebuffer, 
+        std::span<const ClearValue> clearValues, const Rect2D & area) {
+        _commands->create<BeginRenderPassCommand>(renderPass, framebuffer, clearValues, area);
+    }
+
+    void CommandList::endRenderPass() {
+        _commands->create<EndRenderPassCommand>();
+    }
+
+    void CommandList::nextSubpass(SubpassContents contents) {
+        _commands->create<NextSubpassCommand>(contents);
+    }
+
+    void CommandList::executeCommands(std::span<const CommandList*> secondaryCommandLists) {
+        _commands->create<ExecuteCommandsCommand>(secondaryCommandLists);
+    }
+
+    void CommandList::setViewport(float x, float y, float w, float h, float minDepth, float maxDepth, uint32_t viewportIdx) {
+        _commands->create<SetViewportCommand>(x, y, w, h, minDepth, maxDepth, viewportIdx);
+    }
+
+    void CommandList::setScissor(const rhi::Rect2D & area, uint32_t scissorIdx) {
+        _commands->create<SetScissorCommand>(area, scissorIdx);
+    }
+
+    void CommandList::bindPipeline(const PipelinePtr & pipeline) {
+        _commands->create<BindPipelineCommand>(pipeline);
+    }
+
+    void CommandList::bindVertexBuffer(uint32_t binding, const BufferPtr & buffer, uint32_t offset) {
+        _commands->create<BindVertexBufferCommand>(binding, buffer, offset);
+    }
+
+    void CommandList::bindIndexBuffer(const BufferPtr & buffer, uint32_t offset, IndexType type) {
+        _commands->create<BindIndexBufferCommand>(buffer, offset, type);
+    }
+
+    void CommandList::bindResource() {
+        // todo!
+        _commands->create<BindResourceCommand>();
+    }
+
+    void CommandList::draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) {
+        _commands->create<DrawCommand>(vertexCount, instanceCount, firstVertex, firstInstance);
+    }
+
+    void CommandList::drawIndexed(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t vertexOffset, 
+        uint32_t firstInstance) {
+        _commands->create<DrawIndexedCommand>(indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
+    }
+
+}

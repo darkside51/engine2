@@ -959,6 +959,17 @@ namespace engine::rhi {
 
     using EncodedBlendMode = uint32_t;
 
+    enum class CommandBufferResetFlags : uint8_t {
+        eNone = 0u,
+        eRelease_Resources = 1u
+    };
+    inline CommandBufferResetFlags operator | (CommandBufferResetFlags a, CommandBufferResetFlags b) {
+        return static_cast<CommandBufferResetFlags>(std::to_underlying(a) | std::to_underlying(b));
+    }
+    inline CommandBufferResetFlags operator & (CommandBufferResetFlags a, CommandBufferResetFlags b) {
+        return static_cast<CommandBufferResetFlags>(std::to_underlying(a) & std::to_underlying(b));
+    }
+
     namespace common_blend_modes {
         // normal modes
         inline constexpr static EncodedBlendMode blend_none	    = BlendMode(false).asNumber();

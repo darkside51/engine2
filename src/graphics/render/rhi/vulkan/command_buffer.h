@@ -5,6 +5,7 @@
 #include "buffer.h"
 #include "image.h"
 #include "pipeline.h"
+#include "vk_types.h"
 
 #include <vulkan/vulkan.h>
 
@@ -37,7 +38,6 @@ namespace engine::vulkan {
             VkCommandBufferInheritanceInfo operator()() const noexcept;
         };
 
-
         CommandBuffer(CommandPool & pool, rhi::CommandBufferLevel level);
         ~CommandBuffer();
         
@@ -51,6 +51,10 @@ namespace engine::vulkan {
         inline rhi::Result end() const noexcept {
             vkEndCommandBuffer(_commandBuffer);
             return rhi::Result::eSuccess;
+        }
+
+        inline void reset(rhi::CommandBufferResetFlags flags) noexcept {
+            vkResetCommandBuffer(_commandBuffer, utils::convert2vk(flags));
         }
 
         void beginRenderPass(VkRenderPass renderPass, const FrameBuffer & framebuffer, 
@@ -91,7 +95,7 @@ namespace engine::vulkan {
         void bindPipeline(Pipeline const & pipeline) noexcept;
         void bindVertexBuffer(uint32_t binding, const VkBuffer buffer, VkDeviceSize offset = 0u) noexcept;
         void bindVertexBuffers(std::span<const VkBuffer> buffers, std::span<const VkDeviceSize> offsets, uint32_t firstBinding = 0u) noexcept;
-        void bindIndexBuffer(VkBuffer buffer, uint32_t offset, rhi::IndexType type = rhi::IndexType::eU32) noexcept;
+        void bindIndexBuffer(VkBuffer buffer, uint32_t offset = 0u, rhi::IndexType type = rhi::IndexType::eU32) noexcept;
         void bindDescriptorSets(std::span<const VkDescriptorSet> sets, std::span<const uint32_t> dynamicOffsets = {}, uint32_t firstSet = 0u) noexcept;
 
         // draw commands

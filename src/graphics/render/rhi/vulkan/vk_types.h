@@ -1473,6 +1473,13 @@ inline auto convert2vk(std::span<const rhi::VertexInputAttribute> array) {
     return result;
 }
 
+inline VkCommandBufferResetFlags convert2vk(rhi::CommandBufferResetFlags flags) noexcept {
+    VkCommandBufferResetFlags result = 0u;
+    if (std::to_underlying(flags & rhi::CommandBufferResetFlags::eRelease_Resources)) {
+        result |= VkCommandBufferResetFlagBits::VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT;
+    }
+    return result;
+}
 
 }
 

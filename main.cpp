@@ -44,6 +44,9 @@
 
 #include "graphics/render/rhi/vulkan/runtime.h"
 
+#include "graphics/render/rhi/common/commands.h"
+#include "graphics/render/rhi/common/command_list.h"
+
 using gApi = engine::rhi::Api<engine::vulkan::Api>;
 
 engine::rhi::RenderPassDescription createRenderPassDescription(engine::rhi::Format colorFormat, engine::rhi::Format depthFormat) {
@@ -370,6 +373,73 @@ auto createBuffersRuntime(const std::unique_ptr<engine::rhi::runtime::Rhi> & api
     return resultBuffer;
 }
 
+
+void allocationsStackTest(engine::rhi::runtime::RenderPass renderpass, const engine::rhi::runtime::FrameBufferPtr & frameBuffer) {
+    using namespace engine::rhi;
+    using namespace engine::rhi::runtime;
+    constexpr size_t kStackSize = 1'000u; // 1 kb
+    auto megabyteStack = allocators::StackAllocator<kStackSize, false>();
+
+    megabyteStack->create<BeginCommand>();
+    megabyteStack->create<BeginRenderPassCommand>(renderpass, frameBuffer, 
+        std::array{ClearValue{0x77'77'77'ffu}}, Rect2D{{0, 0}, {10, 10}});
+    megabyteStack->create<NextSubpassCommand>(SubpassContents::ePrimaryBufferInline);
+    megabyteStack->create<EndRenderPassCommand>();
+    megabyteStack->create<EndCommand>();
+
+    std::byte * memory = megabyteStack.memory().data();
+    bool iterate = true;
+    size_t totalMem = 0u;
+    while (iterate) {
+        Command * cmd = reinterpret_cast<Command*>(memory);
+        switch (cmd->cmdType) {
+        case CommandType::eBegin:
+        {
+            auto * command = reinterpret_cast<BeginCommand*>(memory);
+            int a = 0;
+        }
+            break;
+        case CommandType::eEnd:
+        {
+            auto * command = reinterpret_cast<EndCommand*>(memory);
+            int a = 0;
+        }
+            break;
+        case CommandType::eBeginRenderPass:
+        {
+            auto * command = reinterpret_cast<BeginRenderPassCommand*>(memory);
+            int a = 0;
+        }
+            break;
+        case CommandType::eEndRenderPass:
+        {
+            auto * command = reinterpret_cast<EndRenderPassCommand*>(memory);
+            int a = 0;
+        }
+            break;
+        case CommandType::eNextSubpass:
+        {
+            auto * command = reinterpret_cast<NextSubpassCommand*>(memory);
+            int a = 0;
+        }
+            break;
+        case CommandType::eUndefined:
+            iterate = false;
+        break;    
+        default:
+            break;
+        }
+        
+        totalMem += cmd->size;
+        if (totalMem >= kStackSize) {
+            break;
+        }
+
+        memory += cmd->size;
+    }
+
+}
+
 int main() {
     engine::tests::execute_tests();
 
@@ -484,6 +554,8 @@ int main() {
             auto program = loadShadersRuntime(rApi, device, shaderModulesManager);
             auto pipeline = createPipelineRuntime(rApi, device, renderPass, program);
             auto buffer = createBuffersRuntime(rApi, device);
+
+            allocationsStackTest(renderPass, frameBuffers[0]);
 
             int a = 0;
         }
