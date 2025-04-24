@@ -3,8 +3,24 @@
 #include "api.h"
 #include "instance.h"
 #include "graphics/render/rhi/common/runtime.h"
+#include "graphics/render/rhi/common/command_list.h"
+
+#include "graphics/render/rhi/vulkan/command_buffer.h"
 
 namespace engine::vulkan::runtime {
+
+    class CommandList : public rhi::runtime::CommandList {
+    public:
+        CommandList(rhi::runtime::CommandPool * commandPool, 
+            rhi::CommandBufferLevel level = rhi::CommandBufferLevel::ePrimary);
+        ~CommandList() = default;
+
+        void flush() noexcept override;
+
+        const CommandBuffer & commandBuffer() const noexcept { return _commandbuffer; }
+    private:
+        CommandBuffer _commandbuffer;
+    };
 
     class Rhi final : public rhi::runtime::Rhi {
     public:
@@ -65,8 +81,10 @@ namespace engine::vulkan::runtime {
         rhi::runtime::BufferPtr createBuffer(rhi::runtime::DevicePtr & device, 
             const rhi::BufferInfo & info, size_t size) const override; 
 
+        rhi::runtime::CommandListPtr createCommandList(rhi::runtime::CommandPool * commandPool, 
+            rhi::CommandBufferLevel level = rhi::CommandBufferLevel::ePrimary) const override;
+
     private:
         Api::Instance _instance;
     };
-
 }

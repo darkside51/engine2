@@ -257,14 +257,15 @@ namespace engine::vulkan {
         }
 
         GraphicsPipelineInfo::GraphicsPipelineInfo(const rhi::GraphicsPipelineStatesInfo & info) {
-            vertexInputStateInfo(info.vertexInputState.inputBindings, info.vertexInputState.attributes);
-            tessellationStateInfo(info.tessellationState.patchControlPoints);
             viewportStateInfo(info.viewportState.viewportCount, info.viewportState.scissorCount);
+            dynamicStateInfo(info.dynamicStates);
             rasterizationStateInfo(info.rasterisationState.polygonMode, info.rasterisationState.cullmode, info.rasterisationState.frontFace);
             multisampleStateInfo();
+            inputAssemblyStateInfo(info.inputAssemblyState.topology, info.inputAssemblyState.restartEnabled);
             depthStencilStateInfo(info.depthStencilState.depth, info.depthStencilState.stencil);
+            tessellationStateInfo(info.tessellationState.patchControlPoints);
             colorBlendStateCreateInfo(info.blendModes);
-            dynamicStateInfo(info.dynamicStates);
+            vertexInputStateInfo(info.vertexInputState.inputBindings, info.vertexInputState.attributes);
         }
 
         VkGraphicsPipelineCreateInfo GraphicsPipelineInfo::create(

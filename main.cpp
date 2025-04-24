@@ -373,73 +373,6 @@ auto createBuffersRuntime(const std::unique_ptr<engine::rhi::runtime::Rhi> & api
     return resultBuffer;
 }
 
-
-void allocationsStackTest(engine::rhi::runtime::RenderPass renderpass, const engine::rhi::runtime::FrameBufferPtr & frameBuffer) {
-    using namespace engine::rhi;
-    using namespace engine::rhi::runtime;
-    constexpr size_t kStackSize = 1'000u; // 1 kb
-    auto megabyteStack = allocators::StackAllocator<kStackSize, false>();
-
-    megabyteStack->create<BeginCommand>();
-    megabyteStack->create<BeginRenderPassCommand>(renderpass, frameBuffer, 
-        std::array{ClearValue{0x77'77'77'ffu}}, Rect2D{{0, 0}, {10, 10}});
-    megabyteStack->create<NextSubpassCommand>(SubpassContents::ePrimaryBufferInline);
-    megabyteStack->create<EndRenderPassCommand>();
-    megabyteStack->create<EndCommand>();
-
-    std::byte * memory = megabyteStack.memory().data();
-    bool iterate = true;
-    size_t totalMem = 0u;
-    while (iterate) {
-        Command * cmd = reinterpret_cast<Command*>(memory);
-        switch (cmd->cmdType) {
-        case CommandType::eBegin:
-        {
-            auto * command = reinterpret_cast<BeginCommand*>(memory);
-            int a = 0;
-        }
-            break;
-        case CommandType::eEnd:
-        {
-            auto * command = reinterpret_cast<EndCommand*>(memory);
-            int a = 0;
-        }
-            break;
-        case CommandType::eBeginRenderPass:
-        {
-            auto * command = reinterpret_cast<BeginRenderPassCommand*>(memory);
-            int a = 0;
-        }
-            break;
-        case CommandType::eEndRenderPass:
-        {
-            auto * command = reinterpret_cast<EndRenderPassCommand*>(memory);
-            int a = 0;
-        }
-            break;
-        case CommandType::eNextSubpass:
-        {
-            auto * command = reinterpret_cast<NextSubpassCommand*>(memory);
-            int a = 0;
-        }
-            break;
-        case CommandType::eUndefined:
-            iterate = false;
-        break;    
-        default:
-            break;
-        }
-        
-        totalMem += cmd->size;
-        if (totalMem >= kStackSize) {
-            break;
-        }
-
-        memory += cmd->size;
-    }
-
-}
-
 int main() {
     engine::tests::execute_tests();
 
@@ -468,7 +401,7 @@ int main() {
     engine::GLFWModule glfwModule;
     const auto & window0 = glfwModule.open(Api::name().data());
 
-    constexpr bool kUseRuntimeApi = false;
+    constexpr bool kUseRuntimeApi = true;
     if constexpr (kUseRuntimeApi) {
         std::unique_ptr<engine::rhi::runtime::Rhi> rApi = std::make_unique<engine::vulkan::runtime::Rhi>(instanceCreateInfo);
 
@@ -543,8 +476,8 @@ int main() {
 
             auto queue = rApi->getQueue(device, engine::rhi::queue_flags::graphics | engine::rhi::queue_flags::present, 0u, frameBuffersCount);
 
-            std::vector<engine::rhi::runtime::Semaphore> presentReadySemaphores(frameBuffersCount);
-            for (auto & semaphore : presentReadySemaphores) {
+            std::vector<engine::rhi::runtime::Semaphore> readyToPresentSemaphores(frameBuffersCount);
+            for (auto & semaphore : readyToPresentSemaphores) {
                 semaphore = rApi->createSemaphore(device);
             }
 
@@ -555,10 +488,87 @@ int main() {
             auto pipeline = createPipelineRuntime(rApi, device, renderPass, program);
             auto buffer = createBuffersRuntime(rApi, device);
 
-            allocationsStackTest(renderPass, frameBuffers[0]);
+            // reserve frames data
+            std::vector<engine::rhi::runtime::CommandListPtr> commandLists;
+            commandLists.reserve(frameBuffersCount);
 
-            int a = 0;
+            bool renderInited = false;
+            constexpr float inputCheckTime = 1.0f / 60.0f;
+            constexpr float redrawTime = 1.0f / 120.0f;
+
+            threads::Executor w([&](auto & executionContext, float delta) {
+                executionContext.performTasks();
+                if (renderInited) {
+                    const auto frameId = frameIndex();
+
+                    auto const waitSubmitResult = queue->waitSubmit(frameId); // result!!!
+                        
+                    const auto [imageIndex, success] = swapchain->acquireNextImage(frameId);
+
+                    if (!success) {
+                        return;
+                    }
+                    device->resetFrameTmpData(frameId);
+
+                    // submit
+                    const auto waitSemaphores = std::array{swapchain->imageAvailableSemaphore(frameId)};
+                    const auto signalSemaphores = std::array{readyToPresentSemaphores[frameId]};
+                    const auto waitStages = std::array{engine::rhi::PipelineStageFlags::eColor_Attachment_Output};
+                    auto lists = std::array{commandLists[frameId].get()};
+
+                    bool const submitted = queue->submit(frameId, std::array{
+                        engine::rhi::runtime::Queue::SubmitInfo {
+                            .w8Semaphores = waitSemaphores,
+                            .w8DstStages = waitStages,
+                            .signalSemaphores = signalSemaphores,
+                            .lists = lists
+                        }
+                    });
+
+                    ++frameIndex;
+
+                    // present
+                    auto const presentResult = queue->present(swapchain.get(), imageIndex, signalSemaphores);
+                    int a = 0;
+                }
+            }, redrawTime);
+
+            w.run();
+
+            w.emplaceTasks(stl::make_vector(threads::WorkerTask{[&](){
+                auto * commandPool = device->acquireCommandPool(engine::rhi::queue_flags::graphics | engine::rhi::queue_flags::present);
+                const auto clearValues = std::array{
+                    engine::rhi::ClearValue{0x77'77'77'ffu},
+                    engine::rhi::ClearValue{1.0f}
+                };
+
+                for (size_t i = 0; i < frameBuffersCount; ++i) {
+                    auto & commandList = commandLists.emplace_back(rApi->createCommandList(commandPool, engine::rhi::CommandBufferLevel::ePrimary));
+                    commandList->begin();
+
+                    commandList->beginRenderPass(renderPass,frameBuffers[i], clearValues, {{0, 0}, {width, height}});
+
+                    commandList->setViewport(0.0f, 0.0f, width, height);
+                    commandList->setScissor({{0, 0}, {width, height}});
+
+                    commandList->bindPipeline(pipeline);
+
+                    commandList->bindVertexBuffer(0u, buffer);
+                    commandList->draw(3u);
+                    
+                    commandList->endRenderPass();
+                    commandList->end();
+
+                    commandList->flush();
+                }
+                renderInited = true;
+            }}));
+
+            while (glfwModule.process()) {
+                std::this_thread::sleep_for(std::chrono::duration<float>(inputCheckTime));
+            }
         }
+
         return 0;
     }
 
@@ -644,8 +654,8 @@ int main() {
 
         Api::Queue queue(device, engine::rhi::queue_flags::graphics | engine::rhi::queue_flags::present, 0u, frameBuffersCount);
         
-        std::vector<Api::Device::Semaphore> presentReadySemaphores(frameBuffersCount);
-        for (auto & semaphore : presentReadySemaphores) {
+        std::vector<Api::Device::Semaphore> readyToPresentSemaphores(frameBuffersCount);
+        for (auto & semaphore : readyToPresentSemaphores) {
             semaphore = device.createSemaphore();
         }
 
@@ -681,7 +691,7 @@ int main() {
                     return;
                 }
 
-                device.getDescriptorPoolManager().resetPools(frameId); // reset temp pools
+                device.resetFrameTmpData(frameId); // reset temp pools
 
                 // if we refill cmdBuffers here - we can use less buffers count!
 
@@ -696,7 +706,7 @@ int main() {
 
                 // submit
                 const auto waitSemaphores = std::array{swapchain.getImageAvailableSemaphore(frameId)};
-                const auto signalSemaphores = std::array{presentReadySemaphores[frameId]};
+                const auto signalSemaphores = std::array{readyToPresentSemaphores[frameId]};
                 const auto waitStages = Api::Helper::convert2api(std::array{engine::rhi::PipelineStageFlags::eColor_Attachment_Output});
 
                 const auto submitSyncInfo = Api::CommandBuffer::createSubmitSyncInfo(waitStages, waitSemaphores, signalSemaphores);

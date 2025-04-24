@@ -26,6 +26,8 @@ constexpr size_t kWholeSize = (~0ULL);
 using RenderPass = void*;
 using Fence = void*;
 using Semaphore = void*;
+class CommandPool;
+class CommandList;
 
 class Instance {
 public:
@@ -49,6 +51,9 @@ public:
     virtual ~Device() = default;
     virtual Format getSupportedDepthFormat(uint8_t desiredBpp, bool withStencil, bool samplingSupport = false) const noexcept = 0;
     virtual void reserveResourcesForFrames(uint8_t framesCount) noexcept = 0;
+    virtual void resetFrameTmpData(uint8_t frameId) noexcept = 0;
+    virtual CommandPool * acquireCommandPool(rhi::queue_flags::flags queueFlags, 
+        rhi::CommandPoolCreateFlags poolFlags = rhi::CommandPoolCreateFlags::eReset_Command_Buffer) noexcept = 0;
 };
 
 class Image {
@@ -71,6 +76,7 @@ public:
     virtual uint32_t getImagesCount() const noexcept = 0;
     virtual const Image & getImage(uint8_t index) const noexcept = 0;
     virtual Image & getImage(uint8_t index) noexcept = 0;
+    virtual Semaphore imageAvailableSemaphore(uint32_t frameIndex) const noexcept = 0;
 
     Format getFormat() const noexcept { return _format; }
     ColorSpace getColorSpace() const noexcept { return _colorSpace; }
@@ -87,7 +93,18 @@ public:
 
 class Queue {
 public:
+    struct SubmitInfo {
+        std::span<const Semaphore> w8Semaphores;
+        std::span<const rhi::PipelineStageFlags> w8DstStages;
+        std::span<const Semaphore> signalSemaphores;
+        std::span<CommandList *> lists;
+    };
+
     virtual ~Queue() = default;
+    virtual bool waitSubmit(uint8_t frameIdx, uint64_t timeout = UINT64_MAX, Fence f = nullptr) noexcept = 0;
+    virtual bool submit(uint8_t frameIdx, std::span<const SubmitInfo> submitInfos, Fence f = nullptr) noexcept = 0;
+    virtual bool present(const Swapchain * swapchain, 
+        uint32_t imageIdx, std::span<const rhi::runtime::Semaphore> waitSemaphores) noexcept = 0;
 };
 
 struct ShaderModuleView {
@@ -147,6 +164,11 @@ protected:
     uint32_t _size = 0u;
 };
 
+class CommandPool {
+public:
+    virtual ~CommandPool() = default;
+};
+
 using SurfacePtr = std::unique_ptr<Surface>;
 using PysicalDevicePtr = std::unique_ptr<PhysicalDevice>;
 using DevicePtr = std::unique_ptr<Device>;
@@ -159,6 +181,7 @@ using GpuProgramPtr = std::unique_ptr<GpuProgram>;
 using PipelinePtr = std::unique_ptr<Pipeline>;
 using PipelinesManagerPtr = std::unique_ptr<PipelinesManager>;
 using BufferPtr = std::unique_ptr<Buffer>;
+using CommandListPtr = std::unique_ptr<CommandList>;
 
 class Rhi {
 public:
@@ -197,6 +220,8 @@ public:
     virtual PipelinePtr createGraphicsPipeline(DevicePtr & device, RenderPass renderPass,
         const GpuProgramPtr & program, const GraphicsPipelineStatesInfo & info) const = 0;
 
-    virtual BufferPtr createBuffer(DevicePtr & device, const rhi::BufferInfo & info, size_t size) const = 0;    
+    virtual BufferPtr createBuffer(DevicePtr & device, const rhi::BufferInfo & info, size_t size) const = 0;
+
+    virtual CommandListPtr createCommandList(CommandPool * commandPool, rhi::CommandBufferLevel level = rhi::CommandBufferLevel::ePrimary) const = 0;
 };
 }

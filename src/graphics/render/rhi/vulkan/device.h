@@ -48,7 +48,7 @@ public:
     GPUMemoryAllocator & getMemoryAllocator() noexcept { return _memoryAllocator; }
 
     CommandPool * acquireCommandPool(rhi::queue_flags::flags queueFlags, 
-        rhi::CommandPoolCreateFlags poolFlags = rhi::CommandPoolCreateFlags::eReset_Command_Buffer) noexcept {
+        rhi::CommandPoolCreateFlags poolFlags = rhi::CommandPoolCreateFlags::eReset_Command_Buffer) noexcept override {
         return _commandPoolManager.acquirePool(queueFlags, poolFlags);
     }
     CommandPool * acquireCommandPool(uint32_t idx, rhi::queue_flags::flags queueFlags, 
@@ -81,6 +81,10 @@ public:
         return _pipelineCache;
     }
 
+    void resetFrameTmpData(uint8_t frameId) noexcept override {
+        _descriptorPoolManager.resetPools(frameId); // reset temp pools
+    }
+    
     void reserveResourcesForFrames(uint8_t framesCount) noexcept override {
         _descriptorPoolManager.useFrames(framesCount);
     }

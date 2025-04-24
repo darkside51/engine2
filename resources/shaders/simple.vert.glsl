@@ -12,5 +12,6 @@ layout (set = 0, binding = 0) uniform UniformBuffer {
 
 void main()  {
 	//gl_Position = ubo.mvp * vec4(a_position, 1.0);
-	gl_Position = vec4(a_position.xy + ubo.offset, a_position.z, 1.0);
+	//gl_Position = vec4(a_position.xy + ubo.offset, a_position.z, 1.0);
+	gl_Position = vec4(a_position, 1.0);
 }

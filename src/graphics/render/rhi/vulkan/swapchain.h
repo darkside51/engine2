@@ -40,6 +40,11 @@ public:
 
     // void present(const Queue & queue, uint8_t imageIndex) noexcept; // need to set presentInfo
 
+    // override
+    rhi::runtime::Semaphore imageAvailableSemaphore(uint32_t frameIndex) const noexcept override {
+        return getImageAvailableSemaphore(frameIndex);
+    }
+
 private:
     void destroy(VkSwapchainKHR swapchain);
     VkSwapchainKHR _swapchain = VK_NULL_HANDLE;

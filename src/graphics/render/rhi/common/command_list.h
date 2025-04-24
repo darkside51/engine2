@@ -12,8 +12,6 @@
 namespace engine::rhi::runtime {
 
     class CommandList {
-        inline static constexpr size_t kStackSize = 1'000'000u; // 1 Mb
-
     public:
         virtual ~CommandList() = default;
 
@@ -43,6 +41,7 @@ namespace engine::rhi::runtime {
 
         virtual void flush() noexcept {}
     protected:
+        inline static constexpr size_t kStackSize = 1'000'000u; // 1 Mb
         allocators::StackAllocator<kStackSize, false> _commands{};
     };
 

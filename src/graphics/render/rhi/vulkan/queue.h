@@ -33,6 +33,12 @@ namespace engine::vulkan {
         
         VkResult flushCommandBuffers(std::span<const VkCommandBuffer> commandBuffers, VkFence extenalFence = VK_NULL_HANDLE) noexcept;
 
+        // overrides
+        bool waitSubmit(uint8_t frameIdx, uint64_t timeout = UINT64_MAX, rhi::runtime::Fence f = nullptr) noexcept override;
+        bool submit(uint8_t frameIdx, std::span<const rhi::runtime::Queue::SubmitInfo> submitInfos, rhi::runtime::Fence f = nullptr) noexcept override;
+        bool present(const rhi::runtime::Swapchain * swapchains, uint32_t imageIdx, 
+            std::span<const rhi::runtime::Semaphore> waitSemaphores) noexcept override;
+
     private:
         std::vector<VkFence> _submitCompleteFences;
         VkQueue _queue = VK_NULL_HANDLE;

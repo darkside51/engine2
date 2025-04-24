@@ -1,6 +1,8 @@
 #include "queue.h"
 #include "device.h"
+#include "swapchain.h"
 #include "command_buffer.h"
+#include "runtime.h"
 
 #include <array>
 #include <cassert>
@@ -96,6 +98,81 @@ namespace engine::vulkan {
         };
 
         return vkQueuePresentKHR(_queue, &presentInfo);
+    }
+
+    //// override
+    bool Queue::waitSubmit(uint8_t frameIdx, uint64_t timeout, rhi::runtime::Fence f) noexcept {
+        return waitSubmitComplete(frameIdx, timeout, f ? static_cast<VkFence>(f): VK_NULL_HANDLE);
+    }
+
+    bool Queue::submit(uint8_t frameIdx, std::span<const rhi::runtime::Queue::SubmitInfo> submitInfos, rhi::runtime::Fence f) noexcept {
+        const auto & fence = (f == nullptr ? _submitCompleteFences[frameIdx] : static_cast<VkFence>(f));
+
+        struct SubmitTmpData {
+            dynamic_array<VkCommandBuffer, 4u> commandBuffers;
+            dynamic_array<VkPipelineStageFlags, 4u> pipelineStageFlags;
+        };
+
+        dynamic_array<SubmitTmpData, 4u> submitDatas;
+        submitDatas.reserve(submitInfos.size());
+
+        dynamic_array<VkSubmitInfo, 4u> vkSubmitInfos;
+        vkSubmitInfos.reserve(submitInfos.size());
+
+        size_t n = 0;
+        for (const auto & info : submitInfos) {
+            SubmitTmpData & tmp = submitDatas.view()[n];
+
+            tmp.commandBuffers.reserve(info.lists.size());
+            auto cmdBuffersView = tmp.commandBuffers.view();
+            size_t i = 0;
+            for (const auto * list : info.lists) {
+                const auto * vkList = static_cast<const runtime::CommandList*>(list);
+                cmdBuffersView[i++] = vkList->commandBuffer()();
+            }
+
+            
+            tmp.pipelineStageFlags.reserve(info.w8Semaphores.size());
+            auto pipelineStageFlagsView = tmp.pipelineStageFlags.view();
+
+            i = 0;
+            for (const auto & stageFlags : info.w8DstStages) {
+                pipelineStageFlagsView[i++] = utils::convert2vk(stageFlags);
+            }
+
+            vkSubmitInfos.view()[n] = {
+                .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+                .pNext = nullptr,
+                .waitSemaphoreCount = static_cast<uint32_t>(info.w8Semaphores.size()),
+                .pWaitSemaphores = reinterpret_cast<const VkSemaphore*>(info.w8Semaphores.data()),
+                .pWaitDstStageMask = pipelineStageFlagsView.data(),
+                .commandBufferCount = static_cast<uint32_t>(info.lists.size()),
+                .pCommandBuffers = cmdBuffersView.data(),
+                .signalSemaphoreCount = static_cast<uint32_t>(info.signalSemaphores.size()),
+                .pSignalSemaphores = reinterpret_cast<const VkSemaphore*>(info.signalSemaphores.data())
+            };
+
+            ++n;
+        }
+
+        return vkQueueSubmit(_queue, submitInfos.size(), vkSubmitInfos.view().data(), fence) == VK_SUCCESS;
+    }
+
+    bool Queue::present(const rhi::runtime::Swapchain * swapchain, uint32_t imageIdx, 
+        std::span<const rhi::runtime::Semaphore> waitSemaphores) noexcept {
+
+        VkPresentInfoKHR presentInfo = {
+            .sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
+            .pNext = nullptr,
+            .waitSemaphoreCount = static_cast<uint32_t>(waitSemaphores.size()),
+            .pWaitSemaphores = reinterpret_cast<const VkSemaphore*>(waitSemaphores.data()),
+            .swapchainCount = 1,
+            .pSwapchains = &(*static_cast<const Swapchain *>(swapchain))(),
+            .pImageIndices = &imageIdx,
+            .pResults = nullptr // todo!
+        };
+
+        return vkQueuePresentKHR(_queue, &presentInfo) == VK_SUCCESS;
     }
 
 }

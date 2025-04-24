@@ -1,6 +1,7 @@
 #pragma once
 
 #include "graphics/render/rhi/common/types.h"
+#include "graphics/render/rhi/common/runtime.h"
 #include "threads/utils.h"
 
 #include <vulkan/vulkan.hpp>
@@ -13,7 +14,7 @@ namespace engine::vulkan {
 
 class Device;
 
-class CommandPool {
+class CommandPool : public rhi::runtime::CommandPool {
 public:
     CommandPool(const Device & device, uint8_t queueFlags, rhi::CommandPoolCreateFlags poolFlags = rhi::CommandPoolCreateFlags::eReset_Command_Buffer);
     ~CommandPool();
