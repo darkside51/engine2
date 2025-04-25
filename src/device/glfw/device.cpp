@@ -106,6 +106,9 @@ namespace engine {
 
     GLFWDevice::~GLFWDevice() {
         // Engine::getInstance().deviceDestroyed();
+        if (_onClose) {
+            _onClose();
+        }
         
         if (_window) {
             glfwDestroyWindow(_window);

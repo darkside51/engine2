@@ -164,6 +164,10 @@ protected:
     uint32_t _size = 0u;
 };
 
+struct DescriptorSet {
+    virtual ~DescriptorSet() = default;
+};
+
 class CommandPool {
 public:
     virtual ~CommandPool() = default;

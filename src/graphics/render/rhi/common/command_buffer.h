@@ -25,6 +25,11 @@ namespace engine::rhi {
             scissor = s;
             return true;
         }
+
+        void reset() noexcept {
+            viewport = {};
+            scissor = {};
+        }
     };
 
 }

@@ -49,7 +49,7 @@ namespace engine::vulkan {
             resources[std::to_underlying(setLayout.type)] += setLayout.count;
         }
 
-        auto findSuitablePool = [&](std::list<DescriptorPool> & pools) noexcept -> DescriptorPool* {
+        const auto findSuitablePool = [&](std::list<DescriptorPool> & pools) noexcept -> DescriptorPool* {
             for (auto & pool : pools) {
                 bool suitable = true;
                 for (size_t i = 0u; i < std::to_underlying(rhi::shaders::ResourceType::eCount); ++i) {
@@ -66,7 +66,7 @@ namespace engine::vulkan {
             return nullptr;
         };
 
-        auto createNewPoolResources = [&]() {
+        const auto createNewPoolResources = [&]() {
             std::vector<std::pair<rhi::shaders::ResourceType, uint32_t>> setResources;
             setResources.reserve(std::to_underlying(rhi::shaders::ResourceType::eCount));
             for (size_t i = 0u; i < std::to_underlying(rhi::shaders::ResourceType::eCount); ++i) {

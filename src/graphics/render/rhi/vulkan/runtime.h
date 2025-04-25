@@ -5,7 +5,7 @@
 #include "graphics/render/rhi/common/runtime.h"
 #include "graphics/render/rhi/common/command_list.h"
 
-#include "graphics/render/rhi/vulkan/command_buffer.h"
+#include "command_buffer.h"
 
 namespace engine::vulkan::runtime {
 

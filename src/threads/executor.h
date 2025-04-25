@@ -100,13 +100,17 @@ namespace threads {
             _threadId = std::this_thread::get_id();
 
             while (!isStopped()) {
+                float t = 0.0f;
                 while (isRunning()) {
                     const auto time = std::chrono::steady_clock::now();
                     const std::chrono::duration<float> duration = time - _time; // as default in seconds
-				    const auto delta = duration.count();
+				    const auto delta = duration.count() - t;
 
-                    if (auto const t = _frequency - delta; t > 0.0f) {
+                    t = _frequency - delta;
+
+                    if (t > 0.0f) {
                         std::this_thread::sleep_for(std::chrono::duration<float>(t));
+                        t = 0.0f;
                         continue;
                     }
 

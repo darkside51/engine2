@@ -47,7 +47,6 @@ namespace engine::vulkan::runtime {
         uint8_t changedSets = 0u;
 
         const auto applyDescriptorSets = [&]() noexcept {
-            // apply tmp structs:
             std::array<VkDescriptorSet, kMaxDescriptorsSets> descriptorSets;
             uint8_t firstSet = 0xffu;
 

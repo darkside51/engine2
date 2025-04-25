@@ -30,7 +30,7 @@ public:
     std::pair<uint32_t, bool> acquireNextImage(uint32_t frameIndex, uint64_t timeout = UINT64_MAX) const noexcept override;
 
     const VkSemaphore & getImageAvailableSemaphore(uint32_t frameIndex) const noexcept { return _imageAvailableSemaphores[frameIndex]; }
-    void waitFenceAndReset(uint64_t timeout = UINT64_MAX) noexcept;
+    void waitFenceAndReset(uint64_t timeout = UINT64_MAX) const noexcept;
 
     uint32_t getImagesCount() const noexcept override;
     VkImageView getImageView(uint8_t index) noexcept { return _imageViews[index]; }

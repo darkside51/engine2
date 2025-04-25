@@ -48,7 +48,9 @@ namespace engine::vulkan {
         }
     }
 
-    rhi::Result CommandBuffer::begin(const CommandBufferInheritanceInfo * inheritanceInfo) const noexcept {
+    rhi::Result CommandBuffer::begin(const CommandBufferInheritanceInfo * inheritanceInfo) noexcept {
+        _state.reset();
+        _pipeline = {};
         if (_level == rhi::CommandBufferLevel::ePrimary || inheritanceInfo == nullptr) {
             const VkCommandBufferBeginInfo beginInfo {
                 .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,

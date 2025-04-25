@@ -347,6 +347,17 @@ namespace engine::rhi {
         eASTC_12x12_Srgb_Block = 184u,
     };
 
+    inline bool isDepthStencilFormat(Format format) noexcept {
+        switch (format) {
+            case Format::eD16_Unorm_S8_Uint: [[fallthrough]];
+            case Format::eD24_Unorm_S8_Uint: [[fallthrough]];
+            case Format::eD32_Sfloat_S8_Uint:
+            return true;
+        default:
+            return false;
+        }
+    }
+
     inline bool isDepthFormat(Format format) noexcept {
         switch (format) {
             case Format::eD16_Unorm: [[fallthrough]];
@@ -509,6 +520,14 @@ namespace engine::rhi {
         uint8_t arrayLayers = 1u;
         uint8_t samples = 1u;
         std::vector<uint32_t> queueFamilyIndices = {};
+
+        ImageInfo(ImageUsageFlags usage, Format format, Extent3D extent) : 
+            usage(usage),
+            format(format),
+            extent(extent),
+            aspectFlags(isDepthStencilFormat(format) ? ImageAspectFlags::eDepthStencil : 
+                (isDepthFormat(format) ? ImageAspectFlags::eDepth: ImageAspectFlags::eColor)) {}
+
     };
 
     enum class BufferCreateFlags : uint8_t {
@@ -531,7 +550,19 @@ namespace engine::rhi {
         MemoryExtendedFlags memoryExtFlags = MemoryExtendedFlags::eNone;
         BufferCreateFlags flags = BufferCreateFlags::eNone;
         SharingMode sharing = SharingMode::eExclusive;
-        std::vector<uint32_t> queueFamilyIndices = {};
+        std::vector<uint32_t> queueFamilyIndices = {};  // It is ignored if sharingMode is not eConcurrent.
+
+        BufferInfo(BufferUsageFlags usage, MemoryPropertyFlags memoryFlags, 
+            MemoryExtendedFlags memoryExtFlags = MemoryExtendedFlags::eNone,
+            BufferCreateFlags flags = BufferCreateFlags::eNone,
+            SharingMode sharing = SharingMode::eExclusive,
+            std::vector<uint32_t> queueFamilyIndices = {}) : 
+            usage(usage),
+            memoryFlags(memoryFlags),
+            memoryExtFlags(memoryExtFlags),
+            flags(flags),
+            sharing(sharing),
+            queueFamilyIndices(std::move(queueFamilyIndices)) {}
     };
 
     enum class ResolveModeFlags : uint8_t {

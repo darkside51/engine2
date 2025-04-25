@@ -43,6 +43,9 @@ namespace engine::rhi::runtime {
     protected:
         inline static constexpr size_t kStackSize = 1'000'000u; // 1 Mb
         allocators::StackAllocator<kStackSize, false> _commands{};
+
+    private:
+        const Pipeline * _pipeline = nullptr;
     };
 
 }

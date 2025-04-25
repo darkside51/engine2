@@ -182,15 +182,8 @@ namespace engine::vulkan {
         _images.reserve(realImagesCount);
         _imageViews.resize(realImagesCount);
 
-        rhi::ImageInfo imageInfo;
-        imageInfo.format = utils::convert2rhi(surfaceFormat.format);
-        imageInfo.extent = {width, height, 1u};
-        imageInfo.arrayLayers = 1u;
-        imageInfo.mipLevels = 1u;
-        imageInfo.type = rhi::ImageType::eType_2D;
-        imageInfo.aspectFlags = rhi::ImageAspectFlags::eColor;
+        rhi::ImageInfo imageInfo {rhi::ImageUsageFlags::eColor_Attachment, utils::convert2rhi(surfaceFormat.format), {width, height, 1u}};
         imageInfo.queueFamilyIndices = _info.queueFamilies;
-        imageInfo.usage = rhi::ImageUsageFlags::eColor_Attachment;
         for (uint32_t i = 0u; i < realImagesCount; ++i) {
             auto & image = _images.emplace_back(const_cast<Device&>(_device), imageInfo, images[i]);
             _imageViews[i] = image.getImageView(rhi::ImageViewType::eType_2D, 0u, 1u, 0, 1u, rhi::ImageAspectFlags::eColor);
@@ -217,14 +210,17 @@ namespace engine::vulkan {
         LOG_I("vulkan: swapchain resized, image count = %d", realImagesCount);
     }
 
-    void Swapchain::waitFenceAndReset(uint64_t timeout) noexcept {
+    void Swapchain::waitFenceAndReset(uint64_t timeout) const noexcept {
         vkWaitForFences(_device(), 1, &_imageAvailableFence, VK_TRUE, timeout);
         vkResetFences(_device(), 1, &_imageAvailableFence);
     }
 
     std::pair<uint32_t, bool> Swapchain::acquireNextImage(uint32_t frameIndex, uint64_t timeout) const noexcept {
         uint32_t imageIndex = 0u;
-        VkResult result = vkAcquireNextImageKHR(_device(), _swapchain, timeout, _imageAvailableSemaphores[frameIndex], _imageAvailableFence, &imageIndex);
+        
+        VkResult result = vkAcquireNextImageKHR(_device(), _swapchain, timeout, _imageAvailableSemaphores[frameIndex], 
+            /*_imageAvailableFence*/VK_NULL_HANDLE, &imageIndex);
+
         bool success = true;
         switch (result) {
         case VK_SUCCESS:

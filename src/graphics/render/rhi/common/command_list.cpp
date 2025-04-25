@@ -5,6 +5,7 @@ namespace engine::rhi::runtime {
     void CommandList::begin() {
         _commands->clear();
         _commands->create<BeginCommand>();
+        _pipeline = nullptr;
     }
 
     void CommandList::end() {
@@ -14,6 +15,7 @@ namespace engine::rhi::runtime {
     void CommandList::reset(CommandBufferResetFlags flags) {
         _commands->clear();
         _commands->create<ResetCommand>(flags);
+        _pipeline = nullptr;
     }
 
     void CommandList::beginRenderPass(RenderPass renderPass, const FrameBufferPtr & framebuffer, 
@@ -42,7 +44,10 @@ namespace engine::rhi::runtime {
     }
 
     void CommandList::bindPipeline(const PipelinePtr & pipeline) {
-        _commands->create<BindPipelineCommand>(pipeline);
+        if (_pipeline != pipeline.get()) {
+            _commands->create<BindPipelineCommand>(pipeline);
+            _pipeline = pipeline.get();
+        }
     }
 
     void CommandList::bindVertexBuffer(uint32_t binding, const BufferPtr & buffer, uint32_t offset) {

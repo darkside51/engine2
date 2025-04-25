@@ -1,7 +1,7 @@
 #pragma once
 
-
 #include <cstdint>
+#include <functional>
 #include <memory>
 #include <string_view>
 #include <utility>
@@ -36,11 +36,16 @@ namespace rhi {
             return {_width, _height};
         }
         
+        void setOnClose(std::function<void()> && callback) noexcept {
+            _onClose = std::move(callback);
+        }
+
     private:
         GLFWwindow* _window = nullptr;
 		uint16_t _width = 0u;
 		uint16_t _height = 0u;
 		bool _fullscreen = false;
+        std::function<void()> _onClose{};
     };
 
     class GLFWModule {

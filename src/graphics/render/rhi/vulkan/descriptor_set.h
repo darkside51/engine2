@@ -1,6 +1,7 @@
 #pragma once
 
 #include "graphics/render/rhi/common/types.h"
+#include "graphics/render/rhi/common/runtime.h"
 
 #include <vulkan/vulkan.h>
 
@@ -10,7 +11,7 @@ namespace engine::vulkan {
 
     class DescriptorPool;
 
-    struct DescriptorSet {
+    struct DescriptorSet final : rhi::runtime::DescriptorSet {
         DescriptorSet() = default;
         DescriptorSet(const DescriptorSet &) = delete;
         DescriptorSet & operator= (const DescriptorSet &) = delete;

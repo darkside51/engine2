@@ -145,14 +145,14 @@ namespace engine::vulkan {
             subpasses.emplace_back(
                 0,
                 VK_PIPELINE_BIND_POINT_GRAPHICS,
-                inputAttachmentReferences.capacity,
-                inputAttachmentReferences.data(),
-                colorAttachmentReferences.capacity,
-                colorAttachmentReferences.data(),
-                resolveAttachmentReferences.data(),
+                inputAttachmentReferencesView.size(),
+                inputAttachmentReferencesView.data(),
+                colorAttachmentReferencesView.size(),
+                colorAttachmentReferencesView.data(),
+                resolveAttachmentReferencesView.empty() ? nullptr : resolveAttachmentReferencesView.data(),
                 depthStencilRef,
                 subpass.preserveAttachments.capacity,
-                subpass.preserveAttachments.data()
+                subpass.preserveAttachments.view().data()
             );
         }
         

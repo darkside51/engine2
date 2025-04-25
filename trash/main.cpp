@@ -14,43 +14,378 @@
 //
 #include "device/glfw/device.h"
 #include "log/log.h"
+#include "file/file_manager.h"
+#include "file/common_file_system.h"
 
+//
 #include "graphics/render/rhi/common/api.h"
+#include "graphics/render/rhi/common/utils.h"
+#include "graphics/render/rhi/common/shader_module.h"
+
 #include "graphics/render/rhi/vulkan/api.h"
+#include "graphics/render/rhi/vulkan/vk_types.h"
 #include "graphics/render/rhi/vulkan/instance.h"
 #include "graphics/render/rhi/vulkan/physical_device.h"
 #include "graphics/render/rhi/vulkan/surface.h"
 #include "graphics/render/rhi/vulkan/device.h"
 #include "graphics/render/rhi/vulkan/swapchain.h"
+#include "graphics/render/rhi/vulkan/buffer.h"
 #include "graphics/render/rhi/vulkan/image.h"
 #include "graphics/render/rhi/vulkan/renderpass.h"
 #include "graphics/render/rhi/vulkan/framebuffer.h"
+#include "graphics/render/rhi/vulkan/command_pool.h"
+#include "graphics/render/rhi/vulkan/command_buffer.h"
+#include "graphics/render/rhi/vulkan/queue.h"
+#include "graphics/render/rhi/vulkan/utils.h"
+#include "graphics/render/rhi/vulkan/descriptor_pool_manager.h"
+#include "graphics/render/rhi/vulkan/descriptor_set_updater.h"
+#include "graphics/render/rhi/vulkan/gpu_program.h"
+#include "graphics/render/rhi/vulkan/pipeline.h"
+
+#include "graphics/render/rhi/vulkan/runtime.h"
+
+#include "graphics/render/rhi/common/commands.h"
+#include "graphics/render/rhi/common/command_list.h"
+
+using gApi = engine::rhi::Api<engine::vulkan::Api>;
+
+engine::rhi::RenderPassDescription createRenderPassDescription(engine::rhi::Format colorFormat, engine::rhi::Format depthFormat) {
+    std::vector<engine::rhi::AttachmentDescription> attachments(2u);
+    attachments[0].format = colorFormat;
+    attachments[0].loadStoreOp = {engine::rhi::AttachmentLoadOp::eClear, engine::rhi::AttachmentStoreOp::eStore};
+    attachments[0].stencilLoadStoreOp = {engine::rhi::AttachmentLoadOp::eDont_Care, engine::rhi::AttachmentStoreOp::eDont_Care};
+    attachments[0].initialLayout = engine::rhi::ImageLayout::eColor_Attachment_Optimal;
+    attachments[0].finalLayout = engine::rhi::ImageLayout::ePresent_Src;
+
+    attachments[1].format = depthFormat;
+    attachments[1].loadStoreOp = {engine::rhi::AttachmentLoadOp::eClear, engine::rhi::AttachmentStoreOp::eDont_Care};
+    attachments[1].stencilLoadStoreOp = {engine::rhi::AttachmentLoadOp::eDont_Care, engine::rhi::AttachmentStoreOp::eDont_Care};
+    attachments[1].initialLayout = engine::rhi::ImageLayout::eDepth_Stencil_Attachment_Optimal;
+    attachments[1].finalLayout = engine::rhi::ImageLayout::eDepth_Stencil_Attachment_Optimal;
+
+    std::vector<engine::rhi::SubpassDescription> subpasses{1};
+    subpasses[0].colorAttachments = {{
+        .pNext = {nullptr, 0u},
+        .attachment = 0u,
+        .layout = engine::rhi::ImageLayout::eColor_Attachment_Optimal,
+        .aspectMask = engine::rhi::ImageAspectFlags::eColor
+    }};
+    subpasses[0].depthStencilAttachment = {
+        .pNext = {nullptr, 0u},
+        .attachment = 1u,
+        .layout = engine::rhi::ImageLayout::eDepth_Stencil_Attachment_Optimal,
+        .aspectMask = engine::rhi::ImageAspectFlags::eDepthStencil
+    };
+
+    return engine::rhi::RenderPassDescription{
+        std::move(attachments), 
+        std::move(subpasses), 
+        {} // std::vector<engine::rhi::SubpassDependency>
+    };
+}
+
+auto createDescriptorSets(auto & device, const engine::rhi::shaders::BindingSetLayout & setLayout) {
+    using namespace engine::rhi;
+    using Api = std::decay_t<decltype(device)>::Api;
+
+    auto & descriptorPoolManager = device.getDescriptorPoolManager();
+
+    // auto & descriptorPool = descriptorPoolManager.createPool(
+    //     std::array{
+    //         std::pair{shaders::DescriptorType::eUniform_Buffer, 10u},
+    //         std::pair{shaders::DescriptorType::eStorage_Buffer, 10u},
+    //         std::pair{shaders::DescriptorType::eCombined_Image_Sampler, 10u}
+    //     }
+    // );
+
+    auto & pool = descriptorPoolManager.getCompatiblePool(setLayout);
+    return pool.allocateDescriptorSet(setLayout);
+}
+
+auto createPipeline(gApi::Device & device, VkRenderPass renderPass, gApi::GpuProgram & program) {
+    using namespace engine;
+    using Api = gApi;
+
+    Api::GraphicsPipelineInfo info{};
+    info.viewportStateInfo(1u, 1u)
+    .dynamicStateInfo(rhi::DynamicState::eViewport | rhi::DynamicState::eScissor)
+    .multisampleStateInfo()
+    .rasterizationStateInfo(rhi::PolygonMode::eFill, rhi::CullMode::eBack)
+    .inputAssemblyStateInfo(rhi::PrimitiveTopology::eTriangles)
+    .depthStencilStateInfo({
+            .depthTestEnable = false,
+            .depthWriteEnable = false,
+            .depthCompareOp = rhi::CompareOp::eAlways
+        }, {})
+    .colorBlendStateCreateInfo(std::array{rhi::common_blend_modes::blend_none})
+    .vertexInputStateInfo(
+        std::array{rhi::VertexInputBinding::create<float[3]>(0u)},
+        std::array{rhi::VertexInputAttribute{
+                .location = 0u,
+                .binding = 0u,
+                .format = rhi::Format::eR32G32B32_Sfloat,
+                .offset = 0u
+            }
+        }
+    );
+
+    return typename Api::Pipeline{device, program, info.create(program, renderPass)};
+}
+
+auto loadShaders(auto & device, auto & shaderModulesManager) {
+    using namespace engine::rhi;
+    using Api = std::decay_t<decltype(device)>::Api;
+
+    engine::FileManager fm;
+    auto * fsystem = fm.createFileSystem<engine::CommonFileSystem>("main", engine::CommonFileSystem::getCurrentDirectory() + "./resources/");
+
+    auto const vBytes = fm.readFile("shaders/simple.vert.spv");
+    auto const fBytes = fm.readFile("shaders/simple.frag.spv");
+
+    const auto & vsModule = shaderModulesManager.registerModule("simple.vert", device, engine::rhi::shaders::Stages::eVertex, vBytes); // call overloaded function
+    const auto & fsModule = shaderModulesManager.registerModule("simple.frag", {device, engine::rhi::shaders::Stages::eFragment, fBytes});
+
+    return typename Api::GpuProgram{device, std::array{vsModule.view(), fsModule.view()}};
+}
+
+auto createUniformBufferAndDescriptorSet(auto & device) {
+    using namespace engine::rhi;
+    using Api = std::decay_t<decltype(device)>::Api;
+
+    engine::rhi::BufferInfo uniformInfo{
+        .usage = BufferUsageFlags::eUniform_Buffer,
+        .memoryFlags = MemoryPropertyFlags::eHostVisible,
+        .memoryExtFlags = MemoryExtendedFlags::eNone,
+        .flags = BufferCreateFlags::eNone,
+        .sharing = SharingMode::eExclusive,
+        .queueFamilyIndices = {0}
+    };
+
+    typename Api::Buffer uniformBuffer{device, uniformInfo, sizeof(float) * 2u};
+    {
+        auto * map = uniformBuffer.template map2<float>();
+        map[0u] = -0.5f;
+        map[1u] = 0.0f;
+        uniformBuffer.flush();
+        uniformBuffer.unmap();
+    }
+
+    shaders::BindingSetLayout setLayout {
+        {
+            {
+                .binding = 0u,
+                .type = shaders::DescriptorType::eUniform_Buffer,
+                .shaderStages = shaders::Stages::eVertex,
+                .count = 1u
+            }
+        }
+    };
+
+    auto & pool = device.getDescriptorPoolManager().getCompatiblePool(setLayout);
+    auto descriptorSet = pool.allocateDescriptorSet(setLayout);
+
+    engine::vulkan::DescriptorSetUpdater updater{device, setLayout};
+    updater.updateBuffers(std::array{std::pair{&uniformBuffer, 0u}});
+    updater.flush(descriptorSet);
+
+    return std::pair<typename Api::Buffer, engine::vulkan::DescriptorSet>{std::move(uniformBuffer), std::move(descriptorSet)};
+}
+
+auto createBuffers(auto & device) {
+    using namespace engine::rhi;
+    using Api = std::decay_t<decltype(device)>::Api;
+
+    engine::rhi::BufferInfo info{
+        .usage = BufferUsageFlags::eVertex_Buffer,
+        .memoryFlags = MemoryPropertyFlags::eHostVisible,
+        .memoryExtFlags = MemoryExtendedFlags::eNone,
+        .flags = BufferCreateFlags::eNone,
+        .sharing = SharingMode::eExclusive,
+        .queueFamilyIndices = {0}
+    };
+
+    typename Api::Buffer buffer{device, info, sizeof(float) * 4u};
+    {
+        auto * map = buffer.template map2<float>();
+        map[0u] = 10.0f;
+        map[1u] = 20.0f;
+        map[2u] = 30.0f;
+        map[3u] = 40.0f;
+        buffer.flush();
+        buffer.unmap();
+    }
+
+    auto name = buffer.getName();
+    buffer.setName("buffer0");
+    name = buffer.getName();
+
+    ///////////////////
+    shaders::BindingSetLayout setLayout {
+        {
+            {
+                .binding = 0u,
+                .type = shaders::DescriptorType::eUniform_Buffer,
+                .shaderStages = shaders::Stages::eVertex,
+                .count = 1u
+            },
+            {
+                .binding = 1u,
+                .type = shaders::DescriptorType::eStorage_Buffer,
+                .shaderStages = shaders::Stages::eVertex,
+                .count = 1u
+            }
+        }
+    };
+
+    auto descriptorSet = createDescriptorSets(device, setLayout);
+
+    engine::rhi::BufferInfo uniformInfo{
+        .usage = BufferUsageFlags::eUniform_Buffer,
+        .memoryFlags = MemoryPropertyFlags::eHostVisible,
+        .memoryExtFlags = MemoryExtendedFlags::eNone,
+        .flags = BufferCreateFlags::eNone,
+        .sharing = SharingMode::eExclusive,
+        .queueFamilyIndices = {0}
+    };
+
+    engine::rhi::BufferInfo storageInfo{
+        .usage = BufferUsageFlags::eStorage_Buffer,
+        .memoryFlags = MemoryPropertyFlags::eHostVisible,
+        .memoryExtFlags = MemoryExtendedFlags::eNone,
+        .flags = BufferCreateFlags::eNone,
+        .sharing = SharingMode::eExclusive,
+        .queueFamilyIndices = {0}
+    };
+
+    typename Api::Buffer uniformBuffer{device, uniformInfo, sizeof(float) * 2u};
+    {
+        auto * map = uniformBuffer.template map2<float>();
+        map[0u] = 10.0f;
+        map[1u] = 20.0f;
+        uniformBuffer.flush();
+        uniformBuffer.unmap();
+    }
+
+    typename Api::Buffer storageBuffer{device, storageInfo, sizeof(float) * 2u};
+    {
+        auto * map = storageBuffer.template map2<float>();
+        map[0u] = 10.0f;
+        map[1u] = 20.0f;
+        storageBuffer.flush();
+        storageBuffer.unmap();
+    }
+    
+    engine::vulkan::DescriptorSetUpdater updater{device, setLayout};
+    // updater.updateBuffers(std::array{std::pair{&uniformBuffer, 0u}, std::pair{&storageBuffer, 1u}});
+    updater.updateBuffers(std::array{std::pair{&uniformBuffer, 0u}});
+    updater.updateBuffers(std::array{std::pair{&storageBuffer, 1u}});
+    updater.flush(descriptorSet);
+
+    ///////////////////////////
+    auto resultBuffer = typename Api::Buffer{device, info, sizeof(float) * 9u};
+    {
+        auto * map = resultBuffer.template map2<float>();
+        map[0u] = -0.5f; map[1u] = 0.5f; map[2u] = 0.1f;
+        map[3u] = 0.5f; map[4u] = 0.5f; map[5u] = 0.1f;
+        map[6u] = 0.0f; map[7u] = -0.5f; map[8u] = 0.1f;
+        resultBuffer.flush();
+        resultBuffer.unmap();
+    }
+
+    return resultBuffer;
+}
+
+////
+auto loadShadersRuntime(const std::unique_ptr<engine::rhi::runtime::Rhi> & api, 
+    std::unique_ptr<engine::rhi::runtime::Device> & device, 
+    std::unique_ptr<engine::rhi::runtime::ShaderModulesManager> & shaderModulesManager) {
+
+    engine::FileManager fm;
+    auto * fsystem = fm.createFileSystem<engine::CommonFileSystem>("main", engine::CommonFileSystem::getCurrentDirectory() + "./resources/");
+
+    auto const vBytes = fm.readFile("shaders/simple.vert.spv");
+    auto const fBytes = fm.readFile("shaders/simple.frag.spv");
+
+    const auto & vsModule = shaderModulesManager->registerModule("simple.vert", *device, engine::rhi::shaders::Stages::eVertex, vBytes); // call overloaded function
+    const auto & fsModule = shaderModulesManager->registerModule("simple.frag", *device, engine::rhi::shaders::Stages::eFragment, fBytes);
+
+    return api->createProgram(device, std::array{vsModule.getView(), fsModule.getView()});
+}
+
+auto createPipelineRuntime(const std::unique_ptr<engine::rhi::runtime::Rhi> & api,
+    std::unique_ptr<engine::rhi::runtime::Device> & device,
+    engine::rhi::runtime::RenderPass renderPass,
+    const std::unique_ptr<engine::rhi::runtime::GpuProgram> & program) {
+    using namespace engine::rhi;
+
+    GraphicsPipelineStatesInfo info;
+    info.viewportState = {1u, 1u};
+    info.blendModes = {common_blend_modes::blend_none};
+    info.depthStencilState = {
+        {
+            .depthTestEnable = false,
+            .depthWriteEnable = false,
+            .depthCompareOp = CompareOp::eAlways
+        }, 
+        {}
+    };
+    info.dynamicStates = DynamicState::eViewport | DynamicState::eScissor;
+    info.rasterisationState = {PolygonMode::eFill, CullMode::eBack};
+    info.inputAssemblyState = {PrimitiveTopology::eTriangles, false};
+    info.vertexInputState = {
+        std::vector{VertexInputBinding::create<float[3]>(0u)},
+        std::vector{
+            VertexInputAttribute{
+                .location = 0u,
+                .binding = 0u,
+                .format = Format::eR32G32B32_Sfloat,
+                .offset = 0u
+            }
+        }
+    };
+
+   return api->createGraphicsPipeline(device, renderPass, program, info);
+}
+
+auto createBuffersRuntime(const std::unique_ptr<engine::rhi::runtime::Rhi> & api,
+    std::unique_ptr<engine::rhi::runtime::Device> & device) {
+    using namespace engine::rhi;
+
+    engine::rhi::BufferInfo info{
+        .usage = BufferUsageFlags::eVertex_Buffer,
+        .memoryFlags = MemoryPropertyFlags::eHostVisible,
+        .memoryExtFlags = MemoryExtendedFlags::eNone,
+        .flags = BufferCreateFlags::eNone,
+        .sharing = SharingMode::eExclusive,
+        .queueFamilyIndices = {0}
+    };
+
+    auto resultBuffer = api->createBuffer(device, info, sizeof(float) * 9u);
+    {
+        auto * map = resultBuffer->map2<float>();
+        map[0u] = -0.5f; map[1u] = 0.5f; map[2u] = 0.1f;
+        map[3u] = 0.5f; map[4u] = 0.5f; map[5u] = 0.1f;
+        map[6u] = 0.0f; map[7u] = -0.5f; map[8u] = 0.1f;
+        resultBuffer->flush();
+        resultBuffer->unmap();
+    }
+
+    return resultBuffer;
+}
 
 int main() {
-    engine::common::Version v(0, 0, 4);
     engine::tests::execute_tests();
 
-    engine::GLFWModule glfwModule;
-    const auto & window0 = glfwModule.open("window0");
-    glfwModule.open("window1");
+    // std::variant<std::monostate, engine::vulkan::Api, int> api2;
+    // api2.emplace<engine::vulkan::Api>();
+    // const auto apiIdx = api2.index();
+    // const auto & api2Impl = std::get<engine::vulkan::Api>(api2);
+    // using Api2 = std::decay_t<decltype(api2Impl)>;
 
-    threads::ExecutorImpl w([](threads::ExecutionContext & w, float delta) {
-        w.performTasks();
-        static uint32_t a = 0u;
-        LOG_I("threadId_0: %d, delta: %f, value = %d\n", threads::unique::id(), delta, ++a);
-    }, 1.0f);
-    w.run();
-    w.emplaceTasks(stl::make_vector(threads::WorkerTask{[](){
-       LOG_I("threadId_0: %d, \n", threads::unique_t<int>::id());
-    }}));
-
-    threads::ExecutorImpl w2([](threads::ExecutionContext & w, float delta) {
-        LOG_I("threadId_1: %d\n", threads::unique::id());
-    }, 0.5f);
-    w2.run();
-
-    engine::rhi::Api<engine::vulkan::Api> api;
+    const engine::rhi::Api<engine::vulkan::Api> api;
     using Api = decltype(api);
+
+    bool const kUseApiDebugMessages = true;
 
     engine::rhi::InstanceCreateInfo instanceCreateInfo {
         .apiVersion = engine::common::Version{1, 3, 0},
@@ -59,10 +394,226 @@ int main() {
             Api::Impl::kDebugUtilExtName // for validation
             },
         .layers = {Api::Impl::kLayerValidationKHR}, // for validation
-        .createDebugMessages = false,
+        .createDebugMessages = kUseApiDebugMessages,
         .allocationCallback = nullptr
     };
+
+    engine::GLFWModule glfwModule;
+    const auto & window0 = glfwModule.open(Api::name().data());
+
+    constexpr bool kUseRuntimeApi = true;
+    if constexpr (kUseRuntimeApi) {
+        std::unique_ptr<engine::rhi::runtime::Rhi> rApi = std::make_unique<engine::vulkan::runtime::Rhi>(instanceCreateInfo);
+
+        engine::rhi::PhysicalDeviceFeatureRequest gpuFeatures{};
+        auto gpuDevices = rApi->enumerateDevices({gpuFeatures, {engine::vulkan::runtime::Rhi::Api::Impl::kSwapchainExtName}});
+
+        const auto surface = rApi->createSurface(window0.getSurfaceCreateInfo());
+        if (auto & gpuDevice = gpuDevices[0u]; gpuDevice->checkSurfaceSupport(*surface)) {
+            const auto queueFlags = engine::rhi::queue_flags::graphics | engine::rhi::queue_flags::present;
+            const auto [index, family] = gpuDevice->getQueueFamily(queueFlags);
+
+            engine::rhi::DeviceCreateInfo deviceCreateInfo{gpuFeatures};
+            deviceCreateInfo.queueFamilies.push_back({index, 1u, {}, queueFlags});
+            deviceCreateInfo.commandPoolThreadsCount = 1u;
+
+            auto device = rApi->createDevice(gpuDevice, deviceCreateInfo);
+
+            engine::rhi::SwapchainCreateInfo swapchainCreateInfo = {};
+            swapchainCreateInfo.imagesCount = 3u;
+            swapchainCreateInfo.queueFamilies.push_back(index);
+
+            auto swapchain = rApi->createSwapchain(device, surface, swapchainCreateInfo);
+
+            auto const [width, height] = window0.getSize();
+            swapchain->resize(width, height, false);
+
+            const uint32_t frameBuffersCount = swapchain->getImagesCount();
+            device->reserveResourcesForFrames(frameBuffersCount);
+
+            const auto depthFormat = device->getSupportedDepthFormat(32u, false);
+
+            std::vector<std::unique_ptr<engine::rhi::runtime::Image>> depthImages;
+            depthImages.reserve(frameBuffersCount);
+            const auto imageInfo = engine::rhi::ImageInfo{ // todo! simplify it
+                .type = engine::rhi::ImageType::eType_2D,
+                .usage = engine::rhi::ImageUsageFlags::eDepth_Stencil_Attachment,
+                .sharing = engine::rhi::SharingMode::eExclusive,
+                .format = depthFormat,
+                .aspectFlags = engine::rhi::ImageAspectFlags::eDepth, // can get it from depthFormat?
+                .tiling = engine::rhi::ImageTiling::eOptimal,
+                .flags = engine::rhi::ImageCreateFlags::eNone,
+                .memoryFlags = engine::rhi::MemoryPropertyFlags::eDeviceLocal,
+                .memoryExtFlags = engine::rhi::MemoryExtendedFlags::eDedicated,
+                .extent = {1024u, 768u, 1u},
+                .mipLevels = 1u,
+                .arrayLayers = 1u,
+                .samples = 1u,
+                .queueFamilyIndices = {index}
+            }; 
+
+            for (uint32_t i = 0u; i < frameBuffersCount; ++i) {
+                depthImages.emplace_back(std::move(rApi->createImage(device, imageInfo)));
+            }
+
+            auto renderPass = rApi->getRenderPass(device, createRenderPassDescription(swapchain->getFormat(), depthFormat));
+
+            std::vector<std::unique_ptr<engine::rhi::runtime::FrameBuffer>> frameBuffers;
+            frameBuffers.reserve(frameBuffersCount);
+            for (uint32_t i = 0; i < frameBuffersCount; ++i) {
+                auto & image = swapchain->getImage(i);
+                std::vector<engine::rhi::FrameBufferAttachment> fbAttachemnts{2u};
+                fbAttachemnts[0].image = &image;
+                fbAttachemnts[0].imageSize = {image.getExtent().width, image.getExtent().height};
     
+                auto & depthImage = depthImages[i];
+                fbAttachemnts[1].image = depthImage.get();
+                fbAttachemnts[1].imageSize = {depthImage->getExtent().width, depthImage->getExtent().height};
+                fbAttachemnts[1].aspect = engine::rhi::ImageAspectFlags::eDepth;  // can get it from depthImage?
+    
+                frameBuffers.emplace_back(rApi->createFrameBuffer(device,std::move(fbAttachemnts), renderPass));
+            }
+
+            auto queue = rApi->getQueue(device, engine::rhi::queue_flags::graphics | engine::rhi::queue_flags::present, 0u, frameBuffersCount);
+
+            std::vector<engine::rhi::runtime::Semaphore> readyToPresentSemaphores(frameBuffersCount);
+            for (auto & semaphore : readyToPresentSemaphores) {
+                semaphore = rApi->createSemaphore(device);
+            }
+
+            engine::rhi::FrameIndex frameIndex{static_cast<uint8_t>(frameBuffersCount)};
+
+            auto shaderModulesManager = rApi->createShaderModulesManager();
+            auto program = loadShadersRuntime(rApi, device, shaderModulesManager);
+            auto pipeline = createPipelineRuntime(rApi, device, renderPass, program);
+            auto buffer = createBuffersRuntime(rApi, device);
+
+
+            engine::rhi::BufferInfo info{
+                .usage = engine::rhi::BufferUsageFlags::eUniform_Buffer,
+                .memoryFlags = engine::rhi::MemoryPropertyFlags::eHostVisible,
+                .memoryExtFlags = engine::rhi::MemoryExtendedFlags::eNone,
+                .flags = engine::rhi::BufferCreateFlags::eNone,
+                .sharing = engine::rhi::SharingMode::eExclusive,
+                .queueFamilyIndices = {0}
+            };
+        
+            auto uniformBuffer = rApi->createBuffer(device, info, sizeof(float) * 2u);
+            {
+                auto * map = uniformBuffer->map2<float>();
+                map[0u] = -0.5f;
+                map[1u] = 0.0f;
+                uniformBuffer->flush();
+                uniformBuffer->unmap();
+            }
+
+            auto uniformBuffer2 = rApi->createBuffer(device, info, sizeof(float) * 2u);
+            {
+                auto * map = uniformBuffer2->map2<float>();
+                map[0u] = 0.0f;
+                map[1u] = 0.25f;
+                uniformBuffer2->flush();
+                uniformBuffer2->unmap();
+            }
+
+            // reserve frames data
+            std::vector<engine::rhi::runtime::CommandListPtr> commandLists;
+            commandLists.reserve(frameBuffersCount);
+
+            bool renderInited = false;
+            constexpr float inputCheckTime = 1.0f / 60.0f;
+            constexpr float redrawTime = 1.0f / 120.0f;
+
+            threads::Executor w([&](auto & executionContext, float delta) {
+                executionContext.performTasks();
+                if (renderInited) {
+                    const auto frameId = frameIndex();
+
+                    auto const waitSubmitResult = queue->waitSubmit(frameId); // result!!!
+                        
+                    const auto [imageIndex, success] = swapchain->acquireNextImage(frameId);
+
+                    if (!success) {
+                        return;
+                    }
+                    device->resetFrameTmpData(frameId);
+
+
+                    //
+                    { // test ubo update
+                        auto * map = uniformBuffer->map2<float>();
+                        map[0u] += 0.001f;
+                        map[1u] = 0.0f;
+                        uniformBuffer->flush();
+                        uniformBuffer->unmap();
+                    }
+
+                    // submit
+                    const auto waitSemaphores = std::array{swapchain->imageAvailableSemaphore(frameId)};
+                    const auto signalSemaphores = std::array{readyToPresentSemaphores[frameId]};
+                    const auto waitStages = std::array{engine::rhi::PipelineStageFlags::eColor_Attachment_Output};
+                    auto lists = std::array{commandLists[frameId].get()};
+
+                    bool const submitted = queue->submit(frameId, std::array{
+                        engine::rhi::runtime::Queue::SubmitInfo {
+                            .w8Semaphores = waitSemaphores,
+                            .w8DstStages = waitStages,
+                            .signalSemaphores = signalSemaphores,
+                            .lists = lists
+                        }
+                    });
+
+                    ++frameIndex;
+
+                    // present
+                    auto const presentResult = queue->present(swapchain.get(), imageIndex, signalSemaphores);
+                    int a = 0;
+                }
+            }, redrawTime);
+
+            w.run();
+
+            w.emplaceTasks(stl::make_vector(threads::WorkerTask{[&](){
+                auto * commandPool = device->acquireCommandPool(engine::rhi::queue_flags::graphics | engine::rhi::queue_flags::present);
+                const auto clearValues = std::array{
+                    engine::rhi::ClearValue{0x77'77'77'ffu},
+                    engine::rhi::ClearValue{1.0f}
+                };
+
+                for (size_t i = 0; i < frameBuffersCount; ++i) {
+                    auto & commandList = commandLists.emplace_back(rApi->createCommandList(commandPool, engine::rhi::CommandBufferLevel::ePrimary));
+                    commandList->begin();
+
+                    commandList->beginRenderPass(renderPass,frameBuffers[i], clearValues, {{0, 0}, {width, height}});
+
+                    commandList->setViewport(0.0f, 0.0f, width, height);
+                    commandList->setScissor({{0, 0}, {width, height}});
+
+                    commandList->bindPipeline(pipeline);
+
+                    commandList->bindBuffer(0u, uniformBuffer.get());
+                    commandList->bindBuffer(1u, uniformBuffer2.get());
+
+                    commandList->bindVertexBuffer(0u, buffer);
+                    commandList->draw(3u);
+                    
+                    commandList->endRenderPass();
+                    commandList->end();
+
+                    commandList->flush(0xffu);
+                }
+                renderInited = true;
+            }}));
+
+            while (glfwModule.process()) {
+                std::this_thread::sleep_for(std::chrono::duration<float>(inputCheckTime));
+            }
+        }
+
+        return 0;
+    }
+
+
     Api::Instance instance{instanceCreateInfo};
 
     if (!instance) {
@@ -78,12 +629,13 @@ int main() {
     auto devices = Api::PhysicalDevice::getSuitableDevices(instance, {gpuFeatures, {Api::Impl::kSwapchainExtName}});
 
     if (devices[0].checkSurfaceSupport(surface)) {
-        const auto surfaceSupportDetails = engine::vulkan::getSurfaceSupportDetails(devices[0], surface);
-        auto depthFormat = devices[0].getSupportedDepthFormat(32u, true);
+        // const auto surfaceSupportDetails = engine::vulkan::getSurfaceSupportDetails(devices[0], surface);
 
-        auto [index, family] = devices[0].getQueueFamily(engine::rhi::queue_flags::graphics | engine::rhi::queue_flags::present);
+        const auto queueFlags = engine::rhi::queue_flags::graphics | engine::rhi::queue_flags::present;
+        auto [index, family] = devices[0].getQueueFamily(queueFlags);
         engine::rhi::DeviceCreateInfo deviceCreateInfo{gpuFeatures};
-        deviceCreateInfo.queueFamilies.push_back({index, 1u, {}});
+        deviceCreateInfo.queueFamilies.push_back({index, 1u, {}, queueFlags});
+        deviceCreateInfo.commandPoolThreadsCount = 1u;
         
         Api::Device device(devices[0], deviceCreateInfo);
 
@@ -94,407 +646,165 @@ int main() {
         Api::Swapchain swapchain(device, surface, swapchainCreateInfo);
         swapchain.resize(1024u, 768u, true);
 
-        auto depthImageInfo = engine::rhi::ImageInfo{};
-        depthImageInfo.usage = engine::rhi::ImageUsageFlags::eDepth_Stencil_Attachment;
-        depthImageInfo.extent = {1024u, 768u, 1u};
-        depthImageInfo.format = depthFormat;
-        depthImageInfo.tiling = engine::rhi::ImageTiling::eOptimal;
-        Api::Image depthImage(device, depthImageInfo);
+        // const uint32_t frameBuffersCount = std::min(3u, swapchain.getImagesCount());
+        const uint32_t frameBuffersCount = swapchain.getImagesCount();
 
-        engine::vulkan::RenderPassManager renderPassManager{device};
+        device.reserveResourcesForFrames(frameBuffersCount);
+        const auto depthFormat = device.getSupportedDepthFormat(32u, true);
 
-        std::vector<engine::rhi::SubpassDependency> dependencies(2u);
-        dependencies[0].srcSubpass = engine::rhi::kSubpassExternal;
-        dependencies[0].dstSubpass = 0u;
-        dependencies[0].srcStageMask = engine::rhi::PipelineStageFlags::eColor_Attachment_Output; // VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT
-		dependencies[0].dstStageMask = engine::rhi::PipelineStageFlags::eEarly_Fragment_Tests | engine::rhi::PipelineStageFlags::eColor_Attachment_Output; // (VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT - https://vkguide.dev/docs/chapter-4/double_buffering/) is a loadOp stage for color attachments
-		dependencies[0].srcAccessMask = engine::rhi::AccessFlags::eNone; // semaphore wait already does memory dependency for us
-		dependencies[0].dstAccessMask = engine::rhi::AccessFlags::eColor_Attachment_Write; // is a loadOp CLEAR access mask for color attachments
-		dependencies[0].dependencyFlags = engine::rhi::DependencyFlags::eBy_Region;
+        std::vector<Api::Image> depthImages;
+        depthImages.reserve(frameBuffersCount);
 
-        dependencies[1].srcSubpass = 0u;
-        dependencies[1].dstSubpass = engine::rhi::kSubpassExternal;
-        dependencies[1].srcStageMask = engine::rhi::PipelineStageFlags::eColor_Attachment_Output; // VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT
-		dependencies[1].dstStageMask = engine::rhi::PipelineStageFlags::eBottom_Of_Pipe; // Do not block any subsequent work
-		dependencies[1].srcAccessMask = engine::rhi::AccessFlags::eColor_Attachment_Write; // semaphore wait already does memory dependency for us
-		dependencies[1].dstAccessMask = engine::rhi::AccessFlags::eNone;         // is a loadOp CLEAR access mask for color attachments
-		dependencies[1].dependencyFlags = engine::rhi::DependencyFlags::eBy_Region;
-
-        std::vector<engine::rhi::AttachmentDescription> attachments(2u);
-        attachments[0].format = swapchain.getFormat();
-        attachments[0].loadOp = engine::rhi::AttachmentLoadOp::eClear;
-        attachments[0].storeOp = engine::rhi::AttachmentStoreOp::eStore;
-        attachments[0].stencilLoadOp = engine::rhi::AttachmentLoadOp::eDont_Care;
-        attachments[0].stencilStoreOp = engine::rhi::AttachmentStoreOp::eDont_Care;
-        attachments[0].initialLayout = engine::rhi::ImageLayout::eColor_Attachment_Optimal;
-        attachments[0].finalLayout = engine::rhi::ImageLayout::ePresent_Src;
-
-        attachments[1].format = depthFormat;
-        attachments[1].loadOp = engine::rhi::AttachmentLoadOp::eClear;
-        attachments[1].storeOp = engine::rhi::AttachmentStoreOp::eDont_Care;
-        attachments[1].stencilLoadOp = engine::rhi::AttachmentLoadOp::eDont_Care;
-        attachments[1].stencilStoreOp = engine::rhi::AttachmentStoreOp::eDont_Care;
-        attachments[1].initialLayout = engine::rhi::ImageLayout::eDepth_Stencil_Attachment_Optimal;
-        attachments[1].finalLayout = engine::rhi::ImageLayout::eDepth_Stencil_Attachment_Optimal;
-
-        std::vector<engine::rhi::SubpassDescription> subpasses{};
-
-        engine::rhi::RenderPassDescription renderPassDescription{
-            std::move(attachments), 
-            std::move(subpasses), 
-            std::move(dependencies)
+        const auto imageInfo = engine::rhi::ImageInfo{
+            .type = engine::rhi::ImageType::eType_2D,
+            .usage = engine::rhi::ImageUsageFlags::eDepth_Stencil_Attachment,
+            .sharing = engine::rhi::SharingMode::eExclusive,
+            .format = depthFormat,
+            .aspectFlags = engine::rhi::ImageAspectFlags::eDepthStencil,
+            .tiling = engine::rhi::ImageTiling::eOptimal,
+            .flags = engine::rhi::ImageCreateFlags::eNone,
+            .memoryFlags = engine::rhi::MemoryPropertyFlags::eDeviceLocal,
+            .memoryExtFlags = engine::rhi::MemoryExtendedFlags::eDedicated,
+            .extent = {1024u, 768u, 1u},
+            .mipLevels = 1u,
+            .arrayLayers = 1u,
+            .samples = 1u,
+            .queueFamilyIndices = {index}
         };
+        for (uint32_t i = 0u; i < frameBuffersCount; ++i) {
+            depthImages.emplace_back(device, imageInfo);
+        }
 
-        auto renderPass = renderPassManager.getRenderPass(renderPassDescription);
+        auto renderPass = device.getRenderPass(createRenderPassDescription(swapchain.getFormat(), depthFormat));
 
         std::vector<Api::FrameBuffer> frameBuffers;
-        frameBuffers.reserve(swapchain.getImagesCount());
-        for (uint32_t i = 0; i < swapchain.getImagesCount(); ++i) {
+        frameBuffers.reserve(frameBuffersCount);
+        for (uint32_t i = 0; i < frameBuffersCount; ++i) {
             auto & image = swapchain.getImage(i);
             std::vector<engine::rhi::FrameBufferAttachment> fbAttachemnts{2u};
             fbAttachemnts[0].image = &image;
             fbAttachemnts[0].imageSize = {image.getExtent().width, image.getExtent().height};
 
+            auto & depthImage = depthImages[i];
             fbAttachemnts[1].image = &depthImage;
             fbAttachemnts[1].imageSize = {depthImage.getExtent().width, depthImage.getExtent().height};
+            fbAttachemnts[1].aspect = engine::rhi::ImageAspectFlags::eDepthStencil;
 
             frameBuffers.emplace_back(device, std::move(fbAttachemnts), renderPass);
         }
 
-
-        // auto imageInfo = engine::rhi::ImageInfo{};
-        // imageInfo.usage = engine::rhi::ImageUsageFlags::eSampled | engine::rhi::ImageUsageFlags::eTransfer_Dst;
-        // imageInfo.extent = {1, 1, 1};
-        // imageInfo.format = engine::rhi::Format::eR8G8B8A8_Unorm;
-        // imageInfo.tiling = engine::rhi::ImageTiling::eOptimal;
-
-        // engine::vulkan::Image image(device, imageInfo);
-        // image.changeLayout(VkImageLayout::VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL, 
-        //                    VkPipelineStageFlagBits::VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
-        //                    VkPipelineStageFlagBits::VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT, 
-        //                    VkAccessFlagBits::VK_ACCESS_COLOR_ATTACHMENT_READ_BIT,
-        //                    VkAccessFlagBits::VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, 1, 0, 1, 0, 1);
-
-        // image.changeLayout(VkImageLayout::VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL, 
-        //                 VkPipelineStageFlagBits::VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
-        //                 VkPipelineStageFlagBits::VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT, 
-        //                 VkAccessFlagBits::VK_ACCESS_COLOR_ATTACHMENT_READ_BIT,
-        //                 VkAccessFlagBits::VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, 1, 0, 1, 0, 1);
-
-        int a = 0;
-    }
-
-    if (devices[1].checkSurfaceSupport(surface)) {
-        const auto surfaceSupportDetails = engine::vulkan::getSurfaceSupportDetails(devices[1], surface);
-    }
-    
-    engine::rhi::MemoryPropertyFlags f = engine::rhi::MemoryPropertyFlags::eDeviceLocal;
-    engine::rhi::MemoryPropertyFlags g = engine::rhi::MemoryPropertyFlags::eHostVisible;
-    auto vvv2 = f | g;
-
-    glfwModule.process(1.0f / 60.0f);
-
-    return 1;
-
-    {
-        using PAT2 = allocators::PoolAllocatorChain<sizeof(uint32_t), alignof(uint32_t), true>;
-        PAT2 poolChain2(2u, 100u);
-
-        std::vector<std::thread> threads;
-        threads.reserve(200);
-        std::array<uint32_t, 200> values;
-        std::array<uint32_t*, 200> valuesPtrs;
-
-        for (size_t i = 0; i < 200; ++i) {
-            threads.emplace_back([&poolChain2, i, &values, &valuesPtrs]() mutable {
-                std::this_thread::sleep_for(std::chrono::milliseconds(rand() % 10));
-                auto * mem = poolChain2.alloc();
-                auto * val = new(mem) uint32_t(i + 1);
-                values[i] = *val;
-                valuesPtrs[i] = val;
-                printf("%zu : %d\n", i, *val);
-            });
+        Api::Queue queue(device, engine::rhi::queue_flags::graphics | engine::rhi::queue_flags::present, 0u, frameBuffersCount);
+        
+        std::vector<Api::Device::Semaphore> readyToPresentSemaphores(frameBuffersCount);
+        for (auto & semaphore : readyToPresentSemaphores) {
+            semaphore = device.createSemaphore();
         }
 
-        for (auto & t : threads) {
-            t.join();
-        }
+        engine::rhi::FrameIndex frameIndex{static_cast<uint8_t>(frameBuffersCount)};
 
-        threads.clear();
-        threads.reserve(101);
+        //
+        engine::rhi::ShaderModulesManager<Api> shaderModulesManager;
+        auto program = loadShaders(device, shaderModulesManager);
 
-        for (size_t i = 99; i < 200; ++i) {
-            threads.emplace_back([&poolChain2, i, &values, &valuesPtrs]() mutable {
-                std::this_thread::sleep_for(std::chrono::milliseconds(rand() % 10));
-                poolChain2.free(valuesPtrs[i]);
-            });
-        }
+        // program.getLayout(0);
 
-        for (auto & t : threads) {
-            t.join();
-        }
+        auto pipeline = createPipeline(device, renderPass, program);
+        auto buffer = createBuffers(device);
+        auto [ubo, descriptorSet] = createUniformBufferAndDescriptorSet(device);
+        //
 
+        // reserve frames data
+        std::vector<Api::CommandBuffer> cmdBuffers;
+        cmdBuffers.reserve(frameBuffersCount);
+        
+        bool renderInited = false;
+        constexpr float inputCheckTime = 1.0f / 60.0f;
+        constexpr float redrawTime = 1.0f / 120.0f;
 
-        threads.clear();
-        threads.reserve(101);
-        for (size_t i = 99; i < 200; ++i) {
-            threads.emplace_back([&poolChain2, i, &values, &valuesPtrs]() mutable {
-                std::this_thread::sleep_for(std::chrono::milliseconds(rand() % 10));
-                auto * mem = poolChain2.alloc();
-                auto * val = new(mem) uint32_t(i + 1);
-            });
-        }
+        threads::Executor w([&](auto & executionContext, float delta) {
+            executionContext.performTasks();
+            if (renderInited) {
+                const auto frameId = frameIndex();
+                // static uint32_t a = 0u;
+                // LOG_I("threadId_0: %d, delta: %f, value = %d\n", threads::unique::id(), delta, ++a);
+                auto const waitSubmitResult = queue.waitSubmitComplete(frameId); // result!!!
+                
+                const auto [imageIndex, success] = swapchain.acquireNextImage(frameId);
 
-        for (auto & t : threads) {
-            t.join();
-        }
-
-        size_t i = 0u;
-        for (auto & v : values) {
-            printf("%zu : %d\n", i++, v);
-        }
-
-        printf("complete\n");
-    }
-
-    threads::ThreadPool tp(4u, 1024u, 64u);
-    int c = 0;//sizeof(tp);
-    // std::vector<threads::Task> tasks;
-    // tasks.reserve(101);
-    uint32_t a_counter{};
-    while (c++ < 200) {
-
-        // auto &task = tasks.emplace_back([&a_counter](){
-        //     printf("%d : hello task, on thread %d\n", a_counter.fetch_add(1u, std::memory_order_relaxed), threads::for_each_thread::worker->id());
-        //     std::this_thread::sleep_for(std::chrono::milliseconds(1));
-        // });
-        // tp.run(&task);
-
-        auto * task = tp.createTask([&a_counter](){
-            printf("%d : hello task, on thread %lu\n", a_counter++, threads::for_each_thread::worker->id());
-            std::this_thread::sleep_for(std::chrono::milliseconds(rand() % 10));
-        });
-        tp.run(task);
-    }
-
- 
-    static threads::WaitSource w8;
-    {
-        threads::StopSource2 stop;
-        tp.execute(std::bind([](threads::StopToken token, threads::WaitToken wToken) {
-            if (!token.stop_requested()) {
-                printf("stop_token task example! on thread %lu\n", threads::for_each_thread::worker->id());
-            } else {
-               printf("stop_token task example: stop requested! on thread %lu\n", threads::for_each_thread::worker->id()); 
-            }
-
-            wToken.request_complete();
-
-        }, stop.get_token(), w8.get_token()));
-
-        //tp.stop();
-        // w8.request_wait();
-        //stop.request_stop();
-    }
-
-    w8.request_wait();
-    //tp.stop();
-    return 1;
-
-    printf("experemental\n");
-    
-// auto Cls0 = [](){
-//     int a = 0;
-// };
-
-// auto sz0 = sizeof(Cls0);
-
-// A aaa;
-
-// auto Cls1 = [aaa](){
-//     int a = 0;
-// };
-
-// auto sz1 = sizeof(Cls1);
-
-// std::move_only_function<void()> ff = [aaa, aa = aaa, ab = aaa, ad = aaa, ae = aaa](){
-//     int a = 0;
-// };
-
-// std::function<void()> ff2 = [aaa, aa = aaa, ab = aaa, ad = aaa, ae = aaa](){
-//     int a = 0;
-// };
-
-// auto sz2 = sizeof(ff);
-// auto sz3 = sizeof(ff2);
-
-// int a = 0;
-
-
-    if (false) {
-        threads::ExecutorImpl w([](threads::ExecutionContext & w, float delta) {
-            w.performTasks();
-            static int a = 0;
-            std::printf("dt: %f, a = %d\n", delta, ++a);
-            //std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-        }, 0.1f);
-        w.run();
-
-        std::this_thread::sleep_for(std::chrono::milliseconds(500));
-        {
-            threads::WorkerTasks tasks;
-            tasks.reserve(10);
-            for (int32_t i = 0; i < 10; ++i) {
-                tasks.emplace_back([i](){
-                    printf("task %d\n", i);
-                });
-            }
-            w.emplaceTasks(std::move(tasks));
-        }
-
-
-        std::this_thread::sleep_for(std::chrono::milliseconds(5000));
-        w.pause();
-        std::this_thread::sleep_for(std::chrono::milliseconds(2000));
-
-        {
-            threads::WorkerTasks tasks;
-            tasks.reserve(10);
-            for (int32_t i = 0; i < 10; ++i) {
-                tasks.emplace_back([i](){
-                    printf("task %d\n", i + 100);
-                });
-            }
-            w.emplaceTasks(std::move(tasks));
-        }
-
-        w.resume();
-        std::this_thread::sleep_for(std::chrono::milliseconds(5000));
-    }
-
-    if (false) {
-        threads::Worker w;
-        w.run();
-
-        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-        printf("begin job\n");
-        {
-            threads::WorkerTasks tasks = stl::make_vector(threads::WorkerTask{[](){
-                printf("worker job 0\n");
-            }});
-            w.emplaceTasks(std::move(tasks));
-        }
-        {
-            threads::WorkerTasks tasks;
-            tasks.emplace_back(
-                [](){ printf("worker job 1\n"); }
-            );
-            w.emplaceTasks(std::move(tasks));
-        }
-
-        {
-            threads::WorkerLoopTasks tasks;
-            tasks.emplace_back(1.3f, [](float delta){
-                printf("worker loop task2 %f\n", delta);
-            });
-            tasks.emplace_back(0.5f, [](float delta){
-                printf("worker loop task1 %f\n", delta);
-            });
-            w.emplaceLoopTasks(std::move(tasks));
-        }
-
-        std::this_thread::sleep_for(std::chrono::milliseconds(2000));
-        w.pause();
-        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-    }
-
-    if (true) {
-        std::stop_source stop;
-        //std::stop_token token;
-        //token = stop.get_token();
-        std::thread th([](std::stop_token token){
-            while(!token.stop_requested()) {
-                printf("step\n");
-                std::this_thread::sleep_for(std::chrono::milliseconds(100));
-            }
-        }, stop.get_token());
-        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-        stop.request_stop();
-        stop.request_stop();
-        printf("stop\n");
-        th.join();
-
-        //////////////////////////////////
-        // struct Task {
-        //     std::move_only_function<void()> task;
-        //     std::stop_token stopToken;
-        // };
-
-        // std::stop_source stop2;
-        // Task t {std::move_only_function<void()>([](){
-        //     static int i = 0;
-        //     printf("!!!!%d\n", ++i);
-        //     std::this_thread::sleep_for(std::chrono::milliseconds(100));
-        // }), stop2.get_token()};
-
-        // std::thread th2([](Task && task){
-        //     while(!task.stopToken.stop_requested()) {
-        //         task.task();
-        //     }
-        // }, std::move(t));
-
-        // std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-        // stop2.request_stop();
-        // th2.join();
-        //////////////////
-        std::stop_source stop2;
-
-        threads::WorkerTasks tasks;
-        tasks.emplace_back(
-            [stopToken = stop2.get_token()]() {
-                if (!stopToken.stop_requested()) {
-                    printf("worker job 1\n");
+                if (!success) {
+                    return;
                 }
+
+                device.resetFrameTmpData(frameId); // reset temp pools
+
+                // if we refill cmdBuffers here - we can use less buffers count!
+
+                { // test ubo update
+                    auto * map = ubo.map2<float>();
+                    map[0u] += 0.001f;
+                    map[1u] = 0.0f;
+                    ubo.flush();
+                    ubo.unmap();
+                }
+
+
+                // submit
+                const auto waitSemaphores = std::array{swapchain.getImageAvailableSemaphore(frameId)};
+                const auto signalSemaphores = std::array{readyToPresentSemaphores[frameId]};
+                const auto waitStages = Api::Helper::convert2api(std::array{engine::rhi::PipelineStageFlags::eColor_Attachment_Output});
+
+                const auto submitSyncInfo = Api::CommandBuffer::createSubmitSyncInfo(waitStages, waitSemaphores, signalSemaphores);
+                auto const submitResult = queue.submit(std::array{queue.submitInfo(std::array{cmdBuffers[frameId]()}, submitSyncInfo)}, frameId);
+
+                ++frameIndex;
+
+                // present
+                auto const presentResult = queue.present(std::array{swapchain()}, std::array{imageIndex}, signalSemaphores);
             }
-        );
+        }, redrawTime);
 
-        std::thread th2([stopToken = stop2.get_token()]() {
-            while(!stopToken.stop_requested()) {
-                static int i = 0;
-                printf("!!!!%d\n", i++);
-                std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        w.run();
+
+        w.emplaceTasks(stl::make_vector(threads::WorkerTask{[&](){
+            auto * commandPool = device.acquireCommandPool(engine::rhi::queue_flags::graphics | engine::rhi::queue_flags::present);
+
+            /*const*/ auto clearValues = Api::Helper::convert2api(std::array{
+                engine::rhi::ClearValue{0x77'77'77'ffu},
+                engine::rhi::ClearValue{1.0f}
+            });
+
+            for (size_t i = 0; i < frameBuffersCount; ++i) {
+                // if (i == 1) {
+                //     clearValues[0].color = {{0.7f, 1.0f, 0.7f, 1.0f}};
+                // } else if (i == 2) {
+                //     clearValues[0].color = {{0.7f, 0.7f, 1.0f, 1.0f}};
+                // }
+
+                auto & commandBuffer = cmdBuffers.emplace_back(*commandPool, engine::rhi::CommandBufferLevel::ePrimary);
+                commandBuffer.begin();
+
+                commandBuffer.beginRenderPass(renderPass, frameBuffers[i], clearValues, {{0, 0}, {1024, 768}});
+
+                commandBuffer.setViewport(0.0f, 0.0f, 1024.0f, 768.0f);
+                commandBuffer.setScissorRect({{0, 0}, {1024, 768}});
+
+                commandBuffer.bindPipeline(pipeline);
+
+                commandBuffer.bindDescriptorSets(std::array{descriptorSet()});
+                commandBuffer.bindVertexBuffer(0u, buffer());
+                // commandBuffer.bindVertexBuffers(std::array{buffer()}, std::array{uint64_t{0u}});
+                commandBuffer.draw(3u);
+                
+                commandBuffer.endRenderPass();
+                commandBuffer.end();
             }
-        });
-        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-        stop2.request_stop();
-        th2.join();
-        //////////////////////
-        std::stop_source stop3;
-        threads::WorkerTask f = std::bind([](std::stop_token token) {
-            while(!token.stop_requested()) {
-                static int i = 0;
-                printf("____%d\n", i++);
-                std::this_thread::sleep_for(std::chrono::milliseconds(100));
-            }
-
-        }, stop3.get_token());
-
-        auto f2 = threads::makeTask([](std::stop_token token) {}, stop3);
-
-        auto f4 = std::bind([](float delta, std::stop_token token) {
-            printf("%f\n", delta);
-        }, std::placeholders::_1, stop3.get_token());
-        f4(25.0f);
-
-        auto f5 = threads::makeLoopTask(1.0f, [](float delta, std::stop_token token) {
-            printf("%f\n", delta);
-        }, stop3);
-        f5.task(10.0f);
-
-        std::thread th3(std::move(f));
-        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-        stop3.request_stop();
-        th3.join();
+            renderInited = true;
+        //    LOG_I("threadId_0: %d, \n", threads::unique_t<int>::id());
+        }}));
+    
+        while (glfwModule.process()) {
+            std::this_thread::sleep_for(std::chrono::duration<float>(inputCheckTime));
+        }
     }
 
     return 1;
