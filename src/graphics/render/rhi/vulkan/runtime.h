@@ -15,10 +15,11 @@ namespace engine::vulkan::runtime {
             rhi::CommandBufferLevel level = rhi::CommandBufferLevel::ePrimary);
         ~CommandList() = default;
 
-        void flush() noexcept override;
+        void flush(uint8_t frameIdx) noexcept override;
 
         const CommandBuffer & commandBuffer() const noexcept { return _commandbuffer; }
     private:
+        CommandPool * _pool = nullptr;
         CommandBuffer _commandbuffer;
     };
 

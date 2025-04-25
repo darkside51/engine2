@@ -59,6 +59,8 @@ namespace engine::vulkan {
         bool freeDescriptorSet(const DescriptorSet & set) noexcept;
         DescriptorSet allocateDescriptorSet(const rhi::shaders::BindingSetLayout & layout) noexcept;
         
+        uint32_t allocatedSets() const noexcept { return _allocatedSets; }
+
     private:
         struct ResourceCount {
             uint32_t max = 0u;

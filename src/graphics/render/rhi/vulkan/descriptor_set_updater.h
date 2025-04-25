@@ -26,16 +26,23 @@ namespace engine::vulkan {
         inline static constexpr uint8_t kWritesOnStackLimit = 16u;
 
     public:
+        DescriptorSetUpdater() = default;
         explicit DescriptorSetUpdater(const Device & device, const engine::rhi::shaders::BindingSetLayout & layout);
+
+        inline explicit operator bool() const noexcept { return _layout != nullptr; }
+        inline bool isValid() const noexcept { return _layout != nullptr; }
 
         void updateBuffers(std::span<const std::pair<Buffer*, uint32_t>> bufferBindings) noexcept;
         void updateImages(std::span<const std::tuple<VkSampler, VkImageView, VkImageLayout, uint32_t>> imageBindings) noexcept;
         void updatetexelBuffers(std::span<const std::tuple<Buffer*, rhi::Format, uint32_t>> texelBufferBindings) noexcept;
 
+        void updateBuffer(const Buffer* buffer, uint32_t binding) noexcept;
+        void updateImage(std::tuple<VkSampler, VkImageView, VkImageLayout> image, uint32_t binding) noexcept;
+        void updatetexelBuffer(Buffer* buffer, rhi::Format format, uint32_t binding) noexcept;
+
         void flush(const DescriptorSet & set) noexcept;
 
-        void resetIndexes() noexcept;
-
+        void invalidate() noexcept { _layout = nullptr; }
     private:
         template <typename T>
         struct DescriptorInfo{
@@ -43,8 +50,8 @@ namespace engine::vulkan {
             uint32_t binding;
         };
 
-        const Device & _device;
-        const rhi::shaders::BindingSetLayout & _layout;
+        const Device * _device = nullptr;
+        const rhi::shaders::BindingSetLayout * _layout = nullptr;
         engine::dynamic_array<DescriptorInfo<VkDescriptorBufferInfo>, kDescriptorsOnStackLimit> _buffersInfo;
         engine::dynamic_array<DescriptorInfo<VkDescriptorImageInfo>, kDescriptorsOnStackLimit> _imagesInfo;
         engine::dynamic_array<DescriptorInfo<VkBufferView>, kDescriptorsOnStackLimit> _texelBuffersInfo;

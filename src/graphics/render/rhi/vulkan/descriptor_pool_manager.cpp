@@ -17,7 +17,7 @@ namespace engine::vulkan {
     }
 
     void DescriptorPoolManager::resetPools(uint8_t frameIdx) noexcept {
-        constexpr uint16_t kUnusedFramesToRemovePool = 0x0ff0u; // 4080 frames
+        constexpr uint16_t kUnusedFramesToRemovePool = 256u;
         // frame 0 - use _pools[1], frame 1 - use _pools[2], ..., frame kGlobalPoolsIndex - use _pools[0]
         auto & framePools = _pools[++frameIdx];
         for (auto & [mask, pools] : framePools) {
@@ -26,8 +26,14 @@ namespace engine::vulkan {
                     framePools.erase(mask);
                 }
             } else {
-                for (auto & pool : pools.list) {
-                    pool.reset();
+                for (auto it = pools.list.begin(); it != pools.list.end();) {
+                    auto & pool = *it;
+                    if (pool.allocatedSets() == 0u) {
+                        it = pools.list.erase(it);
+                    } else {
+                        pool.reset();
+                        ++it;
+                    }
                 }
                 pools.count = 0u;
             }

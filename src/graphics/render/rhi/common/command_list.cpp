@@ -53,9 +53,8 @@ namespace engine::rhi::runtime {
         _commands->create<BindIndexBufferCommand>(buffer, offset, type);
     }
 
-    void CommandList::bindResource() {
-        // todo!
-        _commands->create<BindResourceCommand>();
+    void CommandList::bindBuffer(uint16_t binding, Buffer * buffer, uint8_t setId) {
+        _commands->create<BindResourceCommand>(binding, buffer, setId);
     }
 
     void CommandList::draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) {

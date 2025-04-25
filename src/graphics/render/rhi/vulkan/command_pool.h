@@ -25,6 +25,8 @@ public:
     inline VkCommandPool operator ()() const noexcept { return _pool; }
     inline explicit operator bool() const noexcept { return _pool != VK_NULL_HANDLE; }
 
+    inline const Device & getDevice() const noexcept { return _device; }
+
 private:
     VkCommandPool _pool = VK_NULL_HANDLE;
     const Device & _device;

@@ -1192,6 +1192,7 @@ inline VkVertexInputRate convert2vk(rhi::VertexInputRate rate) noexcept {
         case rhi::VertexInputRate::eVertex: return VkVertexInputRate::VK_VERTEX_INPUT_RATE_VERTEX;
         case rhi::VertexInputRate::eInstance: return VkVertexInputRate::VK_VERTEX_INPUT_RATE_INSTANCE;
     }
+    return VkVertexInputRate::VK_VERTEX_INPUT_RATE_VERTEX;
 }
 
 ///////////////////////

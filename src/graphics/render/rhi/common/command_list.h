@@ -32,14 +32,14 @@ namespace engine::rhi::runtime {
         void bindPipeline(const PipelinePtr & pipeline);
         void bindVertexBuffer(uint32_t binding, const BufferPtr & buffer, uint32_t offset = 0u);
         void bindIndexBuffer(const BufferPtr & buffer, uint32_t offset = 0u, IndexType type = rhi::IndexType::eU32);
-        void bindResource();
+        void bindBuffer(uint16_t binding, Buffer * buffer, uint8_t setId = 0u);
 
         void draw(uint32_t vertexCount, uint32_t instanceCount = 1u, uint32_t firstVertex = 0u, uint32_t firstInstance = 0u);
         void drawIndexed(uint32_t indexCount, uint32_t instanceCount = 1u, uint32_t firstIndex = 0u, int32_t vertexOffset = 0u, 
             uint32_t firstInstance = 0u);
 
 
-        virtual void flush() noexcept {}
+        virtual void flush(uint8_t frameIdx) noexcept {}
     protected:
         inline static constexpr size_t kStackSize = 1'000'000u; // 1 Mb
         allocators::StackAllocator<kStackSize, false> _commands{};

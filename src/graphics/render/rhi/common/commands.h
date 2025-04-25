@@ -126,7 +126,15 @@ namespace engine::rhi::runtime {
     };
 
     struct BindResourceCommand : Command { // todo!
-        BindResourceCommand() : Command(CommandType::eBindResource, sizeof(BindResourceCommand)) {}
+        Buffer * buffer = nullptr;
+        uint16_t binding = 0u;
+        uint8_t setId = 0u;
+        
+        BindResourceCommand(uint16_t binding, Buffer * buffer, uint8_t setId = 0u) : 
+            Command(CommandType::eBindResource, sizeof(BindResourceCommand)), 
+            buffer(buffer),
+            binding(binding),
+            setId(setId) {}
     };
 
     struct DrawCommand : Command {

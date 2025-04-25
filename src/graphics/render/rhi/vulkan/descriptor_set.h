@@ -11,6 +11,7 @@ namespace engine::vulkan {
     class DescriptorPool;
 
     struct DescriptorSet {
+        DescriptorSet() = default;
         DescriptorSet(const DescriptorSet &) = delete;
         DescriptorSet & operator= (const DescriptorSet &) = delete;
 

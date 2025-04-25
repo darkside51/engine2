@@ -11,12 +11,12 @@
 namespace engine::vulkan {
 
     DescriptorSetUpdater::DescriptorSetUpdater(const Device & device, const engine::rhi::shaders::BindingSetLayout & layout) : 
-        _device(device), _layout(layout) {
+        _device(&device), _layout(&layout) {
 
         uint32_t buffersCount = 0u;
         uint32_t imagesCount = 0u;
         uint32_t textelBuffersCount = 0u;
-        for (const auto & layout : _layout.layouts.view()) {
+        for (const auto & layout : _layout->layouts.view()) {
             switch (layout.type) {
             case rhi::shaders::DescriptorType::eUniform_Buffer : [[fallthrough]];
             case rhi::shaders::DescriptorType::eUniform_Buffer_Dynamic : [[fallthrough]];
@@ -48,7 +48,7 @@ namespace engine::vulkan {
         uint8_t updateImageIndex = 0u;
         uint8_t updateTexelBufferIndex = 0u;
 
-        for (const auto & layout : _layout.layouts.view()) {
+        for (const auto & layout : _layout->layouts.view()) {
             switch (layout.type) {
             case rhi::shaders::DescriptorType::eUniform_Buffer : [[fallthrough]];
             case rhi::shaders::DescriptorType::eUniform_Buffer_Dynamic : [[fallthrough]];
@@ -97,6 +97,10 @@ namespace engine::vulkan {
     }
 
     void DescriptorSetUpdater::updateBuffers(std::span<const std::pair<Buffer*, uint32_t>> bufferBindings) noexcept {
+        if (!isValid()) { 
+            return; 
+        }
+
         const auto view = _buffersInfo.view();
         for (const auto & [buffer, binding] : bufferBindings) {
             const auto it = std::find_if(view.begin(), view.end(), [binding](const DescriptorInfo<VkDescriptorBufferInfo> & info) {
@@ -117,6 +121,10 @@ namespace engine::vulkan {
     }
 
     void DescriptorSetUpdater::updateImages(std::span<const std::tuple<VkSampler, VkImageView, VkImageLayout, uint32_t>> imageBindings) noexcept {
+        if (!isValid()) { 
+            return; 
+        }
+
         const auto view = _imagesInfo.view();
         for (const auto & [sampler, imageView, layout, binding] : imageBindings) {
             const auto it = std::find_if(view.begin(), view.end(), [binding](const DescriptorInfo<VkDescriptorImageInfo> & info) {
@@ -136,6 +144,10 @@ namespace engine::vulkan {
     }
 
     void DescriptorSetUpdater::updatetexelBuffers(std::span<const std::tuple<Buffer*, rhi::Format, uint32_t>> texelBufferBindings) noexcept {
+        if (!isValid()) { 
+            return; 
+        }
+
         const auto view = _texelBuffersInfo.view();
         for (const auto & [buffer, format, binding] : texelBufferBindings) {
             const auto it = std::find_if(view.begin(), view.end(), [binding](const DescriptorInfo<VkBufferView> & info) {
@@ -153,7 +165,75 @@ namespace engine::vulkan {
         }
     }
 
+    void DescriptorSetUpdater::updateBuffer(const Buffer* buffer, uint32_t binding) noexcept {
+        if (!isValid()) { 
+            return; 
+        }
+
+        const auto view = _buffersInfo.view();
+        const auto it = std::find_if(view.begin(), view.end(), [binding](const DescriptorInfo<VkDescriptorBufferInfo> & info) {
+            return info.binding == binding;
+        });
+
+        if (it != view.end()) {
+            const auto vkBuffer = buffer->operator()();
+            auto & info = it->info;
+            if (info.buffer != vkBuffer) {
+                info.buffer = vkBuffer;
+                info.offset = 0u;
+                info.range = static_cast<VkDeviceSize>(buffer->sizeInBytes());
+                _buffersDirty = true;
+            }
+        }
+    }
+
+    void DescriptorSetUpdater::updateImage(std::tuple<VkSampler, VkImageView, VkImageLayout> image, uint32_t binding) noexcept {
+        if (!isValid()) { 
+            return; 
+        }
+
+        const auto view = _imagesInfo.view();
+        const auto & [sampler, imageView, layout] = image;
+        const auto it = std::find_if(view.begin(), view.end(), [binding](const DescriptorInfo<VkDescriptorImageInfo> & info) {
+            return info.binding == binding;
+        });
+
+        if (it != view.end()) {
+            auto & info = it->info;
+            if (info.imageView != imageView || info.sampler != sampler || info.imageLayout != layout) {
+                info.sampler = sampler;
+                info.imageView = imageView;
+                info.imageLayout = layout; // must be VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, or can be VK_IMAGE_LAYOUT_GENERAL sometimes (DescriptorType::eStorage_Image)?
+                _imagesDirty = true;
+            }
+        }
+    }
+
+    void DescriptorSetUpdater::updatetexelBuffer(Buffer* buffer, rhi::Format format, uint32_t binding) noexcept {
+        if (!isValid()) { 
+            return; 
+        }
+
+        const auto view = _texelBuffersInfo.view();
+        const auto it = std::find_if(view.begin(), view.end(), [binding](const DescriptorInfo<VkBufferView> & info) {
+            return info.binding == binding;
+        });
+
+        if (it != view.end()) {
+            auto const vkBufferView = buffer->recieveView(format);
+            auto & bufferView = it->info;
+            if (bufferView != vkBufferView) {
+                bufferView = vkBufferView;
+                _texelBufferDirty = true;
+            }
+        }
+    }
+
     void DescriptorSetUpdater::flush(const DescriptorSet & set) noexcept {
+        if (!isValid()) { 
+            return; 
+        }
+
         const auto targetSet = set();
         const bool setChanged = _set != targetSet;
         if (!_buffersDirty && !_imagesDirty && !_texelBufferDirty && !setChanged) {
@@ -176,7 +256,7 @@ namespace engine::vulkan {
                     .dstBinding = bufferView.binding,
                     .dstArrayElement = 0u,
                     .descriptorCount = 1u,
-                    .descriptorType = engine::vulkan::utils::convert2vk(_layout.findLayout(bufferView.binding)->type),
+                    .descriptorType = engine::vulkan::utils::convert2vk(_layout->findLayout(bufferView.binding)->type),
                     .pImageInfo = nullptr,
                     .pBufferInfo = &bufferView.info,
                     .pTexelBufferView = nullptr
@@ -194,7 +274,7 @@ namespace engine::vulkan {
                     .dstBinding = imageView.binding,
                     .dstArrayElement = 0u,
                     .descriptorCount = 1u,
-                    .descriptorType = engine::vulkan::utils::convert2vk(_layout.findLayout(imageView.binding)->type),
+                    .descriptorType = engine::vulkan::utils::convert2vk(_layout->findLayout(imageView.binding)->type),
                     .pImageInfo = &imageView.info,
                     .pBufferInfo = nullptr,
                     .pTexelBufferView = nullptr
@@ -212,7 +292,7 @@ namespace engine::vulkan {
                     .dstBinding = texelBufferView.binding,
                     .dstArrayElement = 0u,
                     .descriptorCount = 1u,
-                    .descriptorType = engine::vulkan::utils::convert2vk(_layout.findLayout(texelBufferView.binding)->type),
+                    .descriptorType = engine::vulkan::utils::convert2vk(_layout->findLayout(texelBufferView.binding)->type),
                     .pImageInfo = nullptr,
                     .pBufferInfo = nullptr,
                     .pTexelBufferView = &texelBufferView.info
@@ -221,7 +301,7 @@ namespace engine::vulkan {
             _texelBufferDirty = false;
         }
 
-        vkUpdateDescriptorSets(_device(), writeViews.size(), writeViews.data(), 0u, nullptr); // need copy sets?
+        vkUpdateDescriptorSets((*_device)(), writeViews.size(), writeViews.data(), 0u, nullptr); // need copy sets?
     }
 
 }

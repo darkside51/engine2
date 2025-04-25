@@ -129,7 +129,7 @@ auto createPipeline(gApi::Device & device, VkRenderPass renderPass, gApi::GpuPro
         }
     );
 
-    return typename Api::Pipeline{device, info.create(program, renderPass)};
+    return typename Api::Pipeline{device, program, info.create(program, renderPass)};
 }
 
 auto loadShaders(auto & device, auto & shaderModulesManager) {
@@ -488,6 +488,34 @@ int main() {
             auto pipeline = createPipelineRuntime(rApi, device, renderPass, program);
             auto buffer = createBuffersRuntime(rApi, device);
 
+
+            engine::rhi::BufferInfo info{
+                .usage = engine::rhi::BufferUsageFlags::eUniform_Buffer,
+                .memoryFlags = engine::rhi::MemoryPropertyFlags::eHostVisible,
+                .memoryExtFlags = engine::rhi::MemoryExtendedFlags::eNone,
+                .flags = engine::rhi::BufferCreateFlags::eNone,
+                .sharing = engine::rhi::SharingMode::eExclusive,
+                .queueFamilyIndices = {0}
+            };
+        
+            auto uniformBuffer = rApi->createBuffer(device, info, sizeof(float) * 2u);
+            {
+                auto * map = uniformBuffer->map2<float>();
+                map[0u] = -0.5f;
+                map[1u] = 0.0f;
+                uniformBuffer->flush();
+                uniformBuffer->unmap();
+            }
+
+            auto uniformBuffer2 = rApi->createBuffer(device, info, sizeof(float) * 2u);
+            {
+                auto * map = uniformBuffer2->map2<float>();
+                map[0u] = 0.0f;
+                map[1u] = 0.25f;
+                uniformBuffer2->flush();
+                uniformBuffer2->unmap();
+            }
+
             // reserve frames data
             std::vector<engine::rhi::runtime::CommandListPtr> commandLists;
             commandLists.reserve(frameBuffersCount);
@@ -509,6 +537,16 @@ int main() {
                         return;
                     }
                     device->resetFrameTmpData(frameId);
+
+
+                    //
+                    { // test ubo update
+                        auto * map = uniformBuffer->map2<float>();
+                        map[0u] += 0.001f;
+                        map[1u] = 0.0f;
+                        uniformBuffer->flush();
+                        uniformBuffer->unmap();
+                    }
 
                     // submit
                     const auto waitSemaphores = std::array{swapchain->imageAvailableSemaphore(frameId)};
@@ -553,13 +591,16 @@ int main() {
 
                     commandList->bindPipeline(pipeline);
 
+                    commandList->bindBuffer(0u, uniformBuffer.get());
+                    commandList->bindBuffer(1u, uniformBuffer2.get());
+
                     commandList->bindVertexBuffer(0u, buffer);
                     commandList->draw(3u);
                     
                     commandList->endRenderPass();
                     commandList->end();
 
-                    commandList->flush();
+                    commandList->flush(i);
                 }
                 renderInited = true;
             }}));
@@ -664,6 +705,9 @@ int main() {
         //
         engine::rhi::ShaderModulesManager<Api> shaderModulesManager;
         auto program = loadShaders(device, shaderModulesManager);
+
+        // program.getLayout(0);
+
         auto pipeline = createPipeline(device, renderPass, program);
         auto buffer = createBuffers(device);
         auto [ubo, descriptorSet] = createUniformBufferAndDescriptorSet(device);

@@ -10,30 +10,76 @@
 #include "pipeline.h"
 #include "buffer.h"
 #include "vk_types.h"
+#include "descriptor_set.h"
+#include "descriptor_set_updater.h"
+#include "descriptor_pool_manager.h"
 
 #include "graphics/render/rhi/common/shader_module.h"
 #include "graphics/render/rhi/common/commands.h"
 
 #include "utils/dynamic_array.h"
 
+#include <array>
+#include <cassert>
+#include <utility>
+
 namespace engine::vulkan::runtime {
     //////////////////////////////////////////////////////////
     CommandList::CommandList(rhi::runtime::CommandPool * commandPool, rhi::CommandBufferLevel level) :
-        _commandbuffer{*static_cast<vulkan::CommandPool*>(commandPool), level} {
+        _pool(static_cast<vulkan::CommandPool*>(commandPool)),
+        _commandbuffer{*_pool, level} {
         
     }
 
-    void CommandList::flush() noexcept {
+    void CommandList::flush(uint8_t frameIdx) noexcept {
         using namespace rhi::runtime;
+
+        constexpr uint8_t kMaxDescriptorsSets = 4u;
+
         std::byte * memory = _commands.memory().data();
         bool iterate = true;
         size_t totalMem = 0u;
+
+        auto & device = const_cast<Device&>(_pool->getDevice()); // todo remove const_cast
+        const Pipeline * currentPipeline = nullptr;
+        std::array<DescriptorSetUpdater, kMaxDescriptorsSets> descriptorSetUpdaters;
+        std::array<DescriptorSet, kMaxDescriptorsSets> descriptorSets;
+        uint8_t changedSets = 0u;
+
+        const auto applyDescriptorSets = [&]() noexcept {
+            // apply tmp structs:
+            std::array<VkDescriptorSet, kMaxDescriptorsSets> descriptorSets;
+            uint8_t firstSet = 0xffu;
+
+            for (uint8_t set = 0u; set < kMaxDescriptorsSets; ++set) {
+                if (((changedSets >> set) & 1u) == 1u) {
+                    const auto * setLayout = currentPipeline->getProgram()->getLayout(set);
+                    auto & pool = device.getDescriptorPoolManager().getCompatiblePool(*setLayout, frameIdx);
+                    const auto descriptorSet = pool.allocateDescriptorSet(*setLayout);
+                    descriptorSetUpdaters[set].flush(descriptorSet);
+
+                    descriptorSets[set] = descriptorSet();
+                    if (firstSet == 0xffu) {
+                        firstSet = set;
+                    }
+                } else if (firstSet != 0xffu) {
+                    _commandbuffer.bindDescriptorSets(std::span{descriptorSets.begin() + firstSet, descriptorSets.begin() + set});
+                    firstSet = 0xffu;
+                }
+            }
+
+            if (firstSet != 0xffu) {
+                _commandbuffer.bindDescriptorSets(std::span{descriptorSets.begin() + firstSet, descriptorSets.end()});
+            }
+        };
+
         while (iterate) {
             Command * cmd = reinterpret_cast<Command*>(memory);
             switch (cmd->cmdType) {
             case CommandType::eBegin:
             {
                 _commandbuffer.begin();
+                currentPipeline = nullptr;
             }
                 break;
             case CommandType::eEnd:
@@ -45,6 +91,8 @@ namespace engine::vulkan::runtime {
             {
                 auto * command = reinterpret_cast<ResetCommand*>(memory);
                 _commandbuffer.reset(command->flags);
+                currentPipeline = nullptr;
+                changedSets = 0u;
             }
                 break;
             case CommandType::eBeginRenderPass:
@@ -100,7 +148,17 @@ namespace engine::vulkan::runtime {
             case CommandType::eBindPipeline:
             {
                 auto * command = reinterpret_cast<BindPipelineCommand*>(memory);
-                _commandbuffer.bindPipeline(static_cast<const Pipeline &>(*command->pipeline));
+                const auto * pipeline = static_cast<const Pipeline *>(command->pipeline);
+                _commandbuffer.bindPipeline(*pipeline);
+                
+                if (currentPipeline == nullptr || currentPipeline->getProgram() != pipeline->getProgram()) {
+                    for (auto & descriptorSetUpdater : descriptorSetUpdaters) {
+                        descriptorSetUpdater.invalidate();
+                    }
+                    changedSets = 0u;
+                }
+
+                currentPipeline = static_cast<const Pipeline *>(command->pipeline);
             }
                 break;
             case CommandType::eBindVertexBuffer:
@@ -119,21 +177,41 @@ namespace engine::vulkan::runtime {
             case CommandType::eBindResource:
             {
                 auto * command = reinterpret_cast<BindResourceCommand*>(memory);
-                // todo!
+                const auto setId = command->setId;
+                assert(setId < kMaxDescriptorsSets);
+
+                if (!descriptorSetUpdaters[setId]) {
+                    if (const auto * setLayout = currentPipeline->getProgram()->getLayout(setId)) {
+                        descriptorSetUpdaters[setId] = DescriptorSetUpdater{device, *setLayout};
+                    }
+                }
+
+                if (descriptorSetUpdaters[setId]) {
+                    changedSets |= 1u << setId;
+
+                    if (command->buffer) {
+                        descriptorSetUpdaters[setId].updateBuffer(static_cast<Buffer*>(command->buffer), command->binding);
+                    }
+
+                    //...
+                    // if (command->image) {
+
+                    // }
+                }
             }
                 break;
             case CommandType::eDraw:
             {
-                // todo: apply tmp structs!
-                // ...
+                applyDescriptorSets();
+
                 auto * command = reinterpret_cast<DrawCommand*>(memory);
                 _commandbuffer.draw(command->vertexCount, command->instanceCount, command->firstVertex, command->firstInstance);
             }
                 break;
             case CommandType::eDrawIndexed:
             {
-                // todo: apply tmp structs!
-                // ...
+                applyDescriptorSets();
+
                 auto * command = reinterpret_cast<DrawIndexedCommand*>(memory);
                 _commandbuffer.drawIndexed(command->indexCount, command->instanceCount, command->firstIndex, 
                     command->vertexOffset, command->firstInstance);
@@ -247,8 +325,10 @@ namespace engine::vulkan::runtime {
         rhi::runtime::DevicePtr & device,
         const rhi::runtime::GpuProgramPtr & program) const {
 
-        return std::make_unique<Api::Pipeline>(static_cast<Api::Device &>(*device),
-            computePipelineCreateInfo(static_cast<const Api::GpuProgram&>(*program)));
+        const auto & vkProgram = static_cast<const Api::GpuProgram&>(*program);
+
+        return std::make_unique<Api::Pipeline>(static_cast<Api::Device &>(*device), vkProgram,
+            computePipelineCreateInfo(vkProgram));
     }
 
     std::unique_ptr<engine::rhi::runtime::Pipeline> Rhi::createGraphicsPipeline(
@@ -257,10 +337,10 @@ namespace engine::vulkan::runtime {
         const rhi::runtime::GpuProgramPtr & program,
         const rhi::GraphicsPipelineStatesInfo & info) const {
 
+        const auto & vkProgram = static_cast<const Api::GpuProgram&>(*program);
         const Api::GraphicsPipelineInfo pipelineInfo{info};
-        return std::make_unique<Api::Pipeline>(static_cast<Api::Device &>(*device), 
-            pipelineInfo.create(static_cast<const Api::GpuProgram&>(*program), 
-            static_cast<VkRenderPass>(renderPass)));
+        return std::make_unique<Api::Pipeline>(static_cast<Api::Device &>(*device), vkProgram,
+            pipelineInfo.create(vkProgram, static_cast<VkRenderPass>(renderPass)));
     }
 
     rhi::runtime::BufferPtr Rhi::createBuffer(rhi::runtime::DevicePtr & device, 

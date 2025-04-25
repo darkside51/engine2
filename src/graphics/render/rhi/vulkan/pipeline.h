@@ -167,8 +167,8 @@ namespace engine::vulkan {
 
     class Pipeline final : public rhi::runtime::Pipeline {
     public:
-        Pipeline(Device & device, const VkComputePipelineCreateInfo & info);
-        Pipeline(Device & device, const VkGraphicsPipelineCreateInfo & info);
+        Pipeline(Device & device, const GpuProgram & program, const VkComputePipelineCreateInfo & info);
+        Pipeline(Device & device, const GpuProgram & program, const VkGraphicsPipelineCreateInfo & info);
         
         ~Pipeline();
 
@@ -176,8 +176,11 @@ namespace engine::vulkan {
         VkPipelineLayout layout = VK_NULL_HANDLE;
         VkPipelineBindPoint bindPoint = VkPipelineBindPoint::VK_PIPELINE_BIND_POINT_COMPUTE;
 
+        const GpuProgram * getProgram() const noexcept { return _program; }
+
     private:
         Device * _device = nullptr;
+        const GpuProgram * _program = nullptr;
     };
 
 }
