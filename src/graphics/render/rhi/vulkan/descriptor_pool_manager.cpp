@@ -1,10 +1,13 @@
 #include "descriptor_pool_manager.h"
+#include "device.h"
 
 #include <cassert>
 #include <vector>
 
 namespace engine::vulkan {
     
+    DescriptorPoolManager::DescriptorPoolManager(Device & device) : _device(device), _pools(device.bufferization() + 1u) {}
+
     DescriptorPool & DescriptorPoolManager::createPool(std::span<const std::pair<rhi::shaders::ResourceType, uint32_t>> resources, 
         uint8_t frameIdx, rhi::shaders::DescriptorPoolFlags f, uint32_t maxSets) {
         engine::vulkan::DescriptorPoolMask mask;

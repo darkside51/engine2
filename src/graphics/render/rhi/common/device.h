@@ -123,6 +123,7 @@ struct DeviceCreateInfo {
     };
     std::vector<QueueFamilyInfo> queueFamilies;
     uint8_t commandPoolThreadsCount = 1u;
+    uint8_t bufferization = 3u;
 };
 
 }

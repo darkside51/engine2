@@ -190,7 +190,7 @@ namespace engine::vulkan {
         }
 
         // create semaphores
-        _imageAvailableSemaphores.resize(images.size());
+        _imageAvailableSemaphores.resize(_info.imagesCount);
         VkSemaphoreCreateInfo semaphoreCreateInfo{
             .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
 		    .pNext = nullptr,

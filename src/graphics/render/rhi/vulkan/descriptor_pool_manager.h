@@ -96,11 +96,7 @@ namespace engine::vulkan {
         inline static constexpr uint8_t kGlobalPoolsIndex = 0xffu;
 
     public:
-        DescriptorPoolManager(Device & device) : _device(device) {}
-        
-        void useFrames(uint8_t framesCount) {
-            _pools.resize(framesCount + 1u);
-        }
+        DescriptorPoolManager(Device & device);
 
         void destroy() noexcept {
             for (auto & poolsMap : _pools) {

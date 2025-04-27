@@ -37,6 +37,12 @@ public:
     inline explicit operator bool() const noexcept { return _device != VK_NULL_HANDLE; }
     inline VkDevice operator ()() const noexcept { return _device; }
 
+    inline void waitIdle() const noexcept override {
+        if (_device) {
+            vkDeviceWaitIdle(_device);
+        }
+    }
+
     inline const PhysicalDevice & gpu() const noexcept { return _gpu; }
 
     rhi::Format getSupportedDepthFormat(uint8_t desiredBpp, bool withStencil, bool samplingSupport = false) const noexcept override;
@@ -85,9 +91,7 @@ public:
         _descriptorPoolManager.resetPools(frameId); // reset temp pools
     }
     
-    void reserveResourcesForFrames(uint8_t framesCount) noexcept override {
-        _descriptorPoolManager.useFrames(framesCount);
-    }
+    uint8_t bufferization() const noexcept override { return _bufferization; }
 
 private:
     void createAllocator() noexcept;
@@ -99,6 +103,7 @@ private:
     VkDevice _device = VK_NULL_HANDLE;
     const PhysicalDevice & _gpu;
     std::vector<DeviceQueueFamily> _queueFamilies;
+    uint8_t _bufferization = 3u;
 
     GPUMemoryAllocator _memoryAllocator;
     CommandPoolManager _commandPoolManager;

@@ -429,7 +429,6 @@ int main() {
             swapchain->resize(width, height, false);
 
             const uint32_t frameBuffersCount = swapchain->getImagesCount();
-            device->reserveResourcesForFrames(frameBuffersCount);
 
             const auto depthFormat = device->getSupportedDepthFormat(32u, false);
 
@@ -649,7 +648,6 @@ int main() {
         // const uint32_t frameBuffersCount = std::min(3u, swapchain.getImagesCount());
         const uint32_t frameBuffersCount = swapchain.getImagesCount();
 
-        device.reserveResourcesForFrames(frameBuffersCount);
         const auto depthFormat = device.getSupportedDepthFormat(32u, true);
 
         std::vector<Api::Image> depthImages;

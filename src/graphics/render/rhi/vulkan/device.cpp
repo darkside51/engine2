@@ -12,7 +12,8 @@
 namespace engine::vulkan {
 
     Device::Device(const PhysicalDevice & gpu, const rhi::DeviceCreateInfo & info) : 
-        _gpu(gpu), 
+        _gpu(gpu),
+        _bufferization(info.bufferization), 
         _commandPoolManager(*this, info.commandPoolThreadsCount),
         _renderpassManager(*this),
         _descriptorSetLayoutManager(*this),
@@ -81,6 +82,7 @@ namespace engine::vulkan {
     }
 
     Device::~Device() {
+        waitIdle();
         _renderpassManager.destroy();
         _commandPoolManager.destroy();
         _descriptorPoolManager.destroy();

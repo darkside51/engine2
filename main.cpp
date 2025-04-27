@@ -170,61 +170,60 @@ int main() {
         engine::rhi::DeviceCreateInfo deviceCreateInfo{gpuFeatures};
         deviceCreateInfo.queueFamilies.push_back({index, 1u, {1.0f}, queueFlags});
         deviceCreateInfo.commandPoolThreadsCount = 1u;
+        deviceCreateInfo.bufferization = 3u;
 
         auto device = rApi->createDevice(gpuDevice, deviceCreateInfo);
+        const auto depthFormat = device->getSupportedDepthFormat(32u, false);
+        const uint8_t buffersCount = device->bufferization();
 
         engine::rhi::SwapchainCreateInfo swapchainCreateInfo = {};
-        swapchainCreateInfo.imagesCount = 3u;
+        swapchainCreateInfo.imagesCount = buffersCount;
         swapchainCreateInfo.queueFamilies.push_back(index);
 
         auto swapchain = rApi->createSwapchain(device, surface, swapchainCreateInfo);
 
         auto const [width, height] = window0.getSize();
         swapchain->resize(width, height, false);
+        const uint32_t swapchainImagesCount = swapchain->getImagesCount();
 
-        const uint32_t frameBuffersCount = swapchain->getImagesCount();
-        device->reserveResourcesForFrames(frameBuffersCount);
-
-        const auto depthFormat = device->getSupportedDepthFormat(32u, false);
-
-        std::vector<std::unique_ptr<engine::rhi::runtime::Image>> depthImages;
-        depthImages.reserve(frameBuffersCount);
+        auto renderPass = rApi->getRenderPass(device, createRenderPassDescription(swapchain->getFormat(), depthFormat));
+        
         auto imageInfo = engine::rhi::ImageInfo{
             engine::rhi::ImageUsageFlags::eDepth_Stencil_Attachment,
             depthFormat, {width, height, 1u}
         }; 
         imageInfo.memoryExtFlags = engine::rhi::MemoryExtendedFlags::eDedicated;
 
-        for (uint32_t i = 0u; i < frameBuffersCount; ++i) {
+        std::vector<std::unique_ptr<engine::rhi::runtime::Image>> depthImages;
+        depthImages.reserve(swapchainImagesCount);
+        for (uint32_t i = 0u; i < swapchainImagesCount; ++i) {
             depthImages.emplace_back(std::move(rApi->createImage(device, imageInfo)));
         }
 
-        auto renderPass = rApi->getRenderPass(device, createRenderPassDescription(swapchain->getFormat(), depthFormat));
-
         std::vector<std::unique_ptr<engine::rhi::runtime::FrameBuffer>> frameBuffers;
-        frameBuffers.reserve(frameBuffersCount);
-        for (uint32_t i = 0; i < frameBuffersCount; ++i) {
+        frameBuffers.reserve(swapchainImagesCount);
+        for (uint32_t i = 0u; i < swapchainImagesCount; ++i) {
             auto & image = swapchain->getImage(i);
             std::vector<engine::rhi::FrameBufferAttachment> fbAttachemnts{2u};
-            fbAttachemnts[0].image = &image;
-            fbAttachemnts[0].imageSize = {image.getExtent().width, image.getExtent().height};
+            fbAttachemnts[0u].image = &image;
+            fbAttachemnts[0u].imageSize = {image.getExtent().width, image.getExtent().height};
 
             auto & depthImage = depthImages[i];
-            fbAttachemnts[1].image = depthImage.get();
-            fbAttachemnts[1].imageSize = {depthImage->getExtent().width, depthImage->getExtent().height};
-            fbAttachemnts[1].aspect = engine::rhi::ImageAspectFlags::eDepth;  // can get it from depthImage?
+            fbAttachemnts[1u].image = depthImage.get();
+            fbAttachemnts[1u].imageSize = {depthImage->getExtent().width, depthImage->getExtent().height};
+            fbAttachemnts[1u].aspect = engine::rhi::ImageAspectFlags::eDepth;  // can get it from depthImage?
 
-            frameBuffers.emplace_back(rApi->createFrameBuffer(device,std::move(fbAttachemnts), renderPass));
+            frameBuffers.emplace_back(rApi->createFrameBuffer(device, std::move(fbAttachemnts), renderPass));
         }
 
-        auto queue = rApi->getQueue(device, engine::rhi::queue_flags::graphics | engine::rhi::queue_flags::present, 0u, frameBuffersCount);
+        engine::rhi::FrameIndex frameIndex{static_cast<uint8_t>(buffersCount)};
 
-        std::vector<engine::rhi::runtime::Semaphore> readyToPresentSemaphores(frameBuffersCount);
+        auto queue = rApi->getQueue(device, engine::rhi::queue_flags::graphics | engine::rhi::queue_flags::present, 0u, buffersCount);
+
+        std::vector<engine::rhi::runtime::Semaphore> readyToPresentSemaphores(buffersCount);
         for (auto & semaphore : readyToPresentSemaphores) {
             semaphore = rApi->createSemaphore(device);
         }
-
-        engine::rhi::FrameIndex frameIndex{static_cast<uint8_t>(frameBuffersCount)};
 
         auto shaderModulesManager = rApi->createShaderModulesManager();
         auto program = loadShadersRuntime(rApi, device, shaderModulesManager);
@@ -292,7 +291,7 @@ int main() {
                 auto & commandList = commandLists[frameId];
                 commandList->begin();
 
-                commandList->beginRenderPass(renderPass, frameBuffers[frameId], clearValues, {{0, 0}, {width, height}});
+                commandList->beginRenderPass(renderPass, frameBuffers[imageIndex], clearValues, {{0, 0}, {width, height}});
 
                 commandList->setViewport(0.0f, 0.0f, width, height);
                 commandList->setScissor({{0, 0}, {width, height}});
@@ -337,8 +336,8 @@ int main() {
 
         w.emplaceTasks(stl::make_vector(threads::WorkerTask{[&](){
             auto * commandPool = device->acquireCommandPool(engine::rhi::queue_flags::graphics | engine::rhi::queue_flags::present);
-            commandLists.reserve(frameBuffersCount);
-            for (size_t i = 0; i < frameBuffersCount; ++i) {
+            commandLists.reserve(buffersCount);
+            for (size_t i = 0; i < buffersCount; ++i) {
                 commandLists.emplace_back(rApi->createCommandList(commandPool, engine::rhi::CommandBufferLevel::ePrimary));
             }
             renderInited = true;
@@ -346,10 +345,7 @@ int main() {
 
         window0.setOnClose([&]() {
             w.stop();
-            auto & vkQueue = static_cast<engine::vulkan::Queue&>(*queue);
-            auto & vkDevice = static_cast<engine::vulkan::Device&>(*device);
-            vkQueueWaitIdle(vkQueue());
-            vkDeviceWaitIdle(vkDevice());
+            device->waitIdle();
 
             for (auto & semaphore : readyToPresentSemaphores) {
                 rApi->destroySemaphore(device, semaphore);
