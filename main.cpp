@@ -303,7 +303,7 @@ int main() {
                 commandList->bindBuffer(0u, uniformBuffer);
                 commandList->bindBuffer(1u, uniformBuffer2);
 
-                commandList->bindVertexBuffer(0u, buffer.get());
+                commandList->bindVertexBuffer(0u, buffer);
                 commandList->draw(3u);
                 
                 commandList->endRenderPass();
