@@ -7,7 +7,9 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 #include <span>
+#include <vector>
 
 namespace engine::rhi::runtime {
 
@@ -30,9 +32,13 @@ namespace engine::rhi::runtime {
         void setScissor(const rhi::Rect2D & area, uint32_t scissorIdx = 0u);
 
         void bindPipeline(const PipelinePtr & pipeline);
-        void bindVertexBuffer(uint32_t binding, const BufferPtr & buffer, uint32_t offset = 0u);
-        void bindIndexBuffer(const BufferPtr & buffer, uint32_t offset = 0u, IndexType type = rhi::IndexType::eU32);
-        void bindBuffer(uint16_t binding, Buffer * buffer, uint8_t setId = 0u);
+        void bindVertexBuffer(uint32_t binding, const Buffer * buffer, uint32_t offset = 0u);
+        void bindIndexBuffer(const Buffer * buffer, uint32_t offset = 0u, IndexType type = rhi::IndexType::eU32);
+        void bindBuffer(uint16_t binding, const Buffer * buffer, uint8_t setId = 0u);
+
+        void bindVertexBuffer(uint32_t binding, BufferPtr & buffer, uint32_t offset = 0u);
+        void bindIndexBuffer(BufferPtr & buffer, uint32_t offset = 0u, IndexType type = rhi::IndexType::eU32);
+        void bindBuffer(uint16_t binding, BufferPtr & buffer, uint8_t setId = 0u);
 
         void draw(uint32_t vertexCount, uint32_t instanceCount = 1u, uint32_t firstVertex = 0u, uint32_t firstInstance = 0u);
         void drawIndexed(uint32_t indexCount, uint32_t instanceCount = 1u, uint32_t firstIndex = 0u, int32_t vertexOffset = 0u, 
@@ -45,7 +51,10 @@ namespace engine::rhi::runtime {
         allocators::StackAllocator<kStackSize, false> _commands{};
 
     private:
+        void clear();
+
         const Pipeline * _pipeline = nullptr;
+        std::vector<sh_ptr<PipeLineResource>> _resources;
     };
 
 }

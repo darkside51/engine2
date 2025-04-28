@@ -19,6 +19,8 @@
 
 #include "utils/dynamic_array.h"
 
+#include "graphics/render/rhi/common/shared_ref.h"
+
 #include <array>
 #include <cassert>
 #include <utility>
@@ -189,7 +191,7 @@ namespace engine::vulkan::runtime {
                     changedSets |= 1u << setId;
 
                     if (command->buffer) {
-                        descriptorSetUpdaters[setId].updateBuffer(static_cast<Buffer*>(command->buffer), command->binding);
+                        descriptorSetUpdaters[setId].updateBuffer(static_cast<const Buffer*>(command->buffer), command->binding);
                     }
 
                     //...
@@ -343,8 +345,35 @@ namespace engine::vulkan::runtime {
     }
 
     rhi::runtime::BufferPtr Rhi::createBuffer(rhi::runtime::DevicePtr & device, 
-        const rhi::BufferInfo & info, size_t size) const {
-        return std::make_unique<Api::Buffer>(static_cast<Api::Device &>(*device), info, size);
+        const rhi::BufferInfo & info, size_t size) {
+
+        // rhi::runtime::sh_ptr<rhi::runtime::Buffer> ptrX = nullptr;
+        // {
+        //     auto * mem = _buffersPool.alloc();
+        //     auto * objectMem = reinterpret_cast<std::byte*>(mem) + align_value(sizeof(counter_type), alignof(Api::Buffer));
+        //     auto * buffer = new(objectMem) Api::Buffer(static_cast<Api::Device &>(*device), info, size);
+        
+        //     rhi::runtime::sh_ptr<rhi::runtime::Buffer> ptr0(mem, alignof(Api::Buffer), [this](auto & ptr){ destroyObject(ptr); });
+        //     rhi::runtime::sh_ptr ptr1 = ptr0;
+        //     rhi::runtime::sh_ptr ptr2 = std::move(ptr1);
+        //     ptrX = ptr0;
+        // }
+        
+        // auto * b = static_cast<Api::Buffer*>(ptrX.get());
+
+        // return std::make_unique<Api::Buffer>(static_cast<Api::Device &>(*device), info, size);
+
+        auto * mem = _buffersPool.alloc();
+        auto * objectMem = reinterpret_cast<std::byte*>(mem) + align_value(sizeof(counter_type), alignof(Api::Buffer));
+        auto * buffer = new(objectMem) Api::Buffer(static_cast<Api::Device &>(*device), info, size);
+        
+        return rhi::runtime::BufferPtr(mem, alignof(Api::Buffer), [this](void * ptr){ destroyObject(*static_cast<rhi::runtime::BufferPtr*>(ptr)); });
+    }
+
+    void Rhi::destroyObject(rhi::runtime::BufferPtr & ptr) {
+        auto * objectMem = reinterpret_cast<std::byte*>(ptr.memory()) + align_value(sizeof(counter_type), alignof(Api::Buffer));
+        reinterpret_cast<Api::Buffer*>(objectMem)->~Buffer();
+        _buffersPool.free(ptr.memory());
     }
 
     rhi::runtime::CommandListPtr Rhi::createCommandList(rhi::runtime::CommandPool * commandPool, 

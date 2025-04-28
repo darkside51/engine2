@@ -260,13 +260,28 @@ int main() {
         constexpr float inputCheckTime = 1.0f / 60.0f;
         constexpr float redrawTime = 1.0f / 120.0f;
 
+        constexpr auto clearValues = std::array{
+            engine::rhi::ClearValue{0x77'77'77'ffu},
+            engine::rhi::ClearValue{1.0f}
+        };
+
         threads::Executor w([&](auto & executionContext, float delta) {
             executionContext.performTasks();
             if (renderInited) {
                 const auto frameId = frameIndex();
 
                 auto const waitSubmitResult = queue->waitSubmit(frameId); // result!!!
-                    
+
+                //
+                { // test ubo update
+                    auto * map = uniformBuffer->map2<float>();
+                    map[0u] += 0.1f * delta;
+                    map[1u] = 0.0f;
+                    uniformBuffer->flush();
+                    uniformBuffer->unmap();
+                }
+                //
+
                 const auto [imageIndex, success] = swapchain->acquireNextImage(frameId);
 
                 if (!success) {
@@ -275,19 +290,6 @@ int main() {
                 device->resetFrameTmpData(frameId);
 
                 // render frame
-                { // test ubo update
-                    auto * map = uniformBuffer->map2<float>();
-                    map[0u] += 0.1f * delta;
-                    map[1u] = 0.0f;
-                    uniformBuffer->flush();
-                    uniformBuffer->unmap();
-                }
-
-                const auto clearValues = std::array{
-                    engine::rhi::ClearValue{0x77'77'77'ffu},
-                    engine::rhi::ClearValue{1.0f}
-                };
-
                 auto & commandList = commandLists[frameId];
                 commandList->begin();
 
@@ -298,10 +300,10 @@ int main() {
 
                 commandList->bindPipeline(pipeline);
 
-                commandList->bindBuffer(0u, uniformBuffer.get());
-                commandList->bindBuffer(1u, uniformBuffer2.get());
+                commandList->bindBuffer(0u, uniformBuffer);
+                commandList->bindBuffer(1u, uniformBuffer2);
 
-                commandList->bindVertexBuffer(0u, buffer);
+                commandList->bindVertexBuffer(0u, buffer.get());
                 commandList->draw(3u);
                 
                 commandList->endRenderPass();

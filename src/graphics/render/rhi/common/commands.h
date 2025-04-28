@@ -108,29 +108,29 @@ namespace engine::rhi::runtime {
     };
 
     struct BindVertexBufferCommand : Command {
-        Buffer * buffer = nullptr;
+        const Buffer * buffer = nullptr;
         uint32_t binding = 0u;
         uint32_t offset = 0u;
-        BindVertexBufferCommand(uint32_t binding, const BufferPtr & buffer, uint32_t offset = 0u) : 
+        BindVertexBufferCommand(uint32_t binding, const Buffer * buffer, uint32_t offset = 0u) : 
             Command(CommandType::eBindVertexBuffer, sizeof(BindVertexBufferCommand)), 
-            binding(binding), buffer(buffer.get()), offset(offset) {}
+            binding(binding), buffer(buffer), offset(offset) {}
     };
 
     struct BindIndexBufferCommand : Command {
-        Buffer * buffer = nullptr;
+        const Buffer * buffer = nullptr;
         uint32_t offset = 0u;
         IndexType type = rhi::IndexType::eU32;
-        BindIndexBufferCommand(const BufferPtr & buffer, uint32_t offset = 0u, IndexType type = rhi::IndexType::eU32) : 
+        BindIndexBufferCommand(const Buffer * buffer, uint32_t offset = 0u, IndexType type = rhi::IndexType::eU32) : 
             Command(CommandType::eBindIndexBuffer, sizeof(BindIndexBufferCommand)), 
-            buffer(buffer.get()), offset(offset), type(type) {}
+            buffer(buffer), offset(offset), type(type) {}
     };
 
     struct BindResourceCommand : Command { // todo!
-        Buffer * buffer = nullptr;
+        const Buffer * buffer = nullptr;
         uint16_t binding = 0u;
         uint8_t setId = 0u;
         
-        BindResourceCommand(uint16_t binding, Buffer * buffer, uint8_t setId = 0u) : 
+        BindResourceCommand(uint16_t binding, const Buffer * buffer, uint8_t setId = 0u) : 
             Command(CommandType::eBindResource, sizeof(BindResourceCommand)), 
             buffer(buffer),
             binding(binding),

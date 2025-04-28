@@ -7,6 +7,11 @@
 
 #include "command_buffer.h"
 
+#include "common/memory.h"
+#include "allocators/pool_allocator_chain.h"
+
+#include <atomic>
+
 namespace engine::vulkan::runtime {
 
     class CommandList : public rhi::runtime::CommandList {
@@ -80,12 +85,21 @@ namespace engine::vulkan::runtime {
             const rhi::GraphicsPipelineStatesInfo & info) const override;
     
         rhi::runtime::BufferPtr createBuffer(rhi::runtime::DevicePtr & device, 
-            const rhi::BufferInfo & info, size_t size) const override; 
+            const rhi::BufferInfo & info, size_t size) override; 
+
+        void destroyObject(rhi::runtime::BufferPtr & ptr) override;
 
         rhi::runtime::CommandListPtr createCommandList(rhi::runtime::CommandPool * commandPool, 
             rhi::CommandBufferLevel level = rhi::CommandBufferLevel::ePrimary) const override;
 
     private:
         Api::Instance _instance;
+
+        using counter_type = std::atomic<uint32_t>;
+        static constexpr uint32_t kBufferAlign = std::max(alignof(counter_type), alignof(Api::Buffer));
+        static constexpr uint32_t kBufferPtrSize = align_value(sizeof(counter_type) + align_value(sizeof(Api::Buffer), alignof(Api::Buffer)), kBufferAlign);
+    
+        using BuffersAllocator = allocators::PoolAllocatorChain<kBufferPtrSize, kBufferAlign, true>;
+        BuffersAllocator _buffersPool{1024u, 64u};
     };
 }

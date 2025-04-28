@@ -78,7 +78,7 @@ namespace engine::rhi {
         ClearColorValue color;
         ClearDepthStencilValue depthStencil;
 
-        explicit ClearValue(uint32_t color) : 
+        explicit constexpr ClearValue(uint32_t color) : 
         color{
             static_cast<float>(0xffu & (color >> 24u)) / 255.0f, 
             static_cast<float>(0xffu & (color >> 16u)) / 255.0f, 
@@ -86,8 +86,8 @@ namespace engine::rhi {
             static_cast<float>(0xffu & (color >> 0u)) / 255.0f
         } {}
 
-        ClearValue(float r, float g, float b, float a) :  color{r, g, b, a} {}   
-        ClearValue(float depth, uint32_t stencil = 0u) : depthStencil{depth, stencil} {}
+        constexpr ClearValue(float r, float g, float b, float a) :  color{r, g, b, a} {}   
+        constexpr ClearValue(float depth, uint32_t stencil = 0u) : depthStencil{depth, stencil} {}
     };
 
     struct CopyInfo {

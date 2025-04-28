@@ -2,8 +2,15 @@
 
 namespace engine::rhi::runtime {
 
-    void CommandList::begin() {
+    void CommandList::clear() {
         _commands->clear();
+
+        _resources.clear();
+        _resources.reserve(1024u);
+    }
+
+    void CommandList::begin() {
+        clear();
         _commands->create<BeginCommand>();
         _pipeline = nullptr;
     }
@@ -13,7 +20,7 @@ namespace engine::rhi::runtime {
     }
 
     void CommandList::reset(CommandBufferResetFlags flags) {
-        _commands->clear();
+        clear();
         _commands->create<ResetCommand>(flags);
         _pipeline = nullptr;
     }
@@ -50,17 +57,34 @@ namespace engine::rhi::runtime {
         }
     }
 
-    void CommandList::bindVertexBuffer(uint32_t binding, const BufferPtr & buffer, uint32_t offset) {
+    void CommandList::bindVertexBuffer(uint32_t binding, const Buffer * buffer, uint32_t offset) {
         _commands->create<BindVertexBufferCommand>(binding, buffer, offset);
     }
 
-    void CommandList::bindIndexBuffer(const BufferPtr & buffer, uint32_t offset, IndexType type) {
+    void CommandList::bindIndexBuffer(const Buffer * buffer, uint32_t offset, IndexType type) {
         _commands->create<BindIndexBufferCommand>(buffer, offset, type);
     }
 
-    void CommandList::bindBuffer(uint16_t binding, Buffer * buffer, uint8_t setId) {
+    void CommandList::bindBuffer(uint16_t binding, const Buffer * buffer, uint8_t setId) {
         _commands->create<BindResourceCommand>(binding, buffer, setId);
     }
+
+/////////////////////// shared versions
+    void CommandList::bindVertexBuffer(uint32_t binding, BufferPtr & buffer, uint32_t offset) {
+        _resources.push_back(buffer);
+        _commands->create<BindVertexBufferCommand>(binding, buffer.get(), offset);
+    }
+
+    void CommandList::bindIndexBuffer(BufferPtr & buffer, uint32_t offset, IndexType type) {
+        _resources.push_back(buffer);
+        _commands->create<BindIndexBufferCommand>(buffer.get(), offset, type);
+    }
+
+    void CommandList::bindBuffer(uint16_t binding, BufferPtr & buffer, uint8_t setId) {
+        _resources.push_back(buffer);
+        _commands->create<BindResourceCommand>(binding, buffer.get(), setId);
+    }
+///////////////////////
 
     void CommandList::draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) {
         _commands->create<DrawCommand>(vertexCount, instanceCount, firstVertex, firstInstance);

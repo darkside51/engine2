@@ -126,7 +126,7 @@ namespace engine::vulkan {
         };
         using DescriptorPools = std::unordered_map<uint32_t, PoolList>;
         Device & _device;
-        std::vector<DescriptorPools> _pools;
+        std::vector<DescriptorPools> _pools; // can use threads::unique_t<PoolList>::id() - if want to create pools on some threads!
     };
 
 }
