@@ -40,11 +40,14 @@ namespace rhi {
             _onClose = std::move(callback);
         }
 
+        void setVisible(bool visible) noexcept;
+
     private:
         GLFWwindow* _window = nullptr;
 		uint16_t _width = 0u;
 		uint16_t _height = 0u;
 		bool _fullscreen = false;
+        bool _visible = true;
         std::function<void()> _onClose{};
     };
 

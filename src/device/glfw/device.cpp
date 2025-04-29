@@ -91,6 +91,7 @@ namespace engine {
 
 		_window = glfwCreateWindow(_width, _height, name.data(), nullptr, nullptr);
         glfwSetWindowUserPointer(_window, this);
+        
 
         // //glfwSetFramebufferSizeCallback(_window, &glfwOnFrameBufferResize);
 		// glfwSetWindowSizeCallback(_window, &glfwOnWindowResize);
@@ -113,6 +114,14 @@ namespace engine {
         if (_window) {
             glfwDestroyWindow(_window);
             _window = nullptr;
+        }
+    }
+
+    void GLFWDevice::setVisible(bool visible) noexcept {
+        if (visible) {
+            glfwShowWindow(_window);
+        } else {
+            glfwHideWindow(_window);
         }
     }
 

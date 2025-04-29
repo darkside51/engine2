@@ -138,8 +138,13 @@ auto createBuffersRuntime(const std::unique_ptr<engine::rhi::runtime::Rhi> & api
 int main() {
     engine::tests::execute_tests();
 
+    engine::GLFWModule glfwModule;
+    
     const engine::rhi::Api<engine::vulkan::Api> api;
     using Api = decltype(api);
+
+    auto & window0 = glfwModule.open(Api::name().data());
+    window0.setVisible(false);
 
     bool const kUseApiDebugMessages = true;
 
@@ -154,11 +159,7 @@ int main() {
         .allocationCallback = nullptr
     };
 
-    engine::GLFWModule glfwModule;
-    auto & window0 = glfwModule.open(Api::name().data());
-
     std::unique_ptr<engine::rhi::runtime::Rhi> rApi = std::make_unique<engine::vulkan::runtime::Rhi>(instanceCreateInfo);
-
     engine::rhi::PhysicalDeviceFeatureRequest gpuFeatures{};
     auto gpuDevices = rApi->enumerateDevices({gpuFeatures, {engine::vulkan::runtime::Rhi::Api::Impl::kSwapchainExtName}});
 
@@ -248,7 +249,7 @@ int main() {
         {
             auto * map = uniformBuffer2->map2<float>();
             map[0u] = 0.0f;
-            map[1u] = 0.25f;
+            map[1u] = 0.15f;
             uniformBuffer2->flush();
             uniformBuffer2->unmap();
         }
@@ -344,6 +345,8 @@ int main() {
             }
             renderInited = true;
         }}));
+
+        window0.setVisible(true);
 
         window0.setOnClose([&]() {
             w.stop();
