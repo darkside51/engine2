@@ -12,8 +12,13 @@ namespace engine::rhi::runtime {
     template <typename T>
     class sh_ptr {
     public:
-        using Deleter = std::function<void(void * sh_ptr)>;
+        using Deleter = std::function<void(void * ptr)>;
         using counter_type = std::atomic<uint32_t>;
+
+        struct Value {
+            counter_type counter = {};
+            T data;
+        };
 
         sh_ptr(std::nullptr_t) : _counter(nullptr), _data(nullptr), _deleter(nullptr) { }
 
@@ -30,7 +35,8 @@ namespace engine::rhi::runtime {
         }
 
         template <typename U>
-        sh_ptr(sh_ptr<U> & p) : _counter(p.getCounter()), _data(static_cast<T*>(p.get())), _deleter(p.getDeleter()) {
+        sh_ptr(sh_ptr<U> & p) : _counter(static_cast<counter_type*>(p.memory())), 
+            _data(static_cast<T*>(p.get())), _deleter(p.getDeleter()) {
 			_inc();
 		}
 
@@ -82,8 +88,6 @@ namespace engine::rhi::runtime {
             p._deleter = nullptr;
             return *this;
         }
-
-        counter_type * getCounter() const noexcept { return _counter; }
 
         T * get() noexcept { return _data; }
         const T * get() const noexcept { return _data; }

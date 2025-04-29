@@ -4,13 +4,12 @@
 #include "instance.h"
 #include "graphics/render/rhi/common/runtime.h"
 #include "graphics/render/rhi/common/command_list.h"
+#include "graphics/render/rhi/common/shared_ref.h"
 
 #include "command_buffer.h"
 
 #include "common/memory.h"
 #include "allocators/pool_allocator_chain.h"
-
-#include <atomic>
 
 namespace engine::vulkan::runtime {
 
@@ -95,11 +94,10 @@ namespace engine::vulkan::runtime {
     private:
         Api::Instance _instance;
 
-        using counter_type = std::atomic<uint32_t>;
-        static constexpr uint32_t kBufferAlign = std::max(alignof(counter_type), alignof(Api::Buffer));
-        static constexpr uint32_t kBufferPtrSize = align_value(sizeof(counter_type) + align_value(sizeof(Api::Buffer), alignof(Api::Buffer)), kBufferAlign);
-    
+        static constexpr uint32_t kBufferAlign =  alignof(rhi::runtime::sh_ptr<Api::Buffer>::Value);
+        static constexpr uint32_t kBufferPtrSize = sizeof(rhi::runtime::sh_ptr<Api::Buffer>::Value);
+
         using BuffersAllocator = allocators::PoolAllocatorChain<kBufferPtrSize, kBufferAlign, true>;
-        BuffersAllocator _buffersPool{1024u, 64u};
+        BuffersAllocator _buffersPool{1024u, 32u}; // ~5.25mb
     };
 }
