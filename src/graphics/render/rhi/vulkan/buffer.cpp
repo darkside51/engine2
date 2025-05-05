@@ -9,7 +9,10 @@
 
 namespace engine::vulkan {
 
-    Buffer::Buffer(Device & device, const rhi::BufferInfo & info, size_t sizeInBytes) : rhi::runtime::Buffer(sizeInBytes), _device(&device) {
+    Buffer::Buffer(Device & device, const rhi::BufferInfo & info, size_t sizeInBytes) : 
+        rhi::runtime::Buffer(sizeInBytes), 
+        _device(&device), 
+        _usage(info.usage) {
         const VkBufferCreateInfo createInfo = {
             .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
             .pNext = nullptr,
@@ -105,6 +108,10 @@ namespace engine::vulkan {
         _allocation.info.pName = name.data();
     }
     
+    VkMemoryPropertyFlags Buffer::memoryFlags() const noexcept {
+        return _device->gpu().memoryProperties().memoryTypes[_allocation.info.memoryType].propertyFlags;
+    }
+
     std::string_view Buffer::getName() const noexcept {
         if (_allocation.info.pName) {
             return _allocation.info.pName;

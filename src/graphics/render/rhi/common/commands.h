@@ -28,7 +28,10 @@ namespace engine::rhi::runtime {
         eBindIndexBuffer = 12u,
         eBindResource = 13u,
         eDraw = 14u,
-        eDrawIndexed = 15u
+        eDrawIndexed = 15u,
+        eCopyBuffer2Buffer = 16u,
+        eCopyBuffer2Image = 17u,
+        ePipelineBarrier = 18u,
     };
 
     class CommandList;
@@ -164,5 +167,20 @@ namespace engine::rhi::runtime {
             firstIndex(firstIndex),
             vertexOffset(vertexOffset),
             firstInstance(firstInstance) {}
+    };
+
+    struct CopyBuffer2BufferCommand : Command {
+        CopyInfo info{};
+        Buffer * src = nullptr;
+        Buffer * dst = nullptr;
+        CopyBuffer2BufferCommand(Buffer * src, Buffer * dst, const CopyInfo & info) : 
+            Command(CommandType::eCopyBuffer2Buffer, sizeof(CopyBuffer2BufferCommand)),
+            src(src), 
+            dst(dst),
+            info(info) {}
+    };
+
+    struct PipelineBarrierCommand : Command { // todo!
+        PipelineBarrierCommand() : Command(CommandType::ePipelineBarrier, sizeof(PipelineBarrierCommand)) {}
     };
 }

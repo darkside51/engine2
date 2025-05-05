@@ -70,11 +70,15 @@ namespace engine::vulkan {
             return VK_NULL_HANDLE;
         }
         
+        VkMemoryPropertyFlags memoryFlags() const noexcept;
+        rhi::BufferUsageFlags usage() const noexcept { return _usage; }
+
     private:
         Device * _device = nullptr;
         VkBuffer _buffer = VK_NULL_HANDLE;
         MemoryAllocation _allocation{};
         std::unordered_map<rhi::Format, VkBufferView> _bufferViews;
         uint32_t _queueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        rhi::BufferUsageFlags _usage = rhi::BufferUsageFlags::eNone;
     };
 }

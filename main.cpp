@@ -118,7 +118,7 @@ auto createBuffersRuntime(const std::unique_ptr<engine::rhi::runtime::Rhi> & api
     using namespace engine::rhi;
 
     const engine::rhi::BufferInfo info {
-        BufferUsageFlags::eVertex_Buffer,
+        /*BufferUsageFlags::eVertex_Buffer |*/ engine::rhi::BufferUsageFlags::eTransfer_Src,
         MemoryPropertyFlags::eHostVisible
     };
 
@@ -231,6 +231,13 @@ int main() {
         auto pipeline = createPipelineRuntime(rApi, device, renderPass, program);
         auto buffer = createBuffersRuntime(rApi, device);
 
+        const engine::rhi::BufferInfo gpuBufferInfo {
+            engine::rhi::BufferUsageFlags::eVertex_Buffer | engine::rhi::BufferUsageFlags::eTransfer_Dst,
+            engine::rhi::MemoryPropertyFlags::eDeviceLocal
+        };
+    
+        auto gpuBuffer = rApi->createBuffer(device, gpuBufferInfo, buffer->sizeInBytes());
+
         const engine::rhi::BufferInfo info {
             engine::rhi::BufferUsageFlags::eUniform_Buffer,
             engine::rhi::MemoryPropertyFlags::eHostVisible
@@ -294,6 +301,8 @@ int main() {
                 auto & commandList = commandLists[frameId];
                 commandList->begin();
 
+                commandList->copyBuffer2Buffer(buffer, gpuBuffer, {.srcOffset = 0u, .dstOffset = 0u, .size = buffer->sizeInBytes()});
+
                 commandList->beginRenderPass(renderPass, frameBuffers[imageIndex], clearValues, {{0, 0}, {width, height}});
 
                 commandList->setViewport(0.0f, 0.0f, width, height);
@@ -304,7 +313,7 @@ int main() {
                 commandList->bindBuffer(0u, uniformBuffer);
                 commandList->bindBuffer(1u, uniformBuffer2);
 
-                commandList->bindVertexBuffer(0u, buffer);
+                commandList->bindVertexBuffer(0u, gpuBuffer);
                 commandList->draw(3u);
                 
                 commandList->endRenderPass();

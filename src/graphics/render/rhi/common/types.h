@@ -550,7 +550,7 @@ namespace engine::rhi {
         MemoryExtendedFlags memoryExtFlags = MemoryExtendedFlags::eNone;
         BufferCreateFlags flags = BufferCreateFlags::eNone;
         SharingMode sharing = SharingMode::eExclusive;
-        std::vector<uint32_t> queueFamilyIndices = {};  // It is ignored if sharingMode is not eConcurrent.
+        std::vector<uint32_t> queueFamilyIndices = {}; // It is ignored if sharingMode is not eConcurrent.
 
         BufferInfo(BufferUsageFlags usage, MemoryPropertyFlags memoryFlags, 
             MemoryExtendedFlags memoryExtFlags = MemoryExtendedFlags::eNone,

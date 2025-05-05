@@ -24,11 +24,54 @@
 #include <utility>
 
 namespace engine::vulkan::runtime {
+    constexpr uint8_t kBufferBarriersReserveCapacity = 8u;
+
     //////////////////////////////////////////////////////////
     CommandList::CommandList(rhi::runtime::CommandPool * commandPool, rhi::CommandBufferLevel level) :
         _pool(static_cast<vulkan::CommandPool*>(commandPool)),
         _commandbuffer{*_pool, level} {
-        
+    }
+
+    void CommandList::addBufferBarrier(
+        VkPipelineStageFlags srcStageMask, 
+        VkPipelineStageFlags dstStageMask, 
+        VkDependencyFlags dependencyFlags, 
+        VkBufferMemoryBarrier barrier) {
+
+        if (_srcStageMask != srcStageMask || _dstStageMask != dstStageMask || _dependencyFlags != dependencyFlags) {
+            flushBarriers();
+
+            _srcStageMask = srcStageMask;
+            _dstStageMask = dstStageMask;
+            _dependencyFlags = dependencyFlags;
+        }
+
+        _bufferBarriers.push_back(barrier);
+    }
+
+    void CommandList::flushBarriers() noexcept {
+        if (_bufferBarriers.empty()) {
+            return;
+        }
+
+        vkCmdPipelineBarrier(
+            _commandbuffer(), 
+            _srcStageMask, _dstStageMask, _dependencyFlags, 
+            0u, nullptr, 
+            _bufferBarriers.size(), _bufferBarriers.data(), 
+            0u, nullptr
+        );
+
+        _bufferBarriers.clear();
+        _bufferBarriers.reserve(kBufferBarriersReserveCapacity);
+    }
+
+    void CommandList::resetState() noexcept {
+        _srcStageMask = VkPipelineStageFlagBits::VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+        _dstStageMask = VkPipelineStageFlagBits::VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+        _dependencyFlags = VkDependencyFlagBits::VK_DEPENDENCY_BY_REGION_BIT;
+        _bufferBarriers.clear();
+        _bufferBarriers.reserve(kBufferBarriersReserveCapacity);
     }
 
     void CommandList::flush(uint8_t frameIdx) noexcept {
@@ -37,7 +80,6 @@ namespace engine::vulkan::runtime {
         constexpr uint8_t kMaxDescriptorsSets = 4u;
 
         std::byte * memory = _commands.memory().data();
-        bool iterate = true;
         size_t totalMem = 0u;
 
         auto & device = const_cast<Device&>(_pool->getDevice()); // todo remove const_cast
@@ -72,44 +114,50 @@ namespace engine::vulkan::runtime {
             }
         };
 
-        while (iterate) {
+        while ((_commandsCount--) > 0) {
             Command * cmd = reinterpret_cast<Command*>(memory);
             switch (cmd->cmdType) {
             case CommandType::eBegin:
             {
                 _commandbuffer.begin();
                 currentPipeline = nullptr;
+                changedSets = 0u;
+                resetState();
             }
                 break;
             case CommandType::eEnd:
             {
+                flushBarriers();
                 _commandbuffer.end();
             }
                 break;
             case CommandType::eReset: 
             {
-                auto * command = reinterpret_cast<ResetCommand*>(memory);
+                const auto * command = reinterpret_cast<ResetCommand*>(memory);
                 _commandbuffer.reset(command->flags);
                 currentPipeline = nullptr;
                 changedSets = 0u;
+                resetState();
             }
                 break;
             case CommandType::eBeginRenderPass:
             {
-                auto * command = reinterpret_cast<BeginRenderPassCommand*>(memory);
+                flushBarriers();
+                const auto * command = reinterpret_cast<BeginRenderPassCommand*>(memory);
 
                 dynamic_array<VkClearValue, 4u> clearValues;
                 clearValues.reserve(command->clearValues.size());
-                auto view = clearValues.view();
+                auto clearValuesView = clearValues.view();
 
-                for (size_t i = 0u; i < command->clearValues.size(); ++i) {
-                    view[i] = utils::convert2vk(command->clearValues[i]);
+                uint8_t i = 0u;
+                for (auto & value : clearValuesView) {
+                    value = utils::convert2vk(command->clearValues[i++]);
                 }
 
                 _commandbuffer.beginRenderPass(
                     static_cast<VkRenderPass>(command->renderPass), 
                     static_cast<const vulkan::FrameBuffer &>(*command->framebuffer),
-                    view,
+                    clearValuesView,
                     command->area
                 );
             }
@@ -121,32 +169,33 @@ namespace engine::vulkan::runtime {
                 break;
             case CommandType::eNextSubpass:
             {
-                auto * command = reinterpret_cast<NextSubpassCommand*>(memory);
+                const auto * command = reinterpret_cast<NextSubpassCommand*>(memory);
                 _commandbuffer.nextSubpass(command->contents);
             }
                 break;
             case CommandType::eExecuteCommands:
             {
-                auto * command = reinterpret_cast<ExecuteCommandsCommand*>(memory);
+                flushBarriers();
+                const auto * command = reinterpret_cast<ExecuteCommandsCommand*>(memory);
                 // _commandbuffer.executeCommands();// todo!
             }
                 break;
             case CommandType::eSetViewport:
             {
-                auto * command = reinterpret_cast<SetViewportCommand*>(memory);
+                const auto * command = reinterpret_cast<SetViewportCommand*>(memory);
                 _commandbuffer.setViewport(command->x, command->y, command->w, command->h, 
                     command->minDepth, command->maxDepth, command->viewportIdx);
             }
                 break;
             case CommandType::eSetScissor:
             {
-                auto * command = reinterpret_cast<SetScissorCommand*>(memory);
+                const auto * command = reinterpret_cast<SetScissorCommand*>(memory);
                 _commandbuffer.setScissorRect(command->area, command->scissorIdx);
             }
                 break;
             case CommandType::eBindPipeline:
             {
-                auto * command = reinterpret_cast<BindPipelineCommand*>(memory);
+                const auto * command = reinterpret_cast<BindPipelineCommand*>(memory);
                 const auto * pipeline = static_cast<const Pipeline *>(command->pipeline);
                 _commandbuffer.bindPipeline(*pipeline);
                 
@@ -162,20 +211,20 @@ namespace engine::vulkan::runtime {
                 break;
             case CommandType::eBindVertexBuffer:
             {
-                auto * command = reinterpret_cast<BindVertexBufferCommand*>(memory);
+                const auto * command = reinterpret_cast<BindVertexBufferCommand*>(memory);
                 // todo fill tmp structs and bindVertexBuffers before draw command!
                 _commandbuffer.bindVertexBuffer(command->binding, static_cast<const Buffer&>(*command->buffer)(), command->offset);
             }
                 break;
             case CommandType::eBindIndexBuffer:
             {
-                auto * command = reinterpret_cast<BindIndexBufferCommand*>(memory);
+                const auto * command = reinterpret_cast<BindIndexBufferCommand*>(memory);
                 _commandbuffer.bindIndexBuffer(static_cast<const Buffer&>(*command->buffer)(), command->offset, command->type);
             }
                 break;
             case CommandType::eBindResource:
             {
-                auto * command = reinterpret_cast<BindResourceCommand*>(memory);
+                const auto * command = reinterpret_cast<BindResourceCommand*>(memory);
                 const auto setId = command->setId;
                 assert(setId < kMaxDescriptorsSets);
 
@@ -203,7 +252,7 @@ namespace engine::vulkan::runtime {
             {
                 applyDescriptorSets();
 
-                auto * command = reinterpret_cast<DrawCommand*>(memory);
+                const auto * command = reinterpret_cast<DrawCommand*>(memory);
                 _commandbuffer.draw(command->vertexCount, command->instanceCount, command->firstVertex, command->firstInstance);
             }
                 break;
@@ -211,20 +260,91 @@ namespace engine::vulkan::runtime {
             {
                 applyDescriptorSets();
 
-                auto * command = reinterpret_cast<DrawIndexedCommand*>(memory);
+                const auto * command = reinterpret_cast<DrawIndexedCommand*>(memory);
                 _commandbuffer.drawIndexed(command->indexCount, command->instanceCount, command->firstIndex, 
                     command->vertexOffset, command->firstInstance);
             }
                 break;
+            case CommandType::eCopyBuffer2Buffer:
+            {
+                const auto * command = reinterpret_cast<CopyBuffer2BufferCommand*>(memory);
+                std::array copyInfos{utils::convert2vk(command->info)};
+
+                auto & vkSrcBuffer = *static_cast<Buffer*>(command->src);
+                auto & vkDstBuffer = *static_cast<Buffer*>(command->dst);
+
+                // { // use invalidate instead of this!
+                //     const auto memoryFlags = vkSrcBuffer.memoryFlags();
+                //     const auto isHostVisible = memoryFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
+
+                //     const auto bufferMemoryBarrier = vkSrcBuffer.transition(
+                //         VkAccessFlagBits::VK_ACCESS_HOST_WRITE_BIT, 
+                //         VkAccessFlagBits::VK_ACCESS_TRANSFER_READ_BIT, 
+                //         command->info.srcOffset, command->info.size);
+
+                //     const auto srcStageMask = VkPipelineStageFlagBits::VK_PIPELINE_STAGE_HOST_BIT;
+                //     const auto dstStageMask = VkPipelineStageFlagBits::VK_PIPELINE_STAGE_TRANSFER_BIT;
+                //     const auto dependencyFlags = VkDependencyFlagBits::VK_DEPENDENCY_BY_REGION_BIT;    
+                // }
+
+                _commandbuffer.copyBuffer2Buffer(vkSrcBuffer, vkDstBuffer, copyInfos);
+
+                {
+                    auto const srcStage = VkPipelineStageFlagBits::VK_PIPELINE_STAGE_TRANSFER_BIT;
+                    auto const dependency = VkDependencyFlagBits::VK_DEPENDENCY_BY_REGION_BIT;
+
+                    auto const usage = vkDstBuffer.usage();
+                    if ((usage & rhi::BufferUsageFlags::eVertex_Buffer) != rhi::BufferUsageFlags::eNone) {
+                        auto const dstStage = VkPipelineStageFlagBits::VK_PIPELINE_STAGE_VERTEX_INPUT_BIT;
+
+                        addBufferBarrier(srcStage, dstStage, dependency, vkDstBuffer.transition(
+                            VkAccessFlagBits::VK_ACCESS_TRANSFER_WRITE_BIT, 
+                            VkAccessFlagBits::VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT, 
+                            command->info.dstOffset, command->info.size));
+                    }
+
+                    if ((usage & rhi::BufferUsageFlags::eIndex_Buffer) != rhi::BufferUsageFlags::eNone) {
+                        auto const dstStage = VkPipelineStageFlagBits::VK_PIPELINE_STAGE_VERTEX_INPUT_BIT;
+
+                        addBufferBarrier(srcStage, dstStage, dependency, vkDstBuffer.transition(
+                            VkAccessFlagBits::VK_ACCESS_TRANSFER_WRITE_BIT, 
+                            VkAccessFlagBits::VK_ACCESS_INDEX_READ_BIT, 
+                            command->info.dstOffset, command->info.size));
+                    }
+
+                    if ((usage & rhi::BufferUsageFlags::eUniform_Buffer) != rhi::BufferUsageFlags::eNone) {
+                        auto const dstStage = VkPipelineStageFlagBits::VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | 
+                                              VkPipelineStageFlagBits::VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+
+                        addBufferBarrier(srcStage, dstStage, dependency, vkDstBuffer.transition(
+                            VkAccessFlagBits::VK_ACCESS_TRANSFER_WRITE_BIT, 
+                            VkAccessFlagBits::VK_ACCESS_UNIFORM_READ_BIT, 
+                            command->info.dstOffset, command->info.size));
+                    }    
+
+                    if ((usage & (rhi::BufferUsageFlags::eStorage_Buffer | 
+                                  rhi::BufferUsageFlags::eUniform_Texel_Buffer | 
+                                  rhi::BufferUsageFlags::eStorage_Texel_Buffer)) != rhi::BufferUsageFlags::eNone) {
+                        auto const dstStage = VkPipelineStageFlagBits::VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | 
+                                              VkPipelineStageFlagBits::VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+
+                        addBufferBarrier(srcStage, dstStage, dependency, vkDstBuffer.transition(
+                            VkAccessFlagBits::VK_ACCESS_TRANSFER_WRITE_BIT, 
+                            VkAccessFlagBits::VK_ACCESS_SHADER_READ_BIT, 
+                            command->info.dstOffset, command->info.size));
+                    }    
+                }    
+            }
+                break;
             case CommandType::eUndefined:
-                iterate = false;
-            break;    
+                break;    
             default:
                 break;
             }
             
             totalMem += cmd->size;
             if (totalMem >= kStackSize) {
+                assert(false);
                 break;
             }
     

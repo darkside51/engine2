@@ -44,11 +44,14 @@ namespace engine::rhi::runtime {
         void drawIndexed(uint32_t indexCount, uint32_t instanceCount = 1u, uint32_t firstIndex = 0u, int32_t vertexOffset = 0u, 
             uint32_t firstInstance = 0u);
 
+        void copyBuffer2Buffer(BufferPtr & src, BufferPtr & dst, const CopyInfo & copyInfos);
 
         virtual void flush(uint8_t frameIdx) noexcept {}
+        
     protected:
-        inline static constexpr size_t kStackSize = 1'000'000u; // 1 Mb
+        inline static constexpr size_t kStackSize = 1024u * 1024u; // 1 Mb
         allocators::StackAllocator<kStackSize, false> _commands{};
+        uint32_t _commandsCount = 0u;
 
     private:
         void clear();
