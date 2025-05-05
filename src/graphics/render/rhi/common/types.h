@@ -551,18 +551,21 @@ namespace engine::rhi {
         BufferCreateFlags flags = BufferCreateFlags::eNone;
         SharingMode sharing = SharingMode::eExclusive;
         std::vector<uint32_t> queueFamilyIndices = {}; // It is ignored if sharingMode is not eConcurrent.
+        bool allowShadersWrite = false;
 
         BufferInfo(BufferUsageFlags usage, MemoryPropertyFlags memoryFlags, 
             MemoryExtendedFlags memoryExtFlags = MemoryExtendedFlags::eNone,
             BufferCreateFlags flags = BufferCreateFlags::eNone,
             SharingMode sharing = SharingMode::eExclusive,
-            std::vector<uint32_t> queueFamilyIndices = {}) : 
+            std::vector<uint32_t> queueFamilyIndices = {},
+            bool allowShadersWrite = false) : 
             usage(usage),
             memoryFlags(memoryFlags),
             memoryExtFlags(memoryExtFlags),
             flags(flags),
             sharing(sharing),
-            queueFamilyIndices(std::move(queueFamilyIndices)) {}
+            queueFamilyIndices(std::move(queueFamilyIndices)),
+            allowShadersWrite(allowShadersWrite) {}
     };
 
     enum class ResolveModeFlags : uint8_t {

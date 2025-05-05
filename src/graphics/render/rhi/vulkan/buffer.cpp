@@ -12,7 +12,8 @@ namespace engine::vulkan {
     Buffer::Buffer(Device & device, const rhi::BufferInfo & info, size_t sizeInBytes) : 
         rhi::runtime::Buffer(sizeInBytes), 
         _device(&device), 
-        _usage(info.usage) {
+        _usage(info.usage),
+        _allowShadersWrite(info.allowShadersWrite) {
         const VkBufferCreateInfo createInfo = {
             .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
             .pNext = nullptr,

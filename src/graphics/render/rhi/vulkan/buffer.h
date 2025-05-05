@@ -25,7 +25,7 @@ namespace engine::vulkan {
 
         Buffer(Buffer && other) noexcept : rhi::runtime::Buffer(other._size), _device(other._device), 
             _buffer(other._buffer), _allocation(other._allocation), _bufferViews(std::move(other._bufferViews)),
-            _queueFamilyIndex(other._queueFamilyIndex) {
+            _queueFamilyIndex(other._queueFamilyIndex), _usage(other._usage), _allowShadersWrite(other._allowShadersWrite) {
             other._device = nullptr;
             other._buffer = VK_NULL_HANDLE;
             other._allocation = {};
@@ -38,6 +38,8 @@ namespace engine::vulkan {
             _bufferViews = std::move(other._bufferViews);
             _queueFamilyIndex = other._queueFamilyIndex;
             _size = other._size;
+            _usage = other._usage;
+            _allowShadersWrite = other._allowShadersWrite;
 
             other._device = nullptr;
             other._buffer = VK_NULL_HANDLE;
@@ -72,6 +74,7 @@ namespace engine::vulkan {
         
         VkMemoryPropertyFlags memoryFlags() const noexcept;
         rhi::BufferUsageFlags usage() const noexcept { return _usage; }
+        bool isShadersWriteAllowed() const noexcept { return _allowShadersWrite; }
 
     private:
         Device * _device = nullptr;
@@ -80,5 +83,6 @@ namespace engine::vulkan {
         std::unordered_map<rhi::Format, VkBufferView> _bufferViews;
         uint32_t _queueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
         rhi::BufferUsageFlags _usage = rhi::BufferUsageFlags::eNone;
+        bool _allowShadersWrite = false;
     };
 }

@@ -273,19 +273,19 @@ namespace engine::vulkan::runtime {
                 auto & vkSrcBuffer = *static_cast<Buffer*>(command->src);
                 auto & vkDstBuffer = *static_cast<Buffer*>(command->dst);
 
-                // { // use invalidate instead of this!
-                //     const auto memoryFlags = vkSrcBuffer.memoryFlags();
-                //     const auto isHostVisible = memoryFlags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
+                auto const usage = vkSrcBuffer.usage();
+                if (vkSrcBuffer.isShadersWriteAllowed() && ((usage & (rhi::BufferUsageFlags::eStorage_Buffer | 
+                    rhi::BufferUsageFlags::eStorage_Texel_Buffer)) != rhi::BufferUsageFlags::eNone)) {
+                    auto const srcStage = VkPipelineStageFlagBits::VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT | 
+                                          VkPipelineStageFlagBits::VK_PIPELINE_STAGE_VERTEX_SHADER_BIT;
+                    auto const dstStage = VkPipelineStageFlagBits::VK_PIPELINE_STAGE_TRANSFER_BIT;
+                    auto const dependency = VkDependencyFlagBits::VK_DEPENDENCY_BY_REGION_BIT;
 
-                //     const auto bufferMemoryBarrier = vkSrcBuffer.transition(
-                //         VkAccessFlagBits::VK_ACCESS_HOST_WRITE_BIT, 
-                //         VkAccessFlagBits::VK_ACCESS_TRANSFER_READ_BIT, 
-                //         command->info.srcOffset, command->info.size);
-
-                //     const auto srcStageMask = VkPipelineStageFlagBits::VK_PIPELINE_STAGE_HOST_BIT;
-                //     const auto dstStageMask = VkPipelineStageFlagBits::VK_PIPELINE_STAGE_TRANSFER_BIT;
-                //     const auto dependencyFlags = VkDependencyFlagBits::VK_DEPENDENCY_BY_REGION_BIT;    
-                // }
+                    addBufferBarrier(srcStage, dstStage, dependency, vkDstBuffer.transition(
+                        VkAccessFlagBits::VK_ACCESS_SHADER_WRITE_BIT, 
+                        VkAccessFlagBits::VK_ACCESS_TRANSFER_READ_BIT, 
+                        command->info.dstOffset, command->info.size));
+                }
 
                 _commandbuffer.copyBuffer2Buffer(vkSrcBuffer, vkDstBuffer, copyInfos);
 
