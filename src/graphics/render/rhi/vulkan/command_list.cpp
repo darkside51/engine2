@@ -98,13 +98,13 @@ namespace engine::vulkan::runtime {
                         firstSet = set;
                     }
                 } else if (firstSet != 0xffu) {
-                    _commandbuffer.bindDescriptorSets(std::span{descriptorSets.begin() + firstSet, descriptorSets.begin() + set});
+                    _commandbuffer.bindDescriptorSets(std::span{descriptorSets.begin() + firstSet, descriptorSets.begin() + set}, {}, firstSet);
                     firstSet = 0xffu;
                 }
             }
 
             if (firstSet != 0xffu) {
-                _commandbuffer.bindDescriptorSets(std::span{descriptorSets.begin() + firstSet, descriptorSets.end()});
+                _commandbuffer.bindDescriptorSets(std::span{descriptorSets.begin() + firstSet, descriptorSets.end()}, {}, firstSet);
             }
         };
 
