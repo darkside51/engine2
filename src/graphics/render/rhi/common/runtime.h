@@ -22,7 +22,7 @@ struct GraphicsPipelineStatesInfo;
 
 namespace engine::rhi::runtime {
 
-constexpr size_t kWholeSize = (~0ULL);
+constexpr uint32_t kWholeSize = (~0U);
 
 using RenderPass = void*;
 using Fence = void*;

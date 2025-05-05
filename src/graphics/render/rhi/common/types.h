@@ -20,6 +20,8 @@ namespace engine::rhi {
     //     return static_cast<T>(std::to_underlying(a) & std::to_underlying(b));
     // }
 
+    inline constexpr uint64_t kWholeSize = ~0ULL;
+
     struct Offset2D {
         int32_t x {};
         int32_t y {};
