@@ -2,6 +2,7 @@
 #include "device.h"
 #include "swapchain.h"
 #include "command_buffer.h"
+#include "command_list.h"
 #include "runtime.h"
 
 #include <array>

@@ -20,12 +20,11 @@
 //
 #include "graphics/render/rhi/common/api.h"
 #include "graphics/render/rhi/common/utils.h"
+#include "graphics/render/rhi/common/pipeline.h"
 #include "graphics/render/rhi/common/commands.h"
 #include "graphics/render/rhi/common/command_list.h"
 
 #include "graphics/render/rhi/vulkan/runtime.h"
-#include "graphics/render/rhi/vulkan/device.h"
-#include "graphics/render/rhi/vulkan/queue.h"
 
 engine::rhi::RenderPassDescription createRenderPassDescription(engine::rhi::Format colorFormat, engine::rhi::Format depthFormat) {
     std::vector<engine::rhi::AttachmentDescription> attachments(2u);
@@ -89,9 +88,9 @@ auto createPipelineRuntime(const std::unique_ptr<engine::rhi::runtime::Rhi> & ap
     info.blendModes = {common_blend_modes::blend_none};
     info.depthStencilState = {
         {
-            .depthTestEnable = false,
-            .depthWriteEnable = false,
-            .depthCompareOp = CompareOp::eAlways
+            .depthTestEnable = true,
+            .depthWriteEnable = true,
+            .depthCompareOp = CompareOp::eLess
         }, 
         {}
     };
@@ -99,12 +98,18 @@ auto createPipelineRuntime(const std::unique_ptr<engine::rhi::runtime::Rhi> & ap
     info.rasterisationState = {PolygonMode::eFill, CullMode::eBack};
     info.inputAssemblyState = {PrimitiveTopology::eTriangles, false};
     info.vertexInputState = {
-        std::vector{VertexInputBinding::create<float[3]>(0u)},
+        std::vector{VertexInputBinding::create<float[3]>(0u), VertexInputBinding::create<uint32_t>(1u)},
         std::vector{
             VertexInputAttribute{
                 .location = 0u,
                 .binding = 0u,
                 .format = Format::eR32G32B32_Sfloat,
+                .offset = 0u
+            },
+            VertexInputAttribute{
+                .location = 1u,
+                .binding = 1u,
+                .format = Format::eR8G8B8A8_Unorm,
                 .offset = 0u
             }
         }
@@ -128,6 +133,26 @@ auto createBuffersRuntime(const std::unique_ptr<engine::rhi::runtime::Rhi> & api
         map[0u] = -0.5f; map[1u] = 0.5f; map[2u] = 0.1f;
         map[3u] = 0.5f; map[4u] = 0.5f; map[5u] = 0.1f;
         map[6u] = 0.0f; map[7u] = -0.5f; map[8u] = 0.1f;
+        resultBuffer->flush();
+        resultBuffer->unmap();
+    }
+
+    return resultBuffer;
+}
+
+auto createBuffersRuntime2(const std::unique_ptr<engine::rhi::runtime::Rhi> & api,
+    std::unique_ptr<engine::rhi::runtime::Device> & device) {
+    using namespace engine::rhi;
+
+    const engine::rhi::BufferInfo info {
+        /*BufferUsageFlags::eVertex_Buffer |*/ engine::rhi::BufferUsageFlags::eTransfer_Src,
+        MemoryPropertyFlags::eHostVisible
+    };
+
+    auto resultBuffer = api->createBuffer(device, info, sizeof(uint32_t) * 3u);
+    {
+        auto * map = resultBuffer->map2<uint32_t>();
+        map[0u] = 0xff'00'ff'00u; map[1u] = 0xff'00'00'ffu; map[2u] = 0xff'ff'00'00u;
         resultBuffer->flush();
         resultBuffer->unmap();
     }
@@ -230,6 +255,7 @@ int main() {
         auto program = loadShadersRuntime(rApi, device, shaderModulesManager);
         auto pipeline = createPipelineRuntime(rApi, device, renderPass, program);
         auto buffer = createBuffersRuntime(rApi, device);
+        auto buffer2 = createBuffersRuntime2(rApi, device);
 
         const engine::rhi::BufferInfo gpuBufferInfo {
             engine::rhi::BufferUsageFlags::eVertex_Buffer | engine::rhi::BufferUsageFlags::eTransfer_Dst,
@@ -237,6 +263,7 @@ int main() {
         };
     
         auto gpuBuffer = rApi->createBuffer(device, gpuBufferInfo, buffer->sizeInBytes());
+        auto gpuBuffer2 = rApi->createBuffer(device, gpuBufferInfo, buffer2->sizeInBytes());
 
         const engine::rhi::BufferInfo info {
             engine::rhi::BufferUsageFlags::eUniform_Buffer,
@@ -264,6 +291,7 @@ int main() {
         // reserve frames data
         std::vector<engine::rhi::runtime::CommandListPtr> commandLists;
         
+        bool dirtyVertexBuffer = true;
         bool renderInited = false;
         constexpr float inputCheckTime = 1.0f / 60.0f;
         constexpr float redrawTime = 1.0f / 120.0f;
@@ -301,7 +329,14 @@ int main() {
                 auto & commandList = commandLists[frameId];
                 commandList->begin();
 
-                commandList->copyBuffer2Buffer(buffer, gpuBuffer, {.srcOffset = 0u, .dstOffset = 0u, .size = buffer->sizeInBytes()});
+                if (dirtyVertexBuffer) {
+                    commandList->copyBuffer2Buffer(buffer, gpuBuffer, 
+                        {.srcOffset = 0u, .dstOffset = 0u, .size = buffer->sizeInBytes()});
+
+                    commandList->copyBuffer2Buffer(buffer2, gpuBuffer2, 
+                        {.srcOffset = 0u, .dstOffset = 0u, .size = buffer2->sizeInBytes()});
+                    dirtyVertexBuffer = false;
+                }
 
                 commandList->beginRenderPass(renderPass, frameBuffers[imageIndex], clearValues, {{0, 0}, {width, height}});
 
@@ -314,6 +349,7 @@ int main() {
                 commandList->bindBuffer(1u, uniformBuffer2);
 
                 commandList->bindVertexBuffer(0u, gpuBuffer);
+                commandList->bindVertexBuffer(1u, gpuBuffer2);
                 commandList->draw(3u);
                 
                 commandList->endRenderPass();
