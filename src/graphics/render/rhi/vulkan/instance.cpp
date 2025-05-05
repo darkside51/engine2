@@ -88,7 +88,7 @@ namespace engine::vulkan {
             return;
         }
 
-        LOG_D("vulkan api: instance create successfull");
+        LOG_I("vulkan: instance create successfull");
 
         // create debug messenger
         if (info.createDebugMessages) {
@@ -117,7 +117,7 @@ namespace engine::vulkan {
             }
 
             vkDestroyInstance(_instance, _allocationCallbacks);
-            LOG_D("vulkan api: instance destroyed");
+            LOG_I("vulkan: instance destroyed");
         }
     }
     

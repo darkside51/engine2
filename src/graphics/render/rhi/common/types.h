@@ -66,18 +66,20 @@ namespace engine::rhi {
     };
 
     struct ClearColorValue {
-        float value[4];
+        float value[4] = {0.0f, 0.0f, 0.0f, 0.0f};
     };
     
     struct ClearDepthStencilValue {
-        float depth;
-        uint32_t stencil;
+        float depth = 1.0f;
+        uint32_t stencil = 0u;
     };
     
     union ClearValue {
         ClearColorValue color;
         ClearDepthStencilValue depthStencil;
 
+        constexpr ClearValue() : depthStencil{1.0f, 0u} {}
+        
         explicit constexpr ClearValue(uint32_t color) : 
         color{
             static_cast<float>(0xffu & (color >> 24u)) / 255.0f, 

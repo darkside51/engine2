@@ -145,7 +145,7 @@ auto createBuffersRuntime2(const std::unique_ptr<engine::rhi::runtime::Rhi> & ap
     using namespace engine::rhi;
 
     const engine::rhi::BufferInfo info {
-        /*BufferUsageFlags::eVertex_Buffer |*/ engine::rhi::BufferUsageFlags::eTransfer_Src,
+        engine::rhi::BufferUsageFlags::eTransfer_Src,
         MemoryPropertyFlags::eHostVisible
     };
 
@@ -185,10 +185,12 @@ int main() {
     };
 
     std::unique_ptr<engine::rhi::runtime::Rhi> rApi = std::make_unique<engine::vulkan::runtime::Rhi>(instanceCreateInfo);
+    
     engine::rhi::PhysicalDeviceFeatureRequest gpuFeatures{};
     auto gpuDevices = rApi->enumerateDevices({gpuFeatures, {engine::vulkan::runtime::Rhi::Api::Impl::kSwapchainExtName}});
 
     const auto surface = rApi->createSurface(window0.getSurfaceCreateInfo());
+
     if (auto & gpuDevice = gpuDevices[0u]; gpuDevice->checkSurfaceSupport(*surface)) {
         const auto queueFlags = engine::rhi::queue_flags::graphics | engine::rhi::queue_flags::present;
         const auto [index, family] = gpuDevice->getQueueFamily(queueFlags);

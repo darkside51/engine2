@@ -5,12 +5,14 @@
 
 #include <cstdint>
 #include <string>
+#include <string_view>
 #include <utility>
 
 #define LOG_LEVEL_DEBUG 0
 #define LOG_LEVEL_INFO 1
-#define LOG_LEVEL_ERROR 2
-#define LOG_LEVEL_USER 3
+#define LOG_LEVEL_WARNING 2
+#define LOG_LEVEL_ERROR 3
+#define LOG_LEVEL_USER 4
 
 namespace engine {
     template <typename P, typename... Args>
@@ -21,6 +23,7 @@ namespace engine {
     enum class LogLevel : uint8_t {
         eDebug = LOG_LEVEL_DEBUG,
         eInfo = LOG_LEVEL_INFO,
+        eWarning = LOG_LEVEL_WARNING,
         eError = LOG_LEVEL_ERROR,
         eUser = LOG_LEVEL_USER
     };
@@ -31,6 +34,8 @@ namespace engine {
                 return "debug:";
             case LogLevel::eInfo:
                 return "i:";
+            case LogLevel::eWarning:
+                return "warning:";
             case LogLevel::eError:
                 return "error:";
             case LogLevel::eUser:
@@ -63,28 +68,31 @@ namespace engine {
 
     class ConsoleLog {
     public:
-        template <typename...Args>
-        inline void operator() (const char* fmt, Args&&...args) const {
+        template <typename... Args>
+        inline void operator() (const char* fmt, Args &&...args) const {
 	        printf(fmt, std::forward<Args>(args)...);
         }
 
         inline constexpr const char * level(LogLevel l) const noexcept {
-            const char * const kYellow  = "\x1B[33m";
-            const char * const kRed     = "\x1B[31m";
-            const char * const kGreen   = "\x1B[32m";
-            const char * const kCyan    = "\x1B[36m";
-            const char * const kBlack   = "\033[0m";
+            constexpr std::string_view kYellow  = "\x1B[33m";
+            constexpr std::string_view kRed     = "\x1B[31m";
+            constexpr std::string_view kGreen   = "\x1B[32m";
+            constexpr std::string_view kCyan    = "\x1B[36m";
+            constexpr std::string_view kBlack   = "\033[0m";
+            constexpr std::string_view kOrange  = "\x1b[38;5;203m";
 
             switch (l) {
                 case LogLevel::eDebug:
-                    return fmt_string("%s%s%s", kYellow, logLevelToStr(l), kBlack);
+                    return fmt_string("%s%s%s", kYellow.data(), logLevelToStr(l), kBlack.data());
                 case LogLevel::eInfo:
-                    return fmt_string("%s%s%s", kCyan, logLevelToStr(l), kBlack);
+                    return fmt_string("%s%s%s", kCyan.data(), logLevelToStr(l), kBlack.data());
+                case LogLevel::eWarning:
+                    return fmt_string("%s%s%s", kOrange.data(), logLevelToStr(l), kBlack.data());
                 case LogLevel::eError:
-                    return fmt_string("%s%s%s", kRed, logLevelToStr(l), kBlack);
+                    return fmt_string("%s%s%s", kRed.data(), logLevelToStr(l), kBlack.data());
                 case LogLevel::eUser: [[fallthrough]];
                 default:
-                    return fmt_string("%s%s%s", kGreen, logLevelToStr(l), kBlack);
+                    return fmt_string("%s%s%s", kGreen.data(), logLevelToStr(l), kBlack.data());
             }
         }
     };
@@ -112,6 +120,12 @@ namespace engine {
 #define LOG_I(...) engine::Console_Logger{}.log(engine::LogLevel::eInfo, __VA_ARGS__)
 #else
 #define LOG_I(...)
+#endif
+
+#if MIN_LOG_LEVEL <= LOG_LEVEL_WARNING
+#define LOG_W(...) engine::Console_Logger{}.log(engine::LogLevel::eWarning, __VA_ARGS__)
+#else
+#define LOG_W(...)
 #endif
 
 #if MIN_LOG_LEVEL <= LOG_LEVEL_ERROR

@@ -40,6 +40,8 @@ namespace engine::rhi::runtime {
         uint32_t size = 0u;
         CommandType cmdType = CommandType::eUndefined;
         Command(CommandType type, uint32_t size) : cmdType(type), size(size) {}
+
+        inline constexpr void destroy() const noexcept;
     };
 
     struct BeginCommand : Command {
@@ -60,14 +62,14 @@ namespace engine::rhi::runtime {
     struct BeginRenderPassCommand : Command {
         RenderPass renderPass{};
         const FrameBuffer * framebuffer = nullptr; 
-        std::vector<ClearValue> clearValues{};
+        dynamic_array<ClearValue, 4u> clearValues;
         rhi::Rect2D area{};
         BeginRenderPassCommand(RenderPass renderPass, const FrameBufferPtr & framebuffer, 
             std::span<const ClearValue> clearValues, const Rect2D & area) : 
             Command(CommandType::eBeginRenderPass, sizeof(BeginRenderPassCommand)),
             renderPass(renderPass),
             framebuffer(framebuffer.get()),
-            clearValues(clearValues.begin(), clearValues.end()),
+            clearValues(clearValues),
             area(area) {}
     };
 
@@ -183,4 +185,31 @@ namespace engine::rhi::runtime {
     struct PipelineBarrierCommand : Command { // todo!
         PipelineBarrierCommand() : Command(CommandType::ePipelineBarrier, sizeof(PipelineBarrierCommand)) {}
     };
+
+    ///////////////////////////////////////////////
+    inline constexpr void Command::destroy() const noexcept {
+        switch (cmdType) {
+            case CommandType::eUndefined: [[fallthrough]];
+            case CommandType::eBegin: [[fallthrough]];
+            case CommandType::eEnd: [[fallthrough]];
+            case CommandType::eReset: [[fallthrough]];
+            case CommandType::eEndRenderPass: [[fallthrough]];
+            case CommandType::eNextSubpass: [[fallthrough]];
+            case CommandType::eExecuteCommands: [[fallthrough]];
+            case CommandType::eSetViewport: [[fallthrough]];
+            case CommandType::eSetScissor: [[fallthrough]];
+            case CommandType::eBindPipeline: [[fallthrough]];
+            case CommandType::eBindVertexBuffer: [[fallthrough]];
+            case CommandType::eBindIndexBuffer: [[fallthrough]];
+            case CommandType::eBindResource: [[fallthrough]];
+            case CommandType::eDraw: [[fallthrough]];
+            case CommandType::eDrawIndexed: [[fallthrough]];
+            case CommandType::eCopyBuffer2Buffer: [[fallthrough]];
+            case CommandType::eCopyBuffer2Image: [[fallthrough]];
+            case CommandType::ePipelineBarrier:
+                return;
+            case CommandType::eBeginRenderPass: 
+                static_cast<const BeginRenderPassCommand*>(this)->~BeginRenderPassCommand();
+        }
+    }
 }
