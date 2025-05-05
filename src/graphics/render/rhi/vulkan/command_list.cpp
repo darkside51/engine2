@@ -271,15 +271,29 @@ namespace engine::vulkan::runtime {
                 auto & vkDstBuffer = *static_cast<Buffer*>(command->dst);
 
                 auto const usage = vkSrcBuffer.usage();
+
+                VkPipelineStageFlags srcStage = 0;
+                VkAccessFlags srcAccessFlags = 0; 
+
+                const VkPipelineStageFlags dstStage = VkPipelineStageFlagBits::VK_PIPELINE_STAGE_TRANSFER_BIT;
+                const VkDependencyFlags dependency = VkDependencyFlagBits::VK_DEPENDENCY_BY_REGION_BIT;
+                
+                if ((usage & rhi::BufferUsageFlags::eTransfer_Dst) != rhi::BufferUsageFlags::eNone) { // need to check if copy command has been created?
+                    srcStage |= VkPipelineStageFlagBits::VK_PIPELINE_STAGE_TRANSFER_BIT;
+                    srcAccessFlags |= VkAccessFlagBits::VK_ACCESS_TRANSFER_WRITE_BIT;
+                }
+
                 if (vkSrcBuffer.isShadersWriteAllowed() && ((usage & (rhi::BufferUsageFlags::eStorage_Buffer | 
                     rhi::BufferUsageFlags::eStorage_Texel_Buffer)) != rhi::BufferUsageFlags::eNone)) {
-                    auto const srcStage = VkPipelineStageFlagBits::VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT | 
-                                          VkPipelineStageFlagBits::VK_PIPELINE_STAGE_VERTEX_SHADER_BIT; // use other shader stages?
-                    auto const dstStage = VkPipelineStageFlagBits::VK_PIPELINE_STAGE_TRANSFER_BIT;
-                    auto const dependency = VkDependencyFlagBits::VK_DEPENDENCY_BY_REGION_BIT;
+                    srcStage |= VkPipelineStageFlagBits::VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT | 
+                                VkPipelineStageFlagBits::VK_PIPELINE_STAGE_VERTEX_SHADER_BIT; // use other shader stages?
 
+                    srcAccessFlags |= VkAccessFlagBits::VK_ACCESS_SHADER_WRITE_BIT;
+                }
+
+                if (srcAccessFlags != 0) {
                     addBufferBarrier(srcStage, dstStage, dependency, vkDstBuffer.transition(
-                        VkAccessFlagBits::VK_ACCESS_SHADER_WRITE_BIT, 
+                        srcAccessFlags, 
                         VkAccessFlagBits::VK_ACCESS_TRANSFER_READ_BIT, 
                         command->info.dstOffset, command->info.size));
                 }

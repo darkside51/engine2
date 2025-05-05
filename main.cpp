@@ -256,16 +256,14 @@ int main() {
         auto shaderModulesManager = rApi->createShaderModulesManager();
         auto program = loadShadersRuntime(rApi, device, shaderModulesManager);
         auto pipeline = createPipelineRuntime(rApi, device, renderPass, program);
-        auto buffer = createBuffersRuntime(rApi, device);
-        auto buffer2 = createBuffersRuntime2(rApi, device);
-
+        
         const engine::rhi::BufferInfo gpuBufferInfo {
             engine::rhi::BufferUsageFlags::eVertex_Buffer | engine::rhi::BufferUsageFlags::eTransfer_Dst,
             engine::rhi::MemoryPropertyFlags::eDeviceLocal
         };
     
-        auto gpuBuffer = rApi->createBuffer(device, gpuBufferInfo, buffer->sizeInBytes());
-        auto gpuBuffer2 = rApi->createBuffer(device, gpuBufferInfo, buffer2->sizeInBytes());
+        auto gpuBuffer = rApi->createBuffer(device, gpuBufferInfo, sizeof(float) * 9u);
+        auto gpuBuffer2 = rApi->createBuffer(device, gpuBufferInfo, sizeof(uint32_t) * 3u);
 
         const engine::rhi::BufferInfo info {
             engine::rhi::BufferUsageFlags::eUniform_Buffer,
@@ -285,7 +283,7 @@ int main() {
         {
             auto * map = uniformBuffer2->map2<float>();
             map[0u] = 0.0f;
-            map[1u] = 0.15f;
+            map[1u] = 0.25f;
             uniformBuffer2->flush();
             uniformBuffer2->unmap();
         }
@@ -332,6 +330,9 @@ int main() {
                 commandList->begin();
 
                 if (dirtyVertexBuffer) {
+                    auto buffer = createBuffersRuntime(rApi, device);
+                    auto buffer2 = createBuffersRuntime2(rApi, device);
+
                     commandList->copyBuffer2Buffer(buffer, gpuBuffer, 
                         {.srcOffset = 0u, .dstOffset = 0u, .size = buffer->sizeInBytes()});
 
