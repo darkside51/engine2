@@ -13,7 +13,7 @@ namespace engine::vulkan {
 
     Device::Device(const PhysicalDevice & gpu, const rhi::DeviceCreateInfo & info) : 
         _gpu(gpu),
-        _bufferization(info.bufferization), 
+        _inFlightFramesCount(info.inFlightFramesCount), 
         _commandPoolManager(*this, info.commandPoolThreadsCount),
         _renderpassManager(*this),
         _descriptorSetLayoutManager(*this),

@@ -54,7 +54,7 @@ class Device {
 public:
     virtual ~Device() = default;
     virtual void waitIdle() const noexcept = 0;
-    virtual uint8_t bufferization() const noexcept = 0;
+    virtual uint8_t inFlightFramesCount() const noexcept = 0;
     virtual Format getSupportedDepthFormat(uint8_t desiredBpp, bool withStencil, bool samplingSupport = false) const noexcept = 0;
     virtual void resetFrameTmpData(uint8_t frameId) noexcept = 0;
     virtual CommandPool * acquireCommandPool(rhi::queue_flags::flags queueFlags, 
@@ -77,6 +77,7 @@ public:
     virtual void unmap() noexcept = 0;
     virtual void flush(size_t offset = 0u, size_t size = kWholeSize) noexcept = 0;
     virtual void invalidate(size_t offset = 0u, size_t size = kWholeSize) noexcept = 0;
+    virtual bool isHostVisible() const noexcept = 0;
 
     template <typename T>
     inline T * map2() noexcept { return static_cast<T*>(map()); }

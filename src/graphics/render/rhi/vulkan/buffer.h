@@ -57,6 +57,9 @@ namespace engine::vulkan {
         void unmap() noexcept override;
         void flush(size_t offset = 0u, size_t size = VK_WHOLE_SIZE) noexcept override;
         void invalidate(size_t offset = 0u, size_t size = VK_WHOLE_SIZE) noexcept override;
+        bool isHostVisible() const noexcept override {
+            return memoryFlags() & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
+        }
 
         template <typename T>
         inline T * map2() noexcept { return static_cast<T*>(map()); }

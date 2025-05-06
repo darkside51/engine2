@@ -6,7 +6,7 @@
 
 namespace engine::vulkan {
     
-    DescriptorPoolManager::DescriptorPoolManager(Device & device) : _device(device), _pools(device.bufferization() + 1u) {}
+    DescriptorPoolManager::DescriptorPoolManager(Device & device) : _device(device), _pools(device.inFlightFramesCount() + 1u) {}
 
     DescriptorPool & DescriptorPoolManager::createPool(std::span<const std::pair<rhi::shaders::ResourceType, uint32_t>> resources, 
         uint8_t frameIdx, rhi::shaders::DescriptorPoolFlags f, uint32_t maxSets) {

@@ -207,12 +207,11 @@ namespace engine::leaks {
                 uint32_t line = 0u;
                 size_t size = 0u;
                 uint32_t count = 0u;
-                size_t total = 0u;
 
-                Leak(std::string_view a, uint32_t l, size_t s) : str(a), line(l), size(s), count(1u), total(s) {}
+                Leak(std::string_view a, uint32_t l, size_t s) : str(a), line(l), size(s), count(1u) {}
 
                 inline bool operator==(const Leak & l) const noexcept {
-                    return str == l.str && line == l.line;
+                    return str == l.str && line == l.line && size == l.size;
                 }
             };
 
@@ -228,7 +227,6 @@ namespace engine::leaks {
                     Leak l{str, gAllocationInfo->line, gAllocationInfo->size};
                     if (auto it = std::find(leaks.begin(), leaks.end(), l); it != leaks.end()) {
                         ++it->count;
-                        it->total += l.size;
                     } else {
                         leaks.push_back(l);
                     }
@@ -251,10 +249,10 @@ namespace engine::leaks {
             for (const auto l : leaks) {
                 if (l.line != 0xff'ff'ff'ffu) {
                     LOG_I("+ %s, line: %d\ttotal: %zu(bytes)\t(size: %zu(bytes), count: %u)", 
-                        symplificateFileName(l.str).data(), l.line, l.total, l.size, l.count);
+                        symplificateFileName(l.str).data(), l.line, l.size * l.count, l.size, l.count);
                 } else {
-                    LOG_I("+ %s, line: unknown \ttotal: %zu(bytes)\t(size: ?(bytes), count: %u)", 
-                        symplificateFileName(l.str).data(), l.total, l.count);
+                    LOG_I("+ %s, line: unknown \ttotal: %zu(bytes)\t(size: %zu(bytes), count: %u)", 
+                        symplificateFileName(l.str).data(), l.size * l.count, l.size, l.count);
                 }
             }
         }

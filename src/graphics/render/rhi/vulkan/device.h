@@ -91,7 +91,7 @@ public:
         _descriptorPoolManager.resetPools(frameId); // reset temp pools
     }
     
-    uint8_t bufferization() const noexcept override { return _bufferization; }
+    uint8_t inFlightFramesCount() const noexcept override { return _inFlightFramesCount; }
 
 private:
     void createAllocator() noexcept;
@@ -103,7 +103,7 @@ private:
     VkDevice _device = VK_NULL_HANDLE;
     const PhysicalDevice & _gpu;
     std::vector<DeviceQueueFamily> _queueFamilies;
-    uint8_t _bufferization = 3u;
+    uint8_t _inFlightFramesCount = 3u;
 
     GPUMemoryAllocator _memoryAllocator;
     CommandPoolManager _commandPoolManager;

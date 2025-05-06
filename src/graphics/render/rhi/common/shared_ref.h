@@ -21,6 +21,7 @@ namespace engine::rhi::runtime {
         };
 
         sh_ptr(std::nullptr_t) : _counter(nullptr), _data(nullptr), _deleter(nullptr) { }
+        sh_ptr() : sh_ptr(nullptr) {}
 
         explicit sh_ptr(void * mem, uint32_t align, Deleter && d = nullptr) : 
             _counter(static_cast<counter_type*>(mem)),
