@@ -190,6 +190,20 @@ void createBuffers(const std::unique_ptr<engine::rhi::runtime::Rhi> & api,
 
 int main() {
     // engine::tests::execute_tests();
+
+    // todo: 
+    // 1. uniform buffer offsets
+    // 2. textures
+    // 3. glm
+    // 4. imgui
+    // 5. simplify
+    // 6. optimize
+    // 7. dynamic ubo
+    // 8. resize
+    // 9. input
+    // 10. rhi::Result
+    // 11. refactoring
+
     engine::GLFWModule glfwModule;
     
     const engine::rhi::Api<engine::vulkan::Api> api;
@@ -229,10 +243,10 @@ int main() {
 
         auto device = rApi->createDevice(gpuDevice, deviceCreateInfo);
         const auto depthFormat = device->getSupportedDepthFormat(32u, false);
-        const uint8_t buffersCount = device->inFlightFramesCount();
+        const uint8_t inflightFrames = device->inFlightFramesCount();
 
         engine::rhi::SwapchainCreateInfo swapchainCreateInfo = {};
-        swapchainCreateInfo.imagesCount = buffersCount;
+        swapchainCreateInfo.imagesCount = inflightFrames;
         swapchainCreateInfo.queueFamilies.push_back(index);
 
         auto swapchain = rApi->createSwapchain(device, surface, swapchainCreateInfo);
@@ -271,11 +285,9 @@ int main() {
             frameBuffers.emplace_back(rApi->createFrameBuffer(device, std::move(fbAttachemnts), renderPass));
         }
 
-        engine::rhi::FrameIndex frameIndex{static_cast<uint8_t>(buffersCount)};
+        auto queue = rApi->getQueue(device, engine::rhi::queue_flags::graphics | engine::rhi::queue_flags::present, 0u, inflightFrames);
 
-        auto queue = rApi->getQueue(device, engine::rhi::queue_flags::graphics | engine::rhi::queue_flags::present, 0u, buffersCount);
-
-        std::vector<engine::rhi::runtime::Semaphore> readyToPresentSemaphores(buffersCount);
+        std::vector<engine::rhi::runtime::Semaphore> readyToPresentSemaphores(inflightFrames);
         for (auto & semaphore : readyToPresentSemaphores) {
             semaphore = rApi->createSemaphore(device);
         }
@@ -295,7 +307,7 @@ int main() {
             engine::rhi::ClearValue{1.0f}
         };
 
-        // todo: uniform buffer offsets!!!!!!!!
+        engine::rhi::FrameIndex frameIndex{inflightFrames};
 
         threads::Executor w([&](auto & executionContext, float delta) {
             executionContext.performTasks();
@@ -331,7 +343,7 @@ int main() {
                     map[0u] += 0.1f * delta;
                     map[1u] = 0.0f;
                     uniformBufferI->unmap();
-                    uniformBufferI->apply(commandList, frameId);
+                    uniformBufferI->commit(commandList, frameId);
                 }
 
                 commandList->beginRenderPass(renderPass, frameBuffers[imageIndex], clearValues, {{0, 0}, {width, height}});
@@ -351,7 +363,7 @@ int main() {
                 commandList->endRenderPass();
                 commandList->end();
 
-                commandList->flush(frameId);
+                commandList->record(frameId);
                 // render frame
 
                 // submit
@@ -380,8 +392,8 @@ int main() {
 
         w.emplaceTasks(stl::make_vector(threads::WorkerTask{[&](){
             auto * commandPool = device->acquireCommandPool(engine::rhi::queue_flags::graphics | engine::rhi::queue_flags::present);
-            commandLists.reserve(buffersCount);
-            for (size_t i = 0; i < buffersCount; ++i) {
+            commandLists.reserve(inflightFrames);
+            for (size_t i = 0; i < inflightFrames; ++i) {
                 commandLists.emplace_back(rApi->createCommandList(commandPool, engine::rhi::CommandBufferLevel::ePrimary));
             }
         }}));

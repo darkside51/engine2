@@ -46,7 +46,7 @@ namespace engine::rhi::runtime {
 
         void copyBuffer2Buffer(BufferPtr & src, BufferPtr & dst, const CopyInfo & copyInfos);
 
-        virtual void flush(uint8_t frameIdx) noexcept {}
+        virtual void record(uint8_t frameIdx) noexcept {}
         
     protected:
         inline static constexpr size_t kStackSize = 1024u * 1024u; // 1 Mb

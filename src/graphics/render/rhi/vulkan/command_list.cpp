@@ -68,7 +68,7 @@ namespace engine::vulkan::runtime {
         _bufferBarriers.reserve(kBufferBarriersReserveCapacity);
     }
 
-    void CommandList::flush(uint8_t frameIdx) noexcept {
+    void CommandList::record(uint8_t frameIdx) noexcept {
         using namespace rhi::runtime;
 
         constexpr uint8_t kMaxDescriptorsSets = 4u;

@@ -32,7 +32,7 @@ namespace engine::graphics {
         }
     }
 
-    void InflightBuffer::apply(rhi::runtime::CommandListPtr & cmd, uint8_t idx) noexcept {
+    void InflightBuffer::commit(rhi::runtime::CommandListPtr & cmd, uint8_t idx) noexcept {
         if (auto & [buffer, dirty] = _buffers[idx]; dirty) {
             if (buffer->isHostVisible()) { // it is hostVisible
                 auto * memory = buffer->map();
