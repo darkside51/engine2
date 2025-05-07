@@ -26,6 +26,15 @@
 
 #include "graphics/render/rhi/vulkan/runtime.h"
 
+#include "graphics/render/inflight_buffer.h"
+
+engine::rhi::runtime::BufferPtr stagePositions = nullptr;
+engine::rhi::runtime::BufferPtr stageColors = nullptr;
+engine::rhi::runtime::BufferPtr positions = nullptr;
+engine::rhi::runtime::BufferPtr colors = nullptr;
+std::unique_ptr<engine::graphics::InflightBuffer> uniformBufferI = nullptr;
+engine::rhi::runtime::BufferPtr uniformBuffer2 = nullptr;
+
 engine::rhi::RenderPassDescription createRenderPassDescription(engine::rhi::Format colorFormat, engine::rhi::Format depthFormat) {
     std::vector<engine::rhi::AttachmentDescription> attachments(2u);
     attachments[0].format = colorFormat;
@@ -118,137 +127,75 @@ auto createPipelineRuntime(const std::unique_ptr<engine::rhi::runtime::Rhi> & ap
    return api->createGraphicsPipeline(device, renderPass, program, info);
 }
 
-auto createBuffersRuntime(const std::unique_ptr<engine::rhi::runtime::Rhi> & api,
+void createBuffers(const std::unique_ptr<engine::rhi::runtime::Rhi> & api,
     std::unique_ptr<engine::rhi::runtime::Device> & device) {
     using namespace engine::rhi;
 
-    const engine::rhi::BufferInfo info {
-        /*BufferUsageFlags::eVertex_Buffer |*/ engine::rhi::BufferUsageFlags::eTransfer_Src,
-        MemoryPropertyFlags::eHostVisible
-    };
-
-    auto resultBuffer = api->createBuffer(device, info, sizeof(float) * 9u);
-    {
-        auto * map = resultBuffer->map2<float>();
-        map[0u] = -0.5f; map[1u] = 0.5f; map[2u] = 0.1f;
-        map[3u] = 0.5f; map[4u] = 0.5f; map[5u] = 0.1f;
-        map[6u] = 0.0f; map[7u] = -0.5f; map[8u] = 0.1f;
-        resultBuffer->flush();
-        resultBuffer->unmap();
-    }
-
-    return resultBuffer;
-}
-
-struct InflightRefreshableBuffer {
-    struct Data {
-        engine::rhi::runtime::BufferPtr buffer = nullptr;
-        bool dirty = false;
-    };
-    std::vector<Data> buffers;
-    void * tmpMemory = nullptr;
-
-    engine::rhi::runtime::Rhi * api;
-    std::unique_ptr<engine::rhi::runtime::Device> & device;
-
-    ~InflightRefreshableBuffer() {
-        free(tmpMemory);
-        tmpMemory = nullptr;
-    }
-
-    InflightRefreshableBuffer(const std::unique_ptr<engine::rhi::runtime::Rhi> & api,
-        std::unique_ptr<engine::rhi::runtime::Device> & device, const engine::rhi::BufferInfo & info, size_t size) :
-        api(api.get()), 
-        device(device) {
-        buffers.reserve(device->inFlightFramesCount());
-
-        for (uint8_t i = 0u; i < device->inFlightFramesCount(); ++i) {
-            buffers.emplace_back(api->createBuffer(device, info, size), false);
-        }
-
-        tmpMemory = std::malloc(size);
-    }
-
-    void * map() noexcept {
-        return tmpMemory;
-    }
-
-    template <typename T>
-    inline T * map2() noexcept { return static_cast<T*>(map()); }
-
-    void unmap() noexcept {
-        for (auto & [_, dirty]  : buffers) {
-            dirty = true;
-        }
-    }
-
-    void apply(engine::rhi::runtime::CommandListPtr & cmd, uint8_t idx) noexcept {
-        if (auto & [buffer, dirty] = buffers[idx]; dirty) {
-            if (buffer->isHostVisible()) { // it is hostVisible
-                auto * memory = buffer->map();
-                memcpy(memory, tmpMemory, buffer->sizeInBytes());
-                buffer->flush();
-                buffer->unmap();
-            } else { // need use stagingBuffer
-                const engine::rhi::BufferInfo info {
-                    engine::rhi::BufferUsageFlags::eTransfer_Src,
-                    engine::rhi::MemoryPropertyFlags::eHostVisible | engine::rhi::MemoryPropertyFlags::eHostCached
-                };
-            
-                auto stagingBuffer = api->createBuffer(device, info, buffer->sizeInBytes());
-                {
-                    auto * memory = stagingBuffer->map2<float>();
-                    memcpy(memory, tmpMemory, buffer->sizeInBytes());
-                    stagingBuffer->flush();
-                    stagingBuffer->unmap();
-                }
-
-                cmd->copyBuffer2Buffer(stagingBuffer, buffer, {.srcOffset = 0u, .dstOffset = 0u, .size = buffer->sizeInBytes()});
-            }
-
-            dirty = false;
-        }
-    }
-
-    engine::rhi::runtime::BufferPtr & operator()(uint8_t idx) noexcept {
-        return buffers[idx].buffer;
-    }
-
-    const engine::rhi::runtime::BufferPtr & operator()(uint8_t idx) const noexcept {
-        return buffers[idx].buffer;
-    }
-
-};
-
-auto createBuffersRuntime2(const std::unique_ptr<engine::rhi::runtime::Rhi> & api,
-    std::unique_ptr<engine::rhi::runtime::Device> & device) {
-    using namespace engine::rhi;
-
-    const engine::rhi::BufferInfo info {
+    const engine::rhi::BufferInfo stageInfo {
         engine::rhi::BufferUsageFlags::eTransfer_Src,
         MemoryPropertyFlags::eHostVisible
     };
 
-    auto resultBuffer = api->createBuffer(device, info, sizeof(uint32_t) * 3u);
+    stagePositions = api->createBuffer(device, stageInfo, sizeof(float) * 9u);
     {
-        auto * map = resultBuffer->map2<uint32_t>();
-        map[0u] = 0xff'00'ff'00u; map[1u] = 0xff'00'00'ffu; map[2u] = 0xff'ff'00'00u;
-        resultBuffer->flush();
-        resultBuffer->unmap();
+        auto * map = stagePositions->map2<float>();
+        map[0u] = -0.5f; map[1u] = 0.5f; map[2u] = 0.1f;
+        map[3u] = 0.5f; map[4u] = 0.5f; map[5u] = 0.1f;
+        map[6u] = 0.0f; map[7u] = -0.5f; map[8u] = 0.1f;
+        stagePositions->flush();
+        stagePositions->unmap();
     }
 
-    return resultBuffer;
+    stageColors = api->createBuffer(device, stageInfo, sizeof(uint32_t) * 3u);
+    {
+        auto * map = stageColors->map2<uint32_t>();
+        map[0u] = 0xff'00'ff'00u; map[1u] = 0xff'00'00'ffu; map[2u] = 0xff'ff'00'00u;
+        stageColors->flush();
+        stageColors->unmap();
+    }
+
+    const engine::rhi::BufferInfo localInfo {
+        engine::rhi::BufferUsageFlags::eVertex_Buffer | engine::rhi::BufferUsageFlags::eTransfer_Dst,
+        engine::rhi::MemoryPropertyFlags::eDeviceLocal
+    };
+
+    positions = api->createBuffer(device, localInfo, stagePositions->sizeInBytes());
+    colors = api->createBuffer(device, localInfo, stageColors->sizeInBytes());
+
+    // uniforms
+    engine::rhi::BufferInfo unifromsInfo {
+        engine::rhi::BufferUsageFlags::eUniform_Buffer,
+        engine::rhi::MemoryPropertyFlags::eHostVisible
+    };
+
+    uniformBuffer2 = api->createBuffer(device, unifromsInfo, sizeof(float) * 2u);
+    {
+        auto * map = uniformBuffer2->map2<float>();
+        map[0u] = 0.0f;
+        map[1u] = 0.25f;
+        uniformBuffer2->flush();
+        uniformBuffer2->unmap();
+    }
+
+    unifromsInfo.memoryFlags = engine::rhi::MemoryPropertyFlags::eDeviceLocal;
+    unifromsInfo.usage = unifromsInfo.usage | engine::rhi::BufferUsageFlags::eTransfer_Dst;
+    uniformBufferI = std::make_unique<engine::graphics::InflightBuffer>(api, device, unifromsInfo, sizeof(uint32_t) * 2u);
+    {
+        auto * map = uniformBufferI->map2<float>();
+        map[0u] = -0.5f;
+        map[1u] = 0.0f;
+        uniformBufferI->unmap();
+    }
 }
 
 int main() {
-    engine::tests::execute_tests();
-
+    // engine::tests::execute_tests();
     engine::GLFWModule glfwModule;
     
     const engine::rhi::Api<engine::vulkan::Api> api;
     using Api = decltype(api);
 
-    auto & window0 = glfwModule.open(Api::name().data());
+    auto & window0 = glfwModule.createWindow(Api::name().data());
     window0.setVisible(false);
 
     bool const kUseApiDebugMessages = true;
@@ -336,53 +283,10 @@ int main() {
         auto shaderModulesManager = rApi->createShaderModulesManager();
         auto program = loadShadersRuntime(rApi, device, shaderModulesManager);
         auto pipeline = createPipelineRuntime(rApi, device, renderPass, program);
-        
-        const engine::rhi::BufferInfo gpuBufferInfo {
-            engine::rhi::BufferUsageFlags::eVertex_Buffer | engine::rhi::BufferUsageFlags::eTransfer_Dst,
-            engine::rhi::MemoryPropertyFlags::eDeviceLocal
-        };
-    
-        auto gpuBuffer = rApi->createBuffer(device, gpuBufferInfo, sizeof(float) * 9u);
-        auto gpuBuffer2 = rApi->createBuffer(device, gpuBufferInfo, sizeof(uint32_t) * 3u);
+        createBuffers(rApi, device);
 
-        /*const*/ engine::rhi::BufferInfo info {
-            engine::rhi::BufferUsageFlags::eUniform_Buffer,
-            engine::rhi::MemoryPropertyFlags::eHostVisible
-        };
-    
-        auto uniformBuffer = rApi->createBuffer(device, info, sizeof(float) * 2u);
-        {
-            auto * map = uniformBuffer->map2<float>();
-            map[0u] = -0.5f;
-            map[1u] = 0.0f;
-            uniformBuffer->flush();
-            uniformBuffer->unmap();
-        }
-
-        auto uniformBuffer2 = rApi->createBuffer(device, info, sizeof(float) * 2u);
-        {
-            auto * map = uniformBuffer2->map2<float>();
-            map[0u] = 0.0f;
-            map[1u] = 0.25f;
-            uniformBuffer2->flush();
-            uniformBuffer2->unmap();
-        }
-
-        info.memoryFlags = engine::rhi::MemoryPropertyFlags::eDeviceLocal;
-        info.usage = info.usage | engine::rhi::BufferUsageFlags::eTransfer_Dst;
-        InflightRefreshableBuffer uniformBufferD(rApi, device, info, sizeof(uint32_t) * 2u);
-        {
-            auto * map = uniformBufferD.map2<float>();
-            map[0u] = -0.5f;
-            map[1u] = 0.0f;
-            uniformBufferD.unmap();
-        }
-
-        // reserve frames data
         std::vector<engine::rhi::runtime::CommandListPtr> commandLists;
         
-        bool dirtyVertexBuffer = true;
-        bool renderInited = false;
         constexpr float inputCheckTime = 1.0f / 60.0f;
         constexpr float redrawTime = 1.0f / 120.0f;
 
@@ -391,28 +295,14 @@ int main() {
             engine::rhi::ClearValue{1.0f}
         };
 
+        // todo: uniform buffer offsets!!!!!!!!
+
         threads::Executor w([&](auto & executionContext, float delta) {
             executionContext.performTasks();
-            if (renderInited) {
+            if (!commandLists.empty()) {
                 const auto frameId = frameIndex();
 
                 auto const waitSubmitResult = queue->waitSubmit(frameId); // result!!!
-
-                //
-                { // test ubo update
-                    auto * map = uniformBuffer->map2<float>();
-                    map[0u] += 0.1f * delta;
-                    map[1u] = 0.0f;
-                    uniformBuffer->flush();
-                    uniformBuffer->unmap();
-                }
-                { // test ubo update
-                    auto * map = uniformBufferD.map2<float>();
-                    map[0u] += 0.1f * delta;
-                    map[1u] = 0.0f;
-                    uniformBufferD.unmap();
-                }
-                //
 
                 const auto [imageIndex, success] = swapchain->acquireNextImage(frameId);
 
@@ -425,21 +315,24 @@ int main() {
                 auto & commandList = commandLists[frameId];
                 commandList->begin();
 
-                if (dirtyVertexBuffer) {
-                    auto buffer = createBuffersRuntime(rApi, device);
-                    auto buffer2 = createBuffersRuntime2(rApi, device);
+                if (stagePositions) {
+                    commandList->copyBuffer2Buffer(stagePositions, positions, 
+                        {.srcOffset = 0u, .dstOffset = 0u, .size = stagePositions->sizeInBytes()});
 
-                    commandList->copyBuffer2Buffer(buffer, gpuBuffer, 
-                        {.srcOffset = 0u, .dstOffset = 0u, .size = buffer->sizeInBytes()});
+                    commandList->copyBuffer2Buffer(stageColors, colors, 
+                        {.srcOffset = 0u, .dstOffset = 0u, .size = stageColors->sizeInBytes()});
 
-                    commandList->copyBuffer2Buffer(buffer2, gpuBuffer2, 
-                        {.srcOffset = 0u, .dstOffset = 0u, .size = buffer2->sizeInBytes()});
-                    dirtyVertexBuffer = false;
+                    stagePositions = nullptr;
+                    stageColors = nullptr;
                 }
 
-                // apply uniformBufferChanges
-                uniformBufferD.apply(commandList, frameId);
-                //
+                { // update uniforms
+                    auto * map = uniformBufferI->map2<float>();
+                    map[0u] += 0.1f * delta;
+                    map[1u] = 0.0f;
+                    uniformBufferI->unmap();
+                    uniformBufferI->apply(commandList, frameId);
+                }
 
                 commandList->beginRenderPass(renderPass, frameBuffers[imageIndex], clearValues, {{0, 0}, {width, height}});
 
@@ -448,12 +341,11 @@ int main() {
 
                 commandList->bindPipeline(pipeline);
 
-                // commandList->bindBuffer(0u, uniformBuffer);
-                commandList->bindBuffer(0u, uniformBufferD(frameId));
+                commandList->bindBuffer(0u, (*uniformBufferI)(frameId));
                 commandList->bindBuffer(1u, uniformBuffer2);
 
-                commandList->bindVertexBuffer(0u, gpuBuffer);
-                commandList->bindVertexBuffer(1u, gpuBuffer2);
+                commandList->bindVertexBuffer(0u, positions);
+                commandList->bindVertexBuffer(1u, colors);
                 commandList->draw(3u);
                 
                 commandList->endRenderPass();
@@ -492,7 +384,6 @@ int main() {
             for (size_t i = 0; i < buffersCount; ++i) {
                 commandLists.emplace_back(rApi->createCommandList(commandPool, engine::rhi::CommandBufferLevel::ePrimary));
             }
-            renderInited = true;
         }}));
 
         window0.setVisible(true);
@@ -500,6 +391,15 @@ int main() {
         window0.setOnClose([&]() {
             w.stop();
             device->waitIdle();
+
+            stagePositions = nullptr;
+            stageColors = nullptr;
+
+            positions = nullptr;
+            colors = nullptr;
+
+            uniformBufferI = nullptr;
+            uniformBuffer2 = nullptr;
 
             for (auto & semaphore : readyToPresentSemaphores) {
                 rApi->destroySemaphore(device, semaphore);

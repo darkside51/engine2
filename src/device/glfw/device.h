@@ -56,7 +56,7 @@ namespace rhi {
         GLFWModule();
         ~GLFWModule();
 
-        GLFWDevice & open(std::string_view name);
+        GLFWDevice & createWindow(std::string_view name);
 
         bool process();
         void stop();

@@ -99,6 +99,8 @@ namespace engine::rhi::runtime {
         T & operator*() noexcept { return *_data; }
         const T & operator*() const noexcept { return *_data; }
 
+        explicit operator bool() const noexcept { return _data != nullptr; }
+
         void * memory() noexcept {
             return _counter;
         }

@@ -17,7 +17,7 @@ namespace engine {
         glfwTerminate();
     }
 
-    GLFWDevice & GLFWModule::open(std::string_view name) {
+    GLFWDevice & GLFWModule::createWindow(std::string_view name) {
         return *_devices.emplace_back(std::make_unique<GLFWDevice>(name));
     }
 
