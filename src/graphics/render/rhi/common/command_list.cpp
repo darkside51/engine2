@@ -2,6 +2,8 @@
 
 namespace engine::rhi::runtime {
 
+    // todo: need to create state and really command must be created only if need it!
+
     void CommandList::clear() {
         _commands->clear();
         _commandsCount = 0u;

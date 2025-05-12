@@ -185,12 +185,13 @@ void createBuffers(const std::unique_ptr<engine::rhi::runtime::Rhi> & api,
     const size_t kUniformBufferOffsetAlign = device->getUniformBufferOffsetAlignment();
     uniformBufferI = std::make_unique<engine::graphics::InflightBuffer>(api, device, unifromsInfo, std::max(kUniformBufferOffsetAlign, sizeof(float) * 2u) * 2u);
     {
-        auto * map = uniformBufferI->map2<float>();
+        using T = float;
+        auto * map = uniformBufferI->map2<T>();
         map[0u] = -0.5f;
         map[1u] = 0.0f;
 
-        map[kUniformBufferOffsetAlign / sizeof(float) + 0u] = 0.0f;
-        map[kUniformBufferOffsetAlign / sizeof(float) + 1u] = -0.35f;
+        map[kUniformBufferOffsetAlign / sizeof(T) + 0u] = 0.0f;
+        map[kUniformBufferOffsetAlign / sizeof(T) + 1u] = -0.35f;
         uniformBufferI->unmap();
     }
 }
@@ -200,12 +201,12 @@ int main() {
 
     // todo: 
     // 1. /*uniform buffer offsets*/ (and external staging buffer for inflightBuffer)
-    // 2. textures
-    // 3. glm
-    // 4. imgui
-    // 5. simplify
-    // 6. optimize
-    // 7. dynamic ubo
+    // 2. dynamic ubo
+    // 3. textures
+    // 4. glm
+    // 5. imgui
+    // 6. simplify
+    // 7. optimize
     // 8. resize
     // 9. input
     // 10. rhi::Result
