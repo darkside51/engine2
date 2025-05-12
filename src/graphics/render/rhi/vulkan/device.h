@@ -93,6 +93,11 @@ public:
     
     uint8_t inFlightFramesCount() const noexcept override { return _inFlightFramesCount; }
 
+    // support
+    size_t getUniformBufferOffsetAlignment() const noexcept override;
+    size_t getStorageBufferOffsetAlignment() const noexcept override;
+    size_t getTexelBufferOffsetAlignment() const noexcept override;
+
 private:
     void createAllocator() noexcept;
     void destroyAllocator() noexcept;

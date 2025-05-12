@@ -21,6 +21,7 @@ namespace engine::rhi {
     // }
 
     inline constexpr uint64_t kWholeSize = ~0ULL;
+    inline constexpr uint32_t kWholeSize32 = (~0U);
 
     struct Offset2D {
         int32_t x {};

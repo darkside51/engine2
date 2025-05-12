@@ -242,4 +242,16 @@ namespace engine::vulkan {
         vkDestroyDescriptorSetLayout(_device, layout, _gpu.getInstance().getAllocationCallbacks());
     }
 
+    size_t Device::getUniformBufferOffsetAlignment() const noexcept {
+        return _gpu.deviceProperties().limits.minUniformBufferOffsetAlignment;
+    }
+
+    size_t Device::getStorageBufferOffsetAlignment() const noexcept {
+        return _gpu.deviceProperties().limits.minStorageBufferOffsetAlignment;
+    }
+
+    size_t Device::getTexelBufferOffsetAlignment() const noexcept {
+        return _gpu.deviceProperties().limits.minTexelBufferOffsetAlignment;
+    }
+
 }

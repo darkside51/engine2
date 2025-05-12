@@ -28,6 +28,8 @@
 
 #include "graphics/render/inflight_buffer.h"
 
+#include <algorithm>
+
 engine::rhi::runtime::BufferPtr stagePositions = nullptr;
 engine::rhi::runtime::BufferPtr stageColors = nullptr;
 engine::rhi::runtime::BufferPtr positions = nullptr;
@@ -49,7 +51,7 @@ engine::rhi::RenderPassDescription createRenderPassDescription(engine::rhi::Form
     attachments[1].initialLayout = engine::rhi::ImageLayout::eUndefined;
     attachments[1].finalLayout = engine::rhi::ImageLayout::eDepth_Stencil_Attachment_Optimal;
 
-    std::vector<engine::rhi::SubpassDescription> subpasses{1};
+    std::vector<engine::rhi::SubpassDescription> subpasses(1u);
     subpasses[0].colorAttachments = {{
         .pNext = {nullptr, 0u},
         .attachment = 0u,
@@ -179,11 +181,16 @@ void createBuffers(const std::unique_ptr<engine::rhi::runtime::Rhi> & api,
 
     unifromsInfo.memoryFlags = engine::rhi::MemoryPropertyFlags::eDeviceLocal;
     unifromsInfo.usage = unifromsInfo.usage | engine::rhi::BufferUsageFlags::eTransfer_Dst;
-    uniformBufferI = std::make_unique<engine::graphics::InflightBuffer>(api, device, unifromsInfo, sizeof(uint32_t) * 2u);
+
+    const size_t kUniformBufferOffsetAlign = device->getUniformBufferOffsetAlignment();
+    uniformBufferI = std::make_unique<engine::graphics::InflightBuffer>(api, device, unifromsInfo, std::max(kUniformBufferOffsetAlign, sizeof(float) * 2u) * 2u);
     {
         auto * map = uniformBufferI->map2<float>();
         map[0u] = -0.5f;
         map[1u] = 0.0f;
+
+        map[kUniformBufferOffsetAlign / sizeof(float) + 0u] = 0.0f;
+        map[kUniformBufferOffsetAlign / sizeof(float) + 1u] = -0.35f;
         uniformBufferI->unmap();
     }
 }
@@ -192,7 +199,7 @@ int main() {
     // engine::tests::execute_tests();
 
     // todo: 
-    // 1. uniform buffer offsets
+    // 1. /*uniform buffer offsets*/ (and external staging buffer for inflightBuffer)
     // 2. textures
     // 3. glm
     // 4. imgui
@@ -309,6 +316,8 @@ int main() {
 
         engine::rhi::FrameIndex frameIndex{inflightFrames};
 
+        const size_t kUniformBufferOffsetAlign = device->getUniformBufferOffsetAlignment();
+
         threads::Executor w([&](auto & executionContext, float delta) {
             executionContext.performTasks();
             if (!commandLists.empty()) {
@@ -342,6 +351,7 @@ int main() {
                     auto * map = uniformBufferI->map2<float>();
                     map[0u] += 0.1f * delta;
                     map[1u] = 0.0f;
+                    
                     uniformBufferI->unmap();
                     uniformBufferI->commit(commandList, frameId);
                 }
@@ -353,8 +363,9 @@ int main() {
 
                 commandList->bindPipeline(pipeline);
 
-                commandList->bindBuffer(0u, (*uniformBufferI)(frameId));
-                commandList->bindBuffer(1u, uniformBuffer2);
+                commandList->bindBuffer(0u, (*uniformBufferI)(frameId), 0u, 0u, sizeof(float) * 2u);
+                commandList->bindBuffer(1u, (*uniformBufferI)(frameId), 0u, kUniformBufferOffsetAlign, sizeof(float) * 2u);
+                // commandList->bindBuffer(1u, uniformBuffer2);
 
                 commandList->bindVertexBuffer(0u, positions);
                 commandList->bindVertexBuffer(1u, colors);

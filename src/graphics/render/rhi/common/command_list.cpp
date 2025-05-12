@@ -78,8 +78,8 @@ namespace engine::rhi::runtime {
         ++_commandsCount;
     }
 
-    void CommandList::bindBuffer(uint16_t binding, const Buffer * buffer, uint8_t setId) {
-        _commands->create<BindResourceCommand>(binding, buffer, setId);
+    void CommandList::bindBuffer(uint16_t binding, const Buffer * buffer, uint8_t setId, uint32_t offset, uint32_t range) {
+        _commands->create<BindResourceCommand>(binding, buffer, setId, offset, range);
         ++_commandsCount;
     }
 
@@ -96,9 +96,9 @@ namespace engine::rhi::runtime {
         ++_commandsCount;
     }
 
-    void CommandList::bindBuffer(uint16_t binding, BufferPtr & buffer, uint8_t setId) {
+    void CommandList::bindBuffer(uint16_t binding, BufferPtr & buffer, uint8_t setId, uint32_t offset, uint32_t range) {
         _resources.push_back(buffer);
-        _commands->create<BindResourceCommand>(binding, buffer.get(), setId);
+        _commands->create<BindResourceCommand>(binding, buffer.get(), setId, offset, range);
         ++_commandsCount;
     }
 ///////////////////////

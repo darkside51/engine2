@@ -22,8 +22,6 @@ struct GraphicsPipelineStatesInfo;
 
 namespace engine::rhi::runtime {
 
-constexpr uint32_t kWholeSize = (~0U);
-
 using RenderPass = void*;
 using Fence = void*;
 using Semaphore = void*;
@@ -59,6 +57,10 @@ public:
     virtual void resetFrameTmpData(uint8_t frameId) noexcept = 0;
     virtual CommandPool * acquireCommandPool(rhi::queue_flags::flags queueFlags, 
         rhi::CommandPoolCreateFlags poolFlags = rhi::CommandPoolCreateFlags::eReset_Command_Buffer) noexcept = 0;
+
+    virtual size_t getUniformBufferOffsetAlignment() const noexcept = 0;
+    virtual size_t getStorageBufferOffsetAlignment() const noexcept = 0;
+    virtual size_t getTexelBufferOffsetAlignment() const noexcept = 0;    
 };
 
 struct PipeLineResource {

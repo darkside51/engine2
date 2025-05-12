@@ -1,6 +1,7 @@
 #include "descriptor_set_updater.h"
 
 #include "device.h"
+#include "physical_device.h"
 #include "descriptor_set.h"
 #include "buffer.h"
 #include "vk_types.h"
@@ -165,7 +166,7 @@ namespace engine::vulkan {
         }
     }
 
-    void DescriptorSetUpdater::updateBuffer(const Buffer* buffer, uint32_t binding) noexcept {
+    void DescriptorSetUpdater::updateBuffer(const Buffer* buffer, uint32_t binding, uint32_t offset, uint32_t range) noexcept {
         if (!isValid()) { 
             return; 
         }
@@ -178,10 +179,20 @@ namespace engine::vulkan {
         if (it != view.end()) {
             const auto vkBuffer = buffer->operator()();
             auto & info = it->info;
-            if (info.buffer != vkBuffer) {
+
+            // offset must be aligned :
+            // VkPhysicalDeviceLimits::minUniformBufferOffsetAlignment
+            // const auto align = _device->gpu().deviceProperties().limits.minUniformBufferOffsetAlignment;
+            // const auto align = _device->gpu().deviceProperties().limits.minTexelBufferOffsetAlignment;
+            // const auto align = _device->gpu().deviceProperties().limits.minStorageBufferOffsetAlignment;
+            // _layout->findLayout(binding)->type; or can use buffer->usage() for get type
+            // offset = align_value(offset, align);
+
+            const auto finalRange = (range == rhi::kWholeSize32) ? static_cast<VkDeviceSize>(buffer->sizeInBytes()) : static_cast<VkDeviceSize>(range);
+            if (info.buffer != vkBuffer || info.offset != offset || info.range != finalRange) {
                 info.buffer = vkBuffer;
-                info.offset = 0u;
-                info.range = static_cast<VkDeviceSize>(buffer->sizeInBytes());
+                info.offset = offset;
+                info.range = finalRange;
                 _buffersDirty = true;
             }
         }

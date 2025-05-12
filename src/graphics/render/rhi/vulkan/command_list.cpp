@@ -235,9 +235,8 @@ namespace engine::vulkan::runtime {
                     changedSets |= 1u << setId;
 
                     if (command->buffer) {
-                        command->offset; // todo!!!
-                        command->range;
-                        descriptorSetUpdaters[setId].updateBuffer(static_cast<const Buffer*>(command->buffer), command->binding);
+                        descriptorSetUpdaters[setId].updateBuffer(static_cast<const Buffer*>(command->buffer), 
+                            command->binding, command->offset, command->range);
                     }
 
                     //...
