@@ -79,17 +79,29 @@ namespace engine::vulkan::runtime {
         auto & device = const_cast<Device&>(_pool->getDevice()); // todo remove const_cast
         const Pipeline * currentPipeline = nullptr;
         std::array<DescriptorSetUpdater, kMaxDescriptorsSets> descriptorSetUpdaters;
-        std::array<DescriptorSet, kMaxDescriptorsSets> descriptorSets;
-        engine::dynamic_array<uint32_t, kMaxDescriptorsSets * DescriptorSetUpdater::kDescriptorsOnStackLimit> dynamicOffsets;
 
         uint8_t changedSets = 0u;
+        uint8_t changeDynamicBufferSets = 0u;
+        std::array<VkDescriptorSet, kMaxDescriptorsSets> descriptorSets;
 
         const auto applyDescriptorSets = [&]() noexcept {
-            std::array<VkDescriptorSet, kMaxDescriptorsSets> descriptorSets;
             uint8_t firstSet = 0xffu;
+            dynamic_array<uint32_t, kMaxDescriptorsSets * DescriptorSetUpdater::kDescriptorsOnStackLimit> dynamicOffsets;
 
             for (uint8_t set = 0u; set < kMaxDescriptorsSets; ++set) {
-                if (((changedSets >> set) & 1u) == 1u) {
+                const bool changeDynamicOffset = ((changeDynamicBufferSets >> set) & 1u) == 1u;
+                const bool changeSet = ((changedSets >> set) & 1u) == 1u;
+
+                if (changeDynamicOffset) {
+                    // fill dynamicOffsets
+                    descriptorSetUpdaters[set].fillDynamicOffsets(dynamicOffsets);
+
+                    if (firstSet == 0xffu) {
+                        firstSet = set;
+                    }
+                }
+
+                if (changeSet) {
                     const auto * setLayout = currentPipeline->getProgram()->getLayout(set);
                     auto & pool = device.getDescriptorPoolManager().getCompatiblePool(*setLayout, frameIdx);
                     const auto descriptorSet = pool.allocateDescriptorSet(*setLayout);
@@ -99,15 +111,23 @@ namespace engine::vulkan::runtime {
                     if (firstSet == 0xffu) {
                         firstSet = set;
                     }
-                } else if (firstSet != 0xffu) {
-                    _commandbuffer.bindDescriptorSets(std::span{descriptorSets.begin() + firstSet, descriptorSets.begin() + set}, {}, firstSet);
+                } 
+                
+                if (firstSet != 0xffu && !changeDynamicOffset && !changeSet) {
+                    _commandbuffer.bindDescriptorSets(std::span{descriptorSets.begin() + firstSet, descriptorSets.begin() + set},
+                        dynamicOffsets.view(), firstSet);
                     firstSet = 0xffu;
+                    dynamicOffsets.clear();
                 }
             }
 
             if (firstSet != 0xffu) {
-                _commandbuffer.bindDescriptorSets(std::span{descriptorSets.begin() + firstSet, descriptorSets.end()}, {}, firstSet);
+                _commandbuffer.bindDescriptorSets(std::span{descriptorSets.begin() + firstSet, descriptorSets.end()}, 
+                    dynamicOffsets.view(), firstSet);
             }
+
+            changedSets = 0u;
+            changeDynamicBufferSets = 0u;
         };
 
         while ((_commandsCount--) > 0u) {
@@ -118,7 +138,7 @@ namespace engine::vulkan::runtime {
                 _commandbuffer.begin();
                 currentPipeline = nullptr;
                 changedSets = 0u;
-                dynamicOffsets.clear();
+                changeDynamicBufferSets = 0u;
                 resetState();
             }
                 break;
@@ -134,7 +154,7 @@ namespace engine::vulkan::runtime {
                 _commandbuffer.reset(command->flags);
                 currentPipeline = nullptr;
                 changedSets = 0u;
-                dynamicOffsets.clear();
+                changeDynamicBufferSets = 0u;
                 resetState();
             }
                 break;
@@ -205,7 +225,7 @@ namespace engine::vulkan::runtime {
                         descriptorSetUpdater.invalidate();
                     }
                     changedSets = 0u;
-                    dynamicOffsets.clear();
+                    changeDynamicBufferSets = 0u;
                 }
 
                 currentPipeline = static_cast<const Pipeline *>(command->pipeline);
@@ -237,11 +257,24 @@ namespace engine::vulkan::runtime {
                 }
 
                 if (descriptorSetUpdaters[setId]) {
-                    changedSets |= 1u << setId;
-
+                    
                     if (command->buffer) {
-                        descriptorSetUpdaters[setId].updateBuffer(static_cast<const Buffer*>(command->buffer), 
+                        const auto bufferUpdateResult = descriptorSetUpdaters[setId].updateBuffer(static_cast<const Buffer*>(command->buffer), 
                             command->binding, command->offset, command->range);
+                        
+                        switch (bufferUpdateResult) {
+                            case DescriptorSetUpdater::BufferUpdateResult::eChangeBufferOrOffset:
+                                changedSets |= 1u << setId;
+                                break;
+                            case DescriptorSetUpdater::BufferUpdateResult::eChangeDynamicOffset:
+                                changeDynamicBufferSets |= 1u << setId;
+                                break;
+                            case DescriptorSetUpdater::BufferUpdateResult::eChangeBufferAndDynamicOffset:
+                                changedSets |= 1u << setId;
+                                changeDynamicBufferSets |= 1u << setId;
+                                break;
+                            default: break;
+                        }
                     }
 
                     //...

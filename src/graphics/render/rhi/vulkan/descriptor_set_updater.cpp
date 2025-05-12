@@ -169,9 +169,10 @@ namespace engine::vulkan {
         }
     }
 
-    void DescriptorSetUpdater::updateBuffer(const Buffer* buffer, uint32_t binding, uint32_t offset, uint32_t range, bool isDynamic) noexcept {
+    DescriptorSetUpdater::BufferUpdateResult DescriptorSetUpdater::updateBuffer(const Buffer* buffer, 
+        uint32_t binding, uint32_t offset, uint32_t range) noexcept {
         if (!isValid()) { 
-            return; 
+            return BufferUpdateResult::eNone; 
         }
 
         const auto view = _buffersInfo.view();
@@ -191,13 +192,14 @@ namespace engine::vulkan {
             // _layout->findLayout(binding)->type; or can use buffer->usage() for get type
             // offset = align_value(offset, align);
 
+            const auto type = _layout->findLayout(binding)->type;
+            const bool isDynamic = type == rhi::shaders::DescriptorType::eUniform_Buffer_Dynamic || 
+                                   type == rhi::shaders::DescriptorType::eStorage_Buffer_Dynamic;
+
             if (isDynamic) {
                 // store offset
-                // ... 
-                info.vkInfo.offset = offset;
-
-                // reset input data
-                range = rhi::kWholeSize32;
+                info.dynamicOffset = offset;
+                // reset input data offset
                 offset = 0u;
             }
 
@@ -207,8 +209,13 @@ namespace engine::vulkan {
                 info.vkInfo.offset = offset;
                 info.vkInfo.range = finalRange;
                 _buffersDirty = true;
+                return isDynamic ? BufferUpdateResult::eChangeBufferAndDynamicOffset : BufferUpdateResult::eChangeBufferOrOffset;
             }
+
+            return BufferUpdateResult::eChangeDynamicOffset;
         }
+
+        return BufferUpdateResult::eNone;
     }
 
     void DescriptorSetUpdater::updateImage(std::tuple<VkSampler, VkImageView, VkImageLayout> image, uint32_t binding) noexcept {
@@ -249,6 +256,18 @@ namespace engine::vulkan {
             if (bufferView != vkBufferView) {
                 bufferView = vkBufferView;
                 _texelBufferDirty = true;
+            }
+        }
+    }
+
+    void DescriptorSetUpdater::fillDynamicOffsets(dynamic_array<uint32_t, 4u * kDescriptorsOnStackLimit> & dynamicOffsets) noexcept {
+        if (!isValid()) { 
+            return; 
+        }
+
+        for (const auto & bufferView : _buffersInfo.view()) {
+            if (bufferView.info.dynamicOffset != 0xff'ff'ff'ffu) {
+                dynamicOffsets.emplace_back(bufferView.info.dynamicOffset);
             }
         }
     }

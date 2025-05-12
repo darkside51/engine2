@@ -26,6 +26,13 @@ namespace engine::vulkan {
         inline static constexpr uint8_t kDescriptorsOnStackLimit = 8u;
         inline static constexpr uint8_t kWritesOnStackLimit = 16u;
 
+        enum class BufferUpdateResult : uint8_t {
+            eNone = 0u,
+            eChangeBufferOrOffset = 1u,
+            eChangeDynamicOffset = 2u,
+            eChangeBufferAndDynamicOffset = eChangeBufferOrOffset | eChangeDynamicOffset
+        };
+
         DescriptorSetUpdater() = default;
         explicit DescriptorSetUpdater(const Device & device, const engine::rhi::shaders::BindingSetLayout & layout);
 
@@ -36,14 +43,17 @@ namespace engine::vulkan {
         void updateImages(std::span<const std::tuple<VkSampler, VkImageView, VkImageLayout, uint32_t>> imageBindings) noexcept;
         void updatetexelBuffers(std::span<const std::tuple<Buffer*, rhi::Format, uint32_t>> texelBufferBindings) noexcept;
 
-        void updateBuffer(const Buffer* buffer, uint32_t binding, 
-            uint32_t offset = 0u, uint32_t range = rhi::kWholeSize32, bool isDynamic = false) noexcept;
+        BufferUpdateResult updateBuffer(const Buffer* buffer, uint32_t binding, 
+            uint32_t offset = 0u, uint32_t range = rhi::kWholeSize32) noexcept;
         void updateImage(std::tuple<VkSampler, VkImageView, VkImageLayout> image, uint32_t binding) noexcept;
         void updatetexelBuffer(Buffer* buffer, rhi::Format format, uint32_t binding) noexcept;
 
         void flush(const DescriptorSet & set) noexcept;
 
         void invalidate() noexcept { _layout = nullptr; }
+
+        void fillDynamicOffsets(dynamic_array<uint32_t, 4u * kDescriptorsOnStackLimit> & dynamicOffsets) noexcept;
+
     private:
         template <typename T>
         struct DescriptorInfo{

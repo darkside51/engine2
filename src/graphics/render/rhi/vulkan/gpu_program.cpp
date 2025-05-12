@@ -67,6 +67,7 @@ namespace {
             case SPV_REFLECT_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER: return DescriptorType::eUniform_Texel_Buffer;
             case SPV_REFLECT_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER: return DescriptorType::eStorage_Texel_Buffer;
             case SPV_REFLECT_DESCRIPTOR_TYPE_UNIFORM_BUFFER: return DescriptorType::eUniform_Buffer;
+            // case SPV_REFLECT_DESCRIPTOR_TYPE_UNIFORM_BUFFER: return DescriptorType::eUniform_Buffer_Dynamic; // how to check dynamic?
             case SPV_REFLECT_DESCRIPTOR_TYPE_STORAGE_BUFFER: return DescriptorType::eStorage_Buffer;
             case SPV_REFLECT_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC: return DescriptorType::eUniform_Buffer_Dynamic;
             case SPV_REFLECT_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC: return DescriptorType::eStorage_Buffer_Dynamic;

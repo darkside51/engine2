@@ -364,12 +364,17 @@ int main() {
 
                 commandList->bindPipeline(pipeline);
 
+                // first triangle
                 commandList->bindBuffer(0u, (*uniformBufferI)(frameId), 0u, 0u, sizeof(float) * 2u);
                 commandList->bindBuffer(1u, (*uniformBufferI)(frameId), 0u, kUniformBufferOffsetAlign, sizeof(float) * 2u);
-                // commandList->bindBuffer(1u, uniformBuffer2);
 
                 commandList->bindVertexBuffer(0u, positions);
                 commandList->bindVertexBuffer(1u, colors);
+                commandList->draw(3u);
+
+                // second triangle
+                // commandList->bindBuffer(1u, uniformBuffer2);
+                commandList->bindBuffer(1u, (*uniformBufferI)(frameId), 0u, 0u, sizeof(float) * 2u);
                 commandList->draw(3u);
                 
                 commandList->endRenderPass();
