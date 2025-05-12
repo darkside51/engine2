@@ -118,7 +118,7 @@ namespace engine::rhi::runtime {
     }
 
     // copy commands
-    void CommandList::copyBuffer2Buffer(BufferPtr & src, BufferPtr & dst, const CopyInfo & copyInfo) {
+    void CommandList::copyBuffer2Buffer(const BufferPtr & src, BufferPtr & dst, const CopyInfo & copyInfo) {
         _resources.push_back(src);
         _resources.push_back(dst);
         _commands->create<CopyBuffer2BufferCommand>(src.get(), dst.get(), copyInfo);

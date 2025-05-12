@@ -2,10 +2,26 @@
 
 #include "graphics/render/rhi/common/runtime.h"
 
+#include <cstddef>
 #include <memory>
+#include <utility>
 #include <vector>
 
 namespace engine::graphics {
+
+    class StagingBuffer { // todo: need impl!
+    public:
+        inline static uint32_t kNotEnoughMemory = 0xff'ff'ff'ffu;
+
+        uint32_t requestBytes(uint8_t idx, uint32_t bytes) noexcept { return 0u; }
+        std::pair<rhi::runtime::BufferPtr *, std::byte*> getBuffer(uint8_t idx) noexcept { return {nullptr, nullptr}; }
+
+        void map(uint8_t idx);
+        void unmap(uint8_t idx);
+
+    private:
+        std::byte* mappedMemory = nullptr;
+    };
 
     class InflightBuffer {
     public:
@@ -13,6 +29,8 @@ namespace engine::graphics {
 
         InflightBuffer(const std::unique_ptr<rhi::runtime::Rhi> & api,
             std::unique_ptr<rhi::runtime::Device> & device, const rhi::BufferInfo & info, size_t size);
+
+        void setStagingBuffer(StagingBuffer * staging) noexcept { _stagingBuffer = staging; }
 
         void * map() noexcept;
         void unmap() noexcept;
@@ -42,5 +60,6 @@ namespace engine::graphics {
     
         const std::unique_ptr<rhi::runtime::Rhi> & _api;
         std::unique_ptr<rhi::runtime::Device> & _device;
+        StagingBuffer * _stagingBuffer = nullptr;
     };
 }

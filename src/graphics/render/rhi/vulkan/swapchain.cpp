@@ -43,7 +43,7 @@ namespace engine::vulkan {
         // determine the number of images
 		uint32_t imagesCount = std::max(_info.imagesCount, capabilities.minImageCount);
 		if (capabilities.maxImageCount > 0u) {
-            imagesCount = std::min(_info.imagesCount, capabilities.maxImageCount);
+            imagesCount = std::min(imagesCount, capabilities.maxImageCount);
 		}
 
         // find the transformation of the surface

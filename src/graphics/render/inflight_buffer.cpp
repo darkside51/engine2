@@ -2,6 +2,7 @@
 
 #include "graphics/render/rhi/common/command_list.h"
 
+
 namespace engine::graphics {
 
     InflightBuffer::~InflightBuffer() {
@@ -40,6 +41,24 @@ namespace engine::graphics {
                 buffer->flush();
                 buffer->unmap();
             } else { // need use stagingBuffer
+
+                if (_stagingBuffer) {
+                    const auto offset = _stagingBuffer->requestBytes(idx, buffer->sizeInBytes());
+                    if (offset != StagingBuffer::kNotEnoughMemory) {
+                        auto [stagingBuffer, memory] = _stagingBuffer->getBuffer(idx);
+                        {
+                            //auto * memory = stagingBuffer->map2<std::byte>();
+                            memcpy(memory + offset, _tmpMemory, buffer->sizeInBytes());
+                            (*stagingBuffer)->flush(offset, buffer->sizeInBytes());
+                            //stagingBuffer->unmap();
+                        }
+
+                        cmd->copyBuffer2Buffer(*stagingBuffer, buffer, {.srcOffset = offset, .dstOffset = 0u, .size = buffer->sizeInBytes()});
+                        dirty = false;
+                        return;
+                    }
+                }
+
                 const rhi::BufferInfo info {
                     rhi::BufferUsageFlags::eTransfer_Src,
                     rhi::MemoryPropertyFlags::eHostVisible | rhi::MemoryPropertyFlags::eHostCached
@@ -47,7 +66,7 @@ namespace engine::graphics {
             
                 auto stagingBuffer = _api->createBuffer(_device, info, buffer->sizeInBytes());
                 {
-                    auto * memory = stagingBuffer->map2<float>();
+                    auto * memory = stagingBuffer->map();
                     memcpy(memory, _tmpMemory, buffer->sizeInBytes());
                     stagingBuffer->flush();
                     stagingBuffer->unmap();

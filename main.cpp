@@ -42,13 +42,11 @@ engine::rhi::RenderPassDescription createRenderPassDescription(engine::rhi::Form
     attachments[0].format = colorFormat;
     attachments[0].loadStoreOp = {engine::rhi::AttachmentLoadOp::eClear, engine::rhi::AttachmentStoreOp::eStore};
     attachments[0].stencilLoadStoreOp = {engine::rhi::AttachmentLoadOp::eDont_Care, engine::rhi::AttachmentStoreOp::eDont_Care};
-    attachments[0].initialLayout = engine::rhi::ImageLayout::eUndefined;
     attachments[0].finalLayout = engine::rhi::ImageLayout::ePresent_Src;
 
     attachments[1].format = depthFormat;
     attachments[1].loadStoreOp = {engine::rhi::AttachmentLoadOp::eClear, engine::rhi::AttachmentStoreOp::eDont_Care};
     attachments[1].stencilLoadStoreOp = {engine::rhi::AttachmentLoadOp::eDont_Care, engine::rhi::AttachmentStoreOp::eDont_Care};
-    attachments[1].initialLayout = engine::rhi::ImageLayout::eUndefined;
     attachments[1].finalLayout = engine::rhi::ImageLayout::eDepth_Stencil_Attachment_Optimal;
 
     std::vector<engine::rhi::SubpassDescription> subpasses(1u);
@@ -200,7 +198,7 @@ int main() {
     // engine::tests::execute_tests();
 
     // todo: 
-    // 1. /*uniform buffer offsets*/ (and external staging buffer for inflightBuffer)
+    // 1. impl staging buffer for inflightBuffer
     // 2. dynamic ubo - ok
     // 3. textures
     // 4. glm
@@ -350,9 +348,11 @@ int main() {
 
                 { // update uniforms
                     auto * map = uniformBufferI->map2<float>();
-                    map[0u] += 0.1f * delta;
+
+                    if (map[0u] > 1.5f) { map[0u] = -1.5f; }
+                    map[0u] += 0.5f * delta;
                     map[1u] = 0.0f;
-                    
+      
                     uniformBufferI->unmap();
                     uniformBufferI->commit(commandList, frameId);
                 }

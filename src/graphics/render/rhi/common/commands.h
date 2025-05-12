@@ -177,9 +177,9 @@ namespace engine::rhi::runtime {
 
     struct CopyBuffer2BufferCommand : Command {
         CopyInfo info{};
-        Buffer * src = nullptr;
+        const Buffer * src = nullptr;
         Buffer * dst = nullptr;
-        CopyBuffer2BufferCommand(Buffer * src, Buffer * dst, const CopyInfo & info) : 
+        CopyBuffer2BufferCommand(const Buffer * src, Buffer * dst, const CopyInfo & info) : 
             Command(CommandType::eCopyBuffer2Buffer, sizeof(CopyBuffer2BufferCommand)),
             src(src), 
             dst(dst),

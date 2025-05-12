@@ -306,7 +306,7 @@ namespace engine::vulkan::runtime {
                 const auto * command = static_cast<CopyBuffer2BufferCommand*>(cmd);
                 std::array copyInfos{utils::convert2vk(command->info)};
 
-                auto & vkSrcBuffer = *static_cast<Buffer*>(command->src);
+                const auto & vkSrcBuffer = *static_cast<const Buffer*>(command->src);
                 auto & vkDstBuffer = *static_cast<Buffer*>(command->dst);
 
                 auto const usage = vkSrcBuffer.usage();

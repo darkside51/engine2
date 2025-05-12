@@ -100,21 +100,19 @@ namespace threads {
             _threadId = std::this_thread::get_id();
 
             while (!isStopped()) {
-                float t = 0.0f;
                 while (isRunning()) {
                     const auto time = std::chrono::steady_clock::now();
                     const std::chrono::duration<float> duration = time - _time; // as default in seconds
-				    const auto delta = duration.count() - t;
+				    const auto delta = duration.count();
 
-                    t = _frequency - delta;
+                    const float t = _frequency - delta;
 
                     if (t > 0.0f) {
                         std::this_thread::sleep_for(std::chrono::duration<float>(t));
-                        t = 0.0f;
                         continue;
                     }
 
-                    _time = time;
+                    _time = time + std::chrono::duration_cast<std::chrono::seconds>(std::chrono::duration<float>(t));
 
                     _job(*this, delta);
                 }

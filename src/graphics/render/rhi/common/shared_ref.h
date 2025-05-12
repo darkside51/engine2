@@ -36,7 +36,7 @@ namespace engine::rhi::runtime {
         }
 
         template <typename U>
-        sh_ptr(sh_ptr<U> & p) : _counter(static_cast<counter_type*>(p.memory())), 
+        sh_ptr(const sh_ptr<U> & p) : _counter(static_cast<counter_type*>(p.memory())), 
             _data(static_cast<T*>(p.get())), _deleter(p.getDeleter()) {
 			_inc();
 		}
@@ -91,7 +91,7 @@ namespace engine::rhi::runtime {
         }
 
         T * get() noexcept { return _data; }
-        const T * get() const noexcept { return _data; }
+        T * get() const noexcept { return _data; }
 
         T * operator->() noexcept { return _data; }
         const T * operator->() const noexcept { return _data; }
@@ -101,7 +101,7 @@ namespace engine::rhi::runtime {
 
         explicit operator bool() const noexcept { return _data != nullptr; }
 
-        void * memory() noexcept {
+        void * memory() const noexcept {
             return _counter;
         }
 
