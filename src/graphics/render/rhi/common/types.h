@@ -1235,6 +1235,11 @@ namespace engine::rhi {
             DescriptorSetLayoutFlags flags = DescriptorSetLayoutFlags::eNone;
             size_t hashValue = 0u;
         };
+
+        struct SpecializationInfo {
+            uint32_t dynamicDescriptorsMask = 0u; 
+            // to be continued...
+        };
     }
     
 }

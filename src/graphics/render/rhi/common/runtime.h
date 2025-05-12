@@ -229,7 +229,8 @@ public:
 
     virtual ShaderModulesManagerPtr createShaderModulesManager() const = 0;
 
-    virtual GpuProgramPtr createProgram(DevicePtr & device, std::span<const ShaderModuleView> moduleViews) const = 0;
+    virtual GpuProgramPtr createProgram(DevicePtr & device, std::span<const ShaderModuleView> moduleViews, 
+        shaders::SpecializationInfo && specializationInfo = {}) const = 0;
 
     virtual PipelinePtr createComputePipeline(DevicePtr & device, const GpuProgramPtr & program) const = 0;
 

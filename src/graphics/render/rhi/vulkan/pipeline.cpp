@@ -327,4 +327,8 @@ namespace engine::vulkan {
                 LOG_I("vulkan: pipeline destroyed");
             }
         }
+
+        const rhi::shaders::BindingSetLayout * Pipeline::getLayout(uint8_t setId) const noexcept {
+            return _program->getLayout(setId);
+        }
 }

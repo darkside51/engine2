@@ -251,7 +251,7 @@ namespace engine::vulkan::runtime {
                 assert(setId < kMaxDescriptorsSets);
 
                 if (!descriptorSetUpdaters[setId]) {
-                    if (const auto * setLayout = currentPipeline->getProgram()->getLayout(setId)) {
+                    if (const auto * setLayout = currentPipeline->getLayout(setId)) {
                         descriptorSetUpdaters[setId] = DescriptorSetUpdater{device, *setLayout};
                     }
                 }

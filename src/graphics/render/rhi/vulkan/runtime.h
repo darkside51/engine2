@@ -55,7 +55,8 @@ namespace engine::vulkan::runtime {
     
         rhi::runtime::GpuProgramPtr createProgram(
             rhi::runtime::DevicePtr & device, 
-            std::span<const rhi::runtime::ShaderModuleView> moduleViews
+            std::span<const rhi::runtime::ShaderModuleView> moduleViews,
+            rhi::shaders::SpecializationInfo && specializationInfo = {}
         ) const override;
     
         rhi::runtime::PipelinePtr createComputePipeline(

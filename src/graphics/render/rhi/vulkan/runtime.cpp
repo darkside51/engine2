@@ -94,7 +94,8 @@ namespace engine::vulkan::runtime {
 
     rhi::runtime::GpuProgramPtr Rhi::createProgram(
         rhi::runtime::DevicePtr & device, 
-        std::span<const rhi::runtime::ShaderModuleView> moduleViews
+        std::span<const rhi::runtime::ShaderModuleView> moduleViews,
+        rhi::shaders::SpecializationInfo && specializationInfo
     ) const {
         std::array<Api::ShaderModule::View, rhi::shaders::kStagesCount> apiModules;
         size_t i = 0u;
@@ -106,7 +107,7 @@ namespace engine::vulkan::runtime {
         }
 
         return std::make_unique<Api::GpuProgram>(static_cast<Api::Device &>(*device), 
-            std::span{apiModules.begin(), apiModules.begin() + moduleViews.size()});
+            std::span{apiModules.begin(), apiModules.begin() + moduleViews.size()}, std::move(specializationInfo));
     }
 
     std::unique_ptr<engine::rhi::runtime::Pipeline> Rhi::createComputePipeline(

@@ -67,7 +67,6 @@ namespace {
             case SPV_REFLECT_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER: return DescriptorType::eUniform_Texel_Buffer;
             case SPV_REFLECT_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER: return DescriptorType::eStorage_Texel_Buffer;
             case SPV_REFLECT_DESCRIPTOR_TYPE_UNIFORM_BUFFER: return DescriptorType::eUniform_Buffer;
-            // case SPV_REFLECT_DESCRIPTOR_TYPE_UNIFORM_BUFFER: return DescriptorType::eUniform_Buffer_Dynamic; // how to check dynamic?
             case SPV_REFLECT_DESCRIPTOR_TYPE_STORAGE_BUFFER: return DescriptorType::eStorage_Buffer;
             case SPV_REFLECT_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC: return DescriptorType::eUniform_Buffer_Dynamic;
             case SPV_REFLECT_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC: return DescriptorType::eStorage_Buffer_Dynamic;
@@ -171,7 +170,8 @@ namespace engine::vulkan {
     }
 
     ///////////////////////////
-    GpuProgram::GpuProgram(Device & device, std::span<const ShaderModule::View> moduleViews) : _device(&device) {
+    GpuProgram::GpuProgram(Device & device, std::span<const ShaderModule::View> moduleViews, 
+        rhi::shaders::SpecializationInfo && specializationInfo) : _device(&device) {
         uint32_t setsCount = 0u;
         uint32_t pushConstantsCount = 0u;
         _shaderStages.reserve(moduleViews.size());
@@ -197,6 +197,8 @@ namespace engine::vulkan {
             //     hash::hash_combo(hash, pSpecializationInfo);
             // }
         }
+
+        hash::hash_combo(hash, specializationInfo.dynamicDescriptorsMask);
 
         _id = static_cast<uint64_t>(hash);
 
@@ -231,6 +233,26 @@ namespace engine::vulkan {
         }
 
         _sets.shrink_to_fit();
+        
+        // set dynamic uniforms types:
+        if (specializationInfo.dynamicDescriptorsMask != 0u) {
+            uint32_t i = 0u;
+            for (auto & [setLayout, _] : _sets) {
+                for (auto & l : setLayout.layouts.view()) {
+                    if (l.type == rhi::shaders::DescriptorType::eUniform_Buffer) {
+                        if ((specializationInfo.dynamicDescriptorsMask >> i) & 1u == 1u) {
+                            l.type = rhi::shaders::DescriptorType::eUniform_Buffer_Dynamic;
+                        }
+                        ++i;
+                    } else if (l.type == rhi::shaders::DescriptorType::eStorage_Buffer) {
+                        if ((specializationInfo.dynamicDescriptorsMask >> i) & 1u == 1u) {
+                            l.type = rhi::shaders::DescriptorType::eStorage_Buffer_Dynamic;
+                        }
+                        ++i;
+                    }
+                }
+            }
+        }
 
         std::sort(_sets.begin(), _sets.end(), [](const auto & s0, const auto & s1) noexcept {
             return s0.second < s1.second;

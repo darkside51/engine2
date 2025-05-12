@@ -177,6 +177,7 @@ namespace engine::vulkan {
         VkPipelineBindPoint bindPoint = VkPipelineBindPoint::VK_PIPELINE_BIND_POINT_COMPUTE;
 
         const GpuProgram * getProgram() const noexcept { return _program; }
+        const rhi::shaders::BindingSetLayout * getLayout(uint8_t setId) const noexcept;
 
     private:
         Device * _device = nullptr;

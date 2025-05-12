@@ -78,7 +78,7 @@ private:
 
 class GpuProgram final : public rhi::runtime::GpuProgram {
 public:
-    GpuProgram(Device & device, std::span<const ShaderModule::View> moduleViews);
+    GpuProgram(Device & device, std::span<const ShaderModule::View> moduleViews, rhi::shaders::SpecializationInfo && specializationInfo = {});
     ~GpuProgram();
 
     std::span<const VkPipelineShaderStageCreateInfo> stages() const noexcept {

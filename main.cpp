@@ -77,7 +77,7 @@ auto loadShadersRuntime(const std::unique_ptr<engine::rhi::runtime::Rhi> & api,
     std::unique_ptr<engine::rhi::runtime::ShaderModulesManager> & shaderModulesManager) {
 
     engine::FileManager fm;
-    auto * fsystem = fm.createFileSystem<engine::CommonFileSystem>("main", engine::CommonFileSystem::getCurrentDirectory() + "./resources/");
+    auto * fsystem = fm.createFileSystem<engine::CommonFileSystem>("common_fs0", engine::CommonFileSystem::getCurrentDirectory() + "./resources/");
 
     auto const vBytes = fm.readFile("shaders/simple.vert.spv");
     auto const fBytes = fm.readFile("shaders/simple.frag.spv");
@@ -85,7 +85,7 @@ auto loadShadersRuntime(const std::unique_ptr<engine::rhi::runtime::Rhi> & api,
     const auto & vsModule = shaderModulesManager->registerModule("simple.vert", *device, engine::rhi::shaders::Stages::eVertex, vBytes); // call overloaded function
     const auto & fsModule = shaderModulesManager->registerModule("simple.frag", *device, engine::rhi::shaders::Stages::eFragment, fBytes);
 
-    return api->createProgram(device, std::array{vsModule.getView(), fsModule.getView()});
+    return api->createProgram(device, std::array{vsModule.getView(), fsModule.getView()}, {.dynamicDescriptorsMask = 0b10u});
 }
 
 auto createPipelineRuntime(const std::unique_ptr<engine::rhi::runtime::Rhi> & api,
@@ -201,7 +201,7 @@ int main() {
 
     // todo: 
     // 1. /*uniform buffer offsets*/ (and external staging buffer for inflightBuffer)
-    // 2. dynamic ubo
+    // 2. dynamic ubo - ok
     // 3. textures
     // 4. glm
     // 5. imgui
