@@ -1059,7 +1059,7 @@ inline VkFenceCreateFlags convert2vk(rhi::FenceCreateFlags flags) noexcept {
     }
 }
 
-inline VkDescriptorType convert2vk(rhi::shaders::DescriptorType type) noexcept {
+inline VkDescriptorType convert2vk(rhi::shaders::DescriptorType type, bool isForceDynamic = false) noexcept {
     using namespace rhi::shaders;
     switch(type) {
         case DescriptorType::eSampler: return VkDescriptorType::VK_DESCRIPTOR_TYPE_SAMPLER;
@@ -1068,8 +1068,8 @@ inline VkDescriptorType convert2vk(rhi::shaders::DescriptorType type) noexcept {
         case DescriptorType::eStorage_Image: return VkDescriptorType::VK_DESCRIPTOR_TYPE_STORAGE_IMAGE; 
         case DescriptorType::eUniform_Texel_Buffer: return VkDescriptorType::VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER; 
         case DescriptorType::eStorage_Texel_Buffer: return VkDescriptorType::VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER; 
-        case DescriptorType::eUniform_Buffer: return VkDescriptorType::VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER; 
-        case DescriptorType::eStorage_Buffer: return VkDescriptorType::VK_DESCRIPTOR_TYPE_STORAGE_BUFFER; 
+        case DescriptorType::eUniform_Buffer: return isForceDynamic ? VkDescriptorType::VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC : VkDescriptorType::VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER; 
+        case DescriptorType::eStorage_Buffer: return isForceDynamic ? VkDescriptorType::VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC : VkDescriptorType::VK_DESCRIPTOR_TYPE_STORAGE_BUFFER; 
         case DescriptorType::eUniform_Buffer_Dynamic: return VkDescriptorType::VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC; 
         case DescriptorType::eStorage_Buffer_Dynamic: return VkDescriptorType::VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC; 
         case DescriptorType::eInput_Attachment: return VkDescriptorType::VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT; 

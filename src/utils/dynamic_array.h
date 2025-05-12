@@ -114,6 +114,14 @@ struct dynamic_array {
     inline bool empty() const noexcept {
         return capacity == 0u;
     }
+
+    inline void clear() noexcept {
+        capacity = 0u;
+        if (auto * arr = std::get_if<std::array<T, Max>>(&value)) { [[likely]];
+        } else {
+            std::get<std::vector<T>>(value).clear();
+        }
+    }
 };
 
 }

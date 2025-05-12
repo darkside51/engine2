@@ -22,10 +22,10 @@ namespace engine::vulkan {
     class DescriptorSet;
 
     class DescriptorSetUpdater {
+    public:
         inline static constexpr uint8_t kDescriptorsOnStackLimit = 8u;
         inline static constexpr uint8_t kWritesOnStackLimit = 16u;
 
-    public:
         DescriptorSetUpdater() = default;
         explicit DescriptorSetUpdater(const Device & device, const engine::rhi::shaders::BindingSetLayout & layout);
 
@@ -36,7 +36,8 @@ namespace engine::vulkan {
         void updateImages(std::span<const std::tuple<VkSampler, VkImageView, VkImageLayout, uint32_t>> imageBindings) noexcept;
         void updatetexelBuffers(std::span<const std::tuple<Buffer*, rhi::Format, uint32_t>> texelBufferBindings) noexcept;
 
-        void updateBuffer(const Buffer* buffer, uint32_t binding, uint32_t offset = 0u, uint32_t range = rhi::kWholeSize32) noexcept;
+        void updateBuffer(const Buffer* buffer, uint32_t binding, 
+            uint32_t offset = 0u, uint32_t range = rhi::kWholeSize32, bool isDynamic = false) noexcept;
         void updateImage(std::tuple<VkSampler, VkImageView, VkImageLayout> image, uint32_t binding) noexcept;
         void updatetexelBuffer(Buffer* buffer, rhi::Format format, uint32_t binding) noexcept;
 
@@ -50,9 +51,14 @@ namespace engine::vulkan {
             uint32_t binding;
         };
 
+        struct DescriptorBufferInfo {
+            VkDescriptorBufferInfo vkInfo;
+            uint32_t dynamicOffset;
+        };
+
         const Device * _device = nullptr;
         const rhi::shaders::BindingSetLayout * _layout = nullptr;
-        engine::dynamic_array<DescriptorInfo<VkDescriptorBufferInfo>, kDescriptorsOnStackLimit> _buffersInfo;
+        engine::dynamic_array<DescriptorInfo<DescriptorBufferInfo>, kDescriptorsOnStackLimit> _buffersInfo;
         engine::dynamic_array<DescriptorInfo<VkDescriptorImageInfo>, kDescriptorsOnStackLimit> _imagesInfo;
         engine::dynamic_array<DescriptorInfo<VkBufferView>, kDescriptorsOnStackLimit> _texelBuffersInfo;
         bool _buffersDirty = false;

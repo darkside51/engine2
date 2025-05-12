@@ -80,6 +80,8 @@ namespace engine::vulkan::runtime {
         const Pipeline * currentPipeline = nullptr;
         std::array<DescriptorSetUpdater, kMaxDescriptorsSets> descriptorSetUpdaters;
         std::array<DescriptorSet, kMaxDescriptorsSets> descriptorSets;
+        engine::dynamic_array<uint32_t, kMaxDescriptorsSets * DescriptorSetUpdater::kDescriptorsOnStackLimit> dynamicOffsets;
+
         uint8_t changedSets = 0u;
 
         const auto applyDescriptorSets = [&]() noexcept {
@@ -116,6 +118,7 @@ namespace engine::vulkan::runtime {
                 _commandbuffer.begin();
                 currentPipeline = nullptr;
                 changedSets = 0u;
+                dynamicOffsets.clear();
                 resetState();
             }
                 break;
@@ -131,6 +134,7 @@ namespace engine::vulkan::runtime {
                 _commandbuffer.reset(command->flags);
                 currentPipeline = nullptr;
                 changedSets = 0u;
+                dynamicOffsets.clear();
                 resetState();
             }
                 break;
@@ -201,6 +205,7 @@ namespace engine::vulkan::runtime {
                         descriptorSetUpdater.invalidate();
                     }
                     changedSets = 0u;
+                    dynamicOffsets.clear();
                 }
 
                 currentPipeline = static_cast<const Pipeline *>(command->pipeline);

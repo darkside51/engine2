@@ -58,10 +58,13 @@ namespace engine::vulkan {
             {
                 _buffersInfo.view()[updateBufferIndex++] = {
                     {
-                    .buffer = VK_NULL_HANDLE,
-                    .offset = 0u,
-                    .range = 0u
-                    },
+                        {
+                        .buffer = VK_NULL_HANDLE,
+                        .offset = 0u,
+                        .range = 0u
+                        },
+                        0xff'ff'ff'ffu
+                    }, 
                     layout.binding
                 };
             }
@@ -104,17 +107,17 @@ namespace engine::vulkan {
 
         const auto view = _buffersInfo.view();
         for (const auto & [buffer, binding] : bufferBindings) {
-            const auto it = std::find_if(view.begin(), view.end(), [binding](const DescriptorInfo<VkDescriptorBufferInfo> & info) {
+            const auto it = std::find_if(view.begin(), view.end(), [binding](const DescriptorInfo<DescriptorBufferInfo> & info) {
                 return info.binding == binding;
             });
 
             if (it != view.end()) {
                 const auto vkBuffer = buffer->operator()();
                 auto & info = it->info;
-                if (info.buffer != vkBuffer) {
-                    info.buffer = vkBuffer;
-                    info.offset = 0u;
-                    info.range = static_cast<VkDeviceSize>(buffer->sizeInBytes());
+                if (info.vkInfo.buffer != vkBuffer) {
+                    info.vkInfo.buffer = vkBuffer;
+                    info.vkInfo.offset = 0u;
+                    info.vkInfo.range = static_cast<VkDeviceSize>(buffer->sizeInBytes());
                     _buffersDirty = true;
                 }
             }
@@ -166,13 +169,13 @@ namespace engine::vulkan {
         }
     }
 
-    void DescriptorSetUpdater::updateBuffer(const Buffer* buffer, uint32_t binding, uint32_t offset, uint32_t range) noexcept {
+    void DescriptorSetUpdater::updateBuffer(const Buffer* buffer, uint32_t binding, uint32_t offset, uint32_t range, bool isDynamic) noexcept {
         if (!isValid()) { 
             return; 
         }
 
         const auto view = _buffersInfo.view();
-        const auto it = std::find_if(view.begin(), view.end(), [binding](const DescriptorInfo<VkDescriptorBufferInfo> & info) {
+        const auto it = std::find_if(view.begin(), view.end(), [binding](const DescriptorInfo<DescriptorBufferInfo> & info) {
             return info.binding == binding;
         });
 
@@ -188,11 +191,21 @@ namespace engine::vulkan {
             // _layout->findLayout(binding)->type; or can use buffer->usage() for get type
             // offset = align_value(offset, align);
 
+            if (isDynamic) {
+                // store offset
+                // ... 
+                info.vkInfo.offset = offset;
+
+                // reset input data
+                range = rhi::kWholeSize32;
+                offset = 0u;
+            }
+
             const auto finalRange = (range == rhi::kWholeSize32) ? static_cast<VkDeviceSize>(buffer->sizeInBytes()) : static_cast<VkDeviceSize>(range);
-            if (info.buffer != vkBuffer || info.offset != offset || info.range != finalRange) {
-                info.buffer = vkBuffer;
-                info.offset = offset;
-                info.range = finalRange;
+            if (info.vkInfo.buffer != vkBuffer || info.vkInfo.offset != offset || info.vkInfo.range != finalRange) {
+                info.vkInfo.buffer = vkBuffer;
+                info.vkInfo.offset = offset;
+                info.vkInfo.range = finalRange;
                 _buffersDirty = true;
             }
         }
@@ -267,9 +280,10 @@ namespace engine::vulkan {
                     .dstBinding = bufferView.binding,
                     .dstArrayElement = 0u,
                     .descriptorCount = 1u,
-                    .descriptorType = engine::vulkan::utils::convert2vk(_layout->findLayout(bufferView.binding)->type),
+                    .descriptorType = engine::vulkan::utils::convert2vk(_layout->findLayout(bufferView.binding)->type, 
+                        bufferView.info.dynamicOffset != 0xff'ff'ff'ffu),
                     .pImageInfo = nullptr,
-                    .pBufferInfo = &bufferView.info,
+                    .pBufferInfo = &bufferView.info.vkInfo,
                     .pTexelBufferView = nullptr
                 };
             }
