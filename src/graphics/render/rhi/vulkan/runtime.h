@@ -84,6 +84,6 @@ namespace engine::vulkan::runtime {
         static constexpr uint32_t kBufferPtrSize = sizeof(rhi::runtime::sh_ptr<Api::Buffer>::Value);
 
         using BuffersAllocator = allocators::PoolAllocatorChain<kBufferPtrSize, kBufferAlign, true>;
-        BuffersAllocator _buffersPool{1024u, 32u}; // ~5.25mb
+        BuffersAllocator _buffersPool{1024u, 32u}; // ~6mb
     };
 }

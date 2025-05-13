@@ -289,6 +289,10 @@ namespace engine::vulkan {
         writes.reserve(_buffersInfo.size() + _imagesInfo.size() + _texelBuffersInfo.size());
         const auto writeViews = writes.view();
         
+        // structures VkWriteDescriptorSetInlineUniformBlock, VkWriteDescriptorSetAccelerationStructureKHR 
+        // can be available as pNext param for VkWriteDescriptorSet
+        // no support it yet!
+
         uint32_t wi = 0u;
         if (_buffersDirty || setChanged) {
             for (const auto & bufferView : _buffersInfo.view()) {

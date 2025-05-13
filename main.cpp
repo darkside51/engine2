@@ -195,17 +195,15 @@ int main() {
     // engine::tests::execute_tests();
 
     // todo: 
-    // 1. impl staging buffer for inflightBuffer
-    // 2. dynamic ubo - ok
-    // 3. textures
-    // 4. glm - ok
-    // 5. imgui
-    // 6. simplify
-    // 7. optimize
-    // 8. resize
-    // 9. input
-    // 10. rhi::Result
-    // 11. refactoring
+    // 1. impl staging buffer for inflightBuffer - in progress
+    // 2. textures
+    // 3. imgui
+    // 4. simplify
+    // 5. optimize
+    // 6. resize
+    // 7. input
+    // 8. rhi::Result
+    // 9. refactoring
 
     engine::GLFWModule glfwModule;
     
