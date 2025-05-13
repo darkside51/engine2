@@ -14,6 +14,8 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/quaternion.hpp>
 
+#include <cstdint>
+
 namespace engine {
     
     template <typename T>
@@ -52,6 +54,22 @@ namespace engine {
     using mat3d = mat3<double>;
     using mat4d = mat4<double>;
     using quatd = quat<double>;
+
+    using vec2i = vec2<int32_t>;
+    using vec3i = vec3<int32_t>;
+    using vec4i = vec4<int32_t>;
+    using mat2i = mat2<int32_t>;
+    using mat3i = mat3<int32_t>;
+    using mat4i = mat4<int32_t>;
+    using quati = quat<int32_t>;
+
+    using vec2u = vec2<uint32_t>;
+    using vec3u = vec3<uint32_t>;
+    using vec4u = vec4<uint32_t>;
+    using mat2u = mat2<uint32_t>;
+    using mat3u = mat3<uint32_t>;
+    using mat4u = mat4<uint32_t>;
+    using quatu = quat<uint32_t>;
 
     inline static const mat4f emptyMatrix   = mat4f(1.0f);
     inline static const quatf emptyQuat     = quatf(0.0f, 0.0f, 0.0f, 0.0f);
