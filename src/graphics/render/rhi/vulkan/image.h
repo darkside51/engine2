@@ -116,6 +116,8 @@ public:
 
     std::span<const ImageSubState> getSubStates() const noexcept { return _imageSubStates; }
 
+    VkImageLayout getLayout(uint8_t layer, uint8_t level) const noexcept;
+
 private:
     Device * _device;
     VkImage _image = VK_NULL_HANDLE;

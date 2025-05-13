@@ -32,7 +32,9 @@ Image::Image(Device & device, const rhi::ImageInfo & info) :
         .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED
     };
 
-    if (auto result = _device->getMemoryAllocator().createImage(imageInfo, utils::convert2vk(_info.memoryFlags), info.memoryExtFlags, _image, _allocation); result != VK_SUCCESS) {
+    if (auto result = _device->getMemoryAllocator().createImage(imageInfo, utils::convert2vk(_info.memoryFlags), 
+        info.memoryExtFlags, _image, _allocation); 
+        result != VK_SUCCESS) {
         LOG_E("vulkan: vkCreateImage error: %d", result);
         return;
     }
@@ -44,8 +46,7 @@ Image::Image(Device & device, const rhi::ImageInfo & info, VkImage externalImage
     _image(externalImage),
     _imageSubStates(_info.arrayLayers * _info.mipLevels),
     _externalImage(true)  {
-
-    }
+}
 
 Image::~Image() {
     const auto * allocationCallbacks = _device->gpu().getInstance().getAllocationCallbacks();
@@ -123,6 +124,11 @@ void Image::assignLayout(VkImageLayout dstLayout, uint8_t baseLayer, uint8_t lay
             subState.layout = dstLayout;
         }
     }
+}
+
+VkImageLayout Image::getLayout(uint8_t layer, uint8_t level) const noexcept {
+    const auto & subState = _imageSubStates[layer * _info.mipLevels + level];
+    return subState.layout;
 }
 
 std::vector<ImageMemoryBarrierInfo> Image::transition(VkImageLayout dstLayout, 

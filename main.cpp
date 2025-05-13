@@ -196,7 +196,7 @@ int main() {
 
     // todo: 
     // 1. impl staging buffer for inflightBuffer - in progress
-    // 2. textures
+    // 2. textures (as command_list resources like a buffers) (may be framebuffers as command_list resources?)
     // 3. imgui
     // 4. simplify
     // 5. optimize
