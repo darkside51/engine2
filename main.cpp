@@ -361,8 +361,10 @@ int main() {
                 commandList->bindPipeline(pipeline);
 
                 // first triangle
-                commandList->bindBuffer(0u, (*uniformBufferI)(frameId), 0u, 0u, sizeof(engine::vec2f));
-                commandList->bindBuffer(1u, (*uniformBufferI)(frameId), 0u, kUniformBufferOffsetAlign, sizeof(engine::vec2f));
+                commandList->bindBuffer(0u, (*uniformBufferI)(frameId), 0u, 
+                    0u, sizeof(engine::vec2f));
+                commandList->bindBuffer(1u, (*uniformBufferI)(frameId), 0u, 
+                    engine::align_value(sizeof(engine::vec2f), kUniformBufferOffsetAlign), sizeof(engine::vec2f));
 
                 commandList->bindVertexBuffer(0u, positions);
                 commandList->bindVertexBuffer(1u, colors);
