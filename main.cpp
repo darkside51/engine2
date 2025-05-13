@@ -28,6 +28,8 @@
 
 #include "graphics/render/inflight_buffer.h"
 
+#include "math/math.h"
+
 #include <algorithm>
 
 engine::rhi::runtime::BufferPtr stagePositions = nullptr;
@@ -136,12 +138,12 @@ void createBuffers(const std::unique_ptr<engine::rhi::runtime::Rhi> & api,
         MemoryPropertyFlags::eHostVisible
     };
 
-    stagePositions = api->createBuffer(device, stageInfo, sizeof(float) * 9u);
+    stagePositions = api->createBuffer(device, stageInfo, sizeof(std::array<float, 3>) * 3u);
     {
-        auto * map = stagePositions->map2<float>();
-        map[0u] = -0.5f; map[1u] = 0.5f; map[2u] = 0.1f;
-        map[3u] = 0.5f; map[4u] = 0.5f; map[5u] = 0.1f;
-        map[6u] = 0.0f; map[7u] = -0.5f; map[8u] = 0.1f;
+        auto * map = stagePositions->map2<std::array<float, 3>>();
+        map[0u] = {-0.5f, 0.5f, 0.1f};
+        map[1u] = {0.5f, 0.5f, 0.1f};
+        map[2u] = {0.0f, -0.5f, 0.1f};
         stagePositions->flush();
         stagePositions->unmap();
     }
@@ -168,11 +170,10 @@ void createBuffers(const std::unique_ptr<engine::rhi::runtime::Rhi> & api,
         engine::rhi::MemoryPropertyFlags::eHostVisible
     };
 
-    uniformBuffer2 = api->createBuffer(device, unifromsInfo, sizeof(float) * 2u);
+    uniformBuffer2 = api->createBuffer(device, unifromsInfo, sizeof(engine::vec2f));
     {
-        auto * map = uniformBuffer2->map2<float>();
-        map[0u] = 0.0f;
-        map[1u] = 0.25f;
+        auto * map = uniformBuffer2->map2<engine::vec2f>();
+        map[0u] = {0.0f, 0.25f};
         uniformBuffer2->flush();
         uniformBuffer2->unmap();
     }
@@ -181,15 +182,11 @@ void createBuffers(const std::unique_ptr<engine::rhi::runtime::Rhi> & api,
     unifromsInfo.usage = unifromsInfo.usage | engine::rhi::BufferUsageFlags::eTransfer_Dst;
 
     const size_t kUniformBufferOffsetAlign = device->getUniformBufferOffsetAlignment();
-    uniformBufferI = std::make_unique<engine::graphics::InflightBuffer>(api, device, unifromsInfo, std::max(kUniformBufferOffsetAlign, sizeof(float) * 2u) * 2u);
+    uniformBufferI = std::make_unique<engine::graphics::InflightBuffer>(api, device, unifromsInfo, std::max(kUniformBufferOffsetAlign, sizeof(engine::vec2f)) * 2u);
     {
-        using T = float;
-        auto * map = uniformBufferI->map2<T>();
-        map[0u] = -0.5f;
-        map[1u] = 0.0f;
-
-        map[kUniformBufferOffsetAlign / sizeof(T) + 0u] = 0.0f;
-        map[kUniformBufferOffsetAlign / sizeof(T) + 1u] = -0.35f;
+        auto * map = uniformBufferI->map2<engine::vec2f>();
+        map[0u] = {-0.5f, 0.0};
+        map[kUniformBufferOffsetAlign / sizeof(engine::vec2f) + 0u] = {0.0f, -0.25f};
         uniformBufferI->unmap();
     }
 }
@@ -201,7 +198,7 @@ int main() {
     // 1. impl staging buffer for inflightBuffer
     // 2. dynamic ubo - ok
     // 3. textures
-    // 4. glm
+    // 4. glm - ok
     // 5. imgui
     // 6. simplify
     // 7. optimize
@@ -347,11 +344,10 @@ int main() {
                 }
 
                 { // update uniforms
-                    auto * map = uniformBufferI->map2<float>();
+                    auto * map = uniformBufferI->map2<engine::vec2f>();
 
-                    if (map[0u] > 1.5f) { map[0u] = -1.5f; }
-                    map[0u] += 0.5f * delta;
-                    map[1u] = 0.0f;
+                    if (map[0u].x > 1.5f) { map[0u].x = -1.5f; }
+                    map[0u].x += 0.5f * delta;
       
                     uniformBufferI->unmap();
                     uniformBufferI->commit(commandList, frameId);
@@ -365,8 +361,8 @@ int main() {
                 commandList->bindPipeline(pipeline);
 
                 // first triangle
-                commandList->bindBuffer(0u, (*uniformBufferI)(frameId), 0u, 0u, sizeof(float) * 2u);
-                commandList->bindBuffer(1u, (*uniformBufferI)(frameId), 0u, kUniformBufferOffsetAlign, sizeof(float) * 2u);
+                commandList->bindBuffer(0u, (*uniformBufferI)(frameId), 0u, 0u, sizeof(engine::vec2f));
+                commandList->bindBuffer(1u, (*uniformBufferI)(frameId), 0u, kUniformBufferOffsetAlign, sizeof(engine::vec2f));
 
                 commandList->bindVertexBuffer(0u, positions);
                 commandList->bindVertexBuffer(1u, colors);
@@ -410,7 +406,7 @@ int main() {
         w.emplaceTasks(stl::make_vector(threads::WorkerTask{[&](){
             auto * commandPool = device->acquireCommandPool(engine::rhi::queue_flags::graphics | engine::rhi::queue_flags::present);
             commandLists.reserve(inflightFrames);
-            for (size_t i = 0; i < inflightFrames; ++i) {
+            for (size_t i = 0u; i < inflightFrames; ++i) {
                 commandLists.emplace_back(rApi->createCommandList(commandPool, engine::rhi::CommandBufferLevel::ePrimary));
             }
         }}));

@@ -219,7 +219,7 @@ endif()
 #message("freetype library end")
 ## freetype library
 
-target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../3rd_party/glm)
+target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../3rd_party/glm-1.0.1)
 
 target_link_libraries (
 	${PROJECT_NAME}
