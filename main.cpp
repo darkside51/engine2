@@ -72,7 +72,7 @@ engine::rhi::RenderPassDescription createRenderPassDescription(engine::rhi::Form
     };
 }
 
-auto loadShadersRuntime(const std::unique_ptr<engine::rhi::runtime::Rhi> & api, 
+auto loadShaders(const std::unique_ptr<engine::rhi::runtime::Rhi> & api, 
     std::unique_ptr<engine::rhi::runtime::Device> & device, 
     std::unique_ptr<engine::rhi::runtime::ShaderModulesManager> & shaderModulesManager) {
 
@@ -88,7 +88,7 @@ auto loadShadersRuntime(const std::unique_ptr<engine::rhi::runtime::Rhi> & api,
     return api->createProgram(device, std::array{vsModule.getView(), fsModule.getView()}, {.dynamicDescriptorsMask = 0b10u});
 }
 
-auto createPipelineRuntime(const std::unique_ptr<engine::rhi::runtime::Rhi> & api,
+auto createPipeline(const std::unique_ptr<engine::rhi::runtime::Rhi> & api,
     std::unique_ptr<engine::rhi::runtime::Device> & device,
     engine::rhi::runtime::RenderPass renderPass,
     const std::unique_ptr<engine::rhi::runtime::GpuProgram> & program) {
@@ -296,8 +296,8 @@ int main() {
         }
 
         auto shaderModulesManager = rApi->createShaderModulesManager();
-        auto program = loadShadersRuntime(rApi, device, shaderModulesManager);
-        auto pipeline = createPipelineRuntime(rApi, device, renderPass, program);
+        auto program = loadShaders(rApi, device, shaderModulesManager);
+        auto pipeline = createPipeline(rApi, device, renderPass, program);
         createBuffers(rApi, device);
 
         std::vector<engine::rhi::runtime::CommandListPtr> commandLists;
