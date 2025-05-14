@@ -62,8 +62,11 @@ namespace engine::vulkan::runtime {
         std::vector<rhi::FrameBufferAttachment> && attachemnts, 
         const rhi::runtime::RenderPass & renderPass) const noexcept {
 
-        return std::make_unique<Api::FrameBuffer>(static_cast<const Api::Device &>(*device), 
-        std::move(attachemnts), static_cast<VkRenderPass>(renderPass));
+        return rhi::runtime::sh_ptr<Api::FrameBuffer>::make(static_cast<const Api::Device &>(*device), 
+            std::move(attachemnts), static_cast<VkRenderPass>(renderPass));
+
+        // return std::make_unique<Api::FrameBuffer>(static_cast<const Api::Device &>(*device), 
+        //     std::move(attachemnts), static_cast<VkRenderPass>(renderPass));
     }
 
     rhi::runtime::QueuePtr Rhi::getQueue(const rhi::runtime::DevicePtr & device, 

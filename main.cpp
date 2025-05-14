@@ -196,7 +196,7 @@ int main() {
 
     // todo: 
     // 1. impl staging buffer for inflightBuffer - in progress
-    // 2. textures (as command_list resources like a buffers) (may be framebuffers as command_list resources?)
+    // 2. textures (as command_list resources like a buffers and framebuffers)
     // 3. imgui
     // 4. simplify
     // 5. optimize
@@ -270,7 +270,7 @@ int main() {
             depthImages.emplace_back(std::move(rApi->createImage(device, imageInfo)));
         }
 
-        std::vector<std::unique_ptr<engine::rhi::runtime::FrameBuffer>> frameBuffers;
+        std::vector<engine::rhi::runtime::FrameBufferPtr> frameBuffers;
         frameBuffers.reserve(swapchainImagesCount);
         for (uint32_t i = 0u; i < swapchainImagesCount; ++i) {
             auto & image = swapchain->getImage(i);

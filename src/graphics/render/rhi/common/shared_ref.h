@@ -23,12 +23,20 @@ namespace engine::rhi::runtime {
         sh_ptr(std::nullptr_t) : _counter(nullptr), _data(nullptr), _deleter(nullptr) { }
         sh_ptr() : sh_ptr(nullptr) {}
 
-        explicit sh_ptr(void * mem, uint32_t align, Deleter && d = nullptr) : 
+        sh_ptr(void * mem, uint32_t align, Deleter && d = nullptr) : 
             _counter(static_cast<counter_type*>(mem)),
             _data(reinterpret_cast<T*>(
                 reinterpret_cast<std::byte*>(mem) + align_value(sizeof(counter_type), align))),
             _deleter(std::move(d)) {
             _counter->store(1u, std::memory_order_release);
+        }
+
+        template <typename...Args>
+        static sh_ptr make(Args&&...args) {
+            auto * mem = malloc(sizeof(Value));
+            auto * objectMem = reinterpret_cast<std::byte*>(mem) + align_value(sizeof(counter_type), alignof(T));
+            T* object = new(objectMem) T(std::forward<Args>(args)...);
+            return sh_ptr(mem, alignof(T));
         }
 
         ~sh_ptr() {
@@ -121,7 +129,7 @@ namespace engine::rhi::runtime {
                     _deleter(this);
                 } else {
                     _data->~T();
-                    delete _counter;
+                    free(_counter);
                 }
             }
         }

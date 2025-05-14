@@ -118,7 +118,7 @@ protected:
     ColorSpace _colorSpace = ColorSpace::eSRGB_Nonlinear;
 };
 
-class FrameBuffer {
+class FrameBuffer : public PipeLineResource {
 public:
     virtual ~FrameBuffer() = default;
 };
@@ -190,7 +190,7 @@ using PysicalDevicePtr = std::unique_ptr<PhysicalDevice>;
 using DevicePtr = std::unique_ptr<Device>;
 using ImagePtr = std::unique_ptr<Image>;
 using SwapchainPtr = std::unique_ptr<Swapchain>;
-using FrameBufferPtr = std::unique_ptr<FrameBuffer>;
+using FrameBufferPtr = sh_ptr<FrameBuffer>;//std::unique_ptr<FrameBuffer>;
 using QueuePtr = std::unique_ptr<Queue>;
 using ShaderModulesManagerPtr = std::unique_ptr<ShaderModulesManager>;
 using GpuProgramPtr = std::unique_ptr<GpuProgram>;
