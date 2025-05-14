@@ -251,7 +251,7 @@ int main() {
     };
     std::vector<std::string_view> layers = {Api::Impl::kLayerValidationKHR};
 #else
-    bool const kUseApiDebugMessages = true;
+    bool const kUseApiDebugMessages = false;
     std::vector<std::string_view> extensions = {"VK_KHR_surface", "VK_KHR_win32_surface", 
         "VK_KHR_xcb_surface", "VK_KHR_xlib_surface", 
         "VK_KHR_wayland_surface", "VK_MVK_macos_surface", "VK_QNX_screen_surface"

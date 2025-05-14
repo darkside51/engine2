@@ -76,6 +76,24 @@ namespace engine::vulkan {
         }
 
         LOG_I("vulkan: device create successful");
+        constexpr auto deviceTypeName = [](VkPhysicalDeviceType type) {
+            switch (type) {
+                case VK_PHYSICAL_DEVICE_TYPE_OTHER: return "Other";
+                case VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU: return "Integrated_GPU";
+                case VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU: return "Discrete_GPU";
+                case VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU: return "Virtual_GPU";
+                case VK_PHYSICAL_DEVICE_TYPE_CPU: return "CPU";
+            }
+            return "Unknown";
+        };
+
+        const auto & properties = _gpu.deviceProperties();
+        LOG_I("vulkan: gpu name: %s, type: %s", properties.deviceName, deviceTypeName(properties.deviceType));
+        LOG_I("vulkan: api version: (%u, %u, %u), gpu driver vesion: %u", 
+            VK_API_VERSION_MAJOR(properties.apiVersion), 
+            VK_API_VERSION_MINOR(properties.apiVersion), 
+            VK_API_VERSION_PATCH(properties.apiVersion), 
+            properties.driverVersion);
 
         createPipelineCache();
         createAllocator();
