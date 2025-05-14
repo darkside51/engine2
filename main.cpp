@@ -36,6 +36,10 @@ engine::rhi::runtime::BufferPtr stagePositions = nullptr;
 engine::rhi::runtime::BufferPtr stageColors = nullptr;
 engine::rhi::runtime::BufferPtr positions = nullptr;
 engine::rhi::runtime::BufferPtr colors = nullptr;
+
+engine::rhi::runtime::BufferPtr stageIndices = nullptr;
+engine::rhi::runtime::BufferPtr indices = nullptr;
+
 std::unique_ptr<engine::graphics::InflightBuffer> uniformBufferI = nullptr;
 engine::rhi::runtime::BufferPtr uniformBuffer2 = nullptr;
 
@@ -133,25 +137,28 @@ void createBuffers(const std::unique_ptr<engine::rhi::runtime::Rhi> & api,
     std::unique_ptr<engine::rhi::runtime::Device> & device) {
     using namespace engine::rhi;
 
+    // vertices
     const engine::rhi::BufferInfo stageInfo {
         engine::rhi::BufferUsageFlags::eTransfer_Src,
         MemoryPropertyFlags::eHostVisible
     };
 
-    stagePositions = api->createBuffer(device, stageInfo, sizeof(std::array<float, 3>) * 3u);
+    stagePositions = api->createBuffer(device, stageInfo, sizeof(std::array<float, 3>) * 4u);
     {
         auto * map = stagePositions->map2<std::array<float, 3>>();
         map[0u] = {-0.5f, 0.5f, 0.1f};
         map[1u] = {0.5f, 0.5f, 0.1f};
         map[2u] = {0.0f, -0.5f, 0.1f};
+        map[3u] = {-1.0f, -0.5f, 0.1f};
         stagePositions->flush();
         stagePositions->unmap();
     }
 
-    stageColors = api->createBuffer(device, stageInfo, sizeof(uint32_t) * 3u);
+    stageColors = api->createBuffer(device, stageInfo, sizeof(uint32_t) * 4u);
     {
         auto * map = stageColors->map2<uint32_t>();
-        map[0u] = 0xff'00'ff'00u; map[1u] = 0xff'00'00'ffu; map[2u] = 0xff'ff'00'00u;
+        map[0u] = 0xff'00'ff'00u; map[1u] = 0xff'00'00'ffu;
+        map[2u] = 0xff'ff'00'00u; map[3u] = 0xff'ff'ff'ffu;
         stageColors->flush();
         stageColors->unmap();
     }
@@ -163,6 +170,28 @@ void createBuffers(const std::unique_ptr<engine::rhi::runtime::Rhi> & api,
 
     positions = api->createBuffer(device, localInfo, stagePositions->sizeInBytes());
     colors = api->createBuffer(device, localInfo, stageColors->sizeInBytes());
+
+    // indices
+    stageIndices = api->createBuffer(device, stageInfo, sizeof(uint16_t) * 6u);
+    {
+        auto * map = stageIndices->map2<uint16_t>();
+        map[0u] = 0u;
+        map[1u] = 1u;
+        map[2u] = 2u;
+
+        map[3u] = 0u;
+        map[4u] = 2u;
+        map[5u] = 3u;
+        stageIndices->flush();
+        stageIndices->unmap();
+    }
+
+    const engine::rhi::BufferInfo localIndicesInfo {
+        engine::rhi::BufferUsageFlags::eIndex_Buffer | engine::rhi::BufferUsageFlags::eTransfer_Dst,
+        engine::rhi::MemoryPropertyFlags::eDeviceLocal
+    };
+
+    indices = api->createBuffer(device, localIndicesInfo, stageIndices->sizeInBytes());
 
     // uniforms
     engine::rhi::BufferInfo unifromsInfo {
@@ -264,7 +293,7 @@ int main() {
         }; 
         imageInfo.memoryExtFlags = engine::rhi::MemoryExtendedFlags::eDedicated;
 
-        std::vector<std::unique_ptr<engine::rhi::runtime::Image>> depthImages;
+        std::vector<engine::rhi::runtime::ImagePtr> depthImages;
         depthImages.reserve(swapchainImagesCount);
         for (uint32_t i = 0u; i < swapchainImagesCount; ++i) {
             depthImages.emplace_back(std::move(rApi->createImage(device, imageInfo)));
@@ -301,7 +330,7 @@ int main() {
         std::vector<engine::rhi::runtime::CommandListPtr> commandLists;
         
         constexpr float inputCheckTime = 1.0f / 60.0f;
-        constexpr float redrawTime = 1.0f / 120.0f;
+        constexpr float redrawTime = 1.0f / 60.0f;
 
         constexpr auto clearValues = std::array{
             engine::rhi::ClearValue{0x77'77'77'ffu},
@@ -337,8 +366,12 @@ int main() {
                     commandList->copyBuffer2Buffer(stageColors, colors, 
                         {.srcOffset = 0u, .dstOffset = 0u, .size = stageColors->sizeInBytes()});
 
+                    commandList->copyBuffer2Buffer(stageIndices, indices, 
+                        {.srcOffset = 0u, .dstOffset = 0u, .size = stageIndices->sizeInBytes()});
+
                     stagePositions = nullptr;
                     stageColors = nullptr;
+                    stageIndices = nullptr;
                 }
 
                 { // update uniforms
@@ -371,7 +404,8 @@ int main() {
                 // second triangle
                 // commandList->bindBuffer(1u, uniformBuffer2);
                 commandList->bindBuffer(1u, (*uniformBufferI)(frameId), 0u, 0u, sizeof(float) * 2u);
-                commandList->draw(3u);
+                commandList->bindIndexBuffer(indices, 0u, engine::rhi::IndexType::eU16);
+                commandList->drawIndexed(6u);
                 
                 commandList->endRenderPass();
                 commandList->end();
@@ -419,9 +453,11 @@ int main() {
 
             stagePositions = nullptr;
             stageColors = nullptr;
+            stageIndices = nullptr;
 
             positions = nullptr;
             colors = nullptr;
+            indices = nullptr;
 
             uniformBufferI = nullptr;
             uniformBuffer2 = nullptr;
