@@ -63,6 +63,7 @@ if (CMAKE_BUILD_TYPE MATCHES Debug)
 
     add_definitions(-DCHECK_MEMORY_LEAKS)
 else()
+	add_definitions(-DNDEBUG)
 	message("release_mode")
 endif(CMAKE_BUILD_TYPE MATCHES Debug)
 

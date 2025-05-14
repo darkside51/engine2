@@ -54,7 +54,6 @@ namespace engine::vulkan {
 
         allocatorCreateInfo.pAllocationCallbacks = info.allocationCallbacks;
 
-  
         if (const auto result = vmaCreateAllocator(&allocatorCreateInfo, &_allocator); result != VK_SUCCESS) {
             LOG_E("vulkan: memory allocator create error %d", result);
             _allocator = VK_NULL_HANDLE;

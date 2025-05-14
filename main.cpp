@@ -242,15 +242,27 @@ int main() {
     auto & window0 = glfwModule.createWindow(Api::name().data());
     window0.setVisible(false);
 
+#ifndef NDEBUG
     bool const kUseApiDebugMessages = true;
+    std::vector<std::string_view> extensions = {"VK_KHR_surface", "VK_KHR_win32_surface", 
+        "VK_KHR_xcb_surface", "VK_KHR_xlib_surface", 
+        "VK_KHR_wayland_surface", "VK_MVK_macos_surface", "VK_QNX_screen_surface", 
+        Api::Impl::kDebugUtilExtName // for validation
+    };
+    std::vector<std::string_view> layers = {Api::Impl::kLayerValidationKHR};
+#else
+    bool const kUseApiDebugMessages = true;
+    std::vector<std::string_view> extensions = {"VK_KHR_surface", "VK_KHR_win32_surface", 
+        "VK_KHR_xcb_surface", "VK_KHR_xlib_surface", 
+        "VK_KHR_wayland_surface", "VK_MVK_macos_surface", "VK_QNX_screen_surface"
+    };
+    std::vector<std::string_view> layers = {};
+#endif
 
     engine::rhi::InstanceCreateInfo instanceCreateInfo {
         .apiVersion = engine::common::Version{1, 3, 0},
-        .extensions = {"VK_KHR_surface", "VK_KHR_win32_surface", "VK_KHR_xcb_surface", "VK_KHR_xlib_surface", 
-		    "VK_KHR_wayland_surface", "VK_MVK_macos_surface", "VK_QNX_screen_surface", 
-            Api::Impl::kDebugUtilExtName // for validation
-            },
-        .layers = {Api::Impl::kLayerValidationKHR}, // for validation
+        .extensions = extensions,
+        .layers = layers,
         .createDebugMessages = kUseApiDebugMessages,
         .allocationCallback = nullptr
     };
@@ -258,7 +270,13 @@ int main() {
     std::unique_ptr<engine::rhi::runtime::Rhi> rApi = std::make_unique<engine::vulkan::runtime::Rhi>(instanceCreateInfo);
     
     engine::rhi::PhysicalDeviceFeatureRequest gpuFeatures{};
-    auto gpuDevices = rApi->enumerateDevices({gpuFeatures, {engine::vulkan::runtime::Rhi::Api::Impl::kSwapchainExtName}});
+    auto gpuDevices = rApi->enumerateDevices({
+        gpuFeatures, 
+        {
+            engine::vulkan::runtime::Rhi::Api::Impl::kSwapchainExtName, 
+            VK_KHR_DEDICATED_ALLOCATION_EXTENSION_NAME
+        }
+    });
 
     const auto surface = rApi->createSurface(window0.getSurfaceCreateInfo());
 

@@ -26,6 +26,7 @@ if (CMAKE_BUILD_TYPE MATCHES Debug)
 	add_definitions(-D_DEBUG)
     add_definitions(-DCHECK_MEMORY_LEAKS)
 else()
+	add_definitions(-DNDEBUG)
 endif(CMAKE_BUILD_TYPE MATCHES Debug)
 
 add_executable(${PROJECT_NAME} main.cpp)

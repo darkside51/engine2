@@ -54,7 +54,6 @@ namespace engine {
         switch (key) {
         case GLFW_KEY_ESCAPE:
             device->close();
-            // glfwSetWindowShouldClose(window, 1);
             break;
         default:
             break;
@@ -106,7 +105,6 @@ namespace engine {
     }
 
     GLFWDevice::~GLFWDevice() {
-        // Engine::getInstance().deviceDestroyed();
         if (_onClose) {
             _onClose();
         }
