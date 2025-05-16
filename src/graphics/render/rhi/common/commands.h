@@ -31,7 +31,7 @@ namespace engine::rhi::runtime {
         eDrawIndexed = 15u,
         eCopyBuffer2Buffer = 16u,
         eCopyBuffer2Image = 17u,
-        ePipelineBarrier = 18u,
+        ePipelineBarriers = 18u,
     };
 
     class CommandList;
@@ -181,13 +181,13 @@ namespace engine::rhi::runtime {
         CopyBufferInfo info{}; // todo: support array of CopyBufferInfo
         Buffer * src = nullptr;
         Buffer * dst = nullptr;
-        bool insertSrcBarriers = true;
-        CopyBuffer2BufferCommand(Buffer * src, Buffer * dst, const CopyBufferInfo & info, bool insertSrcBarriers = true) : 
+        bool autoBarriers = true;
+        CopyBuffer2BufferCommand(Buffer * src, Buffer * dst, const CopyBufferInfo & info, bool autoBarriers) : 
             Command(CommandType::eCopyBuffer2Buffer, sizeof(CopyBuffer2BufferCommand)),
             info(info),
             src(src), 
             dst(dst),
-            insertSrcBarriers(insertSrcBarriers) {}
+            autoBarriers(autoBarriers) {}
     };
 
     struct CopyBuffer2ImageCommand : Command {
@@ -203,8 +203,8 @@ namespace engine::rhi::runtime {
             layout(layout) {}
     };
 
-    struct PipelineBarrierCommand : Command { // todo!
-        PipelineBarrierCommand() : Command(CommandType::ePipelineBarrier, sizeof(PipelineBarrierCommand)) {}
+    struct PipelineBarriersCommand : Command { // todo!
+        PipelineBarriersCommand() : Command(CommandType::ePipelineBarriers, sizeof(PipelineBarriersCommand)) {}
     };
 
     ///////////////////////////////////////////////
@@ -227,7 +227,7 @@ namespace engine::rhi::runtime {
             case CommandType::eDrawIndexed: [[fallthrough]];
             case CommandType::eCopyBuffer2Buffer: [[fallthrough]];
             case CommandType::eCopyBuffer2Image: [[fallthrough]];
-            case CommandType::ePipelineBarrier:
+            case CommandType::ePipelineBarriers:
                 return;
             case CommandType::eBeginRenderPass: 
                 static_cast<const BeginRenderPassCommand*>(this)->~BeginRenderPassCommand();

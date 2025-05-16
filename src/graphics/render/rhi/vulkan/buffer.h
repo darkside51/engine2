@@ -74,7 +74,7 @@ namespace engine::vulkan {
         
         VkMemoryPropertyFlags memoryFlags() const noexcept;
         rhi::BufferUsageFlags usage() const noexcept { return _usage; }
-        VkPipelineStageFlags getStage() const noexcept { return _usedStage; }
+        VkPipelineStageFlags getStage() const noexcept { return _transitionState.usedStage; }
 
         void transition(PipelineBarriers & barriers, VkPipelineStageFlags stage, VkAccessFlags dstAccessFlags, 
             size_t offset = 0u, size_t size = VK_WHOLE_SIZE, uint32_t queueFamily = VK_QUEUE_FAMILY_IGNORED) noexcept;
@@ -88,7 +88,16 @@ namespace engine::vulkan {
         uint32_t _queueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
         rhi::BufferUsageFlags _usage = rhi::BufferUsageFlags::eNone;
 
-        VkPipelineStageFlags _usedStage = VkPipelineStageFlagBits::VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-        VkAccessFlags _usedAccess = 0;
+        struct TransitionState {
+            struct Range {
+                size_t min = 0u;
+                size_t max = 0u;
+            };
+            VkPipelineStageFlags usedStage = VkPipelineStageFlagBits::VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+            VkAccessFlags usedAccess = 0;
+            Range range{};
+        };
+
+        TransitionState _transitionState{};
     };
 }

@@ -271,71 +271,77 @@ namespace engine::vulkan::runtime {
                 auto & vkSrcBuffer = *static_cast<Buffer*>(command->src);
                 auto & vkDstBuffer = *static_cast<Buffer*>(command->dst);
 
-                if (command->insertSrcBarriers) {
+                if (command->autoBarriers) {
                     vkSrcBuffer.transition(_barriers, 
                         VkPipelineStageFlagBits::VK_PIPELINE_STAGE_TRANSFER_BIT, 
                         VkAccessFlagBits::VK_ACCESS_TRANSFER_READ_BIT, 
                         command->info.dstOffset, command->info.size);
+
+                    vkDstBuffer.transition(_barriers,
+                        VkPipelineStageFlagBits::VK_PIPELINE_STAGE_TRANSFER_BIT,
+                        VkAccessFlagBits::VK_ACCESS_TRANSFER_WRITE_BIT, 
+                        command->info.dstOffset, command->info.size
+                    );
+
+                    _barriers.flush(_commandbuffer());
                 }
-
-                vkDstBuffer.transition(_barriers,
-                    VkPipelineStageFlagBits::VK_PIPELINE_STAGE_TRANSFER_BIT,
-                    VkAccessFlagBits::VK_ACCESS_TRANSFER_WRITE_BIT, 
-                    command->info.dstOffset, command->info.size
-                );
-
-                _barriers.flush(_commandbuffer());
 
                 _commandbuffer.copyBuffer2Buffer(vkSrcBuffer, vkDstBuffer, copyInfos);
 
-                auto const usage = vkSrcBuffer.usage();
-                if ((usage & rhi::BufferUsageFlags::eVertex_Buffer) != rhi::BufferUsageFlags::eNone) {
-                    auto const dstStage = VkPipelineStageFlagBits::VK_PIPELINE_STAGE_VERTEX_INPUT_BIT;
+                if (command->autoBarriers) {
+                    auto const usage = vkSrcBuffer.usage();
+                    if ((usage & rhi::BufferUsageFlags::eVertex_Buffer) != rhi::BufferUsageFlags::eNone) {
+                        auto const dstStage = VkPipelineStageFlagBits::VK_PIPELINE_STAGE_VERTEX_INPUT_BIT;
 
-                    vkDstBuffer.transition(_barriers,
-                        dstStage,
-                        VkAccessFlagBits::VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT, 
-                        command->info.dstOffset, command->info.size
-                    );
-                }
+                        vkDstBuffer.transition(_barriers,
+                            dstStage,
+                            VkAccessFlagBits::VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT, 
+                            command->info.dstOffset, command->info.size
+                        );
+                    }
 
-                if ((usage & rhi::BufferUsageFlags::eIndex_Buffer) != rhi::BufferUsageFlags::eNone) {
-                    auto const dstStage = VkPipelineStageFlagBits::VK_PIPELINE_STAGE_VERTEX_INPUT_BIT;
+                    if ((usage & rhi::BufferUsageFlags::eIndex_Buffer) != rhi::BufferUsageFlags::eNone) {
+                        auto const dstStage = VkPipelineStageFlagBits::VK_PIPELINE_STAGE_VERTEX_INPUT_BIT;
 
-                    vkDstBuffer.transition(_barriers,
-                        dstStage,
-                        VkAccessFlagBits::VK_ACCESS_INDEX_READ_BIT, 
-                        command->info.dstOffset, command->info.size
-                    );
-                }
+                        vkDstBuffer.transition(_barriers,
+                            dstStage,
+                            VkAccessFlagBits::VK_ACCESS_INDEX_READ_BIT, 
+                            command->info.dstOffset, command->info.size
+                        );
+                    }
 
-                if ((usage & rhi::BufferUsageFlags::eUniform_Buffer) != rhi::BufferUsageFlags::eNone) {
-                    auto const dstStage = VkPipelineStageFlagBits::VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | 
+                    if ((usage & rhi::BufferUsageFlags::eUniform_Buffer) != rhi::BufferUsageFlags::eNone) {
+                        auto const dstStage = VkPipelineStageFlagBits::VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | 
+                                                VkPipelineStageFlagBits::VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+
+                        vkDstBuffer.transition(_barriers,
+                            dstStage,
+                            VkAccessFlagBits::VK_ACCESS_UNIFORM_READ_BIT, 
+                            command->info.dstOffset, command->info.size
+                        );
+                    }    
+
+                    if ((usage & (rhi::BufferUsageFlags::eStorage_Buffer | 
+                                    rhi::BufferUsageFlags::eUniform_Texel_Buffer | 
+                                    rhi::BufferUsageFlags::eStorage_Texel_Buffer)) != rhi::BufferUsageFlags::eNone) {
+                        auto const dstStage = VkPipelineStageFlagBits::VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | 
                                             VkPipelineStageFlagBits::VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
 
-                    vkDstBuffer.transition(_barriers,
-                        dstStage,
-                        VkAccessFlagBits::VK_ACCESS_UNIFORM_READ_BIT, 
-                        command->info.dstOffset, command->info.size
-                    );
-                }    
+                        vkDstBuffer.transition(_barriers,
+                            dstStage,
+                            VkAccessFlagBits::VK_ACCESS_SHADER_READ_BIT, 
+                            command->info.dstOffset, command->info.size
+                        );
+                    }
 
-                if ((usage & (rhi::BufferUsageFlags::eStorage_Buffer | 
-                                rhi::BufferUsageFlags::eUniform_Texel_Buffer | 
-                                rhi::BufferUsageFlags::eStorage_Texel_Buffer)) != rhi::BufferUsageFlags::eNone) {
-                    auto const dstStage = VkPipelineStageFlagBits::VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | 
-                                          VkPipelineStageFlagBits::VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
-
-                    vkDstBuffer.transition(_barriers,
-                        dstStage,
-                        VkAccessFlagBits::VK_ACCESS_SHADER_READ_BIT, 
-                        command->info.dstOffset, command->info.size
-                    );
+                    _barriers.flush(_commandbuffer()); 
                 }
-
-                _barriers.flush(_commandbuffer()); 
             }
                 break;
+            case CommandType::ePipelineBarriers:
+                // todo!
+                _barriers.flush(_commandbuffer());
+                break; 
             case CommandType::eUndefined:
                 break;    
             default:

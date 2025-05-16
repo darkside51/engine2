@@ -119,12 +119,19 @@ namespace engine::rhi::runtime {
     }
 
     // copy commands
-    void CommandList::copyBuffer2Buffer(const BufferPtr & src, BufferPtr & dst, const CopyBufferInfo & copyInfo, bool insertSrcBarriers) {
+    void CommandList::copyBuffer2Buffer(const BufferPtr & src, BufferPtr & dst, const CopyBufferInfo & copyInfo, bool autoBarriers) {
         _resources.push_back(src);
         _resources.push_back(dst);
-        _commands->create<CopyBuffer2BufferCommand>(src.get(), dst.get(), copyInfo, insertSrcBarriers);
+        _commands->create<CopyBuffer2BufferCommand>(src.get(), dst.get(), copyInfo, autoBarriers);
         ++_commandsCount;
         //_commands->create<PipelineBarrierCommand>
     }
 
+
+    // manual barriers
+    void CommandList::insertBarriers() {
+        // todo!
+        _commands->create<PipelineBarriersCommand>();
+        ++_commandsCount;
+    }
 }

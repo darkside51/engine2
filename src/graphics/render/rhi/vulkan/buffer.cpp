@@ -105,12 +105,13 @@ namespace engine::vulkan {
 
     void Buffer::transition(PipelineBarriers & barriers, VkPipelineStageFlags stage, VkAccessFlags dstAccessFlags, 
             size_t offset, size_t size, uint32_t queueFamily) noexcept {
-        if (_usedStage != stage || _usedAccess != dstAccessFlags || _queueFamilyIndex != queueFamily) {
+        if (_transitionState.usedStage != stage || _transitionState.usedAccess != dstAccessFlags || _queueFamilyIndex != queueFamily || 
+            _transitionState.range.min > offset || _transitionState.range.max < offset + size) {
 
-            barriers.insertBufferBarrier(_usedStage, stage, VkDependencyFlagBits::VK_DEPENDENCY_BY_REGION_BIT, {
+            barriers.insertBufferBarrier(_transitionState.usedStage, stage, VkDependencyFlagBits::VK_DEPENDENCY_BY_REGION_BIT, {
                 .sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER,
                 .pNext = nullptr,
-                .srcAccessMask = _usedAccess,
+                .srcAccessMask = _transitionState.usedAccess,
                 .dstAccessMask = dstAccessFlags,
                 .srcQueueFamilyIndex = _queueFamilyIndex,
                 .dstQueueFamilyIndex = queueFamily,
@@ -119,9 +120,11 @@ namespace engine::vulkan {
                 .size = size
             });
 
-            _usedStage = stage;
-            _usedAccess = dstAccessFlags;
             _queueFamilyIndex = queueFamily;
+            _transitionState.usedStage = stage;
+            _transitionState.usedAccess = dstAccessFlags;
+            _transitionState.range.min = std::min(offset, _transitionState.range.min);
+            _transitionState.range.max = std::max(offset + size, _transitionState.range.max);
         }
     }
 }

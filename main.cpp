@@ -379,13 +379,13 @@ int main() {
 
                 if (stagePositions) {
                     commandList->copyBuffer2Buffer(stagePositions, positions, 
-                        {.srcOffset = 0u, .dstOffset = 0u, .size = stagePositions->sizeInBytes()}, false);
+                        {.srcOffset = 0u, .dstOffset = 0u, .size = stagePositions->sizeInBytes()});
 
                     commandList->copyBuffer2Buffer(stageColors, colors, 
-                        {.srcOffset = 0u, .dstOffset = 0u, .size = stageColors->sizeInBytes()}, false);
+                        {.srcOffset = 0u, .dstOffset = 0u, .size = stageColors->sizeInBytes()});
 
                     commandList->copyBuffer2Buffer(stageIndices, indices, 
-                        {.srcOffset = 0u, .dstOffset = 0u, .size = stageIndices->sizeInBytes()}, false);
+                        {.srcOffset = 0u, .dstOffset = 0u, .size = stageIndices->sizeInBytes()});
 
                     stagePositions = nullptr;
                     stageColors = nullptr;

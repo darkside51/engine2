@@ -44,7 +44,9 @@ namespace engine::rhi::runtime {
         void drawIndexed(uint32_t indexCount, uint32_t instanceCount = 1u, uint32_t firstIndex = 0u, int32_t vertexOffset = 0u, 
             uint32_t firstInstance = 0u);
 
-        void copyBuffer2Buffer(const BufferPtr & src, BufferPtr & dst, const CopyBufferInfo & copyInfos, bool insertSrcBarriers);
+        void copyBuffer2Buffer(const BufferPtr & src, BufferPtr & dst, const CopyBufferInfo & copyInfos, bool autoBarriers = true);
+
+        void insertBarriers();
 
         virtual void record(uint8_t frameIdx) noexcept {}
         
