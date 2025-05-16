@@ -26,5 +26,6 @@ namespace engine::vulkan::runtime {
         CommandBuffer _commandbuffer;
 
         PipelineBarriers _barriers;
+        PipelineBarriers _postBarriers;
     };
 }
