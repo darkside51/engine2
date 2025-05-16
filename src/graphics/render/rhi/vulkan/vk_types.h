@@ -49,7 +49,7 @@ inline auto convert2vk(const std::array<rhi::ClearValue, N> & array) -> std::arr
     return result;
 }
 
-inline VkBufferCopy convert2vk(const rhi::CopyInfo & info) noexcept {
+inline VkBufferCopy convert2vk(const rhi::CopyBufferInfo & info) noexcept {
     return VkBufferCopy {
         .srcOffset = info.srcOffset,
         .dstOffset = info.dstOffset,
@@ -970,6 +970,10 @@ inline VkCommandPoolCreateFlags convert2vk(rhi::CommandPoolCreateFlags flags) no
 
 inline VkCommandBufferLevel convert2vk(rhi::CommandBufferLevel level) noexcept {
     return static_cast<VkCommandBufferLevel>(level);
+}
+
+inline VkCommandBufferUsageFlags convert2vk(rhi::CommandBufferUsageFlags flags) noexcept {
+    return static_cast<VkCommandBufferUsageFlags>(flags);
 }
 
 inline VkSubpassContents convert2vk(rhi::SubpassContents contents) noexcept {

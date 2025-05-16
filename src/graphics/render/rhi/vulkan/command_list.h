@@ -2,6 +2,7 @@
 
 #include "graphics/render/rhi/common/runtime.h"
 #include "graphics/render/rhi/common/command_list.h"
+#include "barriers.h"
 #include "command_buffer.h"
 
 #include <vector>
@@ -21,20 +22,9 @@ namespace engine::vulkan::runtime {
     private:
         void resetState() noexcept;
 
-        void addBufferBarrier(
-            VkPipelineStageFlags srcStageMask, 
-            VkPipelineStageFlags dstStageMask, 
-            VkDependencyFlags dependencyFlags, 
-            VkBufferMemoryBarrier barrier
-        );
-
-        void flushBarriers() noexcept;
         CommandPool * _pool = nullptr;
         CommandBuffer _commandbuffer;
 
-        std::vector<VkBufferMemoryBarrier> _bufferBarriers;
-        VkPipelineStageFlags _srcStageMask = VkPipelineStageFlagBits::VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-        VkPipelineStageFlags _dstStageMask = VkPipelineStageFlagBits::VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-        VkDependencyFlags _dependencyFlags = VkDependencyFlagBits::VK_DEPENDENCY_BY_REGION_BIT;
+        PipelineBarriers _barriers;
     };
 }

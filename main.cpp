@@ -348,7 +348,7 @@ int main() {
         std::vector<engine::rhi::runtime::CommandListPtr> commandLists;
         
         constexpr float inputCheckTime = 1.0f / 60.0f;
-        constexpr float redrawTime = 1.0f / 60.0f;
+        constexpr float redrawTime = 1.0f / 120.0f;
 
         constexpr auto clearValues = std::array{
             engine::rhi::ClearValue{0x77'77'77'ffu},
@@ -375,17 +375,17 @@ int main() {
 
                 // render frame
                 auto & commandList = commandLists[frameId];
-                commandList->begin();
+                commandList->begin(engine::rhi::CommandBufferUsageFlags::eOne_Time_Submit);
 
                 if (stagePositions) {
                     commandList->copyBuffer2Buffer(stagePositions, positions, 
-                        {.srcOffset = 0u, .dstOffset = 0u, .size = stagePositions->sizeInBytes()});
+                        {.srcOffset = 0u, .dstOffset = 0u, .size = stagePositions->sizeInBytes()}, false);
 
                     commandList->copyBuffer2Buffer(stageColors, colors, 
-                        {.srcOffset = 0u, .dstOffset = 0u, .size = stageColors->sizeInBytes()});
+                        {.srcOffset = 0u, .dstOffset = 0u, .size = stageColors->sizeInBytes()}, false);
 
                     commandList->copyBuffer2Buffer(stageIndices, indices, 
-                        {.srcOffset = 0u, .dstOffset = 0u, .size = stageIndices->sizeInBytes()});
+                        {.srcOffset = 0u, .dstOffset = 0u, .size = stageIndices->sizeInBytes()}, false);
 
                     stagePositions = nullptr;
                     stageColors = nullptr;

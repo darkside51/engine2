@@ -155,21 +155,24 @@ std::vector<ImageMemoryBarrierInfo> Image::transition(VkImageLayout dstLayout,
 
     if (_imageStatesIdentical) {
         auto & subState = _imageSubStates[0u];
-        barrier.oldLayout = subState.layout;
-        barrier.srcQueueFamilyIndex = subState.queueFamilyIndex;
 
-        subresourceRange.baseArrayLayer = baseLayer;
-        subresourceRange.layerCount = layersCount;
-        subresourceRange.baseMipLevel = baseLevel;
-        subresourceRange.levelCount = levelsCount;
+        if (subState.layout != dstLayout || subState.queueFamilyIndex != queueFamily) {
+            barrier.oldLayout = subState.layout;
+            barrier.srcQueueFamilyIndex = subState.queueFamilyIndex;
 
-        barriers.emplace_back(srcStage, dstStage, barrier);
+            subresourceRange.baseArrayLayer = baseLayer;
+            subresourceRange.layerCount = layersCount;
+            subresourceRange.baseMipLevel = baseLevel;
+            subresourceRange.levelCount = levelsCount;
 
-        for (size_t i = baseLayer; i < baseLayer + layersCount; ++i) {
-            for (size_t j = baseLevel; j < baseLevel + levelsCount; ++j) {
-                auto & subState = _imageSubStates[i * _info.mipLevels + j];
-                subState.layout = dstLayout;
-                subState.queueFamilyIndex = queueFamily;
+            barriers.emplace_back(srcStage, dstStage, barrier);
+
+            for (size_t i = baseLayer; i < baseLayer + layersCount; ++i) {
+                for (size_t j = baseLevel; j < baseLevel + levelsCount; ++j) {
+                    auto & subState = _imageSubStates[i * _info.mipLevels + j];
+                    subState.layout = dstLayout;
+                    subState.queueFamilyIndex = queueFamily;
+                }
             }
         }
     } else {

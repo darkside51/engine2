@@ -13,6 +13,7 @@
 namespace engine::vulkan {
 
     class Device;
+    class PipelineBarriers;
 
     class Buffer final : public rhi::runtime::Buffer {
     public:
@@ -25,7 +26,7 @@ namespace engine::vulkan {
 
         Buffer(Buffer && other) noexcept : rhi::runtime::Buffer(other._size), _device(other._device), 
             _buffer(other._buffer), _allocation(other._allocation), _bufferViews(std::move(other._bufferViews)),
-            _queueFamilyIndex(other._queueFamilyIndex), _usage(other._usage), _allowShadersWrite(other._allowShadersWrite) {
+            _queueFamilyIndex(other._queueFamilyIndex), _usage(other._usage) {
             other._device = nullptr;
             other._buffer = VK_NULL_HANDLE;
             other._allocation = {};
@@ -39,16 +40,12 @@ namespace engine::vulkan {
             _queueFamilyIndex = other._queueFamilyIndex;
             _size = other._size;
             _usage = other._usage;
-            _allowShadersWrite = other._allowShadersWrite;
 
             other._device = nullptr;
             other._buffer = VK_NULL_HANDLE;
             other._allocation = {};
             return *this;
         }
-
-        VkBufferMemoryBarrier transition(VkAccessFlags srcAccessFlags, VkAccessFlags dstAccessFlags, 
-            size_t offset = 0u, size_t size = VK_WHOLE_SIZE, uint32_t queueFamily = VK_QUEUE_FAMILY_IGNORED) noexcept;
 
         inline explicit operator bool() const noexcept { return _buffer != VK_NULL_HANDLE; }
         inline VkBuffer operator ()() const noexcept { return _buffer; }
@@ -77,7 +74,11 @@ namespace engine::vulkan {
         
         VkMemoryPropertyFlags memoryFlags() const noexcept;
         rhi::BufferUsageFlags usage() const noexcept { return _usage; }
-        bool isShadersWriteAllowed() const noexcept { return _allowShadersWrite; }
+        VkPipelineStageFlags getStage() const noexcept { return _usedStage; }
+
+        void transition(PipelineBarriers & barriers, VkPipelineStageFlags stage, VkAccessFlags dstAccessFlags, 
+            size_t offset = 0u, size_t size = VK_WHOLE_SIZE, uint32_t queueFamily = VK_QUEUE_FAMILY_IGNORED) noexcept;
+
 
     private:
         Device * _device = nullptr;
@@ -86,6 +87,8 @@ namespace engine::vulkan {
         std::unordered_map<rhi::Format, VkBufferView> _bufferViews;
         uint32_t _queueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
         rhi::BufferUsageFlags _usage = rhi::BufferUsageFlags::eNone;
-        bool _allowShadersWrite = false;
+
+        VkPipelineStageFlags _usedStage = VkPipelineStageFlagBits::VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+        VkAccessFlags _usedAccess = 0;
     };
 }

@@ -12,9 +12,9 @@ namespace engine::rhi::runtime {
         _resources.reserve(1024u);
     }
 
-    void CommandList::begin() {
+    void CommandList::begin(CommandBufferUsageFlags flags) {
         clear();
-        _commands->create<BeginCommand>();
+        _commands->create<BeginCommand>(flags);
         _pipeline = nullptr;
         ++_commandsCount;
     }
@@ -71,7 +71,7 @@ namespace engine::rhi::runtime {
         }
     }
 
-    void CommandList::bindVertexBuffer(uint32_t binding, const Buffer * buffer, uint32_t offset) {
+    void CommandList::bindVertexBuffer(uint32_t binding, Buffer * buffer, uint32_t offset) {
         _commands->create<BindVertexBufferCommand>(binding, buffer, offset);
         ++_commandsCount;
     }
@@ -119,10 +119,10 @@ namespace engine::rhi::runtime {
     }
 
     // copy commands
-    void CommandList::copyBuffer2Buffer(const BufferPtr & src, BufferPtr & dst, const CopyInfo & copyInfo) {
+    void CommandList::copyBuffer2Buffer(const BufferPtr & src, BufferPtr & dst, const CopyBufferInfo & copyInfo, bool insertSrcBarriers) {
         _resources.push_back(src);
         _resources.push_back(dst);
-        _commands->create<CopyBuffer2BufferCommand>(src.get(), dst.get(), copyInfo);
+        _commands->create<CopyBuffer2BufferCommand>(src.get(), dst.get(), copyInfo, insertSrcBarriers);
         ++_commandsCount;
         //_commands->create<PipelineBarrierCommand>
     }

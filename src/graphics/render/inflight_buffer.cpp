@@ -53,7 +53,7 @@ namespace engine::graphics {
                             //stagingBuffer->unmap();
                         }
 
-                        cmd->copyBuffer2Buffer(*stagingBuffer, buffer, {.srcOffset = offset, .dstOffset = 0u, .size = buffer->sizeInBytes()});
+                        cmd->copyBuffer2Buffer(*stagingBuffer, buffer, {.srcOffset = offset, .dstOffset = 0u, .size = buffer->sizeInBytes()}, false);
                         dirty = false;
                         return;
                     }
@@ -72,7 +72,7 @@ namespace engine::graphics {
                     stagingBuffer->unmap();
                 }
 
-                cmd->copyBuffer2Buffer(stagingBuffer, buffer, {.srcOffset = 0u, .dstOffset = 0u, .size = buffer->sizeInBytes()});
+                cmd->copyBuffer2Buffer(stagingBuffer, buffer, {.srcOffset = 0u, .dstOffset = 0u, .size = buffer->sizeInBytes()}, false);
             }
 
             dirty = false;

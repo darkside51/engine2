@@ -95,7 +95,7 @@ namespace engine::rhi {
         constexpr ClearValue(float depth, uint32_t stencil = 0u) : depthStencil{depth, stencil} {}
     };
 
-    struct CopyInfo {
+    struct CopyBufferInfo {
         size_t srcOffset = 0u;
         size_t dstOffset = 0u;
         size_t size = 0u;
@@ -535,6 +535,22 @@ namespace engine::rhi {
 
     };
 
+    struct ImageSubresourceLayers {
+        ImageAspectFlags aspectMask = ImageAspectFlags::eColor;
+        uint8_t mipLevel = 0u;
+        uint8_t baseArrayLayer = 0u;
+        uint8_t layerCount = 0u;
+    };
+
+    typedef struct CopyBufferImageInfo {
+        size_t bufferOffset = 0u;
+        uint32_t bufferRowLength = 0u;
+        uint32_t bufferImageHeight = 0u;
+        ImageSubresourceLayers imageSubresource{};
+        Offset3D imageOffset{};
+        Extent3D imageExtent{};
+    };
+
     enum class BufferCreateFlags : uint8_t {
         eNone = 0u,
         eSparse_Binding = 1u,
@@ -556,21 +572,18 @@ namespace engine::rhi {
         BufferCreateFlags flags = BufferCreateFlags::eNone;
         SharingMode sharing = SharingMode::eExclusive;
         std::vector<uint32_t> queueFamilyIndices = {}; // It is ignored if sharingMode is not eConcurrent.
-        bool allowShadersWrite = false;
 
         BufferInfo(BufferUsageFlags usage, MemoryPropertyFlags memoryFlags, 
             MemoryExtendedFlags memoryExtFlags = MemoryExtendedFlags::eNone,
             BufferCreateFlags flags = BufferCreateFlags::eNone,
             SharingMode sharing = SharingMode::eExclusive,
-            std::vector<uint32_t> queueFamilyIndices = {},
-            bool allowShadersWrite = false) : 
+            std::vector<uint32_t> queueFamilyIndices = {}) : 
             usage(usage),
             memoryFlags(memoryFlags),
             memoryExtFlags(memoryExtFlags),
             flags(flags),
             sharing(sharing),
-            queueFamilyIndices(std::move(queueFamilyIndices)),
-            allowShadersWrite(allowShadersWrite) {}
+            queueFamilyIndices(std::move(queueFamilyIndices)) {}
     };
 
     enum class ResolveModeFlags : uint8_t {
@@ -774,6 +787,19 @@ namespace engine::rhi {
         ePrimary = 0u,
         eSecondary = 1u,
     };
+
+    enum class CommandBufferUsageFlags : uint8_t {
+        eNone = 0u,
+        eOne_Time_Submit= 1u,
+        eRender_pass_Continue = 2u,
+        eSimultaneous_Use = 4u,
+    };
+    inline CommandBufferUsageFlags operator | (CommandBufferUsageFlags a, CommandBufferUsageFlags b) {
+        return static_cast<CommandBufferUsageFlags>(std::to_underlying(a) | std::to_underlying(b));
+    }
+    inline CommandBufferUsageFlags operator & (CommandBufferUsageFlags a, CommandBufferUsageFlags b) {
+        return static_cast<CommandBufferUsageFlags>(std::to_underlying(a) & std::to_underlying(b));
+    }
 
     enum class QueryPipelineStatisticFlags : uint16_t {
         eNone = 0u,

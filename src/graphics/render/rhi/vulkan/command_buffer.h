@@ -46,7 +46,8 @@ namespace engine::vulkan {
 
         const rhi::CommandBufferState & getState() const noexcept { return _state; }
 
-        rhi::Result begin(const CommandBufferInheritanceInfo * inheritanceInfo = nullptr) noexcept;
+        rhi::Result begin(rhi::CommandBufferUsageFlags flags = rhi::CommandBufferUsageFlags::eOne_Time_Submit, 
+            const CommandBufferInheritanceInfo * inheritanceInfo = nullptr) noexcept;
 
         inline rhi::Result end() const noexcept {
             vkEndCommandBuffer(_commandBuffer);

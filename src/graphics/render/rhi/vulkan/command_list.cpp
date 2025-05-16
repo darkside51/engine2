@@ -19,53 +19,14 @@
 #include <utility>
 
 namespace engine::vulkan::runtime {
-    constexpr uint8_t kBufferBarriersReserveCapacity = 8u;
-
+    
     CommandList::CommandList(rhi::runtime::CommandPool * commandPool, rhi::CommandBufferLevel level) :
         _pool(static_cast<vulkan::CommandPool*>(commandPool)),
         _commandbuffer{*_pool, level} {
     }
 
-    void CommandList::addBufferBarrier(
-        VkPipelineStageFlags srcStageMask, 
-        VkPipelineStageFlags dstStageMask, 
-        VkDependencyFlags dependencyFlags, 
-        VkBufferMemoryBarrier barrier) {
-
-        if (_srcStageMask != srcStageMask || _dstStageMask != dstStageMask || _dependencyFlags != dependencyFlags) {
-            flushBarriers();
-
-            _srcStageMask = srcStageMask;
-            _dstStageMask = dstStageMask;
-            _dependencyFlags = dependencyFlags;
-        }
-
-        _bufferBarriers.push_back(barrier);
-    }
-
-    void CommandList::flushBarriers() noexcept {
-        if (_bufferBarriers.empty()) {
-            return;
-        }
-
-        vkCmdPipelineBarrier(
-            _commandbuffer(), 
-            _srcStageMask, _dstStageMask, _dependencyFlags, 
-            0u, nullptr, 
-            _bufferBarriers.size(), _bufferBarriers.data(), 
-            0u, nullptr
-        );
-
-        _bufferBarriers.clear();
-        _bufferBarriers.reserve(kBufferBarriersReserveCapacity);
-    }
-
     void CommandList::resetState() noexcept {
-        _srcStageMask = VkPipelineStageFlagBits::VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-        _dstStageMask = VkPipelineStageFlagBits::VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-        _dependencyFlags = VkDependencyFlagBits::VK_DEPENDENCY_BY_REGION_BIT;
-        _bufferBarriers.clear();
-        _bufferBarriers.reserve(kBufferBarriersReserveCapacity);
+        _barriers.reset();
     }
 
     void CommandList::record(uint8_t frameIdx) noexcept {
@@ -135,7 +96,8 @@ namespace engine::vulkan::runtime {
             switch (cmd->cmdType) {
             case CommandType::eBegin:
             {
-                _commandbuffer.begin();
+                const auto * command = static_cast<BeginCommand*>(cmd);
+                _commandbuffer.begin(command->flags);
                 currentPipeline = nullptr;
                 changedSets = 0u;
                 changeDynamicBufferSets = 0u;
@@ -144,7 +106,7 @@ namespace engine::vulkan::runtime {
                 break;
             case CommandType::eEnd:
             {
-                flushBarriers();
+                _barriers.flush(_commandbuffer());
                 _commandbuffer.end();
             }
                 break;
@@ -160,7 +122,7 @@ namespace engine::vulkan::runtime {
                 break;
             case CommandType::eBeginRenderPass:
             {
-                flushBarriers();
+                _barriers.flush(_commandbuffer());
                 const auto * command = static_cast<BeginRenderPassCommand*>(cmd);
 
                 dynamic_array<VkClearValue, 4u> clearValues;
@@ -196,7 +158,7 @@ namespace engine::vulkan::runtime {
                 break;
             case CommandType::eExecuteCommands:
             {
-                flushBarriers();
+                _barriers.flush(_commandbuffer());
                 const auto * command = static_cast<ExecuteCommandsCommand*>(cmd);
                 // _commandbuffer.executeCommands();// todo!
             }
@@ -306,84 +268,72 @@ namespace engine::vulkan::runtime {
                 const auto * command = static_cast<CopyBuffer2BufferCommand*>(cmd);
                 std::array copyInfos{utils::convert2vk(command->info)};
 
-                const auto & vkSrcBuffer = *static_cast<const Buffer*>(command->src);
+                auto & vkSrcBuffer = *static_cast<Buffer*>(command->src);
                 auto & vkDstBuffer = *static_cast<Buffer*>(command->dst);
 
-                auto const usage = vkSrcBuffer.usage();
-
-                VkPipelineStageFlags srcStage = 0;
-                VkAccessFlags srcAccessFlags = 0; 
-
-                const VkPipelineStageFlags dstStage = VkPipelineStageFlagBits::VK_PIPELINE_STAGE_TRANSFER_BIT;
-                const VkDependencyFlags dependency = VkDependencyFlagBits::VK_DEPENDENCY_BY_REGION_BIT;
-                
-                if ((usage & rhi::BufferUsageFlags::eTransfer_Dst) != rhi::BufferUsageFlags::eNone) { // need to check if copy command has been created?
-                    srcStage |= VkPipelineStageFlagBits::VK_PIPELINE_STAGE_TRANSFER_BIT;
-                    srcAccessFlags |= VkAccessFlagBits::VK_ACCESS_TRANSFER_WRITE_BIT;
-                }
-
-                if (vkSrcBuffer.isShadersWriteAllowed() && ((usage & (rhi::BufferUsageFlags::eStorage_Buffer | 
-                    rhi::BufferUsageFlags::eStorage_Texel_Buffer)) != rhi::BufferUsageFlags::eNone)) {
-                    srcStage |= VkPipelineStageFlagBits::VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT | 
-                                VkPipelineStageFlagBits::VK_PIPELINE_STAGE_VERTEX_SHADER_BIT; // use other shader stages?
-
-                    srcAccessFlags |= VkAccessFlagBits::VK_ACCESS_SHADER_WRITE_BIT;
-                }
-
-                if (srcAccessFlags != 0) {
-                    addBufferBarrier(srcStage, dstStage, dependency, vkDstBuffer.transition(
-                        srcAccessFlags, 
+                if (command->insertSrcBarriers) {
+                    vkSrcBuffer.transition(_barriers, 
+                        VkPipelineStageFlagBits::VK_PIPELINE_STAGE_TRANSFER_BIT, 
                         VkAccessFlagBits::VK_ACCESS_TRANSFER_READ_BIT, 
-                        command->info.dstOffset, command->info.size));
+                        command->info.dstOffset, command->info.size);
                 }
+
+                vkDstBuffer.transition(_barriers,
+                    VkPipelineStageFlagBits::VK_PIPELINE_STAGE_TRANSFER_BIT,
+                    VkAccessFlagBits::VK_ACCESS_TRANSFER_WRITE_BIT, 
+                    command->info.dstOffset, command->info.size
+                );
+
+                _barriers.flush(_commandbuffer());
 
                 _commandbuffer.copyBuffer2Buffer(vkSrcBuffer, vkDstBuffer, copyInfos);
 
-                {
-                    auto const srcStage = VkPipelineStageFlagBits::VK_PIPELINE_STAGE_TRANSFER_BIT;
-                    auto const dependency = VkDependencyFlagBits::VK_DEPENDENCY_BY_REGION_BIT;
+                auto const usage = vkSrcBuffer.usage();
+                if ((usage & rhi::BufferUsageFlags::eVertex_Buffer) != rhi::BufferUsageFlags::eNone) {
+                    auto const dstStage = VkPipelineStageFlagBits::VK_PIPELINE_STAGE_VERTEX_INPUT_BIT;
 
-                    auto const usage = vkDstBuffer.usage();
-                    if ((usage & rhi::BufferUsageFlags::eVertex_Buffer) != rhi::BufferUsageFlags::eNone) {
-                        auto const dstStage = VkPipelineStageFlagBits::VK_PIPELINE_STAGE_VERTEX_INPUT_BIT;
+                    vkDstBuffer.transition(_barriers,
+                        dstStage,
+                        VkAccessFlagBits::VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT, 
+                        command->info.dstOffset, command->info.size
+                    );
+                }
 
-                        addBufferBarrier(srcStage, dstStage, dependency, vkDstBuffer.transition(
-                            VkAccessFlagBits::VK_ACCESS_TRANSFER_WRITE_BIT, 
-                            VkAccessFlagBits::VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT, 
-                            command->info.dstOffset, command->info.size));
-                    }
+                if ((usage & rhi::BufferUsageFlags::eIndex_Buffer) != rhi::BufferUsageFlags::eNone) {
+                    auto const dstStage = VkPipelineStageFlagBits::VK_PIPELINE_STAGE_VERTEX_INPUT_BIT;
 
-                    if ((usage & rhi::BufferUsageFlags::eIndex_Buffer) != rhi::BufferUsageFlags::eNone) {
-                        auto const dstStage = VkPipelineStageFlagBits::VK_PIPELINE_STAGE_VERTEX_INPUT_BIT;
+                    vkDstBuffer.transition(_barriers,
+                        dstStage,
+                        VkAccessFlagBits::VK_ACCESS_INDEX_READ_BIT, 
+                        command->info.dstOffset, command->info.size
+                    );
+                }
 
-                        addBufferBarrier(srcStage, dstStage, dependency, vkDstBuffer.transition(
-                            VkAccessFlagBits::VK_ACCESS_TRANSFER_WRITE_BIT, 
-                            VkAccessFlagBits::VK_ACCESS_INDEX_READ_BIT, 
-                            command->info.dstOffset, command->info.size));
-                    }
+                if ((usage & rhi::BufferUsageFlags::eUniform_Buffer) != rhi::BufferUsageFlags::eNone) {
+                    auto const dstStage = VkPipelineStageFlagBits::VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | 
+                                            VkPipelineStageFlagBits::VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
 
-                    if ((usage & rhi::BufferUsageFlags::eUniform_Buffer) != rhi::BufferUsageFlags::eNone) {
-                        auto const dstStage = VkPipelineStageFlagBits::VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | 
-                                              VkPipelineStageFlagBits::VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
-
-                        addBufferBarrier(srcStage, dstStage, dependency, vkDstBuffer.transition(
-                            VkAccessFlagBits::VK_ACCESS_TRANSFER_WRITE_BIT, 
-                            VkAccessFlagBits::VK_ACCESS_UNIFORM_READ_BIT, 
-                            command->info.dstOffset, command->info.size));
-                    }    
-
-                    if ((usage & (rhi::BufferUsageFlags::eStorage_Buffer | 
-                                  rhi::BufferUsageFlags::eUniform_Texel_Buffer | 
-                                  rhi::BufferUsageFlags::eStorage_Texel_Buffer)) != rhi::BufferUsageFlags::eNone) {
-                        auto const dstStage = VkPipelineStageFlagBits::VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | 
-                                              VkPipelineStageFlagBits::VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
-
-                        addBufferBarrier(srcStage, dstStage, dependency, vkDstBuffer.transition(
-                            VkAccessFlagBits::VK_ACCESS_TRANSFER_WRITE_BIT, 
-                            VkAccessFlagBits::VK_ACCESS_SHADER_READ_BIT, 
-                            command->info.dstOffset, command->info.size));
-                    }    
+                    vkDstBuffer.transition(_barriers,
+                        dstStage,
+                        VkAccessFlagBits::VK_ACCESS_UNIFORM_READ_BIT, 
+                        command->info.dstOffset, command->info.size
+                    );
                 }    
+
+                if ((usage & (rhi::BufferUsageFlags::eStorage_Buffer | 
+                                rhi::BufferUsageFlags::eUniform_Texel_Buffer | 
+                                rhi::BufferUsageFlags::eStorage_Texel_Buffer)) != rhi::BufferUsageFlags::eNone) {
+                    auto const dstStage = VkPipelineStageFlagBits::VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | 
+                                          VkPipelineStageFlagBits::VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+
+                    vkDstBuffer.transition(_barriers,
+                        dstStage,
+                        VkAccessFlagBits::VK_ACCESS_SHADER_READ_BIT, 
+                        command->info.dstOffset, command->info.size
+                    );
+                }
+
+                _barriers.flush(_commandbuffer()); 
             }
                 break;
             case CommandType::eUndefined:

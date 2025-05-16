@@ -45,7 +45,9 @@ namespace engine::rhi::runtime {
     };
 
     struct BeginCommand : Command {
-        BeginCommand() : Command(CommandType::eBegin, sizeof(BeginCommand)) {}
+        CommandBufferUsageFlags flags;
+        BeginCommand(CommandBufferUsageFlags flags = CommandBufferUsageFlags::eOne_Time_Submit) : 
+            Command(CommandType::eBegin, sizeof(BeginCommand)), flags(flags) {}
     };
 
     struct EndCommand : Command {
@@ -113,10 +115,10 @@ namespace engine::rhi::runtime {
     };
 
     struct BindVertexBufferCommand : Command {
-        const Buffer * buffer = nullptr;
+        Buffer * buffer = nullptr;
         uint32_t binding = 0u;
         uint32_t offset = 0u;
-        BindVertexBufferCommand(uint32_t binding, const Buffer * buffer, uint32_t offset = 0u) : 
+        BindVertexBufferCommand(uint32_t binding, Buffer * buffer, uint32_t offset = 0u) : 
             Command(CommandType::eBindVertexBuffer, sizeof(BindVertexBufferCommand)), 
             binding(binding), buffer(buffer), offset(offset) {}
     };
@@ -176,14 +178,29 @@ namespace engine::rhi::runtime {
     };
 
     struct CopyBuffer2BufferCommand : Command {
-        CopyInfo info{};
-        const Buffer * src = nullptr;
+        CopyBufferInfo info{}; // todo: support array of CopyBufferInfo
+        Buffer * src = nullptr;
         Buffer * dst = nullptr;
-        CopyBuffer2BufferCommand(const Buffer * src, Buffer * dst, const CopyInfo & info) : 
+        bool insertSrcBarriers = true;
+        CopyBuffer2BufferCommand(Buffer * src, Buffer * dst, const CopyBufferInfo & info, bool insertSrcBarriers = true) : 
             Command(CommandType::eCopyBuffer2Buffer, sizeof(CopyBuffer2BufferCommand)),
+            info(info),
             src(src), 
             dst(dst),
-            info(info) {}
+            insertSrcBarriers(insertSrcBarriers) {}
+    };
+
+    struct CopyBuffer2ImageCommand : Command {
+        CopyBufferImageInfo info{}; // todo: support array of CopyBufferImageInfo
+        const Buffer * src = nullptr;
+        Image * dst = nullptr;
+        ImageLayout layout = ImageLayout::eGeneral;
+        CopyBuffer2ImageCommand(const Buffer * src, Image * dst, const CopyBufferImageInfo & info, ImageLayout layout) : 
+            Command(CommandType::eCopyBuffer2Image, sizeof(CopyBuffer2ImageCommand)),
+            info(info),
+            src(src), 
+            dst(dst),
+            layout(layout) {}
     };
 
     struct PipelineBarrierCommand : Command { // todo!

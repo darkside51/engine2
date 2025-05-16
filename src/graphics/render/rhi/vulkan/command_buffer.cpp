@@ -48,14 +48,14 @@ namespace engine::vulkan {
         }
     }
 
-    rhi::Result CommandBuffer::begin(const CommandBufferInheritanceInfo * inheritanceInfo) noexcept {
+    rhi::Result CommandBuffer::begin(rhi::CommandBufferUsageFlags flags, const CommandBufferInheritanceInfo * inheritanceInfo) noexcept {
         _state.reset();
         _pipeline = {};
         if (_level == rhi::CommandBufferLevel::ePrimary || inheritanceInfo == nullptr) {
             const VkCommandBufferBeginInfo beginInfo {
                 .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
                 .pNext = nullptr,
-                .flags = 0, // VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT - it here
+                .flags = utils::convert2vk(flags),
                 .pInheritanceInfo = nullptr
             };
     
@@ -66,7 +66,7 @@ namespace engine::vulkan {
             const VkCommandBufferBeginInfo beginInfo {
                 .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
                 .pNext = nullptr,
-                .flags = 0, // VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT - it here
+                .flags = utils::convert2vk(flags),
                 .pInheritanceInfo = &info
             };
     

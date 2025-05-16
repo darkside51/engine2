@@ -3,6 +3,7 @@
 #include "device.h"
 #include "instance.h"
 #include "physical_device.h"
+#include "barriers.h"
 #include "vk_types.h"
 
 #include "log/log.h"
@@ -12,8 +13,7 @@ namespace engine::vulkan {
     Buffer::Buffer(Device & device, const rhi::BufferInfo & info, size_t sizeInBytes) : 
         rhi::runtime::Buffer(sizeInBytes), 
         _device(&device), 
-        _usage(info.usage),
-        _allowShadersWrite(info.allowShadersWrite) {
+        _usage(info.usage) {
         const VkBufferCreateInfo createInfo = {
             .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
             .pNext = nullptr,
@@ -72,23 +72,6 @@ namespace engine::vulkan {
         return bufferView;   
     }
 
-    VkBufferMemoryBarrier Buffer::transition(VkAccessFlags srcAccessFlags, VkAccessFlags dstAccessFlags, 
-        size_t offset, size_t size, uint32_t queueFamily) noexcept {
-        auto const currentFamily = _queueFamilyIndex;
-        _queueFamilyIndex = queueFamily;
-        return VkBufferMemoryBarrier {
-            .sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER,
-            .pNext = nullptr,
-            .srcAccessMask = srcAccessFlags,
-            .dstAccessMask = dstAccessFlags,
-            .srcQueueFamilyIndex = currentFamily,
-            .dstQueueFamilyIndex = queueFamily,
-            .buffer = _buffer,
-            .offset = offset,
-            .size = size
-        };
-    }
-
     void Buffer::flush(size_t offset, size_t size) noexcept {
         _device->getMemoryAllocator().flushMemory(_allocation, offset, size);
     }
@@ -118,5 +101,27 @@ namespace engine::vulkan {
             return _allocation.info.pName;
         }
         return {};
+    }
+
+    void Buffer::transition(PipelineBarriers & barriers, VkPipelineStageFlags stage, VkAccessFlags dstAccessFlags, 
+            size_t offset, size_t size, uint32_t queueFamily) noexcept {
+        if (_usedStage != stage || _usedAccess != dstAccessFlags || _queueFamilyIndex != queueFamily) {
+
+            barriers.insertBufferBarrier(_usedStage, stage, VkDependencyFlagBits::VK_DEPENDENCY_BY_REGION_BIT, {
+                .sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER,
+                .pNext = nullptr,
+                .srcAccessMask = _usedAccess,
+                .dstAccessMask = dstAccessFlags,
+                .srcQueueFamilyIndex = _queueFamilyIndex,
+                .dstQueueFamilyIndex = queueFamily,
+                .buffer = _buffer,
+                .offset = offset,
+                .size = size
+            });
+
+            _usedStage = stage;
+            _usedAccess = dstAccessFlags;
+            _queueFamilyIndex = queueFamily;
+        }
     }
 }
