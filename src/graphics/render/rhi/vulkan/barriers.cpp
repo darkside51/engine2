@@ -3,6 +3,7 @@
 namespace engine::vulkan {
 
     constexpr uint8_t kBufferBarriersReserveCapacity = 8u;
+    constexpr uint8_t kImageBarriersReserveCapacity = 8u;
 
     void PipelineBarriers::insertBufferBarrier(VkPipelineStageFlags srcStage, 
         VkPipelineStageFlags dstStage, 
@@ -14,7 +15,20 @@ namespace engine::vulkan {
             bufferBarriers.reserve(kBufferBarriersReserveCapacity);
         }
 
-        _barriers[{srcStage, dstStage, flags}].bufferBarriers.emplace_back(barrier);
+        bufferBarriers.emplace_back(barrier);
+    }
+
+    void PipelineBarriers::insertImageBarrier(VkPipelineStageFlags srcStage, 
+        VkPipelineStageFlags dstStage, 
+        VkDependencyFlags flags, 
+        VkImageMemoryBarrier barrier) {
+
+        auto & imageBarriers = _barriers[{srcStage, dstStage, flags}].imageBarriers;
+        if (imageBarriers.capacity() == 0u) {
+            imageBarriers.reserve(kImageBarriersReserveCapacity);
+        }
+
+        imageBarriers.emplace_back(barrier);
     }
 
     void PipelineBarriers::flush(VkCommandBuffer commandBuffer) {
@@ -24,7 +38,7 @@ namespace engine::vulkan {
                 stage.srcStageMask, stage.dstStageMask, stage.dependencyFlags, 
                 0u, nullptr, 
                 barriers.bufferBarriers.size(), barriers.bufferBarriers.data(), 
-                0u, nullptr
+                barriers.imageBarriers.size(), barriers.imageBarriers.data()
             );
         }
 

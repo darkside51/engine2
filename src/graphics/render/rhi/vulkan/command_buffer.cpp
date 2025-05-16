@@ -101,7 +101,7 @@ namespace engine::vulkan {
         vkCmdCopyBuffer(_commandBuffer, src(), dst(), copyInfo.size(), copyInfo.data());
     }
 
-    void CommandBuffer::copyBufferToImage(const Buffer & src, const Image & dst, std::span<VkBufferImageCopy> copyInfo) const noexcept {
+    void CommandBuffer::copyBuffer2Image(const Buffer & src, const Image & dst, std::span<VkBufferImageCopy> copyInfo) const noexcept {
         // vkCmdCopyBufferToImage2; // ?
 
         const auto info = dst.getInfo();

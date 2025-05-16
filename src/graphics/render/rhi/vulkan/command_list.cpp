@@ -48,7 +48,8 @@ namespace engine::vulkan::runtime {
 
         struct PostBufferBarrierInfo {
             Buffer & buffer;
-            rhi::CopyBufferInfo info;
+            size_t offset;
+            size_t size;
         };
 
         constexpr size_t kPostBarriersBuffersInitSize = 8u;
@@ -58,7 +59,7 @@ namespace engine::vulkan::runtime {
 
         const auto applyPostBarriers = [&]() {
             // buffers barriers
-            for (auto & [buffer, info] : postBarriersBuffers) {
+            for (auto & [buffer, offset, size] : postBarriersBuffers) {
                 auto const usage = buffer.usage();
                 if ((usage & rhi::BufferUsageFlags::eVertex_Buffer) != rhi::BufferUsageFlags::eNone) {
                     auto const dstStage = VkPipelineStageFlagBits::VK_PIPELINE_STAGE_VERTEX_INPUT_BIT;
@@ -66,7 +67,7 @@ namespace engine::vulkan::runtime {
                     buffer.transition(_postBarriers,
                         dstStage,
                         VkAccessFlagBits::VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT, 
-                        info.dstOffset, info.size
+                        offset, size
                     );
                 }
 
@@ -76,7 +77,7 @@ namespace engine::vulkan::runtime {
                     buffer.transition(_postBarriers,
                         dstStage,
                         VkAccessFlagBits::VK_ACCESS_INDEX_READ_BIT, 
-                        info.dstOffset, info.size
+                        offset, size
                     );
                 }
 
@@ -87,7 +88,7 @@ namespace engine::vulkan::runtime {
                     buffer.transition(_postBarriers,
                         dstStage,
                         VkAccessFlagBits::VK_ACCESS_UNIFORM_READ_BIT, 
-                        info.dstOffset, info.size
+                        offset, size
                     );
                 }    
 
@@ -100,7 +101,7 @@ namespace engine::vulkan::runtime {
                     buffer.transition(_postBarriers,
                         dstStage,
                         VkAccessFlagBits::VK_ACCESS_SHADER_READ_BIT, 
-                        info.dstOffset, info.size
+                        offset, size
                     );
                 }
             }
@@ -343,7 +344,7 @@ namespace engine::vulkan::runtime {
                     vkSrcBuffer.transition(_barriers, 
                         VkPipelineStageFlagBits::VK_PIPELINE_STAGE_TRANSFER_BIT, 
                         VkAccessFlagBits::VK_ACCESS_TRANSFER_READ_BIT, 
-                        command->info.dstOffset, command->info.size);
+                        command->info.srcOffset, command->info.size);
 
                     vkDstBuffer.transition(_barriers,
                         VkPipelineStageFlagBits::VK_PIPELINE_STAGE_TRANSFER_BIT,
@@ -355,18 +356,59 @@ namespace engine::vulkan::runtime {
 
                     if (vkSrcBuffer.usage() != rhi::BufferUsageFlags::eTransfer_Src &&
                         vkSrcBuffer.usage() != (rhi::BufferUsageFlags::eTransfer_Src | rhi::BufferUsageFlags::eTransfer_Dst)) {
-                        postBarriersBuffers.emplace_back(vkSrcBuffer, command->info); // srcBuffer
+                        postBarriersBuffers.emplace_back(vkSrcBuffer, command->info.srcOffset, command->info.size); // srcBuffer
                     }
-                    
+
                     if (vkDstBuffer.usage() != rhi::BufferUsageFlags::eTransfer_Dst &&
                         vkDstBuffer.usage() != (rhi::BufferUsageFlags::eTransfer_Src | rhi::BufferUsageFlags::eTransfer_Dst)) {
-                        postBarriersBuffers.emplace_back(vkDstBuffer, command->info); // dstBuffer
+                        postBarriersBuffers.emplace_back(vkDstBuffer, command->info.dstOffset, command->info.size); // dstBuffer
                     }
                 }
 
                 _commandbuffer.copyBuffer2Buffer(vkSrcBuffer, vkDstBuffer, copyInfos);
             }
                 break;
+
+            case CommandType::eCopyBuffer2Image:
+            {
+                const auto * command = static_cast<CopyBuffer2ImageCommand*>(cmd);
+                std::array copyInfos{utils::convert2vk(command->info)};
+
+                auto & vkSrcBuffer = *static_cast<Buffer*>(command->src);
+                auto & vkDstImage = *static_cast<Image*>(command->dst);
+
+                if (command->autoBarriers) {
+                    vkSrcBuffer.transition(_barriers, 
+                        VkPipelineStageFlagBits::VK_PIPELINE_STAGE_TRANSFER_BIT, 
+                        VkAccessFlagBits::VK_ACCESS_TRANSFER_READ_BIT, 
+                        command->info.bufferOffset, VK_WHOLE_SIZE);
+
+                    vkDstImage.transition(
+                        _barriers,
+                        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 
+                        VK_PIPELINE_STAGE_TRANSFER_BIT,
+                        VK_ACCESS_TRANSFER_WRITE_BIT,
+                        command->info.imageSubresource.baseArrayLayer,
+                        command->info.imageSubresource.layerCount,
+                        command->info.imageSubresource.mipLevel, 1u
+                    );
+
+                    _barriers.flush(_commandbuffer());
+
+                    if (vkSrcBuffer.usage() != rhi::BufferUsageFlags::eTransfer_Src &&
+                        vkSrcBuffer.usage() != (rhi::BufferUsageFlags::eTransfer_Src | rhi::BufferUsageFlags::eTransfer_Dst)) {
+                        postBarriersBuffers.emplace_back(vkSrcBuffer, command->info.bufferOffset, VK_WHOLE_SIZE); // srcBuffer
+                    }
+
+                    // if (vkDstBuffer.usage() != rhi::BufferUsageFlags::eTransfer_Dst &&
+                    //     vkDstBuffer.usage() != (rhi::BufferUsageFlags::eTransfer_Src | rhi::BufferUsageFlags::eTransfer_Dst)) {
+                    //     postBarriersBuffers.emplace_back(vkDstBuffer, command->info); // dstBuffer
+                    // }
+                }
+
+                _commandbuffer.copyBuffer2Image(vkSrcBuffer, vkDstImage, copyInfos);
+            }   
+                break; 
             case CommandType::ePipelineBarriers:
                 // todo!
                 _barriers.flush(_commandbuffer());

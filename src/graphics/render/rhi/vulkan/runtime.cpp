@@ -49,7 +49,8 @@ namespace engine::vulkan::runtime {
     }
 
     rhi::runtime::ImagePtr Rhi::createImage(const rhi::runtime::DevicePtr & device, const rhi::ImageInfo & info) const noexcept {
-        return std::make_unique<Api::Image>(static_cast<Api::Device &>(*device), info);
+        return rhi::runtime::sh_ptr<Api::Image>::make(static_cast<Api::Device &>(*device), info);
+        // return std::make_unique<Api::Image>(static_cast<Api::Device &>(*device), info);
     }
 
     rhi::runtime::RenderPass Rhi::getRenderPass(rhi::runtime::DevicePtr & device, 

@@ -16,6 +16,7 @@
 namespace engine::vulkan {
 
 class Device;
+class PipelineBarriers;
 
 struct ImageSubresourceRange {
     uint8_t baseMipLevel;
@@ -108,8 +109,8 @@ public:
     std::vector<ImageMemoryBarrierInfo> transition(VkImageLayout dstLayout, 
                         VkPipelineStageFlags srcStage, VkPipelineStageFlags dstStage, 
                         VkAccessFlags srcAccessFlags, VkAccessFlags dstAccessFlags,
-                        uint32_t queueFamily, uint8_t baseLayer, uint8_t layersCount, 
-                        uint8_t baseLevel, uint8_t levelsCount);
+                        uint8_t baseLayer, uint8_t layersCount, 
+                        uint8_t baseLevel, uint8_t levelsCount, uint32_t queueFamily = VK_QUEUE_FAMILY_IGNORED);
 
     void assignLayout(VkImageLayout dstLayout, uint8_t baseLayer, uint8_t layersCount, 
                     uint8_t baseLevel, uint8_t levelsCount) noexcept;
@@ -117,6 +118,11 @@ public:
     std::span<const ImageSubState> getSubStates() const noexcept { return _imageSubStates; }
 
     VkImageLayout getLayout(uint8_t layer, uint8_t level) const noexcept;
+
+    void transition(PipelineBarriers & barriers, VkImageLayout dstLayout, 
+        VkPipelineStageFlags dstStage, VkAccessFlags dstAccessFlags, 
+        uint8_t baseLayer, uint8_t layersCount, 
+        uint8_t baseLevel, uint8_t levelsCount, uint32_t queueFamily = VK_QUEUE_FAMILY_IGNORED);
 
 private:
     Device * _device;

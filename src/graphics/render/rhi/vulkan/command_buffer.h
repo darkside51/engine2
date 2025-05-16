@@ -78,7 +78,7 @@ namespace engine::vulkan {
         void setScissorRect(const rhi::Rect2D & area, uint32_t scessorIdx = 0u) noexcept;
 
         void copyBuffer2Buffer(const Buffer & src, const Buffer & dst, std::span<VkBufferCopy> copyInfo) const noexcept;
-        void copyBufferToImage(const Buffer & src, const Image & dst, std::span<VkBufferImageCopy> copyInfo) const noexcept;
+        void copyBuffer2Image(const Buffer & src, const Image & dst, std::span<VkBufferImageCopy> copyInfo) const noexcept;
 
         static SubmitSyncInfo createSubmitSyncInfo(
             std::span<const VkPipelineStageFlags> waitStages,

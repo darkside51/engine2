@@ -50,7 +50,7 @@ inline auto convert2vk(const std::array<rhi::ClearValue, N> & array) -> std::arr
 }
 
 inline VkBufferCopy convert2vk(const rhi::CopyBufferInfo & info) noexcept {
-    return VkBufferCopy {
+    return {
         .srcOffset = info.srcOffset,
         .dstOffset = info.dstOffset,
         .size = info.size
@@ -405,6 +405,26 @@ inline VkImageUsageFlags convert2vk(rhi::ImageUsageFlags flags) noexcept {
     }
 
     return result;
+}
+
+inline VkImageSubresourceLayers convert2vk(const rhi::ImageSubresourceLayers & subresource) noexcept {
+    return {
+        .aspectMask = convert2vk(subresource.aspectMask),
+        .mipLevel = subresource.mipLevel,
+        .baseArrayLayer = subresource.baseArrayLayer,
+        .layerCount = subresource.layerCount,
+    };
+}
+
+inline VkBufferImageCopy convert2vk(const rhi::CopyBufferImageInfo & info) noexcept {
+    return {
+        .bufferOffset = static_cast<VkDeviceSize>(info.bufferOffset),
+        .bufferRowLength = info.bufferRowLength,
+        .bufferImageHeight = info.bufferImageHeight,
+        .imageSubresource = convert2vk(info.imageSubresource),
+        .imageOffset = convert2vk(info.imageOffset),
+        .imageExtent = convert2vk(info.imageExtent)
+    };
 }
 
 inline VkSharingMode convert2vk(rhi::SharingMode mode) noexcept {

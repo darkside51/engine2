@@ -45,6 +45,7 @@ namespace engine::rhi::runtime {
             uint32_t firstInstance = 0u);
 
         void copyBuffer2Buffer(const BufferPtr & src, BufferPtr & dst, const CopyBufferInfo & copyInfos, bool autoBarriers = true);
+        void copyBuffer2Image(const BufferPtr & src, ImagePtr & dst, const CopyBufferImageInfo & copyInfos, bool autoBarriers = true);
 
         void insertBarriers();
 

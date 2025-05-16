@@ -13,6 +13,7 @@ namespace engine::vulkan {
 class PipelineBarriers {
     struct Barriers {
         std::vector<VkBufferMemoryBarrier> bufferBarriers;
+        std::vector<VkImageMemoryBarrier> imageBarriers;
     };
 
     struct BarrierStage {
@@ -41,6 +42,7 @@ class PipelineBarriers {
 
 public:
     void insertBufferBarrier(VkPipelineStageFlags srcStage, VkPipelineStageFlags dstStage, VkDependencyFlags flags, VkBufferMemoryBarrier barrier);
+    void insertImageBarrier(VkPipelineStageFlags srcStage, VkPipelineStageFlags dstStage, VkDependencyFlags flags, VkImageMemoryBarrier barrier);
 
     void flush(VkCommandBuffer commandBuffer);
     void reset();

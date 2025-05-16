@@ -192,15 +192,15 @@ namespace engine::rhi::runtime {
 
     struct CopyBuffer2ImageCommand : Command {
         CopyBufferImageInfo info{}; // todo: support array of CopyBufferImageInfo
-        const Buffer * src = nullptr;
+        Buffer * src = nullptr;
         Image * dst = nullptr;
-        ImageLayout layout = ImageLayout::eGeneral;
-        CopyBuffer2ImageCommand(const Buffer * src, Image * dst, const CopyBufferImageInfo & info, ImageLayout layout) : 
+        bool autoBarriers = true;
+        CopyBuffer2ImageCommand(Buffer * src, Image * dst, const CopyBufferImageInfo & info, bool autoBarriers = true) : 
             Command(CommandType::eCopyBuffer2Image, sizeof(CopyBuffer2ImageCommand)),
             info(info),
             src(src), 
             dst(dst),
-            layout(layout) {}
+            autoBarriers(autoBarriers) {}
     };
 
     struct PipelineBarriersCommand : Command { // todo!

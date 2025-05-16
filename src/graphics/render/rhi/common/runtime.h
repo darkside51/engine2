@@ -88,7 +88,7 @@ protected:
     uint32_t _size = 0u;
 };
 
-class Image {
+class Image : public PipeLineResource {
 public:
     Image(const rhi::ImageInfo & imageInfo) : _info(imageInfo) {}
     virtual ~Image() = default;
@@ -188,7 +188,7 @@ public:
 using SurfacePtr = std::unique_ptr<Surface>;
 using PysicalDevicePtr = std::unique_ptr<PhysicalDevice>;
 using DevicePtr = std::unique_ptr<Device>;
-using ImagePtr = std::unique_ptr<Image>;
+using ImagePtr = sh_ptr<Image>;//std::unique_ptr<Image>;
 using SwapchainPtr = std::unique_ptr<Swapchain>;
 using FrameBufferPtr = sh_ptr<FrameBuffer>;//std::unique_ptr<FrameBuffer>;
 using QueuePtr = std::unique_ptr<Queue>;

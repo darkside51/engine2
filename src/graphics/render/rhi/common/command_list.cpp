@@ -124,9 +124,14 @@ namespace engine::rhi::runtime {
         _resources.push_back(dst);
         _commands->create<CopyBuffer2BufferCommand>(src.get(), dst.get(), copyInfo, autoBarriers);
         ++_commandsCount;
-        //_commands->create<PipelineBarrierCommand>
     }
 
+    void CommandList::copyBuffer2Image(const BufferPtr & src, ImagePtr & dst, const CopyBufferImageInfo & copyInfos, bool autoBarriers) {
+        _resources.push_back(src);
+        _resources.push_back(dst);
+        _commands->create<CopyBuffer2ImageCommand>(src.get(), dst.get(), copyInfos, autoBarriers);
+        ++_commandsCount;
+    }
 
     // manual barriers
     void CommandList::insertBarriers() {

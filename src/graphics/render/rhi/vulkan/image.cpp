@@ -131,12 +131,21 @@ VkImageLayout Image::getLayout(uint8_t layer, uint8_t level) const noexcept {
     return subState.layout;
 }
 
+
+void Image::transition(PipelineBarriers & barriers, VkImageLayout dstLayout, 
+        VkPipelineStageFlags dstStage, VkAccessFlags dstAccessFlags, 
+        uint8_t baseLayer, uint8_t layersCount, 
+        uint8_t baseLevel, uint8_t levelsCount, uint32_t queueFamily) {
+////////!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+}
+
 std::vector<ImageMemoryBarrierInfo> Image::transition(VkImageLayout dstLayout, 
                         VkPipelineStageFlags srcStage,
                         VkPipelineStageFlags dstStage, 
                         VkAccessFlags srcAccessFlags, VkAccessFlags dstAccessFlags,
-                        uint32_t queueFamily, uint8_t baseLayer, uint8_t layersCount, 
-                        uint8_t baseLevel, uint8_t levelsCount) {
+                        uint8_t baseLayer, uint8_t layersCount, 
+                        uint8_t baseLevel, uint8_t levelsCount,
+                        uint32_t queueFamily) {
     //todo! check this function
 
     VkImageMemoryBarrier barrier = {};

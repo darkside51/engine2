@@ -542,7 +542,7 @@ namespace engine::rhi {
         uint8_t layerCount = 0u;
     };
 
-    typedef struct CopyBufferImageInfo {
+    struct CopyBufferImageInfo {
         size_t bufferOffset = 0u;
         uint32_t bufferRowLength = 0u;
         uint32_t bufferImageHeight = 0u;
