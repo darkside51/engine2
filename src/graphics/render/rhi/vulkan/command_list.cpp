@@ -51,7 +51,11 @@ namespace engine::vulkan::runtime {
             rhi::CopyBufferInfo info;
         };
 
+        constexpr size_t kPostBarriersBuffersInitSize = 8u;
+
         std::vector<PostBufferBarrierInfo> postBarriersBuffers;
+        postBarriersBuffers.reserve(kPostBarriersBuffersInitSize);
+
         const auto applyPostBarriers = [&]() {
             // buffers barriers
             for (auto & [buffer, info] : postBarriersBuffers) {
@@ -101,6 +105,7 @@ namespace engine::vulkan::runtime {
                 }
             }
             postBarriersBuffers.clear();
+            postBarriersBuffers.reserve(kPostBarriersBuffersInitSize);
 
             _postBarriers.flush(_commandbuffer());
         };
@@ -347,13 +352,19 @@ namespace engine::vulkan::runtime {
                     );
 
                     _barriers.flush(_commandbuffer());
+
+                    if (vkSrcBuffer.usage() != rhi::BufferUsageFlags::eTransfer_Src &&
+                        vkSrcBuffer.usage() != (rhi::BufferUsageFlags::eTransfer_Src | rhi::BufferUsageFlags::eTransfer_Dst)) {
+                        postBarriersBuffers.emplace_back(vkSrcBuffer, command->info); // srcBuffer
+                    }
+                    
+                    if (vkDstBuffer.usage() != rhi::BufferUsageFlags::eTransfer_Dst &&
+                        vkDstBuffer.usage() != (rhi::BufferUsageFlags::eTransfer_Src | rhi::BufferUsageFlags::eTransfer_Dst)) {
+                        postBarriersBuffers.emplace_back(vkDstBuffer, command->info); // dstBuffer
+                    }
                 }
 
                 _commandbuffer.copyBuffer2Buffer(vkSrcBuffer, vkDstBuffer, copyInfos);
-
-                if (command->autoBarriers) {
-                    postBarriersBuffers.emplace_back(vkDstBuffer, command->info);
-                }
             }
                 break;
             case CommandType::ePipelineBarriers:
