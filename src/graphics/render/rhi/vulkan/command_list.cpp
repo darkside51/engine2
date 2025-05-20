@@ -52,10 +52,18 @@ namespace engine::vulkan::runtime {
             size_t size;
         };
 
+        struct PostImageBarrierInfo {
+            Image & image;
+        };
+
         constexpr size_t kPostBarriersBuffersInitSize = 8u;
+        constexpr size_t kPostBarriersImagesInitSize = 8u;
 
         std::vector<PostBufferBarrierInfo> postBarriersBuffers;
         postBarriersBuffers.reserve(kPostBarriersBuffersInitSize);
+
+        std::vector<PostImageBarrierInfo> postBarriersImages;
+        postBarriersImages.reserve(kPostBarriersImagesInitSize);
 
         const auto applyPostBarriers = [&]() {
             // buffers barriers
@@ -107,6 +115,67 @@ namespace engine::vulkan::runtime {
             }
             postBarriersBuffers.clear();
             postBarriersBuffers.reserve(kPostBarriersBuffersInitSize);
+
+            // images barriers
+            for (auto & [image] : postBarriersImages) {
+                auto const usage = image.usage();
+                const auto & info = image.getInfo();
+
+                if ((usage & (rhi::ImageUsageFlags::eStorage | 
+                    rhi::ImageUsageFlags::eSampled)) != rhi::ImageUsageFlags::eNone) {
+                    auto const dstStage = VkPipelineStageFlagBits::VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | 
+                                        VkPipelineStageFlagBits::VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT |
+                                        VkPipelineStageFlagBits::VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+
+                    image.transition(
+                        _postBarriers, 
+                        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 
+                        dstStage, 
+                        VkAccessFlagBits::VK_ACCESS_SHADER_READ_BIT, 
+                        0u, 0u, 
+                        0u, 0u
+                    );  
+                }
+
+                if ((usage & rhi::ImageUsageFlags::eDepth_Stencil_Attachment) != rhi::ImageUsageFlags::eNone) {
+                    auto const dstStage = VkPipelineStageFlagBits::VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+
+                    const auto aspectFlags = info.aspectFlags;
+
+                    VkImageLayout dstLayout = VkImageLayout::VK_IMAGE_LAYOUT_UNDEFINED;
+                    if ((aspectFlags & rhi::ImageAspectFlags::eDepthStencil) != rhi::ImageAspectFlags::eNone) {
+                        dstLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+                    } else if ((aspectFlags & rhi::ImageAspectFlags::eDepth) != rhi::ImageAspectFlags::eNone) {
+                        dstLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
+                    } else if ((aspectFlags & rhi::ImageAspectFlags::eStencil) != rhi::ImageAspectFlags::eNone) {
+                        dstLayout = VK_IMAGE_LAYOUT_STENCIL_ATTACHMENT_OPTIMAL;
+                    }
+
+                    image.transition(
+                        _postBarriers, 
+                        dstLayout, 
+                        dstStage, 
+                        VkAccessFlagBits::VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT, 
+                        0u, 0u, 
+                        0u, 0u
+                    );  
+                }
+
+                if ((usage & rhi::ImageUsageFlags::eColor_Attachment) != rhi::ImageUsageFlags::eNone) {
+                    auto const dstStage = VkPipelineStageFlagBits::VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+
+                    image.transition(
+                        _postBarriers, 
+                        VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, 
+                        dstStage, 
+                        VkAccessFlagBits::VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, 
+                        0u, 0u, 
+                        0u, 0u
+                    );  
+                }
+            }
+            postBarriersImages.clear();
+            postBarriersImages.reserve(kPostBarriersImagesInitSize);
 
             _postBarriers.flush(_commandbuffer());
         };
@@ -400,10 +469,10 @@ namespace engine::vulkan::runtime {
                         postBarriersBuffers.emplace_back(vkSrcBuffer, command->info.bufferOffset, VK_WHOLE_SIZE); // srcBuffer
                     }
 
-                    // if (vkDstBuffer.usage() != rhi::BufferUsageFlags::eTransfer_Dst &&
-                    //     vkDstBuffer.usage() != (rhi::BufferUsageFlags::eTransfer_Src | rhi::BufferUsageFlags::eTransfer_Dst)) {
-                    //     postBarriersBuffers.emplace_back(vkDstBuffer, command->info); // dstBuffer
-                    // }
+                    if (vkDstImage.usage() != rhi::ImageUsageFlags::eTransfer_Dst &&
+                        vkDstImage.usage() != (rhi::ImageUsageFlags::eTransfer_Src | rhi::ImageUsageFlags::eTransfer_Dst)) {
+                        postBarriersImages.emplace_back(vkDstImage); // dstImage
+                    }
                 }
 
                 _commandbuffer.copyBuffer2Image(vkSrcBuffer, vkDstImage, copyInfos);

@@ -396,7 +396,7 @@ int main() {
                     auto * map = uniformBufferI->map2<engine::vec2f>();
 
                     if (map[0u].x > 1.5f) { map[0u].x = -1.5f; }
-                    map[0u].x += 0.5f * delta;
+                    map[0u].x += 1.0f * delta;
       
                     uniformBufferI->unmap();
                     uniformBufferI->commit(commandList, frameId);

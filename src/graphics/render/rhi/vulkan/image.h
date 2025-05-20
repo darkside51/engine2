@@ -58,6 +58,8 @@ struct ImageMemoryBarrierInfo {
 
 struct ImageSubState {
     VkImageLayout layout = VK_IMAGE_LAYOUT_UNDEFINED;
+    VkPipelineStageFlags usedStage = VkPipelineStageFlagBits::VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+    VkAccessFlags accessFlags = 0;
     uint32_t queueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
     inline bool operator == (const ImageSubState& other) const noexcept = default;
 };
@@ -106,12 +108,6 @@ public:
                                uint32_t baseLevel, uint32_t levelsCount, 
                                rhi::ImageAspectFlags aspectFlags);
 
-    std::vector<ImageMemoryBarrierInfo> transition(VkImageLayout dstLayout, 
-                        VkPipelineStageFlags srcStage, VkPipelineStageFlags dstStage, 
-                        VkAccessFlags srcAccessFlags, VkAccessFlags dstAccessFlags,
-                        uint8_t baseLayer, uint8_t layersCount, 
-                        uint8_t baseLevel, uint8_t levelsCount, uint32_t queueFamily = VK_QUEUE_FAMILY_IGNORED);
-
     void assignLayout(VkImageLayout dstLayout, uint8_t baseLayer, uint8_t layersCount, 
                     uint8_t baseLevel, uint8_t levelsCount) noexcept;
 
@@ -121,8 +117,9 @@ public:
 
     void transition(PipelineBarriers & barriers, VkImageLayout dstLayout, 
         VkPipelineStageFlags dstStage, VkAccessFlags dstAccessFlags, 
-        uint8_t baseLayer, uint8_t layersCount, 
-        uint8_t baseLevel, uint8_t levelsCount, uint32_t queueFamily = VK_QUEUE_FAMILY_IGNORED);
+        uint8_t baseLayer, uint8_t baseLevel, 
+        uint8_t layersCount = 0u, uint8_t levelsCount = 0u, 
+        uint32_t queueFamily = VK_QUEUE_FAMILY_IGNORED);
 
 private:
     Device * _device;

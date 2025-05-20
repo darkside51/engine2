@@ -3,6 +3,7 @@
 #include "device.h"
 #include "instance.h"
 #include "physical_device.h"
+#include "barriers.h"
 #include "vk_types.h"
 
 #include "log/log.h"
@@ -131,28 +132,17 @@ VkImageLayout Image::getLayout(uint8_t layer, uint8_t level) const noexcept {
     return subState.layout;
 }
 
-
 void Image::transition(PipelineBarriers & barriers, VkImageLayout dstLayout, 
         VkPipelineStageFlags dstStage, VkAccessFlags dstAccessFlags, 
-        uint8_t baseLayer, uint8_t layersCount, 
-        uint8_t baseLevel, uint8_t levelsCount, uint32_t queueFamily) {
-////////!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-}
+        uint8_t baseLayer, uint8_t baseLevel,
+        uint8_t layersCount, uint8_t levelsCount, 
+        uint32_t queueFamily) {
 
-std::vector<ImageMemoryBarrierInfo> Image::transition(VkImageLayout dstLayout, 
-                        VkPipelineStageFlags srcStage,
-                        VkPipelineStageFlags dstStage, 
-                        VkAccessFlags srcAccessFlags, VkAccessFlags dstAccessFlags,
-                        uint8_t baseLayer, uint8_t layersCount, 
-                        uint8_t baseLevel, uint8_t levelsCount,
-                        uint32_t queueFamily) {
     //todo! check this function
-
     VkImageMemoryBarrier barrier = {};
 	barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
 	barrier.pNext = nullptr;
 	barrier.image = _image;
-    barrier.srcAccessMask = srcAccessFlags;
     barrier.dstAccessMask = dstAccessFlags;
     barrier.newLayout = dstLayout;
     barrier.dstQueueFamilyIndex = queueFamily;
@@ -160,13 +150,22 @@ std::vector<ImageMemoryBarrierInfo> Image::transition(VkImageLayout dstLayout,
     VkImageSubresourceRange & subresourceRange = barrier.subresourceRange;
     subresourceRange.aspectMask = utils::convert2vk(_info.aspectFlags);
 
-    std::vector<ImageMemoryBarrierInfo> barriers;
+    size_t barriersCount = 0u;
+
+    if (layersCount == 0u) {
+        layersCount = _info.arrayLayers - baseLayer;
+    } 
+
+    if (levelsCount == 0u) {
+        levelsCount = _info.mipLevels - baseLevel;
+    }
 
     if (_imageStatesIdentical) {
         auto & subState = _imageSubStates[0u];
 
         if (subState.layout != dstLayout || subState.queueFamilyIndex != queueFamily) {
             barrier.oldLayout = subState.layout;
+            barrier.srcAccessMask = subState.accessFlags;
             barrier.srcQueueFamilyIndex = subState.queueFamilyIndex;
 
             subresourceRange.baseArrayLayer = baseLayer;
@@ -174,15 +173,24 @@ std::vector<ImageMemoryBarrierInfo> Image::transition(VkImageLayout dstLayout,
             subresourceRange.baseMipLevel = baseLevel;
             subresourceRange.levelCount = levelsCount;
 
-            barriers.emplace_back(srcStage, dstStage, barrier);
+            barriers.insertImageBarrier(
+                subState.usedStage, 
+                dstStage, 
+                VkDependencyFlagBits::VK_DEPENDENCY_BY_REGION_BIT, // ? 
+                barrier
+            );
 
             for (size_t i = baseLayer; i < baseLayer + layersCount; ++i) {
                 for (size_t j = baseLevel; j < baseLevel + levelsCount; ++j) {
                     auto & subState = _imageSubStates[i * _info.mipLevels + j];
                     subState.layout = dstLayout;
+                    subState.usedStage = dstStage;
+                    subState.accessFlags = dstAccessFlags;
                     subState.queueFamilyIndex = queueFamily;
                 }
             }
+
+            ++barriersCount;
         }
     } else {
         struct LevelsInfo {
@@ -207,8 +215,6 @@ std::vector<ImageMemoryBarrierInfo> Image::transition(VkImageLayout dstLayout,
         using LayersInfo = std::vector<LayerInfo>;
         LayersInfo layers;
 
-        size_t barriersCount = 0u;
-
         for (size_t i = baseLayer; i < baseLayer + layersCount; ++i) {
             uint32_t srcQueueFamily = queueFamily;
             VkImageLayout srcLayout = dstLayout;
@@ -223,9 +229,13 @@ std::vector<ImageMemoryBarrierInfo> Image::transition(VkImageLayout dstLayout,
                     layer.levels.emplace_back(uint8_t(j), uint8_t(1u), subState);
 
                     subState.layout = dstLayout;
+                    subState.usedStage = dstStage;
+                    subState.accessFlags = dstAccessFlags;
                     subState.queueFamilyIndex = queueFamily;
                 } else {
                     subState.layout = dstLayout;
+                    subState.usedStage = dstStage;
+                    subState.accessFlags = dstAccessFlags;
                     subState.queueFamilyIndex = queueFamily;
                     if (!layer.levels.empty()) {
                         ++layer.levels.back().count;
@@ -249,12 +259,13 @@ std::vector<ImageMemoryBarrierInfo> Image::transition(VkImageLayout dstLayout,
             }
         }
 
-        barriers.reserve(barriersCount);
+        // barriers.reserve(barriersCount);
 
         for (const auto & layersInfo : layers) {
             for (const auto & levelsInfo : layersInfo.levels) {
                 auto & subState = levelsInfo.subState;
                 barrier.oldLayout = subState.layout;
+                barrier.srcAccessMask = subState.accessFlags;
                 barrier.srcQueueFamilyIndex = subState.queueFamilyIndex;
 
                 subresourceRange.baseArrayLayer = layersInfo.start;
@@ -262,12 +273,17 @@ std::vector<ImageMemoryBarrierInfo> Image::transition(VkImageLayout dstLayout,
                 subresourceRange.baseMipLevel = levelsInfo.start;
                 subresourceRange.levelCount = levelsInfo.count;
 
-                barriers.emplace_back(srcStage, dstStage, barrier);
+                barriers.insertImageBarrier(
+                    subState.usedStage, 
+                    dstStage, 
+                    VkDependencyFlagBits::VK_DEPENDENCY_BY_REGION_BIT, // ? 
+                    barrier
+                );
             }
         }
     }
 
-    const bool newStatesIdentical = baseLayer == 0u && (layersCount >= _info.arrayLayers) && 
+    const bool newStatesIdentical = barriersCount > 0u && baseLayer == 0u && (layersCount >= _info.arrayLayers) && 
                                     baseLevel == 0u && (levelsCount >= _info.mipLevels);
 
     if (newStatesIdentical) {
@@ -282,8 +298,153 @@ std::vector<ImageMemoryBarrierInfo> Image::transition(VkImageLayout dstLayout,
             }
         }
     }
-
-    return barriers;
 }
+
+// std::vector<ImageMemoryBarrierInfo> Image::transition(VkImageLayout dstLayout, 
+//                         VkPipelineStageFlags srcStage,
+//                         VkPipelineStageFlags dstStage, 
+//                         VkAccessFlags srcAccessFlags, VkAccessFlags dstAccessFlags,
+//                         uint8_t baseLayer, uint8_t layersCount, 
+//                         uint8_t baseLevel, uint8_t levelsCount,
+//                         uint32_t queueFamily) {
+//     //todo! check this function
+
+//     VkImageMemoryBarrier barrier = {};
+// 	barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+// 	barrier.pNext = nullptr;
+// 	barrier.image = _image;
+//     barrier.srcAccessMask = srcAccessFlags;
+//     barrier.dstAccessMask = dstAccessFlags;
+//     barrier.newLayout = dstLayout;
+//     barrier.dstQueueFamilyIndex = queueFamily;
+
+//     VkImageSubresourceRange & subresourceRange = barrier.subresourceRange;
+//     subresourceRange.aspectMask = utils::convert2vk(_info.aspectFlags);
+
+//     std::vector<ImageMemoryBarrierInfo> barriers;
+
+//     if (_imageStatesIdentical) {
+//         auto & subState = _imageSubStates[0u];
+
+//         if (subState.layout != dstLayout || subState.queueFamilyIndex != queueFamily) {
+//             barrier.oldLayout = subState.layout;
+//             barrier.srcQueueFamilyIndex = subState.queueFamilyIndex;
+
+//             subresourceRange.baseArrayLayer = baseLayer;
+//             subresourceRange.layerCount = layersCount;
+//             subresourceRange.baseMipLevel = baseLevel;
+//             subresourceRange.levelCount = levelsCount;
+
+//             barriers.emplace_back(srcStage, dstStage, barrier);
+
+//             for (size_t i = baseLayer; i < baseLayer + layersCount; ++i) {
+//                 for (size_t j = baseLevel; j < baseLevel + levelsCount; ++j) {
+//                     auto & subState = _imageSubStates[i * _info.mipLevels + j];
+//                     subState.layout = dstLayout;
+//                     subState.queueFamilyIndex = queueFamily;
+//                 }
+//             }
+//         }
+//     } else {
+//         struct LevelsInfo {
+//             uint8_t start;
+//             uint8_t count = 1u;
+//             ImageSubState subState;
+
+//             inline bool operator == (const LevelsInfo& other) const noexcept = default;
+
+//             LevelsInfo(uint8_t start, uint8_t count, ImageSubState subState) : start(start), count(count), subState(subState) {}
+//         };
+
+//         struct LayerInfo {
+//             std::vector<LevelsInfo> levels;
+//             uint8_t start;
+//             uint8_t count = 1u;
+
+//             LayerInfo() = default;
+//             LayerInfo(LayerInfo && ) noexcept = default;
+//         };
+
+//         using LayersInfo = std::vector<LayerInfo>;
+//         LayersInfo layers;
+
+//         size_t barriersCount = 0u;
+
+//         for (size_t i = baseLayer; i < baseLayer + layersCount; ++i) {
+//             uint32_t srcQueueFamily = queueFamily;
+//             VkImageLayout srcLayout = dstLayout;
+
+//             LayerInfo layer;
+//             layer.start = i;
+//             for (size_t j = baseLevel; j < baseLevel + levelsCount; ++j) {
+//                 auto & subState = _imageSubStates[i * _info.mipLevels + j];
+//                 if (subState.layout != srcLayout || subState.queueFamilyIndex != srcQueueFamily) {
+//                     srcQueueFamily = subState.queueFamilyIndex;
+//                     srcLayout = subState.layout;
+//                     layer.levels.emplace_back(uint8_t(j), uint8_t(1u), subState);
+
+//                     subState.layout = dstLayout;
+//                     subState.queueFamilyIndex = queueFamily;
+//                 } else {
+//                     subState.layout = dstLayout;
+//                     subState.queueFamilyIndex = queueFamily;
+//                     if (!layer.levels.empty()) {
+//                         ++layer.levels.back().count;
+//                     }
+//                 }
+//             }
+
+//             if (!layer.levels.empty()) {
+//                 if (!layers.empty()) {
+//                     if (layers.back().levels == layer.levels && 
+//                         layers.back().start + layers.back().count == i) { // слои идут подряд
+//                         ++layers.back().count;
+//                     } else {
+//                         ++barriersCount;
+//                         layers.emplace_back(std::move(layer));
+//                     }
+//                 } else {
+//                     ++barriersCount;
+//                     layers.emplace_back(std::move(layer));
+//                 }
+//             }
+//         }
+
+//         barriers.reserve(barriersCount);
+
+//         for (const auto & layersInfo : layers) {
+//             for (const auto & levelsInfo : layersInfo.levels) {
+//                 auto & subState = levelsInfo.subState;
+//                 barrier.oldLayout = subState.layout;
+//                 barrier.srcQueueFamilyIndex = subState.queueFamilyIndex;
+
+//                 subresourceRange.baseArrayLayer = layersInfo.start;
+//                 subresourceRange.layerCount = layersInfo.count;
+//                 subresourceRange.baseMipLevel = levelsInfo.start;
+//                 subresourceRange.levelCount = levelsInfo.count;
+
+//                 barriers.emplace_back(srcStage, dstStage, barrier);
+//             }
+//         }
+//     }
+
+//     const bool newStatesIdentical = baseLayer == 0u && (layersCount >= _info.arrayLayers) && 
+//                                     baseLevel == 0u && (levelsCount >= _info.mipLevels);
+
+//     if (newStatesIdentical) {
+//         _imageStatesIdentical = true;
+//     } else {
+//         _imageStatesIdentical = true;
+//         const auto & state0 = _imageSubStates[0u];
+//         for (size_t i = 1u; i < _imageSubStates.size(); ++i) {
+//             if (_imageSubStates[i] != state0) {
+//                 _imageStatesIdentical = false;
+//                 break;
+//             }
+//         }
+//     }
+
+//     return barriers;
+// }
 
 }

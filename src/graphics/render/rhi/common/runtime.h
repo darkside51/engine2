@@ -96,6 +96,10 @@ public:
     const rhi::ImageInfo & getInfo() const noexcept { return _info; }
     rhi::Extent3D getExtent() const noexcept { return _info.extent; }
 
+    rhi::ImageUsageFlags usage() const noexcept {
+        return _info.usage;
+    }
+
 protected:
     rhi::ImageInfo _info;
 };
