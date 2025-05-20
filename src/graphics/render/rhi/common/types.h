@@ -539,7 +539,7 @@ namespace engine::rhi {
         ImageAspectFlags aspectMask = ImageAspectFlags::eColor;
         uint8_t mipLevel = 0u;
         uint8_t baseArrayLayer = 0u;
-        uint8_t layerCount = 0u;
+        uint8_t layerCount = 1u;
     };
 
     struct CopyBufferImageInfo {
@@ -835,6 +835,17 @@ namespace engine::rhi {
         return static_cast<QueryControlFlags>(std::to_underlying(a) & std::to_underlying(b));
     }
 
+    enum class CommandBufferResetFlags : uint8_t {
+        eNone = 0u,
+        eRelease_Resources = 1u
+    };
+    inline CommandBufferResetFlags operator | (CommandBufferResetFlags a, CommandBufferResetFlags b) {
+        return static_cast<CommandBufferResetFlags>(std::to_underlying(a) | std::to_underlying(b));
+    }
+    inline CommandBufferResetFlags operator & (CommandBufferResetFlags a, CommandBufferResetFlags b) {
+        return static_cast<CommandBufferResetFlags>(std::to_underlying(a) & std::to_underlying(b));
+    }
+
     enum class FenceCreateFlags : uint8_t {
         eNone = 0u,
         eSignaled = 1u
@@ -1024,17 +1035,6 @@ namespace engine::rhi {
 
     using EncodedBlendMode = uint32_t;
 
-    enum class CommandBufferResetFlags : uint8_t {
-        eNone = 0u,
-        eRelease_Resources = 1u
-    };
-    inline CommandBufferResetFlags operator | (CommandBufferResetFlags a, CommandBufferResetFlags b) {
-        return static_cast<CommandBufferResetFlags>(std::to_underlying(a) | std::to_underlying(b));
-    }
-    inline CommandBufferResetFlags operator & (CommandBufferResetFlags a, CommandBufferResetFlags b) {
-        return static_cast<CommandBufferResetFlags>(std::to_underlying(a) & std::to_underlying(b));
-    }
-
     namespace common_blend_modes {
         // normal modes
         inline constexpr static EncodedBlendMode blend_none	    = BlendMode(false).asNumber();
@@ -1121,6 +1121,39 @@ namespace engine::rhi {
                 .inputRate = inputRate 
             };
         }
+    };
+
+    enum class FilterMode : uint8_t {
+        eNearest = 0u,
+        eLinear = 1u
+    };
+
+    enum class SamplerAddressMode : uint8_t {
+        eRepeat = 0u,
+        eMirrored_Repeat = 1u,
+        eClamp_To_Edge = 2u,
+        eClamp_To_Border = 3u
+    };
+
+    enum class BorderColor: uint8_t {
+        eFloat_Transparent_Black = 0,
+        eInt_Transparent_Black = 1,
+        eFloat_Opaque_Black = 2,
+        eInt_Opaque_Black = 3,
+        eFloat_Opaque_White = 4,
+        eInt_Opaque_White = 5
+    };
+
+    struct SamplerInfo {
+        float maxAnisotropy = 0.0f;
+        FilterMode magFilter = FilterMode::eNearest;
+        FilterMode minFilter = FilterMode::eNearest;
+        FilterMode mipMapMode = FilterMode::eNearest;
+        SamplerAddressMode addressModeU = SamplerAddressMode::eRepeat;
+        SamplerAddressMode addressModeV = SamplerAddressMode::eRepeat;
+        SamplerAddressMode addressModeW = SamplerAddressMode::eRepeat;
+        CompareOp compareOp = CompareOp::eNever;
+        BorderColor borderColor = BorderColor::eFloat_Opaque_Black;
     };
 
     struct VertexInputAttribute {

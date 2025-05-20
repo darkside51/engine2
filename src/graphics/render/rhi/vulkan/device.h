@@ -30,6 +30,7 @@ public:
     using RenderPass = VkRenderPass;
     using Fence = VkFence;
     using Semaphore = VkSemaphore;
+    using Sampler = VkSampler;
     
     Device(const PhysicalDevice & gpu, const rhi::DeviceCreateInfo & info);
     ~Device();
@@ -71,6 +72,8 @@ public:
 
     void destroyFence(const Fence & fence) const noexcept;
     void destroySemaphore(const Semaphore & semaphore) const noexcept;
+
+    Sampler getSampler(const rhi::SamplerInfo & samplerInfo) noexcept;
 
     VkDescriptorSetLayout createDescriptorSetLayout(const rhi::shaders::BindingSetLayout & layout) const noexcept;
     void destroyDescriptorSetLayout(VkDescriptorSetLayout layout) const noexcept;

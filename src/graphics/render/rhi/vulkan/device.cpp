@@ -272,4 +272,30 @@ namespace engine::vulkan {
         return _gpu.deviceProperties().limits.minTexelBufferOffsetAlignment;
     }
 
+    Device::Sampler Device::getSampler(const rhi::SamplerInfo & samplerInfo) noexcept {
+        // todo: need to cache samplers!!!!!
+        VkSamplerCreateInfo info = {
+            .sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
+            .pNext = nullptr,
+            .flags = 0,
+            .magFilter = utils::convert2vk(samplerInfo.magFilter),
+            .minFilter = utils::convert2vk(samplerInfo.minFilter),
+            .mipmapMode = utils::convert2vk2(samplerInfo.mipMapMode),
+            .addressModeU = utils::convert2vk(samplerInfo.addressModeU),
+            .addressModeV = utils::convert2vk(samplerInfo.addressModeV),
+            .addressModeW = utils::convert2vk(samplerInfo.addressModeW),
+            .mipLodBias = 0.0f,
+            .anisotropyEnable = std::abs(samplerInfo.maxAnisotropy) > 1e-2f,
+            .maxAnisotropy = samplerInfo.maxAnisotropy,
+            .compareEnable = samplerInfo.compareOp != rhi::CompareOp::eNever,
+            .compareOp = utils::convert2vk(samplerInfo.compareOp),
+            .minLod = 0.0f,
+            .maxLod = static_cast<float>(VK_REMAINING_MIP_LEVELS),
+            .borderColor = utils::convert2vk(samplerInfo.borderColor),
+            .unnormalizedCoordinates = false
+        };
+        VkSampler sampler;
+        vkCreateSampler(_device, &info, _gpu.getInstance().getAllocationCallbacks(), &sampler);
+    }
+
 }

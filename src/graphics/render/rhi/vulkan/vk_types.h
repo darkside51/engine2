@@ -1506,6 +1506,48 @@ inline VkCommandBufferResetFlags convert2vk(rhi::CommandBufferResetFlags flags) 
     return result;
 }
 
+inline VkFilter convert2vk(rhi::FilterMode filter) noexcept {
+    switch (filter) {
+        case rhi::FilterMode::eNearest : return VkFilter::VK_FILTER_NEAREST;
+        case rhi::FilterMode::eLinear : return VkFilter::VK_FILTER_LINEAR;
+    }
+
+    return VkFilter::VK_FILTER_NEAREST;
+}
+
+inline VkSamplerMipmapMode convert2vk2(rhi::FilterMode filter) noexcept {
+    switch (filter) {
+        case rhi::FilterMode::eNearest : return VkSamplerMipmapMode::VK_SAMPLER_MIPMAP_MODE_NEAREST;
+        case rhi::FilterMode::eLinear : return VkSamplerMipmapMode::VK_SAMPLER_MIPMAP_MODE_LINEAR;
+    }
+
+    return VkSamplerMipmapMode::VK_SAMPLER_MIPMAP_MODE_NEAREST;
+}
+
+inline VkSamplerAddressMode convert2vk(rhi::SamplerAddressMode mode) noexcept {
+    switch (mode) {
+        case rhi::SamplerAddressMode::eRepeat : return VkSamplerAddressMode::VK_SAMPLER_ADDRESS_MODE_REPEAT;
+        case rhi::SamplerAddressMode::eMirrored_Repeat : return VkSamplerAddressMode::VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
+        case rhi::SamplerAddressMode::eClamp_To_Edge : return VkSamplerAddressMode::VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+        case rhi::SamplerAddressMode::eClamp_To_Border : return VkSamplerAddressMode::VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
+    }
+
+    return VkSamplerAddressMode::VK_SAMPLER_ADDRESS_MODE_REPEAT;
+}
+
+inline VkBorderColor convert2vk(rhi::BorderColor color) noexcept {
+    switch (color) {
+        case rhi::BorderColor::eFloat_Transparent_Black : return VkBorderColor::VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK;
+        case rhi::BorderColor::eInt_Transparent_Black : return VkBorderColor::VK_BORDER_COLOR_INT_TRANSPARENT_BLACK;
+        case rhi::BorderColor::eFloat_Opaque_Black : return VkBorderColor::VK_BORDER_COLOR_FLOAT_OPAQUE_BLACK;
+        case rhi::BorderColor::eInt_Opaque_Black : return VkBorderColor::VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+        case rhi::BorderColor::eFloat_Opaque_White : return VkBorderColor::VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
+        case rhi::BorderColor::eInt_Opaque_White : return VkBorderColor::VK_BORDER_COLOR_INT_OPAQUE_WHITE;
+    }
+
+    return VkBorderColor::VK_BORDER_COLOR_FLOAT_OPAQUE_BLACK;
+}
+
 }
 
 }

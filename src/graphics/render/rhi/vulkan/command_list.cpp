@@ -458,8 +458,9 @@ namespace engine::vulkan::runtime {
                         VK_PIPELINE_STAGE_TRANSFER_BIT,
                         VK_ACCESS_TRANSFER_WRITE_BIT,
                         command->info.imageSubresource.baseArrayLayer,
+                        command->info.imageSubresource.mipLevel,
                         command->info.imageSubresource.layerCount,
-                        command->info.imageSubresource.mipLevel, 1u
+                        1u
                     );
 
                     _barriers.flush(_commandbuffer());

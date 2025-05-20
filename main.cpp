@@ -43,6 +43,9 @@ engine::rhi::runtime::BufferPtr indices = nullptr;
 std::unique_ptr<engine::graphics::InflightBuffer> uniformBufferI = nullptr;
 engine::rhi::runtime::BufferPtr uniformBuffer2 = nullptr;
 
+engine::rhi::runtime::BufferPtr stageImageBuffer = nullptr;
+engine::rhi::runtime::ImagePtr sampledImage = nullptr;
+
 engine::rhi::RenderPassDescription createRenderPassDescription(engine::rhi::Format colorFormat, engine::rhi::Format depthFormat) {
     std::vector<engine::rhi::AttachmentDescription> attachments(2u);
     attachments[0].format = colorFormat;
@@ -138,8 +141,8 @@ void createBuffers(const std::unique_ptr<engine::rhi::runtime::Rhi> & api,
     using namespace engine::rhi;
 
     // vertices
-    const engine::rhi::BufferInfo stageInfo {
-        engine::rhi::BufferUsageFlags::eTransfer_Src,
+    const BufferInfo stageInfo {
+        BufferUsageFlags::eTransfer_Src,
         MemoryPropertyFlags::eHostVisible
     };
 
@@ -163,9 +166,9 @@ void createBuffers(const std::unique_ptr<engine::rhi::runtime::Rhi> & api,
         stageColors->unmap();
     }
 
-    const engine::rhi::BufferInfo localInfo {
-        engine::rhi::BufferUsageFlags::eVertex_Buffer | engine::rhi::BufferUsageFlags::eTransfer_Dst,
-        engine::rhi::MemoryPropertyFlags::eDeviceLocal
+    const BufferInfo localInfo {
+        BufferUsageFlags::eVertex_Buffer | BufferUsageFlags::eTransfer_Dst,
+        MemoryPropertyFlags::eDeviceLocal
     };
 
     positions = api->createBuffer(device, localInfo, stagePositions->sizeInBytes());
@@ -186,17 +189,17 @@ void createBuffers(const std::unique_ptr<engine::rhi::runtime::Rhi> & api,
         stageIndices->unmap();
     }
 
-    const engine::rhi::BufferInfo localIndicesInfo {
-        engine::rhi::BufferUsageFlags::eIndex_Buffer | engine::rhi::BufferUsageFlags::eTransfer_Dst,
-        engine::rhi::MemoryPropertyFlags::eDeviceLocal
+    const BufferInfo localIndicesInfo {
+        BufferUsageFlags::eIndex_Buffer | BufferUsageFlags::eTransfer_Dst,
+        MemoryPropertyFlags::eDeviceLocal
     };
 
     indices = api->createBuffer(device, localIndicesInfo, stageIndices->sizeInBytes());
 
     // uniforms
-    engine::rhi::BufferInfo unifromsInfo {
-        engine::rhi::BufferUsageFlags::eUniform_Buffer,
-        engine::rhi::MemoryPropertyFlags::eHostVisible
+    BufferInfo unifromsInfo {
+        BufferUsageFlags::eUniform_Buffer,
+        MemoryPropertyFlags::eHostVisible
     };
 
     uniformBuffer2 = api->createBuffer(device, unifromsInfo, sizeof(engine::vec2f));
@@ -207,8 +210,8 @@ void createBuffers(const std::unique_ptr<engine::rhi::runtime::Rhi> & api,
         uniformBuffer2->unmap();
     }
 
-    unifromsInfo.memoryFlags = engine::rhi::MemoryPropertyFlags::eDeviceLocal;
-    unifromsInfo.usage = unifromsInfo.usage | engine::rhi::BufferUsageFlags::eTransfer_Dst;
+    unifromsInfo.memoryFlags = MemoryPropertyFlags::eDeviceLocal;
+    unifromsInfo.usage = unifromsInfo.usage | BufferUsageFlags::eTransfer_Dst;
 
     const size_t kUniformBufferOffsetAlign = device->getUniformBufferOffsetAlignment();
     uniformBufferI = std::make_unique<engine::graphics::InflightBuffer>(api, device, unifromsInfo, std::max(kUniformBufferOffsetAlign, sizeof(engine::vec2f)) * 2u);
@@ -218,6 +221,34 @@ void createBuffers(const std::unique_ptr<engine::rhi::runtime::Rhi> & api,
         map[kUniformBufferOffsetAlign / sizeof(engine::vec2f) + 0u] = {0.0f, -0.25f};
         uniformBufferI->unmap();
     }
+}
+
+void createImageData(const std::unique_ptr<engine::rhi::runtime::Rhi> & api,
+    std::unique_ptr<engine::rhi::runtime::Device> & device) {
+    using namespace engine::rhi;
+
+    const BufferInfo stageInfo {
+        BufferUsageFlags::eTransfer_Src,
+        MemoryPropertyFlags::eHostVisible
+    };
+
+    stageImageBuffer = api->createBuffer(device, stageInfo, sizeof(uint32_t) * 4u);
+    {
+        auto * map = stageImageBuffer->map2<uint32_t>();
+        map[0u] = 0xff'ff'ff'ffu;
+        map[1u] = 0xff'00'00'ffu;
+        map[2u] = 0xff'00'00'ffu;
+        map[3u] = 0xff'ff'ff'ffu;
+        stageImageBuffer->flush();
+        stageImageBuffer->unmap();
+    }
+
+    const auto imageInfo = ImageInfo{
+        ImageUsageFlags::eSampled | ImageUsageFlags::eTransfer_Dst,
+        Format::eR8G8B8A8_Unorm, {2u, 2u, 1u}
+    };
+
+    sampledImage = api->createImage(device, imageInfo);
 }
 
 int main() {
@@ -344,6 +375,7 @@ int main() {
         auto program = loadShaders(rApi, device, shaderModulesManager);
         auto pipeline = createPipeline(rApi, device, renderPass, program);
         createBuffers(rApi, device);
+        createImageData(rApi, device);
 
         std::vector<engine::rhi::runtime::CommandListPtr> commandLists;
         
@@ -390,6 +422,20 @@ int main() {
                     stagePositions = nullptr;
                     stageColors = nullptr;
                     stageIndices = nullptr;
+                }
+
+                if (stageImageBuffer) {
+                    commandList->copyBuffer2Image(stageImageBuffer, sampledImage, 
+                        {
+                         .bufferOffset = 0u,
+                         .bufferRowLength = 0u,
+                         .bufferImageHeight = 0u,
+                         .imageSubresource = {.aspectMask = engine::rhi::ImageAspectFlags::eColor},
+                         .imageOffset = {0u, 0u, 0u},
+                         .imageExtent = sampledImage->getExtent()
+                        }
+                    );
+                    stageImageBuffer = nullptr;
                 }
 
                 { // update uniforms
@@ -479,6 +525,9 @@ int main() {
 
             uniformBufferI = nullptr;
             uniformBuffer2 = nullptr;
+
+            stageImageBuffer = nullptr;
+            sampledImage = nullptr;
 
             for (auto & semaphore : readyToPresentSemaphores) {
                 rApi->destroySemaphore(device, semaphore);
