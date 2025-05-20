@@ -5,6 +5,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cmath>
 #include <cstdint>
 #include <utility>
 #include <vector>
@@ -1154,6 +1155,23 @@ namespace engine::rhi {
         SamplerAddressMode addressModeW = SamplerAddressMode::eRepeat;
         CompareOp compareOp = CompareOp::eNever;
         BorderColor borderColor = BorderColor::eFloat_Opaque_Black;
+
+        inline size_t hash() const noexcept {
+            constexpr auto kRoundMult = 100;
+            return hash::hash_combine(
+                std::round(maxAnisotropy * kRoundMult), 
+                std::to_underlying(magFilter),
+                std::to_underlying(minFilter),
+                std::to_underlying(mipMapMode),
+                std::to_underlying(addressModeU),
+                std::to_underlying(addressModeV),
+                std::to_underlying(addressModeW),
+                std::to_underlying(compareOp),
+                std::to_underlying(borderColor)
+            );
+        }
+
+        inline bool operator == (const SamplerInfo & other) const noexcept = default;
     };
 
     struct VertexInputAttribute {
