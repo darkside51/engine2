@@ -227,7 +227,9 @@ namespace engine::vulkan::runtime {
             changeDynamicBufferSets = 0u;
         };
 
-        while ((_commandsCount--) > 0u) {
+        auto commandsCount = _commandsCount;
+
+        while ((commandsCount--) > 0u) {
             Command * cmd = reinterpret_cast<Command*>(memory);
             switch (cmd->cmdType) {
             case CommandType::eBegin:
