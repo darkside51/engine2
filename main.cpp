@@ -523,10 +523,7 @@ int main() {
             queue->waitIdle();
             device->waitIdle();
 
-            for (auto & cmd : commandLists) {
-                cmd->clear();
-            }
-
+            // resize swapchain
             swapchain->resize(w, h, false);
             const uint32_t swapchainImagesCountNew = swapchain->getImagesCount();
 
@@ -534,6 +531,7 @@ int main() {
             width = size.width;
             height = size.height;
 
+            // recreate resources
             auto imageInfo = engine::rhi::ImageInfo{
                 engine::rhi::ImageUsageFlags::eDepth_Stencil_Attachment,
                 depthFormat, {width, height, 1u}
@@ -560,11 +558,6 @@ int main() {
                 fbAttachemnts[1u].aspect = engine::rhi::ImageAspectFlags::eDepth;  // can get it from depthImage?
 
                 frameBuffers.emplace_back(rApi->createFrameBuffer(device, std::move(fbAttachemnts), renderPass));
-            }
-
-            for (auto & semaphore : readyToPresentSemaphores) {
-                rApi->destroySemaphore(device, semaphore);
-                semaphore = rApi->createSemaphore(device);
             }
 
             executor.resume();
