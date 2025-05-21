@@ -260,10 +260,9 @@ int main() {
     // 3. imgui
     // 4. simplify
     // 5. optimize
-    // 6. resize
-    // 7. input
-    // 8. rhi::Result
-    // 9. refactoring
+    // 6. input
+    // 7. rhi::Result
+    // 8. refactoring
 
     engine::GLFWModule glfwModule;
     
