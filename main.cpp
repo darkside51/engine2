@@ -235,9 +235,9 @@ void createImageData(const std::unique_ptr<engine::rhi::runtime::Rhi> & api,
     stageImageBuffer = api->createBuffer(device, stageInfo, sizeof(uint32_t) * 4u);
     {
         auto * map = stageImageBuffer->map2<uint32_t>();
-        map[0u] = 0xff'ff'ff'ffu;
-        map[1u] = 0xff'00'00'ffu;
-        map[2u] = 0xff'00'00'ffu;
+        map[0u] = 0xff'ff'ff'ffu; // -> abgr
+        map[1u] = 0xff'55'55'55u;
+        map[2u] = 0xff'55'55'55u;
         map[3u] = 0xff'ff'ff'ffu;
         stageImageBuffer->flush();
         stageImageBuffer->unmap();
@@ -460,6 +460,8 @@ int main() {
                     0u, sizeof(engine::vec2f));
                 commandList->bindBuffer(1u, (*uniformBufferI)(frameId), 0u, 
                     engine::align_value(sizeof(engine::vec2f), kUniformBufferOffsetAlign), sizeof(engine::vec2f));
+
+                commandList->bindImage(0u, sampledImage, engine::rhi::SamplerInfo{}, 1u);   
 
                 commandList->bindVertexBuffer(0u, positions);
                 commandList->bindVertexBuffer(1u, colors);

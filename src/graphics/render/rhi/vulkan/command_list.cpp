@@ -5,6 +5,7 @@
 #include "gpu_program.h"
 #include "pipeline.h"
 #include "buffer.h"
+#include "image.h"
 #include "vk_types.h"
 #include "descriptor_set.h"
 #include "descriptor_set_updater.h"
@@ -344,9 +345,9 @@ namespace engine::vulkan::runtime {
                 _commandbuffer.bindIndexBuffer(static_cast<const Buffer&>(*command->buffer)(), command->offset, command->type);
             }
                 break;
-            case CommandType::eBindResource:
+            case CommandType::eBindBuffer:
             {
-                const auto * command = static_cast<BindResourceCommand*>(cmd);
+                const auto * command = static_cast<BindBufferCommand*>(cmd);
                 const auto setId = command->setId;
                 assert(setId < kMaxDescriptorsSets);
 
@@ -357,30 +358,60 @@ namespace engine::vulkan::runtime {
                 }
 
                 if (descriptorSetUpdaters[setId]) {
+                    const auto bufferUpdateResult = descriptorSetUpdaters[setId].updateBuffer(static_cast<const Buffer*>(command->buffer), 
+                        command->binding, command->offset, command->range);
                     
-                    if (command->buffer) {
-                        const auto bufferUpdateResult = descriptorSetUpdaters[setId].updateBuffer(static_cast<const Buffer*>(command->buffer), 
-                            command->binding, command->offset, command->range);
-                        
-                        switch (bufferUpdateResult) {
-                            case DescriptorSetUpdater::BufferUpdateResult::eChangeBufferOrOffset:
-                                changedSets |= 1u << setId;
-                                break;
-                            case DescriptorSetUpdater::BufferUpdateResult::eChangeDynamicOffset:
-                                changeDynamicBufferSets |= 1u << setId;
-                                break;
-                            case DescriptorSetUpdater::BufferUpdateResult::eChangeBufferAndDynamicOffset:
-                                changedSets |= 1u << setId;
-                                changeDynamicBufferSets |= 1u << setId;
-                                break;
-                            default: break;
-                        }
+                    switch (bufferUpdateResult) {
+                        case DescriptorSetUpdater::BufferUpdateResult::eChangeBufferOrOffset:
+                            changedSets |= 1u << setId;
+                            break;
+                        case DescriptorSetUpdater::BufferUpdateResult::eChangeDynamicOffset:
+                            changeDynamicBufferSets |= 1u << setId;
+                            break;
+                        case DescriptorSetUpdater::BufferUpdateResult::eChangeBufferAndDynamicOffset:
+                            changedSets |= 1u << setId;
+                            changeDynamicBufferSets |= 1u << setId;
+                            break;
+                        default: break;
                     }
+                }
+            }
+                break;
+            case CommandType::eBindImage: 
+            {
+                const auto * command = static_cast<BindImageCommand*>(cmd);
+                const auto setId = command->setId;
+                assert(setId < kMaxDescriptorsSets);
 
-                    //...
-                    // if (command->image) {
+                if (!descriptorSetUpdaters[setId]) {
+                    if (const auto * setLayout = currentPipeline->getLayout(setId)) {
+                        descriptorSetUpdaters[setId] = DescriptorSetUpdater{device, *setLayout};
+                    }
+                }
 
-                    // }
+                if (descriptorSetUpdaters[setId]) {
+                    auto * image = static_cast<Image*>(command->image);
+
+                    auto view = image->getImageView(
+                        command->viewType, 
+                        command->baseLayer, command->layersCount, 
+                        command->baseLevel, command->levelsCount, 
+                        image->getInfo().aspectFlags
+                    );
+
+                    VkSampler sampler = nullptr;
+                    if (command->samplerInfo) {
+                        sampler = device.getSampler(*command->samplerInfo);
+                    }
+                    
+                    const auto changed = descriptorSetUpdaters[setId].updateImage(
+                        {sampler, view, image->getLayout(command->baseLayer, command->baseLevel)}, 
+                        command->binding
+                    );
+
+                    if (changed) {
+                        changedSets |= 1u << setId;
+                    }
                 }
             }
                 break;

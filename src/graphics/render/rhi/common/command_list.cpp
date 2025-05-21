@@ -82,7 +82,7 @@ namespace engine::rhi::runtime {
     }
 
     void CommandList::bindBuffer(uint16_t binding, const Buffer * buffer, uint8_t setId, uint32_t offset, uint32_t range) {
-        _commands->create<BindResourceCommand>(binding, buffer, setId, offset, range);
+        _commands->create<BindBufferCommand>(binding, buffer, setId, offset, range);
         ++_commandsCount;
     }
 
@@ -101,7 +101,13 @@ namespace engine::rhi::runtime {
 
     void CommandList::bindBuffer(uint16_t binding, BufferPtr & buffer, uint8_t setId, uint32_t offset, uint32_t range) {
         _resources.push_back(buffer);
-        _commands->create<BindResourceCommand>(binding, buffer.get(), setId, offset, range);
+        _commands->create<BindBufferCommand>(binding, buffer.get(), setId, offset, range);
+        ++_commandsCount;
+    }
+
+    void CommandList::bindImage(uint16_t binding, ImagePtr & image, std::optional<rhi::SamplerInfo> sampler, uint8_t setId) {
+        _resources.push_back(image);
+        _commands->create<BindImageCommand>(binding, image.get(), sampler, setId);
         ++_commandsCount;
     }
 ///////////////////////

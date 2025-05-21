@@ -196,9 +196,13 @@ namespace engine::vulkan {
             const bool isDynamic = type == rhi::shaders::DescriptorType::eUniform_Buffer_Dynamic || 
                                    type == rhi::shaders::DescriptorType::eStorage_Buffer_Dynamic;
 
+            bool dynamicOffsetChanged = false;
             if (isDynamic) {
                 // store offset
-                info.dynamicOffset = offset;
+                if (info.dynamicOffset != offset) {
+                    info.dynamicOffset = offset;
+                    dynamicOffsetChanged = true;
+                }
                 // reset input data offset
                 offset = 0u;
             }
@@ -212,15 +216,15 @@ namespace engine::vulkan {
                 return isDynamic ? BufferUpdateResult::eChangeBufferAndDynamicOffset : BufferUpdateResult::eChangeBufferOrOffset;
             }
 
-            return BufferUpdateResult::eChangeDynamicOffset;
+            return dynamicOffsetChanged ? BufferUpdateResult::eChangeDynamicOffset : BufferUpdateResult::eNone;
         }
 
         return BufferUpdateResult::eNone;
     }
 
-    void DescriptorSetUpdater::updateImage(std::tuple<VkSampler, VkImageView, VkImageLayout> image, uint32_t binding) noexcept {
+    bool DescriptorSetUpdater::updateImage(std::tuple<VkSampler, VkImageView, VkImageLayout> image, uint32_t binding) noexcept {
         if (!isValid()) { 
-            return; 
+            return false; 
         }
 
         const auto view = _imagesInfo.view();
@@ -236,8 +240,10 @@ namespace engine::vulkan {
                 info.imageView = imageView;
                 info.imageLayout = layout; // must be VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, or can be VK_IMAGE_LAYOUT_GENERAL sometimes (DescriptorType::eStorage_Image)?
                 _imagesDirty = true;
+                return true;
             }
         }
+        return false;
     }
 
     void DescriptorSetUpdater::updatetexelBuffer(Buffer* buffer, rhi::Format format, uint32_t binding) noexcept {

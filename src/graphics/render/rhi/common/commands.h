@@ -7,6 +7,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <span>
 #include <vector>
 
@@ -26,12 +27,13 @@ namespace engine::rhi::runtime {
         eBindPipeline = 10u,
         eBindVertexBuffer = 11u,
         eBindIndexBuffer = 12u,
-        eBindResource = 13u,
-        eDraw = 14u,
-        eDrawIndexed = 15u,
-        eCopyBuffer2Buffer = 16u,
-        eCopyBuffer2Image = 17u,
-        ePipelineBarriers = 18u,
+        eBindBuffer = 13u,
+        eBindImage = 14u,
+        eDraw = 15u,
+        eDrawIndexed = 16u,
+        eCopyBuffer2Buffer = 17u,
+        eCopyBuffer2Image = 18u,
+        ePipelineBarriers = 19u,
     };
 
     class CommandList;
@@ -132,20 +134,44 @@ namespace engine::rhi::runtime {
             buffer(buffer), offset(offset), type(type) {}
     };
 
-    struct BindResourceCommand : Command { // todo!
+    struct BindBufferCommand : Command {
         const Buffer * buffer = nullptr;
         uint32_t offset = 0u;
         uint32_t range = kWholeSize32;
         uint16_t binding = 0u;
         uint8_t setId = 0u;
         
-        BindResourceCommand(uint16_t binding, const Buffer * buffer, uint8_t setId = 0u, uint32_t offset = 0u, uint32_t range = kWholeSize32) : 
-            Command(CommandType::eBindResource, sizeof(BindResourceCommand)), 
+        BindBufferCommand(uint16_t binding, const Buffer * buffer, uint8_t setId = 0u, uint32_t offset = 0u, uint32_t range = kWholeSize32) : 
+            Command(CommandType::eBindBuffer, sizeof(BindBufferCommand)), 
             buffer(buffer),
             binding(binding),
             setId(setId), 
             offset(offset),
             range(range) {}
+    };
+
+    struct BindImageCommand : Command { // todo!
+        Image * image = nullptr;
+        rhi::ImageViewType viewType = rhi::ImageViewType::eType_2D;
+        uint16_t binding = 0u;
+        uint8_t setId = 0u;
+
+        uint32_t baseLayer = 0u;
+        uint32_t layersCount = 1u;
+        uint32_t baseLevel = 0u;
+        uint32_t levelsCount = 1u;
+
+        std::optional<rhi::SamplerInfo> samplerInfo = {};
+
+        BindImageCommand(uint16_t binding, Image * image, std::optional<rhi::SamplerInfo> sampler, uint8_t setId = 0u) : 
+            Command(CommandType::eBindImage, sizeof(BindImageCommand)),
+            image(image),
+            binding(binding),
+            setId(setId),
+            layersCount(image->getInfo().arrayLayers),
+            levelsCount(image->getInfo().mipLevels),
+            samplerInfo(sampler) {
+            }
     };
 
     struct DrawCommand : Command {
@@ -222,7 +248,8 @@ namespace engine::rhi::runtime {
             case CommandType::eBindPipeline: [[fallthrough]];
             case CommandType::eBindVertexBuffer: [[fallthrough]];
             case CommandType::eBindIndexBuffer: [[fallthrough]];
-            case CommandType::eBindResource: [[fallthrough]];
+            case CommandType::eBindBuffer: [[fallthrough]];
+            case CommandType::eBindImage: [[fallthrough]];
             case CommandType::eDraw: [[fallthrough]];
             case CommandType::eDrawIndexed: [[fallthrough]];
             case CommandType::eCopyBuffer2Buffer: [[fallthrough]];
