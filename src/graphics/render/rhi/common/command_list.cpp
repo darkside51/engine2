@@ -107,7 +107,12 @@ namespace engine::rhi::runtime {
 
     void CommandList::bindImage(uint16_t binding, ImagePtr & image, std::optional<rhi::SamplerInfo> sampler, uint8_t setId) {
         _resources.push_back(image);
-        _commands->create<BindImageCommand>(binding, image.get(), sampler, setId);
+        _commands->create<BindImageSamplerCommand>(binding, image.get(), sampler, setId);
+        ++_commandsCount;
+    }
+
+    void CommandList::bindSampler(uint16_t binding, const rhi::SamplerInfo & sampler, uint8_t setId) {
+        _commands->create<BindImageSamplerCommand>(binding, nullptr, sampler, setId);
         ++_commandsCount;
     }
 ///////////////////////

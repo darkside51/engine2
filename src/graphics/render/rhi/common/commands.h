@@ -28,7 +28,7 @@ namespace engine::rhi::runtime {
         eBindVertexBuffer = 11u,
         eBindIndexBuffer = 12u,
         eBindBuffer = 13u,
-        eBindImage = 14u,
+        eBindImageSampler = 14u,
         eDraw = 15u,
         eDrawIndexed = 16u,
         eCopyBuffer2Buffer = 17u,
@@ -150,7 +150,7 @@ namespace engine::rhi::runtime {
             range(range) {}
     };
 
-    struct BindImageCommand : Command { // todo!
+    struct BindImageSamplerCommand : Command { // todo!
         Image * image = nullptr;
         rhi::ImageViewType viewType = rhi::ImageViewType::eType_2D;
         uint16_t binding = 0u;
@@ -163,8 +163,8 @@ namespace engine::rhi::runtime {
 
         std::optional<rhi::SamplerInfo> samplerInfo = {};
 
-        BindImageCommand(uint16_t binding, Image * image, std::optional<rhi::SamplerInfo> sampler, uint8_t setId = 0u) : 
-            Command(CommandType::eBindImage, sizeof(BindImageCommand)),
+        BindImageSamplerCommand(uint16_t binding, Image * image, std::optional<rhi::SamplerInfo> sampler, uint8_t setId = 0u) : 
+            Command(CommandType::eBindImageSampler, sizeof(BindImageSamplerCommand)),
             image(image),
             binding(binding),
             setId(setId),
@@ -249,7 +249,7 @@ namespace engine::rhi::runtime {
             case CommandType::eBindVertexBuffer: [[fallthrough]];
             case CommandType::eBindIndexBuffer: [[fallthrough]];
             case CommandType::eBindBuffer: [[fallthrough]];
-            case CommandType::eBindImage: [[fallthrough]];
+            case CommandType::eBindImageSampler: [[fallthrough]];
             case CommandType::eDraw: [[fallthrough]];
             case CommandType::eDrawIndexed: [[fallthrough]];
             case CommandType::eCopyBuffer2Buffer: [[fallthrough]];

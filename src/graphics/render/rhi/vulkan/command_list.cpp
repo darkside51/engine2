@@ -377,9 +377,9 @@ namespace engine::vulkan::runtime {
                 }
             }
                 break;
-            case CommandType::eBindImage: 
+            case CommandType::eBindImageSampler: 
             {
-                const auto * command = static_cast<BindImageCommand*>(cmd);
+                const auto * command = static_cast<BindImageSamplerCommand*>(cmd);
                 const auto setId = command->setId;
                 assert(setId < kMaxDescriptorsSets);
 
@@ -392,21 +392,22 @@ namespace engine::vulkan::runtime {
                 if (descriptorSetUpdaters[setId]) {
                     auto * image = static_cast<Image*>(command->image);
 
-                    auto view = image->getImageView(
+                    auto view = image ? image->getImageView(
                         command->viewType, 
                         command->baseLayer, command->layersCount, 
                         command->baseLevel, command->levelsCount, 
                         image->getInfo().aspectFlags
-                    );
+                    ) : nullptr;
 
                     VkSampler sampler = nullptr;
                     if (command->samplerInfo) {
                         sampler = device.getSampler(*command->samplerInfo);
                     }
                     
+                    VkImageLayout layout = image ? image->getLayout(command->baseLayer, command->baseLevel) : VkImageLayout::VK_IMAGE_LAYOUT_GENERAL;
+
                     const auto changed = descriptorSetUpdaters[setId].updateImage(
-                        {sampler, view, image->getLayout(command->baseLayer, command->baseLevel)}, 
-                        command->binding
+                        {sampler, view, layout}, command->binding
                     );
 
                     if (changed) {
