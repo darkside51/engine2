@@ -23,6 +23,7 @@ public:
     void destroy() noexcept;
 
 private:
+    // need synchronisations ?
     const Device & _device;
     RenderPassMap _renderPassCollection;
 };

@@ -29,6 +29,7 @@ namespace engine::vulkan {
         }
 
     private:
+        // need synchronisations ?
         const Device & _device;
         LayoutsMap _layouts;
     };

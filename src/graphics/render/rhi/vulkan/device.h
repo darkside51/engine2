@@ -7,6 +7,7 @@
 #include "renderpass.h"
 #include "descriptor_set_layout_manager.h"
 #include "descriptor_pool_manager.h"
+#include "sampler_manager.h"
 
 #include <vulkan/vulkan.h>
 
@@ -73,7 +74,7 @@ public:
     void destroyFence(const Fence & fence) const noexcept;
     void destroySemaphore(const Semaphore & semaphore) const noexcept;
 
-    Sampler getSampler(const rhi::SamplerInfo & samplerInfo) noexcept;
+    Sampler getSampler(const rhi::SamplerInfo & samplerInfo);
 
     VkDescriptorSetLayout createDescriptorSetLayout(const rhi::shaders::BindingSetLayout & layout) const noexcept;
     void destroyDescriptorSetLayout(VkDescriptorSetLayout layout) const noexcept;
@@ -115,9 +116,10 @@ private:
 
     GPUMemoryAllocator _memoryAllocator;
     CommandPoolManager _commandPoolManager;
-    RenderPassManager _renderpassManager;
-    DescriptorSetLayoutManager _descriptorSetLayoutManager;
-    DescriptorPoolManager _descriptorPoolManager;
+    RenderPassManager _renderpassManager; // need sync
+    DescriptorSetLayoutManager _descriptorSetLayoutManager; // need sync
+    DescriptorPoolManager _descriptorPoolManager; // need sync
+    SamplerManager _samplerManager; // need sync
     VkPipelineCache _pipelineCache = VK_NULL_HANDLE;
 };
 
