@@ -116,10 +116,15 @@ public:
 
     Format getFormat() const noexcept { return _format; }
     ColorSpace getColorSpace() const noexcept { return _colorSpace; }
+    rhi::Extent2D getSize() const noexcept {
+        return {_width, _height};
+    }
 
 protected:
     Format _format = Format::eUndefined;
     ColorSpace _colorSpace = ColorSpace::eSRGB_Nonlinear;
+    uint32_t _width = 0u;
+    uint32_t _height = 0u;
 };
 
 class FrameBuffer : public PipeLineResource {
@@ -141,6 +146,7 @@ public:
     virtual bool submit(uint8_t frameIdx, std::span<const SubmitInfo> submitInfos, Fence f = nullptr) noexcept = 0;
     virtual bool present(const Swapchain * swapchain, 
         uint32_t imageIdx, std::span<const rhi::runtime::Semaphore> waitSemaphores) noexcept = 0;
+    virtual bool waitIdle() noexcept = 0;
 };
 
 struct ShaderModuleView {

@@ -2,6 +2,7 @@
 
 #include "graphics/render/rhi/common/swapchain.h"
 #include "graphics/render/rhi/common/runtime.h"
+#include "graphics/render/rhi/common/types.h"
 #include "image.h"
 
 #include <vulkan/vulkan.h>

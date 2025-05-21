@@ -270,7 +270,7 @@ int main() {
     const engine::rhi::Api<engine::vulkan::Api> api;
     using Api = decltype(api);
 
-    auto & window0 = glfwModule.createWindow(Api::name().data());
+    auto & window0 = glfwModule.createWindow(Api::name().data(), 1024u, 768u);
     window0.setVisible(false);
 
 #ifndef NDEBUG
@@ -330,7 +330,7 @@ int main() {
 
         auto swapchain = rApi->createSwapchain(device, surface, swapchainCreateInfo);
 
-        auto const [width, height] = window0.getSize();
+        auto [width, height] = window0.getSize();
         swapchain->resize(width, height, false);
         const uint32_t swapchainImagesCount = swapchain->getImagesCount();
 
@@ -390,19 +390,25 @@ int main() {
         engine::rhi::FrameIndex frameIndex{inflightFrames};
 
         const size_t kUniformBufferOffsetAlign = device->getUniformBufferOffsetAlignment();
+        bool canDraw = true;
 
-        threads::Executor w([&](auto & executionContext, float delta) {
+        threads::Executor executor([&](auto & executionContext, float delta) {
             executionContext.performTasks();
             if (!commandLists.empty()) {
                 const auto frameId = frameIndex();
 
-                auto const waitSubmitResult = queue->waitSubmit(frameId); // result!!!
+                if (canDraw) {
+                    auto const waitSubmitResult = queue->waitSubmit(frameId); // result!!!
+                }
 
                 const auto [imageIndex, success] = swapchain->acquireNextImage(frameId);
 
                 if (!success) {
+                    canDraw = false;
                     return;
                 }
+
+                canDraw = true;
                 device->resetFrameTmpData(frameId);
 
                 // render frame
@@ -501,9 +507,9 @@ int main() {
             }
         }, redrawTime);
 
-        w.run();
+        executor.run();
 
-        w.emplaceTasks(stl::make_vector(threads::WorkerTask{[&](){
+        executor.emplaceTasks(stl::make_vector(threads::WorkerTask{[&](){
             auto * commandPool = device->acquireCommandPool(engine::rhi::queue_flags::graphics | engine::rhi::queue_flags::present);
             commandLists.reserve(inflightFrames);
             for (size_t i = 0u; i < inflightFrames; ++i) {
@@ -513,8 +519,60 @@ int main() {
 
         window0.setVisible(true);
 
+        window0.setOnResize([&](uint16_t w, uint16_t h) {
+            executor.pause();
+            queue->waitIdle();
+            device->waitIdle();
+
+            for (auto & cmd : commandLists) {
+                cmd->clear();
+            }
+
+            swapchain->resize(w, h, false);
+            const uint32_t swapchainImagesCountNew = swapchain->getImagesCount();
+
+            auto const size = swapchain->getSize();
+            width = size.width;
+            height = size.height;
+
+            auto imageInfo = engine::rhi::ImageInfo{
+                engine::rhi::ImageUsageFlags::eDepth_Stencil_Attachment,
+                depthFormat, {width, height, 1u}
+            }; 
+            imageInfo.memoryExtFlags = engine::rhi::MemoryExtendedFlags::eDedicated;
+
+            depthImages.clear();
+            depthImages.reserve(swapchainImagesCountNew);
+            for (uint32_t i = 0u; i < swapchainImagesCountNew; ++i) {
+                depthImages.emplace_back(std::move(rApi->createImage(device, imageInfo)));
+            }
+
+            frameBuffers.clear();
+            frameBuffers.reserve(swapchainImagesCountNew);
+            for (uint32_t i = 0u; i < swapchainImagesCountNew; ++i) {
+                auto & image = swapchain->getImage(i);
+                std::vector<engine::rhi::FrameBufferAttachment> fbAttachemnts{2u};
+                fbAttachemnts[0u].image = &image;
+                fbAttachemnts[0u].imageSize = {image.getExtent().width, image.getExtent().height};
+
+                auto & depthImage = depthImages[i];
+                fbAttachemnts[1u].image = depthImage.get();
+                fbAttachemnts[1u].imageSize = {depthImage->getExtent().width, depthImage->getExtent().height};
+                fbAttachemnts[1u].aspect = engine::rhi::ImageAspectFlags::eDepth;  // can get it from depthImage?
+
+                frameBuffers.emplace_back(rApi->createFrameBuffer(device, std::move(fbAttachemnts), renderPass));
+            }
+
+            for (auto & semaphore : readyToPresentSemaphores) {
+                rApi->destroySemaphore(device, semaphore);
+                semaphore = rApi->createSemaphore(device);
+            }
+
+            executor.resume();
+        });
+
         window0.setOnClose([&]() {
-            w.stop();
+            executor.stop();
             device->waitIdle();
 
             stagePositions = nullptr;

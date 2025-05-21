@@ -36,9 +36,9 @@ namespace engine::vulkan {
         const auto & minExtent = capabilities.minImageExtent;
         const auto & maxExtent = capabilities.maxImageExtent;
 
-        const uint32_t width = std::clamp(w, minExtent.width, maxExtent.width);
-		const uint32_t height = std::clamp(h, minExtent.height, maxExtent.height);
-		const VkExtent2D swapchainExtent = {width , height};
+        _width = std::clamp(w, minExtent.width, maxExtent.width);
+		_height = std::clamp(h, minExtent.height, maxExtent.height);
+		const VkExtent2D swapchainExtent = {_width , _height};
 
         // determine the number of images
 		uint32_t imagesCount = std::max(_info.imagesCount, capabilities.minImageCount);
@@ -182,7 +182,7 @@ namespace engine::vulkan {
         _images.reserve(realImagesCount);
         _imageViews.resize(realImagesCount);
 
-        rhi::ImageInfo imageInfo {rhi::ImageUsageFlags::eColor_Attachment, utils::convert2rhi(surfaceFormat.format), {width, height, 1u}};
+        rhi::ImageInfo imageInfo {rhi::ImageUsageFlags::eColor_Attachment, utils::convert2rhi(surfaceFormat.format), {_width, _height, 1u}};
         imageInfo.queueFamilyIndices = _info.queueFamilies;
         for (uint32_t i = 0u; i < realImagesCount; ++i) {
             auto & image = _images.emplace_back(const_cast<Device&>(_device), imageInfo, images[i]);

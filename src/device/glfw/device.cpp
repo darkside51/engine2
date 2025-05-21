@@ -17,8 +17,8 @@ namespace engine {
         glfwTerminate();
     }
 
-    GLFWDevice & GLFWModule::createWindow(std::string_view name) {
-        return *_devices.emplace_back(std::make_unique<GLFWDevice>(name));
+    GLFWDevice & GLFWModule::createWindow(std::string_view name, uint16_t w, uint16_t h) {
+        return *_devices.emplace_back(std::make_unique<GLFWDevice>(name, w, h));
     }
 
     bool GLFWModule::process() {
@@ -60,6 +60,11 @@ namespace engine {
         }
     }
 
+    void glfwOnWindowResize(GLFWwindow* window, int w, int h) {
+        auto * device = static_cast<GLFWDevice*>(glfwGetWindowUserPointer(window));
+        device->resize(static_cast<uint16_t>(w), static_cast<uint16_t>(h));
+	}
+
     GLFWDevice::GLFWDevice(GLFWDevice&& d) noexcept {
         _window = d._window;
         _width = d._width;
@@ -81,19 +86,18 @@ namespace engine {
         return *this;
     }
 
-    GLFWDevice::GLFWDevice(std::string_view name) {
+    GLFWDevice::GLFWDevice(std::string_view name, uint16_t w, uint16_t h) {
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 		glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
 
-		_width = 1024u;
-		_height = 768u;
+		_width = w;
+		_height = h;
 
 		_window = glfwCreateWindow(_width, _height, name.data(), nullptr, nullptr);
         glfwSetWindowUserPointer(_window, this);
         
-
         // //glfwSetFramebufferSizeCallback(_window, &glfwOnFrameBufferResize);
-		// glfwSetWindowSizeCallback(_window, &glfwOnWindowResize);
+		glfwSetWindowSizeCallback(_window, &glfwOnWindowResize);
 		// glfwSetWindowIconifyCallback(_window, &glfwOnWindowIconify);
 
 		// // input callbacks
@@ -125,6 +129,12 @@ namespace engine {
 
 	void GLFWDevice::close() {
         glfwSetWindowShouldClose(_window, 1);
+    }
+
+    void GLFWDevice::resize(uint16_t w, uint16_t h) {
+        if (_onResize) {
+            _onResize(w, h);
+        }
     }
     
     rhi::SurfaceCreateInfo GLFWDevice::getSurfaceCreateInfo() const noexcept {

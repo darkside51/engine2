@@ -23,7 +23,7 @@ namespace engine::vulkan {
         inline VkQueue operator ()() const noexcept { return _queue; }
         inline explicit operator bool() const noexcept { return _queue != VK_NULL_HANDLE; }
 
-        bool waitIdle() noexcept;
+        bool waitIdle() noexcept override;
         
         bool waitSubmitComplete(uint8_t frameIdx, uint64_t timeout = UINT64_MAX, VkFence f = VK_NULL_HANDLE) noexcept;
         VkSubmitInfo submitInfo(std::span<const VkCommandBuffer> commandBuffers, const SubmitSyncInfo & syncInfo) noexcept;

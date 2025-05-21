@@ -18,10 +18,11 @@ namespace rhi {
     class GLFWDevice {
         friend class GLFWModule;
     public:
-        GLFWDevice(std::string_view name);
+        GLFWDevice(std::string_view name, uint16_t w, uint16_t h);
         ~GLFWDevice();
 
 		void close();
+        void resize(uint16_t w, uint16_t h);
 
         GLFWDevice(GLFWDevice&& d) noexcept;
         GLFWDevice& operator=(GLFWDevice&& d) noexcept;
@@ -40,6 +41,10 @@ namespace rhi {
             _onClose = std::move(callback);
         }
 
+        void setOnResize(std::function<void(uint16_t w, uint16_t h)> && callback) noexcept {
+            _onResize = std::move(callback);
+        }
+
         void setVisible(bool visible) noexcept;
 
     private:
@@ -49,6 +54,7 @@ namespace rhi {
 		bool _fullscreen = false;
         bool _visible = true;
         std::function<void()> _onClose{};
+        std::function<void(uint16_t w, uint16_t h)> _onResize{};
     };
 
     class GLFWModule {
@@ -56,7 +62,7 @@ namespace rhi {
         GLFWModule();
         ~GLFWModule();
 
-        GLFWDevice & createWindow(std::string_view name);
+        GLFWDevice & createWindow(std::string_view name, uint16_t w, uint16_t h);
 
         bool process();
         void stop();
