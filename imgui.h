@@ -25,7 +25,7 @@ namespace engine {
 
     void beginFrame(float delta, uint16_t w, uint16_t h);
     void endFrame();
-    void prepare(rhi::runtime::CommandListPtr & commandList);
+    void prepare(rhi::runtime::CommandListPtr & commandList, uint8_t frame);
     void draw(rhi::runtime::CommandListPtr & commandList, uint8_t frame);
 
     private:

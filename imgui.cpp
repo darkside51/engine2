@@ -119,8 +119,8 @@ namespace engine {
 
         // vertices
         const rhi::BufferInfo verticesInfo {
-            rhi::BufferUsageFlags::eVertex_Buffer | rhi::BufferUsageFlags::eTransfer_Src,
-            rhi::MemoryPropertyFlags::eHostVisible | rhi::MemoryPropertyFlags::eHostCached
+            rhi::BufferUsageFlags::eVertex_Buffer | rhi::BufferUsageFlags::eTransfer_Dst,
+            rhi::MemoryPropertyFlags::eDeviceLocal
         };
 
         constexpr uint32_t kVerticesCountMax = 8192u;
@@ -130,8 +130,8 @@ namespace engine {
 
         // indices
         const rhi::BufferInfo indicesInfo {
-            rhi::BufferUsageFlags::eIndex_Buffer | rhi::BufferUsageFlags::eTransfer_Src,
-            rhi::MemoryPropertyFlags::eHostVisible | rhi::MemoryPropertyFlags::eHostCached
+            rhi::BufferUsageFlags::eIndex_Buffer | rhi::BufferUsageFlags::eTransfer_Dst,
+            rhi::MemoryPropertyFlags::eDeviceLocal
         };
 
         constexpr uint32_t kIndicesCountMax = 8192u;
@@ -151,7 +151,7 @@ namespace engine {
         ImGui::Render();
     }
 
-    void ImGuiRenderer::prepare(rhi::runtime::CommandListPtr & commandList) {
+    void ImGuiRenderer::prepare(rhi::runtime::CommandListPtr & commandList, uint8_t frame) {
         if (_stagefontBuffer) {
             commandList->copyBuffer2Image(_stagefontBuffer, _fontImage, {
                 .bufferOffset = 0u,
@@ -163,26 +163,14 @@ namespace engine {
             });
             _stagefontBuffer = nullptr;
         }
-    }
-
-    void ImGuiRenderer::draw(rhi::runtime::CommandListPtr & commandList, uint8_t frame) {
-        const ImDrawData *drawData = ImGui::GetDrawData();
-        vec2f scale{2.0f / drawData->DisplaySize.x, 2.0f / drawData->DisplaySize.y};
-        vec2f translate{(drawData->DisplayPos.x - drawData->DisplaySize.x * 0.5f) * scale.x,
-                             (drawData->DisplayPos.y - drawData->DisplaySize.y * 0.5f) * scale.y};
-
-        auto * uniformMem = _uniform->map2<vec4f>();
-        uniformMem->x = scale.x; uniformMem->y = scale.y;
-        uniformMem->z = translate.x; uniformMem->w = translate.y;
-        _uniform->unmap();
-        _uniform->commit(commandList, frame);
 
         auto * verticesMem = _vertices->map2<std::byte>();
         auto * indicesMem = _indices->map2<std::byte>();
 
-        size_t vOffset = 0u;
-        size_t iOffset = 0u;
+        uint32_t vOffset = 0u;
+        uint32_t iOffset = 0u;
 
+        const ImDrawData *drawData = ImGui::GetDrawData();
         for (uint32_t i = 0u; i < drawData->CmdListsCount; ++i) {
             const ImDrawList *drawList = drawData->CmdLists[i];
             const uint32_t vertexBufferSize = drawList->VtxBuffer.size() * sizeof(ImDrawVert);
@@ -200,11 +188,25 @@ namespace engine {
         _indices->unmap();
         _indices->commit(commandList, frame);
 
+        const vec2f scale{2.0f / drawData->DisplaySize.x, 2.0f / drawData->DisplaySize.y};
+        const vec2f translate{(drawData->DisplayPos.x - drawData->DisplaySize.x * 0.5f) * scale.x,
+                              (drawData->DisplayPos.y - drawData->DisplaySize.y * 0.5f) * scale.y};
+
+        auto * uniformMem = _uniform->map2<vec4f>();
+        uniformMem->x = scale.x; uniformMem->y = scale.y;
+        uniformMem->z = translate.x; uniformMem->w = translate.y;
+        _uniform->unmap();
+        _uniform->commit(commandList, frame);
+    }
+
+    void ImGuiRenderer::draw(rhi::runtime::CommandListPtr & commandList, uint8_t frame) {
+        const ImDrawData *drawData = ImGui::GetDrawData();
+        
         commandList->bindPipeline(_pipeline);
         commandList->bindBuffer(0u, (*_uniform)(frame), 0u, 0u, sizeof(engine::vec4f)); // bind uniform
 
-        vOffset = 0u;
-        iOffset = 0u;
+        uint32_t vOffset = 0u;
+        uint32_t iOffset = 0u;
         for (uint32_t i = 0u; i < drawData->CmdListsCount; ++i) {
             const ImDrawList *drawList = drawData->CmdLists[i];
             const uint32_t vertexBufferSize = drawList->VtxBuffer.size() * sizeof(ImDrawVert);
@@ -235,7 +237,6 @@ namespace engine {
             vOffset += vertexBufferSize;
             iOffset += indexBufferSize;
         }
-
     }
 
 }
