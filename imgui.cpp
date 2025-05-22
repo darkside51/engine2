@@ -23,7 +23,7 @@ namespace engine {
     }
 
     void ImGuiRenderer::createPipeline(const std::unique_ptr<rhi::runtime::Rhi> & api,
-        std::unique_ptr<rhi::runtime::Device> & device, 
+        rhi::runtime::DevicePtr & device, 
         const rhi::runtime::GpuProgramPtr & program, rhi::runtime::RenderPass renderPass) {
         rhi::GraphicsPipelineStatesInfo info;
         info.viewportState = {1u, 1u};
@@ -68,7 +68,7 @@ namespace engine {
     }
 
     void ImGuiRenderer::createFontTexture(const std::unique_ptr<rhi::runtime::Rhi> & api,
-        std::unique_ptr<rhi::runtime::Device> & device) {
+        rhi::runtime::DevicePtr & device) {
         ImGuiIO &io = ImGui::GetIO();
 
         unsigned char *pixels = nullptr;
@@ -106,7 +106,7 @@ namespace engine {
     }
 
     void ImGuiRenderer::createBuffers(const std::unique_ptr<rhi::runtime::Rhi> & api,
-        std::unique_ptr<rhi::runtime::Device> & device) {
+        rhi::runtime::DevicePtr & device) {
         // uniforms
         rhi::BufferInfo unifromsInfo {
             rhi::BufferUsageFlags::eUniform_Buffer,
@@ -123,9 +123,9 @@ namespace engine {
             rhi::MemoryPropertyFlags::eDeviceLocal
         };
 
-        constexpr uint32_t kVerticesCountMax = 8192u;
-        _vertices =  std::make_unique<graphics::InflightBuffer>(
-            api, device, verticesInfo, sizeof(ImDrawVert) * kVerticesCountMax
+        constexpr uint32_t kInitialVerticesCountMax = 1024u;
+        _vertices = std::make_unique<graphics::InflightBuffer>(
+            api, device, verticesInfo, sizeof(ImDrawVert) * kInitialVerticesCountMax
         );
 
         // indices
@@ -134,9 +134,9 @@ namespace engine {
             rhi::MemoryPropertyFlags::eDeviceLocal
         };
 
-        constexpr uint32_t kIndicesCountMax = 8192u;
-        _indices =  std::make_unique<graphics::InflightBuffer>(
-            api, device, indicesInfo, sizeof(ImDrawIdx) * kIndicesCountMax
+        constexpr uint32_t kInitialIndicesCountMax = 1024u;
+        _indices = std::make_unique<graphics::InflightBuffer>(
+            api, device, indicesInfo, sizeof(ImDrawIdx) * kInitialIndicesCountMax
         );
     }
 
@@ -151,7 +151,8 @@ namespace engine {
         ImGui::Render();
     }
 
-    void ImGuiRenderer::prepare(rhi::runtime::CommandListPtr & commandList, uint8_t frame) {
+    void ImGuiRenderer::prepare(rhi::runtime::CommandListPtr & commandList, uint8_t frame,
+        const std::unique_ptr<rhi::runtime::Rhi> & api, rhi::runtime::DevicePtr & device) {
         if (_stagefontBuffer) {
             commandList->copyBuffer2Image(_stagefontBuffer, _fontImage, {
                 .bufferOffset = 0u,
@@ -164,14 +165,39 @@ namespace engine {
             _stagefontBuffer = nullptr;
         }
 
-        // todo: need resize buffers if haven't memory!
+        const ImDrawData *drawData = ImGui::GetDrawData();
+
+        // resize buffers if haven't memory
+        const auto vtxDataSize = sizeof(ImDrawVert) * drawData->TotalVtxCount;
+        if (_vertices == nullptr ||  vtxDataSize >= _vertices->sizeInBytes()) {
+            const rhi::BufferInfo verticesInfo {
+                rhi::BufferUsageFlags::eVertex_Buffer | rhi::BufferUsageFlags::eTransfer_Dst,
+                rhi::MemoryPropertyFlags::eDeviceLocal
+            };
+
+            _vertices = std::make_unique<graphics::InflightBuffer>(
+                api, device, verticesInfo, vtxDataSize * 2u
+            );
+        }
+
+        const auto idxDataSize = sizeof(ImDrawIdx) * drawData->TotalIdxCount;
+        if (_indices == nullptr || idxDataSize >= _indices->sizeInBytes()) {
+            const rhi::BufferInfo indicesInfo {
+                rhi::BufferUsageFlags::eIndex_Buffer | rhi::BufferUsageFlags::eTransfer_Dst,
+                rhi::MemoryPropertyFlags::eDeviceLocal
+            };
+
+            _indices = std::make_unique<graphics::InflightBuffer>(
+                api, device, indicesInfo, idxDataSize * 2u
+            );
+        }
+
         auto * verticesMem = _vertices->map2<std::byte>();
         auto * indicesMem = _indices->map2<std::byte>();
 
         uint32_t vOffset = 0u;
         uint32_t iOffset = 0u;
 
-        const ImDrawData *drawData = ImGui::GetDrawData();
         for (uint32_t i = 0u; i < drawData->CmdListsCount; ++i) {
             const ImDrawList *drawList = drawData->CmdLists[i];
             const uint32_t vertexBufferSize = drawList->VtxBuffer.size() * sizeof(ImDrawVert);

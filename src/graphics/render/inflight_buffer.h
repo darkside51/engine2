@@ -50,6 +50,14 @@ namespace engine::graphics {
 
         explicit operator bool() const noexcept { return !_buffers.empty(); }
 
+        uint32_t sizeInBytes() const noexcept {
+            if (_buffers.empty()) {
+                return 0u;
+            }
+
+            return _buffers[0u].buffer->sizeInBytes();
+        }
+
     private:
         struct Data {
             rhi::runtime::BufferPtr buffer = nullptr;

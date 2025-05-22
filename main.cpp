@@ -481,7 +481,7 @@ int main() {
                     uniformBufferI->commit(commandList, frameId);
                 }
 
-                imgui.prepare(commandList, frameId);
+                imgui.prepare(commandList, frameId, rApi, device);
 
                 commandList->beginRenderPass(renderPass, frameBuffers[imageIndex], clearValues, {{0, 0}, {width, height}});
 
