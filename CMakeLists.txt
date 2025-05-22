@@ -29,7 +29,9 @@ else()
 	add_definitions(-DNDEBUG)
 endif(CMAKE_BUILD_TYPE MATCHES Debug)
 
-add_executable(${PROJECT_NAME} main.cpp)
+add_executable(${PROJECT_NAME} main.cpp imgui.cpp)
+
+target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/3rd_party/imgui)
 
 ########## подключаем engine
 target_link_libraries(${PROJECT_NAME} engine)

@@ -21,7 +21,6 @@
 #include "graphics/render/rhi/common/api.h"
 #include "graphics/render/rhi/common/utils.h"
 #include "graphics/render/rhi/common/pipeline.h"
-#include "graphics/render/rhi/common/commands.h"
 #include "graphics/render/rhi/common/command_list.h"
 
 #include "graphics/render/rhi/vulkan/runtime.h"
@@ -30,8 +29,13 @@
 
 #include "math/math.h"
 
+#include "imgui.h"
+#include <imgui.h>
+
 #include <algorithm>
 
+engine::rhi::runtime::GpuProgramPtr program = nullptr;
+engine::rhi::runtime::GpuProgramPtr imguiProgram = nullptr;
 engine::rhi::runtime::BufferPtr stagePositions = nullptr;
 engine::rhi::runtime::BufferPtr stageColors = nullptr;
 engine::rhi::runtime::BufferPtr positions = nullptr;
@@ -79,26 +83,38 @@ engine::rhi::RenderPassDescription createRenderPassDescription(engine::rhi::Form
     };
 }
 
-auto loadShaders(const std::unique_ptr<engine::rhi::runtime::Rhi> & api, 
+void loadShaders(const std::unique_ptr<engine::rhi::runtime::Rhi> & api, 
     std::unique_ptr<engine::rhi::runtime::Device> & device, 
     std::unique_ptr<engine::rhi::runtime::ShaderModulesManager> & shaderModulesManager) {
 
     engine::FileManager fm;
     auto * fsystem = fm.createFileSystem<engine::CommonFileSystem>("common_fs0", engine::CommonFileSystem::getCurrentDirectory() + "./resources/");
 
-    auto const vBytes = fm.readFile("shaders/simple.vert.spv");
-    auto const fBytes = fm.readFile("shaders/simple.frag.spv");
+    {
+        auto const vBytes = fm.readFile("shaders/simple.vert.spv");
+        auto const fBytes = fm.readFile("shaders/simple.frag.spv");
 
-    const auto & vsModule = shaderModulesManager->registerModule("simple.vert", *device, engine::rhi::shaders::Stages::eVertex, vBytes); // call overloaded function
-    const auto & fsModule = shaderModulesManager->registerModule("simple.frag", *device, engine::rhi::shaders::Stages::eFragment, fBytes);
+        const auto & vsModule = shaderModulesManager->registerModule("simple.vert", *device, engine::rhi::shaders::Stages::eVertex, vBytes); // call overloaded function
+        const auto & fsModule = shaderModulesManager->registerModule("simple.frag", *device, engine::rhi::shaders::Stages::eFragment, fBytes);
 
-    return api->createProgram(device, std::array{vsModule.getView(), fsModule.getView()}, {.dynamicDescriptorsMask = 0b10u});
+        program = api->createProgram(device, std::array{vsModule.getView(), fsModule.getView()}, {.dynamicDescriptorsMask = 0b10u});
+    }
+
+    {
+        auto const vBytes = fm.readFile("shaders/imgui.vert.spv");
+        auto const fBytes = fm.readFile("shaders/imgui.frag.spv");
+
+        const auto & vsModule = shaderModulesManager->registerModule("imgui.vert", *device, engine::rhi::shaders::Stages::eVertex, vBytes); // call overloaded function
+        const auto & fsModule = shaderModulesManager->registerModule("imgui.frag", *device, engine::rhi::shaders::Stages::eFragment, fBytes);
+
+        imguiProgram = api->createProgram(device, std::array{vsModule.getView(), fsModule.getView()});
+    }
 }
 
 auto createPipeline(const std::unique_ptr<engine::rhi::runtime::Rhi> & api,
     std::unique_ptr<engine::rhi::runtime::Device> & device,
     engine::rhi::runtime::RenderPass renderPass,
-    const std::unique_ptr<engine::rhi::runtime::GpuProgram> & program) {
+    const engine::rhi::runtime::GpuProgramPtr & program) {
     using namespace engine::rhi;
 
     GraphicsPipelineStatesInfo info;
@@ -256,7 +272,7 @@ int main() {
 
     // todo: 
     // 1. impl staging buffer for inflightBuffer - in progress
-    // 2. textures (as command_list resources like a buffers and framebuffers)
+    // 2. barriers for textures for render to framebuffers
     // 3. imgui
     // 4. simplify
     // 5. optimize
@@ -371,7 +387,7 @@ int main() {
         }
 
         auto shaderModulesManager = rApi->createShaderModulesManager();
-        auto program = loadShaders(rApi, device, shaderModulesManager);
+        loadShaders(rApi, device, shaderModulesManager);
         auto pipeline = createPipeline(rApi, device, renderPass, program);
         createBuffers(rApi, device);
         createImageData(rApi, device);
@@ -391,9 +407,21 @@ int main() {
         const size_t kUniformBufferOffsetAlign = device->getUniformBufferOffsetAlignment();
         bool canDraw = true;
 
+        engine::ImGuiRenderer imgui;
+        imgui.createPipeline(rApi, device, imguiProgram, renderPass);
+        imgui.createFontTexture(rApi, device);
+        imgui.createBuffers(rApi, device);
+
         threads::Executor executor([&](auto & executionContext, float delta) {
             executionContext.performTasks();
             if (!commandLists.empty()) {
+
+                imgui.beginFrame(delta, width, height);
+                //ImGui::SetWindowPos({0, 0});
+                ImGui::ShowAboutWindow();
+                ImGui::ShowDemoWindow();
+                imgui.endFrame();
+
                 const auto frameId = frameIndex();
 
                 if (canDraw) {
@@ -453,12 +481,14 @@ int main() {
                     uniformBufferI->commit(commandList, frameId);
                 }
 
+                imgui.prepare(commandList);
+
                 commandList->beginRenderPass(renderPass, frameBuffers[imageIndex], clearValues, {{0, 0}, {width, height}});
+
+                commandList->bindPipeline(pipeline);
 
                 commandList->setViewport(0.0f, 0.0f, width, height);
                 commandList->setScissor({{0, 0}, {width, height}});
-
-                commandList->bindPipeline(pipeline);
 
                 // first triangle
                 commandList->bindBuffer(0u, (*uniformBufferI)(frameId), 0u, 
@@ -478,6 +508,8 @@ int main() {
                 commandList->bindIndexBuffer(indices, 0u, engine::rhi::IndexType::eU16);
                 commandList->drawIndexed(6u);
                 
+                imgui.draw(commandList, frameId);
+
                 commandList->endRenderPass();
                 commandList->end();
 
@@ -566,6 +598,9 @@ int main() {
         window0.setOnClose([&]() {
             executor.stop();
             device->waitIdle();
+
+            program = nullptr;
+            imguiProgram = nullptr;
 
             stagePositions = nullptr;
             stageColors = nullptr;

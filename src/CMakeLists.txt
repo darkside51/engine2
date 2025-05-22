@@ -93,6 +93,8 @@ set(
 	utils
 	utils/profile
 
+	../3rd_party/imgui
+
 	tests
 )
 

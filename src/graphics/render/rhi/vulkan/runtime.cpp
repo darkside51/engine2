@@ -124,7 +124,7 @@ namespace engine::vulkan::runtime {
             computePipelineCreateInfo(vkProgram));
     }
 
-    std::unique_ptr<engine::rhi::runtime::Pipeline> Rhi::createGraphicsPipeline(
+    engine::rhi::runtime::PipelinePtr Rhi::createGraphicsPipeline(
         rhi::runtime::DevicePtr & device,
         rhi::runtime::RenderPass renderPass,
         const rhi::runtime::GpuProgramPtr & program,
