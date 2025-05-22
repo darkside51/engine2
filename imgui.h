@@ -23,10 +23,10 @@ namespace engine {
     void createBuffers(const std::unique_ptr<rhi::runtime::Rhi> & api,
         std::unique_ptr<rhi::runtime::Device> & device);
 
-    void beginFrame(float delta, uint16_t w, uint16_t h);
+    void beginFrame(float delta, uint16_t w, uint16_t h) noexcept;
     void endFrame();
     void prepare(rhi::runtime::CommandListPtr & commandList, uint8_t frame);
-    void draw(rhi::runtime::CommandListPtr & commandList, uint8_t frame);
+    void draw(rhi::runtime::CommandListPtr & commandList, uint8_t frame) noexcept;
 
     private:
         rhi::runtime::PipelinePtr _pipeline = nullptr;

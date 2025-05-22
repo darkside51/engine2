@@ -91,7 +91,7 @@ namespace engine {
 
         const auto imageInfo = rhi::ImageInfo{
             rhi::ImageUsageFlags::eSampled | rhi::ImageUsageFlags::eTransfer_Dst,
-            rhi::Format::eR8_Unorm, {width, height, 1u}
+            rhi::Format::eR8_Unorm, {static_cast<uint32_t>(width), static_cast<uint32_t>(height), 1u}
         };
 
         _fontImage = api->createImage(device, imageInfo);
@@ -140,7 +140,7 @@ namespace engine {
         );
     }
 
-    void ImGuiRenderer::beginFrame(float delta, uint16_t w, uint16_t h) {
+    void ImGuiRenderer::beginFrame(float delta, uint16_t w, uint16_t h) noexcept {
         ImGuiIO &io = ImGui::GetIO();
         io.DeltaTime = (delta > 0.0f) ? delta : (1.0f / 60.0f);
         io.DisplaySize = ImVec2(w, h);
@@ -164,6 +164,7 @@ namespace engine {
             _stagefontBuffer = nullptr;
         }
 
+        // todo: need resize buffers if haven't memory!
         auto * verticesMem = _vertices->map2<std::byte>();
         auto * indicesMem = _indices->map2<std::byte>();
 
@@ -199,11 +200,11 @@ namespace engine {
         _uniform->commit(commandList, frame);
     }
 
-    void ImGuiRenderer::draw(rhi::runtime::CommandListPtr & commandList, uint8_t frame) {
+    void ImGuiRenderer::draw(rhi::runtime::CommandListPtr & commandList, uint8_t frame) noexcept {
         const ImDrawData *drawData = ImGui::GetDrawData();
         
         commandList->bindPipeline(_pipeline);
-        commandList->bindBuffer(0u, (*_uniform)(frame), 0u, 0u, sizeof(engine::vec4f)); // bind uniform
+        commandList->bindBuffer(0u, (*_uniform)(frame)); // bind uniform
 
         uint32_t vOffset = 0u;
         uint32_t iOffset = 0u;
@@ -229,7 +230,8 @@ namespace engine {
 
                 commandList->bindVertexBuffer(0u, (*_vertices)(frame), vOffset);
                 commandList->bindIndexBuffer((*_indices)(frame), indexBufferOffset, rhi::IndexType::eU16);
-                commandList->drawIndexed(static_cast<uint32_t>(cmd.ElemCount), 1u, firstIndex, 0);
+
+                commandList->drawIndexed(static_cast<uint32_t>(cmd.ElemCount), 1u, firstIndex);
 
                 indexBufferOffset += cmd.ElemCount * sizeof(ImDrawIdx);
             }
