@@ -51,13 +51,7 @@ namespace engine {
     //
     void glfwOnKeyboard(GLFWwindow* window, int key, int /*scancode*/, int action, int /*mods*/) {
         auto * device = static_cast<GLFWDevice*>(glfwGetWindowUserPointer(window));
-        switch (key) {
-        case GLFW_KEY_ESCAPE:
-            device->close();
-            break;
-        default:
-            break;
-        }
+        device->keyEvent(key, action);
     }
 
     void glfwOnWindowResize(GLFWwindow* window, int w, int h) {
@@ -160,13 +154,115 @@ namespace engine {
     
     void GLFWDevice::pointerEvent(int button, int action, float x, float y) {
         if (_onPointerEvent) {
-            _onPointerEvent(button, action, x, y);
+            if (button != -1) {
+                _onPointerEvent(PointerEvent(static_cast<PointerButton>(button), 
+                    (action == 0 ? InputEventState::eRelease : InputEventState::ePress),
+                    x, y));
+            } else {
+                _onPointerEvent(PointerEvent(PointerButton::eButtonNone, 
+                                   InputEventState::eNone, x, y));
+            }
         }
     }
 
     void GLFWDevice::wheel(float x, float y) {
         if (_onWheelEvent) {
             _onWheelEvent(x, y);
+        }
+    }
+
+    void GLFWDevice::keyEvent(int key, int action) {
+        if (_onKeyEvent) {
+            KeyboardKey k;
+            uint8_t specialMask = 0u;
+
+            if (key >= GLFW_KEY_0 && key <= GLFW_KEY_9) {
+                k = static_cast<KeyboardKey>((key - GLFW_KEY_0) + static_cast<int>(KeyboardKey::e0));
+            } else if (key >= GLFW_KEY_A && key <= GLFW_KEY_Z) {
+                k = static_cast<KeyboardKey>((key - GLFW_KEY_A) + static_cast<int>(KeyboardKey::eA));
+            } else if (key >= GLFW_KEY_ESCAPE && key <= GLFW_KEY_F25) {
+                k = static_cast<KeyboardKey>((key - GLFW_KEY_ESCAPE) + static_cast<int>(KeyboardKey::eEscape));
+            } else if (key >= GLFW_KEY_KP_0 && key <= GLFW_KEY_MENU) {
+                k = static_cast<KeyboardKey>((key - GLFW_KEY_KP_0) + static_cast<int>(KeyboardKey::eKP0));
+
+                switch (k) {
+                    case KeyboardKey::eLeftAlt:
+                    case KeyboardKey::eRightAlt:
+                        specialMask |= InputKeyMod::ALT_PRESSED_BIT;
+                        break;
+                    case KeyboardKey::eLeftControl:
+                    case KeyboardKey::eRightControl:
+                        specialMask |= InputKeyMod::CTRL_PRESSED_BIT;
+                        break;
+                    case KeyboardKey::eLeftShift:
+                    case KeyboardKey::eRightShift:
+                        specialMask |= InputKeyMod::SHIFT_PRESSED_BIT;
+                        break;
+                    case KeyboardKey::eLeftSuper:
+                    case KeyboardKey::eRightSuper:
+                        specialMask |= InputKeyMod::SUPER_PRESSED_BIT;
+                        break;
+                    default:
+                        break;
+                }
+            } else {
+                switch (key) {
+                    case GLFW_KEY_SPACE:
+                        k = KeyboardKey::eSpace;
+                        break;
+                    case GLFW_KEY_APOSTROPHE:
+                        k = KeyboardKey::eApostrophe;
+                        break;
+                    case GLFW_KEY_COMMA:
+                        k = KeyboardKey::eComma;
+                        break;
+                    case GLFW_KEY_MINUS:
+                        k = KeyboardKey::eMinus;
+                        break;
+                    case GLFW_KEY_PERIOD:
+                        k = KeyboardKey::ePeriod;
+                        break;
+                    case GLFW_KEY_SLASH:
+                        k = KeyboardKey::eSlash;
+                        break;
+                    case GLFW_KEY_SEMICOLON:
+                        k = KeyboardKey::eSemicolon;
+                        break;
+                    case GLFW_KEY_EQUAL:
+                        k = KeyboardKey::eEqual;
+                        break;
+                    case GLFW_KEY_LEFT_BRACKET:
+                        k = KeyboardKey::eLeftBracket;
+                        break;
+                    case GLFW_KEY_BACKSLASH:
+                        k = KeyboardKey::eBackSlash;
+                        break;
+                    case GLFW_KEY_RIGHT_BRACKET:
+                        k = KeyboardKey::eRightBracket;
+                        break;
+                    case GLFW_KEY_GRAVE_ACCENT:
+                        k = KeyboardKey::eGraveAccent;
+                        break;
+                    default:
+                        k = KeyboardKey::eUnknown;
+                        action = 255; // for no call onKeyEvent
+                        break;
+                }
+            }
+
+            switch (action) {
+                case GLFW_PRESS:
+                    _onKeyEvent({k, InputEventState::ePress}, specialMask);
+                    break;
+                case GLFW_RELEASE:
+                    _onKeyEvent({k, InputEventState::eRelease}, specialMask);
+                    break;
+                case GLFW_REPEAT:
+                    _onKeyEvent({k, InputEventState::eRepeate}, specialMask);
+                    break;
+                default:
+                    break;
+            }
         }
     }
 

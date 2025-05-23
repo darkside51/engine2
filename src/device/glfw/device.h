@@ -1,5 +1,7 @@
 #pragma once
 
+#include "input/input.h"
+
 #include <cstdint>
 #include <functional>
 #include <memory>
@@ -25,6 +27,7 @@ namespace rhi {
         void resize(uint16_t w, uint16_t h);
         void pointerEvent(int button, int action, float x, float y);
         void wheel(float x, float y);
+        void keyEvent(int key, int action);
 
         GLFWDevice(GLFWDevice&& d) noexcept;
         GLFWDevice& operator=(GLFWDevice&& d) noexcept;
@@ -47,12 +50,16 @@ namespace rhi {
             _onResize = std::move(callback);
         }
 
-        void setOnPointer(std::function<void(int button, int action, float x, float y)> && callback) noexcept {
+        void setOnPointer(std::function<void(PointerEvent && event)> && callback) noexcept {
             _onPointerEvent = std::move(callback);
         }
 
         void setOnWheel(std::function<void(float dx, float dy)> && callback) noexcept {
             _onWheelEvent = std::move(callback);
+        }
+
+        void setOnKey(std::function<void(KeyEvent && evt, uint8_t mask)> && callback) noexcept {
+            _onKeyEvent = std::move(callback);
         }
 
         void setVisible(bool visible) noexcept;
@@ -65,8 +72,9 @@ namespace rhi {
         bool _visible = true;
         std::function<void()> _onClose{};
         std::function<void(uint16_t w, uint16_t h)> _onResize{};
-        std::function<void(int button, int action, float x, float y)> _onPointerEvent{};
+        std::function<void(PointerEvent && event)> _onPointerEvent{};
         std::function<void(float dx, float dy)> _onWheelEvent{};
+        std::function<void(KeyEvent && evt, uint8_t mask)> _onKeyEvent{};
     };
 
     class GLFWModule {

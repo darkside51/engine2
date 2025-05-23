@@ -550,21 +550,20 @@ int main() {
         engine::InputHandler inputHandler;
         inputHandler.addObserver(&imgui);
 
-        window0.setOnPointer([&](int button, int action, float x, float y) {
-            if (button != -1) {
-                const auto event = engine::PointerEvent(static_cast<engine::PointerButton>(button), 
-                    (action == 0 ? engine::InputEventState::eRelease : engine::InputEventState::ePress),
-                    x, y);
-                inputHandler.onPointerEvent(event);
-            } else {
-                const auto event = engine::PointerEvent(engine::PointerButton::eButtonNone, 
-                                   engine::InputEventState::eNone, x, y);
-                inputHandler.onPointerEvent(event);
-            }
+        window0.setOnPointer([&](engine::PointerEvent && event) {
+            inputHandler.onPointerEvent(std::move(event));
         });
 
         window0.setOnWheel([&](float dx, float dy) {
             inputHandler.onWheelEvent(dx, dy);
+        });
+
+        window0.setOnKey([&](engine::KeyEvent && event, uint8_t mask) {
+            if (event.key == engine::KeyboardKey::eEscape) {
+                window0.close();
+                return;
+            }
+            inputHandler.onKeyEvent(std::move(event), mask);
         });
 
         window0.setOnResize([&](uint16_t w, uint16_t h) {

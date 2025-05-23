@@ -179,7 +179,7 @@ namespace engine {
 		inline bool isShiftPressed() const noexcept { return (value & (SHIFT_PRESSED_BIT))	!= 0u; }
 		inline bool isSuperPressed() const noexcept { return (value & (SUPER_PRESSED_BIT))	!= 0u; }
 
-		uint8_t value;
+		uint8_t value = 0u;
 	};
 
     class InputObserver {
@@ -227,7 +227,10 @@ namespace engine {
 		}
 
 		template <typename E = KeyEvent&&>
-		inline void onKeyEvent(E && evt) const {
+		inline void onKeyEvent(E && evt, uint8_t mask) {
+			if (mask) {
+				changeMask(mask, evt.state);
+			}
 			for (auto && o : _observers) {
 				if (o->onInpuKeyEvent(std::forward<E>(evt), _mask)) {
 					break;
