@@ -285,9 +285,17 @@ int main() {
 
     constexpr std::string_view input = R"({"i":123,"d":2.72,"hello":"Hello World!","arr":[4,5,6]})";
     auto err = glz::read_json(obj, input);
-    if (err) {
 
-    }
+    glz::json_t json{};
+    err = glz::read_json(json, input);
+    const auto d_val = json.at("d").as<float>();
+    const auto i_val = json["i"].as<int>();
+    const bool hasHello = json.contains("hello");
+    const bool hasHello2 = json.contains("hello2");
+
+    if (err) {}
+
+
 
     // engine::tests::execute_tests();
 
