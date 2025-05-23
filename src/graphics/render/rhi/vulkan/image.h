@@ -108,8 +108,8 @@ public:
                                uint32_t baseLevel, uint32_t levelsCount, 
                                rhi::ImageAspectFlags aspectFlags);
 
-    void assignLayout(VkImageLayout dstLayout, uint8_t baseLayer, uint8_t layersCount, 
-                    uint8_t baseLevel, uint8_t levelsCount) noexcept;
+    void assignLayout(VkImageLayout dstLayout, uint8_t baseLayer, uint8_t baseLevel, 
+        uint8_t layersCount = 0u, uint8_t levelsCount = 0u) noexcept;
 
     std::span<const ImageSubState> getSubStates() const noexcept { return _imageSubStates; }
 

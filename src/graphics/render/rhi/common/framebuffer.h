@@ -14,6 +14,7 @@ struct FrameBufferAttachment {
     runtime::Image *image = nullptr;
     Extent2D imageSize = {0u, 0u};
     ImageAspectFlags aspect = ImageAspectFlags::eColor;
+    ImageLayout finalLayout = ImageLayout::eUndefined;
     uint8_t layer = 0u;
     uint8_t level = 0u;
 

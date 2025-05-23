@@ -7,6 +7,7 @@
 #include <vulkan/vulkan.h>
 
 #include <cstdint>
+#include <span>
 #include <vector>
 
 namespace engine::vulkan {
@@ -23,6 +24,10 @@ public:
 
     VkRenderPass getRenderPass() const noexcept { return _renderPass; }
     rhi::Extent2D getSize() const noexcept { return _size; }
+
+    std::span<rhi::FrameBufferAttachment> attachments() noexcept {
+        return _attachments;
+    }
 
 private:
     const Device & _device;

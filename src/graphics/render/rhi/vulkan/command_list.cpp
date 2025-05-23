@@ -137,43 +137,6 @@ namespace engine::vulkan::runtime {
                         0u, 0u
                     );  
                 }
-
-                if ((usage & rhi::ImageUsageFlags::eDepth_Stencil_Attachment) != rhi::ImageUsageFlags::eNone) {
-                    auto const dstStage = VkPipelineStageFlagBits::VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-
-                    const auto aspectFlags = info.aspectFlags;
-
-                    VkImageLayout dstLayout = VkImageLayout::VK_IMAGE_LAYOUT_UNDEFINED;
-                    if ((aspectFlags & rhi::ImageAspectFlags::eDepthStencil) != rhi::ImageAspectFlags::eNone) {
-                        dstLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-                    } else if ((aspectFlags & rhi::ImageAspectFlags::eDepth) != rhi::ImageAspectFlags::eNone) {
-                        dstLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
-                    } else if ((aspectFlags & rhi::ImageAspectFlags::eStencil) != rhi::ImageAspectFlags::eNone) {
-                        dstLayout = VK_IMAGE_LAYOUT_STENCIL_ATTACHMENT_OPTIMAL;
-                    }
-
-                    image.transition(
-                        _postBarriers, 
-                        dstLayout, 
-                        dstStage, 
-                        VkAccessFlagBits::VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT, 
-                        0u, 0u, 
-                        0u, 0u
-                    );  
-                }
-
-                if ((usage & rhi::ImageUsageFlags::eColor_Attachment) != rhi::ImageUsageFlags::eNone) {
-                    auto const dstStage = VkPipelineStageFlagBits::VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-
-                    image.transition(
-                        _postBarriers, 
-                        VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, 
-                        dstStage, 
-                        VkAccessFlagBits::VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, 
-                        0u, 0u, 
-                        0u, 0u
-                    );  
-                }
             }
             postBarriersImages.clear();
             postBarriersImages.reserve(kPostBarriersImagesInitSize);
@@ -244,7 +207,7 @@ namespace engine::vulkan::runtime {
                 break;
             case CommandType::eEnd:
             {
-                _barriers.flush(_commandbuffer());
+                //_barriers.flush(_commandbuffer());
                 _commandbuffer.end();
             }
                 break;
@@ -260,10 +223,59 @@ namespace engine::vulkan::runtime {
                 break;
             case CommandType::eBeginRenderPass:
             {
-                _barriers.flush(_commandbuffer());
                 applyPostBarriers();
 
                 const auto * command = static_cast<BeginRenderPassCommand*>(cmd);
+
+                auto & framebuffer = static_cast<vulkan::FrameBuffer &>(*command->framebuffer);
+
+                // todo: move set barriers to function
+                for (auto const & attachment : framebuffer.attachments()) {
+                    auto * image = static_cast<Image*>(attachment.image);
+                    const auto usage = attachment.image->usage();
+
+                    // need check layers and levels count?
+                    if ((usage & rhi::ImageUsageFlags::eDepth_Stencil_Attachment) != rhi::ImageUsageFlags::eNone) {
+                        auto const dstStage = VkPipelineStageFlagBits::VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+
+                        const auto aspectFlags = attachment.aspect;
+
+                        VkImageLayout dstLayout = VkImageLayout::VK_IMAGE_LAYOUT_UNDEFINED;
+                        if ((aspectFlags & rhi::ImageAspectFlags::eDepthStencil) != rhi::ImageAspectFlags::eNone) {
+                            dstLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+                        } else if ((aspectFlags & rhi::ImageAspectFlags::eDepth) != rhi::ImageAspectFlags::eNone) {
+                            dstLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
+                        } else if ((aspectFlags & rhi::ImageAspectFlags::eStencil) != rhi::ImageAspectFlags::eNone) {
+                            dstLayout = VK_IMAGE_LAYOUT_STENCIL_ATTACHMENT_OPTIMAL;
+                        }
+
+                        image->transition(
+                            _barriers, 
+                            dstLayout, 
+                            dstStage, 
+                            VkAccessFlagBits::VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT, 
+                            0u, 0u, 
+                            0u, 0u
+                        );  
+                    }
+
+                    if ((usage & rhi::ImageUsageFlags::eColor_Attachment) != rhi::ImageUsageFlags::eNone) {
+                        auto const dstStage = VkPipelineStageFlagBits::VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+
+                        image->transition(
+                            _barriers, 
+                            VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, 
+                            dstStage, 
+                            VkAccessFlagBits::VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, 
+                            0u, 0u, 
+                            0u, 0u
+                        );  
+                    }
+
+                    image->assignLayout(utils::convert2vk(attachment.finalLayout), 0u, 0u, 0u, 0u);
+                }
+
+                _barriers.flush(_commandbuffer());
 
                 dynamic_array<VkClearValue, 4u> clearValues;
                 clearValues.reserve(command->clearValues.size());
@@ -277,7 +289,7 @@ namespace engine::vulkan::runtime {
 
                 _commandbuffer.beginRenderPass(
                     static_cast<VkRenderPass>(command->renderPass), 
-                    static_cast<const vulkan::FrameBuffer &>(*command->framebuffer),
+                    framebuffer,
                     clearValuesView,
                     command->area
                 );
@@ -298,7 +310,6 @@ namespace engine::vulkan::runtime {
                 break;
             case CommandType::eExecuteCommands:
             {
-                _barriers.flush(_commandbuffer());
                 applyPostBarriers();
                 const auto * command = static_cast<ExecuteCommandsCommand*>(cmd);
                 // _commandbuffer.executeCommands();// todo!
@@ -515,7 +526,7 @@ namespace engine::vulkan::runtime {
                 break; 
             case CommandType::ePipelineBarriers:
                 // todo!
-                _barriers.flush(_commandbuffer());
+                //_barriers.flush(_commandbuffer());
                 break; 
             case CommandType::eUndefined:
                 break;    

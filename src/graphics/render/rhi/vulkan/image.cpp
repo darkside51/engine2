@@ -117,8 +117,17 @@ VkImageView Image::getImageView(rhi::ImageViewType viewType,
   return _imageViews.insert({description, imageView}).first->second;
 }
 
-void Image::assignLayout(VkImageLayout dstLayout, uint8_t baseLayer, uint8_t layersCount, 
-                    uint8_t baseLevel, uint8_t levelsCount) noexcept {
+void Image::assignLayout(VkImageLayout dstLayout, uint8_t baseLayer, uint8_t baseLevel, 
+    uint8_t layersCount, uint8_t levelsCount) noexcept {
+
+    if (layersCount == 0u) {
+        layersCount = _info.arrayLayers - baseLayer;
+    } 
+
+    if (levelsCount == 0u) {
+        levelsCount = _info.mipLevels - baseLevel;
+    }
+
     for (size_t i = baseLayer; i < baseLayer + layersCount; ++i) {
         for (size_t j = baseLevel; j < baseLevel + levelsCount; ++j) {
             auto & subState = _imageSubStates[i * _info.mipLevels + j];

@@ -370,11 +370,13 @@ int main() {
             std::vector<engine::rhi::FrameBufferAttachment> fbAttachemnts{2u};
             fbAttachemnts[0u].image = &image;
             fbAttachemnts[0u].imageSize = {image.getExtent().width, image.getExtent().height};
+            fbAttachemnts[0u].finalLayout = engine::rhi::ImageLayout::eColor_Attachment_Optimal;
 
             auto & depthImage = depthImages[i];
             fbAttachemnts[1u].image = depthImage.get();
             fbAttachemnts[1u].imageSize = {depthImage->getExtent().width, depthImage->getExtent().height};
             fbAttachemnts[1u].aspect = engine::rhi::ImageAspectFlags::eDepth;  // can get it from depthImage?
+            fbAttachemnts[1u].finalLayout = engine::rhi::ImageLayout::eDepth_Stencil_Attachment_Optimal;
 
             frameBuffers.emplace_back(rApi->createFrameBuffer(device, std::move(fbAttachemnts), renderPass));
         }

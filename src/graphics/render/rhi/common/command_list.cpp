@@ -31,7 +31,7 @@ namespace engine::rhi::runtime {
         ++_commandsCount;
     }
 
-    void CommandList::beginRenderPass(RenderPass renderPass, const FrameBufferPtr & framebuffer, 
+    void CommandList::beginRenderPass(RenderPass renderPass, FrameBufferPtr & framebuffer, 
         std::span<const ClearValue> clearValues, const Rect2D & area) {
         _resources.push_back(framebuffer);
         _commands->create<BeginRenderPassCommand>(renderPass, framebuffer, clearValues, area);

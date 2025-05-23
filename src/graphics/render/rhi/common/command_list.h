@@ -21,7 +21,7 @@ namespace engine::rhi::runtime {
         void end();
         void reset(CommandBufferResetFlags flags);
 
-        void beginRenderPass(RenderPass renderPass, const FrameBufferPtr & framebuffer, 
+        void beginRenderPass(RenderPass renderPass, FrameBufferPtr & framebuffer, 
             std::span<const ClearValue> clearValues, const Rect2D & area);
         void endRenderPass();
         void nextSubpass(SubpassContents contents);
