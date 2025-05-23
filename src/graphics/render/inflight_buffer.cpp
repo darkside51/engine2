@@ -11,7 +11,7 @@ namespace engine::graphics {
     }
 
     InflightBuffer::InflightBuffer(const std::unique_ptr<rhi::runtime::Rhi> & api,
-        std::unique_ptr<rhi::runtime::Device> & device, const rhi::BufferInfo & info, size_t size) :
+        rhi::runtime::DevicePtr & device, const rhi::BufferInfo & info, size_t size) :
         _api(api), 
         _device(device) {
         _buffers.reserve(device->inFlightFramesCount());

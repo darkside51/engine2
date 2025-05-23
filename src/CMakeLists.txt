@@ -84,6 +84,7 @@ set(
 	graphics/render
 	graphics/render/rhi/common
 	graphics/ui
+	graphics/scene
 	input
 	log
 	math
@@ -227,6 +228,7 @@ endif()
 message("glaze library begin")
 add_3rdparty_project (${CMAKE_CURRENT_SOURCE_DIR}/../3rd_party/glaze-5.3.0 ${CMAKE_BINARY_DIR}/3rd_party/glaze-5.3.0)
 target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../3rd_party/glaze-5.3.0/include)
+set(GLAZE_LIB glaze_glaze)
 message("glaze library end")
 
 target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../3rd_party/glm-1.0.1)
@@ -235,8 +237,8 @@ target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/..
 target_link_libraries (
 	${PROJECT_NAME}
 	${USED_FRAMEWORKS}
+	${GLAZE_LIB}
 	#${FREETYPE_LIB}
-	glaze_glaze
 )
 
 if (USE_GLFW)
