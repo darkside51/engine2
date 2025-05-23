@@ -23,6 +23,8 @@ namespace rhi {
 
 		void close();
         void resize(uint16_t w, uint16_t h);
+        void pointerEvent(int button, int action, float x, float y);
+        void wheel(float x, float y);
 
         GLFWDevice(GLFWDevice&& d) noexcept;
         GLFWDevice& operator=(GLFWDevice&& d) noexcept;
@@ -45,6 +47,14 @@ namespace rhi {
             _onResize = std::move(callback);
         }
 
+        void setOnPointer(std::function<void(int button, int action, float x, float y)> && callback) noexcept {
+            _onPointerEvent = std::move(callback);
+        }
+
+        void setOnWheel(std::function<void(float dx, float dy)> && callback) noexcept {
+            _onWheelEvent = std::move(callback);
+        }
+
         void setVisible(bool visible) noexcept;
 
     private:
@@ -55,6 +65,8 @@ namespace rhi {
         bool _visible = true;
         std::function<void()> _onClose{};
         std::function<void(uint16_t w, uint16_t h)> _onResize{};
+        std::function<void(int button, int action, float x, float y)> _onPointerEvent{};
+        std::function<void(float dx, float dy)> _onWheelEvent{};
     };
 
     class GLFWModule {

@@ -397,7 +397,7 @@ int main() {
         std::vector<engine::rhi::runtime::CommandListPtr> commandLists;
         
         constexpr float inputCheckTime = 1.0f / 60.0f;
-        constexpr float redrawTime = 1.0f / 120.0f;
+        constexpr float redrawTime = 1.0f / 60.0f;
 
         constexpr auto clearValues = std::array{
             engine::rhi::ClearValue{0x77'77'77'ffu},
@@ -409,7 +409,7 @@ int main() {
         const size_t kUniformBufferOffsetAlign = device->getUniformBufferOffsetAlignment();
         bool canDraw = true;
 
-        engine::ImGuiRenderer imgui;
+        engine::ImGuiSystem imgui;
         imgui.createPipeline(rApi, device, imguiProgram, renderPass);
         imgui.createFontTexture(rApi, device);
         imgui.createBuffers(rApi, device);
@@ -419,8 +419,6 @@ int main() {
             if (!commandLists.empty()) {
 
                 imgui.beginFrame(delta, width, height);
-                //ImGui::SetWindowPos({0, 0});
-                ImGui::ShowAboutWindow();
                 ImGui::ShowDemoWindow();
                 imgui.endFrame();
 
@@ -551,6 +549,26 @@ int main() {
         }}));
 
         window0.setVisible(true);
+
+        engine::InputHandler inputHandler;
+        inputHandler.addObserver(&imgui);
+
+        window0.setOnPointer([&](int button, int action, float x, float y) {
+            if (button != -1) {
+                const auto event = engine::PointerEvent(static_cast<engine::PointerButton>(button), 
+                    (action == 0 ? engine::InputEventState::eRelease : engine::InputEventState::ePress),
+                    x, y);
+                inputHandler.onPointerEvent(event);
+            } else {
+                const auto event = engine::PointerEvent(engine::PointerButton::eButtonNone, 
+                                   engine::InputEventState::eNone, x, y);
+                inputHandler.onPointerEvent(event);
+            }
+        });
+
+        window0.setOnWheel([&](float dx, float dy) {
+            inputHandler.onWheelEvent(dx, dy);
+        });
 
         window0.setOnResize([&](uint16_t w, uint16_t h) {
             executor.pause();

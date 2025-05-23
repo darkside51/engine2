@@ -65,6 +65,27 @@ namespace engine {
         device->resize(static_cast<uint16_t>(w), static_cast<uint16_t>(h));
 	}
 
+    void glfwOnMouseMove(GLFWwindow* window, double x, double y) {
+		int w, h;
+		glfwGetWindowSize(window, &w, &h);
+        auto * device = static_cast<GLFWDevice*>(glfwGetWindowUserPointer(window));
+        device->pointerEvent(-1, -1, static_cast<float>(x), static_cast<float>(h) - static_cast<float>(y));
+	}
+
+	void glfwOnMouseButton(GLFWwindow* window, int button, int action, int /*mods*/) {
+		double x, y;
+		int w, h;
+		glfwGetCursorPos(window, &x, &y);
+		glfwGetWindowSize(window, &w, &h);
+        auto * device = static_cast<GLFWDevice*>(glfwGetWindowUserPointer(window));
+        device->pointerEvent(button, action, static_cast<float>(x), static_cast<float>(h) - static_cast<float>(y));
+	}
+
+    void glfwOnScroll(GLFWwindow* window, double xoffset, double yoffset) { // mouse wheel
+		auto * device = static_cast<GLFWDevice*>(glfwGetWindowUserPointer(window));
+        device->wheel(static_cast<float>(xoffset), static_cast<float>(yoffset));
+	}
+
     GLFWDevice::GLFWDevice(GLFWDevice&& d) noexcept {
         _window = d._window;
         _width = d._width;
@@ -101,9 +122,9 @@ namespace engine {
 		// glfwSetWindowIconifyCallback(_window, &glfwOnWindowIconify);
 
 		// // input callbacks
-		// glfwSetCursorPosCallback(_window, &glfwOnMouseMove);
-		// glfwSetMouseButtonCallback(_window, &glfwOnMouseButton);
-		// glfwSetScrollCallback(_window, &glfwOnScroll);
+		glfwSetCursorPosCallback(_window, &glfwOnMouseMove);
+		glfwSetMouseButtonCallback(_window, &glfwOnMouseButton);
+		glfwSetScrollCallback(_window, &glfwOnScroll);
 		glfwSetKeyCallback(_window, &glfwOnKeyboard);
 		// glfwSetCharCallback(_window, &glfwOnChar);
     }
@@ -137,6 +158,18 @@ namespace engine {
         }
     }
     
+    void GLFWDevice::pointerEvent(int button, int action, float x, float y) {
+        if (_onPointerEvent) {
+            _onPointerEvent(button, action, x, y);
+        }
+    }
+
+    void GLFWDevice::wheel(float x, float y) {
+        if (_onWheelEvent) {
+            _onWheelEvent(x, y);
+        }
+    }
+
     rhi::SurfaceCreateInfo GLFWDevice::getSurfaceCreateInfo() const noexcept {
         #ifdef GLFW_EXPOSE_NATIVE_X11
         return {rhi::SurfaceType::eWindowSurface, glfwGetX11Display(), reinterpret_cast<void*>(glfwGetX11Window(_window))};

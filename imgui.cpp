@@ -2,7 +2,6 @@
 
 #include "graphics/render/rhi/common/command_list.h"
 #include "graphics/render/rhi/common/pipeline.h"
-
 #include "math/math.h"
 
 #include <imgui.h>
@@ -11,18 +10,20 @@
 
 namespace engine {
 
-    ImGuiRenderer::ImGuiRenderer() {
+    ImGuiSystem::ImGuiSystem() {
         ImGui::CreateContext();
         ImGuiIO &io = ImGui::GetIO();
         io.DisplayFramebufferScale = ImVec2(1.0f, 1.0f);
         io.IniFilename = nullptr; // disable creation "imgui.ini"
+
+        setupKeyMap();
     }
 
-    ImGuiRenderer::~ImGuiRenderer() {
+    ImGuiSystem::~ImGuiSystem() {
         ImGui::DestroyContext();
     }
 
-    void ImGuiRenderer::createPipeline(const std::unique_ptr<rhi::runtime::Rhi> & api,
+    void ImGuiSystem::createPipeline(const std::unique_ptr<rhi::runtime::Rhi> & api,
         rhi::runtime::DevicePtr & device, 
         const rhi::runtime::GpuProgramPtr & program, rhi::runtime::RenderPass renderPass) {
         rhi::GraphicsPipelineStatesInfo info;
@@ -67,7 +68,7 @@ namespace engine {
         _pipeline = api->createGraphicsPipeline(device, renderPass, program, info);
     }
 
-    void ImGuiRenderer::createFontTexture(const std::unique_ptr<rhi::runtime::Rhi> & api,
+    void ImGuiSystem::createFontTexture(const std::unique_ptr<rhi::runtime::Rhi> & api,
         rhi::runtime::DevicePtr & device) {
         ImGuiIO &io = ImGui::GetIO();
 
@@ -105,7 +106,7 @@ namespace engine {
         io.Fonts->SetTexID(&_fontImage);
     }
 
-    void ImGuiRenderer::createBuffers(const std::unique_ptr<rhi::runtime::Rhi> & api,
+    void ImGuiSystem::createBuffers(const std::unique_ptr<rhi::runtime::Rhi> & api,
         rhi::runtime::DevicePtr & device) {
         // uniforms
         rhi::BufferInfo unifromsInfo {
@@ -140,18 +141,18 @@ namespace engine {
         );
     }
 
-    void ImGuiRenderer::beginFrame(float delta, uint16_t w, uint16_t h) noexcept {
+    void ImGuiSystem::beginFrame(float delta, uint16_t w, uint16_t h) noexcept {
         ImGuiIO &io = ImGui::GetIO();
         io.DeltaTime = (delta > 0.0f) ? delta : (1.0f / 60.0f);
         io.DisplaySize = ImVec2(w, h);
         ImGui::NewFrame();
     }
 
-    void ImGuiRenderer::endFrame() {
+    void ImGuiSystem::endFrame() {
         ImGui::Render();
     }
 
-    void ImGuiRenderer::prepare(rhi::runtime::CommandListPtr & commandList, uint8_t frame,
+    void ImGuiSystem::prepare(rhi::runtime::CommandListPtr & commandList, uint8_t frame,
         const std::unique_ptr<rhi::runtime::Rhi> & api, rhi::runtime::DevicePtr & device) {
         if (_stagefontBuffer) {
             commandList->copyBuffer2Image(_stagefontBuffer, _fontImage, {
@@ -226,7 +227,7 @@ namespace engine {
         _uniform->commit(commandList, frame);
     }
 
-    void ImGuiRenderer::draw(rhi::runtime::CommandListPtr & commandList, uint8_t frame) noexcept {
+    void ImGuiSystem::draw(rhi::runtime::CommandListPtr & commandList, uint8_t frame) noexcept {
         const ImDrawData *drawData = ImGui::GetDrawData();
         
         commandList->bindPipeline(_pipeline);
@@ -264,6 +265,85 @@ namespace engine {
 
             vOffset += vertexBufferSize;
             iOffset += indexBufferSize;
+        }
+    }
+
+    bool ImGuiSystem::onInputPointerEvent(const PointerEvent & event) {
+        ImGuiIO &io = ImGui::GetIO();
+
+        switch (event.state) {
+            case InputEventState::ePress:
+                io.AddMouseButtonEvent(static_cast<int>(event.button), true);
+                break;
+            case InputEventState::eRelease:
+                io.AddMouseButtonEvent(static_cast<int>(event.button), false);
+                break;
+            default:
+                break;
+        }
+
+        io.MousePos = ImVec2(event.x, io.DisplaySize.y - event.y);
+        return io.WantCaptureMouse;
+    }
+
+    bool ImGuiSystem::onInputWheelEvent(float dx, float dy) {
+        ImGuiIO &io = ImGui::GetIO();
+        io.AddMouseWheelEvent(dx, dy);
+        return io.WantCaptureMouse;
+    }
+
+    bool ImGuiSystem::onInpuKeyEvent(const KeyEvent & event, const InputKeyMod & mod) {
+        ImGuiIO &io = ImGui::GetIO();
+        io.KeyShift = mod.isShiftPressed();
+        io.KeyAlt = mod.isAltPressed();
+        io.KeySuper = mod.isSuperPressed();
+        io.KeyCtrl = mod.isCtrlPressed();
+        io.KeysDown[static_cast<uint8_t>(event.key)] = event.state == InputEventState::ePress;
+
+        if (event.state == InputEventState::ePress || event.state == InputEventState::eRepeate) {
+            const auto &[key, keyWithShift] = _keyMap[static_cast<uint8_t>(event.key)];
+            io.AddInputCharacter(io.KeyShift ? keyWithShift : key);
+        }
+
+        return io.WantCaptureKeyboard;
+    }
+
+    void ImGuiSystem::setupKeyMap() {
+        ImGuiIO &io = ImGui::GetIO();
+        io.KeyMap[ImGuiKey_LeftArrow] = static_cast<uint8_t>(KeyboardKey::eLeft);
+        io.KeyMap[ImGuiKey_RightArrow] = static_cast<uint8_t>(KeyboardKey::eRight);
+        io.KeyMap[ImGuiKey_UpArrow] = static_cast<uint8_t>(KeyboardKey::eUp);
+        io.KeyMap[ImGuiKey_DownArrow] = static_cast<uint8_t>(KeyboardKey::eDown);
+        io.KeyMap[ImGuiKey_Delete] = static_cast<uint8_t>(KeyboardKey::eDelete);
+        io.KeyMap[ImGuiKey_Backspace] = static_cast<uint8_t>(KeyboardKey::eBackSpace);
+        io.KeyMap[ImGuiKey_Space] = static_cast<uint8_t>(KeyboardKey::eSpace);
+        io.KeyMap[ImGuiKey_Enter] = static_cast<uint8_t>(KeyboardKey::eEnter);
+
+        _keyMap[static_cast<uint8_t>(KeyboardKey::eBackSpace)] = {8u, 8u};
+        _keyMap[static_cast<uint8_t>(KeyboardKey::eTab)] = {9u, 9u};
+        _keyMap[static_cast<uint8_t>(KeyboardKey::eSpace)] = {32u, 32u};
+        _keyMap[static_cast<uint8_t>(KeyboardKey::eLeft)] = {17u, 17u};
+        _keyMap[static_cast<uint8_t>(KeyboardKey::eRight)] = {18u, 18u};
+        _keyMap[static_cast<uint8_t>(KeyboardKey::eUp)] = {19u, 19u};
+        _keyMap[static_cast<uint8_t>(KeyboardKey::eDown)] = {20u, 20u};
+        _keyMap[static_cast<uint8_t>(KeyboardKey::eMinus)] = {45u, 95u};
+        _keyMap[static_cast<uint8_t>(KeyboardKey::eSlash)] = {47u, 47u};
+        _keyMap[static_cast<uint8_t>(KeyboardKey::e0)] = {48u, 41u};
+        _keyMap[static_cast<uint8_t>(KeyboardKey::e1)] = {49u, 33u};
+        _keyMap[static_cast<uint8_t>(KeyboardKey::e2)] = {50u, 64u};
+        _keyMap[static_cast<uint8_t>(KeyboardKey::e3)] = {51u, 35u};
+        _keyMap[static_cast<uint8_t>(KeyboardKey::e4)] = {52u, 36u};
+        _keyMap[static_cast<uint8_t>(KeyboardKey::e5)] = {53u, 37u};
+        _keyMap[static_cast<uint8_t>(KeyboardKey::e6)] = {54u, 94u};
+        _keyMap[static_cast<uint8_t>(KeyboardKey::e7)] = {55u, 38u};
+        _keyMap[static_cast<uint8_t>(KeyboardKey::e8)] = {56u, 42u};
+        _keyMap[static_cast<uint8_t>(KeyboardKey::e9)] = {57u, 40u};
+        _keyMap[static_cast<uint8_t>(KeyboardKey::eEqual)] = {61u, 43u};
+        _keyMap[static_cast<uint8_t>(KeyboardKey::eDelete)] = {127u, 127u};
+
+        for (uint8_t k = static_cast<uint8_t>(KeyboardKey::eA); k <= static_cast<uint8_t>(KeyboardKey::eZ); ++k) {
+            uint8_t i = k - static_cast<uint8_t>(KeyboardKey::eA);
+            _keyMap[k] = {97u + i, 65u + i};
         }
     }
 

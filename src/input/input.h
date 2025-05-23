@@ -168,12 +168,26 @@ namespace engine {
 		KeyEvent(KeyboardKey k, InputEventState st) : key(k), state(st) {}
 	};
 
+	struct InputKeyMod {
+		inline static constexpr uint8_t ALT_PRESSED_BIT = 1u;
+		inline static constexpr uint8_t CTRL_PRESSED_BIT = 2u;
+		inline static constexpr uint8_t SHIFT_PRESSED_BIT = 4u;
+		inline static constexpr uint8_t SUPER_PRESSED_BIT = 8u;
+
+		inline bool isAltPressed()	const noexcept { return (value & (ALT_PRESSED_BIT))		!= 0u; }
+		inline bool isCtrlPressed()	const noexcept { return (value & (CTRL_PRESSED_BIT))	!= 0u; }
+		inline bool isShiftPressed() const noexcept { return (value & (SHIFT_PRESSED_BIT))	!= 0u; }
+		inline bool isSuperPressed() const noexcept { return (value & (SUPER_PRESSED_BIT))	!= 0u; }
+
+		uint8_t value;
+	};
+
     class InputObserver {
 	public:
 		virtual ~InputObserver() = default;
 		virtual bool onInputPointerEvent(const PointerEvent & event) = 0;
 		virtual bool onInputWheelEvent(float dx, const float dy) = 0;
-		virtual bool onInpuKeyEvent(const KeyEvent & event) = 0;
+		virtual bool onInpuKeyEvent(const KeyEvent & event, const InputKeyMod & mod) = 0;
 		virtual bool onInpuCharEvent(uint16_t code) = 0;
 
 		inline void setPriority(uint16_t p) noexcept { _priority = p; }
@@ -185,15 +199,8 @@ namespace engine {
 
     class InputHandler final {
 	public:
-		inline static constexpr uint8_t ALT_PRESSED_BIT = 1u;
-		inline static constexpr uint8_t CTRL_PRESSED_BIT = 2u;
-		inline static constexpr uint8_t SHIFT_PRESSED_BIT = 4u;
-		inline static constexpr uint8_t SUPER_PRESSED_BIT = 8u;
 
-		inline bool isAltPressed()		const noexcept { return (_mask & (ALT_PRESSED_BIT))		!= 0u; }
-		inline bool isCtrlPressed()		const noexcept { return (_mask & (CTRL_PRESSED_BIT))	!= 0u; }
-		inline bool isShiftPressed()	const noexcept { return (_mask & (SHIFT_PRESSED_BIT))	!= 0u; }
-		inline bool isSuperPressed()	const noexcept { return (_mask & (SUPER_PRESSED_BIT))	!= 0u; }
+		InputKeyMod getInputKeyMod() const noexcept { return _mask; }
 
 		void addObserver(InputObserver* o) {
 			_observers.push_back(o);
@@ -222,7 +229,7 @@ namespace engine {
 		template <typename E = KeyEvent&&>
 		inline void onKeyEvent(E && evt) const {
 			for (auto && o : _observers) {
-				if (o->onInpuKeyEvent(std::forward<E>(evt))) {
+				if (o->onInpuKeyEvent(std::forward<E>(evt), _mask)) {
 					break;
 				}
 			}
@@ -247,10 +254,10 @@ namespace engine {
 		inline void changeMask(uint8_t mask, InputEventState s) noexcept {
 			switch (s) {
 				case InputEventState::ePress:
-					_mask |= mask;
+					_mask.value |= mask;
 					break;
 				case InputEventState::eRelease:
-					_mask &= ~mask;
+					_mask.value &= ~mask;
 					break;
 				default:
 					break;
@@ -258,21 +265,7 @@ namespace engine {
 		}
 
 	private:
-		uint8_t _mask;
+		InputKeyMod _mask;
 		std::vector<InputObserver*> _observers;
 	};
-
-    class InputManager {
-    public:
-
-        template <typename E = KeyEvent&&>
-		inline void onKeyEvent(void* device, E&& evt) const {
-            if (auto it = _handlers.find(device); it != _handlers.end()) {
-                it->second.onKeyEvent(std::forward<E>(evt));
-            }
-		}
-
-    private:
-        std::unordered_map<void* , InputHandler> _handlers;
-    };
 }
