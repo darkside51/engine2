@@ -2,7 +2,6 @@
 
 #include "graphics/render/rhi/common/command_list.h"
 #include "graphics/render/rhi/common/pipeline.h"
-#include "math/math.h"
 
 #include <imgui.h>
 
@@ -37,7 +36,6 @@ namespace engine {
             }, 
             {}
         };
-        info.dynamicStates = rhi::DynamicState::eViewport | rhi::DynamicState::eScissor;
         info.rasterisationState = {rhi::PolygonMode::eFill, rhi::CullMode::eNone};
         info.inputAssemblyState = {rhi::PrimitiveTopology::eTriangles, false};
 
@@ -220,10 +218,14 @@ namespace engine {
         const vec2f translate{(drawData->DisplayPos.x - drawData->DisplaySize.x * 0.5f) * scale.x,
                               (drawData->DisplayPos.y - drawData->DisplaySize.y * 0.5f) * scale.y};
 
-        auto * uniformMem = _uniform->map2<vec4f>();
-        uniformMem->x = scale.x; uniformMem->y = scale.y;
-        uniformMem->z = translate.x; uniformMem->w = translate.y;
-        _uniform->unmap();
+        constexpr float kEps = 1e-7f;
+        const vec4f transform{scale.x, scale.y, translate.x, translate.y};
+        if (compare(_transform, transform, kEps)) {
+            _transform = transform;
+            auto & uniformMem = *_uniform->map2<vec4f>();
+            uniformMem = _transform;
+            _uniform->unmap();
+        }
         _uniform->commit(commandList, frame);
     }
 
@@ -318,6 +320,7 @@ namespace engine {
         io.KeyMap[ImGuiKey_Backspace] = static_cast<uint8_t>(KeyboardKey::eBackSpace);
         io.KeyMap[ImGuiKey_Space] = static_cast<uint8_t>(KeyboardKey::eSpace);
         io.KeyMap[ImGuiKey_Enter] = static_cast<uint8_t>(KeyboardKey::eEnter);
+        io.KeyMap[ImGuiKey_Tab] = static_cast<uint8_t>(KeyboardKey::eTab);
 
         _keyMap[static_cast<uint8_t>(KeyboardKey::eBackSpace)] = {8u, 8u};
         _keyMap[static_cast<uint8_t>(KeyboardKey::eTab)] = {9u, 9u};

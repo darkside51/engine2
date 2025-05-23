@@ -11,7 +11,7 @@ namespace engine::rhi {
             uint32_t scissorCount = 1u;
         } viewportState;
     
-        DynamicState dynamicStates;
+        DynamicState dynamicStates = DynamicState::eViewport | DynamicState::eScissor;
     
         struct RasterisationInfo {
             PolygonMode polygonMode = PolygonMode::eFill;

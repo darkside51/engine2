@@ -8,7 +8,6 @@
 #include "utils/profile/time.h"
 #include "common/version.h"
 
-#include <cstdio>
 #include "tests/all_tests.h"
 
 //
@@ -22,20 +21,25 @@
 #include "graphics/render/rhi/common/utils.h"
 #include "graphics/render/rhi/common/pipeline.h"
 #include "graphics/render/rhi/common/command_list.h"
-
-#include "graphics/render/rhi/vulkan/runtime.h"
-
 #include "graphics/render/inflight_buffer.h"
+#include "graphics/ui/imgui.h"
 
 #include "math/math.h"
 
-#include "imgui.h"
+#include "graphics/render/rhi/vulkan/runtime.h"
+
 #include <imgui.h>
 
+#include <cstdio>
 #include <algorithm>
+
+#include <glaze/glaze.hpp>
+
+engine::FileManager fm;
 
 engine::rhi::runtime::GpuProgramPtr program = nullptr;
 engine::rhi::runtime::GpuProgramPtr imguiProgram = nullptr;
+
 engine::rhi::runtime::BufferPtr stagePositions = nullptr;
 engine::rhi::runtime::BufferPtr stageColors = nullptr;
 engine::rhi::runtime::BufferPtr positions = nullptr;
@@ -49,6 +53,11 @@ engine::rhi::runtime::BufferPtr uniformBuffer2 = nullptr;
 
 engine::rhi::runtime::BufferPtr stageImageBuffer = nullptr;
 engine::rhi::runtime::ImagePtr sampledImage = nullptr;
+
+void registerFileSystems() {
+    fm.createFileSystem<engine::CommonFileSystem>("common_fs0", engine::CommonFileSystem::getCurrentDirectory() + "./resources/");
+    fm.createFileSystem<engine::CommonFileSystem>("common_fs1", engine::CommonFileSystem::getCurrentDirectory() + "./resources/shaders/");
+}
 
 engine::rhi::RenderPassDescription createRenderPassDescription(engine::rhi::Format colorFormat, engine::rhi::Format depthFormat) {
     std::vector<engine::rhi::AttachmentDescription> attachments(2u);
@@ -84,11 +93,8 @@ engine::rhi::RenderPassDescription createRenderPassDescription(engine::rhi::Form
 }
 
 void loadShaders(const std::unique_ptr<engine::rhi::runtime::Rhi> & api, 
-    std::unique_ptr<engine::rhi::runtime::Device> & device, 
-    std::unique_ptr<engine::rhi::runtime::ShaderModulesManager> & shaderModulesManager) {
-
-    engine::FileManager fm;
-    auto * fsystem = fm.createFileSystem<engine::CommonFileSystem>("common_fs0", engine::CommonFileSystem::getCurrentDirectory() + "./resources/");
+    engine::rhi::runtime::DevicePtr & device, 
+    engine::rhi::runtime::ShaderModulesManagerPtr & shaderModulesManager) {
 
     {
         auto const vBytes = fm.readFile("shaders/simple.vert.spv");
@@ -101,8 +107,8 @@ void loadShaders(const std::unique_ptr<engine::rhi::runtime::Rhi> & api,
     }
 
     {
-        auto const vBytes = fm.readFile("shaders/imgui.vert.spv");
-        auto const fBytes = fm.readFile("shaders/imgui.frag.spv");
+        auto const vBytes = fm.readFile("imgui.vert.spv");
+        auto const fBytes = fm.readFile("imgui.frag.spv");
 
         const auto & vsModule = shaderModulesManager->registerModule("imgui.vert", *device, engine::rhi::shaders::Stages::eVertex, vBytes); // call overloaded function
         const auto & fsModule = shaderModulesManager->registerModule("imgui.frag", *device, engine::rhi::shaders::Stages::eFragment, fBytes);
@@ -128,7 +134,6 @@ auto createPipeline(const std::unique_ptr<engine::rhi::runtime::Rhi> & api,
         }, 
         {}
     };
-    info.dynamicStates = DynamicState::eViewport | DynamicState::eScissor;
     info.rasterisationState = {PolygonMode::eFill, CullMode::eBack};
     info.inputAssemblyState = {PrimitiveTopology::eTriangles, false};
     info.vertexInputState = {
@@ -267,7 +272,23 @@ void createImageData(const std::unique_ptr<engine::rhi::runtime::Rhi> & api,
     sampledImage = api->createImage(device, imageInfo);
 }
 
+struct my_struct {
+    int i = 287;
+    double d = 3.14;
+    std::string hello = "Hello World";
+    std::array<uint64_t, 3> arr = {1, 2, 3};
+};
+
 int main() {
+    
+    my_struct obj{};
+
+    constexpr std::string_view input = R"({"i":123,"d":2.72,"hello":"Hello World!","arr":[4,5,6]})";
+    auto err = glz::read_json(obj, input);
+    if (err) {
+
+    }
+
     // engine::tests::execute_tests();
 
     // todo: 
@@ -276,6 +297,8 @@ int main() {
     // 3. optimize
     // 4. rhi::Result
     // 5. refactoring
+
+    registerFileSystems();
 
     engine::GLFWModule glfwModule;
     

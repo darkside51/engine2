@@ -5,6 +5,8 @@
 
 #include "input/input.h"
 
+#include "math/math.h"
+
 #include <cstdint>
 #include <memory>
 #include <unordered_map>
@@ -47,6 +49,8 @@ namespace engine {
         std::unique_ptr<graphics::InflightBuffer> _uniform = nullptr;
 
         std::unordered_map<uint8_t, std::pair<uint8_t, uint8_t>> _keyMap;
+
+        vec4f _transform{};
     };
 
 }

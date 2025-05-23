@@ -83,6 +83,7 @@ set(
 	graphics
 	graphics/render
 	graphics/render/rhi/common
+	graphics/ui
 	input
 	log
 	math
@@ -222,6 +223,12 @@ endif()
 #message("freetype library end")
 ## freetype library
 
+# glaze json library
+message("glaze library begin")
+add_3rdparty_project (${CMAKE_CURRENT_SOURCE_DIR}/../3rd_party/glaze-5.3.0 ${CMAKE_BINARY_DIR}/3rd_party/glaze-5.3.0)
+target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../3rd_party/glaze-5.3.0/include)
+message("glaze library end")
+
 target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../3rd_party/glm-1.0.1)
 target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../3rd_party/imgui)
 
@@ -229,6 +236,7 @@ target_link_libraries (
 	${PROJECT_NAME}
 	${USED_FRAMEWORKS}
 	#${FREETYPE_LIB}
+	glaze_glaze
 )
 
 if (USE_GLFW)
