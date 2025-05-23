@@ -272,13 +272,10 @@ int main() {
 
     // todo: 
     // 1. impl staging buffer for inflightBuffer - in progress
-    // 2. barriers for textures for render to framebuffers
-    // 3. imgui
-    // 4. simplify
-    // 5. optimize
-    // 6. input
-    // 7. rhi::Result
-    // 8. refactoring
+    // 2. simplify
+    // 3. optimize
+    // 4. rhi::Result
+    // 5. refactoring
 
     engine::GLFWModule glfwModule;
     
