@@ -14,6 +14,7 @@ namespace engine {
         ImGuiIO &io = ImGui::GetIO();
         io.DisplayFramebufferScale = ImVec2(1.0f, 1.0f);
         io.IniFilename = nullptr; // disable creation "imgui.ini"
+        io.LogFilename = nullptr;
 
         setupKeyMap();
     }
@@ -142,7 +143,7 @@ namespace engine {
 
     void ImGuiSystem::beginFrame(float delta, uint16_t w, uint16_t h) noexcept {
         ImGuiIO &io = ImGui::GetIO();
-        io.DeltaTime = (delta > 0.0f) ? delta : (1.0f / 60.0f);
+        io.DeltaTime = delta;
         io.DisplaySize = ImVec2(w, h);
         ImGui::NewFrame();
     }

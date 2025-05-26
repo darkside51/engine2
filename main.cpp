@@ -27,13 +27,13 @@
 #include "math/math.h"
 
 #include "graphics/render/rhi/vulkan/runtime.h"
+#include "utils/json.h"
 
 #include <imgui.h>
 
 #include <cstdio>
 #include <algorithm>
 
-#include <glaze/glaze.hpp>
 
 engine::FileManager fm;
 
@@ -413,10 +413,10 @@ int main() {
     my_struct obj{};
 
     constexpr std::string_view input = R"({"i":123,"d":2.72,"hello":"Hello World!","arr":[4,5,6]})";
-    auto err = glz::read_json(obj, input);
+    auto err = engine::json::read_json(obj, input);
 
-    glz::json_t json{};
-    err = glz::read_json(json, input);
+    engine::json::Json json{};
+    err = engine::json::read_json(json, input);
     const auto d_val = json.at("d").as<float>();
     const auto i_val = json["i"].as<int>();
     const bool hasHello = json.contains("hello");
