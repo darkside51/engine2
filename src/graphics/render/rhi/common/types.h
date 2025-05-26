@@ -758,6 +758,7 @@ namespace engine::rhi {
     }
 
     enum class DependencyFlags : uint8_t {
+        eNone = 0u,
         eBy_Region = 0x00000001u,
         eDEevice_Group = 0x00000004u,
         eView_Local = 0x00000002u,

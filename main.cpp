@@ -150,7 +150,7 @@ engine::rhi::RenderPassDescription createRenderPassDescription2(engine::rhi::For
     std::vector<engine::rhi::SubpassDependency> deps(1u);
     deps[0].srcSubpass = 0u;
     deps[0].dstSubpass = 1u;
-    deps[0].dependencyFlags = engine::rhi::DependencyFlags::eBy_Region; // ? need
+    deps[0].dependencyFlags = engine::rhi::DependencyFlags::eNone; // ? can eNone
     deps[0].stages = {
         .src = {
             .stage = engine::rhi::PipelineStageFlags::eLate_Fragment_Tests,
