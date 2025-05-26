@@ -24,7 +24,8 @@ namespace engine {
 
     void ImGuiSystem::createPipeline(const std::unique_ptr<rhi::runtime::Rhi> & api,
         rhi::runtime::DevicePtr & device, 
-        const rhi::runtime::GpuProgramPtr & program, rhi::runtime::RenderPass renderPass) {
+        const rhi::runtime::GpuProgramPtr & program, rhi::runtime::RenderPass renderPass,
+        uint32_t subpass) {
         rhi::GraphicsPipelineStatesInfo info;
         info.viewportState = {1u, 1u};
         info.blendModes = {rhi::common_blend_modes::blend_alpha};
@@ -63,7 +64,7 @@ namespace engine {
             }
         };
 
-        _pipeline = api->createGraphicsPipeline(device, renderPass, program, info);
+        _pipeline = api->createGraphicsPipeline(device, renderPass, program, info, subpass);
     }
 
     void ImGuiSystem::createFontTexture(const std::unique_ptr<rhi::runtime::Rhi> & api,

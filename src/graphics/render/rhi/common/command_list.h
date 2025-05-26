@@ -24,7 +24,7 @@ namespace engine::rhi::runtime {
         void beginRenderPass(RenderPass renderPass, FrameBufferPtr & framebuffer, 
             std::span<const ClearValue> clearValues, const Rect2D & area);
         void endRenderPass();
-        void nextSubpass(SubpassContents contents);
+        void nextSubpass(SubpassContents contents = SubpassContents::ePrimaryBufferInline);
 
         void executeCommands(std::span<const CommandList*> secondaryCommandLists);
 

@@ -245,7 +245,7 @@ public:
     virtual PipelinePtr createComputePipeline(DevicePtr & device, const GpuProgramPtr & program) const = 0;
 
     virtual PipelinePtr createGraphicsPipeline(DevicePtr & device, RenderPass renderPass,
-        const GpuProgramPtr & program, const GraphicsPipelineStatesInfo & info) const = 0;
+        const GpuProgramPtr & program, const GraphicsPipelineStatesInfo & info, uint32_t subpass = 0u) const = 0;
 
     virtual BufferPtr createBuffer(DevicePtr & device, const rhi::BufferInfo & info, size_t size) = 0;
 

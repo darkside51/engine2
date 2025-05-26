@@ -67,7 +67,8 @@ namespace engine::vulkan::runtime {
             rhi::runtime::DevicePtr & device,
             rhi::runtime::RenderPass renderPass,
             const rhi::runtime::GpuProgramPtr & program,
-            const rhi::GraphicsPipelineStatesInfo & info) const override;
+            const rhi::GraphicsPipelineStatesInfo & info, 
+            uint32_t subpass = 0u) const override;
     
         rhi::runtime::BufferPtr createBuffer(rhi::runtime::DevicePtr & device, 
             const rhi::BufferInfo & info, size_t size) override; 

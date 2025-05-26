@@ -128,12 +128,13 @@ namespace engine::vulkan::runtime {
         rhi::runtime::DevicePtr & device,
         rhi::runtime::RenderPass renderPass,
         const rhi::runtime::GpuProgramPtr & program,
-        const rhi::GraphicsPipelineStatesInfo & info) const {
+        const rhi::GraphicsPipelineStatesInfo & info, 
+        uint32_t subpass) const {
 
         const auto & vkProgram = static_cast<const Api::GpuProgram&>(*program);
         const Api::GraphicsPipelineInfo pipelineInfo{info};
         return std::make_unique<Api::Pipeline>(static_cast<Api::Device &>(*device), vkProgram,
-            pipelineInfo.create(vkProgram, static_cast<VkRenderPass>(renderPass)));
+            pipelineInfo.create(vkProgram, static_cast<VkRenderPass>(renderPass), subpass));
     }
 
     rhi::runtime::BufferPtr Rhi::createBuffer(rhi::runtime::DevicePtr & device, 

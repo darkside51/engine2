@@ -20,7 +20,8 @@ namespace engine {
 
         void createPipeline(const std::unique_ptr<rhi::runtime::Rhi> & api,
             rhi::runtime::DevicePtr & device, 
-            const rhi::runtime::GpuProgramPtr & program, rhi::runtime::RenderPass renderPass);
+            const rhi::runtime::GpuProgramPtr & program, rhi::runtime::RenderPass renderPass, 
+            uint32_t subpass = 0u);
 
         void createFontTexture(const std::unique_ptr<rhi::runtime::Rhi> & api,
             rhi::runtime::DevicePtr & device);
