@@ -2,6 +2,7 @@
 
 #include "graphics/render/rhi/common/runtime.h"
 #include "graphics/render/inflight_buffer.h"
+#include "graphics/render/staging_buffer.h"
 
 #include "input/input.h"
 
