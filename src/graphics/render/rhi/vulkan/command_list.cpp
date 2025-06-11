@@ -120,7 +120,7 @@ namespace engine::vulkan::runtime {
             // images barriers
             for (auto & [image] : postBarriersImages) {
                 auto const usage = image.usage();
-                const auto & info = image.getInfo();
+                //const auto & info = image.getInfo();
 
                 if ((usage & (rhi::ImageUsageFlags::eStorage | 
                     rhi::ImageUsageFlags::eSampled)) != rhi::ImageUsageFlags::eNone) {
@@ -230,7 +230,21 @@ namespace engine::vulkan::runtime {
                 auto & framebuffer = static_cast<vulkan::FrameBuffer &>(*command->framebuffer);
 
                 // todo: move set barriers to function
-                for (auto const & attachment : framebuffer.attachments()) {
+                for (const auto & image : command->imageInShaderUsage) { // to use some images in shaders after rtt
+                    const auto  dstStage = utils::convert2vk(image.stage);
+   
+                    auto * img = static_cast<Image*>(image.img);
+                    img->transition(
+                        _barriers, 
+                        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 
+                        dstStage, 
+                        VkAccessFlagBits::VK_ACCESS_SHADER_READ_BIT, 
+                        0u, 0u, 
+                        0u, 0u
+                    );
+                }
+
+                for (const auto & attachment : framebuffer.attachments()) {
                     auto * image = static_cast<Image*>(attachment.image);
                     const auto usage = attachment.image->usage();
 

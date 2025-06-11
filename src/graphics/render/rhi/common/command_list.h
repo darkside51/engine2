@@ -22,7 +22,8 @@ namespace engine::rhi::runtime {
         void reset(CommandBufferResetFlags flags);
 
         void beginRenderPass(RenderPass renderPass, FrameBufferPtr & framebuffer, 
-            std::span<const ClearValue> clearValues, const Rect2D & area);
+            std::span<const ClearValue> clearValues, const Rect2D & area, 
+            std::span<BeginRenderPassCommand::ImageInShaderUsage> imageInShaderUsage = {});
         void endRenderPass();
         void nextSubpass(SubpassContents contents = SubpassContents::ePrimaryBufferInline);
 

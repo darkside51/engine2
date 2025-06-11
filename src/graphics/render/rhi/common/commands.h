@@ -64,17 +64,24 @@ namespace engine::rhi::runtime {
     };
 
     struct BeginRenderPassCommand : Command {
+        struct ImageInShaderUsage {
+            Image * img = nullptr;
+            PipelineStageFlags stage = PipelineStageFlags::eFragment_Shader;
+        };
+
         RenderPass renderPass{};
         FrameBuffer * framebuffer = nullptr; 
         dynamic_array<ClearValue, 4u> clearValues;
         rhi::Rect2D area{};
+        std::span<ImageInShaderUsage> imageInShaderUsage;
         BeginRenderPassCommand(RenderPass renderPass, FrameBufferPtr & framebuffer, 
-            std::span<const ClearValue> clearValues, const Rect2D & area) : 
+            std::span<const ClearValue> clearValues, const Rect2D & area, std::span<ImageInShaderUsage> imageInShaderUsage = {}) : 
             Command(CommandType::eBeginRenderPass, sizeof(BeginRenderPassCommand)),
             renderPass(renderPass),
             framebuffer(framebuffer.get()),
             clearValues(clearValues),
-            area(area) {}
+            area(area),
+            imageInShaderUsage(imageInShaderUsage) {}
     };
 
     struct EndRenderPassCommand : Command {
