@@ -2,7 +2,6 @@
 
 #include "graphics/render/rhi/common/command_list.h"
 
-
 namespace engine::graphics {
 
     StagingBuffer::StagingBuffer(const std::unique_ptr<rhi::runtime::Rhi> & api,
@@ -46,7 +45,7 @@ namespace engine::graphics {
     std::pair<rhi::runtime::BufferPtr *, std::byte*> StagingBuffer::getBuffer(uint8_t idx) noexcept { 
         return {&_buffers[idx].buffer, _mappedMemory};
     }
-
+    ///////////////
 
     InflightBuffer::~InflightBuffer() {
         free(_tmpMemory);

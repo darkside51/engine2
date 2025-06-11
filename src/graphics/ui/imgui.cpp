@@ -140,6 +140,7 @@ namespace engine {
             api, device, indicesInfo, sizeof(ImDrawIdx) * kInitialIndicesCountMax
         );
 
+        // staging
         _staging = std::make_unique<graphics::StagingBuffer>(api, device, 1'000'000u /*1 Mb*/, 
             rhi::MemoryPropertyFlags::eHostVisible | rhi::MemoryPropertyFlags::eHostCached);
     }

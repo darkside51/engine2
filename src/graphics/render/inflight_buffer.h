@@ -14,7 +14,8 @@ namespace engine::graphics {
         inline static uint32_t kNotEnoughMemory = 0xff'ff'ff'ffu;
 
         StagingBuffer(const std::unique_ptr<rhi::runtime::Rhi> & api,
-            rhi::runtime::DevicePtr & device, size_t size, rhi::MemoryPropertyFlags memoryFlags = rhi::MemoryPropertyFlags::eHostVisible);
+            rhi::runtime::DevicePtr & device, size_t size, 
+            rhi::MemoryPropertyFlags memoryFlags = rhi::MemoryPropertyFlags::eHostVisible | rhi::MemoryPropertyFlags::eHostCached);
 
         uint32_t requestBytes(uint8_t idx, uint32_t bytes) noexcept;
         std::pair<rhi::runtime::BufferPtr *, std::byte*> getBuffer(uint8_t idx) noexcept;
