@@ -429,11 +429,10 @@ int main() {
     // engine::tests::execute_tests();
 
     // todo: 
-    // 1. impl staging buffer for inflightBuffer - in progress
-    // 2. simplify
-    // 3. optimize
-    // 4. rhi::Result
-    // 5. refactoring
+    // 1. simplify
+    // 2. optimize
+    // 3. rhi::Result
+    // 4. refactoring
 
     registerFileSystems();
 

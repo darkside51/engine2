@@ -139,6 +139,9 @@ namespace engine {
         _indices = std::make_unique<graphics::InflightBuffer>(
             api, device, indicesInfo, sizeof(ImDrawIdx) * kInitialIndicesCountMax
         );
+
+        _staging = std::make_unique<graphics::StagingBuffer>(api, device, 1'000'000u /*1 Mb*/, 
+            rhi::MemoryPropertyFlags::eHostVisible | rhi::MemoryPropertyFlags::eHostCached);
     }
 
     void ImGuiSystem::beginFrame(float delta, uint16_t w, uint16_t h) noexcept {
@@ -193,6 +196,16 @@ namespace engine {
             );
         }
 
+        if (_staging == nullptr || idxDataSize + vtxDataSize >= _staging->sizeInBytes()) {
+            _staging = std::make_unique<graphics::StagingBuffer>(api, device, (idxDataSize + vtxDataSize) * 2u, 
+                rhi::MemoryPropertyFlags::eHostVisible | rhi::MemoryPropertyFlags::eHostCached);
+        }
+
+        _vertices->setStagingBuffer(_staging.get());
+        _indices->setStagingBuffer(_staging.get());
+
+        _staging->map(frame);
+
         auto * verticesMem = _vertices->map2<std::byte>();
         auto * indicesMem = _indices->map2<std::byte>();
 
@@ -229,6 +242,8 @@ namespace engine {
             _uniform->unmap();
         }
         _uniform->commit(commandList, frame);
+
+        _staging->unmap();
     }
 
     void ImGuiSystem::draw(rhi::runtime::CommandListPtr & commandList, uint8_t frame) noexcept {
