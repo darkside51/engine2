@@ -77,6 +77,14 @@ namespace engine::graphics {
             return _buffers[0u].buffer->sizeInBytes();
         }
 
+        bool isHostVisible() const noexcept {
+            if (_buffers.empty()) {
+                return true;
+            }
+
+            return _buffers[0u].buffer->isHostVisible();
+        }
+
     private:
         struct Data {
             rhi::runtime::BufferPtr buffer = nullptr;
