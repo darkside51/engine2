@@ -77,7 +77,7 @@ namespace engine {
     inline static const vec3f emptyVec3     = vec3f(0.0f, 0.0f, 0.0f);
     inline static const vec3f unitVec3      = vec3f(1.0f, 1.0f, 1.0f);
 
-    inline mat4f makeMatrix(const float scale) noexcept {
+    inline mat4f makeMatrix(float scale) noexcept {
         return {scale, 0.0f, 0.0f, 0.0f,
                 0.0f, scale, 0.0f, 0.0f,
                 0.0f, 0.0f, scale, 0.0f,
@@ -99,8 +99,8 @@ namespace engine {
     template <typename T>
     inline std::decay_t<T> smoothstep(T&& edge0, T&& edge1, T&& x) noexcept {
         std::decay_t<T> t;
-        t = std::clamp((x - edge0) / (edge1 - edge0), 0.0, 1.0);
-        return t * t * (3.0 - 2.0 * t);
+        t = std::clamp((x - edge0) / (edge1 - edge0), T(0), T(1));
+        return t * t * (T(3) - T(2) * t);
     }
 
     inline float inv_sqrt(const float x) { // "инверсный(1.0f / sqrt) квадратный корень Кармака"
@@ -115,7 +115,7 @@ namespace engine {
         return u.x * (1.5f - xhalf * u.x * u.x);
     }
 
-    inline bool is_pow2(const uint32_t n) noexcept {
+    inline bool is_pow2(uint32_t n) noexcept {
         return (n > 0u) && (!(n & (n - 1u)));
     }
 
@@ -136,20 +136,20 @@ namespace engine {
         return (T(0) < val) - (val < T(0));
     }
 
-    inline bool compare(const vec2f& v1, const vec2f& v2, const float eps) noexcept {
-        return (fabsf(v1.x - v2.x) > eps) || (fabsf(v1.y - v2.y) > eps);
+    inline bool compare(const vec2f& v1, const vec2f& v2, float eps) noexcept {
+        return (std::abs(v1.x - v2.x) > eps) || (std::abs(v1.y - v2.y) > eps);
     }
 
-    inline bool compare(const vec3f& v1, const vec3f& v2, const float eps) noexcept {
-        return (fabsf(v1.x - v2.x) > eps) || (fabsf(v1.y - v2.y) > eps) || (fabsf(v1.z - v2.z) > eps);
+    inline bool compare(const vec3f& v1, const vec3f& v2, float eps) noexcept {
+        return (std::abs(v1.x - v2.x) > eps) || (std::abs(v1.y - v2.y) > eps) || (std::abs(v1.z - v2.z) > eps);
     }
 
-    inline bool compare(const vec4f& v1, const vec4f& v2, const float eps) noexcept {
-        return (fabsf(v1.x - v2.x) > eps) || (fabsf(v1.y - v2.y) > eps) || (fabsf(v1.z - v2.z) > eps) || (fabsf(v1.w - v2.w) > eps);
+    inline bool compare(const vec4f& v1, const vec4f& v2, float eps) noexcept {
+        return (std::abs(v1.x - v2.x) > eps) || (std::abs(v1.y - v2.y) > eps) || (std::abs(v1.z - v2.z) > eps) || (std::abs(v1.w - v2.w) > eps);
     }
 
-    inline bool compare(const quatf& q1, const quatf& q2, const float eps) noexcept {
-        return (fabsf(q1.w - q2.w) > eps) || (fabsf(q1.x - q2.x) > eps) || (fabsf(q1.y - q2.y) > eps) || (fabsf(q1.z - q2.z) > eps);
+    inline bool compare(const quatf& q1, const quatf& q2, float eps) noexcept {
+        return (std::abs(q1.w - q2.w) > eps) || (std::abs(q1.x - q2.x) > eps) || (std::abs(q1.y - q2.y) > eps) || (std::abs(q1.z - q2.z) > eps);
     }
 
     enum class RotationsOrder : uint8_t {
@@ -161,7 +161,7 @@ namespace engine {
         RO_ZYX = 5u
     };
 
-    inline void rotateMatrix_x(mat4f& m, const float angle) noexcept {
+    inline void rotateMatrix_x(mat4f& m, float angle) noexcept {
         if (angle == 0.0f) return;
 
         const float c = cosf(angle);
@@ -172,7 +172,7 @@ namespace engine {
         m[1] = tmpV;
     }
 
-    inline void rotateMatrix_y(mat4f& m, const float angle) noexcept {
+    inline void rotateMatrix_y(mat4f& m, float angle) noexcept {
         if (angle == 0.0f) return;
 
         const float c = cosf(angle);
@@ -183,7 +183,7 @@ namespace engine {
         m[2] = tmpV;
     }
 
-    inline void rotateMatrix_z(mat4f& m, const float angle) noexcept {
+    inline void rotateMatrix_z(mat4f& m, float angle) noexcept {
         if (angle == 0.0f) return;
 
         const float c = cosf(angle);
@@ -194,19 +194,19 @@ namespace engine {
         m[0] = tmpV;
     }
 
-    inline void directMatrix_yz(mat4f& m, const float c, const float s) noexcept {
+    inline void directMatrix_yz(mat4f& m, float c, float s) noexcept {
         const vec4f tmpV = m[1] * c + m[2] * s;
         m[2] = -m[1] * s + m[2] * c;
         m[1] = tmpV;
     }
 
-    inline void directMatrix_xz(mat4f& m, const float c, const float s) noexcept {
+    inline void directMatrix_xz(mat4f& m, float c, float s) noexcept {
         const vec4f tmpV = m[2] * c + m[0] * s;
         m[0] = -m[2] * s + m[0] * c;
         m[2] = tmpV;
     }
 
-    inline void directMatrix_xy(mat4f& m, const float c, const float s) noexcept {
+    inline void directMatrix_xy(mat4f& m, float c, float s) noexcept {
         const vec4f tmpV = m[0] * c + m[1] * s;
         m[1] = -m[0] * s + m[1] * c;
         m[0] = tmpV;
@@ -264,7 +264,7 @@ namespace engine {
         rotateMatrix_x(transform, v.x);
     }
 
-    inline void rotateMatrix_byOrder(mat4f& transform, const vec3f& v, const RotationsOrder r) noexcept {
+    inline void rotateMatrix_byOrder(mat4f& transform, const vec3f& v, RotationsOrder r) noexcept {
         switch (r) {
             case RotationsOrder::RO_XYZ:
                 rotateMatrix_xyz(transform, v);

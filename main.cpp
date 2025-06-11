@@ -424,8 +424,6 @@ int main() {
 
     if (err) {}
 
-
-
     // engine::tests::execute_tests();
 
     // todo: 
@@ -511,7 +509,7 @@ int main() {
         auto renderPass = rApi->getRenderPass(device, createRenderPassDescription2(swapchain->getFormat(), depthFormat));
         
         auto imageInfo = engine::rhi::ImageInfo{
-            engine::rhi::ImageUsageFlags::eDepth_Stencil_Attachment,
+            engine::rhi::ImageUsageFlags::eDepth_Stencil_Attachment | engine::rhi::ImageUsageFlags::eTransient_Attachment,
             depthFormat, {width, height, 1u}
         }; 
         imageInfo.memoryExtFlags = engine::rhi::MemoryExtendedFlags::eDedicated;
