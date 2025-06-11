@@ -91,7 +91,7 @@ namespace engine::graphics {
             bool dirty = false;
         };
         std::vector<Data> _buffers;
-        void * _tmpMemory = nullptr;
+        std::unique_ptr<std::byte[]> _tmpMemory = nullptr;
     
         const std::unique_ptr<rhi::runtime::Rhi> & _api;
         std::unique_ptr<rhi::runtime::Device> & _device;

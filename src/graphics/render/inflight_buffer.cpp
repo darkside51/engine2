@@ -48,7 +48,6 @@ namespace engine::graphics {
     ///////////////
 
     InflightBuffer::~InflightBuffer() {
-        free(_tmpMemory);
         _tmpMemory = nullptr;
     }
 
@@ -62,11 +61,11 @@ namespace engine::graphics {
             _buffers.emplace_back(_api->createBuffer(_device, info, size), false);
         }
 
-        _tmpMemory = std::malloc(size);
+        _tmpMemory = std::make_unique_for_overwrite<std::byte[]>(size);
     }
 
     void * InflightBuffer::map() noexcept {
-        return _tmpMemory;
+        return _tmpMemory.get();
     }
 
     void InflightBuffer::unmap() noexcept {
@@ -79,7 +78,7 @@ namespace engine::graphics {
         if (auto & [buffer, dirty] = _buffers[idx]; dirty) {
             if (buffer->isHostVisible()) { // it is hostVisible
                 auto * memory = buffer->map();
-                memcpy(memory, _tmpMemory, buffer->sizeInBytes());
+                memcpy(memory, _tmpMemory.get(), buffer->sizeInBytes());
                 buffer->flush();
                 buffer->unmap();
             } else { // need use stagingBuffer
@@ -90,7 +89,7 @@ namespace engine::graphics {
                         auto [stagingBuffer, memory] = _stagingBuffer->getBuffer(idx);
                         {
                             //auto * memory = stagingBuffer->map2<std::byte>();
-                            memcpy(memory + offset, _tmpMemory, buffer->sizeInBytes());
+                            memcpy(memory + offset, _tmpMemory.get(), buffer->sizeInBytes());
                             (*stagingBuffer)->flush(offset, buffer->sizeInBytes());
                             //stagingBuffer->unmap();
                         }
@@ -109,7 +108,7 @@ namespace engine::graphics {
                 auto stagingBuffer = _api->createBuffer(_device, info, buffer->sizeInBytes());
                 {
                     auto * memory = stagingBuffer->map();
-                    memcpy(memory, _tmpMemory, buffer->sizeInBytes());
+                    memcpy(memory, _tmpMemory.get(), buffer->sizeInBytes());
                     stagingBuffer->flush();
                     stagingBuffer->unmap();
                 }

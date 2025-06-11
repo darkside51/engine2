@@ -24,6 +24,11 @@ namespace engine::vulkan::runtime {
     CommandList::CommandList(rhi::runtime::CommandPool * commandPool, rhi::CommandBufferLevel level) :
         _pool(static_cast<vulkan::CommandPool*>(commandPool)),
         _commandbuffer{*_pool, level} {
+        constexpr size_t kPostBarriersBuffersInitSize = 8u;
+        constexpr size_t kPostBarriersImagesInitSize = 8u;
+
+        _postBarriersBuffers.reserve(kPostBarriersBuffersInitSize);
+        _postBarriersImages.reserve(kPostBarriersImagesInitSize);
     }
 
     void CommandList::resetState() noexcept {
@@ -47,33 +52,17 @@ namespace engine::vulkan::runtime {
         uint8_t changeDynamicBufferSets = 0u;
         std::array<VkDescriptorSet, kMaxDescriptorsSets> descriptorSets;
 
-        struct PostBufferBarrierInfo {
-            Buffer & buffer;
-            size_t offset;
-            size_t size;
-        };
-
-        struct PostImageBarrierInfo {
-            Image & image;
-        };
-
-        constexpr size_t kPostBarriersBuffersInitSize = 8u;
-        constexpr size_t kPostBarriersImagesInitSize = 8u;
-
-        std::vector<PostBufferBarrierInfo> postBarriersBuffers;
-        postBarriersBuffers.reserve(kPostBarriersBuffersInitSize);
-
-        std::vector<PostImageBarrierInfo> postBarriersImages;
-        postBarriersImages.reserve(kPostBarriersImagesInitSize);
+        _postBarriersBuffers.clear();
+        _postBarriersImages.clear();
 
         const auto applyPostBarriers = [&]() {
             // buffers barriers
-            for (auto & [buffer, offset, size] : postBarriersBuffers) {
-                auto const usage = buffer.usage();
+            for (auto & [buffer, offset, size] : _postBarriersBuffers.view()) {
+                auto const usage = buffer->usage();
                 if ((usage & rhi::BufferUsageFlags::eVertex_Buffer) != rhi::BufferUsageFlags::eNone) {
                     auto const dstStage = VkPipelineStageFlagBits::VK_PIPELINE_STAGE_VERTEX_INPUT_BIT;
 
-                    buffer.transition(_postBarriers,
+                    buffer->transition(_postBarriers,
                         dstStage,
                         VkAccessFlagBits::VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT, 
                         offset, size
@@ -83,7 +72,7 @@ namespace engine::vulkan::runtime {
                 if ((usage & rhi::BufferUsageFlags::eIndex_Buffer) != rhi::BufferUsageFlags::eNone) {
                     auto const dstStage = VkPipelineStageFlagBits::VK_PIPELINE_STAGE_VERTEX_INPUT_BIT;
 
-                    buffer.transition(_postBarriers,
+                    buffer->transition(_postBarriers,
                         dstStage,
                         VkAccessFlagBits::VK_ACCESS_INDEX_READ_BIT, 
                         offset, size
@@ -94,7 +83,7 @@ namespace engine::vulkan::runtime {
                     auto const dstStage = VkPipelineStageFlagBits::VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | 
                                             VkPipelineStageFlagBits::VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
 
-                    buffer.transition(_postBarriers,
+                    buffer->transition(_postBarriers,
                         dstStage,
                         VkAccessFlagBits::VK_ACCESS_UNIFORM_READ_BIT, 
                         offset, size
@@ -107,19 +96,18 @@ namespace engine::vulkan::runtime {
                     auto const dstStage = VkPipelineStageFlagBits::VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | 
                                         VkPipelineStageFlagBits::VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
 
-                    buffer.transition(_postBarriers,
+                    buffer->transition(_postBarriers,
                         dstStage,
                         VkAccessFlagBits::VK_ACCESS_SHADER_READ_BIT, 
                         offset, size
                     );
                 }
             }
-            postBarriersBuffers.clear();
-            postBarriersBuffers.reserve(kPostBarriersBuffersInitSize);
+            _postBarriersBuffers.clear();
 
             // images barriers
-            for (auto & [image] : postBarriersImages) {
-                auto const usage = image.usage();
+            for (auto & [image] : _postBarriersImages.view()) {
+                auto const usage = image->usage();
                 //const auto & info = image.getInfo();
 
                 if ((usage & (rhi::ImageUsageFlags::eStorage | 
@@ -128,7 +116,7 @@ namespace engine::vulkan::runtime {
                                         VkPipelineStageFlagBits::VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT |
                                         VkPipelineStageFlagBits::VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
 
-                    image.transition(
+                    image->transition(
                         _postBarriers, 
                         VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 
                         dstStage, 
@@ -138,8 +126,7 @@ namespace engine::vulkan::runtime {
                     );  
                 }
             }
-            postBarriersImages.clear();
-            postBarriersImages.reserve(kPostBarriersImagesInitSize);
+            _postBarriersImages.clear();
 
             _postBarriers.flush(_commandbuffer());
         };
@@ -484,12 +471,12 @@ namespace engine::vulkan::runtime {
 
                     if (vkSrcBuffer.usage() != rhi::BufferUsageFlags::eTransfer_Src &&
                         vkSrcBuffer.usage() != (rhi::BufferUsageFlags::eTransfer_Src | rhi::BufferUsageFlags::eTransfer_Dst)) {
-                        postBarriersBuffers.emplace_back(vkSrcBuffer, command->info.srcOffset, command->info.size); // srcBuffer
+                        _postBarriersBuffers.emplace_back(&vkSrcBuffer, command->info.srcOffset, command->info.size); // srcBuffer
                     }
 
                     if (vkDstBuffer.usage() != rhi::BufferUsageFlags::eTransfer_Dst &&
                         vkDstBuffer.usage() != (rhi::BufferUsageFlags::eTransfer_Src | rhi::BufferUsageFlags::eTransfer_Dst)) {
-                        postBarriersBuffers.emplace_back(vkDstBuffer, command->info.dstOffset, command->info.size); // dstBuffer
+                        _postBarriersBuffers.emplace_back(&vkDstBuffer, command->info.dstOffset, command->info.size); // dstBuffer
                     }
                 }
 
@@ -526,12 +513,12 @@ namespace engine::vulkan::runtime {
 
                     if (vkSrcBuffer.usage() != rhi::BufferUsageFlags::eTransfer_Src &&
                         vkSrcBuffer.usage() != (rhi::BufferUsageFlags::eTransfer_Src | rhi::BufferUsageFlags::eTransfer_Dst)) {
-                        postBarriersBuffers.emplace_back(vkSrcBuffer, command->info.bufferOffset, VK_WHOLE_SIZE); // srcBuffer
+                        _postBarriersBuffers.emplace_back(&vkSrcBuffer, command->info.bufferOffset, VK_WHOLE_SIZE); // srcBuffer
                     }
 
                     if (vkDstImage.usage() != rhi::ImageUsageFlags::eTransfer_Dst &&
                         vkDstImage.usage() != (rhi::ImageUsageFlags::eTransfer_Src | rhi::ImageUsageFlags::eTransfer_Dst)) {
-                        postBarriersImages.emplace_back(vkDstImage); // dstImage
+                        _postBarriersImages.emplace_back(&vkDstImage); // dstImage
                     }
                 }
 
