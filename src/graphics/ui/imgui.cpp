@@ -196,7 +196,7 @@ namespace engine {
         if (!_vertices->isHostVisible() || !_indices->isHostVisible()) { // if we need to use a staging buffer
             if (_staging == nullptr || idxDataSize + vtxDataSize >= _staging->sizeInBytes()) {
                 constexpr size_t kMinStagingSize = 100'000u /*100 Kb*/;
-                _staging = std::make_unique<graphics::StagingBuffer>(api, device, std::max((idxDataSize + vtxDataSize) * 2u, kMinStagingSize), 
+                _staging = std::make_unique<graphics::InflightStagingBuffer>(api, device, std::max((idxDataSize + vtxDataSize) * 2u, kMinStagingSize), 
                     rhi::MemoryPropertyFlags::eHostVisible | rhi::MemoryPropertyFlags::eHostCached);
             }
         }

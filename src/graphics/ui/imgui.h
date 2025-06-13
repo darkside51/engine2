@@ -49,7 +49,7 @@ namespace engine {
         std::unique_ptr<graphics::InflightBuffer> _vertices = nullptr;
         std::unique_ptr<graphics::InflightBuffer> _indices = nullptr;
         std::unique_ptr<graphics::InflightBuffer> _uniform = nullptr;
-        std::unique_ptr<graphics::StagingBuffer> _staging = nullptr;
+        std::unique_ptr<graphics::InflightStagingBuffer> _staging = nullptr;
 
         std::unordered_map<uint8_t, std::pair<uint8_t, uint8_t>> _keyMap;
 

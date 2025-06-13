@@ -9,7 +9,7 @@
 
 namespace engine::graphics {
 
-    class StagingBuffer;
+    class InflightStagingBuffer;
 
     class InflightBuffer {
     public:
@@ -18,7 +18,7 @@ namespace engine::graphics {
         InflightBuffer(const std::unique_ptr<rhi::runtime::Rhi> & api,
             rhi::runtime::DevicePtr & device, const rhi::BufferInfo & info, size_t size);
 
-        void setStagingBuffer(StagingBuffer * staging) noexcept { _stagingBuffer = staging; }
+        void setStagingBuffer(InflightStagingBuffer * staging) noexcept { _stagingBuffer = staging; }
 
         void * map() noexcept;
         void unmap() noexcept;
@@ -64,6 +64,6 @@ namespace engine::graphics {
     
         const std::unique_ptr<rhi::runtime::Rhi> & _api;
         std::unique_ptr<rhi::runtime::Device> & _device;
-        StagingBuffer * _stagingBuffer = nullptr;
+        InflightStagingBuffer * _stagingBuffer = nullptr;
     };
 }
