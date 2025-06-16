@@ -796,7 +796,7 @@ int main() {
 
             // recreate resources
             auto imageInfo = engine::rhi::ImageInfo{
-                engine::rhi::ImageUsageFlags::eDepth_Stencil_Attachment,
+                engine::rhi::ImageUsageFlags::eDepth_Stencil_Attachment | engine::rhi::ImageUsageFlags::eTransient_Attachment,
                 depthFormat, {width, height, 1u}
             }; 
             imageInfo.memoryExtFlags = engine::rhi::MemoryExtendedFlags::eDedicated;
@@ -814,7 +814,7 @@ int main() {
                 std::vector<engine::rhi::FrameBufferAttachment> fbAttachemnts{2u};
                 fbAttachemnts[0u].image = &image;
                 fbAttachemnts[0u].imageSize = {image.getExtent().width, image.getExtent().height};
-                fbAttachemnts[1u].finalLayout = engine::rhi::ImageLayout::eColor_Attachment_Optimal; // equal to subpasses attachments layouts, maybe can get it from subpasses?
+                fbAttachemnts[0u].finalLayout = engine::rhi::ImageLayout::eColor_Attachment_Optimal; // equal to subpasses attachments layouts, maybe can get it from subpasses?
 
                 auto & depthImage = depthImages[i];
                 fbAttachemnts[1u].image = depthImage.get();
