@@ -16,7 +16,11 @@ class FrameIndex {
 public:
     inline static constexpr uint8_t kUndefinedFrame = 0xffu;
     
+    FrameIndex() : _framesCount(2u) {}
+
     explicit FrameIndex(uint8_t framesCount) : _framesCount(framesCount) {}
+
+    inline void setFramesCount(uint8_t framesCount) noexcept { _framesCount = framesCount; }
 
     inline uint8_t operator()() const noexcept { return _idx; }
     inline uint8_t size() const noexcept { return _framesCount; }

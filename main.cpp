@@ -732,7 +732,7 @@ int main() {
                 const auto waitSemaphores = std::array{swapchain->imageAvailableSemaphore(frameId)};
                 const auto signalSemaphores = std::array{readyToPresentSemaphores[frameId]};
                 const auto waitStages = std::array{engine::rhi::PipelineStageFlags::eColor_Attachment_Output};
-                auto lists = std::array{commandLists[frameId].get()};
+                auto lists = std::array{commandList.get()};
 
                 bool const submitted = queue->submit(frameId, std::array{
                     engine::rhi::runtime::Queue::SubmitInfo {

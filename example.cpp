@@ -2,13 +2,30 @@
 
 #include "file/common_file_system.h"
 #include "graphics/render/rhi/vulkan/runtime.h"
+#include "graphics/render/rhi/common/command_list.h"
+
+#include <imgui.h>
 
 namespace example {
-    constexpr uint8_t screenRenderPass = 0u;
+    constexpr uint8_t kScreenRenderPass = 0u;
+    constexpr uint8_t kImguiProgram = 0u;
 
     Example::Example() {
         using namespace engine;
         _fileManager.createFileSystem<CommonFileSystem>("common_fs0", CommonFileSystem::getCurrentDirectory() + "./resources/");
+    }
+
+    void Example::destroy() {
+        if (_renderQueue) {
+            _renderQueue->waitIdle();
+        }
+        if (_device) {
+            _device->waitIdle();
+        }
+
+        for (auto & semaphore : _readyToPresentSemaphores) {
+            _api->destroySemaphore(_device, semaphore);
+        }
     }
 
     void Example::createApi() {
@@ -102,8 +119,8 @@ namespace example {
     }
 
     void Example::resize(uint16_t w, uint16_t h) {
-        if (_mainQueue) {
-            _mainQueue->waitIdle();
+        if (_renderQueue) {
+            _renderQueue->waitIdle();
         }
         if (_device) {
             _device->waitIdle();
@@ -143,8 +160,184 @@ namespace example {
             fbAttachemnts[1u].aspect = engine::rhi::ImageAspectFlags::eDepth;  // can get it from depthImage?
             fbAttachemnts[1u].finalLayout = engine::rhi::ImageLayout::eDepth_Stencil_Attachment_Optimal; // equal to subpasses attachments layouts, maybe can get it from subpasses?
 
-            _mainFrameBuffers.emplace_back(_api->createFrameBuffer(_device, std::move(fbAttachemnts), _renderPasses[screenRenderPass]));
+            _mainFrameBuffers.emplace_back(_api->createFrameBuffer(_device, std::move(fbAttachemnts), _renderPasses[kScreenRenderPass]));
         }
+    }
+
+    engine::rhi::RenderPassDescription createRenderPassDescription2(engine::rhi::Format colorFormat, engine::rhi::Format depthFormat) {
+        std::vector<engine::rhi::AttachmentDescription> attachments(2u);
+        attachments[0].format = colorFormat;
+        attachments[0].loadStoreOp = {engine::rhi::AttachmentLoadOp::eClear, engine::rhi::AttachmentStoreOp::eStore};
+        attachments[0].stencilLoadStoreOp = {engine::rhi::AttachmentLoadOp::eDont_Care, engine::rhi::AttachmentStoreOp::eDont_Care};
+        attachments[0].finalLayout = engine::rhi::ImageLayout::ePresent_Src;
+
+        attachments[1].format = depthFormat;
+        attachments[1].loadStoreOp = {engine::rhi::AttachmentLoadOp::eClear, engine::rhi::AttachmentStoreOp::eDont_Care}; // or must use eStore?
+        attachments[1].stencilLoadStoreOp = {engine::rhi::AttachmentLoadOp::eDont_Care, engine::rhi::AttachmentStoreOp::eDont_Care};
+        attachments[1].finalLayout = engine::rhi::ImageLayout::eDepth_Stencil_Attachment_Optimal;
+
+        std::vector<engine::rhi::SubpassDescription> subpasses(2u);
+        subpasses[0].depthStencilAttachment = {
+            .pNext = {nullptr, 0u},
+            .attachment = 1u,
+            .layout = engine::rhi::ImageLayout::eDepth_Stencil_Attachment_Optimal,
+            .aspectMask = engine::rhi::ImageAspectFlags::eDepthStencil
+        };
+        subpasses[1].colorAttachments = {{
+            .pNext = {nullptr, 0u},
+            .attachment = 0u,
+            .layout = engine::rhi::ImageLayout::eColor_Attachment_Optimal,
+            .aspectMask = engine::rhi::ImageAspectFlags::eColor
+        }};
+        subpasses[1].depthStencilAttachment = {
+            .pNext = {nullptr, 0u},
+            .attachment = 1u,
+            .layout = engine::rhi::ImageLayout::eDepth_Stencil_Attachment_Optimal,
+            .aspectMask = engine::rhi::ImageAspectFlags::eDepthStencil
+        };
+
+        std::vector<engine::rhi::SubpassDependency> deps(1u);
+        deps[0].srcSubpass = 0u;
+        deps[0].dstSubpass = 1u;
+        deps[0].dependencyFlags = engine::rhi::DependencyFlags::eNone; // ? can eNone
+        deps[0].stages = {
+            .src = {
+                .stage = engine::rhi::PipelineStageFlags::eLate_Fragment_Tests,
+                .accessMask = engine::rhi::AccessFlags::eDepth_Stencil_Attachment_Write
+            },
+            .dst = {
+                .stage = engine::rhi::PipelineStageFlags::eEarly_Fragment_Tests,
+                .accessMask = engine::rhi::AccessFlags::eDepth_Stencil_Attachment_Read,
+            }
+        };
+
+        return engine::rhi::RenderPassDescription{
+            std::move(attachments), 
+            std::move(subpasses), 
+            std::move(deps)
+        };
+    }
+
+    void Example::createRenderPasses() {
+        const auto depthFormat = _device->getSupportedDepthFormat(32u, false);
+        _renderPasses.emplace_back(_api->getRenderPass(_device, createRenderPassDescription2(_swapchain->getFormat(), depthFormat)));
+    }
+
+    void Example::loadShaders() {
+        _shaderModulesManager = _api->createShaderModulesManager();
+
+        {
+            auto const vBytes = _fileManager.readFile("imgui.vert.spv");
+            auto const fBytes = _fileManager.readFile("imgui.frag.spv");
+
+            const auto & vsModule = _shaderModulesManager->registerModule("imgui.vert", *_device, engine::rhi::shaders::Stages::eVertex, vBytes);
+            const auto & fsModule = _shaderModulesManager->registerModule("imgui.frag", *_device, engine::rhi::shaders::Stages::eFragment, fBytes);
+
+            _programs.emplace_back(_api->createProgram(_device, std::array{vsModule.getView(), fsModule.getView()}));
+        }
+    }
+    
+    void Example::createPipelines() {
+        _imgui.createPipeline(_api, _device, _programs[kImguiProgram], _renderPasses[kScreenRenderPass], 1u);
+    }
+
+    void Example::prepare() {
+        const auto inflightFrames = _device->inFlightFramesCount();
+        _renderQueue = _api->getQueue(_device, engine::rhi::queue_flags::graphics | engine::rhi::queue_flags::present, 0u, inflightFrames);
+
+        _readyToPresentSemaphores.resize(inflightFrames);
+        for (auto & semaphore : _readyToPresentSemaphores) {
+            semaphore = _api->createSemaphore(_device);
+        }
+
+        _frameIndex.setFramesCount(inflightFrames);
+
+        _imgui.createFontTexture(_api, _device);
+        _imgui.createBuffers(_api, _device);
+
+        // on render thread
+        auto * commandPool = _device->acquireCommandPool(engine::rhi::queue_flags::graphics | engine::rhi::queue_flags::present);
+        _commandLists.reserve(inflightFrames);
+        for (size_t i = 0u; i < inflightFrames; ++i) {
+            _commandLists.emplace_back(_api->createCommandList(commandPool, engine::rhi::CommandBufferLevel::ePrimary));
+        }
+    }
+
+    void Example::draw(float delta) {
+        if (_commandLists.empty()) {
+            return;
+        }
+
+        auto const size = _swapchain->getSize();
+        const auto width = size.width;
+        const auto height = size.height;
+
+        _imgui.beginFrame(delta, width, height);
+        ImGui::ShowDemoWindow();
+        _imgui.endFrame();
+
+        const auto frameId = _frameIndex();
+
+        if (_canDraw) {
+            auto const waitSubmitResult = _renderQueue->waitSubmit(frameId); // result!!!
+        }
+
+        const auto [imageIndex, success] = _swapchain->acquireNextImage(frameId); // https://vulkan-tutorial.com/Drawing_a_triangle/Swap_chain_recreation
+
+        if (!success) {
+            _canDraw = false;
+            return;
+        }
+
+        _canDraw = true;
+        _device->resetFrameTmpData(frameId);
+
+        // render frame
+        auto & commandList = _commandLists[frameId];
+        commandList->begin(engine::rhi::CommandBufferUsageFlags::eOne_Time_Submit);
+
+        _imgui.prepare(commandList, frameId, _api, _device);
+
+        constexpr auto clearValues = std::array{
+            engine::rhi::ClearValue{0x77'77'77'ffu},
+            engine::rhi::ClearValue{1.0f}
+        };
+
+        commandList->beginRenderPass(_renderPasses[kScreenRenderPass], _mainFrameBuffers[imageIndex], clearValues, {{0, 0}, {width, height}});
+
+        commandList->setViewport(0.0f, 0.0f, width, height);
+        commandList->setScissor({{0, 0}, {width, height}});
+
+        commandList->nextSubpass(engine::rhi::SubpassContents::ePrimaryBufferInline);
+
+        _imgui.draw(commandList, frameId);
+
+        commandList->endRenderPass();
+        commandList->end();
+
+        commandList->record(frameId);
+        // render frame
+
+        // submit
+        const auto waitSemaphores = std::array{_swapchain->imageAvailableSemaphore(frameId)};
+        const auto signalSemaphores = std::array{_readyToPresentSemaphores[frameId]};
+        const auto waitStages = std::array{engine::rhi::PipelineStageFlags::eColor_Attachment_Output};
+        auto lists = std::array{commandList.get()};
+
+        bool const submitted = _renderQueue->submit(frameId, std::array{
+            engine::rhi::runtime::Queue::SubmitInfo {
+                .w8Semaphores = waitSemaphores,
+                .w8DstStages = waitStages,
+                .signalSemaphores = signalSemaphores,
+                .lists = lists
+            }
+        });
+
+        ++_frameIndex;
+
+        // present
+        auto const presentResult = _renderQueue->present(_swapchain.get(), imageIndex, signalSemaphores);
+
     }
 
 }
