@@ -19,6 +19,8 @@ namespace engine {
         ImGuiSystem();
         ~ImGuiSystem();
 
+        void destroy() noexcept;
+
         void createPipeline(const std::unique_ptr<rhi::runtime::Rhi> & api,
             rhi::runtime::DevicePtr & device, 
             const rhi::runtime::GpuProgramPtr & program, rhi::runtime::RenderPass renderPass, 

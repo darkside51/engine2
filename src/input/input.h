@@ -197,12 +197,12 @@ namespace engine {
 		uint16_t _priority = 0u;
 	};
 
-    class InputHandler final {
+    class InputHandler {
 	public:
 
 		InputKeyMod getInputKeyMod() const noexcept { return _mask; }
 
-		void addObserver(InputObserver* o) {
+		void addInputObserver(InputObserver* o) {
 			_observers.push_back(o);
 			if (_observers.size() > 1u) {
 				std::sort(_observers.begin(), _observers.end(), 
@@ -213,7 +213,7 @@ namespace engine {
 			}
 		}
 		
-		void removeObserver(InputObserver* o) noexcept {
+		void removeInputObserver(InputObserver* o) noexcept {
 			_observers.erase(std::remove(_observers.begin(), _observers.end(), o), _observers.end());
 		}
 

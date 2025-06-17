@@ -4,13 +4,15 @@
 #include "graphics/render/rhi/common/runtime.h"
 #include "graphics/render/rhi/common/utils.h"
 
+#include "input/input.h"
+
 #include "graphics/ui/imgui.h"
 
 #include <vector>
 
 namespace example {
 
-class Example {
+class Example : public engine::InputHandler {
 public:
     Example();
 
@@ -22,6 +24,7 @@ public:
     void createSwapchain();
 
     void resize(uint16_t w, uint16_t h);
+    void sizeChanged();
 
     void createRenderPasses();
     void createPipelines();

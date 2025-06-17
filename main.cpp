@@ -29,6 +29,9 @@
 #include "graphics/render/rhi/vulkan/runtime.h"
 #include "utils/json.h"
 
+/////////
+#include "example.h"
+
 #include <imgui.h>
 
 #include <cstdio>
@@ -409,368 +412,47 @@ struct my_struct {
 };
 
 int main() {
-    
-    my_struct obj{};
-
-    constexpr std::string_view input = R"({"i":123,"d":2.72,"hello":"Hello World!","arr":[4,5,6]})";
-    auto err = engine::json::read_json(obj, input);
-
-    engine::json::Json json{};
-    err = engine::json::read_json(json, input);
-    const auto d_val = json.at("d").as<float>();
-    const auto i_val = json["i"].as<int>();
-    const bool hasHello = json.contains("hello");
-    const bool hasHello2 = json.contains("hello2");
-
-    if (err) {}
-
-    // engine::tests::execute_tests();
-
-    // todo: 
-    // 1. simplify
-    // 2. optimize
-    // 3. rhi::Result
-    // 4. refactoring
-
-    registerFileSystems();
-
     engine::GLFWModule glfwModule;
-    
-    const engine::rhi::Api<engine::vulkan::Api> api;
-    using Api = decltype(api);
-
-    auto & window0 = glfwModule.createWindow(Api::name().data(), 1024u, 768u);
+    auto & window0 = glfwModule.createWindow("vulkan", 1024u, 768u);
     window0.setVisible(false);
 
-#ifndef NDEBUG
-    bool const kUseApiDebugMessages = true;
-    std::vector<std::string_view> extensions = {"VK_KHR_surface", "VK_KHR_win32_surface", 
-        "VK_KHR_xcb_surface", "VK_KHR_xlib_surface", 
-        "VK_KHR_wayland_surface", "VK_MVK_macos_surface", "VK_QNX_screen_surface", 
-        Api::Impl::kDebugUtilExtName // for validation
-    };
-    std::vector<std::string_view> layers = {Api::Impl::kLayerValidationKHR};
-#else
-    bool const kUseApiDebugMessages = false;
-    std::vector<std::string_view> extensions = {"VK_KHR_surface", "VK_KHR_win32_surface", 
-        "VK_KHR_xcb_surface", "VK_KHR_xlib_surface", 
-        "VK_KHR_wayland_surface", "VK_MVK_macos_surface", "VK_QNX_screen_surface"
-    };
-    std::vector<std::string_view> layers = {};
-#endif
+    example::Example ex;
+    ex.createApi();
+    if (ex.createSurface(window0.getSurfaceCreateInfo())) {
+        ex.createDevice();
+        ex.createSwapchain();
 
-    engine::rhi::InstanceCreateInfo instanceCreateInfo {
-        .apiVersion = engine::common::Version{1, 3, 0},
-        .extensions = extensions,
-        .layers = layers,
-        .createDebugMessages = kUseApiDebugMessages,
-        .allocationCallback = nullptr
-    };
+        auto const [width, height] = window0.getSize();
+        ex.resize(width, height);
 
-    std::unique_ptr<engine::rhi::runtime::Rhi> rApi = std::make_unique<engine::vulkan::runtime::Rhi>(instanceCreateInfo);
-    
-    engine::rhi::PhysicalDeviceFeatureRequest gpuFeatures{};
-    auto gpuDevices = rApi->enumerateDevices({
-        gpuFeatures, 
-        {
-            engine::vulkan::runtime::Rhi::Api::Impl::kSwapchainExtName, 
-            VK_KHR_DEDICATED_ALLOCATION_EXTENSION_NAME
-        }
-    });
-
-    const auto surface = rApi->createSurface(window0.getSurfaceCreateInfo());
-
-    if (auto & gpuDevice = gpuDevices[0u]; gpuDevice->checkSurfaceSupport(*surface)) {
-        const auto queueFlags = engine::rhi::queue_flags::graphics | engine::rhi::queue_flags::present;
-        const auto [index, family] = gpuDevice->getQueueFamily(queueFlags);
-
-        engine::rhi::DeviceCreateInfo deviceCreateInfo{gpuFeatures};
-        deviceCreateInfo.queueFamilies.push_back({index, 1u, {1.0f}, queueFlags});
-        deviceCreateInfo.commandPoolThreadsCount = 1u;
-        deviceCreateInfo.inFlightFramesCount = 3u;
-
-        auto device = rApi->createDevice(gpuDevice, deviceCreateInfo);
-        const auto depthFormat = device->getSupportedDepthFormat(32u, false);
-        const uint8_t inflightFrames = device->inFlightFramesCount();
-
-        engine::rhi::SwapchainCreateInfo swapchainCreateInfo = {};
-        swapchainCreateInfo.imagesCount = inflightFrames;
-        swapchainCreateInfo.queueFamilies.push_back(index);
-
-        auto swapchain = rApi->createSwapchain(device, surface, swapchainCreateInfo);
-
-        auto [width, height] = window0.getSize();
-        swapchain->resize(width, height, false);
-        const uint32_t swapchainImagesCount = swapchain->getImagesCount();
-
-        // auto depthPrePass = rApi->getRenderPass(device, createRenderPassDescription(depthFormat));
-        // auto renderPass = rApi->getRenderPass(device, createRenderPassDescription(swapchain->getFormat(), depthFormat));
-
-        auto renderPass = rApi->getRenderPass(device, createRenderPassDescription2(swapchain->getFormat(), depthFormat));
+        ex.createRenderPasses();
         
-        auto imageInfo = engine::rhi::ImageInfo{
-            engine::rhi::ImageUsageFlags::eDepth_Stencil_Attachment | engine::rhi::ImageUsageFlags::eTransient_Attachment,
-            depthFormat, {width, height, 1u}
-        }; 
-        imageInfo.memoryExtFlags = engine::rhi::MemoryExtendedFlags::eDedicated;
+        ex.sizeChanged();
 
-        std::vector<engine::rhi::runtime::ImagePtr> depthImages;
-        depthImages.reserve(swapchainImagesCount);
-        for (uint32_t i = 0u; i < swapchainImagesCount; ++i) {
-            depthImages.emplace_back(std::move(rApi->createImage(device, imageInfo)));
-        }
+        ex.createPipelines();
 
-        // std::vector<engine::rhi::runtime::ImagePtr> depthImages2;
-        // depthImages2.reserve(swapchainImagesCount);
-        // for (uint32_t i = 0u; i < swapchainImagesCount; ++i) {
-        //     depthImages2.emplace_back(std::move(rApi->createImage(device, imageInfo)));
-        // }
-
-        std::vector<engine::rhi::runtime::FrameBufferPtr> frameBuffers;
-        frameBuffers.reserve(swapchainImagesCount);
-        for (uint32_t i = 0u; i < swapchainImagesCount; ++i) {
-            auto & image = swapchain->getImage(i);
-            std::vector<engine::rhi::FrameBufferAttachment> fbAttachemnts{2u};
-            fbAttachemnts[0u].image = &image;
-            fbAttachemnts[0u].imageSize = {image.getExtent().width, image.getExtent().height};
-            fbAttachemnts[0u].finalLayout = engine::rhi::ImageLayout::eColor_Attachment_Optimal; // equal to subpasses attachments layouts, maybe can get it from subpasses?
-
-            auto & depthImage = depthImages[i];
-            fbAttachemnts[1u].image = depthImage.get();
-            fbAttachemnts[1u].imageSize = {depthImage->getExtent().width, depthImage->getExtent().height};
-            fbAttachemnts[1u].aspect = engine::rhi::ImageAspectFlags::eDepth;  // can get it from depthImage?
-            fbAttachemnts[1u].finalLayout = engine::rhi::ImageLayout::eDepth_Stencil_Attachment_Optimal; // equal to subpasses attachments layouts, maybe can get it from subpasses?
-
-            frameBuffers.emplace_back(rApi->createFrameBuffer(device, std::move(fbAttachemnts), renderPass));
-        }
-
-        // std::vector<engine::rhi::runtime::FrameBufferPtr> frameBuffers2;
-        // frameBuffers2.reserve(swapchainImagesCount);
-        // for (uint32_t i = 0u; i < swapchainImagesCount; ++i) {
-        //     auto & depthImage = depthImages2[i];
-        //     std::vector<engine::rhi::FrameBufferAttachment> fbAttachemnts{1u};
-        //     fbAttachemnts[0u].image = depthImage.get();
-        //     fbAttachemnts[0u].imageSize = {depthImage->getExtent().width, depthImage->getExtent().height};
-        //     fbAttachemnts[0u].aspect = engine::rhi::ImageAspectFlags::eDepth;  // can get it from depthImage?
-        //     fbAttachemnts[0u].finalLayout = engine::rhi::ImageLayout::eDepth_Stencil_Attachment_Optimal; // equal to subpasses attachments layouts, maybe can get it from subpasses?
-
-        //     frameBuffers2.emplace_back(rApi->createFrameBuffer(device, std::move(fbAttachemnts), depthPrePass));
-        // }
-
-        auto queue = rApi->getQueue(device, engine::rhi::queue_flags::graphics | engine::rhi::queue_flags::present, 0u, inflightFrames);
-
-        std::vector<engine::rhi::runtime::Semaphore> readyToPresentSemaphores(inflightFrames);
-        for (auto & semaphore : readyToPresentSemaphores) {
-            semaphore = rApi->createSemaphore(device);
-        }
-
-        auto shaderModulesManager = rApi->createShaderModulesManager();
-        loadShaders(rApi, device, shaderModulesManager);
-        // auto pipeline = createPipeline(rApi, device, renderPass, program);
-        // auto depthPipeline = createPipelineDepth(rApi, device, depthPrePass, programDepth);
-
-        auto pipeline = createPipeline(rApi, device, renderPass, program, 1u);
-        auto depthPipeline = createPipelineDepth(rApi, device, renderPass, programDepth, 0u);
-
-        createBuffers(rApi, device);
-        createImageData(rApi, device);
-
-        std::vector<engine::rhi::runtime::CommandListPtr> commandLists;
-        
         constexpr float inputCheckTime = 1.0f / 60.0f;
         constexpr float redrawTime = 1.0f / 120.0f;
 
-        constexpr auto clearValues = std::array{
-            engine::rhi::ClearValue{0x77'77'77'ffu},
-            engine::rhi::ClearValue{1.0f}
-        };
-
-        // constexpr auto clearValuesD = std::array{
-        //     engine::rhi::ClearValue{1.0f}
-        // };
-
-        engine::rhi::FrameIndex frameIndex{inflightFrames};
-
-        const size_t kUniformBufferOffsetAlign = device->getUniformBufferOffsetAlignment();
-        bool canDraw = true;
-
-        engine::ImGuiSystem imgui;
-        imgui.createPipeline(rApi, device, imguiProgram, renderPass, 1u);
-        imgui.createFontTexture(rApi, device);
-        imgui.createBuffers(rApi, device);
-
         threads::Executor executor([&](auto & executionContext, float delta) {
             executionContext.performTasks();
-            if (!commandLists.empty()) {
-
-                imgui.beginFrame(delta, width, height);
-                ImGui::ShowDemoWindow();
-                imgui.endFrame();
-
-                const auto frameId = frameIndex();
-
-                if (canDraw) {
-                    auto const waitSubmitResult = queue->waitSubmit(frameId); // result!!!
-                }
-
-                const auto [imageIndex, success] = swapchain->acquireNextImage(frameId); // https://vulkan-tutorial.com/Drawing_a_triangle/Swap_chain_recreation
-
-                if (!success) {
-                    canDraw = false;
-                    return;
-                }
-
-                canDraw = true;
-                device->resetFrameTmpData(frameId);
-
-                // render frame
-                auto & commandList = commandLists[frameId];
-                commandList->begin(engine::rhi::CommandBufferUsageFlags::eOne_Time_Submit);
-
-                if (stagePositions) {
-                    commandList->copyBuffer2Buffer(stagePositions, positions, 
-                        {.srcOffset = 0u, .dstOffset = 0u, .size = stagePositions->sizeInBytes()});
-
-                    commandList->copyBuffer2Buffer(stageColors, colors, 
-                        {.srcOffset = 0u, .dstOffset = 0u, .size = stageColors->sizeInBytes()});
-
-                    commandList->copyBuffer2Buffer(stageIndices, indices, 
-                        {.srcOffset = 0u, .dstOffset = 0u, .size = stageIndices->sizeInBytes()});
-
-                    stagePositions = nullptr;
-                    stageColors = nullptr;
-                    stageIndices = nullptr;
-                }
-
-                if (stageImageBuffer) {
-                    commandList->copyBuffer2Image(stageImageBuffer, sampledImage, 
-                        {
-                         .bufferOffset = 0u,
-                         .bufferRowLength = 0u,
-                         .bufferImageHeight = 0u,
-                         .imageSubresource = {.aspectMask = engine::rhi::ImageAspectFlags::eColor},
-                         .imageOffset = {0u, 0u, 0u},
-                         .imageExtent = sampledImage->getExtent()
-                        }
-                    );
-                    stageImageBuffer = nullptr;
-                }
-
-                { // update uniforms
-                    auto * map = uniformBufferI->map2<engine::vec2f>();
-
-                    if (map[0u].x > 1.5f) { map[0u].x = -1.5f; }
-                    map[0u].x += 1.0f * delta;
-      
-                    uniformBufferI->unmap();
-                    uniformBufferI->commit(commandList, frameId);
-                }
-
-                imgui.prepare(commandList, frameId, rApi, device);
-                ///////////////////////////
-                // commandList->beginRenderPass(depthPrePass, frameBuffers2[imageIndex], clearValuesD, {{0, 0}, {width, height}});
-                commandList->beginRenderPass(renderPass, frameBuffers[imageIndex], clearValues, {{0, 0}, {width, height}});
-                commandList->bindPipeline(depthPipeline);
-
-                commandList->setViewport(0.0f, 0.0f, width, height);
-                commandList->setScissor({{0, 0}, {width, height}});
-
-                // first triangle
-                commandList->bindBuffer(0u, (*uniformBufferI)(frameId), 0u, 
-                    0u, sizeof(engine::vec2f));
-                commandList->bindBuffer(1u, (*uniformBufferI)(frameId), 0u, 
-                    engine::align_value(sizeof(engine::vec2f), kUniformBufferOffsetAlign), sizeof(engine::vec2f));
-
-                commandList->bindImage(0u, sampledImage, engine::rhi::SamplerInfo{}, 1u);   
-
-                commandList->bindVertexBuffer(0u, positions);
-                commandList->draw(3u);
-
-                // second triangle
-                commandList->bindBuffer(1u, (*uniformBufferI)(frameId), 0u, 0u, sizeof(float) * 2u);
-                commandList->bindIndexBuffer(indices, 0u, engine::rhi::IndexType::eU16);
-                commandList->drawIndexed(6u);
-
-                commandList->nextSubpass(engine::rhi::SubpassContents::ePrimaryBufferInline);
-                // commandList->endRenderPass();
-                //////////////////////////
-
-                // commandList->beginRenderPass(renderPass, frameBuffers[imageIndex], clearValues, {{0, 0}, {width, height}});
-
-                commandList->bindPipeline(pipeline);
-
-                commandList->setViewport(0.0f, 0.0f, width, height);
-                commandList->setScissor({{0, 0}, {width, height}});
-
-                // first triangle
-                commandList->bindBuffer(0u, (*uniformBufferI)(frameId), 0u, 
-                    0u, sizeof(engine::vec2f));
-                commandList->bindBuffer(1u, (*uniformBufferI)(frameId), 0u, 
-                    engine::align_value(sizeof(engine::vec2f), kUniformBufferOffsetAlign), sizeof(engine::vec2f));
-
-                commandList->bindImage(0u, sampledImage, engine::rhi::SamplerInfo{}, 1u);   
-
-                commandList->bindVertexBuffer(0u, positions);
-                commandList->bindVertexBuffer(1u, colors);
-                commandList->draw(3u);
-
-                // second triangle
-                // commandList->bindBuffer(1u, uniformBuffer2);
-                commandList->bindBuffer(1u, (*uniformBufferI)(frameId), 0u, 0u, sizeof(float) * 2u);
-                commandList->bindIndexBuffer(indices, 0u, engine::rhi::IndexType::eU16);
-                commandList->drawIndexed(6u);
-                
-                imgui.draw(commandList, frameId);
-
-                commandList->endRenderPass();
-                commandList->end();
-
-                commandList->record(frameId);
-                // render frame
-
-                // submit
-                const auto waitSemaphores = std::array{swapchain->imageAvailableSemaphore(frameId)};
-                const auto signalSemaphores = std::array{readyToPresentSemaphores[frameId]};
-                const auto waitStages = std::array{engine::rhi::PipelineStageFlags::eColor_Attachment_Output};
-                auto lists = std::array{commandList.get()};
-
-                bool const submitted = queue->submit(frameId, std::array{
-                    engine::rhi::runtime::Queue::SubmitInfo {
-                        .w8Semaphores = waitSemaphores,
-                        .w8DstStages = waitStages,
-                        .signalSemaphores = signalSemaphores,
-                        .lists = lists
-                    }
-                });
-
-                ++frameIndex;
-
-                // present
-                auto const presentResult = queue->present(swapchain.get(), imageIndex, signalSemaphores);
-            }
+            ex.draw(delta);
         }, redrawTime);
+
+        executor.emplaceTasks(stl::make_vector(threads::WorkerTask{[&](){
+            ex.prepare();
+        }}));
 
         executor.run();
 
-        executor.emplaceTasks(stl::make_vector(threads::WorkerTask{[&](){
-            auto * commandPool = device->acquireCommandPool(engine::rhi::queue_flags::graphics | engine::rhi::queue_flags::present);
-            commandLists.reserve(inflightFrames);
-            for (size_t i = 0u; i < inflightFrames; ++i) {
-                commandLists.emplace_back(rApi->createCommandList(commandPool, engine::rhi::CommandBufferLevel::ePrimary));
-            }
-        }}));
-
         window0.setVisible(true);
 
-        engine::InputHandler inputHandler;
-        inputHandler.addObserver(&imgui);
-
         window0.setOnPointer([&](engine::PointerEvent && event) {
-            inputHandler.onPointerEvent(std::move(event));
+            ex.onPointerEvent(std::move(event));
         });
 
         window0.setOnWheel([&](float dx, float dy) {
-            inputHandler.onWheelEvent(dx, dy);
+            ex.onWheelEvent(dx, dy);
         });
 
         window0.setOnKey([&](engine::KeyEvent && event, uint8_t mask) {
@@ -778,87 +460,481 @@ int main() {
                 window0.close();
                 return;
             }
-            inputHandler.onKeyEvent(std::move(event), mask);
+            ex.onKeyEvent(std::move(event), mask);
         });
 
         window0.setOnResize([&](uint16_t w, uint16_t h) {
             executor.pause();
-            queue->waitIdle();
-            device->waitIdle();
-
-            // resize swapchain
-            swapchain->resize(w, h, false);
-            const uint32_t swapchainImagesCountNew = swapchain->getImagesCount();
-
-            auto const size = swapchain->getSize();
-            width = size.width;
-            height = size.height;
-
-            // recreate resources
-            auto imageInfo = engine::rhi::ImageInfo{
-                engine::rhi::ImageUsageFlags::eDepth_Stencil_Attachment | engine::rhi::ImageUsageFlags::eTransient_Attachment,
-                depthFormat, {width, height, 1u}
-            }; 
-            imageInfo.memoryExtFlags = engine::rhi::MemoryExtendedFlags::eDedicated;
-
-            depthImages.clear();
-            depthImages.reserve(swapchainImagesCountNew);
-            for (uint32_t i = 0u; i < swapchainImagesCountNew; ++i) {
-                depthImages.emplace_back(std::move(rApi->createImage(device, imageInfo)));
-            }
-
-            frameBuffers.clear();
-            frameBuffers.reserve(swapchainImagesCountNew);
-            for (uint32_t i = 0u; i < swapchainImagesCountNew; ++i) {
-                auto & image = swapchain->getImage(i);
-                std::vector<engine::rhi::FrameBufferAttachment> fbAttachemnts{2u};
-                fbAttachemnts[0u].image = &image;
-                fbAttachemnts[0u].imageSize = {image.getExtent().width, image.getExtent().height};
-                fbAttachemnts[0u].finalLayout = engine::rhi::ImageLayout::eColor_Attachment_Optimal; // equal to subpasses attachments layouts, maybe can get it from subpasses?
-
-                auto & depthImage = depthImages[i];
-                fbAttachemnts[1u].image = depthImage.get();
-                fbAttachemnts[1u].imageSize = {depthImage->getExtent().width, depthImage->getExtent().height};
-                fbAttachemnts[1u].aspect = engine::rhi::ImageAspectFlags::eDepth;  // can get it from depthImage?
-                fbAttachemnts[1u].finalLayout = engine::rhi::ImageLayout::eDepth_Stencil_Attachment_Optimal; // equal to subpasses attachments layouts, maybe can get it from subpasses?
-
-                frameBuffers.emplace_back(rApi->createFrameBuffer(device, std::move(fbAttachemnts), renderPass));
-            }
-
+            ex.resize(w, h);
+            ex.sizeChanged();
             executor.resume();
         });
 
         window0.setOnClose([&]() {
             executor.stop();
-            device->waitIdle();
-
-            programDepth = nullptr;
-            program = nullptr;
-            imguiProgram = nullptr;
-
-            stagePositions = nullptr;
-            stageColors = nullptr;
-            stageIndices = nullptr;
-
-            positions = nullptr;
-            colors = nullptr;
-            indices = nullptr;
-
-            uniformBufferI = nullptr;
-            uniformBuffer2 = nullptr;
-
-            stageImageBuffer = nullptr;
-            sampledImage = nullptr;
-
-            for (auto & semaphore : readyToPresentSemaphores) {
-                rApi->destroySemaphore(device, semaphore);
-            }
+            ex.destroy();
         });
 
         while (glfwModule.process()) {
             std::this_thread::sleep_for(std::chrono::duration<float>(inputCheckTime));
         }
+        
     }
 
     return 1;
 }
+
+// int main() {
+    
+//     my_struct obj{};
+
+//     constexpr std::string_view input = R"({"i":123,"d":2.72,"hello":"Hello World!","arr":[4,5,6]})";
+//     auto err = engine::json::read_json(obj, input);
+
+//     engine::json::Json json{};
+//     err = engine::json::read_json(json, input);
+//     const auto d_val = json.at("d").as<float>();
+//     const auto i_val = json["i"].as<int>();
+//     const bool hasHello = json.contains("hello");
+//     const bool hasHello2 = json.contains("hello2");
+
+//     if (err) {}
+
+//     // engine::tests::execute_tests();
+
+//     // todo: 
+//     // 1. simplify
+//     // 2. optimize
+//     // 3. rhi::Result
+//     // 4. refactoring
+
+//     registerFileSystems();
+
+//     engine::GLFWModule glfwModule;
+    
+//     const engine::rhi::Api<engine::vulkan::Api> api;
+//     using Api = decltype(api);
+
+//     auto & window0 = glfwModule.createWindow(Api::name().data(), 1024u, 768u);
+//     window0.setVisible(false);
+
+// #ifndef NDEBUG
+//     bool const kUseApiDebugMessages = true;
+//     std::vector<std::string_view> extensions = {"VK_KHR_surface", "VK_KHR_win32_surface", 
+//         "VK_KHR_xcb_surface", "VK_KHR_xlib_surface", 
+//         "VK_KHR_wayland_surface", "VK_MVK_macos_surface", "VK_QNX_screen_surface", 
+//         Api::Impl::kDebugUtilExtName // for validation
+//     };
+//     std::vector<std::string_view> layers = {Api::Impl::kLayerValidationKHR};
+// #else
+//     bool const kUseApiDebugMessages = false;
+//     std::vector<std::string_view> extensions = {"VK_KHR_surface", "VK_KHR_win32_surface", 
+//         "VK_KHR_xcb_surface", "VK_KHR_xlib_surface", 
+//         "VK_KHR_wayland_surface", "VK_MVK_macos_surface", "VK_QNX_screen_surface"
+//     };
+//     std::vector<std::string_view> layers = {};
+// #endif
+
+//     engine::rhi::InstanceCreateInfo instanceCreateInfo {
+//         .apiVersion = engine::common::Version{1, 3, 0},
+//         .extensions = extensions,
+//         .layers = layers,
+//         .createDebugMessages = kUseApiDebugMessages,
+//         .allocationCallback = nullptr
+//     };
+
+//     std::unique_ptr<engine::rhi::runtime::Rhi> rApi = std::make_unique<engine::vulkan::runtime::Rhi>(instanceCreateInfo);
+    
+//     engine::rhi::PhysicalDeviceFeatureRequest gpuFeatures{};
+//     auto gpuDevices = rApi->enumerateDevices({
+//         gpuFeatures, 
+//         {
+//             engine::vulkan::runtime::Rhi::Api::Impl::kSwapchainExtName, 
+//             VK_KHR_DEDICATED_ALLOCATION_EXTENSION_NAME
+//         }
+//     });
+
+//     const auto surface = rApi->createSurface(window0.getSurfaceCreateInfo());
+
+//     if (auto & gpuDevice = gpuDevices[0u]; gpuDevice->checkSurfaceSupport(*surface)) {
+//         const auto queueFlags = engine::rhi::queue_flags::graphics | engine::rhi::queue_flags::present;
+//         const auto [index, family] = gpuDevice->getQueueFamily(queueFlags);
+
+//         engine::rhi::DeviceCreateInfo deviceCreateInfo{gpuFeatures};
+//         deviceCreateInfo.queueFamilies.push_back({index, 1u, {1.0f}, queueFlags});
+//         deviceCreateInfo.commandPoolThreadsCount = 1u;
+//         deviceCreateInfo.inFlightFramesCount = 3u;
+
+//         auto device = rApi->createDevice(gpuDevice, deviceCreateInfo);
+//         const auto depthFormat = device->getSupportedDepthFormat(32u, false);
+//         const uint8_t inflightFrames = device->inFlightFramesCount();
+
+//         engine::rhi::SwapchainCreateInfo swapchainCreateInfo = {};
+//         swapchainCreateInfo.imagesCount = inflightFrames;
+//         swapchainCreateInfo.queueFamilies.push_back(index);
+
+//         auto swapchain = rApi->createSwapchain(device, surface, swapchainCreateInfo);
+
+//         auto [width, height] = window0.getSize();
+//         swapchain->resize(width, height, false);
+//         const uint32_t swapchainImagesCount = swapchain->getImagesCount();
+
+//         // auto depthPrePass = rApi->getRenderPass(device, createRenderPassDescription(depthFormat));
+//         // auto renderPass = rApi->getRenderPass(device, createRenderPassDescription(swapchain->getFormat(), depthFormat));
+
+//         auto renderPass = rApi->getRenderPass(device, createRenderPassDescription2(swapchain->getFormat(), depthFormat));
+        
+//         auto imageInfo = engine::rhi::ImageInfo{
+//             engine::rhi::ImageUsageFlags::eDepth_Stencil_Attachment | engine::rhi::ImageUsageFlags::eTransient_Attachment,
+//             depthFormat, {width, height, 1u}
+//         }; 
+//         imageInfo.memoryExtFlags = engine::rhi::MemoryExtendedFlags::eDedicated;
+
+//         std::vector<engine::rhi::runtime::ImagePtr> depthImages;
+//         depthImages.reserve(swapchainImagesCount);
+//         for (uint32_t i = 0u; i < swapchainImagesCount; ++i) {
+//             depthImages.emplace_back(std::move(rApi->createImage(device, imageInfo)));
+//         }
+
+//         // std::vector<engine::rhi::runtime::ImagePtr> depthImages2;
+//         // depthImages2.reserve(swapchainImagesCount);
+//         // for (uint32_t i = 0u; i < swapchainImagesCount; ++i) {
+//         //     depthImages2.emplace_back(std::move(rApi->createImage(device, imageInfo)));
+//         // }
+
+//         std::vector<engine::rhi::runtime::FrameBufferPtr> frameBuffers;
+//         frameBuffers.reserve(swapchainImagesCount);
+//         for (uint32_t i = 0u; i < swapchainImagesCount; ++i) {
+//             auto & image = swapchain->getImage(i);
+//             std::vector<engine::rhi::FrameBufferAttachment> fbAttachemnts{2u};
+//             fbAttachemnts[0u].image = &image;
+//             fbAttachemnts[0u].imageSize = {image.getExtent().width, image.getExtent().height};
+//             fbAttachemnts[0u].finalLayout = engine::rhi::ImageLayout::eColor_Attachment_Optimal; // equal to subpasses attachments layouts, maybe can get it from subpasses?
+
+//             auto & depthImage = depthImages[i];
+//             fbAttachemnts[1u].image = depthImage.get();
+//             fbAttachemnts[1u].imageSize = {depthImage->getExtent().width, depthImage->getExtent().height};
+//             fbAttachemnts[1u].aspect = engine::rhi::ImageAspectFlags::eDepth;  // can get it from depthImage?
+//             fbAttachemnts[1u].finalLayout = engine::rhi::ImageLayout::eDepth_Stencil_Attachment_Optimal; // equal to subpasses attachments layouts, maybe can get it from subpasses?
+
+//             frameBuffers.emplace_back(rApi->createFrameBuffer(device, std::move(fbAttachemnts), renderPass));
+//         }
+
+//         // std::vector<engine::rhi::runtime::FrameBufferPtr> frameBuffers2;
+//         // frameBuffers2.reserve(swapchainImagesCount);
+//         // for (uint32_t i = 0u; i < swapchainImagesCount; ++i) {
+//         //     auto & depthImage = depthImages2[i];
+//         //     std::vector<engine::rhi::FrameBufferAttachment> fbAttachemnts{1u};
+//         //     fbAttachemnts[0u].image = depthImage.get();
+//         //     fbAttachemnts[0u].imageSize = {depthImage->getExtent().width, depthImage->getExtent().height};
+//         //     fbAttachemnts[0u].aspect = engine::rhi::ImageAspectFlags::eDepth;  // can get it from depthImage?
+//         //     fbAttachemnts[0u].finalLayout = engine::rhi::ImageLayout::eDepth_Stencil_Attachment_Optimal; // equal to subpasses attachments layouts, maybe can get it from subpasses?
+
+//         //     frameBuffers2.emplace_back(rApi->createFrameBuffer(device, std::move(fbAttachemnts), depthPrePass));
+//         // }
+
+//         auto queue = rApi->getQueue(device, engine::rhi::queue_flags::graphics | engine::rhi::queue_flags::present, 0u, inflightFrames);
+
+//         std::vector<engine::rhi::runtime::Semaphore> readyToPresentSemaphores(inflightFrames);
+//         for (auto & semaphore : readyToPresentSemaphores) {
+//             semaphore = rApi->createSemaphore(device);
+//         }
+
+//         auto shaderModulesManager = rApi->createShaderModulesManager();
+//         loadShaders(rApi, device, shaderModulesManager);
+//         // auto pipeline = createPipeline(rApi, device, renderPass, program);
+//         // auto depthPipeline = createPipelineDepth(rApi, device, depthPrePass, programDepth);
+
+//         auto pipeline = createPipeline(rApi, device, renderPass, program, 1u);
+//         auto depthPipeline = createPipelineDepth(rApi, device, renderPass, programDepth, 0u);
+
+//         createBuffers(rApi, device);
+//         createImageData(rApi, device);
+
+//         std::vector<engine::rhi::runtime::CommandListPtr> commandLists;
+        
+//         constexpr float inputCheckTime = 1.0f / 60.0f;
+//         constexpr float redrawTime = 1.0f / 120.0f;
+
+//         constexpr auto clearValues = std::array{
+//             engine::rhi::ClearValue{0x77'77'77'ffu},
+//             engine::rhi::ClearValue{1.0f}
+//         };
+
+//         // constexpr auto clearValuesD = std::array{
+//         //     engine::rhi::ClearValue{1.0f}
+//         // };
+
+//         engine::rhi::FrameIndex frameIndex{inflightFrames};
+
+//         const size_t kUniformBufferOffsetAlign = device->getUniformBufferOffsetAlignment();
+//         bool canDraw = true;
+
+//         engine::ImGuiSystem imgui;
+//         imgui.createPipeline(rApi, device, imguiProgram, renderPass, 1u);
+//         imgui.createFontTexture(rApi, device);
+//         imgui.createBuffers(rApi, device);
+
+//         threads::Executor executor([&](auto & executionContext, float delta) {
+//             executionContext.performTasks();
+//             if (!commandLists.empty()) {
+
+//                 imgui.beginFrame(delta, width, height);
+//                 ImGui::ShowDemoWindow();
+//                 imgui.endFrame();
+
+//                 const auto frameId = frameIndex();
+
+//                 if (canDraw) {
+//                     auto const waitSubmitResult = queue->waitSubmit(frameId); // result!!!
+//                 }
+
+//                 const auto [imageIndex, success] = swapchain->acquireNextImage(frameId); // https://vulkan-tutorial.com/Drawing_a_triangle/Swap_chain_recreation
+
+//                 if (!success) {
+//                     canDraw = false;
+//                     return;
+//                 }
+
+//                 canDraw = true;
+//                 device->resetFrameTmpData(frameId);
+
+//                 // render frame
+//                 auto & commandList = commandLists[frameId];
+//                 commandList->begin(engine::rhi::CommandBufferUsageFlags::eOne_Time_Submit);
+
+//                 if (stagePositions) {
+//                     commandList->copyBuffer2Buffer(stagePositions, positions, 
+//                         {.srcOffset = 0u, .dstOffset = 0u, .size = stagePositions->sizeInBytes()});
+
+//                     commandList->copyBuffer2Buffer(stageColors, colors, 
+//                         {.srcOffset = 0u, .dstOffset = 0u, .size = stageColors->sizeInBytes()});
+
+//                     commandList->copyBuffer2Buffer(stageIndices, indices, 
+//                         {.srcOffset = 0u, .dstOffset = 0u, .size = stageIndices->sizeInBytes()});
+
+//                     stagePositions = nullptr;
+//                     stageColors = nullptr;
+//                     stageIndices = nullptr;
+//                 }
+
+//                 if (stageImageBuffer) {
+//                     commandList->copyBuffer2Image(stageImageBuffer, sampledImage, 
+//                         {
+//                          .bufferOffset = 0u,
+//                          .bufferRowLength = 0u,
+//                          .bufferImageHeight = 0u,
+//                          .imageSubresource = {.aspectMask = engine::rhi::ImageAspectFlags::eColor},
+//                          .imageOffset = {0u, 0u, 0u},
+//                          .imageExtent = sampledImage->getExtent()
+//                         }
+//                     );
+//                     stageImageBuffer = nullptr;
+//                 }
+
+//                 { // update uniforms
+//                     auto * map = uniformBufferI->map2<engine::vec2f>();
+
+//                     if (map[0u].x > 1.5f) { map[0u].x = -1.5f; }
+//                     map[0u].x += 1.0f * delta;
+      
+//                     uniformBufferI->unmap();
+//                     uniformBufferI->commit(commandList, frameId);
+//                 }
+
+//                 imgui.prepare(commandList, frameId, rApi, device);
+//                 ///////////////////////////
+//                 // commandList->beginRenderPass(depthPrePass, frameBuffers2[imageIndex], clearValuesD, {{0, 0}, {width, height}});
+//                 commandList->beginRenderPass(renderPass, frameBuffers[imageIndex], clearValues, {{0, 0}, {width, height}});
+//                 commandList->bindPipeline(depthPipeline);
+
+//                 commandList->setViewport(0.0f, 0.0f, width, height);
+//                 commandList->setScissor({{0, 0}, {width, height}});
+
+//                 // first triangle
+//                 commandList->bindBuffer(0u, (*uniformBufferI)(frameId), 0u, 
+//                     0u, sizeof(engine::vec2f));
+//                 commandList->bindBuffer(1u, (*uniformBufferI)(frameId), 0u, 
+//                     engine::align_value(sizeof(engine::vec2f), kUniformBufferOffsetAlign), sizeof(engine::vec2f));
+
+//                 commandList->bindImage(0u, sampledImage, engine::rhi::SamplerInfo{}, 1u);   
+
+//                 commandList->bindVertexBuffer(0u, positions);
+//                 commandList->draw(3u);
+
+//                 // second triangle
+//                 commandList->bindBuffer(1u, (*uniformBufferI)(frameId), 0u, 0u, sizeof(float) * 2u);
+//                 commandList->bindIndexBuffer(indices, 0u, engine::rhi::IndexType::eU16);
+//                 commandList->drawIndexed(6u);
+
+//                 commandList->nextSubpass(engine::rhi::SubpassContents::ePrimaryBufferInline);
+//                 // commandList->endRenderPass();
+//                 //////////////////////////
+
+//                 // commandList->beginRenderPass(renderPass, frameBuffers[imageIndex], clearValues, {{0, 0}, {width, height}});
+
+//                 commandList->bindPipeline(pipeline);
+
+//                 commandList->setViewport(0.0f, 0.0f, width, height);
+//                 commandList->setScissor({{0, 0}, {width, height}});
+
+//                 // first triangle
+//                 commandList->bindBuffer(0u, (*uniformBufferI)(frameId), 0u, 
+//                     0u, sizeof(engine::vec2f));
+//                 commandList->bindBuffer(1u, (*uniformBufferI)(frameId), 0u, 
+//                     engine::align_value(sizeof(engine::vec2f), kUniformBufferOffsetAlign), sizeof(engine::vec2f));
+
+//                 commandList->bindImage(0u, sampledImage, engine::rhi::SamplerInfo{}, 1u);   
+
+//                 commandList->bindVertexBuffer(0u, positions);
+//                 commandList->bindVertexBuffer(1u, colors);
+//                 commandList->draw(3u);
+
+//                 // second triangle
+//                 // commandList->bindBuffer(1u, uniformBuffer2);
+//                 commandList->bindBuffer(1u, (*uniformBufferI)(frameId), 0u, 0u, sizeof(float) * 2u);
+//                 commandList->bindIndexBuffer(indices, 0u, engine::rhi::IndexType::eU16);
+//                 commandList->drawIndexed(6u);
+                
+//                 imgui.draw(commandList, frameId);
+
+//                 commandList->endRenderPass();
+//                 commandList->end();
+
+//                 commandList->record(frameId);
+//                 // render frame
+
+//                 // submit
+//                 const auto waitSemaphores = std::array{swapchain->imageAvailableSemaphore(frameId)};
+//                 const auto signalSemaphores = std::array{readyToPresentSemaphores[frameId]};
+//                 const auto waitStages = std::array{engine::rhi::PipelineStageFlags::eColor_Attachment_Output};
+//                 auto lists = std::array{commandList.get()};
+
+//                 bool const submitted = queue->submit(frameId, std::array{
+//                     engine::rhi::runtime::Queue::SubmitInfo {
+//                         .w8Semaphores = waitSemaphores,
+//                         .w8DstStages = waitStages,
+//                         .signalSemaphores = signalSemaphores,
+//                         .lists = lists
+//                     }
+//                 });
+
+//                 ++frameIndex;
+
+//                 // present
+//                 auto const presentResult = queue->present(swapchain.get(), imageIndex, signalSemaphores);
+//             }
+//         }, redrawTime);
+
+//         executor.run();
+
+//         executor.emplaceTasks(stl::make_vector(threads::WorkerTask{[&](){
+//             auto * commandPool = device->acquireCommandPool(engine::rhi::queue_flags::graphics | engine::rhi::queue_flags::present);
+//             commandLists.reserve(inflightFrames);
+//             for (size_t i = 0u; i < inflightFrames; ++i) {
+//                 commandLists.emplace_back(rApi->createCommandList(commandPool, engine::rhi::CommandBufferLevel::ePrimary));
+//             }
+//         }}));
+
+//         window0.setVisible(true);
+
+//         engine::InputHandler inputHandler;
+//         inputHandler.addInputObserver(&imgui);
+
+//         window0.setOnPointer([&](engine::PointerEvent && event) {
+//             inputHandler.onPointerEvent(std::move(event));
+//         });
+
+//         window0.setOnWheel([&](float dx, float dy) {
+//             inputHandler.onWheelEvent(dx, dy);
+//         });
+
+//         window0.setOnKey([&](engine::KeyEvent && event, uint8_t mask) {
+//             if (event.key == engine::KeyboardKey::eEscape) {
+//                 window0.close();
+//                 return;
+//             }
+//             inputHandler.onKeyEvent(std::move(event), mask);
+//         });
+
+//         window0.setOnResize([&](uint16_t w, uint16_t h) {
+//             executor.pause();
+//             queue->waitIdle();
+//             device->waitIdle();
+
+//             // resize swapchain
+//             swapchain->resize(w, h, false);
+//             const uint32_t swapchainImagesCountNew = swapchain->getImagesCount();
+
+//             auto const size = swapchain->getSize();
+//             width = size.width;
+//             height = size.height;
+
+//             // recreate resources
+//             auto imageInfo = engine::rhi::ImageInfo{
+//                 engine::rhi::ImageUsageFlags::eDepth_Stencil_Attachment | engine::rhi::ImageUsageFlags::eTransient_Attachment,
+//                 depthFormat, {width, height, 1u}
+//             }; 
+//             imageInfo.memoryExtFlags = engine::rhi::MemoryExtendedFlags::eDedicated;
+
+//             depthImages.clear();
+//             depthImages.reserve(swapchainImagesCountNew);
+//             for (uint32_t i = 0u; i < swapchainImagesCountNew; ++i) {
+//                 depthImages.emplace_back(std::move(rApi->createImage(device, imageInfo)));
+//             }
+
+//             frameBuffers.clear();
+//             frameBuffers.reserve(swapchainImagesCountNew);
+//             for (uint32_t i = 0u; i < swapchainImagesCountNew; ++i) {
+//                 auto & image = swapchain->getImage(i);
+//                 std::vector<engine::rhi::FrameBufferAttachment> fbAttachemnts{2u};
+//                 fbAttachemnts[0u].image = &image;
+//                 fbAttachemnts[0u].imageSize = {image.getExtent().width, image.getExtent().height};
+//                 fbAttachemnts[0u].finalLayout = engine::rhi::ImageLayout::eColor_Attachment_Optimal; // equal to subpasses attachments layouts, maybe can get it from subpasses?
+
+//                 auto & depthImage = depthImages[i];
+//                 fbAttachemnts[1u].image = depthImage.get();
+//                 fbAttachemnts[1u].imageSize = {depthImage->getExtent().width, depthImage->getExtent().height};
+//                 fbAttachemnts[1u].aspect = engine::rhi::ImageAspectFlags::eDepth;  // can get it from depthImage?
+//                 fbAttachemnts[1u].finalLayout = engine::rhi::ImageLayout::eDepth_Stencil_Attachment_Optimal; // equal to subpasses attachments layouts, maybe can get it from subpasses?
+
+//                 frameBuffers.emplace_back(rApi->createFrameBuffer(device, std::move(fbAttachemnts), renderPass));
+//             }
+
+//             executor.resume();
+//         });
+
+//         window0.setOnClose([&]() {
+//             executor.stop();
+//             device->waitIdle();
+
+//             programDepth = nullptr;
+//             program = nullptr;
+//             imguiProgram = nullptr;
+
+//             stagePositions = nullptr;
+//             stageColors = nullptr;
+//             stageIndices = nullptr;
+
+//             positions = nullptr;
+//             colors = nullptr;
+//             indices = nullptr;
+
+//             uniformBufferI = nullptr;
+//             uniformBuffer2 = nullptr;
+
+//             stageImageBuffer = nullptr;
+//             sampledImage = nullptr;
+
+//             for (auto & semaphore : readyToPresentSemaphores) {
+//                 rApi->destroySemaphore(device, semaphore);
+//             }
+//         });
+
+//         while (glfwModule.process()) {
+//             std::this_thread::sleep_for(std::chrono::duration<float>(inputCheckTime));
+//         }
+//     }
+
+//     return 1;
+// }

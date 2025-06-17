@@ -20,7 +20,18 @@ namespace engine {
     }
 
     ImGuiSystem::~ImGuiSystem() {
+        destroy();
         ImGui::DestroyContext();
+    }
+
+    void ImGuiSystem::destroy() noexcept {
+        _pipeline = nullptr;
+        _stagefontBuffer = nullptr;
+        _fontImage = nullptr;
+        _vertices = nullptr;
+        _indices = nullptr;
+        _uniform = nullptr;
+        _staging = nullptr;
     }
 
     void ImGuiSystem::createPipeline(const std::unique_ptr<rhi::runtime::Rhi> & api,

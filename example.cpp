@@ -13,6 +13,8 @@ namespace example {
     Example::Example() {
         using namespace engine;
         _fileManager.createFileSystem<CommonFileSystem>("common_fs0", CommonFileSystem::getCurrentDirectory() + "./resources/");
+
+        addInputObserver(&_imgui);
     }
 
     void Example::destroy() {
@@ -26,6 +28,18 @@ namespace example {
         for (auto & semaphore : _readyToPresentSemaphores) {
             _api->destroySemaphore(_device, semaphore);
         }
+
+        _shaderModulesManager = nullptr;
+        _imgui.destroy();
+
+        _programs.clear();
+        _mainFrameBuffers.clear();
+        _renderPasses.clear();
+        _depthImages.clear();
+        _swapchain = nullptr;
+
+        // _commandLists.clear();
+        // _device = nullptr;
     }
 
     void Example::createApi() {
@@ -50,7 +64,7 @@ namespace example {
         #endif
 
         rhi::InstanceCreateInfo instanceCreateInfo {
-            .apiVersion = engine::common::Version{1, 0, 0},
+            .apiVersion = engine::common::Version{1, 3, 0},
             .extensions = extensions,
             .layers = layers,
             .createDebugMessages = kUseApiDebugMessages,
@@ -118,15 +132,7 @@ namespace example {
         _swapchain = _api->createSwapchain(_device, _surface, swapchainCreateInfo);
     }
 
-    void Example::resize(uint16_t w, uint16_t h) {
-        if (_renderQueue) {
-            _renderQueue->waitIdle();
-        }
-        if (_device) {
-            _device->waitIdle();
-        }
-
-        _swapchain->resize(w, h, false);
+    void Example::sizeChanged() {
         const uint32_t swapchainImagesCount = _swapchain->getImagesCount();
 
         auto const size = _swapchain->getSize();
@@ -162,6 +168,18 @@ namespace example {
 
             _mainFrameBuffers.emplace_back(_api->createFrameBuffer(_device, std::move(fbAttachemnts), _renderPasses[kScreenRenderPass]));
         }
+    }
+
+    void Example::resize(uint16_t w, uint16_t h) {
+        if (_renderQueue) {
+            _renderQueue->waitIdle();
+        }
+        if (_device) {
+            _device->waitIdle();
+        }
+
+        _swapchain->resize(w, h, false);
+        
     }
 
     engine::rhi::RenderPassDescription createRenderPassDescription2(engine::rhi::Format colorFormat, engine::rhi::Format depthFormat) {
@@ -227,8 +245,8 @@ namespace example {
         _shaderModulesManager = _api->createShaderModulesManager();
 
         {
-            auto const vBytes = _fileManager.readFile("imgui.vert.spv");
-            auto const fBytes = _fileManager.readFile("imgui.frag.spv");
+            auto const vBytes = _fileManager.readFile("shaders/imgui.vert.spv");
+            auto const fBytes = _fileManager.readFile("shaders/imgui.frag.spv");
 
             const auto & vsModule = _shaderModulesManager->registerModule("imgui.vert", *_device, engine::rhi::shaders::Stages::eVertex, vBytes);
             const auto & fsModule = _shaderModulesManager->registerModule("imgui.frag", *_device, engine::rhi::shaders::Stages::eFragment, fBytes);
@@ -238,6 +256,7 @@ namespace example {
     }
     
     void Example::createPipelines() {
+        loadShaders();
         _imgui.createPipeline(_api, _device, _programs[kImguiProgram], _renderPasses[kScreenRenderPass], 1u);
     }
 
@@ -337,7 +356,6 @@ namespace example {
 
         // present
         auto const presentResult = _renderQueue->present(_swapchain.get(), imageIndex, signalSemaphores);
-
     }
 
 }
