@@ -8,7 +8,7 @@
 #include <vector>
 
 namespace engine::graphics {
-class StagingBuffer {
+    class StagingBuffer {
     public:
         inline static uint32_t kNotEnoughMemory = 0xff'ff'ff'ffu;
 
@@ -21,6 +21,7 @@ class StagingBuffer {
 
         std::byte* map() noexcept;
         void unmap() noexcept;
+        void flush() noexcept;
 
         uint32_t sizeInBytes() const noexcept {
             return _data.buffer->sizeInBytes();
@@ -38,7 +39,6 @@ class StagingBuffer {
 
     class InflightStagingBuffer {
     public:
-
         InflightStagingBuffer(const std::unique_ptr<rhi::runtime::Rhi> & api,
             rhi::runtime::DevicePtr & device, size_t size, 
             rhi::MemoryPropertyFlags memoryFlags = rhi::MemoryPropertyFlags::eHostVisible | rhi::MemoryPropertyFlags::eHostCached);

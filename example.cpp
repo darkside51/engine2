@@ -3,12 +3,19 @@
 #include "file/common_file_system.h"
 #include "graphics/render/rhi/vulkan/runtime.h"
 #include "graphics/render/rhi/common/command_list.h"
+#include "graphics/render/rhi/common/pipeline.h"
+
+#include "graphics/render/staging_buffer.h"
 
 #include <imgui.h>
 
 namespace example {
     constexpr uint8_t kScreenRenderPass = 0u;
+
     constexpr uint8_t kImguiProgram = 0u;
+    constexpr uint8_t kPostEffectProgram = 1u;
+
+    constexpr uint8_t kPostEffectPipeline = 0u;
 
     Example::Example() {
         using namespace engine;
@@ -29,17 +36,17 @@ namespace example {
             _api->destroySemaphore(_device, semaphore);
         }
 
+        _commandLists.clear();
+
         _shaderModulesManager = nullptr;
         _imgui.destroy();
 
+        _pipelines.clear();
         _programs.clear();
         _mainFrameBuffers.clear();
         _renderPasses.clear();
         _depthImages.clear();
         _swapchain = nullptr;
-
-        // _commandLists.clear();
-        // _device = nullptr;
     }
 
     void Example::createApi() {
@@ -151,6 +158,8 @@ namespace example {
             _depthImages.emplace_back(std::move(_api->createImage(_device, imageInfo)));
         }
 
+        // _colorAttachmentImages
+
         _mainFrameBuffers.clear();
         _mainFrameBuffers.reserve(swapchainImagesCount);
         for (uint32_t i = 0u; i < swapchainImagesCount; ++i) {
@@ -179,10 +188,75 @@ namespace example {
         }
 
         _swapchain->resize(w, h, false);
-        
     }
 
-    engine::rhi::RenderPassDescription createRenderPassDescription2(engine::rhi::Format colorFormat, engine::rhi::Format depthFormat) {
+    engine::rhi::RenderPassDescription createScreenRenderPassDescriptionWithPostEffect(
+        engine::rhi::Format swapchainColorFormat, 
+        engine::rhi::Format colorFormat, 
+        engine::rhi::Format depthFormat
+    ) {
+        std::vector<engine::rhi::AttachmentDescription> attachments(3u);
+
+        attachments[0].format = swapchainColorFormat;
+        attachments[0].loadStoreOp = {engine::rhi::AttachmentLoadOp::eClear, engine::rhi::AttachmentStoreOp::eStore};
+        attachments[0].stencilLoadStoreOp = {engine::rhi::AttachmentLoadOp::eDont_Care, engine::rhi::AttachmentStoreOp::eDont_Care};
+        attachments[0].finalLayout = engine::rhi::ImageLayout::ePresent_Src;
+
+        attachments[1].format = colorFormat;
+        attachments[1].loadStoreOp = {engine::rhi::AttachmentLoadOp::eClear, engine::rhi::AttachmentStoreOp::eStore};
+        attachments[1].stencilLoadStoreOp = {engine::rhi::AttachmentLoadOp::eDont_Care, engine::rhi::AttachmentStoreOp::eDont_Care};
+        attachments[1].finalLayout = engine::rhi::ImageLayout::eShader_Read_Only_Optimal;
+
+        attachments[2].format = depthFormat;
+        attachments[2].loadStoreOp = {engine::rhi::AttachmentLoadOp::eClear, engine::rhi::AttachmentStoreOp::eDont_Care}; // or must use eStore?
+        attachments[2].stencilLoadStoreOp = {engine::rhi::AttachmentLoadOp::eDont_Care, engine::rhi::AttachmentStoreOp::eDont_Care};
+        attachments[2].finalLayout = engine::rhi::ImageLayout::eDepth_Stencil_Attachment_Optimal;
+
+        std::vector<engine::rhi::SubpassDescription> subpasses(2u);
+
+        subpasses[0].colorAttachments = {{
+            .pNext = {nullptr, 0u},
+            .attachment = 1u,
+            .layout = engine::rhi::ImageLayout::eColor_Attachment_Optimal,
+            .aspectMask = engine::rhi::ImageAspectFlags::eColor
+        }};
+        subpasses[0].depthStencilAttachment = {
+            .pNext = {nullptr, 0u},
+            .attachment = 2u,
+            .layout = engine::rhi::ImageLayout::eDepth_Stencil_Attachment_Optimal,
+            .aspectMask = engine::rhi::ImageAspectFlags::eDepthStencil
+        };
+
+        subpasses[1].colorAttachments = {{
+            .pNext = {nullptr, 0u},
+            .attachment = 0u,
+            .layout = engine::rhi::ImageLayout::eColor_Attachment_Optimal,
+            .aspectMask = engine::rhi::ImageAspectFlags::eColor
+        }};
+
+        std::vector<engine::rhi::SubpassDependency> deps(1u);
+        deps[0].srcSubpass = 0u;
+        deps[0].dstSubpass = 1u;
+        deps[0].dependencyFlags = engine::rhi::DependencyFlags::eBy_Region;
+        deps[0].stages = {
+            .src = {
+                .stage = engine::rhi::PipelineStageFlags::eColor_Attachment_Output,
+                .accessMask = engine::rhi::AccessFlags::eColor_Attachment_Write
+            },
+            .dst = {
+                .stage = engine::rhi::PipelineStageFlags::eFragment_Shader,
+                .accessMask = engine::rhi::AccessFlags::eShader_Read,
+            }
+        };
+
+        return engine::rhi::RenderPassDescription{
+            std::move(attachments), 
+            std::move(subpasses), 
+            std::move(deps)
+        };
+    }
+
+    engine::rhi::RenderPassDescription createScreenRenderPassDescriptionWithDepthPrepass(engine::rhi::Format colorFormat, engine::rhi::Format depthFormat) {
         std::vector<engine::rhi::AttachmentDescription> attachments(2u);
         attachments[0].format = colorFormat;
         attachments[0].loadStoreOp = {engine::rhi::AttachmentLoadOp::eClear, engine::rhi::AttachmentStoreOp::eStore};
@@ -217,7 +291,7 @@ namespace example {
         std::vector<engine::rhi::SubpassDependency> deps(1u);
         deps[0].srcSubpass = 0u;
         deps[0].dstSubpass = 1u;
-        deps[0].dependencyFlags = engine::rhi::DependencyFlags::eNone; // ? can eNone
+        deps[0].dependencyFlags = engine::rhi::DependencyFlags::eBy_Region;
         deps[0].stages = {
             .src = {
                 .stage = engine::rhi::PipelineStageFlags::eLate_Fragment_Tests,
@@ -238,13 +312,13 @@ namespace example {
 
     void Example::createRenderPasses() {
         const auto depthFormat = _device->getSupportedDepthFormat(32u, false);
-        _renderPasses.emplace_back(_api->getRenderPass(_device, createRenderPassDescription2(_swapchain->getFormat(), depthFormat)));
+        _renderPasses.emplace_back(_api->getRenderPass(_device, createScreenRenderPassDescriptionWithDepthPrepass(_swapchain->getFormat(), depthFormat)));
     }
 
     void Example::loadShaders() {
         _shaderModulesManager = _api->createShaderModulesManager();
 
-        {
+        { // kImguiProgram
             auto const vBytes = _fileManager.readFile("shaders/imgui.vert.spv");
             auto const fBytes = _fileManager.readFile("shaders/imgui.frag.spv");
 
@@ -253,11 +327,136 @@ namespace example {
 
             _programs.emplace_back(_api->createProgram(_device, std::array{vsModule.getView(), fsModule.getView()}));
         }
+        { // kPostEffectProgram
+            auto const vBytes = _fileManager.readFile("shaders/postEffect.vert.spv");
+            auto const fBytes = _fileManager.readFile("shaders/postEffect.frag.spv");
+
+            const auto & vsModule = _shaderModulesManager->registerModule("postEffect.vert", *_device, engine::rhi::shaders::Stages::eVertex, vBytes);
+            const auto & fsModule = _shaderModulesManager->registerModule("postEffect.frag", *_device, engine::rhi::shaders::Stages::eFragment, fBytes);
+
+            _programs.emplace_back(_api->createProgram(_device, std::array{vsModule.getView(), fsModule.getView()}));
+        }
     }
     
     void Example::createPipelines() {
+        using namespace engine::rhi;
+
         loadShaders();
         _imgui.createPipeline(_api, _device, _programs[kImguiProgram], _renderPasses[kScreenRenderPass], 1u);
+
+        GraphicsPipelineStatesInfo info;
+        info.blendModes = {common_blend_modes::blend_none};
+
+        info.depthStencilState = {
+            {
+                .depthTestEnable = false,
+                .depthWriteEnable = false,
+                .depthCompareOp = CompareOp::eAlways
+            }, 
+            {}
+        };
+
+        info.rasterisationState = {PolygonMode::eFill, CullMode::eBack};
+        info.inputAssemblyState = {PrimitiveTopology::eTriangles, false};
+        info.vertexInputState = {
+            std::vector{VertexInputBinding::create<float[2]>(0u)},
+            std::vector{
+                VertexInputAttribute{
+                    .location = 0u,
+                    .binding = 0u,
+                    .format = Format::eR32G32_Sfloat,
+                    .offset = 0u
+                }
+            }
+        };
+
+        _pipelines.emplace_back(_api->createGraphicsPipeline(_device, _renderPasses[kScreenRenderPass], _programs[kPostEffectProgram], info, 1u));
+    }
+
+    void Example::createDefaultResources() {
+        // create post buffers and default image
+        using namespace engine::rhi;
+        using namespace engine::graphics;
+
+        BufferInfo bufferInfo {
+            BufferUsageFlags::eVertex_Buffer | BufferUsageFlags::eTransfer_Dst,
+            MemoryPropertyFlags::eDeviceLocal
+        };
+
+        _postPositions = _api->createBuffer(_device, bufferInfo, sizeof(std::array<float, 2u>) * 4u);
+
+        bufferInfo.usage = BufferUsageFlags::eIndex_Buffer | BufferUsageFlags::eTransfer_Dst;
+        _postIndices = _api->createBuffer(_device, bufferInfo, sizeof(uint16_t) * 6u);
+
+        const auto imageInfo = ImageInfo{
+            ImageUsageFlags::eSampled | ImageUsageFlags::eTransfer_Dst,
+            Format::eR8G8B8A8_Unorm, {2u, 2u, 1u}
+        };
+
+        _defaultImage = _api->createImage(_device, imageInfo);
+
+        // staging buffer for vtx, idx, image;
+        constexpr auto stagingSize = sizeof(std::array<float, 2u>) * 4u + sizeof(uint16_t) * 6u + sizeof(uint32_t) * 4u;
+        StagingBuffer staging{_api,_device, stagingSize};
+        
+        std::byte * memory = staging.map();
+        const auto vtxOffset = staging.requestBytes(sizeof(std::array<float, 2u>) * 4u);
+        const auto idxOffset = staging.requestBytes(sizeof(uint16_t) * 6u);
+        const auto imgOffset = staging.requestBytes(sizeof(uint32_t) * 4u);
+
+        auto * vtxData = reinterpret_cast<std::array<float, 2u>*>(memory + vtxOffset);
+        auto * idxData = reinterpret_cast<uint16_t*>(memory + idxOffset);
+        auto * imgData = reinterpret_cast<uint32_t*>(memory + imgOffset);
+
+        vtxData[0] = {-1.0, -1.0}; vtxData[1] = {-1.0, 1.0};
+        vtxData[2] = {1.0, 1.0}; vtxData[3] = {1.0, -1.0}; 
+        
+        idxData[0] = 0u; idxData[1] = 1u; idxData[2] = 2u;
+        idxData[3] = 0u; idxData[4] = 2u; idxData[5] = 3u;
+
+        imgData[0] = 0xff'ff'ff'ffu; imgData[1] = 0xff'55'55'55u;
+        imgData[2] = 0xff'55'55'55u; imgData[3] = 0xff'ff'ff'ffu;
+
+        staging.flush();
+        staging.unmap();
+        // staging buffer works complete
+
+        auto * commandPool = _device->acquireCommandPool(engine::rhi::queue_flags::graphics | engine::rhi::queue_flags::present);
+        auto tmpCommandList = _api->createCommandList(commandPool, engine::rhi::CommandBufferLevel::ePrimary);
+
+        tmpCommandList->begin(engine::rhi::CommandBufferUsageFlags::eOne_Time_Submit);
+
+        tmpCommandList->copyBuffer2Buffer(staging.getBuffer(), _postPositions, 
+            {.srcOffset = vtxOffset, .dstOffset = 0u, .size = _postPositions->sizeInBytes()});
+        tmpCommandList->copyBuffer2Buffer(staging.getBuffer(), _postIndices, 
+            {.srcOffset = idxOffset, .dstOffset = 0u, .size = _postIndices->sizeInBytes()});
+        tmpCommandList->copyBuffer2Image(staging.getBuffer(), _defaultImage, 
+            {
+                .bufferOffset = imgOffset,
+                .bufferRowLength = 0u,
+                .bufferImageHeight = 0u,
+                .imageSubresource = {.aspectMask = engine::rhi::ImageAspectFlags::eColor},
+                .imageOffset = {0u, 0u, 0u},
+                .imageExtent = _defaultImage->getExtent()
+            }
+        );
+
+        tmpCommandList->end();
+        tmpCommandList->record(0u);
+
+        auto lists = std::array{tmpCommandList.get()};
+        auto fence = _api->createFence(_device, FenceCreateFlags::eNone);
+        bool const submitted = _renderQueue->submit(0u, std::array{
+            engine::rhi::runtime::Queue::SubmitInfo {
+                .w8Semaphores = {},
+                .w8DstStages = {},
+                .signalSemaphores = {},
+                .lists = lists
+            }
+        }, fence);
+
+        _renderQueue->waitSubmit(0u, UINT64_MAX, fence);
+        _api->destroyFence(_device, fence);
     }
 
     void Example::prepare() {
@@ -280,21 +479,25 @@ namespace example {
         for (size_t i = 0u; i < inflightFrames; ++i) {
             _commandLists.emplace_back(_api->createCommandList(commandPool, engine::rhi::CommandBufferLevel::ePrimary));
         }
+
+        //
+        createDefaultResources();
+    }
+
+    void Example::update(float delta) {
+        const auto [width, height] = _swapchain->getSize();
+        _imgui.beginFrame(delta, width, height);
+        ImGui::ShowDemoWindow();
+        _imgui.endFrame();
     }
 
     void Example::draw(float delta) {
+        using namespace engine;
         if (_commandLists.empty()) {
             return;
         }
 
-        auto const size = _swapchain->getSize();
-        const auto width = size.width;
-        const auto height = size.height;
-
-        _imgui.beginFrame(delta, width, height);
-        ImGui::ShowDemoWindow();
-        _imgui.endFrame();
-
+        const auto [width, height] = _swapchain->getSize();
         const auto frameId = _frameIndex();
 
         if (_canDraw) {
@@ -313,13 +516,13 @@ namespace example {
 
         // render frame
         auto & commandList = _commandLists[frameId];
-        commandList->begin(engine::rhi::CommandBufferUsageFlags::eOne_Time_Submit);
+        commandList->begin(rhi::CommandBufferUsageFlags::eOne_Time_Submit);
 
         _imgui.prepare(commandList, frameId, _api, _device);
 
         constexpr auto clearValues = std::array{
-            engine::rhi::ClearValue{0x77'77'77'ffu},
-            engine::rhi::ClearValue{1.0f}
+            rhi::ClearValue{0x77'77'77'ffu},
+            rhi::ClearValue{1.0f}
         };
 
         commandList->beginRenderPass(_renderPasses[kScreenRenderPass], _mainFrameBuffers[imageIndex], clearValues, {{0, 0}, {width, height}});
@@ -327,8 +530,16 @@ namespace example {
         commandList->setViewport(0.0f, 0.0f, width, height);
         commandList->setScissor({{0, 0}, {width, height}});
 
-        commandList->nextSubpass(engine::rhi::SubpassContents::ePrimaryBufferInline);
+        commandList->nextSubpass(rhi::SubpassContents::ePrimaryBufferInline);
 
+        // draw with postEffect
+        commandList->bindPipeline(_pipelines[kPostEffectPipeline]);
+        commandList->bindVertexBuffer(0u, _postPositions);
+        commandList->bindIndexBuffer(_postIndices, 0u, rhi::IndexType::eU16);
+        commandList->bindImage(0u, _defaultImage, rhi::SamplerInfo{});
+        commandList->drawIndexed(6u);
+
+        // draw imgui
         _imgui.draw(commandList, frameId);
 
         commandList->endRenderPass();

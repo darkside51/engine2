@@ -25,8 +25,12 @@ namespace engine::graphics {
         _data.buffer->unmap();        
     }
 
+    void StagingBuffer::flush() noexcept {
+        _data.buffer->flush();
+    }
+
     uint32_t StagingBuffer::requestBytes(uint32_t bytes) noexcept { 
-        if (_data.offset + bytes >= _data.buffer->sizeInBytes()) {
+        if (_data.offset + bytes > _data.buffer->sizeInBytes()) {
             return kNotEnoughMemory;
         }
 

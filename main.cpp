@@ -436,6 +436,7 @@ int main() {
 
         threads::Executor executor([&](auto & executionContext, float delta) {
             executionContext.performTasks();
+            ex.update(delta);
             ex.draw(delta);
         }, redrawTime);
 

@@ -31,15 +31,19 @@ public:
 
     void prepare();
 
+    void update(float delta);
     void draw(float delta);
 
 private:
     void loadShaders();
+    void createDefaultResources();
 
     engine::FileManager _fileManager;
     engine::rhi::runtime::ShaderModulesManagerPtr _shaderModulesManager;
 
     std::vector<engine::rhi::runtime::GpuProgramPtr> _programs;
+    std::vector<engine::rhi::runtime::PipelinePtr> _pipelines;
+
     std::unique_ptr<engine::rhi::runtime::Rhi> _api;
     engine::rhi::runtime::SurfacePtr _surface;
 
@@ -59,6 +63,9 @@ private:
     engine::rhi::FrameIndex _frameIndex;
 
     engine::ImGuiSystem _imgui;
+    engine::rhi::runtime::BufferPtr _postPositions = nullptr;
+    engine::rhi::runtime::BufferPtr _postIndices = nullptr;
+    engine::rhi::runtime::ImagePtr _defaultImage = nullptr;
 
     bool _canDraw = true;
 };

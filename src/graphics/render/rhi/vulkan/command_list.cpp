@@ -195,6 +195,7 @@ namespace engine::vulkan::runtime {
             case CommandType::eEnd:
             {
                 //_barriers.flush(_commandbuffer());
+                applyPostBarriers();
                 _commandbuffer.end();
             }
                 break;
