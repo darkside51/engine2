@@ -32,7 +32,7 @@ namespace engine::rhi::runtime {
     }
 
     void CommandList::beginRenderPass(RenderPass renderPass, FrameBufferPtr & framebuffer, 
-        std::span<const ClearValue> clearValues, const Rect2D & area, std::span<BeginRenderPassCommand::ImageInShaderUsage> imageInShaderUsage) {
+        std::span<const ClearValue> clearValues, const Rect2D & area, std::span<ImageInShaderUsage> imageInShaderUsage) {
         _resources.push_back(framebuffer);
         _commands->create<BeginRenderPassCommand>(renderPass, framebuffer, clearValues, area, imageInShaderUsage);
         ++_commandsCount;

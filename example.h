@@ -3,6 +3,7 @@
 #include "file/file_manager.h"
 #include "graphics/render/rhi/common/runtime.h"
 #include "graphics/render/rhi/common/utils.h"
+#include "graphics/render/inflight_buffer.h"
 
 #include "input/input.h"
 
@@ -52,9 +53,11 @@ private:
     engine::rhi::runtime::DevicePtr _device;
 
     engine::rhi::runtime::SwapchainPtr _swapchain;
+    std::vector<engine::rhi::runtime::ImagePtr> _colorAttachmentImages;
     std::vector<engine::rhi::runtime::ImagePtr> _depthImages;
     std::vector<engine::rhi::runtime::RenderPass> _renderPasses;
     std::vector<engine::rhi::runtime::FrameBufferPtr> _mainFrameBuffers;
+    std::vector<engine::rhi::runtime::FrameBufferPtr> _sceneFrameBuffers;
 
     engine::rhi::runtime::QueuePtr _renderQueue;
     std::vector<engine::rhi::runtime::Semaphore> _readyToPresentSemaphores;
@@ -66,6 +69,7 @@ private:
     engine::rhi::runtime::BufferPtr _postPositions = nullptr;
     engine::rhi::runtime::BufferPtr _postIndices = nullptr;
     engine::rhi::runtime::ImagePtr _defaultImage = nullptr;
+    std::unique_ptr<engine::graphics::InflightBuffer> _uniformBufferI = nullptr;
 
     bool _canDraw = true;
 };

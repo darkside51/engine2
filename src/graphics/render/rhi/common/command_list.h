@@ -23,7 +23,7 @@ namespace engine::rhi::runtime {
 
         void beginRenderPass(RenderPass renderPass, FrameBufferPtr & framebuffer, 
             std::span<const ClearValue> clearValues, const Rect2D & area, 
-            std::span<BeginRenderPassCommand::ImageInShaderUsage> imageInShaderUsage = {});
+            std::span<ImageInShaderUsage> imageInShaderUsage = {});
         void endRenderPass();
         void nextSubpass(SubpassContents contents = SubpassContents::ePrimaryBufferInline);
 

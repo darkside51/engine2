@@ -63,12 +63,12 @@ namespace engine::rhi::runtime {
             flags(flags) {}
     };
 
-    struct BeginRenderPassCommand : Command {
-        struct ImageInShaderUsage {
-            Image * img = nullptr;
-            PipelineStageFlags stage = PipelineStageFlags::eFragment_Shader;
-        };
+    struct ImageInShaderUsage {
+        Image * img = nullptr;
+        PipelineStageFlags stage = PipelineStageFlags::eFragment_Shader;
+    };
 
+    struct BeginRenderPassCommand : Command {
         RenderPass renderPass{};
         FrameBuffer * framebuffer = nullptr; 
         dynamic_array<ClearValue, 4u> clearValues;
