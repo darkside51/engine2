@@ -32,17 +32,25 @@ namespace engine::vulkan {
     }
 
     void PipelineBarriers::flush(VkCommandBuffer commandBuffer) {
-        for (const auto & [stage, barriers] : _barriers) {
-            vkCmdPipelineBarrier(
-                commandBuffer, 
-                stage.srcStageMask, stage.dstStageMask, stage.dependencyFlags, 
-                0u, nullptr, 
-                barriers.bufferBarriers.size(), barriers.bufferBarriers.data(), 
-                barriers.imageBarriers.size(), barriers.imageBarriers.data()
-            );
+        for (/*const*/ auto & [stage, barriers] : _barriers) {
+            if (!barriers.bufferBarriers.empty() || !barriers.imageBarriers.empty()) {
+                auto buffers = barriers.bufferBarriers.view();
+                auto imgs = barriers.imageBarriers.view();
+                vkCmdPipelineBarrier(
+                    commandBuffer, 
+                    stage.srcStageMask, stage.dstStageMask, stage.dependencyFlags, 
+                    0u, nullptr, // need to use mamory barriers?
+                    buffers.size(), buffers.data(), 
+                    imgs.size(), imgs.data()
+                );
+
+                // reset data from all reused vectors, for minimize dynamic allocations
+                barriers.bufferBarriers.clear();
+                barriers.imageBarriers.clear();
+            }
         }
 
-        _barriers.clear();
+        //_barriers.clear(); // no clear all map, for minimize dynamic allocations
     }
 
     void PipelineBarriers::reset() {

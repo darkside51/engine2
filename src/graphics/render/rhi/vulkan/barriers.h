@@ -5,15 +5,48 @@
 #include <vulkan/vulkan.h>
 
 #include <cstdint>
+#include <span>
 #include <unordered_map>
 #include <vector>
 
 namespace engine::vulkan {
 
+template <typename T>
+struct ReusedVector {
+    std::vector<T> vec{};
+    size_t current = 0u;
+
+    constexpr void reserve(size_t n) {
+        vec.reserve(n);
+    }
+
+    std::vector<T>* operator->() noexcept { return &vec; }
+    void clear() noexcept {
+        current = 0u;
+    }
+
+    template <typename...Args>
+    void emplace_back(Args&&...args) {
+        if (current < vec.size()) {
+            vec[current] = T(std::forward<Args>(args)...);
+        } else {
+            vec.emplace_back(std::forward<Args>(args)...);
+        }
+        ++current;
+    }
+
+    std::span<const T> view() const noexcept {
+        return {vec.begin(), vec.begin() + current};
+    }
+
+    size_t capacity() const noexcept { return vec.capacity(); }
+    bool empty() const noexcept { return current == 0u; }
+};
+
 class PipelineBarriers {
     struct Barriers {
-        std::vector<VkBufferMemoryBarrier> bufferBarriers;
-        std::vector<VkImageMemoryBarrier> imageBarriers;
+        ReusedVector<VkBufferMemoryBarrier> bufferBarriers;
+        ReusedVector<VkImageMemoryBarrier> imageBarriers;
     };
 
     struct BarrierStage {

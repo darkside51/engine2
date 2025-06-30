@@ -1,5 +1,4 @@
 #include "utils/profile/leaks.h"
-#include "tests/all_tests.h"
 
 /////////
 #include "threads/executor.h"
@@ -12,44 +11,44 @@ int main() {
     auto & window0 = glfwModule.createWindow("vulkan", 1024u, 768u);
     window0.setVisible(false);
 
-    example::Example ex;
-    ex.createApi();
-    if (ex.createSurface(window0.getSurfaceCreateInfo())) {
-        ex.createDevice();
-        ex.createSwapchain();
+    example::Example example;
+    example.createApi();
+    if (example.createSurface(window0.getSurfaceCreateInfo())) {
+        example.createDevice();
+        example.createSwapchain();
 
         auto const [width, height] = window0.getSize();
-        ex.resize(width, height);
+        example.resize(width, height);
 
-        ex.createRenderPasses();
+        example.createRenderPasses();
         
-        ex.sizeChanged();
+        example.sizeChanged();
 
-        ex.createPipelines();
+        example.createPipelines();
 
         constexpr float inputCheckTime = 1.0f / 60.0f;
         constexpr float redrawTime = 1.0f / 120.0f;
 
-        threads::Executor executor([&](auto & executionContext, float delta) {
+        threads::Executor renderThread([&](auto & executionContext, float delta) {
             executionContext.performTasks();
-            ex.update(delta);
-            ex.draw(delta);
+            example.update(delta);
+            example.draw(delta);
         }, redrawTime);
 
-        executor.emplaceTasks(stl::make_vector(threads::WorkerTask{[&](){
-            ex.prepare();
+        renderThread.emplaceTasks(stl::make_vector(threads::WorkerTask{[&](){
+            example.prepare();
         }}));
 
-        executor.run();
+        renderThread.run();
 
         window0.setVisible(true);
 
         window0.setOnPointer([&](engine::PointerEvent && event) {
-            ex.onPointerEvent(std::move(event));
+            example.onPointerEvent(std::move(event));
         });
 
         window0.setOnWheel([&](float dx, float dy) {
-            ex.onWheelEvent(dx, dy);
+            example.onWheelEvent(dx, dy);
         });
 
         window0.setOnKey([&](engine::KeyEvent && event, uint8_t mask) {
@@ -57,19 +56,19 @@ int main() {
                 window0.close();
                 return;
             }
-            ex.onKeyEvent(std::move(event), mask);
+            example.onKeyEvent(std::move(event), mask);
         });
 
         window0.setOnResize([&](uint16_t w, uint16_t h) {
-            executor.pause();
-            ex.resize(w, h);
-            ex.sizeChanged();
-            executor.resume();
+            renderThread.pause();
+            example.resize(w, h);
+            example.sizeChanged();
+            renderThread.resume();
         });
 
         window0.setOnClose([&]() {
-            executor.stop();
-            ex.destroy();
+            renderThread.stop();
+            example.destroy();
         });
 
         while (glfwModule.process()) {
