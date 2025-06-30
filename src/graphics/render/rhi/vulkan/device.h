@@ -31,6 +31,7 @@ public:
     using RenderPass = VkRenderPass;
     using Fence = VkFence;
     using Semaphore = VkSemaphore;
+    using Event = VkEvent;
     using Sampler = VkSampler;
     
     Device(const PhysicalDevice & gpu, const rhi::DeviceCreateInfo & info);
@@ -70,9 +71,13 @@ public:
 
     Fence createFence(rhi::FenceCreateFlags flags) const noexcept;
     Semaphore createSemaphore() const noexcept;
+    Event createEvent(rhi::EventCreateFlags flags) const noexcept;
 
     void destroyFence(const Fence & fence) const noexcept;
     void destroySemaphore(const Semaphore & semaphore) const noexcept;
+    void destroyEvent(const Event & event) const noexcept;
+
+    void resetEvent(const Event & event) const noexcept;
 
     Sampler getSampler(const rhi::SamplerInfo & samplerInfo);
 

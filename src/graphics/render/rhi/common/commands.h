@@ -34,6 +34,8 @@ namespace engine::rhi::runtime {
         eCopyBuffer2Buffer = 17u,
         eCopyBuffer2Image = 18u,
         ePipelineBarriers = 19u,
+        eSetEvent = 20u,
+        eWaitEvents = 21u
     };
 
     class CommandList;
@@ -63,9 +65,23 @@ namespace engine::rhi::runtime {
             flags(flags) {}
     };
 
-    struct ImageInShaderUsage {
+    struct ImageTransitionInfo {
         Image * img = nullptr;
+        ImageLayout layout = ImageLayout::eShader_Read_Only_Optimal;
         PipelineStageFlags stage = PipelineStageFlags::eFragment_Shader;
+        AccessFlags access = AccessFlags::eShader_Read;
+        uint8_t baseLayer = 0u; 
+        uint8_t baseLevel = 0u; 
+        uint8_t layersCount = 0u; 
+        uint8_t levelsCount = 0u;
+    };
+
+    struct BufferTransitionInfo {
+        Buffer * buff = nullptr;
+        PipelineStageFlags stage = PipelineStageFlags::eVertex_Shader;
+        AccessFlags access = AccessFlags::eShader_Read;
+        size_t offset = 0u;
+        size_t size = kWholeSize;
     };
 
     struct BeginRenderPassCommand : Command {
@@ -73,15 +89,21 @@ namespace engine::rhi::runtime {
         FrameBuffer * framebuffer = nullptr; 
         dynamic_array<ClearValue, 4u> clearValues;
         rhi::Rect2D area{};
-        std::span<ImageInShaderUsage> imageInShaderUsage;
-        BeginRenderPassCommand(RenderPass renderPass, FrameBufferPtr & framebuffer, 
-            std::span<const ClearValue> clearValues, const Rect2D & area, std::span<ImageInShaderUsage> imageInShaderUsage = {}) : 
+        std::span<ImageTransitionInfo> imageTransitionInfo;
+        std::span<BufferTransitionInfo> bufferTransitionInfo;
+        BeginRenderPassCommand(
+            RenderPass renderPass, FrameBufferPtr & framebuffer, 
+            std::span<const ClearValue> clearValues, const Rect2D & area, 
+            std::span<ImageTransitionInfo> imageTransitionInfo = {},
+            std::span<BufferTransitionInfo> bufferTransitionInfo = {}
+        ) : 
             Command(CommandType::eBeginRenderPass, sizeof(BeginRenderPassCommand)),
             renderPass(renderPass),
             framebuffer(framebuffer.get()),
             clearValues(clearValues),
             area(area),
-            imageInShaderUsage(imageInShaderUsage) {}
+            imageTransitionInfo(imageTransitionInfo),
+            bufferTransitionInfo(bufferTransitionInfo) {}
     };
 
     struct EndRenderPassCommand : Command {
@@ -90,9 +112,15 @@ namespace engine::rhi::runtime {
 
     struct NextSubpassCommand : Command {
         SubpassContents contents;
-        NextSubpassCommand(SubpassContents contents) : 
+        std::span<ImageTransitionInfo> imageTransitionInfo;
+        std::span<BufferTransitionInfo> bufferTransitionInfo;
+        NextSubpassCommand(SubpassContents contents,
+            std::span<ImageTransitionInfo> imageTransitionInfo = {},
+            std::span<BufferTransitionInfo> bufferTransitionInfo = {}) : 
             Command(CommandType::eNextSubpass, sizeof(NextSubpassCommand)),
-            contents(contents) {}
+            contents(contents),
+            imageTransitionInfo(imageTransitionInfo),
+            bufferTransitionInfo(bufferTransitionInfo) {}
     };
 
     struct ExecuteCommandsCommand : Command { // todo!
@@ -240,6 +268,14 @@ namespace engine::rhi::runtime {
         PipelineBarriersCommand() : Command(CommandType::ePipelineBarriers, sizeof(PipelineBarriersCommand)) {}
     };
 
+    struct SetEventCommand : Command { // todo!
+        SetEventCommand() : Command(CommandType::eSetEvent, sizeof(SetEventCommand)) {}
+    };
+
+    struct WaitEventsCommand : Command { // todo!
+        WaitEventsCommand() : Command(CommandType::eWaitEvents, sizeof(WaitEventsCommand)) {}
+    };
+
     ///////////////////////////////////////////////
     inline constexpr void Command::destroy() const noexcept {
         switch (cmdType) {
@@ -262,6 +298,8 @@ namespace engine::rhi::runtime {
             case CommandType::eCopyBuffer2Buffer: [[fallthrough]];
             case CommandType::eCopyBuffer2Image: [[fallthrough]];
             case CommandType::ePipelineBarriers:
+            case CommandType::eSetEvent:
+            case CommandType::eWaitEvents:
                 return;
             case CommandType::eBeginRenderPass: 
                 static_cast<const BeginRenderPassCommand*>(this)->~BeginRenderPassCommand();

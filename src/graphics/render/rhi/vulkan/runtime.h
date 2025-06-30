@@ -45,11 +45,19 @@ namespace engine::vulkan::runtime {
 
         rhi::runtime::Semaphore createSemaphore(const rhi::runtime::DevicePtr & device) const noexcept override;
     
+        rhi::runtime::Event createEvent(const rhi::runtime::DevicePtr & device, 
+            rhi::EventCreateFlags flags) const noexcept override;
+
         void destroyFence(const rhi::runtime::DevicePtr & device, 
             const rhi::runtime::Fence & fence) const noexcept override;
 
         void destroySemaphore(const rhi::runtime::DevicePtr & device, 
             const rhi::runtime::Semaphore & semaphore) const noexcept override;
+
+        void destroyEvent(const rhi::runtime::DevicePtr & device, 
+            const rhi::runtime::Event & event) const noexcept override;
+
+        void resetEvent(const rhi::runtime::DevicePtr & device, const rhi::runtime::Event & event) const noexcept override;
     
         rhi::runtime::ShaderModulesManagerPtr createShaderModulesManager() const override;
     
@@ -73,7 +81,7 @@ namespace engine::vulkan::runtime {
         rhi::runtime::BufferPtr createBuffer(rhi::runtime::DevicePtr & device, 
             const rhi::BufferInfo & info, size_t size) override; 
 
-        void destroyObject(rhi::runtime::BufferPtr & ptr) override;
+        void destroyBuffer(rhi::runtime::BufferPtr & ptr);
 
         rhi::runtime::CommandListPtr createCommandList(rhi::runtime::CommandPool * commandPool, 
             rhi::CommandBufferLevel level = rhi::CommandBufferLevel::ePrimary) const override;

@@ -23,9 +23,12 @@ namespace engine::rhi::runtime {
 
         void beginRenderPass(RenderPass renderPass, FrameBufferPtr & framebuffer, 
             std::span<const ClearValue> clearValues, const Rect2D & area, 
-            std::span<ImageInShaderUsage> imageInShaderUsage = {});
+            std::span<ImageTransitionInfo> imageTransitionInfo = {},
+            std::span<BufferTransitionInfo> bufferTransitionInfo = {});
         void endRenderPass();
-        void nextSubpass(SubpassContents contents = SubpassContents::ePrimaryBufferInline);
+        void nextSubpass(SubpassContents contents = SubpassContents::ePrimaryBufferInline,
+            std::span<ImageTransitionInfo> imageTransitionInfo = {},
+            std::span<BufferTransitionInfo> bufferTransitionInfo = {});
 
         void executeCommands(std::span<const CommandList*> secondaryCommandLists);
 

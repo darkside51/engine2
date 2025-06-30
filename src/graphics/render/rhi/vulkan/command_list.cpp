@@ -218,17 +218,26 @@ namespace engine::vulkan::runtime {
                 auto & framebuffer = static_cast<vulkan::FrameBuffer &>(*command->framebuffer);
 
                 // todo: move set barriers to function
-                for (const auto & image : command->imageInShaderUsage) { // to use some images in shaders after rtt
-                    const auto  dstStage = utils::convert2vk(image.stage);
-   
+                for (const auto & buffer : command->bufferTransitionInfo) {
+                    auto * buff = static_cast<Buffer*>(buffer.buff);
+                    buff->transition(
+                        _barriers,
+                        utils::convert2vk(buffer.stage),
+                        utils::convert2vk(buffer.access),
+                        buffer.offset,
+                        buffer.size
+                    );
+                }
+
+                for (const auto & image : command->imageTransitionInfo) { // to use some images in shaders after rtt
                     auto * img = static_cast<Image*>(image.img);
                     img->transition(
                         _barriers, 
-                        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 
-                        dstStage, 
-                        VkAccessFlagBits::VK_ACCESS_SHADER_READ_BIT, 
-                        0u, 0u, 
-                        0u, 0u
+                        utils::convert2vk(image.layout), 
+                        utils::convert2vk(image.stage), 
+                        utils::convert2vk(image.access), 
+                        image.baseLayer, image.baseLevel, 
+                        image.layersCount, image.levelsCount
                     );
                 }
 
@@ -307,6 +316,32 @@ namespace engine::vulkan::runtime {
             case CommandType::eNextSubpass:
             {
                 const auto * command = static_cast<NextSubpassCommand*>(cmd);
+
+                // todo: move set barriers to function
+                for (const auto & buffer : command->bufferTransitionInfo) {
+                    auto * buff = static_cast<Buffer*>(buffer.buff);
+                    buff->transition(
+                        _barriers,
+                        utils::convert2vk(buffer.stage),
+                        utils::convert2vk(buffer.access),
+                        buffer.offset,
+                        buffer.size
+                    );
+                }
+
+                for (const auto & image : command->imageTransitionInfo) { // to use some images in shaders after rtt
+                    auto * img = static_cast<Image*>(image.img);
+                    img->transition(
+                        _barriers, 
+                        utils::convert2vk(image.layout), 
+                        utils::convert2vk(image.stage), 
+                        utils::convert2vk(image.access), 
+                        image.baseLayer, image.baseLevel, 
+                        image.layersCount, image.levelsCount
+                    );
+                }
+                _barriers.flush(_commandbuffer());
+
                 _commandbuffer.nextSubpass(command->contents);
             }
                 break;

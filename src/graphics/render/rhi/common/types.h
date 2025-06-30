@@ -7,6 +7,7 @@
 #include <array>
 #include <cmath>
 #include <cstdint>
+#include <limits>
 #include <utility>
 #include <vector>
 
@@ -21,7 +22,8 @@ namespace engine::rhi {
     //     return static_cast<T>(std::to_underlying(a) & std::to_underlying(b));
     // }
 
-    inline constexpr uint64_t kWholeSize = ~0ULL;
+    inline constexpr size_t kWholeSize = std::numeric_limits<size_t>::max();
+    inline constexpr uint64_t kWholeSize64 = ~0ULL;
     inline constexpr uint32_t kWholeSize32 = (~0U);
 
     struct Offset2D {
@@ -586,6 +588,17 @@ namespace engine::rhi {
             sharing(sharing),
             queueFamilyIndices(std::move(queueFamilyIndices)) {}
     };
+
+    enum class EventCreateFlags : uint8_t {
+        eNone = 0u,
+        eDeviceOnly = 1u
+    };
+    inline EventCreateFlags operator | (EventCreateFlags a, EventCreateFlags b) {
+        return static_cast<EventCreateFlags>(std::to_underlying(a) | std::to_underlying(b));
+    }
+    inline EventCreateFlags operator & (EventCreateFlags a, EventCreateFlags b) {
+        return static_cast<EventCreateFlags>(std::to_underlying(a) & std::to_underlying(b));
+    }
 
     enum class ResolveModeFlags : uint8_t {
         eNone = 0u,

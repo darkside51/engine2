@@ -31,6 +31,8 @@ namespace example {
         addInputObserver(&_imgui);
     }
 
+    Example::~Example() = default;
+
     void Example::destroy() {
         if (_renderQueue) {
             _renderQueue->waitIdle();
@@ -563,6 +565,19 @@ namespace example {
         _imgui.endFrame();
     }
 
+    void Example::prepareFrameDrawData(engine::rhi::runtime::CommandListPtr & commandList, uint8_t frame, float delta) {
+        using namespace engine;
+        { // update uniforms
+            auto * map = _uniformBufferI->map2<mat4f>();
+            rotateMatrix_z(*map, -delta);
+
+            _uniformBufferI->unmap();
+            _uniformBufferI->commit(commandList, frame);
+        }
+
+        _imgui.prepare(commandList, frame, _api, _device);
+    }
+
     void Example::draw(float delta) {
         using namespace engine;
         if (_commandLists.empty()) {
@@ -590,17 +605,10 @@ namespace example {
         auto & commandList = _commandLists[frameId];
         commandList->begin(rhi::CommandBufferUsageFlags::eOne_Time_Submit);
 
-        { // update uniforms
-            auto * map = _uniformBufferI->map2<mat4f>();
-            rotateMatrix_z(*map, -delta);
+        // prepare frame draw data
+        prepareFrameDrawData(commandList, frameId, delta);
 
-            _uniformBufferI->unmap();
-            _uniformBufferI->commit(commandList, frameId);
-        }
-
-
-        _imgui.prepare(commandList, frameId, _api, _device);
-
+        // render
         constexpr auto sceneClearValues = std::array{
             rhi::ClearValue{0x77'77'77'ffu},
             rhi::ClearValue{1.0f}
@@ -627,7 +635,7 @@ namespace example {
         commandList->endRenderPass();
 
         // final pass
-        std::array images2Shaders{rhi::runtime::ImageInShaderUsage{_colorAttachmentImages[imageIndex].get()}};
+        std::array images2Shaders{rhi::runtime::ImageTransitionInfo{_colorAttachmentImages[imageIndex].get()}};
         commandList->beginRenderPass(_renderPasses[kScreenRenderPass], _mainFrameBuffers[imageIndex], clearValues, {{0, 0}, {width, height}}, images2Shaders);
 
         // draw with postEffect

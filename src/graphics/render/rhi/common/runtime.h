@@ -25,6 +25,7 @@ namespace engine::rhi::runtime {
 using RenderPass = void*;
 using Fence = void*;
 using Semaphore = void*;
+using Event = void*;
 class CommandPool;
 class CommandList;
 
@@ -233,9 +234,13 @@ public:
 
     virtual Fence createFence(const DevicePtr & device, FenceCreateFlags flags) const noexcept = 0;
     virtual Semaphore createSemaphore(const DevicePtr & device) const noexcept = 0;
+    virtual Event createEvent(const DevicePtr & device, EventCreateFlags flags) const noexcept = 0;
 
     virtual void destroyFence(const DevicePtr & device, const Fence & fence) const noexcept = 0;
     virtual void destroySemaphore(const DevicePtr & device, const Semaphore & semaphore) const noexcept = 0;
+    virtual void destroyEvent(const DevicePtr & device, const Event & event) const noexcept = 0;
+
+    virtual void resetEvent(const DevicePtr & device, const Event & event) const noexcept = 0;
 
     virtual ShaderModulesManagerPtr createShaderModulesManager() const = 0;
 
@@ -248,8 +253,6 @@ public:
         const GpuProgramPtr & program, const GraphicsPipelineStatesInfo & info, uint32_t subpass = 0u) const = 0;
 
     virtual BufferPtr createBuffer(DevicePtr & device, const rhi::BufferInfo & info, size_t size) = 0;
-
-    virtual void destroyObject(BufferPtr & ptr) = 0;
 
     virtual CommandListPtr createCommandList(CommandPool * commandPool, rhi::CommandBufferLevel level = rhi::CommandBufferLevel::ePrimary) const = 0;
 };

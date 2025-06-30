@@ -190,7 +190,7 @@ namespace engine::vulkan {
     }
 
     VkFence Device::createFence(rhi::FenceCreateFlags flags) const noexcept {
-        VkFenceCreateInfo fenceCreateInfo {
+        const VkFenceCreateInfo fenceCreateInfo {
             .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
             .pNext = nullptr,
             .flags = utils::convert2vk(flags)
@@ -202,7 +202,7 @@ namespace engine::vulkan {
     }
 
     VkSemaphore Device::createSemaphore() const noexcept {
-        VkSemaphoreCreateInfo semaphoreCreateInfo {
+        const VkSemaphoreCreateInfo semaphoreCreateInfo {
             .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
             .pNext = nullptr,
             .flags = 0
@@ -213,6 +213,18 @@ namespace engine::vulkan {
         return result;
     }
 
+    VkEvent Device::createEvent(rhi::EventCreateFlags flags) const noexcept {
+        const VkEventCreateInfo eventCreateInfo {
+            .sType = VK_STRUCTURE_TYPE_EVENT_CREATE_INFO,
+            .pNext = nullptr,
+            .flags = utils::convert2vk(flags)
+        };
+
+        VkEvent result;
+        vkCreateEvent(_device, &eventCreateInfo, _gpu.getInstance().getAllocationCallbacks(), &result);
+        return result;
+    }
+
     void Device::destroyFence(const Fence & fence) const noexcept {
         vkResetFences(_device, 1, &fence);
         vkDestroyFence(_device, fence, _gpu.getInstance().getAllocationCallbacks());
@@ -220,6 +232,14 @@ namespace engine::vulkan {
 
     void Device::destroySemaphore(const Semaphore & semaphore) const noexcept {
         vkDestroySemaphore(_device, semaphore, _gpu.getInstance().getAllocationCallbacks());
+    }
+
+    void Device::destroyEvent(const Event & event) const noexcept {
+        vkDestroyEvent(_device, event, _gpu.getInstance().getAllocationCallbacks());
+    }
+
+    void Device::resetEvent(const Event & event) const noexcept {
+        vkResetEvent(_device, event);
     }
 
     VkDescriptorSetLayout Device::createDescriptorSetLayout(

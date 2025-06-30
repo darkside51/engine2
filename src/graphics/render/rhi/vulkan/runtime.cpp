@@ -82,6 +82,9 @@ namespace engine::vulkan::runtime {
     rhi::runtime::Semaphore Rhi::createSemaphore(const rhi::runtime::DevicePtr & device) const noexcept {
         return static_cast<const Api::Device &>(*device).createSemaphore();
     }
+    rhi::runtime::Event Rhi::createEvent(const rhi::runtime::DevicePtr & device, rhi::EventCreateFlags flags) const noexcept {
+        return static_cast<const Api::Device &>(*device).createEvent(flags);
+    }
 
     void Rhi::destroyFence(const rhi::runtime::DevicePtr & device, 
         const rhi::runtime::Fence & fence) const noexcept {
@@ -90,6 +93,14 @@ namespace engine::vulkan::runtime {
     void Rhi::destroySemaphore(const rhi::runtime::DevicePtr & device, 
         const rhi::runtime::Semaphore & semaphore) const noexcept {
         static_cast<const Api::Device &>(*device).destroySemaphore(static_cast<VkSemaphore>(semaphore));
+    }
+    void Rhi::destroyEvent(const rhi::runtime::DevicePtr & device, 
+        const rhi::runtime::Event & event) const noexcept {
+        static_cast<const Api::Device &>(*device).destroyEvent(static_cast<VkEvent>(event));
+    }
+
+    void Rhi::resetEvent(const rhi::runtime::DevicePtr & device, const rhi::runtime::Event & event) const noexcept {
+        static_cast<const Api::Device &>(*device).resetEvent(static_cast<VkEvent>(event));
     }
 
     rhi::runtime::ShaderModulesManagerPtr Rhi::createShaderModulesManager() const {
@@ -145,10 +156,10 @@ namespace engine::vulkan::runtime {
         auto * objectMem = reinterpret_cast<std::byte*>(mem) + align_value(sizeof(BufferPtr::counter_type), alignof(Api::Buffer));
         auto * buffer = new(objectMem) Api::Buffer(static_cast<Api::Device &>(*device), info, size);
 
-        return rhi::runtime::BufferPtr(mem, alignof(Api::Buffer), [this](auto * ptr){ destroyObject(*static_cast<rhi::runtime::BufferPtr*>(ptr)); });
+        return rhi::runtime::BufferPtr(mem, alignof(Api::Buffer), [this](auto * ptr){ destroyBuffer(*static_cast<rhi::runtime::BufferPtr*>(ptr)); });
     }
 
-    void Rhi::destroyObject(rhi::runtime::BufferPtr & ptr) {
+    void Rhi::destroyBuffer(rhi::runtime::BufferPtr & ptr) {
         using BufferPtr = rhi::runtime::BufferPtr;
         auto * objectMem = reinterpret_cast<std::byte*>(ptr.memory()) + align_value(sizeof(BufferPtr::counter_type), alignof(Api::Buffer));
         reinterpret_cast<Api::Buffer*>(objectMem)->~Buffer();

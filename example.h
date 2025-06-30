@@ -16,6 +16,7 @@ namespace example {
 class Example : public engine::InputHandler {
 public:
     Example();
+    ~Example();
 
     void destroy();
 
@@ -38,6 +39,8 @@ public:
 private:
     void loadShaders();
     void createDefaultResources();
+
+    void prepareFrameDrawData(engine::rhi::runtime::CommandListPtr & commandList, uint8_t frame, float delta);
 
     engine::FileManager _fileManager;
     engine::rhi::runtime::ShaderModulesManagerPtr _shaderModulesManager;

@@ -32,9 +32,12 @@ namespace engine::rhi::runtime {
     }
 
     void CommandList::beginRenderPass(RenderPass renderPass, FrameBufferPtr & framebuffer, 
-        std::span<const ClearValue> clearValues, const Rect2D & area, std::span<ImageInShaderUsage> imageInShaderUsage) {
+        std::span<const ClearValue> clearValues, const Rect2D & area, 
+        std::span<ImageTransitionInfo> imageTransitionInfo,
+        std::span<BufferTransitionInfo> bufferTransitionInfo) {
         _resources.push_back(framebuffer);
-        _commands->create<BeginRenderPassCommand>(renderPass, framebuffer, clearValues, area, imageInShaderUsage);
+        _commands->create<BeginRenderPassCommand>(renderPass, framebuffer, clearValues, area, 
+            imageTransitionInfo, bufferTransitionInfo);
         ++_commandsCount;
     }
 
@@ -43,8 +46,10 @@ namespace engine::rhi::runtime {
         ++_commandsCount;
     }
 
-    void CommandList::nextSubpass(SubpassContents contents) {
-        _commands->create<NextSubpassCommand>(contents);
+    void CommandList::nextSubpass(SubpassContents contents,
+        std::span<ImageTransitionInfo> imageTransitionInfo,
+        std::span<BufferTransitionInfo> bufferTransitionInfo) {
+        _commands->create<NextSubpassCommand>(contents, imageTransitionInfo, bufferTransitionInfo);
         ++_commandsCount;
     }
 

@@ -490,6 +490,14 @@ inline VkBufferCreateFlags convert2vk(rhi::BufferCreateFlags flags) noexcept {
     return result;
 }
 
+inline VkEventCreateFlags convert2vk(rhi::EventCreateFlags flags) noexcept {
+    VkEventCreateFlags result = 0;
+    if (std::to_underlying(flags & rhi::EventCreateFlags::eDeviceOnly)) {
+        result |= VkEventCreateFlagBits::VK_EVENT_CREATE_DEVICE_ONLY_BIT;
+    }
+    return result;
+}
+
 inline VkFormat convert2vk(rhi::Format format) noexcept {
     switch (format) {
         case rhi::Format::eUndefined: return VK_FORMAT_UNDEFINED;
