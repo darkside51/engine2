@@ -569,7 +569,7 @@ namespace example {
         using namespace engine;
         { // update uniforms
             auto * map = _uniformBufferI->map2<mat4f>();
-            rotateMatrix_z(*map, -delta);
+            rotateMatrix_z(*map, -0.01);
 
             _uniformBufferI->unmap();
             _uniformBufferI->commit(commandList, frame);
