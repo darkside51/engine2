@@ -304,8 +304,6 @@ namespace engine::vulkan::runtime {
                     clearValuesView,
                     command->area
                 );
-
-                command->destroy();
             }
                 break;
             case CommandType::eEndRenderPass:

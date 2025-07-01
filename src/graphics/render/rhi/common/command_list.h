@@ -15,7 +15,7 @@ namespace engine::rhi::runtime {
 
     class CommandList {
     public:
-        virtual ~CommandList() = default;
+        virtual ~CommandList() { clear(); };
 
         void begin(CommandBufferUsageFlags flags = CommandBufferUsageFlags::eOne_Time_Submit);
         void end();

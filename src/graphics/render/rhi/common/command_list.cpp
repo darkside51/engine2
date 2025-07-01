@@ -5,6 +5,14 @@ namespace engine::rhi::runtime {
     // todo: need to create state and really command must be created only if need it!
 
     void CommandList::clear() {
+        auto commandsCount = _commandsCount;
+        std::byte * memory = _commands.memory().data();
+        while ((commandsCount--) > 0u) {
+            Command * cmd = reinterpret_cast<Command*>(memory);
+            memory += cmd->size;
+            cmd->destroy();
+        }
+
         _commands->clear();
         _commandsCount = 0u;
 
