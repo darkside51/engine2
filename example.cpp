@@ -9,6 +9,8 @@
 
 #include "math/math.h"
 
+#include "graphics/scene/camera.h"
+
 #include <imgui.h>
 
 // https://www.saschawillems.de/blog/2018/07/19/vulkan-input-attachments-and-sub-passes/
@@ -24,11 +26,16 @@ namespace example {
     constexpr uint8_t kPostEffectPipeline = 0u;
     constexpr uint8_t kSceneTestPipeline = 1u;
 
+    engine::scene::Camera camera;
+    engine::scene::CameraController controller{camera};
+
     Example::Example() {
         using namespace engine;
         _fileManager.createFileSystem<CommonFileSystem>("common_fs0", CommonFileSystem::getCurrentDirectory() + "./resources/");
 
         addInputObserver(&_imgui);
+
+        camera.makePerspective(std::numbers::pi_v<float> / 4.0f, 1024.0f / 768.0f, 0.1f, 100.0f);
     }
 
     Example::~Example() = default;
@@ -223,6 +230,7 @@ namespace example {
         }
 
         _swapchain->resize(w, h, false);
+        camera.resize(w, h);
     }
 
     engine::rhi::RenderPassDescription createScreenRenderPassDescription(
@@ -419,7 +427,7 @@ namespace example {
 
         _pipelines.emplace_back(_api->createGraphicsPipeline(_device, _renderPasses[kScreenRenderPass], _programs[kPostEffectProgram], info, 0u));
 
-
+        info.rasterisationState = {PolygonMode::eFill, CullMode::eFront};
         info.depthStencilState = {
             {
                 .depthTestEnable = true,
@@ -569,7 +577,12 @@ namespace example {
         using namespace engine;
         { // update uniforms
             auto * map = _uniformBufferI->map2<mat4f>();
-            rotateMatrix_z(*map, -delta);
+            //rotateMatrix_z(*map, -delta);
+
+            controller.setRotation(vec3f(-0.7f, 0.0f, -0.2f));
+            controller.setPosition(vec3f(0.0f, -2.6f, 4.0f));
+            controller.calculateTransform();
+            *map = camera.getTransform();
 
             _uniformBufferI->unmap();
             _uniformBufferI->commit(commandList, frame);

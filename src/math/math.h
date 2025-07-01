@@ -14,7 +14,10 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/quaternion.hpp>
 
+#include <algorithm>
 #include <cstdint>
+#include <cmath>
+#include <numbers>
 
 namespace engine {
     
@@ -84,7 +87,7 @@ namespace engine {
                 0.0f, 0.0f, 0.0f, 1.0f};
     }
 
-    inline mat4f makeMatrix(const vec3f& scale) noexcept {
+    inline mat4f makeMatrix(const vec3f & scale) noexcept {
         return {scale.x, 0.0f, 0.0f, 0.0f,
                 0.0f, scale.y, 0.0f, 0.0f,
                 0.0f, 0.0f, scale.z, 0.0f,
@@ -92,12 +95,12 @@ namespace engine {
     }
 
     template <typename T>
-    inline std::decay_t<T> step(T&& edge, T&& x) noexcept {
+    inline std::decay_t<T> step(T && edge, T && x) noexcept {
         return std::decay_t<T>(x >= edge);
     }
 
     template <typename T>
-    inline std::decay_t<T> smoothstep(T&& edge0, T&& edge1, T&& x) noexcept {
+    inline std::decay_t<T> smoothstep(T && edge0, T && edge1, T && x) noexcept {
         std::decay_t<T> t;
         t = std::clamp((x - edge0) / (edge1 - edge0), T(0), T(1));
         return t * t * (T(3) - T(2) * t);
@@ -153,12 +156,12 @@ namespace engine {
     }
 
     enum class RotationsOrder : uint8_t {
-        RO_XYZ = 0u,
-        RO_XZY = 1u,
-        RO_YXZ = 2u,
-        RO_YZX = 3u,
-        RO_ZXY = 4u,
-        RO_ZYX = 5u
+        eXYZ = 0u,
+        eXZY = 1u,
+        eYXZ = 2u,
+        eYZX = 3u,
+        eZXY = 4u,
+        eZYX = 5u
     };
 
     inline void rotateMatrix_x(mat4f& m, float angle) noexcept {
@@ -266,22 +269,22 @@ namespace engine {
 
     inline void rotateMatrix_byOrder(mat4f& transform, const vec3f& v, RotationsOrder r) noexcept {
         switch (r) {
-            case RotationsOrder::RO_XYZ:
+            case RotationsOrder::eXYZ:
                 rotateMatrix_xyz(transform, v);
                 break;
-            case RotationsOrder::RO_XZY:
+            case RotationsOrder::eXZY:
                 rotateMatrix_xzy(transform, v);
                 break;
-            case RotationsOrder::RO_YXZ:
+            case RotationsOrder::eYXZ:
                 rotateMatrix_yxz(transform, v);
                 break;
-            case RotationsOrder::RO_YZX:
+            case RotationsOrder::eYZX:
                 rotateMatrix_yzx(transform, v);
                 break;
-            case RotationsOrder::RO_ZXY:
+            case RotationsOrder::eZXY:
                 rotateMatrix_zxy(transform, v);
                 break;
-            case RotationsOrder::RO_ZYX:
+            case RotationsOrder::eZYX:
                 rotateMatrix_zyx(transform, v);
                 break;
             default:
