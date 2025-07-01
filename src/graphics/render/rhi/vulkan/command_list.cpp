@@ -57,7 +57,7 @@ namespace engine::vulkan::runtime {
 
         const auto applyPostBarriers = [&]() {
             // buffers barriers
-            for (auto & [buffer, offset, size] : _postBarriersBuffers.view()) {
+            for (auto & [buffer, offset, size] : _postBarriersBuffers) {
                 auto const usage = buffer->usage();
                 if ((usage & rhi::BufferUsageFlags::eVertex_Buffer) != rhi::BufferUsageFlags::eNone) {
                     auto const dstStage = VkPipelineStageFlagBits::VK_PIPELINE_STAGE_VERTEX_INPUT_BIT;
@@ -106,7 +106,7 @@ namespace engine::vulkan::runtime {
             _postBarriersBuffers.clear();
 
             // images barriers
-            for (auto & [image] : _postBarriersImages.view()) {
+            for (auto & [image] : _postBarriersImages) {
                 auto const usage = image->usage();
                 //const auto & info = image.getInfo();
 

@@ -36,7 +36,7 @@ namespace engine::vulkan::runtime {
         PipelineBarriers _barriers;
         PipelineBarriers _postBarriers;
 
-        ReusedVector<PostBufferBarrierInfo> _postBarriersBuffers;
-        ReusedVector<PostImageBarrierInfo> _postBarriersImages;
+        std::vector<PostBufferBarrierInfo> _postBarriersBuffers;
+        std::vector<PostImageBarrierInfo> _postBarriersImages;
     };
 }
