@@ -27,13 +27,65 @@ namespace example {
     constexpr uint8_t kSceneTestPipeline = 1u;
 
     engine::scene::Camera camera;
-    engine::scene::CameraController controller{camera};
+    engine::scene::SphereCameraController controller{camera};
+
+    class SceneEventHandler final : public engine::InputObserver {
+    public:
+        bool onInputPointerEvent(const engine::PointerEvent & event) override {
+            static float x0 = 0.0f;
+            static float y0 = 0.0f;
+            static bool pressed = false;
+
+            switch (event.state) {
+            case engine::InputEventState::ePress:
+            {
+                pressed = true;
+            }
+                break;
+            case engine::InputEventState::eRelease:
+            {
+                pressed = false;
+            }
+                break;
+            case engine::InputEventState::eNone:
+            {
+                if (pressed) {
+                    controller.setRotation(controller.getRotation() + engine::vec3f(0.01f * (y0 - event.y), 0.0f, 0.01f * (event.x - x0)));
+                }
+
+                x0 = event.x;
+                y0 = event.y;
+            }
+                break;
+            default:
+                break;
+            }
+
+            return true;
+        }
+
+        bool onInputWheelEvent(float /*dx*/, float dy) override {
+            controller.setLen(controller.getLen() - dy * 0.1f);
+            return true;
+        }
+
+        bool onInpuKeyEvent(const engine::KeyEvent & event, const engine::InputKeyMod & mod) override {
+            return false;
+        }
+
+        bool onInpuCharEvent(uint16_t code) override { 
+            return false;
+        }
+    } sceneEventHandler;
 
     Example::Example() {
         using namespace engine;
         _fileManager.createFileSystem<CommonFileSystem>("common_fs0", CommonFileSystem::getCurrentDirectory() + "./resources/");
 
         addInputObserver(&_imgui);
+        addInputObserver(&sceneEventHandler);
+
+        controller.setLen(5.0f);
 
         camera.makePerspective(std::numbers::pi_v<float> / 4.0f, 1024.0f / 768.0f, 0.1f, 100.0f);
     }
@@ -525,7 +577,6 @@ namespace example {
         _renderQueue->waitSubmit(0u, UINT64_MAX, fence);
         _api->destroyFence(_device, fence);
 
-
         BufferInfo unifromsInfo {
             BufferUsageFlags::eUniform_Buffer | BufferUsageFlags::eTransfer_Dst,
             MemoryPropertyFlags::eDeviceLocal | MemoryPropertyFlags::eHostVisible
@@ -571,6 +622,8 @@ namespace example {
         _imgui.beginFrame(delta, width, height);
         ImGui::ShowDemoWindow();
         _imgui.endFrame();
+
+        controller.calculateTransform();
     }
 
     void Example::prepareFrameDrawData(engine::rhi::runtime::CommandListPtr & commandList, uint8_t frame, float delta) {
@@ -579,9 +632,6 @@ namespace example {
             auto * map = _uniformBufferI->map2<mat4f>();
             //rotateMatrix_z(*map, -delta);
 
-            controller.setRotation(vec3f(-0.7f, 0.0f, -0.2f));
-            controller.setPosition(vec3f(0.0f, -2.6f, 4.0f));
-            controller.calculateTransform();
             *map = camera.getTransform();
 
             _uniformBufferI->unmap();

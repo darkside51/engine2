@@ -130,32 +130,28 @@ public:
         }
     }
 
-    template <typename VEC3 = const vec3f&>
-    void setScale(VEC3 && s) noexcept {
+    void setScale(const vec3f & s) noexcept {
         if (compare(_scale, s, kEps)) {
             _scale = s;
             _dirty = true;
         }
     }
 
-    template <typename VEC3 = const vec3f&>
-    void setRotation(VEC3 && r) noexcept {
+    void setRotation(const vec3f & r) noexcept {
         if (compare(_rotation, r, kEps)) {
             _rotation = r;
             _dirty = true;
         }
     }
 
-    template <typename VEC3 = const vec3f&>
-    void setPosition(VEC3 && p) noexcept {
+    void setPosition(const vec3f & p) noexcept {
         if (compare(_position, p, kEps)) {
             _position = p;
             _dirty = true;
         }
     }
 
-    template <typename VEC3 = const vec3f&>
-    void movePosition(VEC3 && p) noexcept {
+    void movePosition(const vec3f & p) noexcept {
         if (compare(p, emptyVec3, kEps)) {
             const vec4f move = vec4f(p, 0.0f) * _camera.getTransform();
 
@@ -193,7 +189,7 @@ public:
         return _camera.calculateTransform();
     }
 
-private:
+protected:
     RotationsOrder _rotationOrder = RotationsOrder::eXYZ;
     bool _dirty = false;
     vec3f _scale{1.0f};
@@ -201,6 +197,69 @@ private:
     vec3f _position{0.0f};
 
     Camera & _camera;
+};
+
+class SphereCameraController final : public CameraController {
+public:
+    SphereCameraController(Camera & camera) : CameraController(camera) {
+        
+    }
+
+    float getLen() const noexcept { return _len; }
+
+    void setLen(float l) noexcept { 
+        if (std::abs(l - _len) > 1e-4f) {
+            _len = l;
+            _dirty = true;
+        }
+    }
+
+    bool calculateTransform() noexcept {
+        if (!_dirty && !_camera.transformDirty()) {
+            return false;
+        }
+
+        _dirty = false;
+
+		mat4f view{1.0f};
+		
+		if (_scale != unitVec3) {
+			scaleMatrix(view, _scale);
+		}
+
+		if (_rotation != emptyVec3) {
+			rotateMatrix_byOrder(view, _rotation, _rotationOrder);
+		}
+
+        const float rx = _rotation.x;
+        const float rz = _rotation.z;
+        vec3f position = _position;
+
+        if (std::abs(_len) > 1e-4f) {
+            // use spherical coordinates
+            const float crx = cosf(rx);
+            const float crz = cosf(rz);
+            const float srx = sinf(rx);
+            const float srz = sinf(rz);
+
+            const float x = _len * srx * srz;
+            const float y = _len * srx * crz;
+            const float z = _len * crx;
+
+            position += vec3f{ x, y, z };
+        }
+
+        if (position != emptyVec3) {
+			translateMatrix(view, -position);
+		}
+
+        _camera.setView(view);
+        
+        return _camera.calculateTransform();
+    }
+
+private:
+    float _len = 0.0f;
 };
 
 }
