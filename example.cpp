@@ -50,7 +50,9 @@ namespace example {
             case engine::InputEventState::eNone:
             {
                 if (pressed) {
-                    controller.setRotation(controller.getRotation() + engine::vec3f(0.01f * (y0 - event.y), 0.0f, 0.01f * (event.x - x0)));
+                    controller.setRotation(
+                        controller.getRotation() + engine::vec3f(0.01f * (y0 - event.y), 0.0f, 0.01f * (event.x - x0))
+                    );
                 }
 
                 x0 = event.x;
@@ -65,7 +67,8 @@ namespace example {
         }
 
         bool onInputWheelEvent(float /*dx*/, float dy) override {
-            controller.setLen(controller.getLen() - dy * 0.1f);
+            const auto l = controller.getLen();
+            controller.setLen(l - (dy / std::pow(2.0f, (8.0f - l))));
             return true;
         }
 
@@ -86,8 +89,9 @@ namespace example {
         addInputObserver(&sceneEventHandler);
 
         controller.setLen(5.0f);
+        controller.setMinMaxLen(1.02f, 8.0f);
 
-        camera.makePerspective(std::numbers::pi_v<float> / 4.0f, 1024.0f / 768.0f, 0.1f, 100.0f);
+        camera.makePerspective(std::numbers::pi_v<float> / 4.0f, 1024.0f / 768.0f, 0.01f, 10.0f);
     }
 
     Example::~Example() = default;
@@ -151,6 +155,7 @@ namespace example {
 
     bool Example::createSurface(const engine::rhi::SurfaceCreateInfo & surfaceInfo) {
         _gpuFeatures = {};
+        _gpuFeatures.features.fillModeNonSolid = true;
         auto gpuDevices = _api->enumerateDevices({
             _gpuFeatures, 
             {
@@ -479,7 +484,7 @@ namespace example {
 
         _pipelines.emplace_back(_api->createGraphicsPipeline(_device, _renderPasses[kScreenRenderPass], _programs[kPostEffectProgram], info, 0u));
 
-        info.rasterisationState = {PolygonMode::eFill, CullMode::eFront};
+        info.rasterisationState = {PolygonMode::eFill, CullMode::eBack};
         info.depthStencilState = {
             {
                 .depthTestEnable = true,
@@ -487,6 +492,18 @@ namespace example {
                 .depthCompareOp = CompareOp::eLess
             }, 
             {}
+        };
+
+        info.vertexInputState = {
+            std::vector{VertexInputBinding::create<float[3]>(0u)},
+            std::vector{
+                VertexInputAttribute{
+                    .location = 0u,
+                    .binding = 0u,
+                    .format = Format::eR32G32B32_Sfloat,
+                    .offset = 0u
+                }
+            }
         };
 
         _pipelines.emplace_back(_api->createGraphicsPipeline(_device, _renderPasses[kSceneRenderPass], _programs[kTestProgram], info, 0u));
@@ -540,6 +557,89 @@ namespace example {
         staging.unmap();
         // staging buffer works complete
 
+        // sphere data
+        using namespace engine;
+        uint16_t sectorCount = 36u;
+        uint16_t stackCount = 18u;
+        float radius = 1.0f;
+
+        constexpr float pi = std::numbers::pi_v<float>;
+
+        const float sectorStep = 2.0f * pi / sectorCount;
+
+        const float stackFullAngle = pi - 0.5f;
+        const float startAngle = stackFullAngle / 2.0f;
+        const float stackStep = stackFullAngle / stackCount;
+        const bool truncatedSphere = std::abs(stackFullAngle - pi) > 1e-5f;
+
+        std::vector<std::array<float, 3u>> vertices;
+        std::vector<uint16_t> indices;
+
+        // vtx
+        for(uint16_t i = 0u; i <= stackCount; ++i) {
+            const float stackAngle = startAngle - i * stackStep; // starting from startAngle to startAngle-stackFullAngle
+        
+            const float xy = radius * std::cos(stackAngle); // r * cos(u)
+            const float z = radius * std::sin(stackAngle);  // r * sin(u)
+
+            for(uint16_t j = 0u; j <= sectorCount; ++j) {
+                const float sectorAngle = j * sectorStep; // starting from 0 to 2pi
+
+                // vertex position (x, y, z)
+                const float x = xy * cosf(sectorAngle); // r * cos(u) * cos(v)
+                const float y = xy * sinf(sectorAngle); // r * cos(u) * sin(v)
+                vertices.emplace_back(std::array{x, y, z});
+            }
+        }
+
+        // idx
+        for(uint16_t i = 0u; i < stackCount; ++i) {
+            auto k1 = i * (sectorCount + 1); // beginning of current stack
+            auto k2 = k1 + sectorCount + 1;  // beginning of next stack
+
+            for(uint16_t j = 0u; j < sectorCount; ++j, ++k1, ++k2) {
+                // 2 triangles per sector excluding first and last stacks
+                // k1 => k2 => k1 + 1
+                if (truncatedSphere || (i != 0u)) {
+                    indices.push_back(k1);
+                    indices.push_back(k2);
+                    indices.push_back(k1 + 1);
+                }
+
+                // k1 + 1 => k2 => k2 + 1
+                if (truncatedSphere || (i != (stackCount - 1))) {
+                    indices.push_back(k1 + 1);
+                    indices.push_back(k2);
+                    indices.push_back(k2 + 1);
+                }
+            }
+        }
+
+        const auto stagingSphereSize = sizeof(std::array<float, 3u>) * vertices.size() + sizeof(uint16_t) * indices.size();
+        StagingBuffer stagingSphere{_api,_device, stagingSphereSize};
+        std::byte * memory2 = stagingSphere.map();
+        const auto vtxOffset2 = stagingSphere.requestBytes(sizeof(std::array<float, 3u>) * vertices.size());
+        const auto idxOffset2 = stagingSphere.requestBytes(sizeof(uint16_t) * indices.size());
+
+        auto * vtxData2 = reinterpret_cast<std::array<float, 3u>*>(memory2 + vtxOffset2);
+        auto * idxData2 = reinterpret_cast<uint16_t*>(memory2 + idxOffset2);
+
+        std::memcpy(vtxData2, vertices.data(), sizeof(std::array<float, 3u>) * vertices.size());
+        std::memcpy(idxData2, indices.data(), sizeof(uint16_t) * indices.size());
+
+        stagingSphere.flush();
+        stagingSphere.unmap();
+
+        BufferInfo bufferInfoSphere {
+            BufferUsageFlags::eVertex_Buffer | BufferUsageFlags::eTransfer_Dst,
+            MemoryPropertyFlags::eDeviceLocal
+        };
+        _sphereVtx = _api->createBuffer(_device, bufferInfoSphere, sizeof(std::array<float, 3u>) * vertices.size());
+
+        bufferInfoSphere.usage = BufferUsageFlags::eIndex_Buffer | BufferUsageFlags::eTransfer_Dst;
+        _sphereIdx = _api->createBuffer(_device, bufferInfoSphere, sizeof(uint16_t) * indices.size());
+        // sphere data
+
         auto * commandPool = _device->acquireCommandPool(engine::rhi::queue_flags::graphics | engine::rhi::queue_flags::present);
         auto tmpCommandList = _api->createCommandList(commandPool, engine::rhi::CommandBufferLevel::ePrimary);
 
@@ -559,6 +659,13 @@ namespace example {
                 .imageExtent = _defaultImage->getExtent()
             }
         );
+
+        // sphere
+        tmpCommandList->copyBuffer2Buffer(stagingSphere.getBuffer(), _sphereVtx, 
+            {.srcOffset = vtxOffset2, .dstOffset = 0u, .size = _sphereVtx->sizeInBytes()});
+        tmpCommandList->copyBuffer2Buffer(stagingSphere.getBuffer(), _sphereIdx, 
+            {.srcOffset = idxOffset2, .dstOffset = 0u, .size = _sphereIdx->sizeInBytes()});
+        // sphere
 
         tmpCommandList->end();
         tmpCommandList->record(0u);
@@ -688,11 +795,11 @@ namespace example {
         commandList->beginRenderPass(_renderPasses[kSceneRenderPass], _sceneFrameBuffers[imageIndex], sceneClearValues, {{0, 0}, {width, height}});
 
         commandList->bindPipeline(_pipelines[kSceneTestPipeline]);
-        commandList->bindVertexBuffer(0u, _postPositions);
-        commandList->bindIndexBuffer(_postIndices, 0u, rhi::IndexType::eU16);
+        commandList->bindVertexBuffer(0u, _sphereVtx);
+        commandList->bindIndexBuffer(_sphereIdx, 0u, rhi::IndexType::eU16);
         commandList->bindImage(1u, _defaultImage, rhi::SamplerInfo{});
         commandList->bindBuffer(0u, (*_uniformBufferI)(frameId), 0u, 0u, sizeof(mat4f));
-        commandList->drawIndexed(6u);
+        commandList->drawIndexed(_sphereIdx->sizeInBytes() / sizeof(uint16_t));
 
         //commandList->nextSubpass(rhi::SubpassContents::ePrimaryBufferInline);
         commandList->endRenderPass();

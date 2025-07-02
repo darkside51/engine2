@@ -75,6 +75,10 @@ private:
     std::unique_ptr<engine::graphics::InflightBuffer> _uniformBufferI = nullptr;
 
     bool _canDraw = true;
+
+    // sphere
+    engine::rhi::runtime::BufferPtr _sphereVtx = nullptr;
+    engine::rhi::runtime::BufferPtr _sphereIdx = nullptr;
 };
 
 }

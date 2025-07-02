@@ -209,9 +209,14 @@ public:
 
     void setLen(float l) noexcept { 
         if (std::abs(l - _len) > 1e-4f) {
-            _len = l;
+            _len = std::min(std::max(l, _minLen), _maxLen);
             _dirty = true;
         }
+    }
+
+    void setMinMaxLen(float minLen, float maxLen) noexcept {
+        _minLen = minLen;
+        _maxLen = maxLen;
     }
 
     bool calculateTransform() noexcept {
@@ -260,6 +265,8 @@ public:
 
 private:
     float _len = 0.0f;
+    float _minLen = 0.0f;
+    float _maxLen = 100.0f; 
 };
 
 }
