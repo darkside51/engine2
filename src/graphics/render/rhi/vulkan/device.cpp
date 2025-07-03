@@ -139,16 +139,18 @@ namespace engine::vulkan {
 
     void Device::createAllocator() noexcept {
         const auto & instance = _gpu.getInstance();
+        const auto apiVersion = instance.getApiVersion();
 
         AllocatorCreateInfo allocatorCreateInfo = {};
-        allocatorCreateInfo.apiVersion = instance.getApiVersion();
+        allocatorCreateInfo.apiVersion = apiVersion;
         allocatorCreateInfo.allocationCallbacks = instance.getAllocationCallbacks();
         
         //  fill allocatorCreateInfo flags
         const auto & gpuExtensionNames = _gpu.deviceExtensions();
-
+        
         for (const auto ext : gpuExtensionNames) {
-            if (strcmp(ext, VK_KHR_DEDICATED_ALLOCATION_EXTENSION_NAME) == 0) {
+            if (VK_VERSION_MAJOR(apiVersion) >= 1 && VK_VERSION_MINOR(apiVersion) >= 1 && 
+                strcmp(ext, VK_KHR_DEDICATED_ALLOCATION_EXTENSION_NAME) == 0) {
                 allocatorCreateInfo.flags.KHR_dedicated_allocation_enabled = true;
             } else if (strcmp(ext, VK_KHR_BIND_MEMORY_2_EXTENSION_NAME) == 0) {
                 allocatorCreateInfo.flags.KHR_bind_memory2_enabled = true;

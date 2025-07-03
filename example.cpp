@@ -143,9 +143,11 @@ namespace example {
             };
             std::vector<std::string_view> layers = {};
         #endif
+        // auto const vkVersion = VK_HEADER_VERSION_COMPLETE; // version from vulkan_core.h
+        // engine::common::Version{VK_VERSION_MAJOR(vkVersion), VK_VERSION_MINOR(vkVersion), VK_VERSION_PATCH(vkVersion)};
 
         rhi::InstanceCreateInfo instanceCreateInfo {
-            .apiVersion = engine::common::Version{1, 3, 0},
+            .apiVersion = engine::common::Version{1, 1, 0}, // need no use PhysicalDeviceFeatures2 to set 1.0.0
             .extensions = extensions,
             .layers = layers,
             .createDebugMessages = kUseApiDebugMessages,
