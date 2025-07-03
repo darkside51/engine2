@@ -1,0 +1,160 @@
+#pragma once
+
+#include "camera.h"
+
+namespace engine::scene {
+
+class CameraController {
+public:
+    CameraController(Camera & camera) : _camera(camera) { }
+
+    const vec3f & getScale() const noexcept { return _scale; }
+	const vec3f & getRotation() const noexcept { return _rotation; }
+	const vec3f & getPosition() const noexcept { return _position; }
+
+    void setRotationOrder(const RotationsOrder ro) noexcept {
+        if (_rotationOrder != ro) {
+            _rotationOrder = ro;
+            _dirty = true;
+        }
+    }
+
+    void setScale(const vec3f & s) noexcept {
+        if (compare(_scale, s, kEps)) {
+            _scale = s;
+            _dirty = true;
+        }
+    }
+
+    void setRotation(const vec3f & r) noexcept {
+        if (compare(_rotation, r, kEps)) {
+            _rotation = r;
+            _dirty = true;
+        }
+    }
+
+    void setPosition(const vec3f & p) noexcept {
+        if (compare(_position, p, kEps)) {
+            _position = p;
+            _dirty = true;
+        }
+    }
+
+    void movePosition(const vec3f & p) noexcept {
+        if (compare(p, emptyVec3, kEps)) {
+            const vec4f move = vec4f(p, 0.0f) * _camera.getTransform();
+
+            _position.x += move.x;
+            _position.y += move.y;
+            _position.z += move.z;
+
+            _dirty = true;
+        }
+    }
+
+    bool calculateTransform() noexcept {
+        if (!_dirty && !_camera.transformDirty()) {
+            return false;
+        }
+
+        _dirty = false;
+
+		mat4f view{1.0f};
+		
+		if (_scale != unitVec3) {
+			scaleMatrix(view, _scale);
+		}
+
+		if (_rotation != emptyVec3) {
+			rotateMatrix_byOrder(view, _rotation, _rotationOrder);
+		}
+
+		if (_position != emptyVec3) {
+			translateMatrix(view, -_position);
+		}
+
+        _camera.setView(view);
+        
+        return _camera.calculateTransform();
+    }
+
+protected:
+    inline static constexpr float kEps = 1e-6f;
+    RotationsOrder _rotationOrder = RotationsOrder::eXYZ;
+    bool _dirty = false;
+    vec3f _scale{1.0f};
+    vec3f _rotation{0.0f};
+    vec3f _position{0.0f};
+
+    Camera & _camera;
+};
+
+class SphereCameraController : public CameraController {
+public:
+    SphereCameraController(Camera & camera) : CameraController(camera) { }
+
+    float getLen() const noexcept { return _len; }
+
+    void setLen(float l) noexcept { 
+        if (std::abs(l - _len) > kEps) {
+            _len = std::min(std::max(l, _minLen), _maxLen);
+            _dirty = true;
+        }
+    }
+
+    void setMinMaxLen(float minLen, float maxLen) noexcept {
+        _minLen = minLen;
+        _maxLen = maxLen;
+    }
+
+    bool calculateTransform() noexcept {
+        if (!_dirty && !_camera.transformDirty()) {
+            return false;
+        }
+
+        _dirty = false;
+
+		mat4f view{1.0f};
+		
+		if (_scale != unitVec3) {
+			scaleMatrix(view, _scale);
+		}
+
+		if (_rotation != emptyVec3) {
+			rotateMatrix_byOrder(view, _rotation, _rotationOrder);
+		}
+
+        const float rx = _rotation.x;
+        const float rz = _rotation.z;
+        vec3f position = _position;
+
+        if (std::abs(_len) > kEps) {
+            // use spherical coordinates
+            const float crx = cosf(rx);
+            const float crz = cosf(rz);
+            const float srx = sinf(rx);
+            const float srz = sinf(rz);
+
+            const float x = _len * srx * srz;
+            const float y = _len * srx * crz;
+            const float z = _len * crx;
+
+            position += vec3f{ x, y, z };
+        }
+
+        if (position != emptyVec3) {
+			translateMatrix(view, -position);
+		}
+
+        _camera.setView(view);
+        
+        return _camera.calculateTransform();
+    }
+
+protected:
+    float _len = 0.0f;
+    float _minLen = 0.0f;
+    float _maxLen = 100.0f; 
+};
+
+}

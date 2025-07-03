@@ -9,7 +9,7 @@
 
 #include "math/math.h"
 
-#include "graphics/scene/camera.h"
+#include "graphics/scene/camera_controller.h"
 
 #include <imgui.h>
 
@@ -457,6 +457,7 @@ namespace example {
         _imgui.createPipeline(_api, _device, _programs[kImguiProgram], _renderPasses[kScreenRenderPass], 0u);
 
         GraphicsPipelineStatesInfo info;
+        info.viewportState = {1u, 1u};
         info.blendModes = {common_blend_modes::blend_none};
 
         info.depthStencilState = {
@@ -495,13 +496,19 @@ namespace example {
         };
 
         info.vertexInputState = {
-            std::vector{VertexInputBinding::create<float[3]>(0u)},
+            std::vector{VertexInputBinding::create<float[5]>(0u)},
             std::vector{
                 VertexInputAttribute{
                     .location = 0u,
                     .binding = 0u,
                     .format = Format::eR32G32B32_Sfloat,
                     .offset = 0u
+                },
+                VertexInputAttribute{
+                    .location = 1u,
+                    .binding = 0u,
+                    .format = Format::eR32G32_Sfloat,
+                    .offset = 12u
                 }
             }
         };
@@ -572,7 +579,7 @@ namespace example {
         const float stackStep = stackFullAngle / stackCount;
         const bool truncatedSphere = std::abs(stackFullAngle - pi) > 1e-5f;
 
-        std::vector<std::array<float, 3u>> vertices;
+        std::vector<std::array<float, 5u>> vertices;
         std::vector<uint16_t> indices;
 
         // vtx
@@ -588,7 +595,9 @@ namespace example {
                 // vertex position (x, y, z)
                 const float x = xy * cosf(sectorAngle); // r * cos(u) * cos(v)
                 const float y = xy * sinf(sectorAngle); // r * cos(u) * sin(v)
-                vertices.emplace_back(std::array{x, y, z});
+                const float u = static_cast<float>(j) / sectorCount;
+                const float v = static_cast<float>(i) / stackCount;
+                vertices.emplace_back(std::array{x, y, z, u, v});
             }
         }
 
@@ -615,17 +624,20 @@ namespace example {
             }
         }
 
-        const auto stagingSphereSize = sizeof(std::array<float, 3u>) * vertices.size() + sizeof(uint16_t) * indices.size();
+        const auto vtxDataSize = sizeof(std::array<float, 5u>) * vertices.size();
+        const auto idxDataSize = sizeof(uint16_t) * indices.size();
+
+        const auto stagingSphereSize = vtxDataSize + idxDataSize;
         StagingBuffer stagingSphere{_api,_device, stagingSphereSize};
         std::byte * memory2 = stagingSphere.map();
-        const auto vtxOffset2 = stagingSphere.requestBytes(sizeof(std::array<float, 3u>) * vertices.size());
-        const auto idxOffset2 = stagingSphere.requestBytes(sizeof(uint16_t) * indices.size());
+        const auto vtxOffset2 = stagingSphere.requestBytes(vtxDataSize);
+        const auto idxOffset2 = stagingSphere.requestBytes(idxDataSize);
 
-        auto * vtxData2 = reinterpret_cast<std::array<float, 3u>*>(memory2 + vtxOffset2);
+        auto * vtxData2 = reinterpret_cast<std::array<float, 5u>*>(memory2 + vtxOffset2);
         auto * idxData2 = reinterpret_cast<uint16_t*>(memory2 + idxOffset2);
 
-        std::memcpy(vtxData2, vertices.data(), sizeof(std::array<float, 3u>) * vertices.size());
-        std::memcpy(idxData2, indices.data(), sizeof(uint16_t) * indices.size());
+        std::memcpy(vtxData2, vertices.data(), vtxDataSize);
+        std::memcpy(idxData2, indices.data(), idxDataSize);
 
         stagingSphere.flush();
         stagingSphere.unmap();
@@ -634,7 +646,7 @@ namespace example {
             BufferUsageFlags::eVertex_Buffer | BufferUsageFlags::eTransfer_Dst,
             MemoryPropertyFlags::eDeviceLocal
         };
-        _sphereVtx = _api->createBuffer(_device, bufferInfoSphere, sizeof(std::array<float, 3u>) * vertices.size());
+        _sphereVtx = _api->createBuffer(_device, bufferInfoSphere, sizeof(std::array<float, 5u>) * vertices.size());
 
         bufferInfoSphere.usage = BufferUsageFlags::eIndex_Buffer | BufferUsageFlags::eTransfer_Dst;
         _sphereIdx = _api->createBuffer(_device, bufferInfoSphere, sizeof(uint16_t) * indices.size());

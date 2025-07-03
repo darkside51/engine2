@@ -44,7 +44,7 @@ namespace engine::vulkan {
         inline const VkCommandBuffer & operator ()() const noexcept { return _commandBuffer; }
         inline explicit operator bool() const noexcept { return _commandBuffer != VK_NULL_HANDLE; }
 
-        const rhi::CommandBufferState & getState() const noexcept { return _state; }
+        // const rhi::CommandBufferState & getState() const noexcept { return _state; }
 
         rhi::Result begin(rhi::CommandBufferUsageFlags flags = rhi::CommandBufferUsageFlags::eOne_Time_Submit, 
             const CommandBufferInheritanceInfo * inheritanceInfo = nullptr) noexcept;
@@ -57,7 +57,7 @@ namespace engine::vulkan {
         inline void reset(rhi::CommandBufferResetFlags flags) noexcept {
             vkResetCommandBuffer(_commandBuffer, utils::convert2vk(flags));
             _pipeline = {};
-            _state.reset();
+            // _state.reset();
         }
 
         void beginRenderPass(VkRenderPass renderPass, const FrameBuffer & framebuffer, 
@@ -112,7 +112,7 @@ namespace engine::vulkan {
             VkPipelineLayout layout = VK_NULL_HANDLE;
             VkPipelineBindPoint bindPoint = VkPipelineBindPoint::VK_PIPELINE_BIND_POINT_COMPUTE;
         }; 
-        rhi::CommandBufferState _state{};
+        // rhi::CommandBufferState _state{};
         CommandPool & _pool;
         rhi::CommandBufferLevel _level{};
         VkCommandBuffer _commandBuffer = VK_NULL_HANDLE;

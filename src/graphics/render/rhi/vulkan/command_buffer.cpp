@@ -34,22 +34,17 @@ namespace engine::vulkan {
     }
 
     void CommandBuffer::setViewport(float x, float y, float w, float h, float minDepth, float maxDepth, uint32_t viewportIdx) noexcept {
-        if (_state.setViewPort({{{static_cast<int32_t>(x), static_cast<int32_t>(y)}, 
-            {static_cast<uint32_t>(w), static_cast<uint32_t>(h)}}, minDepth, maxDepth})) {
-            const VkViewport viewport{x, y, w, h, minDepth, maxDepth};
-            vkCmdSetViewport(_commandBuffer, viewportIdx, 1, &viewport);
-        }
+        const VkViewport viewport{x, y, w, h, minDepth, maxDepth};
+        vkCmdSetViewport(_commandBuffer, viewportIdx, 1, &viewport);
     }
 
     void CommandBuffer::setScissorRect(const rhi::Rect2D & area, uint32_t scessorIdx) noexcept {
         const VkRect2D scissor{utils::convert2vk(area.offset), utils::convert2vk(area.extent)};
-        if (_state.setScissor(area)) {
-            vkCmdSetScissor(_commandBuffer, scessorIdx, 1, &scissor);
-        }
+        vkCmdSetScissor(_commandBuffer, scessorIdx, 1, &scissor);
     }
 
     rhi::Result CommandBuffer::begin(rhi::CommandBufferUsageFlags flags, const CommandBufferInheritanceInfo * inheritanceInfo) noexcept {
-        _state.reset();
+        //_state.reset();
         _pipeline = {};
         if (_level == rhi::CommandBufferLevel::ePrimary || inheritanceInfo == nullptr) {
             const VkCommandBufferBeginInfo beginInfo {

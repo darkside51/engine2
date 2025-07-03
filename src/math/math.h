@@ -135,24 +135,18 @@ namespace engine {
     }
 
     template<typename T>
-    inline int32_t sign(T&& val) noexcept {
+    inline int32_t sign(T && val) noexcept {
         return (T(0) < val) - (val < T(0));
     }
 
-    inline bool compare(const vec2f& v1, const vec2f& v2, float eps) noexcept {
-        return (std::abs(v1.x - v2.x) > eps) || (std::abs(v1.y - v2.y) > eps);
-    }
-
-    inline bool compare(const vec3f& v1, const vec3f& v2, float eps) noexcept {
-        return (std::abs(v1.x - v2.x) > eps) || (std::abs(v1.y - v2.y) > eps) || (std::abs(v1.z - v2.z) > eps);
-    }
-
-    inline bool compare(const vec4f& v1, const vec4f& v2, float eps) noexcept {
-        return (std::abs(v1.x - v2.x) > eps) || (std::abs(v1.y - v2.y) > eps) || (std::abs(v1.z - v2.z) > eps) || (std::abs(v1.w - v2.w) > eps);
-    }
-
-    inline bool compare(const quatf& q1, const quatf& q2, float eps) noexcept {
-        return (std::abs(q1.w - q2.w) > eps) || (std::abs(q1.x - q2.x) > eps) || (std::abs(q1.y - q2.y) > eps) || (std::abs(q1.z - q2.z) > eps);
+    template<typename V>
+    inline bool compare(const V & v1, const V & v2, typename V::value_type eps) noexcept {
+        for (typename V::length_type i = 0U; i < V::length(); ++i) {
+            if (std::abs(v1[i] - v2[i]) > eps) {
+                return true;
+            }
+        }
+        return false;
     }
 
     enum class RotationsOrder : uint8_t {

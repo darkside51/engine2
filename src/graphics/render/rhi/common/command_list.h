@@ -36,9 +36,9 @@ namespace engine::rhi::runtime {
         void setScissor(const rhi::Rect2D & area, uint32_t scissorIdx = 0u);
 
         void bindPipeline(const PipelinePtr & pipeline);
-        void bindVertexBuffer(uint32_t binding, Buffer * buffer, uint32_t offset = 0u);
-        void bindIndexBuffer(const Buffer * buffer, uint32_t offset = 0u, IndexType type = rhi::IndexType::eU32);
-        void bindBuffer(uint16_t binding, const Buffer * buffer, uint8_t setId = 0u, uint32_t offset = 0u, uint32_t range = kWholeSize32);
+        // void bindVertexBuffer(uint32_t binding, Buffer * buffer, uint32_t offset = 0u);
+        // void bindIndexBuffer(const Buffer * buffer, uint32_t offset = 0u, IndexType type = rhi::IndexType::eU32);
+        // void bindBuffer(uint16_t binding, const Buffer * buffer, uint8_t setId = 0u, uint32_t offset = 0u, uint32_t range = kWholeSize32);
 
         void bindVertexBuffer(uint32_t binding, BufferPtr & buffer, uint32_t offset = 0u);
         void bindIndexBuffer(BufferPtr & buffer, uint32_t offset = 0u, IndexType type = rhi::IndexType::eU32);
@@ -65,7 +65,53 @@ namespace engine::rhi::runtime {
     private:
         void clear();
 
-        const Pipeline * _pipeline = nullptr;
+        struct State {
+            inline constexpr static uint32_t kMaxViewports = 1u; // todo: maybe no 1u if the multiViewport feature is enabled and need to check PhysicalDeviceLimits::maxViewports
+
+            struct BindedBuffer {
+                const Buffer * buffer = nullptr;
+                uint32_t offset = 0u;
+            };
+
+            void reset() noexcept {
+                pipeline = nullptr;
+                viewport = {};
+                scissor = {};
+                indexBuffer = {};
+            }
+
+            bool setViewPort(const Viewport & v, uint32_t idx) noexcept {
+                if (viewport[idx] == v) {
+                    return false;
+                }
+                viewport[idx] = v;
+                return true;
+            }
+
+            bool setScissor(const Rect2D & s, uint32_t idx) noexcept {
+                if (scissor[idx] == s) {
+                    return false;
+                }
+                scissor[idx] = s;
+                return true;
+            }
+
+            bool bindIndexBuffer(const Buffer * buffer, uint32_t offset) noexcept {
+                if (buffer != indexBuffer.buffer || offset != indexBuffer.offset) {
+                    indexBuffer.buffer = buffer;
+                    indexBuffer.offset = offset;
+                    return true;
+                }
+                return false;
+            }
+
+            const Pipeline * pipeline = nullptr;
+
+            std::array<Viewport, kMaxViewports> viewport{};
+            std::array<Rect2D, kMaxViewports> scissor{};
+            BindedBuffer indexBuffer{};
+        } _state;
+
         std::vector<sh_ptr<PipeLineResource>> _resources;
     };
 
