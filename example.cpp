@@ -1,5 +1,6 @@
 #include "example.h"
 
+#include "threads/executor.h"
 #include "file/common_file_system.h"
 #include "graphics/render/rhi/vulkan/runtime.h"
 #include "graphics/render/rhi/common/command_list.h"
@@ -28,6 +29,7 @@ namespace example {
 
     engine::scene::Camera camera;
     engine::scene::SphereCameraController controller{camera};
+    engine::mat4f cameraTransform;
 
     class SceneEventHandler final : public engine::InputObserver {
     public:
@@ -736,13 +738,19 @@ namespace example {
         createDefaultResources();
     }
 
+    void Example::processLogic() {
+        if (controller.calculateTransform() && _renderThread) {
+            _renderThread->emplaceTasks(stl::make_vector(threads::WorkerTask{[transform = camera.getTransform()](){
+                cameraTransform = transform;
+            }}));
+        }
+    }
+
     void Example::update(float delta) {
         const auto [width, height] = _swapchain->getSize();
         _imgui.beginFrame(delta, width, height);
         ImGui::ShowDemoWindow();
         _imgui.endFrame();
-
-        controller.calculateTransform();
     }
 
     void Example::prepareFrameDrawData(engine::rhi::runtime::CommandListPtr & commandList, uint8_t frame, float delta) {
@@ -751,7 +759,7 @@ namespace example {
             auto * map = _uniformBufferI->map2<mat4f>();
             //rotateMatrix_z(*map, -delta);
 
-            *map = camera.getTransform();
+            *map = cameraTransform;
 
             _uniformBufferI->unmap();
             _uniformBufferI->commit(commandList, frame);

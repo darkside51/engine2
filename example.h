@@ -11,6 +11,10 @@
 
 #include <vector>
 
+namespace threads {
+    class ExecutionContext;
+}
+
 namespace example {
 
 class Example : public engine::InputHandler {
@@ -35,6 +39,11 @@ public:
 
     void update(float delta);
     void draw(float delta);
+
+    void processLogic();
+    void setRenderThread(threads::ExecutionContext * renderThread) noexcept {
+        _renderThread = renderThread;
+    }
 
 private:
     void loadShaders();
@@ -79,6 +88,9 @@ private:
     // sphere
     engine::rhi::runtime::BufferPtr _sphereVtx = nullptr;
     engine::rhi::runtime::BufferPtr _sphereIdx = nullptr;
+
+    //
+    threads::ExecutionContext * _renderThread = nullptr;
 };
 
 }

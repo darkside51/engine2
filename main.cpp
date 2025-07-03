@@ -39,6 +39,8 @@ int main() {
             example.prepare();
         }}));
 
+        example.setRenderThread(&renderThread);
+
         renderThread.run();
 
         window0.setVisible(true);
@@ -72,6 +74,7 @@ int main() {
         });
 
         while (glfwModule.process()) {
+            example.processLogic();
             std::this_thread::sleep_for(std::chrono::duration<float>(inputCheckTime));
         }
         
