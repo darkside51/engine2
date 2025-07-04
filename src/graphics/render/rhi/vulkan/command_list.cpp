@@ -79,29 +79,31 @@ namespace engine::vulkan::runtime {
                     );
                 }
 
-                if ((usage & rhi::BufferUsageFlags::eUniform_Buffer) != rhi::BufferUsageFlags::eNone) {
+                if ((usage & (rhi::BufferUsageFlags::eUniform_Buffer | 
+                              rhi::BufferUsageFlags::eUniform_Texel_Buffer)) != rhi::BufferUsageFlags::eNone) {
                     auto const dstStage = VkPipelineStageFlagBits::VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | 
-                                            VkPipelineStageFlagBits::VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+                                          VkPipelineStageFlagBits::VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
 
                     buffer->transition(_postBarriers,
                         dstStage,
-                        VkAccessFlagBits::VK_ACCESS_UNIFORM_READ_BIT, 
+                        VkAccessFlagBits::VK_ACCESS_UNIFORM_READ_BIT | VkAccessFlagBits::VK_ACCESS_SHADER_READ_BIT, // correct?
                         offset, size
                     );
                 }    
 
                 if ((usage & (rhi::BufferUsageFlags::eStorage_Buffer | 
-                                rhi::BufferUsageFlags::eUniform_Texel_Buffer | 
-                                rhi::BufferUsageFlags::eStorage_Texel_Buffer)) != rhi::BufferUsageFlags::eNone) {
+                              rhi::BufferUsageFlags::eStorage_Texel_Buffer)) != rhi::BufferUsageFlags::eNone) {
                     auto const dstStage = VkPipelineStageFlagBits::VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | 
-                                        VkPipelineStageFlagBits::VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+                                          VkPipelineStageFlagBits::VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
 
                     buffer->transition(_postBarriers,
                         dstStage,
-                        VkAccessFlagBits::VK_ACCESS_SHADER_READ_BIT, 
+                        VkAccessFlagBits::VK_ACCESS_SHADER_READ_BIT | VkAccessFlagBits::VK_ACCESS_SHADER_WRITE_BIT, // need to specify read or write?
                         offset, size
                     );
                 }
+
+                // rhi::BufferUsageFlags::eIndirect_Buffer
             }
             _postBarriersBuffers.clear();
 
