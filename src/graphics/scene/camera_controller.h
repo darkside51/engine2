@@ -1,6 +1,7 @@
 #pragma once
 
 #include "camera.h"
+#include <limits>
 
 namespace engine::scene {
 
@@ -154,7 +155,7 @@ public:
 protected:
     float _distance = 0.0f;
     float _minDistance = 0.0f;
-    float _maxDistance = 100.0f; 
+    float _maxDistance = std::numeric_limits<float>::max(); 
 };
 
 }
