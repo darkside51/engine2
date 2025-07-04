@@ -30,6 +30,12 @@ namespace example {
     engine::scene::Camera camera;
     engine::scene::SphereCameraController controller{camera};
     engine::mat4f cameraTransform;
+    float m = 0.0f;
+
+    struct UniformBuffer {
+        engine::mat4f mvp;
+        float m;
+    };
 
     class SceneEventHandler final : public engine::InputObserver {
     public:
@@ -70,7 +76,8 @@ namespace example {
 
         bool onInputWheelEvent(float /*dx*/, float dy) override {
             const auto l = controller.getLen();
-            controller.setLen(l - (dy / std::pow(2.0f, (8.0f - l))));
+            // controller.setLen(l - (dy / std::pow(2.0f, (8.0f - l))));
+            m = std::clamp(m + dy * 0.01f, 0.0f, 1.0f);
             return true;
         }
 
@@ -93,7 +100,7 @@ namespace example {
         controller.setLen(5.0f);
         controller.setMinMaxLen(1.02f, 8.0f);
 
-        camera.makePerspective(std::numbers::pi_v<float> / 4.0f, 1024.0f / 768.0f, 0.01f, 10.0f);
+        camera.makePerspective(std::numbers::pi_v<float> / 4.0f, 1024.0f / 768.0f, 0.01f, 100.0f);
     }
 
     Example::~Example() = default;
@@ -489,7 +496,7 @@ namespace example {
 
         _pipelines.emplace_back(_api->createGraphicsPipeline(_device, _renderPasses[kScreenRenderPass], _programs[kPostEffectProgram], info, 0u));
 
-        info.rasterisationState = {PolygonMode::eFill, CullMode::eBack};
+        info.rasterisationState = {PolygonMode::eFill, CullMode::eNone};
         info.depthStencilState = {
             {
                 .depthTestEnable = true,
@@ -570,17 +577,20 @@ namespace example {
 
         // sphere data
         using namespace engine;
-        uint16_t sectorCount = 36u;
-        uint16_t stackCount = 18u;
+        uint16_t sectorCount = 32;
+        uint16_t stackCount = 32;
         float radius = 1.0f;
 
         constexpr float pi = std::numbers::pi_v<float>;
 
-        const float sectorStep = 2.0f * pi / sectorCount;
+        const float sphereWidthPart = 1.0f;
+        const float sphereHeightPart = 1.0f;
 
-        const float stackFullAngle = pi - 0.5f;
+        const float sectorStep = 2.0f * pi / sectorCount * sphereWidthPart;
+
+        const float stackFullAngle = pi;// - 0.5f;
         const float startAngle = stackFullAngle / 2.0f;
-        const float stackStep = stackFullAngle / stackCount;
+        const float stackStep = stackFullAngle / stackCount * sphereHeightPart;
         const bool truncatedSphere = std::abs(stackFullAngle - pi) > 1e-5f;
 
         std::vector<std::array<float, 5u>> vertices;
@@ -590,18 +600,19 @@ namespace example {
         for(uint16_t i = 0u; i <= stackCount; ++i) {
             const float stackAngle = startAngle - i * stackStep; // starting from startAngle to startAngle-stackFullAngle
         
-            const float xy = radius * std::cos(stackAngle); // r * cos(u)
-            const float z = radius * std::sin(stackAngle);  // r * sin(u)
+            // const float xy = radius * std::cos(stackAngle); // r * cos(u)
+            // const float z = radius * std::sin(stackAngle);  // r * sin(u)
 
-            for(uint16_t j = 0u; j <= sectorCount; ++j) {
+            for(int16_t j = -sectorCount / 2; j <= sectorCount / 2; ++j) {
                 const float sectorAngle = j * sectorStep; // starting from 0 to 2pi
 
                 // vertex position (x, y, z)
-                const float x = xy * cosf(sectorAngle); // r * cos(u) * cos(v)
-                const float y = xy * sinf(sectorAngle); // r * cos(u) * sin(v)
+                // const float x = xy * std::cos(sectorAngle); // r * cos(u) * cos(v)
+                // const float y = xy * std::sin(sectorAngle); // r * cos(u) * sin(v)
                 const float u = static_cast<float>(j) / sectorCount;
                 const float v = static_cast<float>(i) / stackCount;
-                vertices.emplace_back(std::array{x, y, z, u, v});
+                // vertices.emplace_back(std::array{x, y, z, u, v});
+                vertices.emplace_back(std::array{stackAngle, sectorAngle, 0.0f, u, v});
             }
         }
 
@@ -613,18 +624,18 @@ namespace example {
             for(uint16_t j = 0u; j < sectorCount; ++j, ++k1, ++k2) {
                 // 2 triangles per sector excluding first and last stacks
                 // k1 => k2 => k1 + 1
-                if (truncatedSphere || (i != 0u)) {
+                //if (truncatedSphere || (i != 0u)) {
                     indices.push_back(k1);
                     indices.push_back(k2);
                     indices.push_back(k1 + 1);
-                }
+                //}
 
                 // k1 + 1 => k2 => k2 + 1
-                if (truncatedSphere || (i != (stackCount - 1))) {
+                //if (truncatedSphere || (i != (stackCount - 1))) {
                     indices.push_back(k1 + 1);
                     indices.push_back(k2);
                     indices.push_back(k2 + 1);
-                }
+                //}
             }
         }
 
@@ -706,11 +717,12 @@ namespace example {
         };
 
         const size_t kUniformBufferOffsetAlign = _device->getUniformBufferOffsetAlignment();
-        _uniformBufferI = std::make_unique<engine::graphics::InflightBuffer>(_api, _device, unifromsInfo, std::max(kUniformBufferOffsetAlign, sizeof(engine::mat4f)));
+        _uniformBufferI = std::make_unique<engine::graphics::InflightBuffer>(_api, _device, unifromsInfo, std::max(kUniformBufferOffsetAlign, sizeof(UniformBuffer)));
     
         { // update uniforms
-            auto * map = _uniformBufferI->map2<engine::mat4f>();
-            *map = engine::makeMatrix(1.0f);
+            auto * map = _uniformBufferI->map2<UniformBuffer>();
+            map->mvp = engine::makeMatrix(1.0f);
+            map->m = m;
             _uniformBufferI->unmap();
         }
     }
@@ -758,10 +770,11 @@ namespace example {
     void Example::prepareFrameDrawData(engine::rhi::runtime::CommandListPtr & commandList, uint8_t frame, float delta) {
         using namespace engine;
         { // update uniforms
-            auto * map = _uniformBufferI->map2<mat4f>();
+            auto * map = _uniformBufferI->map2<UniformBuffer>();
             //rotateMatrix_z(*map, -delta);
 
-            *map = cameraTransform;
+            map->mvp = cameraTransform;
+            map->m = m;
 
             _uniformBufferI->unmap();
             _uniformBufferI->commit(commandList, frame);
@@ -820,7 +833,7 @@ namespace example {
         commandList->bindVertexBuffer(0u, _sphereVtx);
         commandList->bindIndexBuffer(_sphereIdx, 0u, rhi::IndexType::eU16);
         commandList->bindImage(1u, _defaultImage, rhi::SamplerInfo{});
-        commandList->bindBuffer(0u, (*_uniformBufferI)(frameId), 0u, 0u, sizeof(mat4f));
+        commandList->bindBuffer(0u, (*_uniformBufferI)(frameId), 0u, 0u, sizeof(UniformBuffer));
         commandList->drawIndexed(_sphereIdx->sizeInBytes() / sizeof(uint16_t));
 
         //commandList->nextSubpass(rhi::SubpassContents::ePrimaryBufferInline);
