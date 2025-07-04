@@ -75,9 +75,18 @@ namespace example {
         }
 
         bool onInputWheelEvent(float /*dx*/, float dy) override {
-            const auto l = controller.getLen();
-            // controller.setLen(l - (dy / std::pow(2.0f, (8.0f - l))));
-            m = std::clamp(m + dy * 0.01f, 0.0f, 1.0f);
+            {
+                const auto d = controller.getDistance();
+                controller.setDistance(d - (dy / std::pow(2.0f, (8.0f - d))));
+
+                const float lerpBegin = 5.5f;
+                const float lerpEnd = 1.6f;
+                const float lerpDisatnce = (lerpBegin - lerpEnd);
+                const float mix = std::clamp(lerpBegin - d, 0.0f, lerpDisatnce) / lerpDisatnce;
+                m = std::lerp(0.0f, 1.0f, mix);
+            }
+
+            // m = std::clamp(m + dy * 0.01f, 0.0f, 1.0f);
             return true;
         }
 
@@ -97,8 +106,8 @@ namespace example {
         addInputObserver(&_imgui);
         addInputObserver(&sceneEventHandler);
 
-        controller.setLen(5.0f);
-        controller.setMinMaxLen(1.02f, 8.0f);
+        controller.setDistance(5.0f);
+        controller.setMinMaxDistance(1.02f, 8.0f);
 
         camera.makePerspective(std::numbers::pi_v<float> / 4.0f, 1024.0f / 768.0f, 0.01f, 100.0f);
     }

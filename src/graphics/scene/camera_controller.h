@@ -93,18 +93,18 @@ class SphereCameraController : public CameraController {
 public:
     SphereCameraController(Camera & camera) : CameraController(camera) { }
 
-    float getLen() const noexcept { return _len; }
+    float getDistance() const noexcept { return _distance; }
 
-    void setLen(float l) noexcept { 
-        if (std::abs(l - _len) > kEps) {
-            _len = std::min(std::max(l, _minLen), _maxLen);
+    void setDistance(float distance) noexcept { 
+        if (std::abs(distance - _distance) > kEps) {
+            _distance = std::min(std::max(distance, _minDistance), _maxDistance);
             _dirty = true;
         }
     }
 
-    void setMinMaxLen(float minLen, float maxLen) noexcept {
-        _minLen = minLen;
-        _maxLen = maxLen;
+    void setMinMaxDistance(float minDistance, float maxDistance) noexcept {
+        _minDistance = minDistance;
+        _maxDistance = maxDistance;
     }
 
     bool calculateTransform() noexcept {
@@ -128,16 +128,16 @@ public:
         const float rz = _rotation.z;
         vec3f position = _position;
 
-        if (std::abs(_len) > kEps) {
+        if (std::abs(_distance) > kEps) {
             // use spherical coordinates
             const float crx = cosf(rx);
             const float crz = cosf(rz);
             const float srx = sinf(rx);
             const float srz = sinf(rz);
 
-            const float x = _len * srx * srz;
-            const float y = _len * srx * crz;
-            const float z = _len * crx;
+            const float x = _distance * srx * srz;
+            const float y = _distance * srx * crz;
+            const float z = _distance * crx;
 
             position += vec3f{ x, y, z };
         }
@@ -152,9 +152,9 @@ public:
     }
 
 protected:
-    float _len = 0.0f;
-    float _minLen = 0.0f;
-    float _maxLen = 100.0f; 
+    float _distance = 0.0f;
+    float _minDistance = 0.0f;
+    float _maxDistance = 100.0f; 
 };
 
 }
