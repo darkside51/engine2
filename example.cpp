@@ -112,7 +112,7 @@ namespace example {
         controller.setDistance(5.0f);
         controller.setMinMaxDistance(1.02f, 8.0f);
 
-        camera.makePerspective(std::numbers::pi_v<float> / 4.0f, 1024.0f / 768.0f, 0.01f, 100.0f);
+        camera.makePerspective(std::numbers::pi_v<float> / 3.0f, 1024.0f / 768.0f, 0.01f, 100.0f);
     }
 
     Example::~Example() = default;
@@ -897,7 +897,9 @@ namespace example {
         commandList->bindPipeline(_pipelines[kSceneTestPipeline]);
         commandList->bindVertexBuffer(0u, _sphereVtx);
         commandList->bindIndexBuffer(_sphereIdx, 0u, rhi::IndexType::eU16);
-        commandList->bindImage(1u, _sphereImage, rhi::SamplerInfo{});
+        commandList->bindImage(1u, _sphereImage, rhi::SamplerInfo{
+            .magFilter = rhi::FilterMode::eLinear,
+            .minFilter = rhi::FilterMode::eLinear});
         commandList->bindBuffer(0u, (*_uniformBufferI)(frameId), 0u, 0u, sizeof(UniformBuffer));
         commandList->drawIndexed(_sphereIdx->sizeInBytes() / sizeof(uint16_t));
 

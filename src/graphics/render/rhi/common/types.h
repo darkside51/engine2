@@ -1160,7 +1160,6 @@ namespace engine::rhi {
     };
 
     struct SamplerInfo {
-        float maxAnisotropy = 0.0f;
         FilterMode magFilter = FilterMode::eNearest;
         FilterMode minFilter = FilterMode::eNearest;
         FilterMode mipMapMode = FilterMode::eNearest;
@@ -1169,6 +1168,7 @@ namespace engine::rhi {
         SamplerAddressMode addressModeW = SamplerAddressMode::eRepeat;
         CompareOp compareOp = CompareOp::eNever;
         BorderColor borderColor = BorderColor::eFloat_Opaque_Black;
+        float maxAnisotropy = 0.0f;
 
         inline size_t hash() const noexcept {
             constexpr auto kRoundMult = 100;
