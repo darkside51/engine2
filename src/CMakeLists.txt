@@ -231,13 +231,25 @@ target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/..
 set(GLAZE_LIB glaze_glaze)
 message("glaze library end")
 
+# try sail
+message("sail library begin")
+add_3rdparty_project (${CMAKE_CURRENT_SOURCE_DIR}/../3rd_party/sail ${CMAKE_BINARY_DIR}/3rd_party/sail)
+target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../3rd_party/sail/src)
+set(SAIL_LIB sail-c++)
+message("sail library end")
+
 target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../3rd_party/glm-1.0.1)
 target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../3rd_party/imgui)
+
+target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../3rd_party/sail/src)
+target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../3rd_party/sail/src/bindings)
+target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_BINARY_DIR}/3rd_party/sail/include)
 
 target_link_libraries (
 	${PROJECT_NAME}
 	${USED_FRAMEWORKS}
 	${GLAZE_LIB}
+	${SAIL_LIB}
 	#${FREETYPE_LIB}
 )
 

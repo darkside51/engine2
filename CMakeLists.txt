@@ -33,6 +33,9 @@ add_executable(${PROJECT_NAME} main.cpp example.cpp)
 
 target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/3rd_party/imgui)
 
+target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/3rd_party/sail/src)
+target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/3rd_party/sail/src/bindings)
+
 ########## подключаем engine
 target_link_libraries(${PROJECT_NAME} engine)
 include_directories(./src)

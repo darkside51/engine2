@@ -14,6 +14,9 @@
 
 #include <imgui.h>
 
+// sail test
+#include <sail-c++/sail-c++.h>
+
 // https://www.saschawillems.de/blog/2018/07/19/vulkan-input-attachments-and-sub-passes/
 
 namespace example {
@@ -506,6 +509,7 @@ namespace example {
         _pipelines.emplace_back(_api->createGraphicsPipeline(_device, _renderPasses[kScreenRenderPass], _programs[kPostEffectProgram], info, 0u));
 
         info.rasterisationState = {PolygonMode::eFill, CullMode::eNone};
+        info.blendModes = {common_blend_modes::blend_none};
         info.depthStencilState = {
             {
                 .depthTestEnable = true,
@@ -537,6 +541,25 @@ namespace example {
     }
 
     void Example::createDefaultResources() {
+        // sail test
+        auto const imageBytes = _fileManager.readFile("assets/earth.png");
+        sail::image_input imageInput(imageBytes.data(), imageBytes.size());
+
+        sail::image image = imageInput.next_frame();
+
+        // auto [image, codecInfo] = imageInput.probe(); // get only information
+        
+        const auto format = image.pixel_format(); // need to check for support format on gpu device for target VkFormatFeatureFlagBits !!!!
+        const auto bpp = image.bits_per_pixel();
+        const auto size = engine::vec2u(image.width(), image.height());
+        const auto pixels = image.pixels();
+        const auto psz = image.pixels_size();
+        const bool vaild = image.is_valid();
+
+        auto status = image.convert(SAIL_PIXEL_FORMAT_BPP32_RGBA);
+        const auto bpp2 = image.bits_per_pixel();
+
+
         // create post buffers and default image
         using namespace engine::rhi;
         using namespace engine::graphics;
@@ -676,6 +699,27 @@ namespace example {
         _sphereIdx = _api->createBuffer(_device, bufferInfoSphere, sizeof(uint16_t) * indices.size());
         // sphere data
 
+        // sphere texture
+        const auto sphereImageInfo = ImageInfo{
+            ImageUsageFlags::eSampled | ImageUsageFlags::eTransfer_Dst,
+            Format::eR8G8B8A8_Unorm, {image.width(), image.height(), 1u}
+        };
+
+        _sphereImage = _api->createImage(_device, sphereImageInfo);
+        const auto stagingSize3 = image.pixels_size();
+        StagingBuffer staging3{_api,_device, stagingSize3};
+        
+        std::byte * memory3 = staging3.map();
+        auto * sphereImgData = reinterpret_cast<std::byte*>(memory3);
+        std::memcpy(memory3, image.pixels(), stagingSize3);
+        // const auto* sphereTexPixels = static_cast<std::byte*>(image.pixels());
+        // for (size_t i = 0; i < stagingSize3; ++i) {
+        //     sphereImgData[i] = sphereTexPixels[i];
+        // }
+        staging3.flush();
+        staging3.unmap();
+        // sphere texture
+
         auto * commandPool = _device->acquireCommandPool(engine::rhi::queue_flags::graphics | engine::rhi::queue_flags::present);
         auto tmpCommandList = _api->createCommandList(commandPool, engine::rhi::CommandBufferLevel::ePrimary);
 
@@ -701,6 +745,18 @@ namespace example {
             {.srcOffset = vtxOffset2, .dstOffset = 0u, .size = _sphereVtx->sizeInBytes()});
         tmpCommandList->copyBuffer2Buffer(stagingSphere.getBuffer(), _sphereIdx, 
             {.srcOffset = idxOffset2, .dstOffset = 0u, .size = _sphereIdx->sizeInBytes()});
+
+        // texture
+        tmpCommandList->copyBuffer2Image(staging3.getBuffer(), _sphereImage, 
+            {
+                .bufferOffset = 0u,
+                .bufferRowLength = 0u,
+                .bufferImageHeight = 0u,
+                .imageSubresource = {.aspectMask = engine::rhi::ImageAspectFlags::eColor},
+                .imageOffset = {0u, 0u, 0u},
+                .imageExtent = _sphereImage->getExtent()
+            }
+        );
         // sphere
 
         tmpCommandList->end();
@@ -841,7 +897,7 @@ namespace example {
         commandList->bindPipeline(_pipelines[kSceneTestPipeline]);
         commandList->bindVertexBuffer(0u, _sphereVtx);
         commandList->bindIndexBuffer(_sphereIdx, 0u, rhi::IndexType::eU16);
-        commandList->bindImage(1u, _defaultImage, rhi::SamplerInfo{});
+        commandList->bindImage(1u, _sphereImage, rhi::SamplerInfo{});
         commandList->bindBuffer(0u, (*_uniformBufferI)(frameId), 0u, 0u, sizeof(UniformBuffer));
         commandList->drawIndexed(_sphereIdx->sizeInBytes() / sizeof(uint16_t));
 

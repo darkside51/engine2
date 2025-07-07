@@ -88,6 +88,7 @@ private:
     // sphere
     engine::rhi::runtime::BufferPtr _sphereVtx = nullptr;
     engine::rhi::runtime::BufferPtr _sphereIdx = nullptr;
+    engine::rhi::runtime::ImagePtr _sphereImage = nullptr;
 
     //
     threads::ExecutionContext * _renderThread = nullptr;

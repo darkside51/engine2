@@ -37,7 +37,8 @@ void main() {
 	vec3 plainCoord = vec3(a_position.x, a_position.y * 0.5, 0.0) * rotate_y90;
 
 	gl_Position = ubo.model * mix(vec4(sphereCoord, 1.0), vec4(plainCoord, 1.0), ubo.m);
-	v_uv = vec2(16.0, 16.0) * a_uv;
+	//v_uv = vec2(16.0, 16.0) * a_uv;
+	v_uv = a_uv;
 
 	//v_color = a_position;
 	//gl_Position = ubo.model * vec4(a_position, 1.0);
