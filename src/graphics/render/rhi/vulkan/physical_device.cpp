@@ -279,6 +279,27 @@ namespace engine::vulkan {
         return static_cast<rhi::Format>(result);
     }
 
+    rhi::FormatFeatureAccess PhysicalDevice::isFormatSupported(VkFormat format, VkFormatFeatureFlags featureFlags) const noexcept {
+        VkFormatProperties formatProperties;
+		vkGetPhysicalDeviceFormatProperties(_gpu, format, &formatProperties);
+
+        rhi::FormatFeatureAccess access{};
+
+        if ((formatProperties.bufferFeatures & featureFlags) == featureFlags) {
+            access.bufferFeatures = true;
+        }
+
+        if ((formatProperties.linearTilingFeatures & featureFlags) == featureFlags) {
+            access.linearTilingFeatures = true;
+        }
+
+        if ((formatProperties.optimalTilingFeatures & featureFlags) == featureFlags) {
+            access.optimalTilingFeatures = true;
+        }
+        
+        return access;
+    }
+
     uint32_t PhysicalDevice::getMemoryType(uint32_t requiredTypeBits, rhi::MemoryPropertyFlags properties) const noexcept {
         const auto asIntegerProperties = std::to_underlying(properties);
 		for (uint32_t i = 0u; i < _memoryProperties.memoryTypeCount; ++i) {

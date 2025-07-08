@@ -65,6 +65,8 @@ public:
         eAll = 3u
     };
 
+    rhi::FormatFeatureAccess isFormatSupported(VkFormat format, VkFormatFeatureFlags featureFlags) const noexcept;
+
     DepthFormatSupport isDepthFormatSupported(VkFormat format, bool samplingSupport) const noexcept;
     rhi::Format getSupportedDepthFormat(uint8_t desiredBpp, bool withStencil, bool samplingSupport = false) const noexcept;
 

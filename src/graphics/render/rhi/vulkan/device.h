@@ -107,6 +107,8 @@ public:
     size_t getStorageBufferOffsetAlignment() const noexcept override;
     size_t getTexelBufferOffsetAlignment() const noexcept override;
 
+    rhi::FormatFeatureAccess isFormatSupported(rhi::Format format, rhi::FormatFeatureFlags featureFlags) const noexcept override;
+
 private:
     void createAllocator() noexcept;
     void destroyAllocator() noexcept;

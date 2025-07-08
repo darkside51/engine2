@@ -22,6 +22,8 @@ const mat3 rotate_z90 = mat3(0.0, 1.0, 0.0,
 					 	   -1.0, 0.0, 0.0,
 					 	   0.0, 0.0, 1.0);
 
+const mat3 rotate_y90z90 = rotate_y90 * rotate_z90;
+
 void main() {
 	const float radius = 1.0;
 	const float xy = radius * cos(a_position.x); // r * cos(u)
@@ -30,11 +32,11 @@ void main() {
     const float y = xy * sin(a_position.y); // r * cos(u) * sin(v)
 
 	// this is true!
-	//vec3 sphereCoord = vec3(x, y, z) * rotate_y90 * rotate_z90;
+	//vec3 sphereCoord = vec3(x, y, z) * rotate_y90z90;
 	//vec3 plainCoord = vec3(a_position.y * 0.5, a_position.x, 0.0);
 
 	vec3 sphereCoord = vec3(x, y, z);
-	vec3 plainCoord = vec3(a_position.x, a_position.y * 0.5, 0.0) * rotate_y90;
+	vec3 plainCoord = vec3(a_position.x, a_position.y /** 0.5*/, 0.0) * rotate_y90;
 
 	gl_Position = ubo.model * mix(vec4(sphereCoord, 1.0), vec4(plainCoord, 1.0), ubo.m);
 	//v_uv = vec2(16.0, 16.0) * a_uv;

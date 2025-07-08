@@ -556,8 +556,13 @@ namespace example {
         const auto psz = image.pixels_size();
         const bool vaild = image.is_valid();
 
-        auto status = image.convert(SAIL_PIXEL_FORMAT_BPP32_RGBA);
-        const auto bpp2 = image.bits_per_pixel();
+        const auto featureAccess = _device->isFormatSupported(engine::rhi::Format::eR8G8B8_Unorm, 
+            engine::rhi::FormatFeatureFlags::eFormatFeature_Sampled_Image);
+
+        if (featureAccess.optimalTilingFeatures == false && featureAccess.linearTilingFeatures == false) {
+            auto status = image.convert(SAIL_PIXEL_FORMAT_BPP32_RGBA);
+            const auto bpp2 = image.bits_per_pixel();
+        }
 
 
         // create post buffers and default image
@@ -620,7 +625,7 @@ namespace example {
 
         const float sectorStep = 2.0f * pi / sectorCount * sphereWidthPart;
 
-        const float stackFullAngle = pi;// - 0.5f;
+        const float stackFullAngle = pi;// - 1.5f;
         const float startAngle = stackFullAngle / 2.0f;
         const float stackStep = stackFullAngle / stackCount * sphereHeightPart;
         const bool truncatedSphere = std::abs(stackFullAngle - pi) > 1e-5f;
@@ -641,7 +646,7 @@ namespace example {
                 // vertex position (x, y, z)
                 // const float x = xy * std::cos(sectorAngle); // r * cos(u) * cos(v)
                 // const float y = xy * std::sin(sectorAngle); // r * cos(u) * sin(v)
-                const float u = static_cast<float>(j) / sectorCount;
+                const float u = static_cast<float>(j + sectorCount / 2) / sectorCount;
                 const float v = static_cast<float>(i) / stackCount;
                 // vertices.emplace_back(std::array{x, y, z, u, v});
                 vertices.emplace_back(std::array{stackAngle, sectorAngle, 0.0f, u, v});

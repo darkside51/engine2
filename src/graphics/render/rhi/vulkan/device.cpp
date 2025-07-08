@@ -296,6 +296,10 @@ namespace engine::vulkan {
         return _gpu.deviceProperties().limits.minTexelBufferOffsetAlignment;
     }
 
+    rhi::FormatFeatureAccess Device::isFormatSupported(rhi::Format format, rhi::FormatFeatureFlags featureFlags) const noexcept {
+        return _gpu.isFormatSupported(utils::convert2vk(format), utils::convert2vk(featureFlags));
+    }
+
     Device::Sampler Device::getSampler(const rhi::SamplerInfo & samplerInfo) {
         return _samplerManager.getSampler(samplerInfo);
     }

@@ -905,6 +905,94 @@ inline rhi::Format convert2rhi(VkFormat format) noexcept {
     return rhi::Format::eUndefined;
 }
 
+inline VkFormatFeatureFlags convert2vk(rhi::FormatFeatureFlags flags) noexcept {
+    VkFormatFeatureFlags result = 0;
+
+    if (std::to_underlying(flags & rhi::FormatFeatureFlags::eFormatFeature_Sampled_Image)) {
+        result |= VkFormatFeatureFlagBits::VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT;
+    }
+    if (std::to_underlying(flags & rhi::FormatFeatureFlags::eFormatFeature_Storage_Image)) {
+        result |= VkFormatFeatureFlagBits::VK_FORMAT_FEATURE_STORAGE_IMAGE_BIT;
+    }
+    if (std::to_underlying(flags & rhi::FormatFeatureFlags::eFormatFeature_Storage_Image_Atomic)) {
+        result |= VkFormatFeatureFlagBits::VK_FORMAT_FEATURE_STORAGE_IMAGE_ATOMIC_BIT;
+    }
+    if (std::to_underlying(flags & rhi::FormatFeatureFlags::eFormatFeature_Uniform_Texel_Buffer)) {
+        result |= VkFormatFeatureFlagBits::VK_FORMAT_FEATURE_UNIFORM_TEXEL_BUFFER_BIT;
+    }
+    if (std::to_underlying(flags & rhi::FormatFeatureFlags::eFormatFeature_Storage_Texel_Buffer)) {
+        result |= VkFormatFeatureFlagBits::VK_FORMAT_FEATURE_STORAGE_TEXEL_BUFFER_BIT;
+    }
+    if (std::to_underlying(flags & rhi::FormatFeatureFlags::eFormatFeature_Storage_Texel_Buffer_Atomic)) {
+        result |= VkFormatFeatureFlagBits::VK_FORMAT_FEATURE_STORAGE_TEXEL_BUFFER_ATOMIC_BIT;
+    }
+    if (std::to_underlying(flags & rhi::FormatFeatureFlags::eFormatFeature_Vertex_Buffer)) {
+        result |= VkFormatFeatureFlagBits::VK_FORMAT_FEATURE_VERTEX_BUFFER_BIT;
+    }
+    if (std::to_underlying(flags & rhi::FormatFeatureFlags::eFormatFeature_Color_Attachment)) {
+        result |= VkFormatFeatureFlagBits::VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT;
+    }
+    if (std::to_underlying(flags & rhi::FormatFeatureFlags::eFormatFeature_Color_Attachment_Blend)) {
+        result |= VkFormatFeatureFlagBits::VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BLEND_BIT;
+    }
+    if (std::to_underlying(flags & rhi::FormatFeatureFlags::eFormatFeature_Depth_Stencil_Attachment)) {
+        result |= VkFormatFeatureFlagBits::VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT;
+    }
+    if (std::to_underlying(flags & rhi::FormatFeatureFlags::eFormatFeature_Blit_Src)) {
+        result |= VkFormatFeatureFlagBits::VK_FORMAT_FEATURE_BLIT_SRC_BIT;
+    }
+    if (std::to_underlying(flags & rhi::FormatFeatureFlags::eFormatFeature_BLit_Dst)) {
+        result |= VkFormatFeatureFlagBits::VK_FORMAT_FEATURE_BLIT_DST_BIT;
+    }
+    if (std::to_underlying(flags & rhi::FormatFeatureFlags::eFormatFeature_Sampled_Image_Filter_Linear)) {
+        result |= VkFormatFeatureFlagBits::VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT;
+    }
+    if (std::to_underlying(flags & rhi::FormatFeatureFlags::eFormatFeature_Transfer_Src)) {
+        result |= VkFormatFeatureFlagBits::VK_FORMAT_FEATURE_TRANSFER_SRC_BIT;
+    }
+    if (std::to_underlying(flags & rhi::FormatFeatureFlags::eFormatFeature_Transfer_Dst)) {
+        result |= VkFormatFeatureFlagBits::VK_FORMAT_FEATURE_TRANSFER_DST_BIT;
+    }
+    if (std::to_underlying(flags & rhi::FormatFeatureFlags::eFormatFeature_Midpoint_Chroma_Samples)) {
+        result |= VkFormatFeatureFlagBits::VK_FORMAT_FEATURE_MIDPOINT_CHROMA_SAMPLES_BIT;
+    }
+    if (std::to_underlying(flags & rhi::FormatFeatureFlags::eFormatFeature_Sampled_Image_YCBCR_Conversion_Linear_Filter)) {
+        result |= VkFormatFeatureFlagBits::VK_FORMAT_FEATURE_SAMPLED_IMAGE_YCBCR_CONVERSION_LINEAR_FILTER_BIT;
+    }
+    if (std::to_underlying(flags & rhi::FormatFeatureFlags::eFormatFeature_Sampled_Image_YCBCR_Conversion_Separate_Reconstruction_Filter)) {
+        result |= VkFormatFeatureFlagBits::VK_FORMAT_FEATURE_SAMPLED_IMAGE_YCBCR_CONVERSION_SEPARATE_RECONSTRUCTION_FILTER_BIT;
+    }
+    if (std::to_underlying(flags & rhi::FormatFeatureFlags::eFormatFeature_Sampled_Image_YCBCR_Conversion_Chroma_Reconstruction_Explicit)) {
+        result |= VkFormatFeatureFlagBits::VK_FORMAT_FEATURE_SAMPLED_IMAGE_YCBCR_CONVERSION_CHROMA_RECONSTRUCTION_EXPLICIT_BIT;
+    }
+    if (std::to_underlying(flags & rhi::FormatFeatureFlags::eFormatFeature_Sampled_Image_YCBCR_Conversion_Chroma_Reconstruction_Explicit_Forceable)) {
+        result |= VkFormatFeatureFlagBits::VK_FORMAT_FEATURE_SAMPLED_IMAGE_YCBCR_CONVERSION_CHROMA_RECONSTRUCTION_EXPLICIT_FORCEABLE_BIT;
+    }
+    if (std::to_underlying(flags & rhi::FormatFeatureFlags::eFormatFeature_Disjoint)) {
+        result |= VkFormatFeatureFlagBits::VK_FORMAT_FEATURE_DISJOINT_BIT;
+    }
+    if (std::to_underlying(flags & rhi::FormatFeatureFlags::eFormatFeature_Cosited_Chroma_Samples)) {
+        result |= VkFormatFeatureFlagBits::VK_FORMAT_FEATURE_COSITED_CHROMA_SAMPLES_BIT;
+    }
+    if (std::to_underlying(flags & rhi::FormatFeatureFlags::eFormatFeature_Sampled_Image_Filter_Minmax)) {
+        result |= VkFormatFeatureFlagBits::VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_MINMAX_BIT;
+    }
+    if (std::to_underlying(flags & rhi::FormatFeatureFlags::eFormatFeature_Acceleration_Structure_Vertex_Buffer)) {
+        result |= VkFormatFeatureFlagBits::VK_FORMAT_FEATURE_ACCELERATION_STRUCTURE_VERTEX_BUFFER_BIT_KHR;
+    }
+    if (std::to_underlying(flags & rhi::FormatFeatureFlags::eFormatFeature_Sampled_Image_Filter_Cubic_Ext)) {
+        result |= VkFormatFeatureFlagBits::VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_CUBIC_BIT_EXT;
+    }
+    if (std::to_underlying(flags & rhi::FormatFeatureFlags::eFormatFeature_Fragment_Density_Map_Ext)) {
+        result |= VkFormatFeatureFlagBits::VK_FORMAT_FEATURE_FRAGMENT_DENSITY_MAP_BIT_EXT;
+    }
+    if (std::to_underlying(flags & rhi::FormatFeatureFlags::eFormatFeature_Fragment_Shading_Rate_Attachment)) {
+        result |= VkFormatFeatureFlagBits::VK_FORMAT_FEATURE_FRAGMENT_SHADING_RATE_ATTACHMENT_BIT_KHR;
+    }
+
+    return result;
+}
+
 inline VkResolveModeFlags convert2vk(rhi::ResolveModeFlags flags) noexcept {
     VkResolveModeFlags result = VkResolveModeFlagBits::VK_RESOLVE_MODE_NONE;
 

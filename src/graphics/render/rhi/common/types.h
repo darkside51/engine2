@@ -385,6 +385,49 @@ namespace engine::rhi {
         return !isDepthFormat(format);
     }
 
+    enum class FormatFeatureFlags : uint32_t {
+        eNone = 0u,
+        eFormatFeature_Sampled_Image = 0x00000001u,
+        eFormatFeature_Storage_Image = 0x00000002u,
+        eFormatFeature_Storage_Image_Atomic = 0x00000004u,
+        eFormatFeature_Uniform_Texel_Buffer = 0x00000008u,
+        eFormatFeature_Storage_Texel_Buffer = 0x00000010u,
+        eFormatFeature_Storage_Texel_Buffer_Atomic = 0x00000020u,
+        eFormatFeature_Vertex_Buffer = 0x00000040u,
+        eFormatFeature_Color_Attachment = 0x00000080u,
+        eFormatFeature_Color_Attachment_Blend = 0x00000100u,
+        eFormatFeature_Depth_Stencil_Attachment = 0x00000200u,
+        eFormatFeature_Blit_Src = 0x00000400u,
+        eFormatFeature_BLit_Dst = 0x00000800u,
+        eFormatFeature_Sampled_Image_Filter_Linear = 0x00001000u,
+        eFormatFeature_Transfer_Src = 0x00004000u,
+        eFormatFeature_Transfer_Dst = 0x00008000u,
+        eFormatFeature_Midpoint_Chroma_Samples = 0x00020000u,
+        eFormatFeature_Sampled_Image_YCBCR_Conversion_Linear_Filter = 0x00040000u,
+        eFormatFeature_Sampled_Image_YCBCR_Conversion_Separate_Reconstruction_Filter = 0x00080000u,
+        eFormatFeature_Sampled_Image_YCBCR_Conversion_Chroma_Reconstruction_Explicit = 0x00100000u,
+        eFormatFeature_Sampled_Image_YCBCR_Conversion_Chroma_Reconstruction_Explicit_Forceable = 0x00200000u,
+        eFormatFeature_Disjoint = 0x00400000u,
+        eFormatFeature_Cosited_Chroma_Samples = 0x00800000u,
+        eFormatFeature_Sampled_Image_Filter_Minmax = 0x00010000u,
+        eFormatFeature_Acceleration_Structure_Vertex_Buffer = 0x20000000u,
+        eFormatFeature_Sampled_Image_Filter_Cubic_Ext = 0x00002000u,
+        eFormatFeature_Fragment_Density_Map_Ext = 0x01000000u,
+        eFormatFeature_Fragment_Shading_Rate_Attachment = 0x40000000u,
+    };
+    inline FormatFeatureFlags operator | (FormatFeatureFlags a, FormatFeatureFlags b) {
+        return static_cast<FormatFeatureFlags>(std::to_underlying(a) | std::to_underlying(b));
+    }
+    inline FormatFeatureFlags operator & (FormatFeatureFlags a, FormatFeatureFlags b) {
+        return static_cast<FormatFeatureFlags>(std::to_underlying(a) & std::to_underlying(b));
+    }
+
+    struct FormatFeatureAccess {
+        bool bufferFeatures = false;
+        bool linearTilingFeatures = false;
+        bool optimalTilingFeatures = false;
+    };
+
     enum class ColorSpace : uint8_t {
         eSRGB_Nonlinear = 0u,
         eDISPLAY_P3_Nonlinear = 1u,
