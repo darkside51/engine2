@@ -423,9 +423,25 @@ namespace engine::rhi {
     }
 
     struct FormatFeatureAccess {
-        bool bufferFeatures = false;
-        bool linearTilingFeatures = false;
-        bool optimalTilingFeatures = false;
+        enum class Bit : uint8_t {
+            eBufferFeaturesBit = 0u,
+            eLinearTilingFeaturesBit = 1u,
+            eOptimalTilingFeaturesBit = 2u
+        };
+
+        void setBit(Bit bit, bool value) noexcept {
+            if (value) {
+                features |= (1u << std::to_underlying(bit));
+            } else {
+                features &= ~(1u << std::to_underlying(bit));
+            }
+        }
+
+        bool checkBit(Bit bit) const noexcept {
+            return (features & 1u << std::to_underlying(bit)) != 0u;
+        }
+
+        uint8_t features = 0u;
     };
 
     enum class ColorSpace : uint8_t {

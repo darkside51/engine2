@@ -286,15 +286,15 @@ namespace engine::vulkan {
         rhi::FormatFeatureAccess access{};
 
         if ((formatProperties.bufferFeatures & featureFlags) == featureFlags) {
-            access.bufferFeatures = true;
+            access.setBit(rhi::FormatFeatureAccess::Bit::eBufferFeaturesBit, true);
         }
 
         if ((formatProperties.linearTilingFeatures & featureFlags) == featureFlags) {
-            access.linearTilingFeatures = true;
+            access.setBit(rhi::FormatFeatureAccess::Bit::eLinearTilingFeaturesBit, true);
         }
 
         if ((formatProperties.optimalTilingFeatures & featureFlags) == featureFlags) {
-            access.optimalTilingFeatures = true;
+            access.setBit(rhi::FormatFeatureAccess::Bit::eOptimalTilingFeaturesBit, true);
         }
         
         return access;

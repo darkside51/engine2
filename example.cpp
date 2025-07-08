@@ -571,7 +571,10 @@ namespace example {
         const auto featureAccess16 = _device->isFormatSupported(engine::rhi::Format::eR4G4B4A4_Unorm_Pack16, 
             engine::rhi::FormatFeatureFlags::eFormatFeature_Sampled_Image);
 
-        if (bpp == 24 && featureAccess24.optimalTilingFeatures == false && featureAccess24.linearTilingFeatures == false) {
+        const bool sampledSupport = featureAccess24.checkBit(engine::rhi::FormatFeatureAccess::Bit::eOptimalTilingFeaturesBit) ||
+                                    featureAccess24.checkBit(engine::rhi::FormatFeatureAccess::Bit::eLinearTilingFeaturesBit);
+
+        if (bpp == 24u && !sampledSupport) {
             // if (featureAccess16.optimalTilingFeatures || featureAccess16.linearTilingFeatures) {
             //     auto status = image.convert(SAIL_PIXEL_FORMAT_BPP16_RGBA);
             //     const auto bpp2 = image.bits_per_pixel();
