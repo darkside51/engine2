@@ -85,6 +85,7 @@ set(
 	graphics/render/rhi/common
 	graphics/ui
 	graphics/scene
+	graphics/texture
 	input
 	log
 	math

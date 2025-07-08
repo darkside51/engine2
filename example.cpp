@@ -12,10 +12,9 @@
 
 #include "graphics/scene/camera_controller.h"
 
-#include <imgui.h>
+#include "graphics/texture/texture_data_parser.h"
 
-// sail test
-#include <sail-c++/sail-c++.h>
+#include <imgui.h>
 
 // https://www.saschawillems.de/blog/2018/07/19/vulkan-input-attachments-and-sub-passes/
 
@@ -553,18 +552,7 @@ namespace example {
     void Example::createDefaultResources() {
         // sail test
         auto const imageBytes = _fileManager.readFile("assets/earth.webp");
-        sail::image_input imageInput(imageBytes.data(), imageBytes.size());
-
-        sail::image image = imageInput.next_frame();
-
-        // auto [image, codecInfo] = imageInput.probe(); // get only information
-        
-        const auto format = image.pixel_format(); // need to check for support format on gpu device for target VkFormatFeatureFlagBits !!!!
-        const auto bpp = image.bits_per_pixel();
-        const auto size = engine::vec2u(image.width(), image.height());
-        const auto pixels = image.pixels();
-        const auto psz = image.pixels_size();
-        const bool vaild = image.is_valid();
+        auto textureData = engine::graphics::parseTextureData(imageBytes);
 
         const auto featureAccess24 = _device->isFormatSupported(engine::rhi::Format::eR8G8B8_Unorm, 
             engine::rhi::FormatFeatureFlags::eFormatFeature_Sampled_Image);
@@ -574,16 +562,16 @@ namespace example {
         const bool sampledSupport = featureAccess24.checkBit(engine::rhi::FormatFeatureAccess::Bit::eOptimalTilingFeaturesBit) ||
                                     featureAccess24.checkBit(engine::rhi::FormatFeatureAccess::Bit::eLinearTilingFeaturesBit);
 
-        if (bpp == 24u && !sampledSupport) {
+        if (textureData.metaInfo.bpp == 24u && !sampledSupport) {
             // if (featureAccess16.optimalTilingFeatures || featureAccess16.linearTilingFeatures) {
             //     auto status = image.convert(SAIL_PIXEL_FORMAT_BPP16_RGBA);
             //     const auto bpp2 = image.bits_per_pixel();
             // } else {
-                auto status = image.convert(SAIL_PIXEL_FORMAT_BPP32_RGBA);
-                const auto bpp2 = image.bits_per_pixel();
+                // auto status = image.convert(SAIL_PIXEL_FORMAT_BPP32_RGBA);
+                // const auto bpp2 = image.bits_per_pixel();
             // }
+            engine::graphics::convertTextureDataFormat(engine::rhi::Format::eR8G8B8A8_Unorm, textureData);
         }
-
 
         // create post buffers and default image
         using namespace engine::rhi;
@@ -727,20 +715,16 @@ namespace example {
         // sphere texture
         const auto sphereImageInfo = ImageInfo{
             ImageUsageFlags::eSampled | ImageUsageFlags::eTransfer_Dst,
-            Format::eR8G8B8A8_Unorm, {image.width(), image.height(), 1u}
+            textureData.metaInfo.format, {textureData.metaInfo.size.x, textureData.metaInfo.size.y, 1u}
         };
 
         _sphereImage = _api->createImage(_device, sphereImageInfo);
-        const auto stagingSize3 = image.pixels_size();
+        const auto stagingSize3 = textureData.data.size();
         StagingBuffer staging3{_api,_device, stagingSize3};
         
         std::byte * memory3 = staging3.map();
         auto * sphereImgData = reinterpret_cast<std::byte*>(memory3);
-        std::memcpy(memory3, image.pixels(), stagingSize3);
-        // const auto* sphereTexPixels = static_cast<std::byte*>(image.pixels());
-        // for (size_t i = 0; i < stagingSize3; ++i) {
-        //     sphereImgData[i] = sphereTexPixels[i];
-        // }
+        std::memcpy(memory3, textureData.data.data(), stagingSize3);
         staging3.flush();
         staging3.unmap();
         // sphere texture
