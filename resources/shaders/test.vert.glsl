@@ -10,6 +10,10 @@ layout (set = 0, binding = 0) uniform UniformBuffer {
 	float m;
 } ubo;
 
+const mat3 identity = mat3(1.0, 0.0, 0.0,
+					 	   0.0, 1.0, 0.0,
+					 	   0.0, 0.0, 1.0);
+
 const mat3 rotate_y90 = mat3(0.0, 0.0, -1.0,
 					 	   0.0, 1.0, 0.0,
 					 	   1.0, 0.0, 0.0);
@@ -33,14 +37,18 @@ void main() {
 
 	// this is true!
 	//vec3 sphereCoord = vec3(x, y, z) * rotate_y90z90;
-	//vec3 plainCoord = vec3(a_position.y * 0.5, a_position.x, 0.0);
+	//vec3 plainCoord = vec3(a_position.y /** 0.5*/, a_position.x, 0.0);
+
+	//vec3 sphereCoord = vec3(x, y, z);
+	//vec3 plainCoord = vec3(a_position.x, a_position.y /** 0.5*/, 0.0) * rotate_y90;
 
 	vec3 sphereCoord = vec3(x, y, z);
-	vec3 plainCoord = vec3(a_position.x, a_position.y /** 0.5*/, 0.0) * rotate_y90;
+	vec3 plainCoord = vec3(-a_position.x, a_position.y, 0.0);
 
 	gl_Position = ubo.model * mix(vec4(sphereCoord, 1.0), vec4(plainCoord, 1.0), ubo.m);
 	//v_uv = vec2(16.0, 16.0) * a_uv;
 	v_uv = a_uv;
+	//v_uv.x -= ubo.model[1][1];
 
 	//v_color = a_position;
 	//gl_Position = ubo.model * vec4(a_position, 1.0);

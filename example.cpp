@@ -41,6 +41,8 @@ namespace example {
     };
 
     class SceneEventHandler final : public engine::InputObserver {
+        engine::vec3f v0{0.0f};
+        engine::vec3f v1{0.0f};
     public:
         bool onInputPointerEvent(const engine::PointerEvent & event) override {
             static float x0 = 0.0f;
@@ -61,8 +63,10 @@ namespace example {
             case engine::InputEventState::eNone:
             {
                 if (pressed) {
+                    
+                    v1 += engine::vec3f(0.01f * (y0 - event.y), 0.0f, 0.01f * (event.x - x0));
                     controller.setRotation(
-                        controller.getRotation() + engine::vec3f(0.01f * (y0 - event.y), 0.0f, 0.01f * (event.x - x0))
+                        v0 + v1
                     );
                 }
 
@@ -82,11 +86,17 @@ namespace example {
                 const auto d = controller.getDistance();
                 controller.setDistance(d - (dy / std::pow(2.0f, (8.0f - d))));
 
-                const float lerpBegin = 5.5f;
-                const float lerpEnd = 1.6f;
+                const float lerpBegin = 2.0f;
+                const float lerpEnd = 1.0f;
                 const float lerpDisatnce = (lerpBegin - lerpEnd);
                 const float mix = std::clamp(lerpBegin - d, 0.0f, lerpDisatnce) / lerpDisatnce;
                 m = std::lerp(0.0f, 1.0f, mix);
+
+                v0 = engine::vec3f(1.57f * m, 0.0f, 0.0f);
+
+                controller.setRotation(
+                    v0 + v1
+                );
             }
 
             // m = std::clamp(m + dy * 0.01f, 0.0f, 1.0f);
@@ -110,9 +120,9 @@ namespace example {
         addInputObserver(&sceneEventHandler);
 
         controller.setDistance(5.0f);
-        controller.setMinMaxDistance(1.02f, 8.0f);
+        controller.setMinMaxDistance(0.01f, 8.0f);
 
-        camera.makePerspective(std::numbers::pi_v<float> / 3.0f, 1024.0f / 768.0f, 0.01f, 100.0f);
+        camera.makePerspective(std::numbers::pi_v<float> / 3.0f, 1024.0f / 768.0f, 0.001f, 10.0f);
     }
 
     Example::~Example() = default;
@@ -542,7 +552,7 @@ namespace example {
 
     void Example::createDefaultResources() {
         // sail test
-        auto const imageBytes = _fileManager.readFile("assets/earth.png");
+        auto const imageBytes = _fileManager.readFile("assets/earth.webp");
         sail::image_input imageInput(imageBytes.data(), imageBytes.size());
 
         sail::image image = imageInput.next_frame();
@@ -556,12 +566,19 @@ namespace example {
         const auto psz = image.pixels_size();
         const bool vaild = image.is_valid();
 
-        const auto featureAccess = _device->isFormatSupported(engine::rhi::Format::eR8G8B8_Unorm, 
+        const auto featureAccess24 = _device->isFormatSupported(engine::rhi::Format::eR8G8B8_Unorm, 
+            engine::rhi::FormatFeatureFlags::eFormatFeature_Sampled_Image);
+        const auto featureAccess16 = _device->isFormatSupported(engine::rhi::Format::eR4G4B4A4_Unorm_Pack16, 
             engine::rhi::FormatFeatureFlags::eFormatFeature_Sampled_Image);
 
-        if (featureAccess.optimalTilingFeatures == false && featureAccess.linearTilingFeatures == false) {
-            auto status = image.convert(SAIL_PIXEL_FORMAT_BPP32_RGBA);
-            const auto bpp2 = image.bits_per_pixel();
+        if (bpp == 24 && featureAccess24.optimalTilingFeatures == false && featureAccess24.linearTilingFeatures == false) {
+            // if (featureAccess16.optimalTilingFeatures || featureAccess16.linearTilingFeatures) {
+            //     auto status = image.convert(SAIL_PIXEL_FORMAT_BPP16_RGBA);
+            //     const auto bpp2 = image.bits_per_pixel();
+            // } else {
+                auto status = image.convert(SAIL_PIXEL_FORMAT_BPP32_RGBA);
+                const auto bpp2 = image.bits_per_pixel();
+            // }
         }
 
 
