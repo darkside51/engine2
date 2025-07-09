@@ -15,7 +15,7 @@ namespace engine::vulkan {
 
     class Device;
 
-    class DescriptorPoolMask {
+    class DescriptorPoolMask { // todo: use concepts for templated functions!
     public:
         DescriptorPoolMask() = default;
         explicit DescriptorPoolMask(uint32_t m) : _mask(m) {}
@@ -67,22 +67,22 @@ namespace engine::vulkan {
         }
 
     private:
-        void _(rhi::shaders::ResourceType v) {
+        void _(rhi::shaders::ResourceType v) { // add
             _mask |= 1u << std::to_underlying(v);
         }
 
-        void __(rhi::shaders::ResourceType v) {
+        void __(rhi::shaders::ResourceType v) { // remove
             _mask &= ~(1u << std::to_underlying(v));
         }
 
         template<typename... Ts>
-        void _(rhi::shaders::ResourceType v, Ts... args) noexcept {
+        void _(rhi::shaders::ResourceType v, Ts... args) noexcept { // add
             _(v);
             _(args...);
         }
 
         template<typename... Ts>
-        void __(rhi::shaders::ResourceType v, Ts... args) noexcept {
+        void __(rhi::shaders::ResourceType v, Ts... args) noexcept { // remove
             __(v);
             __(args...);
         }
@@ -96,7 +96,8 @@ namespace engine::vulkan {
         inline static constexpr uint8_t kGlobalPoolsIndex = 0xffu;
 
     public:
-        DescriptorPoolManager(Device & device);
+        DescriptorPoolManager(Device & device, bool useGlobalPool = false);
+        DescriptorPoolManager(Device & device, uint8_t poolsCount);
 
         void destroy() noexcept {
             for (auto & poolsMap : _pools) {
@@ -125,8 +126,12 @@ namespace engine::vulkan {
             uint16_t count = 0u; // count unused in frames
         };
         using DescriptorPools = std::unordered_map<uint32_t, PoolList>;
+
+        DescriptorPools & poolsForFrame(uint8_t frameIdx) noexcept;
+
         Device & _device;
         std::vector<DescriptorPools> _pools; // can use threads::unique_t<PoolList>::id() - if want to create pools on some threads!
+        bool _useGlobalPool = false;
     };
 
 }

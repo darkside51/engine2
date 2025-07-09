@@ -6,7 +6,20 @@
 
 namespace engine::vulkan {
     
-    DescriptorPoolManager::DescriptorPoolManager(Device & device) : _device(device), _pools(device.inFlightFramesCount() + 1u) {}
+    DescriptorPoolManager::DescriptorPoolManager(Device & device, bool useGlobalPool) : 
+        _device(device), 
+        _pools(useGlobalPool ? device.inFlightFramesCount() + 1u : device.inFlightFramesCount()),
+        _useGlobalPool(useGlobalPool) {}
+
+    DescriptorPoolManager::DescriptorPoolManager(Device & device, uint8_t poolsCount) :
+        _device(device), 
+        _pools(poolsCount),
+        _useGlobalPool(false) {}
+
+    DescriptorPoolManager::DescriptorPools & DescriptorPoolManager::poolsForFrame(uint8_t frameIdx) noexcept {
+        // frame 0 - use _pools[1], frame 1 - use _pools[2], ..., frame kGlobalPoolsIndex - use _pools[0] - if _useGlobalPool is true
+        return _useGlobalPool ? _pools[frameIdx + 1u] : _pools[frameIdx];
+    }
 
     DescriptorPool & DescriptorPoolManager::createPool(std::span<const std::pair<rhi::shaders::ResourceType, uint32_t>> resources, 
         uint8_t frameIdx, rhi::shaders::DescriptorPoolFlags f, uint32_t maxSets) {
@@ -15,14 +28,13 @@ namespace engine::vulkan {
             mask.addResources(type);
         }
 
-        frameIdx += 1u; // frame 0 - use _pools[1], frame 1 - use _pools[2], ..., frame kGlobalPoolsIndex - use _pools[0]
-        return _pools[frameIdx][mask()].list.emplace_back(_device, resources, f, maxSets);
+        return poolsForFrame(frameIdx)[mask()].list.emplace_back(_device, resources, f, maxSets);
     }
 
     void DescriptorPoolManager::resetPools(uint8_t frameIdx) noexcept {
         constexpr uint16_t kUnusedFramesToRemovePool = 256u;
-        // frame 0 - use _pools[1], frame 1 - use _pools[2], ..., frame kGlobalPoolsIndex - use _pools[0]
-        auto & framePools = _pools[++frameIdx];
+
+        auto & framePools = poolsForFrame(frameIdx);
         for (auto & [mask, pools] : framePools) {
             if (pools.list.empty()) { // has been unused on last frame
                 if (++pools.count == kUnusedFramesToRemovePool) {
@@ -81,8 +93,7 @@ namespace engine::vulkan {
             return setResources;
         };
         
-        // frame 0 - use _pools[1], frame 1 - use _pools[2], ..., frame kGlobalPoolsIndex - use _pools[0]
-        auto & framePools = _pools[++frameIdx];
+        auto & framePools = poolsForFrame(frameIdx);
         if (auto it = framePools.find(mask()); it != framePools.end()) { // strike!!!
             if (auto * pool = findSuitablePool(it->second.list)) {
                 return *pool;
