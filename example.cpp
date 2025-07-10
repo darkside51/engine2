@@ -81,24 +81,24 @@ namespace example {
         }
 
         bool onInputWheelEvent(float /*dx*/, float dy) override {
-            {
-                const auto d = controller.getDistance();
-                controller.setDistance(d - (dy / std::pow(2.0f, (8.0f - d))));
+            // {
+            //     const auto d = controller.getDistance();
+            //     controller.setDistance(d - (dy / std::pow(2.0f, (8.0f - d))));
 
-                const float lerpBegin = 2.0f;
-                const float lerpEnd = 1.0f;
-                const float lerpDisatnce = (lerpBegin - lerpEnd);
-                const float mix = std::clamp(lerpBegin - d, 0.0f, lerpDisatnce) / lerpDisatnce;
-                m = std::lerp(0.0f, 1.0f, mix);
+            //     const float lerpBegin = 2.0f;
+            //     const float lerpEnd = 1.0f;
+            //     const float lerpDisatnce = (lerpBegin - lerpEnd);
+            //     const float mix = std::clamp(lerpBegin - d, 0.0f, lerpDisatnce) / lerpDisatnce;
+            //     m = std::lerp(0.0f, 1.0f, mix);
 
-                v0 = engine::vec3f(1.57f * m, 0.0f, 0.0f);
+            //     v0 = engine::vec3f(1.57f * m, 0.0f, 0.0f);
 
-                controller.setRotation(
-                    v0 + v1
-                );
-            }
+            //     controller.setRotation(
+            //         v0 + v1
+            //     );
+            // }
 
-            // m = std::clamp(m + dy * 0.01f, 0.0f, 1.0f);
+            m = std::clamp(m + dy * 0.01f, 0.0f, 1.0f);
             return true;
         }
 
@@ -552,6 +552,7 @@ namespace example {
     void Example::createDefaultResources() {
         // sail test
         auto const imageBytes = _fileManager.readFile("assets/earth.webp");
+        // auto const imageBytes = _fileManager.readFile("assets/2d_bc5.ktx2");
         auto textureData = engine::graphics::parseTextureData(imageBytes);
 
         const auto featureAccess24 = _device->isFormatSupported(engine::rhi::Format::eR8G8B8_Unorm, 

@@ -8,4 +8,5 @@ layout (location = 0) out vec4 out_color;
 
 void main() {
 	out_color = texture(texture0, v_uv);// * vec4(v_color, 1.0);
+	//out_color.rgb = pow(out_color.rgb, vec3(1.0/2.2));
 }
