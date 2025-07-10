@@ -346,7 +346,7 @@ namespace engine::graphics {
                     .bytesPerLine = static_cast<uint16_t>(ktxTexture_GetRowPitch(texture, 0u)),
                     .format = convert(format),
                     .bpp = 0,
-                    .hasPalette = texture->_protected->_formatSize.paletteSizeInBits > 0u
+                    .hasPalette = (texture->_protected->_formatSize.flags & ktxFormatSizeFlagBits::KTX_FORMAT_SIZE_PALETTIZED_BIT) != 0
                 },
                 .data = {data.begin(), data.end()}
             };
