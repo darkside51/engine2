@@ -96,7 +96,7 @@ set(
 	utils
 	utils/profile
 
-	../3rd_party/imgui
+	../3rd_party/imgui # use as static_lib?
 
 	tests
 )
@@ -197,13 +197,6 @@ if (VULKAN_AVAILABLE) #### vulkan lib
 		)
 		target_include_directories(${PROJECT_NAME} PUBLIC $ENV{VULKAN_SDK}/Include)
 	elseif (CMAKE_SYSTEM_NAME STREQUAL "Linux")
-		#add_library(vulkan_lib SHARED IMPORTED)
-		#set_property(TARGET vulkan_lib PROPERTY IMPORTED_LOCATION $ENV{VULKAN_SDK}/lib/libvulkan.so)
-		#target_link_libraries (
-		#        ${PROJECT_NAME}
-		#        vulkan_lib
-		#)
-
 		set(
 			USED_FRAMEWORKS
 			general $ENV{VULKAN_SDK}/lib/libvulkan.so
@@ -217,58 +210,71 @@ endif()
 
 #### 3rd_party libraries
 
+# meshoptimizer
+message("meshoptimizer library begin")
+add_3rdparty_project (${CMAKE_CURRENT_SOURCE_DIR}/../3rd_party/meshoptimizer ${CMAKE_BINARY_DIR}/3rd_party/meshoptimizer)
+target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../3rd_party/meshoptimizer/src)
+
+set(
+	USED_FRAMEWORKS ${USED_FRAMEWORKS}
+	meshoptimizer
+	)
+message("meshoptimizer library end")
+
 ## freetype library
 #message("freetype library begin")
 #add_3rdparty_project (${CMAKE_CURRENT_SOURCE_DIR}/../3rd_party/freetype ${CMAKE_BINARY_DIR}/3rd_party/freetype)
 #target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../3rd_party/freetype/include)
-#set(FREETYPE_LIB freetype)
+# set(
+# 	USED_FRAMEWORKS ${USED_FRAMEWORKS}
+# 	freetype
+# 	)
 #message("freetype library end")
-## freetype library
 
 # glaze json library
 message("glaze library begin")
-add_3rdparty_project (${CMAKE_CURRENT_SOURCE_DIR}/../3rd_party/glaze-5.3.0 ${CMAKE_BINARY_DIR}/3rd_party/glaze-5.3.0)
-target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../3rd_party/glaze-5.3.0/include)
-set(GLAZE_LIB glaze_glaze)
+add_3rdparty_project(${CMAKE_CURRENT_SOURCE_DIR}/../3rd_party/glaze ${CMAKE_BINARY_DIR}/3rd_party/glaze)
+target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../3rd_party/glaze/include)
+
+set(
+	USED_FRAMEWORKS ${USED_FRAMEWORKS}
+	glaze_glaze
+	)
 message("glaze library end")
 
-# try sail
+# sail
 message("sail library begin")
-add_3rdparty_project (${CMAKE_CURRENT_SOURCE_DIR}/../3rd_party/sail ${CMAKE_BINARY_DIR}/3rd_party/sail)
-target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../3rd_party/sail/src)
-set(SAIL_LIB sail-c++)
-message("sail library end")
-
-target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../3rd_party/glm-1.0.1)
-target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../3rd_party/imgui)
-
+add_3rdparty_project(${CMAKE_CURRENT_SOURCE_DIR}/../3rd_party/sail ${CMAKE_BINARY_DIR}/3rd_party/sail)
 target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../3rd_party/sail/src)
 target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../3rd_party/sail/src/bindings)
 target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_BINARY_DIR}/3rd_party/sail/include)
 
-target_link_libraries (
-	${PROJECT_NAME}
-	${USED_FRAMEWORKS}
-	${GLAZE_LIB}
-	${SAIL_LIB}
-	#${FREETYPE_LIB}
-)
+set(
+	USED_FRAMEWORKS ${USED_FRAMEWORKS}
+	sail-c++
+	)
+message("sail library end")
+
+target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../3rd_party/glm)
+target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../3rd_party/imgui)
 
 if (USE_GLFW)
 	# glfw library
 	message("glfw library begin")
-	add_3rdparty_project (${CMAKE_CURRENT_SOURCE_DIR}/../3rd_party/glfw_3.3.8 ${CMAKE_BINARY_DIR}/3rd_party/glfw)
-	target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../3rd_party/glfw_3.3.8/include)
-	set(GLFW_LIB glfw)
-	message("glfw library end")
-	# glfw library
-
-	target_link_libraries (
-		${PROJECT_NAME}
-		${GLFW_LIB}
+	add_3rdparty_project(${CMAKE_CURRENT_SOURCE_DIR}/../3rd_party/glfw ${CMAKE_BINARY_DIR}/3rd_party/glfw)
+	target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../3rd_party/glfw/include)
+	
+	set(
+		USED_FRAMEWORKS ${USED_FRAMEWORKS}
+		glfw
 	)
-	target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/Platform/GLFW)
+	message("glfw library end")
 endif()
 
+# link libraries
+target_link_libraries (
+	${PROJECT_NAME}
+	${USED_FRAMEWORKS}
+)
 
 message(STATUS "!!!!!engine generate success!!!!!")
