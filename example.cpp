@@ -12,7 +12,7 @@
 
 #include "graphics/scene/camera_controller.h"
 
-#include "graphics/texture/texture_data_parser.h"
+#include "graphics/texture/texture_data_loader.h"
 
 #include <imgui.h>
 
@@ -847,6 +847,7 @@ namespace example {
         const auto [width, height] = _swapchain->getSize();
         _imgui.beginFrame(delta, width, height);
         ImGui::ShowDemoWindow();
+        // ImGui::ShowMetricsWindow();
         _imgui.endFrame();
     }
 

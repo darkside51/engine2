@@ -1231,16 +1231,18 @@ namespace engine::rhi {
 
         inline size_t hash() const noexcept {
             constexpr auto kRoundMult = 100;
+            const auto value = (static_cast<uint64_t>(magFilter) << 0u) | 
+                               (static_cast<uint64_t>(magFilter) << 8u) |
+                               (static_cast<uint64_t>(mipMapMode) << 16u) |
+                               (static_cast<uint64_t>(addressModeU) << 24u) |
+                               (static_cast<uint64_t>(addressModeV) << 32u) |
+                               (static_cast<uint64_t>(addressModeW) << 40u) |
+                               (static_cast<uint64_t>(compareOp) << 48u) |
+                               (static_cast<uint64_t>(borderColor) << 56u);
+
             return hash::hash_combine(
-                std::round(maxAnisotropy * kRoundMult), 
-                std::to_underlying(magFilter),
-                std::to_underlying(minFilter),
-                std::to_underlying(mipMapMode),
-                std::to_underlying(addressModeU),
-                std::to_underlying(addressModeV),
-                std::to_underlying(addressModeW),
-                std::to_underlying(compareOp),
-                std::to_underlying(borderColor)
+                value,
+                std::round(maxAnisotropy * kRoundMult)
             );
         }
 

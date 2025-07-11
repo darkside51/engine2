@@ -1,4 +1,4 @@
-#include "texture_data_parser.h"
+#include "texture_data_loader.h"
 
 // ktx
 #include <ktx.h> // KTX-Software/include
@@ -13,7 +13,9 @@
 
 namespace engine::graphics {
 namespace ktx_format {
-    rhi::Format convert(VkFormat format) noexcept {
+    rhi::Format convert(VkFormat format, LoadFlags flags) noexcept {
+        const bool allowSrgb = (flags & LoadFlags::eAllowSrgbColorSpace) != LoadFlags::eNone;
+
         switch (format) {
             case VK_FORMAT_UNDEFINED: return rhi::Format::eUndefined;
             case VK_FORMAT_R4G4_UNORM_PACK8: return rhi::Format::eR4G4_Unorm_Pack8;
@@ -31,49 +33,49 @@ namespace ktx_format {
             case VK_FORMAT_R8_SSCALED: return rhi::Format::eR8_Sscaled;
             case VK_FORMAT_R8_UINT: return rhi::Format::eR8_Uint;
             case VK_FORMAT_R8_SINT: return rhi::Format::eR8_Sint;
-            case VK_FORMAT_R8_SRGB: return rhi::Format::eR8_Srgb;
+            case VK_FORMAT_R8_SRGB: return allowSrgb ? rhi::Format::eR8_Srgb : rhi::Format::eR8_Unorm;
             case VK_FORMAT_R8G8_UNORM: return rhi::Format::eR8G8_Unorm;
             case VK_FORMAT_R8G8_SNORM: return rhi::Format::eR8G8_Snorm;
             case VK_FORMAT_R8G8_USCALED: return rhi::Format::eR8G8_Uscaled;
             case VK_FORMAT_R8G8_SSCALED: return rhi::Format::eR8G8_Sscaled;
             case VK_FORMAT_R8G8_UINT: return rhi::Format::eR8G8_Uint;
             case VK_FORMAT_R8G8_SINT: return rhi::Format::eR8G8_Sint;
-            case VK_FORMAT_R8G8_SRGB: return rhi::Format::eR8G8_Srgb;
+            case VK_FORMAT_R8G8_SRGB: return allowSrgb ? rhi::Format::eR8G8_Srgb : rhi::Format::eR8G8_Unorm;
             case VK_FORMAT_R8G8B8_UNORM: return rhi::Format::eR8G8B8_Unorm;
             case VK_FORMAT_R8G8B8_SNORM: return rhi::Format::eR8G8B8_Snorm;
             case VK_FORMAT_R8G8B8_USCALED: return rhi::Format::eR8G8B8_Uscaled;
             case VK_FORMAT_R8G8B8_SSCALED: return rhi::Format::eR8G8B8_Sscaled;
             case VK_FORMAT_R8G8B8_UINT: return rhi::Format::eR8G8B8_Uint;
             case VK_FORMAT_R8G8B8_SINT: return rhi::Format::eR8G8B8_Sint;
-            case VK_FORMAT_R8G8B8_SRGB: return rhi::Format::eR8G8B8_Srgb;
+            case VK_FORMAT_R8G8B8_SRGB: return allowSrgb ? rhi::Format::eR8G8B8_Srgb : rhi::Format::eR8G8B8_Unorm;
             case VK_FORMAT_B8G8R8_UNORM: return rhi::Format::eB8G8R8_Unorm;
             case VK_FORMAT_B8G8R8_SNORM: return rhi::Format::eB8G8R8_Snorm;
             case VK_FORMAT_B8G8R8_USCALED: return rhi::Format::eB8G8R8_Uscaled;
             case VK_FORMAT_B8G8R8_SSCALED: return rhi::Format::eB8G8R8_Sscaled;
             case VK_FORMAT_B8G8R8_UINT: return rhi::Format::eB8G8R8_Uint;
             case VK_FORMAT_B8G8R8_SINT: return rhi::Format::eB8G8R8_Sint;
-            case VK_FORMAT_B8G8R8_SRGB: return rhi::Format::eB8G8R8_Srgb;
+            case VK_FORMAT_B8G8R8_SRGB: return allowSrgb ? rhi::Format::eB8G8R8_Srgb : rhi::Format::eB8G8R8_Unorm;
             case VK_FORMAT_R8G8B8A8_UNORM: return rhi::Format::eR8G8B8A8_Unorm;
             case VK_FORMAT_R8G8B8A8_SNORM: return rhi::Format::eR8G8B8A8_Snorm;
             case VK_FORMAT_R8G8B8A8_USCALED: return rhi::Format::eR8G8B8A8_Uscaled;
             case VK_FORMAT_R8G8B8A8_SSCALED: return rhi::Format::eR8G8B8A8_Sscaled;
             case VK_FORMAT_R8G8B8A8_UINT: return rhi::Format::eR8G8B8A8_Uint;
             case VK_FORMAT_R8G8B8A8_SINT: return rhi::Format::eR8G8B8A8_Sint;
-            case VK_FORMAT_R8G8B8A8_SRGB: return rhi::Format::eR8G8B8A8_Srgb;
+            case VK_FORMAT_R8G8B8A8_SRGB: return allowSrgb ? rhi::Format::eR8G8B8A8_Srgb : rhi::Format::eR8G8B8A8_Unorm;
             case VK_FORMAT_B8G8R8A8_UNORM: return rhi::Format::eB8G8R8A8_Unorm;
             case VK_FORMAT_B8G8R8A8_SNORM: return rhi::Format::eB8G8R8A8_Snorm;
             case VK_FORMAT_B8G8R8A8_USCALED: return rhi::Format::eB8G8R8A8_Uscaled;
             case VK_FORMAT_B8G8R8A8_SSCALED: return rhi::Format::eB8G8R8A8_Sscaled;
             case VK_FORMAT_B8G8R8A8_UINT: return rhi::Format::eB8G8R8A8_Uint;
             case VK_FORMAT_B8G8R8A8_SINT: return rhi::Format::eB8G8R8A8_Sint;
-            case VK_FORMAT_B8G8R8A8_SRGB: return rhi::Format::eB8G8R8A8_Srgb;
+            case VK_FORMAT_B8G8R8A8_SRGB: return allowSrgb ? rhi::Format::eB8G8R8A8_Srgb : rhi::Format::eB8G8R8A8_Unorm;
             case VK_FORMAT_A8B8G8R8_UNORM_PACK32: return rhi::Format::eA8B8G8R8_Unorm_Pack32;
             case VK_FORMAT_A8B8G8R8_SNORM_PACK32: return rhi::Format::eA8B8G8R8_Snorm_Pack32;
             case VK_FORMAT_A8B8G8R8_USCALED_PACK32: return rhi::Format::eA8B8G8R8_Uscaled_Pack32;
             case VK_FORMAT_A8B8G8R8_SSCALED_PACK32: return rhi::Format::eA8B8G8R8_Sscaled_Pack32;
             case VK_FORMAT_A8B8G8R8_UINT_PACK32: return rhi::Format::eA8B8G8R8_Uint_Pack32;
             case VK_FORMAT_A8B8G8R8_SINT_PACK32: return rhi::Format::eA8B8G8R8_Sint_Pack32;
-            case VK_FORMAT_A8B8G8R8_SRGB_PACK32: return rhi::Format::eA8B8G8R8_Srgb_Pack32;
+            case VK_FORMAT_A8B8G8R8_SRGB_PACK32: return allowSrgb ? rhi::Format::eA8B8G8R8_Srgb_Pack32 : rhi::Format::eA8B8G8R8_Unorm_Pack32;
 
             case VK_FORMAT_A2R10G10B10_UNORM_PACK32: return rhi::Format::eA2R10G10B10_Unorm_Pack32;
             case VK_FORMAT_A2R10G10B10_SNORM_PACK32: return rhi::Format::eA2R10G10B10_Snorm_Pack32;
@@ -154,13 +156,13 @@ namespace ktx_format {
             case VK_FORMAT_D32_SFLOAT_S8_UINT: return rhi::Format::eD32_Sfloat_S8_Uint;
 
             case VK_FORMAT_BC1_RGB_UNORM_BLOCK: return rhi::Format::eBC1_RGB_Unorm_Block;
-            case VK_FORMAT_BC1_RGB_SRGB_BLOCK: return rhi::Format::eBC1_RGB_Srgb_Block;
+            case VK_FORMAT_BC1_RGB_SRGB_BLOCK: return allowSrgb ? rhi::Format::eBC1_RGB_Srgb_Block : rhi::Format::eBC1_RGB_Unorm_Block;
             case VK_FORMAT_BC1_RGBA_UNORM_BLOCK: return rhi::Format::eBC1_RGBA_Unorm_Block;
-            case VK_FORMAT_BC1_RGBA_SRGB_BLOCK: return rhi::Format::eBC1_RGBA_Srgb_Block;
+            case VK_FORMAT_BC1_RGBA_SRGB_BLOCK: return allowSrgb ? rhi::Format::eBC1_RGBA_Srgb_Block : rhi::Format::eBC1_RGBA_Unorm_Block;
             case VK_FORMAT_BC2_UNORM_BLOCK: return rhi::Format::eBC2_Unorm_Block;
-            case VK_FORMAT_BC2_SRGB_BLOCK: return rhi::Format::eBC2_Srgb_Block;
+            case VK_FORMAT_BC2_SRGB_BLOCK: return allowSrgb ? rhi::Format::eBC2_Srgb_Block : rhi::Format::eBC2_Unorm_Block;
             case VK_FORMAT_BC3_UNORM_BLOCK: return rhi::Format::eBC3_Unorm_Block;
-            case VK_FORMAT_BC3_SRGB_BLOCK: return rhi::Format::eBC3_Srgb_Block;
+            case VK_FORMAT_BC3_SRGB_BLOCK: return allowSrgb ? rhi::Format::eBC3_Srgb_Block : rhi::Format::eBC2_Unorm_Block;
             case VK_FORMAT_BC4_UNORM_BLOCK: return rhi::Format::eBC4_Unorm_Block;
             case VK_FORMAT_BC4_SNORM_BLOCK: return rhi::Format::eBC4_Snorm_Block;
             case VK_FORMAT_BC5_UNORM_BLOCK: return rhi::Format::eBC5_Unorm_Block;
@@ -168,14 +170,14 @@ namespace ktx_format {
             case VK_FORMAT_BC6H_UFLOAT_BLOCK: return rhi::Format::eBC6H_Ufloat_Block;
             case VK_FORMAT_BC6H_SFLOAT_BLOCK: return rhi::Format::eBC6H_Sfloat_Block;
             case VK_FORMAT_BC7_UNORM_BLOCK: return rhi::Format::eBC7_Unorm_Block;
-            case VK_FORMAT_BC7_SRGB_BLOCK: return rhi::Format::eBC7_Srgb_Block;
+            case VK_FORMAT_BC7_SRGB_BLOCK: return allowSrgb ? rhi::Format::eBC7_Srgb_Block : rhi::Format::eBC7_Unorm_Block;
 
             case VK_FORMAT_ETC2_R8G8B8_UNORM_BLOCK: return rhi::Format::eETC2_R8G8B8_Unorm_Block;
-            case VK_FORMAT_ETC2_R8G8B8_SRGB_BLOCK: return rhi::Format::eETC2_R8G8B8_Srgb_Block;
+            case VK_FORMAT_ETC2_R8G8B8_SRGB_BLOCK: return allowSrgb ? rhi::Format::eETC2_R8G8B8_Srgb_Block : rhi::Format::eETC2_R8G8B8_Unorm_Block;
             case VK_FORMAT_ETC2_R8G8B8A1_UNORM_BLOCK: return rhi::Format::eETC2_R8G8B8A1_Unorm_Block;
-            case VK_FORMAT_ETC2_R8G8B8A1_SRGB_BLOCK: return rhi::Format::eETC2_R8G8B8A1_Srgb_Block;
+            case VK_FORMAT_ETC2_R8G8B8A1_SRGB_BLOCK: return allowSrgb ? rhi::Format::eETC2_R8G8B8A1_Srgb_Block : rhi::Format::eETC2_R8G8B8A1_Unorm_Block;
             case VK_FORMAT_ETC2_R8G8B8A8_UNORM_BLOCK: return rhi::Format::eETC2_R8G8B8A8_Unorm_Block;
-            case VK_FORMAT_ETC2_R8G8B8A8_SRGB_BLOCK: return rhi::Format::eETC2_R8G8B8A8_Srgb_Block;
+            case VK_FORMAT_ETC2_R8G8B8A8_SRGB_BLOCK: return allowSrgb ? rhi::Format::eETC2_R8G8B8A8_Srgb_Block : rhi::Format::eETC2_R8G8B8A8_Unorm_Block;
 
             case VK_FORMAT_EAC_R11_UNORM_BLOCK: return rhi::Format::eEAC_R11_Unorm_Block;
             case VK_FORMAT_EAC_R11_SNORM_BLOCK: return rhi::Format::eEAC_R11_Snorm_Block;
@@ -183,33 +185,33 @@ namespace ktx_format {
             case VK_FORMAT_EAC_R11G11_SNORM_BLOCK: return rhi::Format::eEAC_R11G11_Snorm_Block;
 
             case VK_FORMAT_ASTC_4x4_UNORM_BLOCK: return rhi::Format::eASTC_4x4_Unorm_Block;
-            case VK_FORMAT_ASTC_4x4_SRGB_BLOCK: return rhi::Format::eASTC_4x4_Srgb_Block;
+            case VK_FORMAT_ASTC_4x4_SRGB_BLOCK: return allowSrgb ? rhi::Format::eASTC_4x4_Srgb_Block : rhi::Format::eASTC_4x4_Unorm_Block;
             case VK_FORMAT_ASTC_5x4_UNORM_BLOCK: return rhi::Format::eASTC_5x4_Unorm_Block;
-            case VK_FORMAT_ASTC_5x4_SRGB_BLOCK: return rhi::Format::eASTC_5x4_Srgb_Block;
+            case VK_FORMAT_ASTC_5x4_SRGB_BLOCK: return allowSrgb ? rhi::Format::eASTC_5x4_Srgb_Block: rhi::Format::eASTC_5x4_Unorm_Block;
             case VK_FORMAT_ASTC_5x5_UNORM_BLOCK: return rhi::Format::eASTC_5x5_Unorm_Block;
-            case VK_FORMAT_ASTC_5x5_SRGB_BLOCK: return rhi::Format::eASTC_5x5_Srgb_Block;
+            case VK_FORMAT_ASTC_5x5_SRGB_BLOCK: return allowSrgb ? rhi::Format::eASTC_5x5_Srgb_Block: rhi::Format::eASTC_5x5_Unorm_Block;
             case VK_FORMAT_ASTC_6x5_UNORM_BLOCK: return rhi::Format::eASTC_6x5_Unorm_Block;
-            case VK_FORMAT_ASTC_6x5_SRGB_BLOCK: return rhi::Format::eASTC_6x5_Srgb_Block;
+            case VK_FORMAT_ASTC_6x5_SRGB_BLOCK: return allowSrgb ? rhi::Format::eASTC_6x5_Srgb_Block: rhi::Format::eASTC_6x5_Unorm_Block;
             case VK_FORMAT_ASTC_6x6_UNORM_BLOCK: return rhi::Format::eASTC_6x6_Unorm_Block;
-            case VK_FORMAT_ASTC_6x6_SRGB_BLOCK: return rhi::Format::eASTC_6x6_Srgb_Block;
+            case VK_FORMAT_ASTC_6x6_SRGB_BLOCK: return allowSrgb ? rhi::Format::eASTC_6x6_Srgb_Block: rhi::Format::eASTC_6x6_Unorm_Block;
             case VK_FORMAT_ASTC_8x5_UNORM_BLOCK: return rhi::Format::eASTC_8x5_Unorm_Block;
-            case VK_FORMAT_ASTC_8x5_SRGB_BLOCK: return rhi::Format::eASTC_8x5_Srgb_Block;
+            case VK_FORMAT_ASTC_8x5_SRGB_BLOCK: return allowSrgb ? rhi::Format::eASTC_8x5_Srgb_Block: rhi::Format::eASTC_8x5_Unorm_Block;
             case VK_FORMAT_ASTC_8x6_UNORM_BLOCK: return rhi::Format::eASTC_8x6_Unorm_Block;
-            case VK_FORMAT_ASTC_8x6_SRGB_BLOCK: return rhi::Format::eASTC_8x6_Srgb_Block;
+            case VK_FORMAT_ASTC_8x6_SRGB_BLOCK: return allowSrgb ? rhi::Format::eASTC_8x6_Srgb_Block: rhi::Format::eASTC_8x6_Unorm_Block;
             case VK_FORMAT_ASTC_8x8_UNORM_BLOCK: return rhi::Format::eASTC_8x8_Unorm_Block;
-            case VK_FORMAT_ASTC_8x8_SRGB_BLOCK: return rhi::Format::eASTC_8x8_Srgb_Block;
+            case VK_FORMAT_ASTC_8x8_SRGB_BLOCK: return allowSrgb ? rhi::Format::eASTC_8x8_Srgb_Block: rhi::Format::eASTC_8x8_Unorm_Block;
             case VK_FORMAT_ASTC_10x5_UNORM_BLOCK: return rhi::Format::eASTC_10x5_Unorm_Block;
-            case VK_FORMAT_ASTC_10x5_SRGB_BLOCK: return rhi::Format::eASTC_10x5_Srgb_Block;
+            case VK_FORMAT_ASTC_10x5_SRGB_BLOCK: return allowSrgb ? rhi::Format::eASTC_10x5_Srgb_Block: rhi::Format::eASTC_10x5_Unorm_Block;
             case VK_FORMAT_ASTC_10x6_UNORM_BLOCK: return rhi::Format::eASTC_10x6_Unorm_Block;
-            case VK_FORMAT_ASTC_10x6_SRGB_BLOCK: return rhi::Format::eASTC_10x6_Srgb_Block;
+            case VK_FORMAT_ASTC_10x6_SRGB_BLOCK: return allowSrgb ? rhi::Format::eASTC_10x6_Srgb_Block: rhi::Format::eASTC_10x6_Unorm_Block;
             case VK_FORMAT_ASTC_10x8_UNORM_BLOCK: return rhi::Format::eASTC_10x8_Unorm_Block;
-            case VK_FORMAT_ASTC_10x8_SRGB_BLOCK: return rhi::Format::eASTC_10x8_Srgb_Block;
+            case VK_FORMAT_ASTC_10x8_SRGB_BLOCK: return allowSrgb ? rhi::Format::eASTC_10x8_Srgb_Block: rhi::Format::eASTC_10x8_Unorm_Block;
             case VK_FORMAT_ASTC_10x10_UNORM_BLOCK: return rhi::Format::eASTC_10x10_Unorm_Block;
-            case VK_FORMAT_ASTC_10x10_SRGB_BLOCK: return rhi::Format::eASTC_10x10_Srgb_Block;
+            case VK_FORMAT_ASTC_10x10_SRGB_BLOCK: return allowSrgb ? rhi::Format::eASTC_10x10_Srgb_Block: rhi::Format::eASTC_10x10_Unorm_Block;
             case VK_FORMAT_ASTC_12x10_UNORM_BLOCK: return rhi::Format::eASTC_12x10_Unorm_Block;
-            case VK_FORMAT_ASTC_12x10_SRGB_BLOCK: return rhi::Format::eASTC_12x10_Srgb_Block;
+            case VK_FORMAT_ASTC_12x10_SRGB_BLOCK: return allowSrgb ? rhi::Format::eASTC_12x10_Srgb_Block: rhi::Format::eASTC_12x10_Unorm_Block;
             case VK_FORMAT_ASTC_12x12_UNORM_BLOCK: return rhi::Format::eASTC_12x12_Unorm_Block;
-            case VK_FORMAT_ASTC_12x12_SRGB_BLOCK: return rhi::Format::eASTC_12x12_Srgb_Block;
+            case VK_FORMAT_ASTC_12x12_SRGB_BLOCK: return allowSrgb ? rhi::Format::eASTC_12x12_Srgb_Block: rhi::Format::eASTC_12x12_Unorm_Block;
             default: return rhi::Format::eUndefined;
         }
 
@@ -217,29 +219,35 @@ namespace ktx_format {
         return rhi::Format::eUndefined;
     }
 
-    inline rhi::Format getFormat(ktxTexture * texture) noexcept {
+    inline rhi::Format getFormat(ktxTexture * texture, LoadFlags flags) noexcept {
         switch (texture->classId) {
             case class_id::ktxTexture2_c: {
                 auto * texture2 = reinterpret_cast<ktxTexture2*>(texture);
-                return convert(static_cast<VkFormat>(texture2->vkFormat));
+                return convert(static_cast<VkFormat>(texture2->vkFormat), flags);
             }
             case class_id::ktxTexture1_c: {
                 auto * texture1 = reinterpret_cast<ktxTexture1*>(texture);
-                return convert(vkGetFormatFromOpenGLFormat(texture1->glInternalformat, texture1->glType));
+                return convert(vkGetFormatFromOpenGLFormat(texture1->glInternalformat, texture1->glType), flags);
             }
             default: return rhi::Format::eUndefined;
         }
     }
 
-    TextureCreateInfo parseTextureData(ktxTexture * texture) {
+    TextureCreateInfo parseTextureData(ktxTexture * texture, const TextureLoadInfo & info) {
         if (ktxTexture_NeedsTranscoding(texture)) {
             if (texture->classId == class_id::ktxTexture2_c) {
                 auto * texture2 = reinterpret_cast<ktxTexture2*>(texture);
                 // const auto numComponents = ktxTexture2_GetNumComponents(texture2);
                 // const auto premultipliedAlpha = ktxTexture2_GetPremultipliedAlpha(texture2);
                 
-                // need to choose target format! 
-                const auto result = ktxTexture2_TranscodeBasis(texture2, ktx_transcode_fmt_e::KTX_TTF_BC1_OR_3, 0u);
+                // select target format! 
+                // maybe need to check device format support for some rhi::FormatFeatureFlags?
+                // or is this enough?
+                #if (defined ENGINE_PLATFORM_LINUX) || (defined ENGINE_PLATFORM_WINDOWS)
+                    const auto targetFormat = ktx_transcode_fmt_e::KTX_TTF_BC1_OR_3;
+                #endif
+
+                const auto result = ktxTexture2_TranscodeBasis(texture2, targetFormat, 0u);
 
                 if (result == ktxResult::KTX_SUCCESS) {
                     ktx_size_t imageOffset = 0u;
@@ -253,10 +261,10 @@ namespace ktx_format {
                         .metaInfo = {
                             .size = {texture2->baseWidth, texture2->baseHeight},
                             .bytesPerLine = static_cast<uint16_t>(ktxTexture_GetRowPitch(reinterpret_cast<ktxTexture*>(texture2), 0u)),
-                            .format = getFormat(reinterpret_cast<ktxTexture*>(texture2)),
+                            .format = getFormat(reinterpret_cast<ktxTexture*>(texture2), info.flags),
                             .bpp = 0u,
                             .hasPalette = (texture2->_protected->_formatSize.flags & ktxFormatSizeFlagBits::KTX_FORMAT_SIZE_PALETTIZED_BIT) != 0,
-                            .parserType = TextureParserType::eKtx
+                            .parserType = TextureLoaderType::eKtx
                         },
                         .data = {data.begin(), data.end()}
                     };
@@ -278,24 +286,24 @@ namespace ktx_format {
                 .metaInfo = {
                     .size = {texture->baseWidth, texture->baseHeight},
                     .bytesPerLine = static_cast<uint16_t>(ktxTexture_GetRowPitch(texture, 0u)),
-                    .format = getFormat(texture),
+                    .format = getFormat(texture, info.flags),
                     .bpp = 0u,
                     .hasPalette = (texture->_protected->_formatSize.flags & ktxFormatSizeFlagBits::KTX_FORMAT_SIZE_PALETTIZED_BIT) != 0,
-                    .parserType = TextureParserType::eKtx
+                    .parserType = TextureLoaderType::eKtx
                 },
                 .data = {data.begin(), data.end()}
             };
         }
     }
 
-    TextureMetaInfo parseTextureMetaInfoOnly(ktxTexture * texture) {
+    TextureMetaInfo parseTextureMetaInfoOnly(ktxTexture * texture, const TextureLoadInfo & info) {
         return {
             .size = {texture->baseWidth, texture->baseHeight},
             .bytesPerLine = static_cast<uint16_t>(ktxTexture_GetRowPitch(texture, 0u)),
-            .format = getFormat(texture),
+            .format = getFormat(texture, info.flags),
             .bpp = 0,
             .hasPalette = (texture->_protected->_formatSize.flags & ktxFormatSizeFlagBits::KTX_FORMAT_SIZE_PALETTIZED_BIT) != 0,
-            .parserType = TextureParserType::eKtx
+            .parserType = TextureLoaderType::eKtx
         };
     }
 }
@@ -411,7 +419,7 @@ namespace sail_format {
                 .format = convert(image.pixel_format()),
                 .bpp = static_cast<uint8_t>(image.bits_per_pixel()),
                 .hasPalette = image.palette().is_valid(),
-                .parserType = TextureParserType::eSail
+                .parserType = TextureLoaderType::eSail
             },
             .data = {data.begin(), data.end()}
         };
@@ -431,7 +439,7 @@ namespace sail_format {
             .format = convert(image.pixel_format()),
             .bpp = static_cast<uint8_t>(image.bits_per_pixel()),
             .hasPalette = image.palette().is_valid(),
-            .parserType = TextureParserType::eSail
+            .parserType = TextureLoaderType::eSail
         };
     }
 
@@ -464,7 +472,7 @@ namespace sail_format {
         ktxTexture * texture = nullptr;
     };
 
-    TextureCreateInfo parseTextureData(std::span<const std::byte> bytes) {
+    TextureCreateInfo parseTextureData(std::span<const std::byte> bytes, const TextureLoadInfo & info) {
 		KtxTextureHandler textureHandler;
         // if data is no ktx - no load data, only check header, it is correct!
         const auto flags = ktxTextureCreateFlagBits::KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT |
@@ -474,7 +482,7 @@ namespace sail_format {
                                                        bytes.size(), flags, &textureHandler.texture);
 
         if (result == ktxResult::KTX_SUCCESS) {
-            return ktx_format::parseTextureData(textureHandler.texture);
+            return ktx_format::parseTextureData(textureHandler.texture, info);
         } else if (result == ktxResult::KTX_UNKNOWN_FILE_FORMAT) {
             return sail_format::parseTextureData(bytes);
         }
@@ -483,7 +491,7 @@ namespace sail_format {
         return {};
     }
 
-    TextureMetaInfo parseTextureMetaInfoOnly(std::span<const std::byte> bytes) {
+    TextureMetaInfo parseTextureMetaInfoOnly(std::span<const std::byte> bytes, const TextureLoadInfo & info) {
         KtxTextureHandler textureHandler;
         // if data is no ktx - no load data, only check header, it is correct!
         const auto flags = ktxTextureCreateFlagBits::KTX_TEXTURE_CREATE_SKIP_KVDATA_BIT;
@@ -492,7 +500,7 @@ namespace sail_format {
                                                        bytes.size(), flags, &textureHandler.texture);
 
         if (result == ktxResult::KTX_SUCCESS) {
-            return ktx_format::parseTextureMetaInfoOnly(textureHandler.texture);
+            return ktx_format::parseTextureMetaInfoOnly(textureHandler.texture, info);
         } else if (result == ktxResult::KTX_UNKNOWN_FILE_FORMAT) {
             return sail_format::parseTextureMetaInfoOnly(bytes);
         }
@@ -503,9 +511,9 @@ namespace sail_format {
 
     bool convertTextureDataFormat(rhi::Format format, TextureCreateInfo & info) {
         switch (info.metaInfo.parserType) {
-            case TextureParserType::eSail: return sail_format::convertTextureDataFormat(format, info);
-            case TextureParserType::eKtx: return false;
-            case TextureParserType::eRaw: return false;
+            case TextureLoaderType::eSail: return sail_format::convertTextureDataFormat(format, info);
+            case TextureLoaderType::eKtx: return false;
+            case TextureLoaderType::eRaw: return false;
             default: return false;
         }
     }
