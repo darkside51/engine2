@@ -231,7 +231,7 @@ namespace ktx_format {
         }
     }
 
-    TextureCreateInfo parseKtxTextureData(ktxTexture * texture) {
+    TextureCreateInfo parseTextureData(ktxTexture * texture) {
         if (ktxTexture_NeedsTranscoding(texture)) {
             if (texture->classId == class_id::ktxTexture2_c) {
                 auto * texture2 = reinterpret_cast<ktxTexture2*>(texture);
@@ -369,7 +369,7 @@ namespace sail_format {
         return SailPixelFormat::SAIL_PIXEL_FORMAT_UNKNOWN;
     }
 
-    TextureCreateInfo parseSailTextureData(std::span<const std::byte> bytes) {
+    TextureCreateInfo parseTextureData(std::span<const std::byte> bytes) {
         sail::image_input imageInput(bytes.data(), bytes.size());
         sail::image image = imageInput.next_frame();
 
@@ -449,9 +449,9 @@ namespace sail_format {
                                                        bytes.size(), flags, &textureHandler.texture);
 
         if (result == ktxResult::KTX_SUCCESS) {
-            return ktx_format::parseKtxTextureData(textureHandler.texture);
+            return ktx_format::parseTextureData(textureHandler.texture);
         } else if (result == ktxResult::KTX_UNKNOWN_FILE_FORMAT) {
-            return sail_format::parseSailTextureData(bytes);
+            return sail_format::parseTextureData(bytes);
         }
 
         assert(false);
@@ -478,7 +478,7 @@ namespace sail_format {
 
     bool convertTextureDataFormat(rhi::Format format, TextureCreateInfo & info) {
         switch (info.metaInfo.parserType) {
-            // case TextureParserType::eSail: return sail_format::convertTextureDataFormat(format, info);
+            case TextureParserType::eSail: return sail_format::convertTextureDataFormat(format, info);
             case TextureParserType::eKtx: return false;
             case TextureParserType::eRaw: return false;
             default: return false;
