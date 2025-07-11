@@ -551,7 +551,7 @@ namespace example {
 
     void Example::createDefaultResources() {
         // sail test
-        auto const imageBytes = _fileManager.readFile("assets/earth.webp");
+        auto const imageBytes = _fileManager.readFile("assets/earth.ktx2");
         // auto const imageBytes = _fileManager.readFile("assets/2d_bc7.ktx2");
         auto textureData = engine::graphics::parseTextureData(imageBytes);
 
@@ -559,6 +559,14 @@ namespace example {
             engine::rhi::FormatFeatureFlags::eFormatFeature_Sampled_Image);
         const auto featureAccess16 = _device->isFormatSupported(engine::rhi::Format::eR4G4B4A4_Unorm_Pack16, 
             engine::rhi::FormatFeatureFlags::eFormatFeature_Sampled_Image);
+
+        const auto featureAccessCurrent = _device->isFormatSupported(textureData.metaInfo.format, 
+            engine::rhi::FormatFeatureFlags::eFormatFeature_Sampled_Image);
+
+        assert(
+            featureAccessCurrent.checkBit(engine::rhi::FormatFeatureAccess::Bit::eOptimalTilingFeaturesBit) ||
+            featureAccessCurrent.checkBit(engine::rhi::FormatFeatureAccess::Bit::eLinearTilingFeaturesBit)
+        );
 
         const bool sampledSupport = featureAccess24.checkBit(engine::rhi::FormatFeatureAccess::Bit::eOptimalTilingFeaturesBit) ||
                                     featureAccess24.checkBit(engine::rhi::FormatFeatureAccess::Bit::eLinearTilingFeaturesBit);

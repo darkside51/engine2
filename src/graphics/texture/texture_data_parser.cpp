@@ -235,11 +235,36 @@ namespace ktx_format {
         if (ktxTexture_NeedsTranscoding(texture)) {
             if (texture->classId == class_id::ktxTexture2_c) {
                 auto * texture2 = reinterpret_cast<ktxTexture2*>(texture);
+                // const auto numComponents = ktxTexture2_GetNumComponents(texture2);
+                // const auto premultipliedAlpha = ktxTexture2_GetPremultipliedAlpha(texture2);
+                
+                // need to choose target format! 
+                const auto result = ktxTexture2_TranscodeBasis(texture2, ktx_transcode_fmt_e::KTX_TTF_BC1_OR_3, 0u);
 
-                // ktxTexture2_GetNumComponents(ktxTexture);
-                // ktxTexture2_GetPremultipliedAlpha(ktxTexture);
+                if (result == ktxResult::KTX_SUCCESS) {
+                    ktx_size_t imageOffset = 0u;
+                    const auto imageOffsetGetResult = ktxTexture2_GetImageOffset(texture2, 0u, 0u, 0u, &imageOffset);
+                    std::span data{
+                        reinterpret_cast<std::byte*>(texture2->pData) + imageOffset, 
+                        ktxTexture_GetImageSize(texture, 0u)
+                    };
+
+                    return {
+                        .metaInfo = {
+                            .size = {texture2->baseWidth, texture2->baseHeight},
+                            .bytesPerLine = static_cast<uint16_t>(ktxTexture_GetRowPitch(reinterpret_cast<ktxTexture*>(texture2), 0u)),
+                            .format = getFormat(reinterpret_cast<ktxTexture*>(texture2)),
+                            .bpp = 0u,
+                            .hasPalette = (texture2->_protected->_formatSize.flags & ktxFormatSizeFlagBits::KTX_FORMAT_SIZE_PALETTIZED_BIT) != 0,
+                            .parserType = TextureParserType::eKtx
+                        },
+                        .data = {data.begin(), data.end()}
+                    };
+
+                }
             }
-            // todo!
+
+            assert(false);
             return {};
         } else {
             ktx_size_t imageOffset = 0u;
