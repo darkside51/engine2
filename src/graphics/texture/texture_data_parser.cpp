@@ -1,14 +1,18 @@
 #include "texture_data_parser.h"
 
-#include <ktx.h>
-#include <vk_funcs.h>
-#include <ktxvulkan.h>
-#include <texture.h>
-#include <formatsize.h>
+// ktx
+#include <ktx.h> // KTX-Software/include
+#include <texture.h> // KTX-Software/include
+#include <vk_format.h> // KTX-Software/lib/ // this header include gl_format.h and conversions gl to vk
+
+// sail
 #include <sail-c++/sail-c++.h>
 
-namespace engine::graphics {
+// common
+#include <cassert>
 
+namespace engine::graphics {
+namespace ktx_format {
     rhi::Format convert(VkFormat format) noexcept {
         switch (format) {
             case VK_FORMAT_UNDEFINED: return rhi::Format::eUndefined;
@@ -213,6 +217,71 @@ namespace engine::graphics {
         return rhi::Format::eUndefined;
     }
 
+    TextureCreateInfo parseKtxTextureData(ktxTexture * texture) {
+        if (ktxTexture_NeedsTranscoding(texture)) {
+            if (texture->classId == class_id::ktxTexture2_c) {
+                auto * texture2 = reinterpret_cast<ktxTexture2*>(texture);
+
+                // ktxTexture2_GetNumComponents(ktxTexture);
+                // ktxTexture2_GetPremultipliedAlpha(ktxTexture);
+            }
+            // todo!
+            return {};
+        } else {
+            VkFormat format = VkFormat::VK_FORMAT_UNDEFINED;
+
+            if (texture->classId == class_id::ktxTexture2_c) {
+                auto * texture2 = reinterpret_cast<ktxTexture2*>(texture);
+                format = static_cast<VkFormat>(texture2->vkFormat);
+            } else { //class_id::ktxTexture1_c
+                auto * texture1 = reinterpret_cast<ktxTexture1*>(texture);
+                format = vkGetFormatFromOpenGLFormat(texture1->glInternalformat, texture1->glType);
+            }
+
+            ktx_size_t imageOffset = 0u;
+            const auto imageOffsetGetResult = ktxTexture_GetImageOffset(texture, 0u, 0u, 0u, &imageOffset);
+            std::span data{
+                reinterpret_cast<std::byte*>(ktxTexture_GetData(texture)) + imageOffset, 
+                ktxTexture_GetImageSize(texture, 0u)
+            };
+
+            return {
+                .metaInfo = {
+                    .size = {texture->baseWidth, texture->baseHeight},
+                    .bytesPerLine = static_cast<uint16_t>(ktxTexture_GetRowPitch(texture, 0u)),
+                    .format = convert(format),
+                    .bpp = 0u,
+                    .hasPalette = (texture->_protected->_formatSize.flags & ktxFormatSizeFlagBits::KTX_FORMAT_SIZE_PALETTIZED_BIT) != 0,
+                    .parserType = TextureParserType::eKtx
+                },
+                .data = {data.begin(), data.end()}
+            };
+        }
+    }
+
+    TextureMetaInfo parseTextureMetaInfoOnly(ktxTexture * texture) {
+        VkFormat format = VkFormat::VK_FORMAT_UNDEFINED;
+
+        if (texture->classId == class_id::ktxTexture2_c) {
+            auto * texture2 = reinterpret_cast<ktxTexture2*>(texture);
+            format = static_cast<VkFormat>(texture2->vkFormat);
+        } else { //class_id::ktxTexture1_c
+            auto * texture1 = reinterpret_cast<ktxTexture1*>(texture);
+            format = vkGetFormatFromOpenGLFormat(texture1->glInternalformat, texture1->glType);
+        }
+
+        return {
+            .size = {texture->baseWidth, texture->baseHeight},
+            .bytesPerLine = static_cast<uint16_t>(ktxTexture_GetRowPitch(texture, 0u)),
+            .format = convert(format),
+            .bpp = 0,
+            .hasPalette = (texture->_protected->_formatSize.flags & ktxFormatSizeFlagBits::KTX_FORMAT_SIZE_PALETTIZED_BIT) != 0,
+            .parserType = TextureParserType::eKtx
+        };
+    }
+}
+
+namespace sail_format {
     rhi::Format convert(SailPixelFormat format) noexcept {
         switch (format) {
         // Grayscale formats.
@@ -306,53 +375,6 @@ namespace engine::graphics {
         return SailPixelFormat::SAIL_PIXEL_FORMAT_UNKNOWN;
     }
 
-    TextureMetaInfo parseTextureMetaInfoOnly(std::span<const std::byte> bytes) {
-        sail::image_input imageInput(bytes.data(), bytes.size());
-        auto [image, _] = imageInput.probe();
-
-        if (!image.is_valid()) {
-            return {};
-        }
-
-        return {
-                .size = {image.width(), image.height()},
-                .bytesPerLine = static_cast<uint16_t>(image.bytes_per_line()),
-                .format = convert(image.pixel_format()),
-                .bpp = static_cast<uint8_t>(image.bits_per_pixel()),
-                .hasPalette = image.palette().is_valid()
-            };
-    }
-
-
-    TextureCreateInfo parseKtxTextureData(ktxTexture * texture) {
-        if (ktxTexture_NeedsTranscoding(texture)) {
-            if (texture->classId == class_id::ktxTexture2_c) {
-                auto * texture2 = reinterpret_cast<ktxTexture2*>(texture);
-
-                // ktxTexture2_GetNumComponents(ktxTexture);
-                // ktxTexture2_GetPremultipliedAlpha(ktxTexture);
-            }
-            // todo!
-            return {};
-        } else {
-            auto const format = ktxTexture_GetVkFormat(texture);
-            ktx_size_t imageOffset = 0u;
-            const auto imageOffsetGetResult = ktxTexture_GetImageOffset(texture, 0u, 0u, 0u, &imageOffset);
-            std::span data{reinterpret_cast<std::byte*>(ktxTexture_GetData(texture)) + imageOffset, ktxTexture_GetImageSize(texture, 0u)};
-
-            return {
-                .metaInfo = {
-                    .size = {texture->baseWidth, texture->baseHeight},
-                    .bytesPerLine = static_cast<uint16_t>(ktxTexture_GetRowPitch(texture, 0u)),
-                    .format = convert(format),
-                    .bpp = 0,
-                    .hasPalette = (texture->_protected->_formatSize.flags & ktxFormatSizeFlagBits::KTX_FORMAT_SIZE_PALETTIZED_BIT) != 0
-                },
-                .data = {data.begin(), data.end()}
-            };
-        }
-    }
-
     TextureCreateInfo parseSailTextureData(std::span<const std::byte> bytes) {
         sail::image_input imageInput(bytes.data(), bytes.size());
         sail::image image = imageInput.next_frame();
@@ -369,28 +391,35 @@ namespace engine::graphics {
                 .bytesPerLine = static_cast<uint16_t>(image.bytes_per_line()),
                 .format = convert(image.pixel_format()),
                 .bpp = static_cast<uint8_t>(image.bits_per_pixel()),
-                .hasPalette = image.palette().is_valid()
+                .hasPalette = image.palette().is_valid(),
+                .parserType = TextureParserType::eSail
             },
             .data = {data.begin(), data.end()}
         };
     }
 
-    TextureCreateInfo parseTextureData(std::span<const std::byte> bytes) {
-		ktxTexture * ktxTexture;
-        // if data is no ktx - no load data, only check header, it is correct!
-        ktxResult result = ktxTexture_CreateFromMemory(reinterpret_cast<const ktx_uint8_t*>(bytes.data()), bytes.size(), 
-            ktxTextureCreateFlagBits::KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT | ktxTextureCreateFlagBits::KTX_TEXTURE_CREATE_SKIP_KVDATA_BIT, &ktxTexture);
+    TextureMetaInfo parseTextureMetaInfoOnly(std::span<const std::byte> bytes) {
+        sail::image_input imageInput(bytes.data(), bytes.size());
+        auto [image, _] = imageInput.probe();
 
-        if (result == ktxResult::KTX_SUCCESS) {
-            return parseKtxTextureData(ktxTexture);
-        } else if (result == ktxResult::KTX_UNKNOWN_FILE_FORMAT) {
-            return parseSailTextureData(bytes);
+        if (!image.is_valid()) {
+            return {};
         }
+
+        return {
+            .size = {image.width(), image.height()},
+            .bytesPerLine = static_cast<uint16_t>(image.bytes_per_line()),
+            .format = convert(image.pixel_format()),
+            .bpp = static_cast<uint8_t>(image.bits_per_pixel()),
+            .hasPalette = image.palette().is_valid(),
+            .parserType = TextureParserType::eSail
+        };
     }
 
     bool convertTextureDataFormat(rhi::Format format, TextureCreateInfo & info) {
         const auto targetFormat = convert(format);
-        sail::image image(info.data.data(), convert(info.metaInfo.format), info.metaInfo.size.x, info.metaInfo.size.y, info.metaInfo.bytesPerLine);
+        sail::image image(info.data.data(), convert(info.metaInfo.format), 
+            info.metaInfo.size.x, info.metaInfo.size.y, info.metaInfo.bytesPerLine);
 
         if (image.can_convert(targetFormat)) {
             if (image.convert(targetFormat) == SAIL_OK) {
@@ -405,5 +434,51 @@ namespace engine::graphics {
 
         return false;
     }
+}
 
+    TextureCreateInfo parseTextureData(std::span<const std::byte> bytes) {
+		ktxTexture * ktxTexture;
+        // if data is no ktx - no load data, only check header, it is correct!
+        const auto flags = ktxTextureCreateFlagBits::KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT |
+                           ktxTextureCreateFlagBits::KTX_TEXTURE_CREATE_SKIP_KVDATA_BIT;
+
+        const ktxResult result = ktxTexture_CreateFromMemory(reinterpret_cast<const ktx_uint8_t*>(bytes.data()), 
+                                                       bytes.size(), flags, &ktxTexture);
+
+        if (result == ktxResult::KTX_SUCCESS) {
+            return ktx_format::parseKtxTextureData(ktxTexture);
+        } else if (result == ktxResult::KTX_UNKNOWN_FILE_FORMAT) {
+            return sail_format::parseSailTextureData(bytes);
+        }
+
+        assert(false);
+        return {};
+    }
+
+    TextureMetaInfo parseTextureMetaInfoOnly(std::span<const std::byte> bytes) {
+        ktxTexture * ktxTexture;
+        // if data is no ktx - no load data, only check header, it is correct!
+        const auto flags = ktxTextureCreateFlagBits::KTX_TEXTURE_CREATE_SKIP_KVDATA_BIT;
+
+        const ktxResult result = ktxTexture_CreateFromMemory(reinterpret_cast<const ktx_uint8_t*>(bytes.data()), 
+                                                       bytes.size(), flags, &ktxTexture);
+
+        if (result == ktxResult::KTX_SUCCESS) {
+            return ktx_format::parseTextureMetaInfoOnly(ktxTexture);
+        } else if (result == ktxResult::KTX_UNKNOWN_FILE_FORMAT) {
+            return sail_format::parseTextureMetaInfoOnly(bytes);
+        }
+
+        assert(false);
+        return {};
+    }
+
+    bool convertTextureDataFormat(rhi::Format format, TextureCreateInfo & info) {
+        switch (info.metaInfo.parserType) {
+            case TextureParserType::eSail: return sail_format::convertTextureDataFormat(format, info);
+            case TextureParserType::eKtx: return false;
+            case TextureParserType::eRaw: return false;
+            default: return false;
+        }
+    }
 }
