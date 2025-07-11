@@ -254,18 +254,21 @@ set(
 	)
 message("glaze library end")
 
-# # sail
-# message("sail library begin")
-# add_3rdparty_project(${CMAKE_CURRENT_SOURCE_DIR}/../3rd_party/sail ${CMAKE_BINARY_DIR}/3rd_party/sail)
-# target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../3rd_party/sail/src)
-# target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../3rd_party/sail/src/bindings)
-# target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_BINARY_DIR}/3rd_party/sail/include)
+# sail
+message("sail library begin")
+set(BUILD_SHARED_LIBS OFF)
+set(SAIL_THIRD_PARTY_CODECS_PATH OFF)
 
-# set(
-# 	USED_FRAMEWORKS ${USED_FRAMEWORKS}
-# 	sail-c++
-# 	)
-# message("sail library end")
+add_3rdparty_project(${CMAKE_CURRENT_SOURCE_DIR}/../3rd_party/sail ${CMAKE_BINARY_DIR}/3rd_party/sail)
+target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../3rd_party/sail/src)
+target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../3rd_party/sail/src/bindings)
+target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_BINARY_DIR}/3rd_party/sail/include)
+
+set(
+	USED_FRAMEWORKS ${USED_FRAMEWORKS}
+	sail-c++
+	)
+message("sail library end")
 
 target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../3rd_party/glm)
 target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../3rd_party/imgui)

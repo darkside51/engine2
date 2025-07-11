@@ -551,8 +551,8 @@ namespace example {
 
     void Example::createDefaultResources() {
         // sail test
-        // auto const imageBytes = _fileManager.readFile("assets/earth.webp");
-        auto const imageBytes = _fileManager.readFile("assets/2d_bc7.ktx2");
+        auto const imageBytes = _fileManager.readFile("assets/earth.webp");
+        // auto const imageBytes = _fileManager.readFile("assets/2d_bc7.ktx2");
         auto textureData = engine::graphics::parseTextureData(imageBytes);
 
         const auto featureAccess24 = _device->isFormatSupported(engine::rhi::Format::eR8G8B8_Unorm, 
