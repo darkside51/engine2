@@ -226,7 +226,6 @@ message("ktx library begin")
 add_3rdparty_project (${CMAKE_CURRENT_SOURCE_DIR}/../3rd_party/KTX-Software ${CMAKE_BINARY_DIR}/3rd_party/KTX-Software)
 target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../3rd_party/KTX-Software/include)
 target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../3rd_party/KTX-Software/lib)
-
 set(
 	USED_FRAMEWORKS ${USED_FRAMEWORKS}
 	ktx
