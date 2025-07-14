@@ -5,6 +5,11 @@
 #include "instance.h"
 #include "vk_types.h"
 
+#include "log/log.h"
+
+#include <cassert>
+#include <thread>
+
 namespace engine::vulkan {
 
     VkSampler SamplerManager::getSampler(const rhi::SamplerInfo & samplerInfo) {
@@ -12,7 +17,14 @@ namespace engine::vulkan {
             return it->second;
         }
 
-        VkSamplerCreateInfo info = {
+        static auto threadId = std::this_thread::get_id();
+        if (std::this_thread::get_id() != threadId) {
+            // no sync here yet, but can to create all used samplers once, before start render threads
+            assert(false);
+            LOG_E("vulkan: SamplerManager try to access from multy hreads!");
+        }
+
+        const VkSamplerCreateInfo info = {
             .sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
             .pNext = nullptr,
             .flags = 0,

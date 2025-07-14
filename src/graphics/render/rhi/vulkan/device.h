@@ -123,10 +123,10 @@ private:
 
     GPUMemoryAllocator _memoryAllocator;
     CommandPoolManager _commandPoolManager;
-    RenderPassManager _renderpassManager; // need sync
-    DescriptorSetLayoutManager _descriptorSetLayoutManager; // need sync
-    DescriptorPoolManager _descriptorPoolManager; // need sync
-    SamplerManager _samplerManager; // need sync
+    RenderPassManager _renderpassManager; // no sync
+    DescriptorSetLayoutManager _descriptorSetLayoutManager; // no sync
+    DescriptorPoolManager _descriptorPoolManager; // no sync
+    SamplerManager _samplerManager; // no sync
     VkPipelineCache _pipelineCache = VK_NULL_HANDLE;
 };
 
