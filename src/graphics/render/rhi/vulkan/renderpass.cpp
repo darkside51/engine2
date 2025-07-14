@@ -68,7 +68,7 @@ namespace engine::vulkan {
 
     RenderPass* RenderPassManager::getRenderPass(const rhi::RenderPassDescription & description) {
         if (auto it = _renderPassCollection.find(description); it != _renderPassCollection.end()) {
-            return it->second.get();
+            return it->second;
         }
 
         const auto attachmentsSrc = description.getAttachments();
@@ -181,9 +181,11 @@ namespace engine::vulkan {
             attachmentInfos[i].finalLayout = attachments[i].finalLayout;
         }
 
-        const auto [it, success] = _renderPassCollection.emplace(description, std::make_unique<RenderPass>(renderPass, attachmentInfos));
-        if (success) {
-            return it->second.get();
+        if (auto * rp = _renderPassPool.create<RenderPass>(renderPass, attachmentInfos)) {
+            const auto [it, success] = _renderPassCollection.emplace(description, rp);
+            if (success) {
+                return it->second;
+            }
         }
 
         LOG_E("vulkan: RenderPassManager::getRenderPass map emplace error!");

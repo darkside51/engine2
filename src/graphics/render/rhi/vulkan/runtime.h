@@ -89,7 +89,7 @@ namespace engine::vulkan::runtime {
     private:
         Api::Instance _instance;
 
-        static constexpr uint32_t kBufferAlign =  alignof(rhi::runtime::sh_ptr<Api::Buffer>::Value);
+        static constexpr uint32_t kBufferAlign = alignof(rhi::runtime::sh_ptr<Api::Buffer>::Value);
         static constexpr uint32_t kBufferPtrSize = sizeof(rhi::runtime::sh_ptr<Api::Buffer>::Value);
 
         using BuffersAllocator = allocators::PoolAllocatorChain<kBufferPtrSize, kBufferAlign, true>;

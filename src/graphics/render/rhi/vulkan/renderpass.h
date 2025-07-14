@@ -1,5 +1,7 @@
 #pragma once
 
+#include "allocators/pool_allocator_chain.h"
+
 #include "common/hash.h"
 #include "graphics/render/rhi/common/renderpass.h"
 
@@ -24,7 +26,7 @@ struct RenderPass {
 };
 
 class RenderPassManager {
-    using RenderPassMap = std::unordered_map<rhi::RenderPassDescription, std::unique_ptr<RenderPass>, 
+    using RenderPassMap = std::unordered_map<rhi::RenderPassDescription, RenderPass*, 
                                             hash::Hasher<rhi::RenderPassDescription>, std::equal_to<>>;
 public:
     explicit RenderPassManager(const Device & device) : _device(device) {};
@@ -38,6 +40,12 @@ private:
     // need synchronisations ?
     const Device & _device;
     RenderPassMap _renderPassCollection;
+
+    static constexpr uint32_t kRenderPassAlign = alignof(RenderPass);
+    static constexpr uint32_t kRenderPassSize = sizeof(RenderPass);
+
+    using RenderPassAllocator = allocators::PoolAllocatorChain<kRenderPassSize, kRenderPassAlign, false>;
+    RenderPassAllocator _renderPassPool{128u, 4u}; // 12kb max
 };
 
 }
