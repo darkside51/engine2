@@ -28,7 +28,7 @@ struct DeviceQueueFamily {
 class Device final : public rhi::runtime::Device {
 public:
     using Api = vulkan::Api;
-    using RenderPass = VkRenderPass;
+    // using RenderPass = VkRenderPass;
     using Fence = VkFence;
     using Semaphore = VkSemaphore;
     using Event = VkEvent;
@@ -65,7 +65,7 @@ public:
         return _commandPoolManager.acquirePool(idx, queueFlags, poolFlags);
     }
 
-    RenderPass getRenderPass(const rhi::RenderPassDescription & description) {
+    RenderPass* getRenderPass(const rhi::RenderPassDescription & description) {
         return _renderpassManager.getRenderPass(description);
     }
 

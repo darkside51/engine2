@@ -61,14 +61,14 @@ namespace engine::vulkan {
     void RenderPassManager::destroy() noexcept {
         const auto * allocationCallbacks = _device.gpu().getInstance().getAllocationCallbacks();
         for (auto & [key, pass] : _renderPassCollection) {
-            vkDestroyRenderPass(_device(), pass, allocationCallbacks);
+            vkDestroyRenderPass(_device(), pass->vkRenderPass, allocationCallbacks);
         }
         _renderPassCollection.clear();
     }
 
-    VkRenderPass RenderPassManager::getRenderPass(const rhi::RenderPassDescription & description) {
+    RenderPass* RenderPassManager::getRenderPass(const rhi::RenderPassDescription & description) {
         if (auto it = _renderPassCollection.find(description); it != _renderPassCollection.end()) {
-            return it->second;
+            return it->second.get();
         }
 
         const auto attachmentsSrc = description.getAttachments();
@@ -172,16 +172,22 @@ namespace engine::vulkan {
         if (const auto result = vkCreateRenderPass(_device(), &createInfo, allocationCallbacks, &renderPass);
             result != VK_SUCCESS) {
             LOG_E("vulkan: vkCreateRenderPass result: %d", result);
-            return VK_NULL_HANDLE;
+            return nullptr;
         }
 
-        const auto [it, success] = _renderPassCollection.emplace(description, renderPass);
+        assert(attachments.size() <= RenderPass::kMaxAttachemts);
+        std::array<RenderPass::AttachmentInfo, RenderPass::kMaxAttachemts> attachmentInfos;
+        for (size_t i = 0u; i < attachments.size(); ++i) {
+            attachmentInfos[i].finalLayout = attachments[i].finalLayout;
+        }
+
+        const auto [it, success] = _renderPassCollection.emplace(description, std::make_unique<RenderPass>(renderPass, attachmentInfos));
         if (success) {
-            return it->second;
+            return it->second.get();
         }
 
         LOG_E("vulkan: RenderPassManager::getRenderPass map emplace error!");
-        return VK_NULL_HANDLE;
+        return nullptr;
     }
 
 }

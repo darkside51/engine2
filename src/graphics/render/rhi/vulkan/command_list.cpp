@@ -10,6 +10,7 @@
 #include "descriptor_set.h"
 #include "descriptor_set_updater.h"
 #include "descriptor_pool_manager.h"
+#include "renderpass.h"
 
 #include "graphics/render/rhi/common/commands.h"
 
@@ -218,6 +219,7 @@ namespace engine::vulkan::runtime {
                 const auto * command = static_cast<BeginRenderPassCommand*>(cmd);
 
                 auto & framebuffer = static_cast<vulkan::FrameBuffer &>(*command->framebuffer);
+                auto * renderPass = static_cast<RenderPass*>(command->renderPass);
 
                 // todo: move set barriers to function
                 for (const auto & buffer : command->bufferTransitionInfo) {
@@ -243,6 +245,7 @@ namespace engine::vulkan::runtime {
                     );
                 }
 
+                uint8_t attachmentIdx = 0u;
                 for (const auto & attachment : framebuffer.attachments()) {
                     auto * image = static_cast<Image*>(attachment.image);
                     const auto usage = attachment.image->usage();
@@ -285,7 +288,9 @@ namespace engine::vulkan::runtime {
                         );  
                     }
 
-                    image->assignLayout(utils::convert2vk(attachment.finalLayout), 0u, 0u, 0u, 0u);
+                    // need to get finalLayout for attachment from command->renderPass
+                    image->assignLayout(renderPass->attachments[attachmentIdx].finalLayout, 0u, 0u, 0u, 0u);
+                    ++attachmentIdx;
                 }
 
                 _barriers.flush(_commandbuffer());
@@ -301,7 +306,7 @@ namespace engine::vulkan::runtime {
                 }
 
                 _commandbuffer.beginRenderPass(
-                    static_cast<VkRenderPass>(command->renderPass), 
+                    renderPass->vkRenderPass, 
                     framebuffer,
                     clearValuesView,
                     command->area

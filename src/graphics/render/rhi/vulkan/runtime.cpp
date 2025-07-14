@@ -12,6 +12,7 @@
 #include "image.h"
 #include "command_list.h"
 #include "command_buffer.h"
+#include "renderpass.h"
 #include "vk_types.h"
 
 #include "graphics/render/rhi/common/shader_module.h"
@@ -64,7 +65,7 @@ namespace engine::vulkan::runtime {
         const rhi::runtime::RenderPass & renderPass) const noexcept {
 
         return rhi::runtime::sh_ptr<Api::FrameBuffer>::make(static_cast<const Api::Device &>(*device), 
-            std::move(attachemnts), static_cast<VkRenderPass>(renderPass));
+            std::move(attachemnts), static_cast<RenderPass*>(renderPass)->vkRenderPass);
 
         // return std::make_unique<Api::FrameBuffer>(static_cast<const Api::Device &>(*device), 
         //     std::move(attachemnts), static_cast<VkRenderPass>(renderPass));
@@ -145,7 +146,7 @@ namespace engine::vulkan::runtime {
         const auto & vkProgram = static_cast<const Api::GpuProgram&>(*program);
         const Api::GraphicsPipelineInfo pipelineInfo{info};
         return std::make_unique<Api::Pipeline>(static_cast<Api::Device &>(*device), vkProgram,
-            pipelineInfo.create(vkProgram, static_cast<VkRenderPass>(renderPass), subpass));
+            pipelineInfo.create(vkProgram, static_cast<RenderPass*>(renderPass)->vkRenderPass, subpass));
     }
 
     rhi::runtime::BufferPtr Rhi::createBuffer(rhi::runtime::DevicePtr & device, 
