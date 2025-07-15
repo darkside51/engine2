@@ -185,7 +185,7 @@ void Image::transition(PipelineBarriers & barriers, VkImageLayout dstLayout,
             barriers.insertImageBarrier(
                 subState.usedStage, 
                 dstStage, 
-                VkDependencyFlagBits::VK_DEPENDENCY_BY_REGION_BIT, // ? 
+                0, //VkDependencyFlagBits::VK_DEPENDENCY_BY_REGION_BIT, // ? 
                 barrier
             );
 
@@ -285,7 +285,7 @@ void Image::transition(PipelineBarriers & barriers, VkImageLayout dstLayout,
                 barriers.insertImageBarrier(
                     subState.usedStage, 
                     dstStage, 
-                    VkDependencyFlagBits::VK_DEPENDENCY_BY_REGION_BIT, // ? 
+                    0, // VkDependencyFlagBits::VK_DEPENDENCY_BY_REGION_BIT, // ? 
                     barrier
                 );
             }

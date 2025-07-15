@@ -37,6 +37,7 @@ namespace example {
     struct UniformBuffer {
         engine::mat4f mvp;
         float m;
+        float time;
     };
 
     class SceneEventHandler final : public engine::InputObserver {
@@ -333,7 +334,6 @@ namespace example {
             .pNext = {nullptr, 0u},
             .attachment = 0u,
             .layout = engine::rhi::ImageLayout::eColor_Attachment_Optimal,
-            .aspectMask = engine::rhi::ImageAspectFlags::eColor
         }};
 
         return engine::rhi::RenderPassDescription{
@@ -364,13 +364,11 @@ namespace example {
             .pNext = {nullptr, 0u},
             .attachment = 0u,
             .layout = engine::rhi::ImageLayout::eColor_Attachment_Optimal,
-            .aspectMask = engine::rhi::ImageAspectFlags::eColor
         }};
         subpasses[0].depthStencilAttachment = {
             .pNext = {nullptr, 0u},
             .attachment = 1u,
             .layout = engine::rhi::ImageLayout::eDepth_Stencil_Attachment_Optimal,
-            .aspectMask = engine::rhi::ImageAspectFlags::eDepthStencil
         };
 
         return engine::rhi::RenderPassDescription{
@@ -401,20 +399,17 @@ namespace example {
             .pNext = {nullptr, 0u},
             .attachment = 1u,
             .layout = engine::rhi::ImageLayout::eDepth_Stencil_Attachment_Optimal,
-            .aspectMask = engine::rhi::ImageAspectFlags::eDepthStencil
         };
 
         subpasses[1].colorAttachments = {{
             .pNext = {nullptr, 0u},
             .attachment = 0u,
             .layout = engine::rhi::ImageLayout::eColor_Attachment_Optimal,
-            .aspectMask = engine::rhi::ImageAspectFlags::eColor
         }};
         subpasses[1].depthStencilAttachment = {
             .pNext = {nullptr, 0u},
             .attachment = 1u,
             .layout = engine::rhi::ImageLayout::eDepth_Stencil_Attachment_Optimal,
-            .aspectMask = engine::rhi::ImageAspectFlags::eDepthStencil
         };
 
         std::vector<engine::rhi::SubpassDependency> deps(1u);
@@ -803,6 +798,7 @@ namespace example {
             auto * map = _uniformBufferI->map2<UniformBuffer>();
             map->mvp = engine::makeMatrix(1.0f);
             map->m = m;
+            map->time  = 0.0f;
             _uniformBufferI->unmap();
         }
     }
@@ -856,6 +852,7 @@ namespace example {
 
             map->mvp = cameraTransform;
             map->m = m;
+            map->time += delta * 0.01f;
 
             _uniformBufferI->unmap();
             _uniformBufferI->commit(commandList, frame);
@@ -917,7 +914,10 @@ namespace example {
             .magFilter = rhi::FilterMode::eLinear,
             .minFilter = rhi::FilterMode::eLinear});
         commandList->bindBuffer(0u, (*_uniformBufferI)(frameId), 0u, 0u, sizeof(UniformBuffer));
-        commandList->drawIndexed(_sphereIdx->sizeInBytes() / sizeof(uint16_t));
+
+        // for (size_t i = 0; i < 2'000; ++i) {
+            commandList->drawIndexed(_sphereIdx->sizeInBytes() / sizeof(uint16_t), 1u);
+        // }
 
         //commandList->nextSubpass(rhi::SubpassContents::ePrimaryBufferInline);
         commandList->endRenderPass();
