@@ -94,6 +94,7 @@ set(
 	threads/thread_pool
 
 	utils
+	utils/parsers
 	utils/profile
 
 	../3rd_party/imgui # use as static_lib?

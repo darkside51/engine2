@@ -27,8 +27,8 @@ namespace engine::rhi {
             hash::hash_combine(hash, attachmentRefHash(attachment));
         }
         
-        const auto preserveAttachmentsView = preserveAttachments.view();
-        for (auto attachment : preserveAttachmentsView) {
+        const auto reserveAttachmentsView = reserveAttachments.view();
+        for (auto attachment : reserveAttachmentsView) {
             hash::hash_combine(hash, attachment);
         }
 

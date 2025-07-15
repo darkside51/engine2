@@ -151,8 +151,8 @@ namespace engine::vulkan {
                 colorAttachmentReferencesView.data(),
                 resolveAttachmentReferencesView.empty() ? nullptr : resolveAttachmentReferencesView.data(),
                 depthStencilRef,
-                subpass.preserveAttachments.capacity,
-                subpass.preserveAttachments.view().data()
+                subpass.reserveAttachments.capacity,
+                subpass.reserveAttachments.view().data()
             );
         }
         

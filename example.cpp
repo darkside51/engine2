@@ -16,6 +16,8 @@
 
 #include <imgui.h>
 
+#include "utils/parsers/renderpass_json_parser.h"
+
 // https://www.saschawillems.de/blog/2018/07/19/vulkan-input-attachments-and-sub-passes/
 
 namespace example {
@@ -320,126 +322,18 @@ namespace example {
         camera.resize(w, h);
     }
 
-    engine::rhi::RenderPassDescription createScreenRenderPassDescription(
-        engine::rhi::Format swapchainColorFormat
-    ) {
-        std::vector<engine::rhi::AttachmentDescription> attachments(1u);
-        attachments[0].format = swapchainColorFormat;
-        attachments[0].loadStoreOp = {engine::rhi::AttachmentLoadOp::eClear, engine::rhi::AttachmentStoreOp::eStore};
-        attachments[0].stencilLoadStoreOp = {engine::rhi::AttachmentLoadOp::eDont_Care, engine::rhi::AttachmentStoreOp::eDont_Care};
-        attachments[0].finalLayout = engine::rhi::ImageLayout::ePresent_Src;
-
-        std::vector<engine::rhi::SubpassDescription> subpasses(1u);
-        subpasses[0].colorAttachments = {{
-            .pNext = {nullptr, 0u},
-            .attachment = 0u,
-            .layout = engine::rhi::ImageLayout::eColor_Attachment_Optimal,
-        }};
-
-        return engine::rhi::RenderPassDescription{
-            std::move(attachments), 
-            std::move(subpasses), 
-            {}
-        };
-    }
-
-    engine::rhi::RenderPassDescription createSceneRenderPassDescription(
-        engine::rhi::Format colorFormat, 
-        engine::rhi::Format depthFormat
-    ) {
-        std::vector<engine::rhi::AttachmentDescription> attachments(2u);
-        attachments[0].format = colorFormat;
-        attachments[0].loadStoreOp = {engine::rhi::AttachmentLoadOp::eClear, engine::rhi::AttachmentStoreOp::eStore};
-        attachments[0].stencilLoadStoreOp = {engine::rhi::AttachmentLoadOp::eDont_Care, engine::rhi::AttachmentStoreOp::eDont_Care};
-        attachments[0].finalLayout = engine::rhi::ImageLayout::eColor_Attachment_Optimal;
-
-        attachments[1].format = depthFormat;
-        attachments[1].loadStoreOp = {engine::rhi::AttachmentLoadOp::eClear, engine::rhi::AttachmentStoreOp::eDont_Care}; // or must use eStore?
-        attachments[1].stencilLoadStoreOp = {engine::rhi::AttachmentLoadOp::eDont_Care, engine::rhi::AttachmentStoreOp::eDont_Care};
-        attachments[1].finalLayout = engine::rhi::ImageLayout::eDepth_Stencil_Attachment_Optimal;
-
-        std::vector<engine::rhi::SubpassDescription> subpasses(1u);
-
-        subpasses[0].colorAttachments = {{
-            .pNext = {nullptr, 0u},
-            .attachment = 0u,
-            .layout = engine::rhi::ImageLayout::eColor_Attachment_Optimal,
-        }};
-        subpasses[0].depthStencilAttachment = {
-            .pNext = {nullptr, 0u},
-            .attachment = 1u,
-            .layout = engine::rhi::ImageLayout::eDepth_Stencil_Attachment_Optimal,
-        };
-
-        return engine::rhi::RenderPassDescription{
-            std::move(attachments), 
-            std::move(subpasses), 
-            {}
-        };
-    }
-
-    engine::rhi::RenderPassDescription createSceneRenderPassDescriptionWithDepthPrepass(
-        engine::rhi::Format colorFormat, 
-        engine::rhi::Format depthFormat
-    ) {
-        std::vector<engine::rhi::AttachmentDescription> attachments(2u);
-        attachments[0].format = colorFormat;
-        attachments[0].loadStoreOp = {engine::rhi::AttachmentLoadOp::eClear, engine::rhi::AttachmentStoreOp::eStore};
-        attachments[0].stencilLoadStoreOp = {engine::rhi::AttachmentLoadOp::eDont_Care, engine::rhi::AttachmentStoreOp::eDont_Care};
-        attachments[0].finalLayout = engine::rhi::ImageLayout::eColor_Attachment_Optimal;
-
-        attachments[1].format = depthFormat;
-        attachments[1].loadStoreOp = {engine::rhi::AttachmentLoadOp::eClear, engine::rhi::AttachmentStoreOp::eDont_Care}; // or must use eStore?
-        attachments[1].stencilLoadStoreOp = {engine::rhi::AttachmentLoadOp::eDont_Care, engine::rhi::AttachmentStoreOp::eDont_Care};
-        attachments[1].finalLayout = engine::rhi::ImageLayout::eDepth_Stencil_Attachment_Optimal;
-
-        std::vector<engine::rhi::SubpassDescription> subpasses(2u);
-
-        subpasses[0].depthStencilAttachment = {
-            .pNext = {nullptr, 0u},
-            .attachment = 1u,
-            .layout = engine::rhi::ImageLayout::eDepth_Stencil_Attachment_Optimal,
-        };
-
-        subpasses[1].colorAttachments = {{
-            .pNext = {nullptr, 0u},
-            .attachment = 0u,
-            .layout = engine::rhi::ImageLayout::eColor_Attachment_Optimal,
-        }};
-        subpasses[1].depthStencilAttachment = {
-            .pNext = {nullptr, 0u},
-            .attachment = 1u,
-            .layout = engine::rhi::ImageLayout::eDepth_Stencil_Attachment_Optimal,
-        };
-
-        std::vector<engine::rhi::SubpassDependency> deps(1u);
-        deps[0].srcSubpass = 0u;
-        deps[0].dstSubpass = 1u;
-        deps[0].dependencyFlags = engine::rhi::DependencyFlags::eBy_Region;
-        deps[0].stages = {
-            .src = {
-                .stage = engine::rhi::PipelineStageFlags::eLate_Fragment_Tests,
-                .accessMask = engine::rhi::AccessFlags::eDepth_Stencil_Attachment_Write
-            },
-            .dst = {
-                .stage = engine::rhi::PipelineStageFlags::eEarly_Fragment_Tests,
-                .accessMask = engine::rhi::AccessFlags::eDepth_Stencil_Attachment_Read,
-            }
-        };
-
-        return engine::rhi::RenderPassDescription{
-            std::move(attachments), 
-            std::move(subpasses), 
-            std::move(deps)
-        };
-    }
-
     void Example::createRenderPasses() {
-        const auto depthFormat = _device->getSupportedDepthFormat(32u, false);
+        const auto bytes = _fileManager.readFile("render_pass/0.json");
+        std::string_view input(reinterpret_cast<const char*>(bytes.data()), bytes.size());
+        engine::json::Json json{};
+        const auto err = engine::json::read_json(json, input);
 
-        _renderPasses.emplace_back(_api->getRenderPass(_device, createScreenRenderPassDescription(_swapchain->getFormat())));
-        _renderPasses.emplace_back(_api->getRenderPass(_device, createSceneRenderPassDescription(engine::rhi::Format::eR8G8B8A8_Unorm, depthFormat)));
-        // _renderPasses.emplace_back(_api->getRenderPass(_device, createSceneRenderPassDescriptionWithDepthPrepass(engine::rhi::Format::eR8G8B8A8_Unorm, depthFormat)));
+        const auto depthFormat = _device->getSupportedDepthFormat(32u, false);
+        const auto formats0 = std::array{_swapchain->getFormat()};
+        const auto formats1 = std::array{engine::rhi::Format::eR8G8B8A8_Unorm, depthFormat};
+
+        _renderPasses.emplace_back(_api->getRenderPass(_device, engine::parseRenderPass(json["screen"], formats0))); // kScreenPass
+        _renderPasses.emplace_back(_api->getRenderPass(_device, engine::parseRenderPass(json["scene"], formats1))); // kScenePass
     }
 
     void Example::loadShaders() {

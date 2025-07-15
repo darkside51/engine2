@@ -17,7 +17,7 @@ struct SubpassDescription {
     dynamic_array<AttachmentReference, kMaxAttachemts> inputAttachments;
     dynamic_array<AttachmentReference, kMaxAttachemts> colorAttachments; // size = colorAttachmentCount
     dynamic_array<AttachmentReference, kMaxAttachemts> resolveAttachments; // size = colorAttachmentCount or empty
-    dynamic_array<uint32_t, kMaxAttachemts> preserveAttachments;
+    dynamic_array<uint32_t, kMaxAttachemts> reserveAttachments;
     uint32_t viewMask = 0u;
     
     inline void setNext(void * next, size_t hash) noexcept {
@@ -33,7 +33,7 @@ struct SubpassDescription {
     inline bool operator == (const SubpassDescription & other) const noexcept {
             return viewMask == other.viewMask && depthStencilAttachment == other.depthStencilAttachment && 
                    inputAttachments == other.inputAttachments && colorAttachments == other.colorAttachments &&
-                   resolveAttachments == other.resolveAttachments && preserveAttachments == other.preserveAttachments &&
+                   resolveAttachments == other.resolveAttachments && reserveAttachments == other.reserveAttachments &&
                    pNext.second == other.pNext.second;
         };
 };

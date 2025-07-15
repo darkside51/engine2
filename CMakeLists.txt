@@ -71,10 +71,17 @@ add_custom_target(resources
 				  -P "${CMAKE_CURRENT_SOURCE_DIR}/tools/cmake/update_directory.cmake"
 )
 
+add_custom_target(render_pass
+				  COMMAND ${CMAKE_COMMAND}
+				  -Dsrc_dir="${resources_src_dir}/render_pass"
+				  -Ddst_dir="${resources_dst_dir}/render_pass"
+				  -P "${CMAKE_CURRENT_SOURCE_DIR}/tools/cmake/update_directory.cmake"
+)
+
 add_custom_target(shaders
                   COMMAND ${CMAKE_COMMAND} -E make_directory ${resources_dst_dir}/shaders
                   COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/tools/glslToSpirv/shaders_convert.py -i ${resources_src_dir}/shaders/ -o ${resources_dst_dir}/shaders/
 )
-add_dependencies(${PROJECT_NAME} resources shaders)
+add_dependencies(${PROJECT_NAME} resources shaders render_pass)
 
 message(STATUS "!!!!!project generate complete!!!!!")
