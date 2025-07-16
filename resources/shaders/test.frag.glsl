@@ -13,7 +13,7 @@ layout (location = 0) out vec4 out_color;
 //}
 
 
-/*const float coeiff = 0.25;
+const float coeiff = 0.25;
 const vec3 totalSkyLight = vec3(0.3, 0.5, 1.0);
 
 vec3 mie(float dist, vec3 sunL){
@@ -52,14 +52,48 @@ vec3 getSky(vec2 uv){
 	return color;	
 }
 
+vec3 getSky2(vec2 uv){
+	vec2 sunPos = vec2(0.5, cos(v_time + 3.14));
+	//vec2 sunPos = vec2(0.5, 0.15);
+
+    float sunDistance = distance(uv, clamp(sunPos, -1.0, 1.0));
+	
+	float scatterMult = clamp(sunDistance, 0.0, 1.0);
+	float sun = clamp(1.0 - smoothstep(0.01, 0.011, scatterMult), 0.0, 1.0);
+	
+	float dist = min(uv.y, 0.5 - uv.y);
+	dist = (coeiff * mix(scatterMult, 1.0, dist)) / dist;
+    
+    vec3 mieScatter = mie(sunDistance, vec3(1.0));
+	
+	vec3 color = dist * totalSkyLight;
+    
+    color = max(color, 0.0);
+    
+	float underscatter = 0.5 - distance(sunPos.y, 0.25);
+
+	vec3 darkColor = totalSkyLight * 0.12;
+	color = max(
+		mix(pow(color, 1.0 - color), color / (2.0 * color + 0.5 - color), clamp(underscatter * 2.0, 0.0, 1.0)),
+		darkColor)
+	+ sun + mieScatter;
+	
+	color *= (pow(1.0 - scatterMult, 10.0) * 10.0) + 1.0;
+	
+	color = mix(color, darkColor, clamp(abs(sunPos.y), 0.0, 1.0));
+	
+	return color;	
+}
+
 void main(){
-	vec3 color = getSky(vec2(v_uv.x, 1.0 - v_uv.y));
+	//vec3 color = getSky(vec2(v_uv.x, 1.0 - v_uv.y));
+	vec3 color = getSky2(vec2(v_uv.x, 0.5 * (1.0 - v_uv.y)));
 	color = color / (2.0 * color + 0.5 - color);
 	out_color = vec4(color, 1.0);
-}*/
+}
 
 
-const float R0 = 6360e3; // Earth surface radius
+/*const float R0 = 6360e3; // Earth surface radius
 const float Ra = 6380e3; // Earth atmosphere top raduis
 const vec3 bR = vec3(58e-7, 135e-7, 331e-7); // Rayleigh scattering coefficient
 const vec3 bMs = vec3(2e-5); // Mie scattering coefficients
@@ -189,4 +223,4 @@ void main() {
     col = scatter(O, D, L, col);
 
     out_color = vec4(sqrt(col), 1.);
-}
+}*/

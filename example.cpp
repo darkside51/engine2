@@ -624,7 +624,7 @@ namespace example {
         staging3.unmap();
         // sphere texture
 
-        auto * commandPool = _device->acquireCommandPool(engine::rhi::queue_flags::graphics | engine::rhi::queue_flags::present);
+        auto * commandPool = _device->acquireCommandPool(engine::rhi::queue_flags::transfrer);
         auto tmpCommandList = _api->createCommandList(commandPool, engine::rhi::CommandBufferLevel::ePrimary);
 
         tmpCommandList->begin(engine::rhi::CommandBufferUsageFlags::eOne_Time_Submit);

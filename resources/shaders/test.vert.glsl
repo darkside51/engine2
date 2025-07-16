@@ -57,7 +57,7 @@ void main() {
 	//gl_Position.x += (-0.6 + gl_InstanceIndex * 0.6) * gl_Position.w;
 	//v_uv = vec2(16.0, 16.0) * a_uv;
 	v_uv = a_uv;
-	v_time = ubo.time * 100.0;
+	v_time = ubo.time * 20.0;
 	//v_uv.x += 0.5 * sin(ubo.time * 6.1415 * 10.0);
 	//v_uv.x -= ubo.model[1][1];
 
