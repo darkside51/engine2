@@ -73,8 +73,8 @@ add_custom_target(resources
 
 add_custom_target(render_pass
 				  COMMAND ${CMAKE_COMMAND}
-				  -Dsrc_dir="${resources_src_dir}/render_pass"
-				  -Ddst_dir="${resources_dst_dir}/render_pass"
+				  -Dsrc_dir="${resources_src_dir}/descriptors"
+				  -Ddst_dir="${resources_dst_dir}/descriptors"
 				  -P "${CMAKE_CURRENT_SOURCE_DIR}/tools/cmake/update_directory.cmake"
 )
 

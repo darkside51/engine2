@@ -1,0 +1,80 @@
+{
+	"postEffect": {
+		"viewportState": {
+			"viewportCount": 1,
+			"scissorCount": 1
+		},
+		"dynamicStates": "eViewport | eScissor",
+		"blendModes": ["blend_none"],
+		"rasterisationState": {
+			"polygonMode": "eFill",
+			"cullmode": "eBack"
+		},
+		"depthStencilState": {
+			"depth": {
+				"depthTestEnable": false,
+				"depthWriteEnable": false
+			}
+		},
+		"inputAssemblyState": {
+			"topology" : "eTriangles"
+		},
+		"vertexInputState": {
+			"inputBindings": [
+				{
+					"stride" : 8,
+					"binding" : 0,
+					"inputRate": "eVertex"
+				}
+			],
+			"attributes":[
+				{
+					"location": 0,
+                    "binding": 0,
+                    "format": "eR32G32_Sfloat",
+                    "offset": 0
+				}
+			]
+		}
+	},
+	"sphere": {
+		"blendModes": ["blend_none"],
+		"rasterisationState": {
+			"polygonMode": "eFill",
+			"cullmode": "eNone"
+		},
+		"depthStencilState": {
+			"depth": {
+				"depthTestEnable": true,
+				"depthWriteEnable": true,
+				"depthCompareOp": "eLess"
+			}
+		},
+		"inputAssemblyState": {
+			"topology" : "eTriangles"
+		},
+		"vertexInputState": {
+			"inputBindings": [
+				{
+					"stride" : 20,
+					"binding" : 0,
+					"inputRate": "eVertex"
+				}
+			],
+			"attributes":[
+				{
+					"location": 0,
+                    "binding": 0,
+                    "format": "eR32G32B32_Sfloat",
+                    "offset": 0
+				},
+				{
+					"location": 1,
+                    "binding": 0,
+                    "format": "eR32G32_Sfloat",
+                    "offset": 12
+				}
+			]
+		}
+	}
+}

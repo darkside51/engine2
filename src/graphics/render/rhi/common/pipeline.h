@@ -6,10 +6,10 @@
 namespace engine::rhi {
 
     struct GraphicsPipelineStatesInfo {
-        struct ViewPortInfo {
+        struct ViewportInfo {
             uint32_t viewportCount = 1u;
             uint32_t scissorCount = 1u;
-        } viewportState;
+        } viewportState {};
     
         DynamicState dynamicStates = DynamicState::eViewport | DynamicState::eScissor;
     
@@ -17,25 +17,25 @@ namespace engine::rhi {
             PolygonMode polygonMode = PolygonMode::eFill;
             CullMode cullmode = CullMode::eNone; 
             FrontFace frontFace = FrontFace::eCounter_Clockwise;
-        } rasterisationState;
+        } rasterisationState {};
     
         struct MultisampleStateInfo {
     
-        } multisampleState;
+        } multisampleState {};
     
         struct InputAssemblyStateInfo {
             PrimitiveTopology topology = PrimitiveTopology::eTriangles;
             bool restartEnabled = false;
-        } inputAssemblyState;
+        } inputAssemblyState {};
     
         struct DepthStencilStateInfo {
             DepthState depth{};
             StencilState stencil{};
-        } depthStencilState;
+        } depthStencilState {};
     
         struct TessellationStateInfo {
             uint32_t patchControlPoints = 0u;
-        } tessellationState;
+        } tessellationState {};
     
         std::vector<rhi::EncodedBlendMode> blendModes;
     

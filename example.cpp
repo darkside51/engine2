@@ -17,6 +17,7 @@
 #include <imgui.h>
 
 #include "utils/parsers/renderpass_json_parser.h"
+#include "utils/parsers/graphics_pipeline_json_parser.h"
 
 // https://www.saschawillems.de/blog/2018/07/19/vulkan-input-attachments-and-sub-passes/
 
@@ -323,7 +324,7 @@ namespace example {
     }
 
     void Example::createRenderPasses() {
-        const auto bytes = _fileManager.readFile("render_pass/0.json");
+        const auto bytes = _fileManager.readFile("descriptors/render_pass.json");
         std::string_view input(reinterpret_cast<const char*>(bytes.data()), bytes.size());
         engine::json::Json json{};
         const auto err = engine::json::read_json(json, input);
@@ -374,65 +375,80 @@ namespace example {
         loadShaders();
         _imgui.createPipeline(_api, _device, _programs[kImguiProgram], _renderPasses[kScreenRenderPass], 0u);
 
-        GraphicsPipelineStatesInfo info;
-        info.viewportState = {1u, 1u};
-        info.blendModes = {common_blend_modes::blend_none};
+        const auto bytes = _fileManager.readFile("descriptors/pipelines.json");
+        std::string_view input(reinterpret_cast<const char*>(bytes.data()), bytes.size());
+        engine::json::Json json{};
+        const auto err = engine::json::read_json(json, input);
 
-        info.depthStencilState = {
-            {
-                .depthTestEnable = false,
-                .depthWriteEnable = false,
-                .depthCompareOp = CompareOp::eAlways
-            }, 
-            {}
-        };
+        const GraphicsPipelineStatesInfo info0 = engine::parseGraphicsPipelineInfo(json["postEffect"]);
+        _pipelines.emplace_back(_api->createGraphicsPipeline(_device, _renderPasses[kScreenRenderPass], _programs[kPostEffectProgram], info0, 0u));
 
-        info.rasterisationState = {PolygonMode::eFill, CullMode::eBack};
-        info.inputAssemblyState = {PrimitiveTopology::eTriangles, false};
-        info.vertexInputState = {
-            std::vector{VertexInputBinding::create<float[2]>(0u)},
-            std::vector{
-                VertexInputAttribute{
-                    .location = 0u,
-                    .binding = 0u,
-                    .format = Format::eR32G32_Sfloat,
-                    .offset = 0u
-                }
-            }
-        };
+        const GraphicsPipelineStatesInfo info1 = engine::parseGraphicsPipelineInfo(json["sphere"]);
+        _pipelines.emplace_back(_api->createGraphicsPipeline(_device, _renderPasses[kSceneRenderPass], _programs[kTestProgram], info1, 0u));
 
-        _pipelines.emplace_back(_api->createGraphicsPipeline(_device, _renderPasses[kScreenRenderPass], _programs[kPostEffectProgram], info, 0u));
+        //_renderPasses.emplace_back(_api->getRenderPass(_device, engine::parseRenderPass(json["screen"], formats0))); // kScreenPass
+        //_renderPasses.emplace_back(_api->getRenderPass(_device, engine::parseRenderPass(json["scene"], formats1))); // kScenePass
 
-        info.rasterisationState = {PolygonMode::eFill, CullMode::eNone};
-        info.blendModes = {common_blend_modes::blend_none};
-        info.depthStencilState = {
-            {
-                .depthTestEnable = true,
-                .depthWriteEnable = true,
-                .depthCompareOp = CompareOp::eLess
-            }, 
-            {}
-        };
 
-        info.vertexInputState = {
-            std::vector{VertexInputBinding::create<float[5]>(0u)},
-            std::vector{
-                VertexInputAttribute{
-                    .location = 0u,
-                    .binding = 0u,
-                    .format = Format::eR32G32B32_Sfloat,
-                    .offset = 0u
-                },
-                VertexInputAttribute{
-                    .location = 1u,
-                    .binding = 0u,
-                    .format = Format::eR32G32_Sfloat,
-                    .offset = 12u
-                }
-            }
-        };
+        // GraphicsPipelineStatesInfo info;
+        // info.viewportState = {1u, 1u};
+        // info.blendModes = {common_blend_modes::blend_none};
 
-        _pipelines.emplace_back(_api->createGraphicsPipeline(_device, _renderPasses[kSceneRenderPass], _programs[kTestProgram], info, 0u));
+        // info.depthStencilState = {
+        //     {
+        //         .depthTestEnable = false,
+        //         .depthWriteEnable = false,
+        //         .depthCompareOp = CompareOp::eAlways
+        //     }, 
+        //     {}
+        // };
+
+        // info.rasterisationState = {PolygonMode::eFill, CullMode::eBack};
+        // info.inputAssemblyState = {PrimitiveTopology::eTriangles, false};
+        // info.vertexInputState = {
+        //     std::vector{VertexInputBinding::create<float[2]>(0u)},
+        //     std::vector{
+        //         VertexInputAttribute{
+        //             .location = 0u,
+        //             .binding = 0u,
+        //             .format = Format::eR32G32_Sfloat,
+        //             .offset = 0u
+        //         }
+        //     }
+        // };
+
+        // _pipelines.emplace_back(_api->createGraphicsPipeline(_device, _renderPasses[kScreenRenderPass], _programs[kPostEffectProgram], info, 0u));
+
+        // info.rasterisationState = {PolygonMode::eFill, CullMode::eNone};
+        // info.blendModes = {common_blend_modes::blend_none};
+        // info.depthStencilState = {
+        //     {
+        //         .depthTestEnable = true,
+        //         .depthWriteEnable = true,
+        //         .depthCompareOp = CompareOp::eLess
+        //     }, 
+        //     {}
+        // };
+
+        // info.vertexInputState = {
+        //     std::vector{VertexInputBinding::create<float[5]>(0u)},
+        //     std::vector{
+        //         VertexInputAttribute{
+        //             .location = 0u,
+        //             .binding = 0u,
+        //             .format = Format::eR32G32B32_Sfloat,
+        //             .offset = 0u
+        //         },
+        //         VertexInputAttribute{
+        //             .location = 1u,
+        //             .binding = 0u,
+        //             .format = Format::eR32G32_Sfloat,
+        //             .offset = 12u
+        //         }
+        //     }
+        // };
+
+        // _pipelines.emplace_back(_api->createGraphicsPipeline(_device, _renderPasses[kSceneRenderPass], _programs[kTestProgram], info, 0u));
     }
 
     void Example::createDefaultResources() {

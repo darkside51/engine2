@@ -689,11 +689,11 @@ namespace engine::rhi {
     struct AttachmentLoadStoreOp {
         uint8_t mask = 0u;
         
-        AttachmentLoadStoreOp() : mask(std::to_underlying(AttachmentLoadOp::eDont_Care) | 
-                                      (std::to_underlying(AttachmentStoreOp::eDont_Care) << 4u)) {}
+        constexpr AttachmentLoadStoreOp() : 
+            mask(std::to_underlying(AttachmentLoadOp::eDont_Care) | (std::to_underlying(AttachmentStoreOp::eDont_Care) << 4u)) {}
 
-        AttachmentLoadStoreOp(AttachmentLoadOp loadOp, AttachmentStoreOp storeOp) : mask(std::to_underlying(loadOp) | 
-                                                                                        (std::to_underlying(storeOp) << 4u)) {}
+        constexpr AttachmentLoadStoreOp(AttachmentLoadOp loadOp, AttachmentStoreOp storeOp) : 
+            mask(std::to_underlying(loadOp) | (std::to_underlying(storeOp) << 4u)) {}
 
         inline AttachmentLoadOp loadOp() const noexcept {
             return static_cast<AttachmentLoadOp>(mask & 0b0011u);

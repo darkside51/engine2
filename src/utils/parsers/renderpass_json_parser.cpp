@@ -260,7 +260,7 @@ namespace engine {
         }
     }
 
-    rhi::RenderPassDescription parseRenderPass(const engine::json::Json & json, std::span<const engine::rhi::Format> formats) {
+    rhi::RenderPassDescription parseRenderPass(const engine::json::Json & json, std::span<const engine::rhi::Format> formats) noexcept {
         size_t i = 0u;
         const auto & attachmentsJson = json["attachments"].get_array();
         std::vector<engine::rhi::AttachmentDescription> attachments;
