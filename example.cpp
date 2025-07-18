@@ -20,6 +20,7 @@
 #include "utils/parsers/graphics_pipeline_json_parser.h"
 
 // https://www.saschawillems.de/blog/2018/07/19/vulkan-input-attachments-and-sub-passes/
+// https://docs.vulkan.org/samples/latest/samples/api/timestamp_queries/README.html
 
 namespace example {
     constexpr uint8_t kScreenRenderPass = 0u;
