@@ -107,6 +107,8 @@ public:
     size_t getStorageBufferOffsetAlignment() const noexcept override;
     size_t getTexelBufferOffsetAlignment() const noexcept override;
 
+    float getTimestampPeriod() const noexcept;
+
     rhi::FormatFeatureAccess isFormatSupported(rhi::Format format, rhi::FormatFeatureFlags featureFlags) const noexcept override;
 
 private:

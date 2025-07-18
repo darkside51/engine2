@@ -1102,6 +1102,57 @@ inline VkSubpassContents convert2vk(rhi::SubpassContents contents) noexcept {
     return VK_SUBPASS_CONTENTS_INLINE;
 }
 
+inline VkQueryResultFlags convert2vk(rhi::QueryResultFlags flags) noexcept {
+    VkQueryResultFlags result = static_cast<VkQueryResultFlagBits>(0);
+
+    if (std::to_underlying(flags & rhi::QueryResultFlags::e64)) {
+        result |= VkQueryResultFlagBits::VK_QUERY_RESULT_64_BIT;
+    }
+    if (std::to_underlying(flags & rhi::QueryResultFlags::eWait)) {
+        result |= VkQueryResultFlagBits::VK_QUERY_RESULT_WAIT_BIT;
+    }
+    if (std::to_underlying(flags & rhi::QueryResultFlags::eWith_Availability)) {
+        result |= VkQueryResultFlagBits::VK_QUERY_RESULT_WITH_AVAILABILITY_BIT;
+    }
+    if (std::to_underlying(flags & rhi::QueryResultFlags::ePartial)) {
+        result |= VkQueryResultFlagBits::VK_QUERY_RESULT_PARTIAL_BIT;
+    }
+    if (std::to_underlying(flags & rhi::QueryResultFlags::eWith_Status)) {
+        #ifdef VK_ENABLE_BETA_EXTENSIONS
+        result |= VkQueryResultFlagBits::VK_QUERY_RESULT_WITH_STATUS_BIT_KHR;
+        #else
+        assert(false);
+        #endif
+    }
+    
+    return result;
+}
+
+inline VkQueryType convert2vk(rhi::QueryType type) noexcept {
+    switch(type) {
+        case rhi::QueryType::eOcclusion: return VkQueryType::VK_QUERY_TYPE_OCCLUSION;
+        case rhi::QueryType::ePipeline_Statistics: return VkQueryType::VK_QUERY_TYPE_PIPELINE_STATISTICS;
+        case rhi::QueryType::eTimestamp: return VkQueryType::VK_QUERY_TYPE_TIMESTAMP;
+        #ifdef VK_ENABLE_BETA_EXTENSIONS
+        case rhi::QueryType::eResult_Status_Only: return VkQueryType::VK_QUERY_TYPE_RESULT_STATUS_ONLY_KHR;
+        #endif
+        case rhi::QueryType::eTransform_Feedback_Stream: return VkQueryType::VK_QUERY_TYPE_TRANSFORM_FEEDBACK_STREAM_EXT;
+        case rhi::QueryType::ePerfomance_Query: return VkQueryType::VK_QUERY_TYPE_PERFORMANCE_QUERY_KHR;
+        case rhi::QueryType::eAcceleration_Structure_Compacted_Size: return VkQueryType::VK_QUERY_TYPE_ACCELERATION_STRUCTURE_COMPACTED_SIZE_KHR;
+        case rhi::QueryType::eAcceleration_Structure_Serialization_Size: return VkQueryType::VK_QUERY_TYPE_ACCELERATION_STRUCTURE_SERIALIZATION_SIZE_KHR;
+        case rhi::QueryType::eAcceleration_Structure_Compacted_Size_NV: return VkQueryType::VK_QUERY_TYPE_ACCELERATION_STRUCTURE_COMPACTED_SIZE_NV;
+        case rhi::QueryType::ePerfomance_Query_INTEL: return VkQueryType::VK_QUERY_TYPE_PERFORMANCE_QUERY_INTEL;
+        case rhi::QueryType::eMesh_Primitives_Generated: return VkQueryType::VK_QUERY_TYPE_MESH_PRIMITIVES_GENERATED_EXT;
+        case rhi::QueryType::ePrimitives_Generated: return VkQueryType::VK_QUERY_TYPE_PRIMITIVES_GENERATED_EXT;
+        case rhi::QueryType::eAcceleration_Structure_Serialization_Bottom_Level_Pointers: return VkQueryType::VK_QUERY_TYPE_ACCELERATION_STRUCTURE_SERIALIZATION_BOTTOM_LEVEL_POINTERS_KHR;
+        case rhi::QueryType::eAcceleration_Structure_Size: return VkQueryType::VK_QUERY_TYPE_ACCELERATION_STRUCTURE_SIZE_KHR;
+        case rhi::QueryType::eMicromap_Serialization_Size: return VkQueryType::VK_QUERY_TYPE_MICROMAP_SERIALIZATION_SIZE_EXT;
+        case rhi::QueryType::eMicromap_Compacted_Size: return VkQueryType::VK_QUERY_TYPE_MICROMAP_COMPACTED_SIZE_EXT;
+    }
+    assert(false);
+    return VkQueryType::VK_QUERY_TYPE_OCCLUSION;
+}
+
 inline VkQueryPipelineStatisticFlags convert2vk(rhi::QueryPipelineStatisticFlags flags) noexcept {
     VkQueryPipelineStatisticFlags result = static_cast<VkQueryPipelineStatisticFlagBits>(0);
 

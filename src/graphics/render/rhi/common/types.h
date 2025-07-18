@@ -875,6 +875,40 @@ namespace engine::rhi {
         return static_cast<CommandBufferUsageFlags>(std::to_underlying(a) & std::to_underlying(b));
     }
 
+    enum class QueryResultFlags : uint8_t {
+        eNone = 0u,
+        e64 = 1u,
+        eWait = 2u,
+        eWith_Availability= 4u,
+        ePartial = 8u,
+        eWith_Status = 16u,
+    };
+    inline QueryResultFlags operator | (QueryResultFlags a, QueryResultFlags b) {
+        return static_cast<QueryResultFlags>(std::to_underlying(a) | std::to_underlying(b));
+    }
+    inline QueryResultFlags operator & (QueryResultFlags a, QueryResultFlags b) {
+        return static_cast<QueryResultFlags>(std::to_underlying(a) & std::to_underlying(b));
+    }
+
+    enum class QueryType : uint8_t {
+        eOcclusion = 0u,
+        ePipeline_Statistics = 1u,
+        eTimestamp = 2u,
+        eResult_Status_Only = 3u,
+        eTransform_Feedback_Stream = 4u,
+        ePerfomance_Query = 5u,
+        eAcceleration_Structure_Compacted_Size = 6u,
+        eAcceleration_Structure_Serialization_Size = 7u,
+        eAcceleration_Structure_Compacted_Size_NV = 8u,
+        ePerfomance_Query_INTEL = 9u,
+        eMesh_Primitives_Generated = 10u,
+        ePrimitives_Generated = 11u,
+        eAcceleration_Structure_Serialization_Bottom_Level_Pointers = 12u,
+        eAcceleration_Structure_Size = 13u,
+        eMicromap_Serialization_Size = 14u,
+        eMicromap_Compacted_Size = 15u
+    };
+
     enum class QueryPipelineStatisticFlags : uint16_t {
         eNone = 0u,
         eInputAssemblyVertices = 0x00000001u,

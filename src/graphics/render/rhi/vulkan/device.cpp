@@ -296,6 +296,10 @@ namespace engine::vulkan {
         return _gpu.deviceProperties().limits.minTexelBufferOffsetAlignment;
     }
 
+    float Device::getTimestampPeriod() const noexcept {
+        return _gpu.deviceProperties().limits.timestampPeriod;
+    }
+
     rhi::FormatFeatureAccess Device::isFormatSupported(rhi::Format format, rhi::FormatFeatureFlags featureFlags) const noexcept {
         return _gpu.isFormatSupported(utils::convert2vk(format), utils::convert2vk(featureFlags));
     }
