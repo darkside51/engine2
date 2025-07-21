@@ -45,6 +45,14 @@ namespace example {
         float time;
     };
 
+    struct Stats {
+        float cpuFrameTime = 0.0f;
+        float gpuFrameTime = 0.0f;
+        uint8_t inFlightFramesCount = 1u;
+    };
+
+    Stats gStats;
+
     class SceneEventHandler final : public engine::InputObserver {
         engine::vec3f v0{0.0f};
         engine::vec3f v1{0.0f};
@@ -326,6 +334,8 @@ namespace example {
 
         _swapchain->resize(w, h, false);
         camera.resize(w, h);
+
+        gStats.inFlightFramesCount = _swapchain->getImagesCount();
     }
 
     void Example::createRenderPasses() {
@@ -704,8 +714,41 @@ namespace example {
     void Example::update(float delta) {
         const auto [width, height] = _swapchain->getSize();
         _imgui.beginFrame(delta, width, height);
-        ImGui::ShowDemoWindow();
+        // ImGui::ShowDemoWindow();
         // ImGui::ShowMetricsWindow();
+
+        static bool showDemo = false;
+        if (showDemo) {
+            ImGui::ShowDemoWindow();
+        }
+        if (ImGui::BeginMainMenuBar()) {
+            if (ImGui::BeginMenu("#\t")) {
+                if (ImGui::MenuItem("Info")) {
+                }
+                if (ImGui::MenuItem("Demo")) {
+                    showDemo = !showDemo;
+                }
+                ImGui::EndMenu();
+            }
+
+            ImGui::Text("frames inflight: %d\t", gStats.inFlightFramesCount);
+            auto str = engine::fmt_string("fps: %.1f\t", 1'000.0f / gStats.cpuFrameTime);
+            if (ImGui::MenuItem(str)) {
+                // todo: show graph
+            }
+            str = engine::fmt_string("cpu time: %.3f ms\t", gStats.cpuFrameTime);
+            if (ImGui::MenuItem(str)) {
+                // todo: show graph
+            }
+            str = engine::fmt_string("gpu time: %.3f ms\t", gStats.gpuFrameTime);
+            if (ImGui::MenuItem(str)) {
+                // todo: show graph
+            }
+            
+            ImGui::EndMainMenuBar();
+        }
+
+
         _imgui.endFrame();
     }
 
@@ -820,8 +863,8 @@ namespace example {
 
         if (_queryResults[frameId][3] != 0) {
             const float gpuFrameTime = _gpu->timestampToMilliseconds(_queryResults[frameId][2] - _queryResults[frameId][0]);
-            LOG_I("gpu frame time: %f milliseconds", gpuFrameTime);
-            LOG_I("cpu frame time: %f milliseconds", delta * 1'000.0f);
+            gStats.cpuFrameTime = delta * 1'000.0f;
+            gStats.gpuFrameTime = gpuFrameTime;
         }
 
         // submit
