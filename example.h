@@ -92,6 +92,7 @@ private:
 
     //queryPool
     engine::rhi::runtime::QueryPoolPtr _queryPool = nullptr;
+    std::vector<std::vector<uint64_t>> _queryResults;
     //
     threads::ExecutionContext * _renderThread = nullptr;
 };

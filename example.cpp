@@ -681,6 +681,14 @@ namespace example {
             .queryCount = inflightFrames * 2u
         });
 
+        // _queryResults[0] contains the queried timestamp
+        // _queryResults[1] contains availability of the timestamp
+        // and we get 2 timestamps
+        _queryResults.resize(inflightFrames);
+        for (auto & result : _queryResults) {
+            result.resize(4u); // need 4 values for get 2 timestamps wits rhi::QueryResultFlags::eWith_Availability flag!
+        }
+
         //
         createDefaultResources();
     }
@@ -803,6 +811,18 @@ namespace example {
 
         commandList->record(frameId);
         // render frame
+
+        // query pool results
+        auto results = std::span{reinterpret_cast<std::byte*>(_queryResults[frameId].data()), 
+            _queryResults[frameId].size() * sizeof(uint64_t)};
+        _queryPool->getResults(frameId * 2u, 2u, results, 2 * sizeof(uint64_t), 
+            rhi::QueryResultFlags::e64 | rhi::QueryResultFlags::eWith_Availability);
+
+        if (_queryResults[frameId][3] != 0) {
+            const float gpuFrameTime = _gpu->timestampToMilliseconds(_queryResults[frameId][2] - _queryResults[frameId][0]);
+            LOG_I("gpu frame time: %f milliseconds", gpuFrameTime);
+            LOG_I("cpu frame time: %f milliseconds", delta * 1'000.0f);
+        }
 
         // submit
         const auto waitSemaphores = std::array{_swapchain->imageAvailableSemaphore(frameId)};

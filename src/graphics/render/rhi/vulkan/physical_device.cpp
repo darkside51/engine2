@@ -323,4 +323,15 @@ namespace engine::vulkan {
         return {0xff'ff'ff'ffu, nullptr};
     }
 
+    constexpr float kNanoToMilli = 1.0f / 1'000'000.0f;
+    float PhysicalDevice::timestampToMilliseconds(float time) const noexcept {
+        // The results we got back do not actually contain a time value, 
+        // but rather a number of "ticks". So to get the actual time value we need to translate these values first.
+        // This is done using timestampPeriod limit of the physical device. 
+        // It contains the number of nanoseconds it takes for a timestamp query value to be increased by 1 ("tick").
+        // We want to display the delta between two timestamps in milliseconds, 
+        // so in addition to the above rule we also multiply the value accordingly.
+        return time * _properties.limits.timestampPeriod * kNanoToMilli;
+    }
+
 }
