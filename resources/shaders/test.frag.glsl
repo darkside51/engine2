@@ -89,7 +89,7 @@ void main(){
 	//vec3 color = getSky(vec2(v_uv.x, 1.0 - v_uv.y));
 	vec3 color = getSky2(vec2(v_uv.x, 0.5 * (1.0 - v_uv.y)));
 	color = color / (2.0 * color + 0.5 - color);
-	out_color = vec4(color, 1.0);
+	out_color = vec4(color, 1.0) * texture(texture0, v_uv);
 }
 
 
