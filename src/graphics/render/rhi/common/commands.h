@@ -35,7 +35,10 @@ namespace engine::rhi::runtime {
         eCopyBuffer2Image = 18u,
         ePipelineBarriers = 19u,
         eSetEvent = 20u,
-        eWaitEvents = 21u
+        eWaitEvents = 21u,
+        eResetQueryPool = 22u,
+        eWriteTimestamp = 23u,
+        eCopyQueryPoolResults = 24u
     };
 
     class CommandList;
@@ -276,6 +279,32 @@ namespace engine::rhi::runtime {
         WaitEventsCommand() : Command(CommandType::eWaitEvents, sizeof(WaitEventsCommand)) {}
     };
 
+    struct ResetQueryPoolCommand : Command {
+        QueryPool *pool;
+        uint16_t firstQuery;
+        uint16_t queryCount;
+        ResetQueryPoolCommand(QueryPool *pool, uint16_t firstQuery, uint16_t queryCount) : 
+            Command(CommandType::eResetQueryPool, sizeof(ResetQueryPoolCommand)), 
+            pool(pool), 
+            firstQuery(firstQuery),
+            queryCount(queryCount) {}
+    };
+
+    struct WriteTimestampCommand : Command {
+        QueryPool *pool;
+        PipelineStageFlags stage;
+        uint16_t query;
+        WriteTimestampCommand(QueryPool *pool, PipelineStageFlags stage, uint16_t query) :
+            Command(CommandType::eWriteTimestamp, sizeof(WriteTimestampCommand)), 
+            pool(pool), 
+            stage(stage),
+            query(query) {}
+    };
+
+    struct CopyQueryPoolResults : Command { // todo!
+        CopyQueryPoolResults() : Command(CommandType::eCopyQueryPoolResults, sizeof(CopyQueryPoolResults)) {}
+    };
+
     ///////////////////////////////////////////////
     inline constexpr void Command::destroy() const noexcept {
         switch (cmdType) {
@@ -297,9 +326,12 @@ namespace engine::rhi::runtime {
             case CommandType::eDrawIndexed: [[fallthrough]];
             case CommandType::eCopyBuffer2Buffer: [[fallthrough]];
             case CommandType::eCopyBuffer2Image: [[fallthrough]];
-            case CommandType::ePipelineBarriers:
-            case CommandType::eSetEvent:
-            case CommandType::eWaitEvents:
+            case CommandType::ePipelineBarriers: [[fallthrough]];
+            case CommandType::eSetEvent: [[fallthrough]];
+            case CommandType::eWaitEvents: [[fallthrough]];
+            case CommandType::eResetQueryPool: [[fallthrough]];
+            case CommandType::eWriteTimestamp: [[fallthrough]];
+            case CommandType::eCopyQueryPoolResults:
                 return;
             case CommandType::eBeginRenderPass: 
                 static_cast<const BeginRenderPassCommand*>(this)->~BeginRenderPassCommand();

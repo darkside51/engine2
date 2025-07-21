@@ -13,6 +13,7 @@
 #include "command_list.h"
 #include "command_buffer.h"
 #include "renderpass.h"
+#include "query_pool.h"
 #include "vk_types.h"
 
 #include "graphics/render/rhi/common/shader_module.h"
@@ -170,5 +171,9 @@ namespace engine::vulkan::runtime {
     rhi::runtime::CommandListPtr Rhi::createCommandList(rhi::runtime::CommandPool * commandPool, 
         rhi::CommandBufferLevel level) const {
         return std::make_unique<CommandList>(commandPool, level); 
+    }
+
+    rhi::runtime::QueryPoolPtr Rhi::createQueryPool(rhi::runtime::DevicePtr & device, const rhi::QueryPoolInfo & info) const {
+        return std::make_unique<QueryPool>(static_cast<Api::Device &>(*device), info);
     }
 }

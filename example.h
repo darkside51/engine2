@@ -90,6 +90,8 @@ private:
     engine::rhi::runtime::BufferPtr _sphereIdx = nullptr;
     engine::rhi::runtime::ImagePtr _sphereImage = nullptr;
 
+    //queryPool
+    engine::rhi::runtime::QueryPoolPtr _queryPool = nullptr;
     //
     threads::ExecutionContext * _renderThread = nullptr;
 };

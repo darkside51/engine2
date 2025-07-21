@@ -162,6 +162,17 @@ namespace engine::rhi::runtime {
         ++_commandsCount;
     }
 
+    // query pool
+    void CommandList::resetQueryPool(QueryPool *pool, uint16_t firstQuery, uint16_t queryCount) {
+        _commands->create<ResetQueryPoolCommand>(pool, firstQuery, queryCount);
+        ++_commandsCount;
+    }
+
+    void CommandList::writeTimestamp(QueryPool *pool, PipelineStageFlags stage, uint16_t query) {
+        _commands->create<WriteTimestampCommand>(pool, stage, query);
+        ++_commandsCount;
+    }
+
     // copy commands
     void CommandList::copyBuffer2Buffer(const BufferPtr & src, BufferPtr & dst, const CopyBufferInfo & copyInfo, bool autoBarriers) {
         _resources.push_back(src);

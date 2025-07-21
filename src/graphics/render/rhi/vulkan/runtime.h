@@ -86,6 +86,8 @@ namespace engine::vulkan::runtime {
         rhi::runtime::CommandListPtr createCommandList(rhi::runtime::CommandPool * commandPool, 
             rhi::CommandBufferLevel level = rhi::CommandBufferLevel::ePrimary) const override;
 
+        rhi::runtime::QueryPoolPtr createQueryPool(rhi::runtime::DevicePtr & device, const rhi::QueryPoolInfo & info) const override;
+        
     private:
         Api::Instance _instance;
 

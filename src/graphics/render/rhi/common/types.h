@@ -943,6 +943,12 @@ namespace engine::rhi {
         return static_cast<QueryControlFlags>(std::to_underlying(a) & std::to_underlying(b));
     }
 
+    struct QueryPoolInfo {
+        QueryType queryType;
+        uint32_t  queryCount;
+        QueryPipelineStatisticFlags pipelineStatistics = QueryPipelineStatisticFlags::eNone;
+    };
+
     enum class CommandBufferResetFlags : uint8_t {
         eNone = 0u,
         eRelease_Resources = 1u

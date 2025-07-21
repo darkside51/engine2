@@ -50,6 +50,9 @@ namespace engine::rhi::runtime {
         void drawIndexed(uint32_t indexCount, uint32_t instanceCount = 1u, uint32_t firstIndex = 0u, int32_t vertexOffset = 0u, 
             uint32_t firstInstance = 0u);
 
+        void resetQueryPool(QueryPool *pool, uint16_t firstQuery, uint16_t queryCount);
+        void writeTimestamp(QueryPool *pool, PipelineStageFlags stage, uint16_t query);
+
         void copyBuffer2Buffer(const BufferPtr & src, BufferPtr & dst, const CopyBufferInfo & copyInfos, bool autoBarriers = true);
         void copyBuffer2Image(const BufferPtr & src, ImagePtr & dst, const CopyBufferImageInfo & copyInfos, bool autoBarriers = true);
 

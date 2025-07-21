@@ -198,6 +198,13 @@ public:
     virtual ~CommandPool() = default;
 };
 
+class QueryPool {
+public:
+    virtual ~QueryPool() = default;
+    virtual bool getResults(uint16_t firstQuery, uint16_t queryCount, std::span<std::byte> target, 
+        size_t stride, QueryResultFlags flags) const noexcept = 0;
+};
+
 using SurfacePtr = std::unique_ptr<Surface>;
 using PysicalDevicePtr = std::unique_ptr<PhysicalDevice>;
 using DevicePtr = std::unique_ptr<Device>;
@@ -211,6 +218,7 @@ using PipelinePtr = std::unique_ptr<Pipeline>;
 using PipelinesManagerPtr = std::unique_ptr<PipelinesManager>;
 using BufferPtr = sh_ptr<Buffer>;//std::unique_ptr<Buffer>;
 using CommandListPtr = std::unique_ptr<CommandList>;
+using QueryPoolPtr = std::unique_ptr<QueryPool>;
 
 class Rhi {
 public:
@@ -257,5 +265,6 @@ public:
     virtual BufferPtr createBuffer(DevicePtr & device, const rhi::BufferInfo & info, size_t size) = 0;
 
     virtual CommandListPtr createCommandList(CommandPool * commandPool, rhi::CommandBufferLevel level = rhi::CommandBufferLevel::ePrimary) const = 0;
+    virtual QueryPoolPtr createQueryPool(DevicePtr & device, const rhi::QueryPoolInfo & info) const = 0;
 };
 }

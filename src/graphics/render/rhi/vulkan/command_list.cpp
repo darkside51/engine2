@@ -11,6 +11,7 @@
 #include "descriptor_set_updater.h"
 #include "descriptor_pool_manager.h"
 #include "renderpass.h"
+#include "query_pool.h"
 
 #include "graphics/render/rhi/common/commands.h"
 
@@ -487,6 +488,26 @@ namespace engine::vulkan::runtime {
                 _commandbuffer.drawIndexed(command->indexCount, command->instanceCount, command->firstIndex, 
                     command->vertexOffset, command->firstInstance);
             }
+                break;
+
+            case CommandType::eResetQueryPool:
+            {
+                const auto * command = static_cast<ResetQueryPoolCommand*>(cmd);
+                QueryPool * pool = static_cast<QueryPool*>(command->pool);
+                vkCmdResetQueryPool(_commandbuffer(), pool->operator()(), command->firstQuery, command->queryCount);
+            }   
+                break;
+            case CommandType::eWriteTimestamp:
+            {
+                const auto * command = static_cast<WriteTimestampCommand*>(cmd);
+                QueryPool * pool = static_cast<QueryPool*>(command->pool);
+                const auto stage = static_cast<VkPipelineStageFlagBits>(utils::convert2vk(command->stage));
+
+                vkCmdWriteTimestamp(_commandbuffer(), 
+                    stage, 
+                    pool->operator()(), 
+                    command->query);
+            } 
                 break;
             case CommandType::eCopyBuffer2Buffer:
             {

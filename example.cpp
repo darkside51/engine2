@@ -21,6 +21,7 @@
 
 // https://www.saschawillems.de/blog/2018/07/19/vulkan-input-attachments-and-sub-passes/
 // https://docs.vulkan.org/samples/latest/samples/api/timestamp_queries/README.html
+// https://nikitablack.github.io/post/how_to_use_vulkan_timestamp_queries/
 
 namespace example {
     constexpr uint8_t kScreenRenderPass = 0u;
@@ -144,6 +145,7 @@ namespace example {
         }
 
         _commandLists.clear();
+        _queryPool = nullptr;
 
         _shaderModulesManager = nullptr;
         _imgui.destroy();
@@ -193,11 +195,13 @@ namespace example {
     bool Example::createSurface(const engine::rhi::SurfaceCreateInfo & surfaceInfo) {
         _gpuFeatures = {};
         _gpuFeatures.features.fillModeNonSolid = true;
+
         auto gpuDevices = _api->enumerateDevices({
             _gpuFeatures, 
             {
                 engine::vulkan::runtime::Rhi::Api::Impl::kSwapchainExtName, 
-                VK_KHR_DEDICATED_ALLOCATION_EXTENSION_NAME
+                VK_KHR_DEDICATED_ALLOCATION_EXTENSION_NAME,
+                VK_EXT_HOST_QUERY_RESET_EXTENSION_NAME // for Resetting the query pool
             }
         });
 
@@ -671,6 +675,12 @@ namespace example {
             _commandLists.emplace_back(_api->createCommandList(commandPool, engine::rhi::CommandBufferLevel::ePrimary));
         }
 
+        // queryPool
+        _queryPool = _api->createQueryPool(_device, {
+            .queryType = engine::rhi::QueryType::eTimestamp,
+            .queryCount = inflightFrames * 2u
+        });
+
         //
         createDefaultResources();
     }
@@ -735,6 +745,9 @@ namespace example {
         auto & commandList = _commandLists[frameId];
         commandList->begin(rhi::CommandBufferUsageFlags::eOne_Time_Submit);
 
+        commandList->resetQueryPool(_queryPool.get(), frameId * 2u, 2u);
+        commandList->writeTimestamp(_queryPool.get(), rhi::PipelineStageFlags::eTop_Of_Pipe, frameId * 2u);
+
         // prepare frame draw data
         prepareFrameDrawData(commandList, frameId, delta);
 
@@ -784,6 +797,8 @@ namespace example {
         _imgui.draw(commandList, frameId);
 
         commandList->endRenderPass();
+
+        commandList->writeTimestamp(_queryPool.get(), rhi::PipelineStageFlags::eBottom_Of_Pipe, frameId * 2u + 1u);
         commandList->end();
 
         commandList->record(frameId);
