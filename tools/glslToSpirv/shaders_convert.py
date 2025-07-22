@@ -31,7 +31,7 @@ def convert(inDir, fileName, outDir, glslcPath):
     file3.close()
 
     outFile = outDir + fileName.replace('.glsl', '.spv')
-    subprocess.run(['glslc', tmpFileName, '-o', outFile])
+    subprocess.run(['glslc', '-O', tmpFileName, '-o', outFile])
     os.remove(tmpFileName)
 
 def checkIsShaderFile(fileName):
