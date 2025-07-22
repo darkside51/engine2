@@ -38,7 +38,8 @@ namespace engine::rhi::runtime {
         eWaitEvents = 21u,
         eResetQueryPool = 22u,
         eWriteTimestamp = 23u,
-        eCopyQueryPoolResults = 24u
+        eCopyQueryPoolResults = 24u,
+        eDispatch = 25u
     };
 
     class CommandList;
@@ -305,6 +306,17 @@ namespace engine::rhi::runtime {
         CopyQueryPoolResults() : Command(CommandType::eCopyQueryPoolResults, sizeof(CopyQueryPoolResults)) {}
     };
 
+    struct DispatchCommand : Command {
+        uint16_t groupCountX;
+        uint16_t groupCountY;
+        uint16_t groupCountZ;
+        DispatchCommand(uint16_t groupCountX, uint16_t groupCountY, uint16_t groupCountZ) :
+            Command(CommandType::eDispatch, sizeof(DispatchCommand)),
+            groupCountX(groupCountX),
+            groupCountY(groupCountY),
+            groupCountZ(groupCountZ) {}
+    };
+
     ///////////////////////////////////////////////
     inline constexpr void Command::destroy() const noexcept {
         switch (cmdType) {
@@ -331,7 +343,8 @@ namespace engine::rhi::runtime {
             case CommandType::eWaitEvents: [[fallthrough]];
             case CommandType::eResetQueryPool: [[fallthrough]];
             case CommandType::eWriteTimestamp: [[fallthrough]];
-            case CommandType::eCopyQueryPoolResults:
+            case CommandType::eCopyQueryPoolResults: [[fallthrough]];
+            case CommandType::eDispatch:
                 return;
             case CommandType::eBeginRenderPass: 
                 static_cast<const BeginRenderPassCommand*>(this)->~BeginRenderPassCommand();

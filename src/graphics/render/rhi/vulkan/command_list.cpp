@@ -489,7 +489,15 @@ namespace engine::vulkan::runtime {
                     command->vertexOffset, command->firstInstance);
             }
                 break;
-
+            case CommandType::eDispatch:
+            {
+                applyDescriptorSets();
+                const auto * command = static_cast<DispatchCommand*>(cmd);
+                vkCmdDispatch(_commandbuffer(), command->groupCountX, command->groupCountY, command->groupCountZ);
+                // need to add DispatchBase command too?
+                // vkCmdDispatchBase(_commandbuffer(), 0, 0, 0, command->groupCountX, command->groupCountY, command->groupCountZ);
+            }   
+                break;
             case CommandType::eResetQueryPool:
             {
                 const auto * command = static_cast<ResetQueryPoolCommand*>(cmd);
