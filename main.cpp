@@ -8,7 +8,11 @@
 
 int main() {
     engine::GLFWModule glfwModule;
-    auto & window0 = glfwModule.createWindow("vulkan", 1024u, 768u);
+    #ifdef DEBUG
+    auto & window0 = glfwModule.createWindow("vulkan_debug", 1024u, 768u);
+    #else
+    auto & window0 = glfwModule.createWindow("vulkan_release", 1024u, 768u);
+    #endif
     window0.setVisible(false);
 
     example::Example example;
