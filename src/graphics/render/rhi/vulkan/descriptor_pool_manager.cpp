@@ -39,16 +39,16 @@ namespace engine::vulkan {
             auto & [mask, pools] = *poolIt;
             if (pools.list.empty()) { // has been unused on last frame
                 if (++pools.count >= kUnusedFramesToRemovePool) {
-                    poolIt = framePools.erase(poolIt);
+                    poolIt = framePools.erase(poolIt); // erase pools for this mask
                     continue;
                 }
             } else {
                 for (auto it = pools.list.begin(); it != pools.list.end();) {
                     auto & pool = *it;
                     if (pool.allocatedSets() == 0u) {
-                        it = pools.list.erase(it);
+                        it = pools.list.erase(it); // if pool no allocate descriptors on a frame - erase it
                     } else {
-                        pool.reset();
+                        pool.reset(); // reset descriptor pool
                         ++it;
                     }
                 }
