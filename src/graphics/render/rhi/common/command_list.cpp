@@ -10,7 +10,7 @@ namespace engine::rhi::runtime {
             memory += cmd->size;
             cmd->destroy();
         }
-
+        
         _commands->clear();
         _commandsCount = 0u;
 

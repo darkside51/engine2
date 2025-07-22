@@ -30,9 +30,11 @@ namespace example {
     constexpr uint8_t kImguiProgram = 0u;
     constexpr uint8_t kPostEffectProgram = 1u;
     constexpr uint8_t kTestProgram = 2u;
+    constexpr uint8_t kComputeProgram = 3u;
 
     constexpr uint8_t kPostEffectPipeline = 0u;
     constexpr uint8_t kSceneTestPipeline = 1u;
+    constexpr uint8_t kComputeTestPipeline = 2u;
 
     engine::scene::Camera camera;
     engine::scene::SphereCameraController controller{camera};
@@ -382,6 +384,11 @@ namespace example {
 
             _programs.emplace_back(_api->createProgram(_device, std::array{vsModule.getView(), fsModule.getView()}));
         }
+        { // kComputeProgram
+            auto const cBytes = _fileManager.readFile("shaders/compute_test.comp.spv");
+            const auto & compModule = _shaderModulesManager->registerModule("compute_test.comp", *_device, engine::rhi::shaders::Stages::eCompute, cBytes);
+            _programs.emplace_back(_api->createProgram(_device, std::array{compModule.getView()}));
+        }
     }
     
     void Example::createPipelines() {
@@ -395,11 +402,16 @@ namespace example {
         engine::json::Json json{};
         const auto err = engine::json::read_json(json, input);
 
+        // kPostEffectPipeline
         const GraphicsPipelineStatesInfo info0 = engine::parseGraphicsPipelineInfo(json["postEffect"]);
         _pipelines.emplace_back(_api->createGraphicsPipeline(_device, _renderPasses[kScreenRenderPass], _programs[kPostEffectProgram], info0, 0u));
 
+        // kSceneTestPipeline
         const GraphicsPipelineStatesInfo info1 = engine::parseGraphicsPipelineInfo(json["sphere"]);
         _pipelines.emplace_back(_api->createGraphicsPipeline(_device, _renderPasses[kSceneRenderPass], _programs[kTestProgram], info1, 0u));
+
+        // kComputeTestPipeline
+        _pipelines.emplace_back(_api->createComputePipeline(_device, _programs[kComputeProgram]));
     }
 
     void Example::createDefaultResources() {
@@ -448,6 +460,18 @@ namespace example {
 
         bufferInfo.usage = BufferUsageFlags::eIndex_Buffer | BufferUsageFlags::eTransfer_Dst;
         _postIndices = _api->createBuffer(_device, bufferInfo, sizeof(uint16_t) * 6u);
+
+        // storage buffer test
+        BufferInfo storageBufferInfo {
+            BufferUsageFlags::eStorage_Buffer | BufferUsageFlags::eTransfer_Src,
+            MemoryPropertyFlags::eDeviceLocal
+        };
+        _storageBuffer = _api->createBuffer(_device, storageBufferInfo, sizeof(std::array<float, 4u>)); // test!
+
+        storageBufferInfo.usage = BufferUsageFlags::eTransfer_Dst;
+        storageBufferInfo.memoryFlags = MemoryPropertyFlags::eHostVisible;
+        _cpuStorageResult = _api->createBuffer(_device, storageBufferInfo, sizeof(std::array<float, 4u>)); // test!
+        // storage buffer test
 
         const auto imageInfo = ImageInfo{
             ImageUsageFlags::eSampled | ImageUsageFlags::eTransfer_Dst,
@@ -799,8 +823,28 @@ namespace example {
         commandList->resetQueryPool(_queryPool.get(), frameId * 2u, 2u);
         commandList->writeTimestamp(_queryPool.get(), rhi::PipelineStageFlags::eTop_Of_Pipe, frameId * 2u);
 
-        // prepare frame draw data
+        // prepare frame draw data (update uniforms)
         prepareFrameDrawData(commandList, frameId, delta);
+
+        // compute
+        static uint8_t computed = 0u;
+        if (computed == 0u) {
+            commandList->bindPipeline(_pipelines[kComputeTestPipeline]);
+            commandList->bindBuffer(0u, _storageBuffer);
+             commandList->dispatch(1u, 1u, 1u);
+
+            commandList->copyBuffer2Buffer(_storageBuffer, _cpuStorageResult, {
+                .srcOffset = 0u,
+                .dstOffset = 0u, 
+                .size = sizeof(std::array<float, 4u>)
+            });
+            computed = 1u;
+        } else if (computed == 1u && frameId == 0u) { // can get result, compute gpu job finished!
+            const auto v4 = *_cpuStorageResult->map2<vec4f>();
+            LOG_I("compute shader result: {%.2f, %.2f, %.2f, %.2f}", v4.x, v4.y, v4.z, v4.w);
+            _cpuStorageResult->unmap();
+            computed = 2u;
+        }
 
         // render
         constexpr auto sceneClearValues = std::array{

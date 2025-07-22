@@ -35,10 +35,12 @@ namespace engine::vulkan {
         constexpr uint16_t kUnusedFramesToRemovePool = 256u;
 
         auto & framePools = poolsForFrame(frameIdx);
-        for (auto & [mask, pools] : framePools) {
+        for (auto poolIt = framePools.begin(); poolIt != framePools.end();) {
+            auto & [mask, pools] = *poolIt;
             if (pools.list.empty()) { // has been unused on last frame
-                if (++pools.count == kUnusedFramesToRemovePool) {
-                    framePools.erase(mask);
+                if (++pools.count >= kUnusedFramesToRemovePool) {
+                    poolIt = framePools.erase(poolIt);
+                    continue;
                 }
             } else {
                 for (auto it = pools.list.begin(); it != pools.list.end();) {
@@ -52,6 +54,7 @@ namespace engine::vulkan {
                 }
                 pools.count = 0u;
             }
+            ++poolIt;
         }
     }
 

@@ -10,5 +10,5 @@ layout (set = 0, binding = 0, std140) buffer SomeData {
 void main() {
 	//uint idx = gl_GlobalInvocationID.x + gl_GlobalInvocationID.y * gl_NumWorkGroups.x * gl_WorkGroupSize.x;
 	uint idx = gl_GlobalInvocationID.x;
-	sbo.colors[idx] = vec4(1.0, 0.0, 0.0, 1.0);
+	sbo.colors[idx] = vec4(255.0, 0.0, 0.0, 111.0);
 }

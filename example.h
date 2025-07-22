@@ -82,7 +82,8 @@ private:
     engine::rhi::runtime::BufferPtr _postIndices = nullptr;
     engine::rhi::runtime::ImagePtr _defaultImage = nullptr;
     std::unique_ptr<engine::graphics::InflightBuffer> _uniformBufferI = nullptr;
-
+    engine::rhi::runtime::BufferPtr _storageBuffer = nullptr;
+    engine::rhi::runtime::BufferPtr _cpuStorageResult = nullptr;
     bool _canDraw = true;
 
     // sphere
@@ -93,6 +94,7 @@ private:
     //queryPool
     engine::rhi::runtime::QueryPoolPtr _queryPool = nullptr;
     std::vector<std::vector<uint64_t>> _queryResults;
+
     //
     threads::ExecutionContext * _renderThread = nullptr;
 };

@@ -302,8 +302,9 @@ namespace engine::vulkan {
             auto const allocationCallbacks = device.gpu().getInstance().getAllocationCallbacks();
             if (auto result = vkCreateComputePipelines(device(), device.pipelineCache(), 1, &info, allocationCallbacks, &pipeline); 
                 result != VK_SUCCESS) {
-                LOG_E("vulkan error : pipeline create no success!");
+                LOG_E("vulkan error : compute pipeline create no success!");
             }
+            LOG_I("vulkan: compute pipeline created");
         }
 
         Pipeline::Pipeline(Device & device, const GpuProgram & program, const VkGraphicsPipelineCreateInfo & info) :
@@ -314,10 +315,10 @@ namespace engine::vulkan {
             auto const allocationCallbacks = device.gpu().getInstance().getAllocationCallbacks();
             if (auto result = vkCreateGraphicsPipelines(device(), device.pipelineCache(), 1, &info, allocationCallbacks, &pipeline); 
                 result != VK_SUCCESS) {
-                LOG_E("vulkan error : pipeline create no success!");
+                LOG_E("vulkan error : graphics pipeline create no success!");
                 return;
             }
-            LOG_I("vulkan: pipeline created");
+            LOG_I("vulkan: graphics pipeline created");
         }
 
         Pipeline::~Pipeline() {
