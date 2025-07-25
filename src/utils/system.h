@@ -2,6 +2,12 @@
 
 #include <cstdint>
 
+inline auto constexpr isLittleEndian = []() noexcept {
+	constexpr uint32_t i = 0x01234567u;
+	// return 0 for big endian, 1 for little endian.
+	return (*((uint8_t*)(&i))) == 0x67u;
+};
+
 //-----------------------------------------------------------------------------
 // Cache line alignment
 //-----------------------------------------------------------------------------
