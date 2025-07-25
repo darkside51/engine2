@@ -89,10 +89,10 @@ namespace engine::graphics {
             uint32_t version;        // 4 bytes
 			uint32_t length;         // 4 bytes
 			uint32_t chunk0_length;  // 4 bytes
-			uint32_t chunk0_format;  // 4 bytes;
+			uint32_t chunk0_format;  // 4 bytes
 
             std::memcpy(&version, &bytes[4u], 4u);
-			std::memcpy(&length, &bytes[8u], 4u); // Total glb size, including header and all chunks.
+			std::memcpy(&length, &bytes[8u], 4u); // Total glb size, including header and all chunks
 			std::memcpy(&chunk0_length, &bytes[12u], 4u); // JSON data length
 			std::memcpy(&chunk0_format, &bytes[16u], 4u);
 
@@ -107,7 +107,7 @@ namespace engine::graphics {
             // get bin data
 			uint32_t chunk1_length = 0u; // 4 bytes
 			uint32_t chunk1_format = 0u; // 4 bytes;
-			std::memcpy(&chunk1_length, bytes.data() + header_and_json_size, 4u);  // bin data length
+			std::memcpy(&chunk1_length, bytes.data() + header_and_json_size, 4u); // bin data length
 			std::memcpy(&chunk1_format, bytes.data() + header_and_json_size + 4u, 4u);
 
             swap4IfBigEndian(chunk1_length);
