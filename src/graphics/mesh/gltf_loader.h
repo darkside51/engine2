@@ -14,58 +14,56 @@
 #include <string_view>
 #include <vector>
 
-namespace engine::graphics {
+namespace engine::graphics::model {
     
     // constants:
     inline constexpr uint16_t kInvalidValue = 0xff'ffu;
 
-    namespace model {
-        struct vec3 {
-            union {
-                struct {
-                    float x, y, z;
-                };
-                std::array<float, 3> data;
+    struct vec3 {
+        union {
+            struct {
+                float x, y, z;
             };
-
-            vec3() : x(0.0f), y(0.0f), z(0.0f) {}
-            vec3(float a, float b, float c) : x(a), y(b), z(c) {}
-
-            inline float operator[](uint8_t i) const noexcept { return data[i]; }
-            inline float& operator[](uint8_t i) noexcept { return data[i]; }
+            std::array<float, 3> data;
         };
 
-        struct vec4 {
-            union {
-                struct {
-                    float x, y, z, w;
-                };
-                std::array<float, 4> data;
+        vec3() : x(0.0f), y(0.0f), z(0.0f) {}
+        vec3(float a, float b, float c) : x(a), y(b), z(c) {}
+
+        inline float operator[](uint8_t i) const noexcept { return data[i]; }
+        inline float& operator[](uint8_t i) noexcept { return data[i]; }
+    };
+
+    struct vec4 {
+        union {
+            struct {
+                float x, y, z, w;
             };
-
-            vec4() : x(0.0f), y(0.0f), z(0.0f), w(0.0f) {};
-            vec4(float a, float b, float c, float d) : x(a), y(b), z(c), w(d) {}
-
-            inline float operator[](uint8_t i) const noexcept { return data[i]; }
-            inline float& operator[](uint8_t i) noexcept { return data[i]; }
+            std::array<float, 4> data;
         };
 
-        struct mat4 {
-            std::array<vec4, 4> data;
+        vec4() : x(0.0f), y(0.0f), z(0.0f), w(0.0f) {};
+        vec4(float a, float b, float c, float d) : x(a), y(b), z(c), w(d) {}
 
-            mat4() = default;
-            mat4(float f) : 
-                data {
-                    vec4(f, 0.0f, 0.0f, 0.0f),
-                    vec4(0.0f, f, 0.0f, 0.0f),
-                    vec4(0.0f, 0.0f, f, 0.0f),
-                    vec4(0.0f, 0.0f, 0.0f, f)
-                } {}
+        inline float operator[](uint8_t i) const noexcept { return data[i]; }
+        inline float& operator[](uint8_t i) noexcept { return data[i]; }
+    };
 
-            inline vec4 operator[](uint8_t i) const noexcept { return data[i]; }
-            inline vec4& operator[](uint8_t i) noexcept { return data[i]; }
-        };
-    }
+    struct mat4 {
+        std::array<vec4, 4> data;
+
+        mat4() = default;
+        mat4(float f) : 
+            data {
+                vec4(f, 0.0f, 0.0f, 0.0f),
+                vec4(0.0f, f, 0.0f, 0.0f),
+                vec4(0.0f, 0.0f, f, 0.0f),
+                vec4(0.0f, 0.0f, 0.0f, f)
+            } {}
+
+        inline vec4 operator[](uint8_t i) const noexcept { return data[i]; }
+        inline vec4& operator[](uint8_t i) noexcept { return data[i]; }
+    };
 
     // enums:
     enum class AccessorComponentType : uint8_t {
@@ -353,5 +351,5 @@ namespace engine::graphics {
         Layout& operator= (const Layout&) = delete;
 	};
 
-    Layout loadModelLayout(std::span<std::byte const> bytes, std::string_view path);
+    Layout loadModelLayout(std::span<std::byte const> bytes, std::string_view path = {});
 }

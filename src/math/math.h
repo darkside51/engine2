@@ -6,13 +6,16 @@
 #define GLM_FORCE_ALIGNED
 #define GLM_FORCE_ALIGNED_GENTYPES
 #define GLM_FORCE_DEFAULT_ALIGNED_GENTYPES
+#define GLM_ENABLE_EXPERIMENTAL
 #define GLM_FORCE_CXX20
 #define GLM_FORCE_MESSAGES
 // glm options
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/matrix_decompose.hpp>
 #include <glm/gtc/quaternion.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
 #include <algorithm>
 #include <cstdint>

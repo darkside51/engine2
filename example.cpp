@@ -13,6 +13,7 @@
 #include "graphics/scene/camera_controller.h"
 
 #include "graphics/texture/texture_data_loader.h"
+#include "graphics/mesh/gltf_loader.h"
 
 #include <imgui.h>
 
@@ -382,7 +383,7 @@ namespace example {
             const auto & vsModule = _shaderModulesManager->registerModule("test.vert", *_device, engine::rhi::shaders::Stages::eVertex, vBytes);
             const auto & fsModule = _shaderModulesManager->registerModule("test.frag", *_device, engine::rhi::shaders::Stages::eFragment, fBytes);
 
-            _programs.emplace_back(_api->createProgram(_device, std::array{vsModule.getView(), fsModule.getView()}));
+            _programs.emplace_back(_api->createProgram(_device, std::array{vsModule.getView(), fsModule.getView()}, {.dynamicDescriptorsMask = 0u}));
         }
         { // kComputeProgram
             auto const cBytes = _fileManager.readFile("shaders/compute_test.comp.spv");
@@ -415,6 +416,11 @@ namespace example {
     }
 
     void Example::createDefaultResources() {
+        // gltf test
+        auto const modelBytes = _fileManager.readFile("assets/models/model.glb");
+        auto modelLayout = engine::graphics::model::loadModelLayout(modelBytes, "assets/models/");
+        // gltf test
+
         // sail test
         auto const imageBytes = _fileManager.readFile("assets/earth.ktx2");
         // auto const imageBytes = _fileManager.readFile("assets/2d_bc7.ktx2");
