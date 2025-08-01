@@ -19,6 +19,26 @@ namespace engine::graphics::model {
     template <typename T>
     using string_map = std::unordered_map<std::string_view, T, hash::String_hash, std::equal_to<>>;
 
+    constexpr SamplerFilter getFilter(uint16_t f) noexcept {
+		switch (f) {
+		case 9728: return SamplerFilter::eNearest;
+		case 9729: return SamplerFilter::eLinear;
+		case 9984: return SamplerFilter::eNearest_Mipmap_Nearest;
+		case 9985: return SamplerFilter::eLinear_Mipmap_Nearest;
+		case 9986: return SamplerFilter::eNearest_Mipmap_Linear;
+		case 9987: return SamplerFilter::eLinear_Mipmap_Linear;
+		default: return SamplerFilter::eLinear;
+		}
+	};
+
+	constexpr SamplerWrap getWrap(uint16_t w) noexcept {
+		switch (w) {
+		case 33071: return SamplerWrap::eClamp_To_Edge;
+		case 33648: return SamplerWrap::eMirrored_Repeat;
+		default: return SamplerWrap::eRepeat;
+		}
+	};
+
     auto constexpr swap4IfBigEndian = [](uint32_t & val) noexcept {
         if constexpr (isLittleEndian) {
             return;
@@ -76,7 +96,8 @@ namespace engine::graphics::model {
 
     const static string_map<MimeType> mimeTypes = {
         {"image/jpeg", MimeType::eJpeg},
-        {"image/png", MimeType::ePng}
+        {"image/png", MimeType::ePng},
+        {"undefined", MimeType::eOther}
     };
 
     const static string_map<AlphaMode> alphaModes = {
@@ -191,7 +212,7 @@ namespace engine::graphics::model {
             } else {
                 assert(false);
                 // auto & fm = FileManager;
-                // buffer.data = fm.readFile((folder + uri));
+                // buffer.data = fm.readFile((path + / + uri));
             }
 		} else if (binData) {
             buffer.data.resize(buffer.byteLength);
@@ -208,14 +229,9 @@ namespace engine::graphics::model {
 
 		const auto target = json::getValue<uint16_t>(object, "target", 0u);
 		switch (target) {
-		case 34962:
-			bufferView.target = BufferTarget::eArray_Buffer;
-			break;
-		case 34963:
-			bufferView.target = BufferTarget::eElement_Array_Buffer;
-			break;
-		default:
-			break;
+		case 34962: bufferView.target = BufferTarget::eArray_Buffer; break;
+		case 34963: bufferView.target = BufferTarget::eElement_Array_Buffer; break;
+		default: break;
 		}
 	}
 
@@ -236,7 +252,7 @@ namespace engine::graphics::model {
 		default: break;
 		}
 
-        accessor.type = accesorTypes.find(object["type"].as<std::string_view>())->second;
+        accessor.type = accesorTypes.at(object["type"].as<std::string_view>());
         accessor.min = json::getArray<float>(object, "min");
         accessor.max = json::getArray<float>(object, "max");
 
@@ -261,6 +277,119 @@ namespace engine::graphics::model {
             sparse.values.offset = json::getValue(values, "byteOffset", 0u);
         }
     }
+
+    void parseAnimation(Animation & animation, const json::Json & object) {
+		animation.name = json::getValue(object, "name", std::string_view(""));
+
+        // channels
+        auto const & channelsArray = object["channels"].get_array();
+        animation.channels.reserve(channelsArray.size());
+        for (const auto & channel : channelsArray) {
+            auto const & target = channel["target"];
+            animation.channels.emplace_back(
+                json::getValue(channel, "sampler", 0u),
+                json::getValue(target, "node", kInvalidValue),
+                animChannelTypes.at(target["path"].as<std::string_view>())
+            );
+        }
+
+        // samplers
+        auto const & samplersArray = object["samplers"].get_array();
+        animation.samplers.reserve(samplersArray.size());
+        for (const auto & sampler : samplersArray) {
+            animation.samplers.emplace_back(
+                json::getValue(sampler, "input", kInvalidValue),
+                json::getValue(sampler, "output", kInvalidValue),
+                interpolationTypes.at(json::getValue(sampler, "interpolation", std::string_view("LINEAR")))
+            );
+        }
+	}
+
+    void parseSkin(Skin & skin, const json::Json & object) {
+        skin.name = json::getValue(object, "name", std::string_view(""));
+        skin.inverseBindMatrices = json::getValue(object, "inverseBindMatrices", kInvalidValue);
+		skin.skeleton = json::getValue(object, "skeleton", kInvalidValue);
+		skin.joints = json::getArray<uint16_t>(object, "joints");
+	}
+
+	void parseSampler(Sampler & sampler, const json::Json & object) {
+		sampler.magFilter = getFilter(json::getValue(object, "magFilter", kInvalidValue));
+		sampler.minFilter = getFilter(json::getValue(object, "minFilter", kInvalidValue));
+        constexpr uint16_t kDefaultWrap = 10497u;
+		sampler.wrapS = getWrap(json::getValue(object, "wrapS", kDefaultWrap));
+		sampler.wrapT = getWrap(json::getValue(object, "wrapT", kDefaultWrap));
+	}
+
+    void parseTexture(Texture & texture, const json::Json & object) {
+        texture.name = json::getValue(object, "name", std::string_view(""));
+		texture.sampler = json::getValue(object, "sampler", kInvalidValue);
+		texture.source = json::getValue(object, "source", kInvalidValue);
+	}
+
+    void parseTextureInfo(TextureInfo & info, const json::Json & object) {
+		info.index = json::getValue(object, "index", kInvalidValue);
+		info.texCoord = json::getValue(object, "texCoord", uint16_t(0u));
+		info.scale = json::getValue(object, "scale", 1.0f);
+		info.strength = json::getValue(object, "strength", 1.0f);
+	}
+
+    void parseImage(Image & image, const json::Json & object, std::string_view path) {
+		image.name = json::getValue(object, "name", std::string_view(""));
+        if (object.contains("uri")) {
+            image.uri = std::string(path) + "/" + object["uri"].as<std::string>();
+        }
+		
+        image.mimeType = mimeTypes.at(json::getValue(object, "mimeType", std::string_view("undefined")));
+		image.bufferView = json::getValue(object, "bufferView", kInvalidValue);
+	}
+
+    void parseMaterial(Material & material, const json::Json & object) {
+		material.name = json::getValue(object, "name", std::string_view(""));
+		material.doubleSided = json::getValue(object, "doubleSided", false);
+		material.alphaCutoff = json::getValue(object, "alphaCutoff", 0.5f);
+		material.alphaMode = alphaModes.at(json::getValue(object, "alphaMode", std::string_view("OPAQUE")));
+
+        if (const auto * pbrMetallicData = json::findChild(object, "pbrMetallicRoughness")) {
+            if (const auto * baseColorData = json::findChild(*pbrMetallicData, "baseColorFactor")) {
+                auto const & array = baseColorData->get_array();
+                material.pbrMetallicRoughness.baseColorFactor = {
+                    array[0].as<float>(),
+                    array[1].as<float>(),
+                    array[2].as<float>(),
+                    array[3].as<float>()
+                };
+            }
+
+            material.pbrMetallicRoughness.metallicFactor = json::getValue(*pbrMetallicData, "metallicFactor", 1.0f);
+            material.pbrMetallicRoughness.roughnessFactor = json::getValue(*pbrMetallicData, "roughnessFactor", 1.0f);
+
+            if (const auto * texture = json::findChild(*pbrMetallicData, "baseColorTexture")) {
+                parseTextureInfo(material.pbrMetallicRoughness.baseColorTexture, *texture);
+            }
+            if (const auto * texture = json::findChild(*pbrMetallicData, "metallicRoughnessTexture")) {
+                parseTextureInfo(material.pbrMetallicRoughness.metallicRoughnessTexture, *texture);
+            }
+        }
+
+        if (const auto * texture = json::findChild(object, "normalTexture")) {
+			parseTextureInfo(material.normalTexture, *texture);
+		}
+        if (const auto * texture = json::findChild(object, "occlusionTexture")) {
+			parseTextureInfo(material.occlusionTexture, *texture);
+		}
+        if (const auto * texture = json::findChild(object, "emissiveTexture")) {
+			parseTextureInfo(material.emissiveTexture, *texture);
+		}
+
+        if (const auto * emissiveFactorData = json::findChild(object, "emissiveFactor")) {
+            auto const & array = emissiveFactorData->get_array();
+            material.emissiveFactor = {
+                array[0].as<float>(),
+                array[1].as<float>(),
+                array[2].as<float>()
+            };
+        }
+	}
 
     Layout loadModelLayout(std::span<std::byte const> bytes, std::string_view path) {
         const std::byte * binData = nullptr;
@@ -321,6 +450,12 @@ namespace engine::graphics::model {
         parseArray(layout.buffers, parseBuffer, "buffers", js, path, binData);
         parseArray(layout.bufferViews, parseBufferView, "bufferViews", js);
         parseArray(layout.accessors, parseAccessor, "accessors", js);
+        parseArray(layout.animations, parseAnimation, "animations", js);
+        parseArray(layout.skins, parseSkin, "skins", js);
+		parseArray(layout.samplers, parseSampler, "samplers", js);
+        parseArray(layout.textures, parseTexture, "textures", js);
+        parseArray(layout.images, parseImage, "images", js, path);
+        parseArray(layout.materials, parseMaterial, "materials", js);
 
         return layout;
     }
