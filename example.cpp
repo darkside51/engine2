@@ -418,7 +418,7 @@ namespace example {
     void Example::createDefaultResources() {
         // gltf test
         auto const modelBytes = _fileManager.readFile("assets/models/model.glb");
-        auto modelLayout = engine::graphics::model::loadModelLayout(modelBytes, "assets/models/");
+        auto modelLayout = engine::graphics::models::loadModelLayout(modelBytes, "assets/models/");
         // gltf test
 
         // sail test

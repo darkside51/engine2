@@ -11,7 +11,7 @@
 #include <cstring>
 #include <unordered_map>
 
-namespace engine::graphics::model {
+namespace engine::graphics::models {
     
     template <typename K, typename T>
 	using map_type = std::unordered_map<K, T>;

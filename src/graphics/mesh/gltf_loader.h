@@ -14,7 +14,7 @@
 #include <string_view>
 #include <vector>
 
-namespace engine::graphics::model {
+namespace engine::graphics::models {
     
     // constants:
     inline constexpr uint16_t kInvalidValue = 0xff'ffu;
@@ -169,9 +169,9 @@ namespace engine::graphics::model {
 		std::string name;
 		uint16_t mesh = kInvalidValue;
 		uint16_t skin = kInvalidValue;
-		model::vec3 scale = {1.0f, 1.0f, 1.0f};
-		model::vec3 translation = {0.0f, 0.0f, 0.0f};
-		model::vec4 rotation = {0.0f, 0.0f, 0.0f, 1.0f};
+		vec3 scale = {1.0f, 1.0f, 1.0f};
+		vec3 translation = {0.0f, 0.0f, 0.0f};
+		vec4 rotation = {0.0f, 0.0f, 0.0f, 1.0f};
 		std::vector<float> weights;
 		std::vector<uint16_t> children;
 	};
@@ -291,7 +291,7 @@ namespace engine::graphics::model {
     struct Material {
 		std::string name;
 		struct {
-			model::vec4 baseColorFactor = {1.0f, 1.0f, 1.0f, 1.0f};
+			vec4 baseColorFactor = {1.0f, 1.0f, 1.0f, 1.0f};
 			TextureInfo baseColorTexture;
 			TextureInfo metallicRoughnessTexture;
 			float metallicFactor = 1.0f;
@@ -301,7 +301,7 @@ namespace engine::graphics::model {
 		TextureInfo normalTexture;
 		TextureInfo occlusionTexture;
 		TextureInfo emissiveTexture;
-		model::vec3 emissiveFactor = {0.0f, 0.0f, 0.0f};
+		vec3 emissiveFactor = {0.0f, 0.0f, 0.0f};
 		AlphaMode alphaMode = AlphaMode::eOpaque;
 		float alphaCutoff = 0.5f;
 		bool doubleSided = false;
