@@ -9,6 +9,7 @@
 #define GLM_ENABLE_EXPERIMENTAL
 #define GLM_FORCE_CXX20
 #define GLM_FORCE_MESSAGES
+#define GLM_FORCE_XYZW_ONLY
 // glm options
 
 #include <glm/glm.hpp>

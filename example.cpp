@@ -14,6 +14,7 @@
 
 #include "graphics/texture/texture_data_loader.h"
 #include "graphics/mesh/gltf_loader.h"
+#include "graphics/mesh/mesh_data.h"
 
 #include <imgui.h>
 
@@ -419,6 +420,15 @@ namespace example {
         // gltf test
         auto const modelBytes = _fileManager.readFile("assets/models/model.glb");
         auto modelLayout = engine::graphics::models::loadModelLayout(modelBytes, "assets/models/");
+        engine::graphics::models::Mesh_Data meshData;
+        meshData.loadSkins(modelLayout);
+        meshData.loadAnimations(modelLayout);
+
+        const auto semanticsArray = std::array {engine::graphics::models::AttributesSemantic::ePosition, 
+                                                engine::graphics::models::AttributesSemantic::eNormal | 
+                                                engine::graphics::models::AttributesSemantic::eUv0};
+
+        meshData.loadMeshes(modelLayout, semanticsArray);
         // gltf test
 
         // sail test

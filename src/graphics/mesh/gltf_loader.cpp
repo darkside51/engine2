@@ -6,6 +6,7 @@
 #include "utils/json.h"
 #include "utils/system.h"
 
+#include <algorithm>
 #include <cassert>
 #include <charconv>
 #include <cstring>
@@ -176,7 +177,8 @@ namespace engine::graphics::models {
             const uint8_t mode = json::getValue(primitive, "mode", 4u);
 
             auto & meshPrimitive = mesh.primitives.emplace_back(
-                std::map<AttributesSemantic, uint16_t>{}, 
+                // std::map<AttributesSemantic, uint16_t>{}, 
+                std::vector<std::pair<AttributesSemantic, uint16_t>>{},
                 indices, 
                 material, 
                 static_cast<PrimitiveMode>(mode)
@@ -185,9 +187,11 @@ namespace engine::graphics::models {
             auto const & attributesArray = primitive["attributes"].get_object();
             for (const auto & [key, attribute] : attributesArray) {
                 if (auto it = semantics.find(key); it != semantics.end()) {
-                    meshPrimitive.attributes.emplace(it->second, attribute.as<uint16_t>());
+                    meshPrimitive.attributes.emplace_back(it->second, attribute.as<uint16_t>());
                 }
             }
+
+            std::sort(meshPrimitive.attributes.begin(), meshPrimitive.attributes.end());
         }
 	}
 
