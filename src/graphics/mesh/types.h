@@ -41,7 +41,7 @@ namespace engine::graphics::models {
         eUv2 = 1u << 11u,
         eUv3 = 1u << 12u,
         eUv4 = 1u << 13u,
-        eSemanticsCount = 1u << 14u
+        eSemanticsCount = 14u
     };
     inline AttributesSemantic operator | (AttributesSemantic a, AttributesSemantic b) {
         return static_cast<AttributesSemantic>(std::to_underlying(a) | std::to_underlying(b));
@@ -106,4 +106,28 @@ namespace engine::graphics::models {
 		eRepeat = 2u
 	};
 
+    constexpr inline uint8_t getTypeSize(AccessorComponentType type) noexcept {
+        switch (type) {
+        case AccessorComponentType::eByte : return 1u;
+        case AccessorComponentType::eUnsigned_Byte : return 1u;
+        case AccessorComponentType::eShort : return 2u;
+        case AccessorComponentType::eUnsigned_Short : return 2u;
+        case AccessorComponentType::eUnsigned_int : return 4u;
+        case AccessorComponentType::eFloat : return 4u;
+        default: return 1u;
+        }
+    }
+
+    constexpr inline uint8_t getComponentsCount(AccessorType type) noexcept {
+        switch (type) {
+        case AccessorType::eScalar : return 1u;
+        case AccessorType::eVec2 : return 2u;
+        case AccessorType::eVec3 : return 3u;
+        case AccessorType::eVec4 : return 4u;
+        case AccessorType::eMat2 : return 4u;
+        case AccessorType::eMat3 : return 9u;
+        case AccessorType::eMat4 : return 16u;
+        default: return 1u;
+        }
+    }
 }

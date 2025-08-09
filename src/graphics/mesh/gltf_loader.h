@@ -151,12 +151,15 @@ namespace engine::graphics::models {
 			name(std::move(a.name)), sparse(std::move(a.sparse)), bufferView(a.bufferView),
 			count(a.count), offset(a.offset), componentType(a.componentType),
 			normalized(a.normalized), type(a.type), min(a.min), max(a.max) {
-
 		}
 
         Accessor& operator= (Accessor&& a) noexcept = default;
 		Accessor(const Accessor&) = delete;
         Accessor& operator= (const Accessor&) = delete;
+
+		size_t getElementSize() const noexcept {
+			return getComponentsCount(type) * getTypeSize(componentType);
+		}
 	};
 
     struct Asset {
