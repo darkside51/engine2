@@ -13,12 +13,12 @@ namespace engine::traits {
 
     template <class T, class... Ts>
     struct TypeIndex<T, std::tuple<T, Ts...>> {
-        inline static const std::size_t value = 0u;
+        static constexpr std::size_t value = 0u;
     };
 
     template <class T, class U, class... Ts>
     struct TypeIndex<T, std::tuple<U, Ts...>> {
-        inline static const std::size_t value = 1u + TypeIndex<T, std::tuple<Ts...>>::value;
+        static constexpr std::size_t value = 1u + TypeIndex<T, std::tuple<Ts...>>::value;
     };
 
     template <typename...>
