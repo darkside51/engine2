@@ -21,6 +21,8 @@
 #include "utils/parsers/renderpass_json_parser.h"
 #include "utils/parsers/graphics_pipeline_json_parser.h"
 
+#include "common/type_id.h"
+
 // https://www.saschawillems.de/blog/2018/07/19/vulkan-input-attachments-and-sub-passes/
 // https://docs.vulkan.org/samples/latest/samples/api/timestamp_queries/README.html
 // https://nikitablack.github.io/post/how_to_use_vulkan_timestamp_queries/
@@ -131,6 +133,13 @@ namespace example {
 
     Example::Example() {
         using namespace engine;
+        
+        // ctti example:
+        static_assert(engine::ctti::typeIndex<int>() == 0u);
+        static_assert(engine::ctti::typeIndex<double>() == 1u);
+        static_assert(engine::ctti::UniqueTypeId<int>::typeId<double>() == 0u);
+        static_assert(engine::ctti::UniqueTypeId<int>::typeId<int>() == 1u);
+
         _fileManager.createFileSystem<CommonFileSystem>("common_fs0", CommonFileSystem::getCurrentDirectory() + "./resources/");
 
         addInputObserver(&_imgui);

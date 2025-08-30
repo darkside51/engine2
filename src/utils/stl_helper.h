@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <utility>
 #include <vector>
+#include <variant>
 
 namespace stl {
     template<class T, std::size_t N>
@@ -26,4 +27,19 @@ namespace stl {
         std::move(data.begin(), data.end(), buffer);
         return  { buffer, size };
     };
+}
+
+namespace variant {
+    template<typename... Args>
+    struct Overload : Args ... {
+        using Args::operator()...;
+    };
+
+    template<typename... Args>
+    Overload(Args &&...) -> Overload<Args...>;  // line not needed since C++20...
+
+    template<typename T, typename... Args>
+    inline auto visit(T && v, Args &&...args) {
+        return std::visit(Overload<Args...>{std::forward<Args>(args)...}, std::forward<T>(v));
+    }
 }

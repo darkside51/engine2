@@ -43,4 +43,38 @@ namespace engine::traits {
         template<size_t index>
         const auto& get() const noexcept { return std::get<index>(*this); }
     };
+
+    namespace inheritance {
+        // class for chack is T convertible U
+        template <typename T, typename U>
+        class Conversion {
+            using first_type = std::byte;
+            class second_type { first_type dummy[2u]; };
+            static first_type ftest(U);
+            static second_type ftest(...);
+            static T makeT();
+        public:
+            enum : bool {
+                exists = sizeof(ftest(makeT())) == sizeof(first_type),
+                same_type = false
+            };
+        };
+
+        template <typename T>
+        class Conversion<T, T> {
+        public:
+            enum : bool {
+                exists = true,
+                same_type = true
+            };
+        };
+
+        // check type inheritance on compile time
+        template <typename T, typename U>
+        consteval bool isInherit() noexcept {
+            return (Conversion<const T*, const U*>::exists) && 
+                   (!Conversion<const U*, const void*>::same_type) && 
+                   (!Conversion<const T, const U>::same_type);
+        }
+    }
 }

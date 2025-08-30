@@ -6,7 +6,6 @@
 #include "graphics/render/rhi/common/runtime.h"
 #include "graphics/render/rhi/common/shared_ref.h"
 
-#include "common/memory.h"
 #include "allocators/pool_allocator_chain.h"
 #include <vector>
 
