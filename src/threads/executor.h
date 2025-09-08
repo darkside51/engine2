@@ -63,8 +63,10 @@ namespace threads {
 
     protected:
          inline void waitPaused() noexcept {
-            _paused.wait(false, std::memory_order_relaxed);
-            _paused.clear(std::memory_order_relaxed);
+            if (_paused.test(std::memory_order_relaxed) == false) {
+                _paused.wait(false, std::memory_order_relaxed);
+                _paused.clear(std::memory_order_relaxed);
+            }
         }
 
         inline void waitResumed() noexcept {

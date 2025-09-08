@@ -25,7 +25,7 @@ namespace engine::common {
 
     template <typename T>
     inline T random(const T min, const T max) {
-        static thread_local std::default_random_engine generator { std::random_device{}() }; // for lightweight randomnes
+        static thread_local std::default_random_engine generator { std::random_device{}() }; // for lightweight randomes
         return random(min, max, generator);
     }
 
