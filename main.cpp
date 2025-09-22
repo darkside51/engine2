@@ -21,14 +21,11 @@ int main() {
         example.createDevice();
         example.createSwapchain();
 
+        example.createRenderPasses();
+        example.createPipelines();
+
         auto const [width, height] = window0.getSize();
         example.resize(width, height);
-
-        example.createRenderPasses();
-        
-        example.sizeChanged();
-
-        example.createPipelines();
 
         constexpr float inputCheckTime = 1.0f / 60.0f;
         constexpr float redrawTime = 1.0f / 120.0f;
@@ -68,7 +65,6 @@ int main() {
         window0.setOnResize([&](uint16_t w, uint16_t h) {
             renderThread.pause();
             example.resize(w, h);
-            example.sizeChanged();
             renderThread.resume();
         });
 
@@ -78,7 +74,7 @@ int main() {
         });
 
         while (glfwModule.process()) {
-            example.processLogic();
+            example.deviceProcess();
             std::this_thread::sleep_for(std::chrono::duration<float>(inputCheckTime));
         }
         

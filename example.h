@@ -40,7 +40,7 @@ public:
     void update(float delta);
     void draw(float delta);
 
-    void processLogic();
+    void deviceProcess();
     void setRenderThread(threads::ExecutionContext * renderThread) noexcept {
         _renderThread = renderThread;
     }

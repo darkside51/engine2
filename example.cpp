@@ -348,6 +348,8 @@ namespace example {
         _swapchain->resize(w, h, false);
         camera.resize(w, h);
 
+        sizeChanged();
+
         gStats.inFlightFramesCount = _swapchain->getImagesCount();
     }
 
@@ -358,7 +360,7 @@ namespace example {
         const auto err = engine::json::read_json(json, input);
 
         const auto depthFormat = _device->getSupportedDepthFormat(32u, false);
-        const auto formats0 = std::array{_swapchain->getFormat()};
+        const auto formats0 = std::array{engine::rhi::Format::eB8G8R8A8_Unorm}; // _swapchain->getFormat()
         const auto formats1 = std::array{engine::rhi::Format::eR8G8B8A8_Unorm, depthFormat};
 
         _renderPasses.emplace_back(_api->getRenderPass(_device, engine::parseRenderPass(json["screen"], formats0))); // kScreenPass
@@ -752,7 +754,7 @@ namespace example {
         createDefaultResources();
     }
 
-    void Example::processLogic() {
+    void Example::deviceProcess() {
         if (controller.calculateTransform() && _renderThread) {
             _renderThread->emplaceTasks(stl::make_vector(threads::WorkerTask{[transform = camera.getTransform()](){
                 cameraTransform = transform;
