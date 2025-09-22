@@ -17,13 +17,13 @@ namespace engine::graphics::models {
 	struct Node;
 
 	struct Primitive {
-		struct VertexBufferData {
+		struct VertexBufferOffsets {
 			size_t offset = 0u;
-			uint8_t bufferId = 0u;
+			//uint8_t bufferId = 0u;
 		};
 		
 		size_t ibOffset = 0u;
-		std::vector<VertexBufferData> vbData;
+		std::vector<VertexBufferOffsets> vbOffsets;
 		uint32_t firstIndex = 0u;
 		uint32_t indexCount = 0u;
 		vec3f minCorner{};
@@ -46,6 +46,7 @@ namespace engine::graphics::models {
 
     struct Mesh_Animation {
 		std::string name;
+		// maybe move all animation data to special storges in inimation manager for cache locallity?
         std::vector<float> samplerInputs;
 		std::vector<vec4f> samplerOutputs;
 
