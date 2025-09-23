@@ -27,6 +27,8 @@ namespace engine::scene {
             return;
         }
 
+        child->parent = this;
+
         if (firstChild == nullptr) {
             firstChild = child;
             return;
@@ -44,6 +46,8 @@ namespace engine::scene {
             // todo: log
             return false;
         }
+
+        child->parent = nullptr;
 
         if (child == firstChild) {
             firstChild = child->next;

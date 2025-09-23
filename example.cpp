@@ -22,6 +22,7 @@
 #include "utils/parsers/graphics_pipeline_json_parser.h"
 
 #include "common/type_id.h"
+#include "graphics/scene/node.h"
 
 // https://www.saschawillems.de/blog/2018/07/19/vulkan-input-attachments-and-sub-passes/
 // https://docs.vulkan.org/samples/latest/samples/api/timestamp_queries/README.html
@@ -713,6 +714,34 @@ namespace example {
             map->time  = 0.0f;
             _uniformBufferI->unmap();
         }
+
+        ////////////////////////////
+        using NodesAllocator = allocators::PoolAllocatorChain<sizeof(engine::scene::Node), alignof(engine::scene::Node), false>;
+        NodesAllocator nodesAllocator(256u, 32u);
+        auto * rootNode = nodesAllocator.create<engine::scene::Node>();
+        auto * node0 = nodesAllocator.create<engine::scene::Node>();
+        auto * node1 = nodesAllocator.create<engine::scene::Node>();
+
+        rootNode->addChild(node0);
+        node0->addChild(node1);
+
+        engine::mat4f m0{1.0F};
+        m0[3] = {10.0f, 0.0f, 0.0f, 1.0f};
+
+        engine::mat4f m1{1.0F};
+        m1[3] = {20.0f, 0.0f, 0.0f, 1.0f};
+
+        node0->setTransform(m0);
+        node1->setTransform(m1);
+
+        engine::scene::recalculateHierarchy(rootNode, false, [](engine::scene::Node*) noexcept { return true; });
+
+        if (node0->removeChild(node1)) {
+            nodesAllocator.destroy(node1);
+        }
+        auto * node2 = nodesAllocator.create<engine::scene::Node>();
+
+        int a = 0;
     }
 
     void Example::prepare() {
