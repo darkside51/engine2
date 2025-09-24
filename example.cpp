@@ -716,6 +716,17 @@ namespace example {
         }
 
         ////////////////////////////
+        // auto ppp = std::shared_ptr<int>(new int{10}, [](int *a){});
+        struct D{
+            void _(engine::rhi::runtime::sh_ptr2<int, D> *) {}
+        };
+
+        auto const sss = sizeof(std::function<void(void * ptr)>);
+        auto const sss1 = sizeof(void(*)(void * ptr));
+        auto const sss2 = sizeof(std::shared_ptr<int>);
+        auto const sss3 = sizeof(engine::rhi::runtime::sh_ptr<int>);
+        auto const sss4 = sizeof(engine::rhi::runtime::sh_ptr2<int, D>);
+
         using NodesAllocator = allocators::PoolAllocatorChain<sizeof(engine::scene::Node), alignof(engine::scene::Node), false>;
         NodesAllocator nodesAllocator(256u, 32u);
         auto * rootNode = nodesAllocator.create<engine::scene::Node>();

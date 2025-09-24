@@ -18,6 +18,7 @@ struct Node {
 
     void addChild(Node * child) noexcept;
     bool removeChild(Node * child) noexcept;
+    bool removeFromParent() noexcept;
 };
 
 template <typename VisibleChecker>

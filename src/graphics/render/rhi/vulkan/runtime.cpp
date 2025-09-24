@@ -155,15 +155,15 @@ namespace engine::vulkan::runtime {
         using BufferPtr = rhi::runtime::BufferPtr;
         
         auto * mem = _buffersPool.alloc();
-        auto * objectMem = reinterpret_cast<std::byte*>(mem) + align_value(sizeof(BufferPtr::counter_type), alignof(Api::Buffer));
+        auto * objectMem = reinterpret_cast<std::byte*>(mem) + align_value(sizeof(BufferPtr::BlockPtr), alignof(Api::Buffer));
         auto * buffer = new(objectMem) Api::Buffer(static_cast<Api::Device &>(*device), info, size);
 
-        return rhi::runtime::BufferPtr(mem, alignof(Api::Buffer), [this](auto * ptr){ destroyBuffer(*static_cast<rhi::runtime::BufferPtr*>(ptr)); });
+        return rhi::runtime::BufferPtr(mem, alignof(Api::Buffer), sizeof(Api::Buffer), [this](auto * ptr){ destroyBuffer(*static_cast<rhi::runtime::BufferPtr*>(ptr)); });
     }
 
     void Rhi::destroyBuffer(rhi::runtime::BufferPtr & ptr) {
         using BufferPtr = rhi::runtime::BufferPtr;
-        auto * objectMem = reinterpret_cast<std::byte*>(ptr.memory()) + align_value(sizeof(BufferPtr::counter_type), alignof(Api::Buffer));
+        auto * objectMem = reinterpret_cast<std::byte*>(ptr.memory()) + align_value(sizeof(BufferPtr::BlockPtr), alignof(Api::Buffer));
         reinterpret_cast<Api::Buffer*>(objectMem)->~Buffer();
         _buffersPool.free(ptr.memory());
     }

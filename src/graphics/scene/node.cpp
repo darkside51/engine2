@@ -65,4 +65,9 @@ namespace engine::scene {
         return false;
     }
 
+    bool Node::removeFromParent() noexcept {
+        if (parent == nullptr) return false;
+        return parent->removeChild(this);
+    }
+
 }
