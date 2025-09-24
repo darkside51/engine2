@@ -893,7 +893,7 @@ namespace example {
         commandList->resetQueryPool(_queryPool.get(), frameId * 2u, 2u);
         commandList->writeTimestamp(_queryPool.get(), rhi::PipelineStageFlags::eTop_Of_Pipe, frameId * 2u);
 
-        // prepare frame draw data (update uniforms)
+        // prepare frame draw data (update uniforms and copy buffers memory)
         prepareFrameDrawData(commandList, frameId, delta);
 
         // compute
@@ -901,7 +901,7 @@ namespace example {
         if (computed == 0u) {
             commandList->bindPipeline(_pipelines[kComputeTestPipeline]);
             commandList->bindBuffer(0u, _storageBuffer);
-             commandList->dispatch(1u, 1u, 1u);
+            commandList->dispatch(1u, 1u, 1u);
 
             commandList->copyBuffer2Buffer(_storageBuffer, _cpuStorageResult, {
                 .srcOffset = 0u,
