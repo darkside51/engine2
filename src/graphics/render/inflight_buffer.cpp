@@ -43,7 +43,7 @@ namespace engine::graphics {
         }
     }
 
-    void InflightBuffer::commit(rhi::runtime::CommandListPtr & cmd, uint8_t idx) noexcept {
+    void InflightBuffer::commit(rhi::runtime::CommandListPtr & cmd, uint8_t idx) noexcept { // can use another command buffer if need to call this function in renderpass time!
         // or can create buffers here?
         
         if (auto & [buffer, dirty] = _buffers[idx]; dirty) {
