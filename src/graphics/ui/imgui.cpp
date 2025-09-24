@@ -9,6 +9,16 @@
 
 namespace engine {
 
+    const rhi::BufferInfo verticesInfo {
+        rhi::BufferUsageFlags::eVertex_Buffer | rhi::BufferUsageFlags::eTransfer_Dst,
+        rhi::MemoryPropertyFlags::eDeviceLocal
+    };
+
+    const rhi::BufferInfo indicesInfo {
+        rhi::BufferUsageFlags::eIndex_Buffer | rhi::BufferUsageFlags::eTransfer_Dst,
+        rhi::MemoryPropertyFlags::eDeviceLocal
+    };
+
     ImGuiSystem::ImGuiSystem() {
         ImGui::CreateContext();
         ImGuiIO &io = ImGui::GetIO();
@@ -130,22 +140,12 @@ namespace engine {
         );
 
         // vertices
-        const rhi::BufferInfo verticesInfo {
-            rhi::BufferUsageFlags::eVertex_Buffer | rhi::BufferUsageFlags::eTransfer_Dst,
-            rhi::MemoryPropertyFlags::eDeviceLocal
-        };
-
         constexpr uint32_t kInitialVerticesCountMax = 1024u;
         _vertices = std::make_unique<graphics::InflightBuffer>(
             api, device, verticesInfo, sizeof(ImDrawVert) * kInitialVerticesCountMax
         );
 
         // indices
-        const rhi::BufferInfo indicesInfo {
-            rhi::BufferUsageFlags::eIndex_Buffer | rhi::BufferUsageFlags::eTransfer_Dst,
-            rhi::MemoryPropertyFlags::eDeviceLocal
-        };
-
         constexpr uint32_t kInitialIndicesCountMax = 1024u;
         _indices = std::make_unique<graphics::InflightBuffer>(
             api, device, indicesInfo, sizeof(ImDrawIdx) * kInitialIndicesCountMax
@@ -181,41 +181,29 @@ namespace engine {
 
         // resize buffers if haven't memory
         const auto vtxDataSize = sizeof(ImDrawVert) * drawData->TotalVtxCount;
-        if (_vertices == nullptr ||  vtxDataSize >= _vertices->sizeInBytes()) {
-            const rhi::BufferInfo verticesInfo {
-                rhi::BufferUsageFlags::eVertex_Buffer | rhi::BufferUsageFlags::eTransfer_Dst,
-                rhi::MemoryPropertyFlags::eDeviceLocal
-            };
-
-            _vertices = std::make_unique<graphics::InflightBuffer>(
-                api, device, verticesInfo, vtxDataSize * 2u
-            );
+        if (vtxDataSize >= _vertices->sizeInBytes()) {
+            _vertices->resize(verticesInfo, vtxDataSize * 2u);
         }
 
         const auto idxDataSize = sizeof(ImDrawIdx) * drawData->TotalIdxCount;
-        if (_indices == nullptr || idxDataSize >= _indices->sizeInBytes()) {
-            const rhi::BufferInfo indicesInfo {
-                rhi::BufferUsageFlags::eIndex_Buffer | rhi::BufferUsageFlags::eTransfer_Dst,
-                rhi::MemoryPropertyFlags::eDeviceLocal
-            };
-
-            _indices = std::make_unique<graphics::InflightBuffer>(
-                api, device, indicesInfo, idxDataSize * 2u
-            );
+        if (idxDataSize >= _indices->sizeInBytes()) {
+            _indices->resize(indicesInfo, idxDataSize * 2u);
         }
 
-        if (!_vertices->isHostVisible() || !_indices->isHostVisible()) { // if we need to use a staging buffer
+        const bool useStagingBuffer = !_vertices->isHostVisible() || !_indices->isHostVisible(); // we need to use a staging buffer
+
+        if (useStagingBuffer) { 
             if (_staging == nullptr || idxDataSize + vtxDataSize >= _staging->sizeInBytes()) {
                 constexpr size_t kMinStagingSize = 100'000u /*100 Kb*/;
                 _staging = std::make_unique<graphics::InflightStagingBuffer>(api, device, std::max((idxDataSize + vtxDataSize) * 2u, kMinStagingSize), 
                     rhi::MemoryPropertyFlags::eHostVisible | rhi::MemoryPropertyFlags::eHostCached);
             }
+
+            _vertices->setStagingBuffer(_staging.get());
+            _indices->setStagingBuffer(_staging.get());
+
+            _staging->map(frame);
         }
-
-        _vertices->setStagingBuffer(_staging.get());
-        _indices->setStagingBuffer(_staging.get());
-
-        _staging->map(frame);
 
         auto * verticesMem = _vertices->map2<std::byte>();
         auto * indicesMem = _indices->map2<std::byte>();
@@ -254,7 +242,9 @@ namespace engine {
         }
         _uniform->commit(commandList, frame);
 
-        _staging->unmap();
+        if (useStagingBuffer) {
+            _staging->unmap();
+        }
     }
 
     void ImGuiSystem::draw(rhi::runtime::CommandListPtr & commandList, uint8_t frame) noexcept {

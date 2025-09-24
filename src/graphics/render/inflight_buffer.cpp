@@ -14,12 +14,23 @@ namespace engine::graphics {
         _api(api), 
         _device(device) {
         _buffers.reserve(device->inFlightFramesCount());
-
         for (uint8_t i = 0u; i < _device->inFlightFramesCount(); ++i) {
             _buffers.emplace_back(_api->createBuffer(_device, info, size), false);
         }
 
         _tmpMemory = std::make_unique_for_overwrite<std::byte[]>(size);
+    }
+
+    void InflightBuffer::resize(const rhi::BufferInfo & info, size_t size) {
+        const auto oldSize = static_cast<size_t>(_buffers[0u].buffer->sizeInBytes());
+
+        for (uint8_t i = 0u; i < _device->inFlightFramesCount(); ++i) {
+            _buffers[i] = {_api->createBuffer(_device, info, size), false};
+        }
+
+        auto newMem = std::make_unique_for_overwrite<std::byte[]>(size);
+        memcpy(newMem.get(), _tmpMemory.get(), std::min(oldSize, size));
+        _tmpMemory = std::move(newMem);
     }
 
     void * InflightBuffer::map() noexcept {
@@ -33,6 +44,8 @@ namespace engine::graphics {
     }
 
     void InflightBuffer::commit(rhi::runtime::CommandListPtr & cmd, uint8_t idx) noexcept {
+        // or can create buffers here?
+        
         if (auto & [buffer, dirty] = _buffers[idx]; dirty) {
             if (buffer->isHostVisible()) { // it is hostVisible
                 auto * memory = buffer->map();
@@ -40,7 +53,6 @@ namespace engine::graphics {
                 buffer->flush();
                 buffer->unmap();
             } else { // need use stagingBuffer
-
                 if (_stagingBuffer) {
                     const auto offset = _stagingBuffer->requestBytes(idx, buffer->sizeInBytes());
                     if (offset != StagingBuffer::kNotEnoughMemory) {

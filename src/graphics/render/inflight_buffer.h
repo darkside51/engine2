@@ -26,6 +26,8 @@ namespace engine::graphics {
         template <typename T>
         inline T * map2() noexcept { return static_cast<T*>(map()); }
 
+        void resize(const rhi::BufferInfo & info, size_t size);
+
         void commit(rhi::runtime::CommandListPtr & cmd, uint8_t idx) noexcept;
 
         rhi::runtime::BufferPtr & operator()(uint8_t idx) noexcept {

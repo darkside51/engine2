@@ -87,6 +87,7 @@ set(
 	graphics/scene
 	graphics/texture
 	graphics/mesh
+	graphics/debug
 	input
 	log
 	math

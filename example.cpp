@@ -751,6 +751,9 @@ namespace example {
             nodesAllocator.destroy(node1);
         }
         auto * node2 = nodesAllocator.create<engine::scene::Node>();
+        node0->addChild(node2);
+
+        engine::scene::recalculateHierarchy(rootNode, false, [](engine::scene::Node*) noexcept { return true; });
 
         int a = 0;
     }
