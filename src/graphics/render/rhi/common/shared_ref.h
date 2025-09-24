@@ -15,36 +15,44 @@ namespace engine::rhi::runtime {
         using Deleter = std::function<void(void * ptr)>;
         using counter_type = std::atomic<uint32_t>;
 
-        struct BlockPtr {
+        struct ControlBlock {
             counter_type counter = {};
             uint16_t align = 0U;
-            uint16_t sz = 0U;
+            uint16_t deleterOffset = 0U;
         };
 
-        struct Value {
-            BlockPtr blockPtr = {};
+        struct DefaultValueComposition {
+            ControlBlock ctrlBlock = {};
+            T data;
+        };
+
+        struct DefaultValueCompositionWithDeleter {
+            ControlBlock ctrlBlock = {};
             T data;
             Deleter deleter = nullptr;
         };
 
-        sh_ptr(std::nullptr_t) : _blockPtr(nullptr) { }
+        sh_ptr(std::nullptr_t) : _ctrlBlock(nullptr) { }
         sh_ptr() : sh_ptr(nullptr) {}
 
-        sh_ptr(void * mem, uint32_t align, uint32_t sz, Deleter && d = nullptr) : 
-            _blockPtr(static_cast<BlockPtr*>(mem)) {
-            _blockPtr->align = align;
-            _blockPtr->sz = sz;
+        sh_ptr(void * mem, uint32_t align, uint32_t dOffset, Deleter && d = nullptr) : 
+            _ctrlBlock(static_cast<ControlBlock*>(mem)) {
+            _ctrlBlock->align = align;
+            _ctrlBlock->deleterOffset = d ? dOffset : 0u;
             counter().store(1u, std::memory_order_release);
-            auto * deleterMem = reinterpret_cast<Deleter*>(reinterpret_cast<std::byte*>(get()) + align_value(_blockPtr->sz, alignof(Deleter)));
-            d ? new(deleterMem) Deleter{std::move(d)} : new(deleterMem) Deleter{};
+            if (d) {
+                auto * deleterMem = reinterpret_cast<Deleter*>(
+                    reinterpret_cast<std::byte*>(get()) + align_value(_ctrlBlock->deleterOffset, alignof(Deleter)));
+                new(deleterMem) Deleter{std::move(d)};
+            }
         }
 
         template <typename...Args>
         static sh_ptr make(Args&&...args) {
-            auto * mem = malloc(sizeof(Value));
-            auto * objectMem = reinterpret_cast<std::byte*>(mem) + align_value(sizeof(BlockPtr), alignof(T));
+            auto * mem = malloc(sizeof(DefaultValueComposition));
+            auto * objectMem = reinterpret_cast<std::byte*>(mem) + align_value(sizeof(ControlBlock), alignof(T));
             T* object = new(objectMem) T(std::forward<Args>(args)...);
-            return sh_ptr(mem, alignof(T), sizeof(T));
+            return sh_ptr(mem, alignof(T), 0u);
         }
 
         ~sh_ptr() {
@@ -52,22 +60,22 @@ namespace engine::rhi::runtime {
         }
 
         template <typename U>
-        sh_ptr(const sh_ptr<U> & p) : _blockPtr(static_cast<BlockPtr*>(p.memory())) {
+        sh_ptr(const sh_ptr<U> & p) : _ctrlBlock(static_cast<ControlBlock*>(p.memory())) {
 			_inc();
 		}
 
-        sh_ptr(const sh_ptr & p) : _blockPtr(p._blockPtr) {
+        sh_ptr(const sh_ptr & p) : _ctrlBlock(p._ctrlBlock) {
 			_inc();
 		}
 
-		sh_ptr(sh_ptr && p) noexcept : _blockPtr(p._blockPtr) {
-			p._blockPtr = nullptr;
+		sh_ptr(sh_ptr && p) noexcept : _ctrlBlock(p._ctrlBlock) {
+			p._ctrlBlock = nullptr;
 		}
 
         inline void reset() noexcept {
-            if (_blockPtr) {
+            if (_ctrlBlock) {
                 decrease_counter();
-                _blockPtr = nullptr;
+                _ctrlBlock = nullptr;
             }
         }
 
@@ -77,30 +85,30 @@ namespace engine::rhi::runtime {
         }
 
         inline sh_ptr & operator= (const sh_ptr & p) noexcept {
-            if (&p != this && p._blockPtr != _blockPtr) {
+            if (&p != this && p._ctrlBlock != _ctrlBlock) {
                 decrease_counter();
-                _blockPtr = p._blockPtr;
+                _ctrlBlock = p._ctrlBlock;
                 increase_counter();
             }
             return *this;
         }
 
         inline sh_ptr & operator= (sh_ptr && p) noexcept {
-            if (p._blockPtr != _blockPtr) {
+            if (p._ctrlBlock != _ctrlBlock) {
                 decrease_counter();
             }
 
-            _blockPtr = p._blockPtr;
-            p._blockPtr = nullptr;
+            _ctrlBlock = p._ctrlBlock;
+            p._ctrlBlock = nullptr;
             return *this;
         }
 
         T * get() noexcept { return reinterpret_cast<T*>(
-            reinterpret_cast<std::byte*>(_blockPtr) + align_value(sizeof(BlockPtr), _blockPtr->align));
+            reinterpret_cast<std::byte*>(_ctrlBlock) + align_value(sizeof(ControlBlock), _ctrlBlock->align));
         }
 
         T * get() const noexcept { return reinterpret_cast<T*>(
-            reinterpret_cast<std::byte*>(_blockPtr) + align_value(sizeof(BlockPtr), _blockPtr->align));
+            reinterpret_cast<std::byte*>(_ctrlBlock) + align_value(sizeof(ControlBlock), _ctrlBlock->align));
         }
 
         T * operator->() noexcept { return get(); }
@@ -109,26 +117,26 @@ namespace engine::rhi::runtime {
         T & operator*() noexcept { return *get(); }
         const T & operator*() const noexcept { return *get(); }
 
-        explicit operator bool() const noexcept { return _blockPtr != nullptr; }
+        explicit operator bool() const noexcept { return _ctrlBlock != nullptr; }
 
         void * memory() const noexcept {
-            return _blockPtr;
+            return _ctrlBlock;
         }
 
     private:
         inline void increase_counter() noexcept {
-            if (_blockPtr) {
+            if (_ctrlBlock) {
                 _inc();
             }
         }
 
         inline void decrease_counter() noexcept {
-            if (_blockPtr && _dec() == 0u) {
-                if (auto & d = deleter()) {
-                    d(this);
+            if (_ctrlBlock && _dec() == 0u) {
+                if (_ctrlBlock->deleterOffset > 0u) {
+                    deleter()(this);
                 } else {
                     get()->~T();
-                    free(_blockPtr);
+                    free(_ctrlBlock);
                 }
             }
         }
@@ -137,14 +145,15 @@ namespace engine::rhi::runtime {
 		inline counter_type _inc() noexcept { return counter().fetch_add(1u, std::memory_order_release) + 1u; }
 
         inline counter_type & counter() noexcept {
-            return _blockPtr->counter;
+            return _ctrlBlock->counter;
         }
 
         inline Deleter & deleter() noexcept {
-            return *reinterpret_cast<Deleter*>(reinterpret_cast<std::byte*>(get()) + align_value(_blockPtr->sz, alignof(Deleter)));
+            return *reinterpret_cast<Deleter*>(
+                reinterpret_cast<std::byte*>(get()) + align_value(_ctrlBlock->deleterOffset, alignof(Deleter)));
         }
 
-        BlockPtr * _blockPtr = nullptr;
+        ControlBlock * _ctrlBlock = nullptr;
     };
 
     //////
