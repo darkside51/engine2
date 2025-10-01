@@ -73,7 +73,9 @@ private:
 
     engine::rhi::runtime::QueuePtr _renderQueue;
     std::vector<engine::rhi::runtime::Semaphore> _readyToPresentSemaphores;
+    std::vector<engine::rhi::runtime::Semaphore> _transfersCompleteSemaphores;
     std::vector<engine::rhi::runtime::CommandListPtr> _commandLists;
+    std::vector<engine::rhi::runtime::CommandListPtr> _transferCommandLists;
 
     engine::rhi::FrameIndex _frameIndex;
 

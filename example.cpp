@@ -41,6 +41,8 @@ namespace example {
     constexpr uint8_t kSceneTestPipeline = 1u;
     constexpr uint8_t kComputeTestPipeline = 2u;
 
+    constexpr bool kUseTransferCommandListForPrepareImgui = true;
+
     engine::scene::Camera camera;
     engine::scene::SphereCameraController controller{camera};
     engine::mat4f cameraTransform;
@@ -170,7 +172,12 @@ namespace example {
             _api->destroySemaphore(_device, semaphore);
         }
 
+        for (auto & semaphore : _transfersCompleteSemaphores) {
+            _api->destroySemaphore(_device, semaphore);
+        }
+        
         _commandLists.clear();
+        _transferCommandLists.clear();
         _queryPool = nullptr;
 
         _shaderModulesManager = nullptr;
@@ -771,6 +778,11 @@ namespace example {
             semaphore = _api->createSemaphore(_device);
         }
 
+        _transfersCompleteSemaphores.resize(inflightFrames);
+        for (auto & semaphore : _transfersCompleteSemaphores) {
+            semaphore = _api->createSemaphore(_device);
+        }
+
         _frameIndex.setFramesCount(inflightFrames);
 
         _imgui.createFontTexture(_api, _device);
@@ -781,6 +793,11 @@ namespace example {
         _commandLists.reserve(inflightFrames);
         for (size_t i = 0u; i < inflightFrames; ++i) {
             _commandLists.emplace_back(_api->createCommandList(commandPool, engine::rhi::CommandBufferLevel::ePrimary));
+        }
+
+        _transferCommandLists.reserve(inflightFrames);
+        for (size_t i = 0u; i < inflightFrames; ++i) {
+            _transferCommandLists.emplace_back(_api->createCommandList(commandPool, engine::rhi::CommandBufferLevel::ePrimary));
         }
 
         // queryPool
@@ -864,7 +881,9 @@ namespace example {
             _uniformBufferI->commit(commandList, frame);
         }
 
-        _imgui.prepare(commandList, frame, _api, _device);
+        if constexpr (!kUseTransferCommandListForPrepareImgui) {
+            _imgui.prepare(commandList, frame, _api, _device);
+        }
     }
 
     void Example::draw(float delta) {
@@ -891,7 +910,10 @@ namespace example {
         _device->resetFrameTmpData(frameId);
 
         // render frame
+        auto & transferCommandList = _transferCommandLists[frameId];
         auto & commandList = _commandLists[frameId];
+        transferCommandList->begin(rhi::CommandBufferUsageFlags::eOne_Time_Submit);
+
         commandList->begin(rhi::CommandBufferUsageFlags::eOne_Time_Submit);
 
         commandList->resetQueryPool(_queryPool.get(), frameId * 2u, 2u);
@@ -963,13 +985,18 @@ namespace example {
         commandList->drawIndexed(6u);
 
         // draw imgui
+        if constexpr (kUseTransferCommandListForPrepareImgui) {
+            _imgui.prepare(transferCommandList, frameId, _api, _device);
+        }
         _imgui.draw(commandList, frameId);
 
         commandList->endRenderPass();
 
         commandList->writeTimestamp(_queryPool.get(), rhi::PipelineStageFlags::eBottom_Of_Pipe, frameId * 2u + 1u);
         commandList->end();
+        transferCommandList->end();
 
+        transferCommandList->record(frameId);
         commandList->record(frameId);
         // render frame
 
@@ -986,12 +1013,37 @@ namespace example {
         }
 
         // submit
-        const auto waitSemaphores = std::array{_swapchain->imageAvailableSemaphore(frameId)};
+        // const auto waitSemaphores = std::array{_swapchain->imageAvailableSemaphore(frameId)};
+        // const auto signalSemaphores = std::array{_readyToPresentSemaphores[frameId]};
+        // const auto waitStages = std::array{engine::rhi::PipelineStageFlags::eColor_Attachment_Output};
+        // auto lists = std::array{commandList.get()};
+
+        // bool const submitted = _renderQueue->submit(frameId, std::array{
+        //     engine::rhi::runtime::Queue::SubmitInfo {
+        //         .w8Semaphores = waitSemaphores,
+        //         .w8DstStages = waitStages,
+        //         .signalSemaphores = signalSemaphores,
+        //         .lists = lists
+        //     }
+        // });
+
+        const auto transferWaitSemaphores = std::array{_swapchain->imageAvailableSemaphore(frameId)};
+        const auto transferSignalSemaphores = std::array{_transfersCompleteSemaphores[frameId]};
+        const auto transferWaitStages = std::array{engine::rhi::PipelineStageFlags::eColor_Attachment_Output};
+        auto transferLists = std::array{transferCommandList.get()};
+
+        const auto waitSemaphores = transferSignalSemaphores;
         const auto signalSemaphores = std::array{_readyToPresentSemaphores[frameId]};
-        const auto waitStages = std::array{engine::rhi::PipelineStageFlags::eColor_Attachment_Output};
+        const auto waitStages = std::array{engine::rhi::PipelineStageFlags::eTransfer};
         auto lists = std::array{commandList.get()};
 
         bool const submitted = _renderQueue->submit(frameId, std::array{
+            engine::rhi::runtime::Queue::SubmitInfo {
+                .w8Semaphores = transferWaitSemaphores,
+                .w8DstStages = transferWaitStages,
+                .signalSemaphores = transferSignalSemaphores,
+                .lists = transferLists
+            },
             engine::rhi::runtime::Queue::SubmitInfo {
                 .w8Semaphores = waitSemaphores,
                 .w8DstStages = waitStages,
