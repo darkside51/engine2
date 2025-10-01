@@ -138,6 +138,10 @@ namespace example {
         // ctti example:
         static_assert(engine::ctti::typeIndex<int>() == 0u);
         static_assert(engine::ctti::typeIndex<double>() == 1u);
+        static_assert(engine::ctti::UniqueTypeId<double>::typeId() == 1u);
+        static_assert(engine::ctti::UniqueTypeId<int>::typeId() == 0u);
+        static_assert(engine::ctti::typeIndex<int, double>() == 0u);
+        static_assert(engine::ctti::typeIndex<int, int>() == 1u);
         static_assert(engine::ctti::UniqueTypeId<int>::typeId<double>() == 0u);
         static_assert(engine::ctti::UniqueTypeId<int>::typeId<int>() == 1u);
 

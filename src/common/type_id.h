@@ -15,6 +15,10 @@ namespace engine {
 
         template<typename MainType>
         struct UniqueTypeId {
+            static inline size_t typeId() noexcept {
+                return typeIndex<MainType>();
+            }
+
             template<typename T>
             static inline size_t typeId() noexcept {
                 static const size_t newId = staticId.fetch_add(1u, std::memory_order_relaxed);
@@ -62,6 +66,10 @@ namespace engine {
 
         template<typename MainType>
         struct UniqueTypeId {
+            static consteval inline auto typeId() noexcept {
+                return typeIndex<MainType>();
+            }
+
             template<typename T>
             static consteval inline auto typeId() noexcept {
                 return typeIndex<MainType, T>();
