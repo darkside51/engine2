@@ -117,6 +117,10 @@ namespace engine::rhi::runtime {
         T & operator*() noexcept { return *get(); }
         const T & operator*() const noexcept { return *get(); }
 
+        inline bool operator== (std::nullptr_t) const noexcept {
+            return _ctrlBlock == nullptr;
+        }
+
         explicit operator bool() const noexcept { return _ctrlBlock != nullptr; }
 
         void * memory() const noexcept {

@@ -26,7 +26,7 @@ namespace engine::graphics {
         template <typename T>
         inline T * map2() noexcept { return static_cast<T*>(map()); }
 
-        void resize(const rhi::BufferInfo & info, size_t size);
+        void resize(size_t size);
 
         void commit(rhi::runtime::CommandListPtr & cmd, uint8_t idx) noexcept;
 
@@ -45,7 +45,11 @@ namespace engine::graphics {
                 return 0u;
             }
 
-            return _buffers[0u].buffer->sizeInBytes();
+            if (const auto & buffer = _buffers[0u].buffer) {
+                return buffer->sizeInBytes();
+            }
+
+            return 0u;
         }
 
         bool isHostVisible() const noexcept {
@@ -53,7 +57,11 @@ namespace engine::graphics {
                 return true;
             }
 
-            return _buffers[0u].buffer->isHostVisible();
+            if (const auto & buffer = _buffers[0u].buffer) {
+                return buffer->isHostVisible();
+            }
+
+            return std::to_underlying(_bufferInfo.memoryFlags & rhi::MemoryPropertyFlags::eHostVisible) != 0u;
         }
 
     private:
@@ -63,6 +71,8 @@ namespace engine::graphics {
         };
         std::vector<Data> _buffers;
         std::unique_ptr<std::byte[]> _tmpMemory = nullptr;
+        uint32_t _size = 0u;
+        rhi::BufferInfo _bufferInfo;
     
         const std::unique_ptr<rhi::runtime::Rhi> & _api;
         std::unique_ptr<rhi::runtime::Device> & _device;

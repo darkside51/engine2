@@ -34,8 +34,10 @@ public:
 private:
     rhi::runtime::PipelinePtr _linePipeline = nullptr;
     rhi::runtime::PipelinePtr _fillPipeline = nullptr;
-    std::unique_ptr<graphics::InflightBuffer> _vertices = nullptr;
-    std::unique_ptr<graphics::InflightBuffer> _indices = nullptr;
+    std::unique_ptr<graphics::InflightBuffer> _linesVertices = nullptr;
+    std::unique_ptr<graphics::InflightBuffer> _linesIndices = nullptr;
+    std::unique_ptr<graphics::InflightBuffer> _fillVertices = nullptr;
+    std::unique_ptr<graphics::InflightBuffer> _fillIndices = nullptr;
     std::unique_ptr<graphics::InflightStagingBuffer> _staging = nullptr;
 };
 

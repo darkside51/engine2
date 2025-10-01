@@ -182,12 +182,12 @@ namespace engine {
         // resize buffers if haven't memory
         const auto vtxDataSize = sizeof(ImDrawVert) * drawData->TotalVtxCount;
         if (vtxDataSize >= _vertices->sizeInBytes()) {
-            _vertices->resize(verticesInfo, vtxDataSize * 2u);
+            _vertices->resize(vtxDataSize * 2u);
         }
 
         const auto idxDataSize = sizeof(ImDrawIdx) * drawData->TotalIdxCount;
         if (idxDataSize >= _indices->sizeInBytes()) {
-            _indices->resize(indicesInfo, idxDataSize * 2u);
+            _indices->resize(idxDataSize * 2u);
         }
 
         const bool useStagingBuffer = !_vertices->isHostVisible() || !_indices->isHostVisible(); // we need to use a staging buffer

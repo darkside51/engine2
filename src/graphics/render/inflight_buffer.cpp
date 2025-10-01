@@ -11,26 +11,28 @@ namespace engine::graphics {
 
     InflightBuffer::InflightBuffer(const std::unique_ptr<rhi::runtime::Rhi> & api,
         rhi::runtime::DevicePtr & device, const rhi::BufferInfo & info, size_t size) :
+        _size(size),
+        _bufferInfo(info),
         _api(api), 
         _device(device) {
         _buffers.reserve(device->inFlightFramesCount());
         for (uint8_t i = 0u; i < _device->inFlightFramesCount(); ++i) {
-            _buffers.emplace_back(_api->createBuffer(_device, info, size), false);
+            _buffers.emplace_back(nullptr, false);
         }
 
         _tmpMemory = std::make_unique_for_overwrite<std::byte[]>(size);
     }
 
-    void InflightBuffer::resize(const rhi::BufferInfo & info, size_t size) {
-        const auto oldSize = static_cast<size_t>(_buffers[0u].buffer->sizeInBytes());
-
-        for (uint8_t i = 0u; i < _device->inFlightFramesCount(); ++i) {
-            _buffers[i] = {_api->createBuffer(_device, info, size), false};
+    void InflightBuffer::resize(size_t size) {
+        const auto oldSize = static_cast<size_t>(sizeInBytes());
+        if (oldSize == size) {
+            return;
         }
 
         auto newMem = std::make_unique_for_overwrite<std::byte[]>(size);
         memcpy(newMem.get(), _tmpMemory.get(), std::min(oldSize, size));
         _tmpMemory = std::move(newMem);
+        _size = size;
     }
 
     void * InflightBuffer::map() noexcept {
@@ -44,9 +46,11 @@ namespace engine::graphics {
     }
 
     void InflightBuffer::commit(rhi::runtime::CommandListPtr & cmd, uint8_t idx) noexcept { // can use another command buffer if need to call this function in renderpass time!
-        // or can create buffers here?
-        
         if (auto & [buffer, dirty] = _buffers[idx]; dirty) {
+            if (buffer == nullptr || buffer->sizeInBytes() != _size) {
+                buffer = _api->createBuffer(_device, _bufferInfo, _size);
+            }
+
             if (buffer->isHostVisible()) { // it is hostVisible
                 auto * memory = buffer->map();
                 memcpy(memory, _tmpMemory.get(), buffer->sizeInBytes());
