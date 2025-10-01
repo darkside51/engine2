@@ -68,6 +68,29 @@ namespace engine::debug {
     void DebugDraw::prepare(rhi::runtime::CommandListPtr & commandList, uint8_t frame, 
         const std::unique_ptr<rhi::runtime::Rhi> & api, rhi::runtime::DevicePtr & device) {
 
+        // check we need to use a staging buffer
+        const bool useStagingBuffer = !_fillVertices->isHostVisible() || !_fillIndices->isHostVisible() ||
+                                      !_linesVertices->isHostVisible() || !_linesIndices->isHostVisible(); 
+
+        // const auto allSize = _fillVertices->sizeInBytes() + _fillIndices->sizeInBytes() + 
+        //                         _linesVertices->sizeInBytes() + _linesIndices->sizeInBytes();
+
+        // if (useStagingBuffer) { 
+        //     if (_staging == nullptr || allSize >= _staging->sizeInBytes()) {
+        //         constexpr uint32_t kMinStagingSize = 100'000u /*100 Kb*/;
+        //         _staging = std::make_unique<graphics::InflightStagingBuffer>(api, device, std::max(allSize * 2u, kMinStagingSize), 
+        //             rhi::MemoryPropertyFlags::eHostVisible | rhi::MemoryPropertyFlags::eHostCached);
+        //     }
+
+        //     _fillVertices->setStagingBuffer(_staging.get());
+        //     _fillIndices->setStagingBuffer(_staging.get());
+
+        //     _linesVertices->setStagingBuffer(_staging.get());
+        //     _linesIndices->setStagingBuffer(_staging.get());
+
+        //     _staging->map(frame);
+        // }
+
     }
 
 }
