@@ -436,7 +436,7 @@ namespace example {
 
         loadShaders();
         _imgui.createPipeline(_api, _device, _programs[kImguiProgram], _renderPasses[kScreenRenderPass], 0u);
-        debugDraw.createPipelines(_api, _device, _programs[kDebugProgram], _renderPasses[kScreenRenderPass], 0u);
+        debugDraw.createPipelines(_api, _device, _programs[kDebugProgram], _renderPasses[kSceneRenderPass], 0u);
 
         const auto bytes = _fileManager.readFile("descriptors/pipelines.json");
         std::string_view input(reinterpret_cast<const char*>(bytes.data()), bytes.size());
@@ -883,9 +883,25 @@ namespace example {
 
         _imgui.endFrame();
 
-        debugDraw.drawLines(std::array{engine::vec3f{-1.0f, 0.0f, 0.0f}, engine::vec3f{1.0f, 0.0f, 0.0f}}, 0xff00ffffu);
-        debugDraw.drawLines(std::array{engine::vec3f{-0.5f, -0.1f, 0.0f}, engine::vec3f{0.5f, -0.1f, 0.0f}}, 0xff0000ffu);
-        debugDraw.drawLines(std::array{engine::vec3f{-0.25f, -0.2f, 0.0f}, engine::vec3f{0.25f, -0.2f, 0.0f}}, 0xff00ff00u);
+        engine::vec4f v0 = cameraTransform * engine::vec4f{-2.0f, 0.0f, 0.0f, 1.0f};
+        engine::vec4f v1 = cameraTransform * engine::vec4f{2.0f, 0.0f, 0.0f, 1.0f};
+        engine::vec4f v2 = cameraTransform * engine::vec4f{0.0f, -2.0f, 0.0f, 1.0f};
+        engine::vec4f v3 = cameraTransform * engine::vec4f{0.0f, 2.0f, 0.0f, 1.0f};
+        engine::vec4f v4 = cameraTransform * engine::vec4f{0.0f, 0.0f, -2.0f, 1.0f};
+        engine::vec4f v5 = cameraTransform * engine::vec4f{0.0f, 0.0f, 2.0f, 1.0f};
+        v0 /= v0.w; v1 /= v1.w;
+        v2 /= v2.w; v3 /= v3.w;
+        v4 /= v4.w; v5 /= v5.w;
+
+        debugDraw.drawLines(std::array{engine::vec3f{v0}, engine::vec3f{v1}}, 0xff0000ffu);
+        debugDraw.drawLines(std::array{engine::vec3f{v2}, engine::vec3f{v3}}, 0xff00ff00u);
+        debugDraw.drawLines(std::array{engine::vec3f{v4}, engine::vec3f{v5}}, 0xffff0000u);
+
+        debugDraw.drawLines(std::array{engine::vec3f{-0.5f, -0.1f, 0.0f}, engine::vec3f{0.5f, -0.1f, 0.0f}}, 0xffffffffu);
+        // debugDraw.drawLines(std::array{engine::vec3f{-0.25f, -0.2f, 0.0f}, engine::vec3f{0.25f, -0.2f, 0.0f}, engine::vec3f{0.25f, -0.75f, 0.0f}, engine::vec3f{-0.25f, -0.75f, 0.0f}}, 0xff00ff00u);
+        debugDraw.drawSquare(engine::vec2f{-0.25f, -0.2f}, engine::vec2f{0.25f, -0.9f}, 0x5500ff00u, engine::debug::DebugDraw::Type::eLines);
+        debugDraw.drawSquare(engine::vec2f{-0.1f, -0.3f}, engine::vec2f{0.1f, -0.5f}, 0x55ff0000u, engine::debug::DebugDraw::Type::eFill);
+        debugDraw.drawSquare(engine::vec2f{-0.1f, -0.6f}, engine::vec2f{0.1f, -0.8f}, 0x55ff0000u, engine::debug::DebugDraw::Type::eFull);
     }
 
     void Example::prepareFrameDrawData(engine::rhi::runtime::CommandListPtr & commandList, uint8_t frame, float delta) {
@@ -991,6 +1007,9 @@ namespace example {
             commandList->drawIndexed(_sphereIdx->sizeInBytes() / sizeof(uint16_t), 1u);
         // }
 
+        debugDraw.prepare(transferCommandList, frameId, _api, _device);
+        debugDraw.draw(commandList, frameId);
+
         //commandList->nextSubpass(rhi::SubpassContents::ePrimaryBufferInline);
         commandList->endRenderPass();
 
@@ -1004,9 +1023,6 @@ namespace example {
         commandList->bindIndexBuffer(_postIndices, 0u, rhi::IndexType::eU16);
         commandList->bindImage(0u, _colorAttachmentImages[imageIndex], rhi::SamplerInfo{});
         commandList->drawIndexed(6u);
-
-        debugDraw.prepare(transferCommandList, frameId, _api, _device);
-        debugDraw.draw(commandList, frameId);
 
         // draw imgui
         if constexpr (kUseTransferCommandListForPrepareImgui) {

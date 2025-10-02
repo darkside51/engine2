@@ -17,9 +17,8 @@ namespace engine::debug {
     void DebugDraw::destroy() noexcept {
         _linePipeline = nullptr;
         _fillPipeline = nullptr;
-        _linesVertices = nullptr;
+        _vertices = nullptr;
         _linesIndices = nullptr;
-        _fillVertices = nullptr;
         _fillIndices = nullptr;
         _staging = nullptr;
     }
@@ -91,10 +90,7 @@ namespace engine::debug {
         };
 
         // vertices
-        _fillVertices = std::make_unique<graphics::InflightBuffer>(
-            api, device, verticesInfo, kVertexSize * kInitialVerticesCountMax
-        );
-        _linesVertices = std::make_unique<graphics::InflightBuffer>(
+        _vertices = std::make_unique<graphics::InflightBuffer>(
             api, device, verticesInfo, kVertexSize * kInitialVerticesCountMax
         );
 
@@ -111,11 +107,11 @@ namespace engine::debug {
         const std::unique_ptr<rhi::runtime::Rhi> & api, rhi::runtime::DevicePtr & device) {
 
         // check we need to use a staging buffer
-        const bool useStagingBuffer = !_fillVertices->isHostVisible() || !_fillIndices->isHostVisible() ||
-                                      !_linesVertices->isHostVisible() || !_linesIndices->isHostVisible(); 
+        const bool useStagingBuffer = !_vertices->isHostVisible() || !_fillIndices->isHostVisible() ||
+                                      !_linesIndices->isHostVisible(); 
 
-        const auto allSize = _fillVertices->sizeInBytes() + _fillIndices->sizeInBytes() + 
-                                _linesVertices->sizeInBytes() + _linesIndices->sizeInBytes();
+        const auto allSize = _vertices->sizeInBytes() + _fillIndices->sizeInBytes() + 
+                             _linesIndices->sizeInBytes();
 
         if (useStagingBuffer) { 
             if (_staging == nullptr || allSize >= _staging->sizeInBytes()) {
@@ -124,19 +120,17 @@ namespace engine::debug {
                     rhi::MemoryPropertyFlags::eHostVisible | rhi::MemoryPropertyFlags::eHostCached);
             }
 
-            _fillVertices->setStagingBuffer(_staging.get());
-            _fillIndices->setStagingBuffer(_staging.get());
+            _vertices->setStagingBuffer(_staging.get());
 
-            _linesVertices->setStagingBuffer(_staging.get());
+            _fillIndices->setStagingBuffer(_staging.get());
             _linesIndices->setStagingBuffer(_staging.get());
 
             _staging->map(frame);
         }
 
-        _fillVertices->commit(commandList, frame);
-        _fillIndices->commit(commandList, frame);
+        _vertices->commit(commandList, frame);
 
-        _linesVertices->commit(commandList, frame);
+        _fillIndices->commit(commandList, frame);
         _linesIndices->commit(commandList, frame);
 
         if (useStagingBuffer) {
@@ -149,32 +143,32 @@ namespace engine::debug {
         if (_lineIndicesCount) { // draw lines
             commandList->bindPipeline(_linePipeline);
 
-            commandList->bindVertexBuffer(0u, (*_linesVertices)(frame), 0u);
+            commandList->bindVertexBuffer(0u, (*_vertices)(frame), 0u);
             commandList->bindIndexBuffer((*_linesIndices)(frame), 0u, rhi::IndexType::eU32);
 
             commandList->drawIndexed(static_cast<uint32_t>(_lineIndicesCount), 1u, 0u);
 
-            _lineVerticesCount = 0u;
             _lineIndicesCount = 0u;
         }
 
         if (_filledIndicesCount) { // draw filled
             commandList->bindPipeline(_fillPipeline);
 
-            commandList->bindVertexBuffer(0u, (*_fillVertices)(frame), 0u);
+            commandList->bindVertexBuffer(0u, (*_vertices)(frame), 0u);
             commandList->bindIndexBuffer((*_fillIndices)(frame), 0u, rhi::IndexType::eU32);
 
             commandList->drawIndexed(static_cast<uint32_t>(_filledIndicesCount), 1u, 0u);
 
-            _filledVerticesCount = 0u;
             _filledIndicesCount = 0u;
         }
+
+        _verticesCount = 0u;
     }
 
     void DebugDraw::drawLines(std::span<const vec3f> linesVtxs, uint32_t color) {
-        const auto vSize = static_cast<uint32_t>((_lineVerticesCount + linesVtxs.size()) * kVertexSize);
-        if (_linesVertices->sizeInBytes() <= vSize) {
-            _linesVertices->resize(std::max(_linesVertices->sizeInBytes() * 2u, vSize));
+        const auto vSize = static_cast<uint32_t>((_verticesCount + linesVtxs.size()) * kVertexSize);
+        if (_vertices->sizeInBytes() <= vSize) {
+            _vertices->resize(std::max(_vertices->sizeInBytes() * 2u, vSize));
         }
 
         const auto lineParts = linesVtxs.size() - 1u;
@@ -184,7 +178,7 @@ namespace engine::debug {
             _linesIndices->resize(std::max(_linesIndices->sizeInBytes() * 2u, iSize));
         }
 
-        auto * vMem = _linesVertices->map2<Vertex>() + _lineVerticesCount;
+        auto * vMem = _vertices->map2<Vertex>() + _verticesCount;
         auto * iMem = _linesIndices->map2<uint32_t>() + _lineIndicesCount;
 
         uint32_t i = 0u;
@@ -194,17 +188,90 @@ namespace engine::debug {
                 .color = color
             };
 
-            *(iMem + 2u * i) = _lineVerticesCount + i;
-            *(iMem + 2u * i + 1u) = _lineVerticesCount + i + 1u;
-
             ++i;
         }
 
-        _lineVerticesCount += linesVtxs.size();
+        for (i = 0u; i < lineParts; ++i) {
+            *(iMem + 2u * i) = _verticesCount + i;
+            *(iMem + 2u * i + 1u) = _verticesCount + i + 1u;
+        }
+
+        _verticesCount += linesVtxs.size();
         _lineIndicesCount += newIndicesCount;
 
-        _linesVertices->unmap();
+        _vertices->unmap();
         _linesIndices->unmap();
+    }
+
+    void DebugDraw::drawSquare(vec2f corner0, vec2f corner1, uint32_t color, Type t) {
+        const auto vSize = static_cast<uint32_t>((_verticesCount + 4u) * kVertexSize);
+        if (_vertices->sizeInBytes() <= vSize) {
+            _vertices->resize(std::max(_vertices->sizeInBytes() * 2u, vSize));
+        }
+
+        auto * vMem = _vertices->map2<Vertex>() + _verticesCount;
+
+        *(vMem + 0u) = {
+            .coord = {corner0.x, corner0.y, 0.0f},
+            .color = color
+        };
+
+        *(vMem + 1u) = {
+            .coord = {corner1.x, corner0.y, 0.0f},
+            .color = color
+        };
+
+        *(vMem + 2u) = {
+            .coord = {corner1.x, corner1.y, 0.0f},
+            .color = color
+        };
+
+        *(vMem + 3u) = {
+            .coord = {corner0.x, corner1.y, 0.0f},
+            .color = color
+        };
+
+        if (std::to_underlying(t) & std::to_underlying(Type::eLines)) {
+            const auto iSize = static_cast<uint32_t>((_lineIndicesCount + 8u) * sizeof(uint32_t));
+            if (_linesIndices->sizeInBytes() <= iSize) {
+                _linesIndices->resize(std::max(_linesIndices->sizeInBytes() * 2u, iSize));
+            }
+
+            auto * iMem = _linesIndices->map2<uint32_t>() + _lineIndicesCount;
+            
+            for (uint8_t i = 0u; i < 3u; ++i) {
+                *(iMem + 2u * i) = _verticesCount + i;
+                *(iMem + 2u * i + 1u) = _verticesCount + i + 1u;
+            }
+
+            *(iMem + 2u * 3u) = _verticesCount + 2u + 1u;
+            *(iMem + 2u * 3u + 1u) = _verticesCount + 0u;
+
+            _lineIndicesCount += 8u;
+            _linesIndices->unmap();
+        }
+
+        if (std::to_underlying(t) & std::to_underlying(Type::eFill)) {
+            const auto iSize2 = static_cast<uint32_t>((_filledIndicesCount + 6u) * sizeof(uint32_t));
+            if (_fillIndices->sizeInBytes() <= iSize2) {
+                _fillIndices->resize(std::max(_fillIndices->sizeInBytes() * 2u, iSize2));
+            }
+
+            auto * iMem2 = _fillIndices->map2<uint32_t>() + _filledIndicesCount;
+
+            *(iMem2 + 0u) = _verticesCount + 0u;
+            *(iMem2 + 1u) = _verticesCount + 1u;
+            *(iMem2 + 2u) = _verticesCount + 2u;
+            *(iMem2 + 3u) = _verticesCount + 2u;
+            *(iMem2 + 4u) = _verticesCount + 0u;
+            *(iMem2 + 5u) = _verticesCount + 3u;
+
+            _filledIndicesCount += 6u;
+            _fillIndices->unmap();
+        }
+
+        _verticesCount += 4u;
+        _vertices->unmap();
     }
 
 }
