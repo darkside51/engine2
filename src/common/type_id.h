@@ -48,7 +48,7 @@ namespace engine {
 
         template<typename T, auto id = size_t{}>
         consteval auto typeIndex() noexcept {
-            if constexpr (TypeCounter<nullptr_t, id>::exists(id)) {
+            if constexpr (TypeCounter<std::nullptr_t, id>::exists(id)) {
                 return typeIndex<T, id + 1u>();
             } else {
                 return id;
