@@ -24,6 +24,8 @@
 #include "common/type_id.h"
 #include "graphics/scene/node.h"
 
+#include "graphics/debug/debug_draw.h"
+
 // https://www.saschawillems.de/blog/2018/07/19/vulkan-input-attachments-and-sub-passes/
 // https://docs.vulkan.org/samples/latest/samples/api/timestamp_queries/README.html
 // https://nikitablack.github.io/post/how_to_use_vulkan_timestamp_queries/
@@ -36,12 +38,15 @@ namespace example {
     constexpr uint8_t kPostEffectProgram = 1u;
     constexpr uint8_t kTestProgram = 2u;
     constexpr uint8_t kComputeProgram = 3u;
+    constexpr uint8_t kDebugProgram = 4u;
 
     constexpr uint8_t kPostEffectPipeline = 0u;
     constexpr uint8_t kSceneTestPipeline = 1u;
     constexpr uint8_t kComputeTestPipeline = 2u;
 
     constexpr bool kUseTransferCommandListForPrepareImgui = true;
+
+    engine::debug::DebugDraw debugDraw;
 
     engine::scene::Camera camera;
     engine::scene::SphereCameraController controller{camera};
@@ -182,6 +187,7 @@ namespace example {
 
         _shaderModulesManager = nullptr;
         _imgui.destroy();
+        debugDraw.destroy();
 
         _pipelines.clear();
         _programs.clear();
@@ -414,6 +420,15 @@ namespace example {
             const auto & compModule = _shaderModulesManager->registerModule("compute_test.comp", *_device, engine::rhi::shaders::Stages::eCompute, cBytes);
             _programs.emplace_back(_api->createProgram(_device, std::array{compModule.getView()}));
         }
+        { // kDebugProgram
+            auto const vBytes = _fileManager.readFile("shaders/debug.vert.spv");
+            auto const fBytes = _fileManager.readFile("shaders/debug.frag.spv");
+
+            const auto & vsModule = _shaderModulesManager->registerModule("debug.vert", *_device, engine::rhi::shaders::Stages::eVertex, vBytes);
+            const auto & fsModule = _shaderModulesManager->registerModule("debug.frag", *_device, engine::rhi::shaders::Stages::eFragment, fBytes);
+
+            _programs.emplace_back(_api->createProgram(_device, std::array{vsModule.getView(), fsModule.getView()}));
+        }
     }
     
     void Example::createPipelines() {
@@ -421,6 +436,7 @@ namespace example {
 
         loadShaders();
         _imgui.createPipeline(_api, _device, _programs[kImguiProgram], _renderPasses[kScreenRenderPass], 0u);
+        debugDraw.createPipelines(_api, _device, _programs[kDebugProgram], _renderPasses[kScreenRenderPass], 0u);
 
         const auto bytes = _fileManager.readFile("descriptors/pipelines.json");
         std::string_view input(reinterpret_cast<const char*>(bytes.data()), bytes.size());
@@ -787,6 +803,7 @@ namespace example {
 
         _imgui.createFontTexture(_api, _device);
         _imgui.createBuffers(_api, _device);
+        debugDraw.createBuffers(_api, _device);
 
         // on render thread
         auto * commandPool = _device->acquireCommandPool(engine::rhi::queue_flags::graphics | engine::rhi::queue_flags::present);
@@ -865,6 +882,10 @@ namespace example {
 
 
         _imgui.endFrame();
+
+        debugDraw.drawLines(std::array{engine::vec3f{-1.0f, 0.0f, 0.0f}, engine::vec3f{1.0f, 0.0f, 0.0f}}, 0xff00ffffu);
+        debugDraw.drawLines(std::array{engine::vec3f{-0.5f, -0.1f, 0.0f}, engine::vec3f{0.5f, -0.1f, 0.0f}}, 0xff0000ffu);
+        debugDraw.drawLines(std::array{engine::vec3f{-0.25f, -0.2f, 0.0f}, engine::vec3f{0.25f, -0.2f, 0.0f}}, 0xff00ff00u);
     }
 
     void Example::prepareFrameDrawData(engine::rhi::runtime::CommandListPtr & commandList, uint8_t frame, float delta) {
@@ -983,6 +1004,9 @@ namespace example {
         commandList->bindIndexBuffer(_postIndices, 0u, rhi::IndexType::eU16);
         commandList->bindImage(0u, _colorAttachmentImages[imageIndex], rhi::SamplerInfo{});
         commandList->drawIndexed(6u);
+
+        debugDraw.prepare(transferCommandList, frameId, _api, _device);
+        debugDraw.draw(commandList, frameId);
 
         // draw imgui
         if constexpr (kUseTransferCommandListForPrepareImgui) {

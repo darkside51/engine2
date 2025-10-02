@@ -41,15 +41,16 @@ namespace engine::graphics {
         explicit operator bool() const noexcept { return !_buffers.empty(); }
 
         uint32_t sizeInBytes() const noexcept {
-            if (_buffers.empty()) {
-                return 0u;
-            }
+            return _size;
+            // if (_buffers.empty()) {
+            //     return 0u;
+            // }
 
-            if (const auto & buffer = _buffers[0u].buffer) {
-                return buffer->sizeInBytes();
-            }
+            // if (const auto & buffer = _buffers[0u].buffer) {
+            //     return buffer->sizeInBytes();
+            // }
 
-            return 0u;
+            // return _size;
         }
 
         bool isHostVisible() const noexcept {
