@@ -34,10 +34,11 @@ public:
     void draw(rhi::runtime::CommandListPtr & commandList, uint8_t frame) noexcept;
 
     // user
-    void drawCircle(vec2f center, float r, uint32_t color, Type t = Type::eFull);
-    void drawSphere(vec3f center, float r, uint32_t color, Type t = Type::eFull);
     void drawSquare(vec2f corner0, vec2f corner1, uint32_t color, Type t = Type::eFull);
+    void drawCircle(vec2f center, float r, uint32_t color, uint8_t segments, Type t = Type::eFull);
     void drawCube(vec3f corner0, vec3f corner1, uint32_t color, Type t = Type::eFull);
+    void drawSphere(vec3f center, float r, uint32_t color, uint8_t segments, Type t = Type::eFull);
+
     void drawLines(std::span<const vec3f> linesVtxs, uint32_t color);
 
 private:

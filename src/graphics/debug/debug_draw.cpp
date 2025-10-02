@@ -67,7 +67,7 @@ namespace engine::debug {
         _linePipeline = api->createGraphicsPipeline(device, renderPass, program, info, subpass);
 
         info.blendModes = {rhi::common_blend_modes::blend_alpha};
-        info.rasterisationState = {rhi::PolygonMode::eFill, rhi::CullMode::eNone};
+        info.rasterisationState = {rhi::PolygonMode::eFill, rhi::CullMode::eBack};
         info.inputAssemblyState = {rhi::PrimitiveTopology::eTriangles, false};
 
         _fillPipeline = api->createGraphicsPipeline(device, renderPass, program, info, subpass);
@@ -263,8 +263,8 @@ namespace engine::debug {
             *(iMem2 + 1u) = _verticesCount + 1u;
             *(iMem2 + 2u) = _verticesCount + 2u;
             *(iMem2 + 3u) = _verticesCount + 2u;
-            *(iMem2 + 4u) = _verticesCount + 0u;
-            *(iMem2 + 5u) = _verticesCount + 3u;
+            *(iMem2 + 4u) = _verticesCount + 3u;
+            *(iMem2 + 5u) = _verticesCount + 0u;
 
             _filledIndicesCount += 6u;
             _fillIndices->unmap();
