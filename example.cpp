@@ -886,13 +886,13 @@ namespace example {
         debugDraw.drawLines(std::array{engine::vec3f{0.0f, -2.0f, 0.0f}, engine::vec3f{0.0f, 2.0f, 0.0f}}, 0xff00ff00u, cameraTransform);
         debugDraw.drawLines(std::array{engine::vec3f{0.0f, 0.0f, -2.0f}, engine::vec3f{0.0f, 0.0f, 2.0f}}, 0xffff0000u, cameraTransform);
 
-        debugDraw.drawLines(std::array{engine::vec3f{-0.5f, -0.1f, 0.0f}, engine::vec3f{0.5f, -0.1f, 0.0f}}, 0xffffffffu);
+        debugDraw.drawLines(std::array{engine::vec3f{-0.5f, -0.4f, 0.0f}, engine::vec3f{0.5f, -0.4f, 0.0f}}, 0xff000000u);
         // debugDraw.drawLines(std::array{engine::vec3f{-0.25f, -0.2f, 0.0f}, engine::vec3f{0.25f, -0.2f, 0.0f}, engine::vec3f{0.25f, -0.75f, 0.0f}, engine::vec3f{-0.25f, -0.75f, 0.0f}}, 0xff00ff00u);
         debugDraw.drawSquare(engine::vec2f{-0.25f, -0.2f}, engine::vec2f{0.25f, -0.9f}, 0x5500ff00u, {1.0f}, engine::debug::DebugDraw::Type::eLines);
         debugDraw.drawSquare(engine::vec2f{-0.1f, -0.3f}, engine::vec2f{0.1f, -0.5f}, 0x55ff0000u, {1.0f}, engine::debug::DebugDraw::Type::eFill);
         debugDraw.drawSquare(engine::vec2f{-1.1f, -1.6f}, engine::vec2f{1.1f, -1.8f}, 0x55ff0000u, cameraTransform, engine::debug::DebugDraw::Type::eFull);
 
-        debugDraw.drawCircle(engine::vec2f{0.0f, 0.0f}, 2.2f, 0x55ffffffu, 32u, cameraTransform, engine::debug::DebugDraw::Type::eLines);
+        debugDraw.drawCircle(engine::vec2f{0.0f, 0.0f}, 2.2f, 0x22ffffffu, 16u, cameraTransform, engine::debug::DebugDraw::Type::eFull);
     }
 
     void Example::prepareFrameDrawData(engine::rhi::runtime::CommandListPtr & commandList, uint8_t frame, float delta) {

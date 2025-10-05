@@ -322,15 +322,29 @@ namespace engine::debug {
         }
 
         if (std::to_underlying(t) & std::to_underlying(Type::eFill)) {
-            // const auto iSize2 = static_cast<uint32_t>((_filledIndicesCount + 6u) * sizeof(uint32_t));
-            // if (_fillIndices->sizeInBytes() <= iSize2) {
-            //     _fillIndices->resize(std::max(_fillIndices->sizeInBytes() * 2u, iSize2));
-            // }
+            const auto indexesCount = (segments - 2u) * 3u;
+            const auto iSize2 = static_cast<uint32_t>((_filledIndicesCount + indexesCount) * sizeof(uint32_t));
+            if (_fillIndices->sizeInBytes() <= iSize2) {
+                _fillIndices->resize(std::max(_fillIndices->sizeInBytes() * 2u, iSize2));
+            }
 
-            // auto * iMem2 = _fillIndices->map2<uint32_t>() + _filledIndicesCount;
+            auto * iMem2 = _fillIndices->map2<uint32_t>() + _filledIndicesCount;
+            auto centralIndex = (segments / 2u);
 
-            // _filledIndicesCount += 6u;
-            // _fillIndices->unmap();
+            uint8_t j = 0u;
+            for (uint8_t i = 0u; i < segments - 2u; ++i, ++j) {
+                if (centralIndex > 0u && i >= centralIndex - 1u) {
+                    centralIndex =  0u;
+                    ++j;
+                }
+
+                *(iMem2 + 3u * i) = _verticesCount + j;
+                *(iMem2 + 3u * i + 1u) = _verticesCount + j + 1u;
+                *(iMem2 + 3u * i + 2u) = _verticesCount + centralIndex;
+            }
+
+            _filledIndicesCount += indexesCount;
+            _fillIndices->unmap();
         }
 
         _verticesCount += segments;
