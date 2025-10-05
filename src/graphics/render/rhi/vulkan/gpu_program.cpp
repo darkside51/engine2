@@ -240,12 +240,12 @@ namespace engine::vulkan {
             for (auto & [setLayout, _] : _sets) {
                 for (auto & l : setLayout.layouts.view()) {
                     if (l.type == rhi::shaders::DescriptorType::eUniform_Buffer) {
-                        if ((specializationInfo.dynamicDescriptorsMask >> i) & 1u == 1u) {
+                        if (((specializationInfo.dynamicDescriptorsMask >> i) & 1u) == 1u) {
                             l.type = rhi::shaders::DescriptorType::eUniform_Buffer_Dynamic;
                         }
                         ++i;
                     } else if (l.type == rhi::shaders::DescriptorType::eStorage_Buffer) {
-                        if ((specializationInfo.dynamicDescriptorsMask >> i) & 1u == 1u) {
+                        if (((specializationInfo.dynamicDescriptorsMask >> i) & 1u) == 1u) {
                             l.type = rhi::shaders::DescriptorType::eStorage_Buffer_Dynamic;
                         }
                         ++i;
