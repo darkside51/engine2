@@ -25,6 +25,9 @@
 
 namespace engine {
     
+    constexpr auto pi = std::numbers::pi_v<float>;
+    constexpr auto pi2 = pi / 2.0f;
+
     template <typename T>
     using vec2 = glm::vec<2, T, glm::defaultp>;
 

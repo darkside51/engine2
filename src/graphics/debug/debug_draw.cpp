@@ -2,6 +2,7 @@
 
 #include "graphics/render/rhi/common/command_list.h"
 #include "graphics/render/rhi/common/pipeline.h"
+#include "math/math.h"
 
 #include <array>
 
@@ -67,7 +68,7 @@ namespace engine::debug {
         _linePipeline = api->createGraphicsPipeline(device, renderPass, program, info, subpass);
 
         info.blendModes = {rhi::common_blend_modes::blend_alpha};
-        info.rasterisationState = {rhi::PolygonMode::eFill, rhi::CullMode::eBack};
+        info.rasterisationState = {rhi::PolygonMode::eFill, rhi::CullMode::eNone};
         info.inputAssemblyState = {rhi::PrimitiveTopology::eTriangles, false};
 
         _fillPipeline = api->createGraphicsPipeline(device, renderPass, program, info, subpass);
@@ -165,7 +166,7 @@ namespace engine::debug {
         _verticesCount = 0u;
     }
 
-    void DebugDraw::drawLines(std::span<const vec3f> linesVtxs, uint32_t color) {
+    void DebugDraw::drawLines(std::span<const vec3f> linesVtxs, uint32_t color, const mat4f & transform) {
         const auto vSize = static_cast<uint32_t>((_verticesCount + linesVtxs.size()) * kVertexSize);
         if (_vertices->sizeInBytes() <= vSize) {
             _vertices->resize(std::max(_vertices->sizeInBytes() * 2u, vSize));
@@ -183,8 +184,9 @@ namespace engine::debug {
 
         uint32_t i = 0u;
         for (const auto & v : linesVtxs) {
+            const auto p = transform * vec4f{v, 1.0f};
             *(vMem + i) = {
-                .coord = {v.x, v.y, v.z},
+                .coord = {p.x / p.w, p.y / p.w, p.z / p.w},
                 .color = color
             };
 
@@ -203,7 +205,7 @@ namespace engine::debug {
         _linesIndices->unmap();
     }
 
-    void DebugDraw::drawSquare(vec2f corner0, vec2f corner1, uint32_t color, Type t) {
+    void DebugDraw::drawSquare(vec2f corner0, vec2f corner1, uint32_t color, const mat4f & transform, Type t) {
         const auto vSize = static_cast<uint32_t>((_verticesCount + 4u) * kVertexSize);
         if (_vertices->sizeInBytes() <= vSize) {
             _vertices->resize(std::max(_vertices->sizeInBytes() * 2u, vSize));
@@ -211,23 +213,27 @@ namespace engine::debug {
 
         auto * vMem = _vertices->map2<Vertex>() + _verticesCount;
 
+        auto vp = transform * vec4f{corner0, 0.0f, 1.0f};
         *(vMem + 0u) = {
-            .coord = {corner0.x, corner0.y, 0.0f},
+            .coord = {vp.x / vp.w, vp.y / vp.w, vp.z / vp.w},
             .color = color
         };
 
+        vp = transform * vec4f{corner1.x, corner0.y, 0.0f, 1.0f};
         *(vMem + 1u) = {
-            .coord = {corner1.x, corner0.y, 0.0f},
+            .coord = {vp.x / vp.w, vp.y / vp.w, vp.z / vp.w},
             .color = color
         };
 
+        vp = transform * vec4f{corner1, 0.0f, 1.0f};
         *(vMem + 2u) = {
-            .coord = {corner1.x, corner1.y, 0.0f},
+            .coord = {vp.x / vp.w, vp.y / vp.w, vp.z / vp.w},
             .color = color
         };
 
+        vp = transform * vec4f{corner0.x, corner1.y, 0.0f, 1.0f};
         *(vMem + 3u) = {
-            .coord = {corner0.x, corner1.y, 0.0f},
+            .coord = {vp.x / vp.w, vp.y / vp.w, vp.z / vp.w},
             .color = color
         };
 
@@ -271,6 +277,63 @@ namespace engine::debug {
         }
 
         _verticesCount += 4u;
+        _vertices->unmap();
+    }
+
+    void DebugDraw::drawCircle(vec2f center, float r, uint32_t color, uint8_t segments, const mat4f & transform, Type t) {
+        const auto vSize = static_cast<uint32_t>((_verticesCount + segments) * kVertexSize);
+        if (_vertices->sizeInBytes() <= vSize) {
+            _vertices->resize(std::max(_vertices->sizeInBytes() * 2u, vSize));
+        }
+
+        auto * vMem = _vertices->map2<Vertex>() + _verticesCount;
+
+        float angle = 0.0f;
+        const float step = 2.0f * pi / segments;
+
+        for (uint8_t s = 0u; s < segments; ++s) {
+            const vec2f p = center + r * vec2f{std::cos(angle), std::sin(angle)};
+            const auto vp = transform * vec4f{p, 0.0f, 1.0f};
+            *(vMem + s) = {
+                .coord = {vp.x / vp.w, vp.y / vp.w, vp.z / vp.w},
+                .color = color
+            };
+            angle += step;
+        }
+
+        if (std::to_underlying(t) & std::to_underlying(Type::eLines)) {
+            const auto iSize = static_cast<uint32_t>((_lineIndicesCount + segments * 2u) * sizeof(uint32_t));
+            if (_linesIndices->sizeInBytes() <= iSize) {
+                _linesIndices->resize(std::max(_linesIndices->sizeInBytes() * 2u, iSize));
+            }
+
+            auto * iMem = _linesIndices->map2<uint32_t>() + _lineIndicesCount;
+
+            for (uint8_t i = 0u; i < segments - 1u; ++i) {
+                *(iMem + 2u * i) = _verticesCount + i;
+                *(iMem + 2u * i + 1u) = _verticesCount + i + 1u;
+            }
+
+            *(iMem + 2u * (segments - 1u)) = _verticesCount + segments - 1u;
+            *(iMem + 2u * (segments - 1u) + 1u) = _verticesCount + 0u;
+
+            _lineIndicesCount += segments * 2u;
+            _linesIndices->unmap();
+        }
+
+        if (std::to_underlying(t) & std::to_underlying(Type::eFill)) {
+            // const auto iSize2 = static_cast<uint32_t>((_filledIndicesCount + 6u) * sizeof(uint32_t));
+            // if (_fillIndices->sizeInBytes() <= iSize2) {
+            //     _fillIndices->resize(std::max(_fillIndices->sizeInBytes() * 2u, iSize2));
+            // }
+
+            // auto * iMem2 = _fillIndices->map2<uint32_t>() + _filledIndicesCount;
+
+            // _filledIndicesCount += 6u;
+            // _fillIndices->unmap();
+        }
+
+        _verticesCount += segments;
         _vertices->unmap();
     }
 
