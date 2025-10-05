@@ -351,4 +351,168 @@ namespace engine::debug {
         _vertices->unmap();
     }
 
+    void DebugDraw::drawSphere(vec3f center, float r, uint32_t color, uint8_t segments, const mat4f & transform, Type t) {
+        const auto vSize = static_cast<uint32_t>((_verticesCount + segments * segments) * kVertexSize);
+        if (_vertices->sizeInBytes() <= vSize) {
+            _vertices->resize(std::max(_vertices->sizeInBytes() * 2u, vSize));
+        }
+
+        auto * vMem = _vertices->map2<Vertex>() + _verticesCount;
+
+        float angle = 0.0f;
+        const float step = 2.0f * pi / segments;
+
+        for (uint8_t i = 0u; i < segments; ++i) {
+            const int j = 2 * (i - segments / 2);
+            const auto sin = std::sin(j * pi / segments / 2.0f);
+            const auto cos = std::cos(j * pi / segments / 2.0f);
+            for (uint8_t s = 0u; s < segments; ++s) {
+                vec3f p = center + r * cos * vec3f{std::cos(angle), std::sin(angle), 0.0f};
+                p.z += r * sin;
+                const auto vp = transform * vec4f{p, 1.0f};
+                *(vMem + s + (i * segments)) = {
+                    .coord = {vp.x / vp.w, vp.y / vp.w, vp.z / vp.w},
+                    .color = color
+                };
+                angle += step;
+            }
+        }
+
+        if (std::to_underlying(t) & std::to_underlying(Type::eLines)) {
+            const auto iSize = static_cast<uint32_t>((_lineIndicesCount + segments * 2u * segments + segments * 2u * segments) * sizeof(uint32_t));
+            if (_linesIndices->sizeInBytes() <= iSize) {
+                _linesIndices->resize(std::max(_linesIndices->sizeInBytes() * 2u, iSize));
+            }
+
+            auto * iMem = _linesIndices->map2<uint32_t>() + _lineIndicesCount;
+
+            {
+                for (uint8_t j = 0u; j < segments; ++j) {
+                    const auto vertexStart = _verticesCount + segments * j;
+                    auto * mem = iMem + j * 2u * segments;
+                    for (uint8_t i = 0u; i < segments - 1u; ++i) {
+                        *(mem + 2u * i) = vertexStart + i;
+                        *(mem + 2u * i + 1u) = vertexStart + i + 1u;
+                    }
+
+                    *(mem + 2u * (segments - 1u)) = vertexStart + segments - 1u;
+                    *(mem + 2u * (segments - 1u) + 1u) = vertexStart + 0u;
+                }
+            }
+
+            {
+                for (uint8_t j = 0u; j < segments; ++j) {
+                    auto * mem = iMem + segments * 2u * segments + j * segments * 2u;
+                    const auto vertexStart = _verticesCount + j;
+                    for (uint8_t i = 0u; i < segments - 1u; ++i) {
+                        *(mem + 2u * i) = vertexStart + i * segments;
+                        *(mem + 2u * i + 1u) = vertexStart + (i + 1u) * segments;
+                    }
+
+                    *(mem + 2u * (segments - 1u)) = vertexStart + (segments - 1u) * segments;
+                    *(mem + 2u * (segments - 1u) + 1u) = _verticesCount + segments - 1u - j + (segments - 1u) * segments;
+                }
+            }
+
+            _lineIndicesCount += segments * 2u * segments + segments * 2u * segments;
+            _linesIndices->unmap();
+        }
+
+        _verticesCount += segments * segments;
+        _vertices->unmap();
+    }
+
+    void DebugDraw::drawCube(vec3f corner0, vec3f corner1, uint32_t color, const mat4f & transform, Type t) {
+        const auto vSize = static_cast<uint32_t>((_verticesCount + 4u) * kVertexSize);
+        if (_vertices->sizeInBytes() <= vSize) {
+            _vertices->resize(std::max(_vertices->sizeInBytes() * 2u, vSize));
+        }
+
+        auto * vMem = _vertices->map2<Vertex>() + _verticesCount;
+
+        auto vp = transform * vec4f{corner0, 1.0f};
+        *(vMem + 0u) = {
+            .coord = {vp.x / vp.w, vp.y / vp.w, vp.z / vp.w},
+            .color = color
+        };
+
+        vp = transform * vec4f{corner1.x, corner0.y, corner0.z, 1.0f};
+        *(vMem + 1u) = {
+            .coord = {vp.x / vp.w, vp.y / vp.w, vp.z / vp.w},
+            .color = color
+        };
+
+        vp = transform * vec4f{corner1.x, corner1.y, corner0.z, 1.0f};
+        *(vMem + 2u) = {
+            .coord = {vp.x / vp.w, vp.y / vp.w, vp.z / vp.w},
+            .color = color
+        };
+
+        vp = transform * vec4f{corner0.x, corner1.y, corner0.z, 1.0f};
+        *(vMem + 3u) = {
+            .coord = {vp.x / vp.w, vp.y / vp.w, vp.z / vp.w},
+            .color = color
+        };
+
+        vp = transform * vec4f{corner0.x, corner0.y, corner1.z, 1.0f};
+        *(vMem + 4u) = {
+            .coord = {vp.x / vp.w, vp.y / vp.w, vp.z / vp.w},
+            .color = color
+        };
+
+        vp = transform * vec4f{corner1.x, corner0.y, corner1.z, 1.0f};
+        *(vMem + 5u) = {
+            .coord = {vp.x / vp.w, vp.y / vp.w, vp.z / vp.w},
+            .color = color
+        };
+
+        vp = transform * vec4f{corner1, 1.0f};
+        *(vMem + 6u) = {
+            .coord = {vp.x / vp.w, vp.y / vp.w, vp.z / vp.w},
+            .color = color
+        };
+
+        vp = transform * vec4f{corner0.x, corner1.y, corner1.z, 1.0f};
+        *(vMem + 7u) = {
+            .coord = {vp.x / vp.w, vp.y / vp.w, vp.z / vp.w},
+            .color = color
+        };
+
+        if (std::to_underlying(t) & std::to_underlying(Type::eLines)) {
+            const auto iSize = static_cast<uint32_t>((_lineIndicesCount + 24u) * sizeof(uint32_t));
+            if (_linesIndices->sizeInBytes() <= iSize) {
+                _linesIndices->resize(std::max(_linesIndices->sizeInBytes() * 2u, iSize));
+            }
+
+            auto * iMem = _linesIndices->map2<uint32_t>() + _lineIndicesCount;
+            for (uint8_t j = 0u; j < 2u; ++j) {
+                auto * mem = iMem + 8u * j;
+                const auto vertexStart = _verticesCount + j * 4u;
+                for (uint8_t i = 0u; i < 3u; ++i) {
+                    *(mem + 2u * i) = vertexStart + i;
+                    *(mem + 2u * i + 1u) = vertexStart + i + 1u;
+                }
+
+                *(mem + 2u * 3u) = vertexStart + 2u + 1u;
+                *(mem + 2u * 3u + 1u) = vertexStart + 0u;
+            }
+
+            *(iMem + 16u) = _verticesCount + 0u;
+            *(iMem + 17u) = _verticesCount + 4u;
+            *(iMem + 18u) = _verticesCount + 1u;
+            *(iMem + 19u) = _verticesCount + 5u;
+            *(iMem + 20u) = _verticesCount + 2u;
+            *(iMem + 21u) = _verticesCount + 6u;
+            *(iMem + 22u) = _verticesCount + 3u;
+            *(iMem + 23u) = _verticesCount + 7u;
+
+            _lineIndicesCount += 24u;
+            _linesIndices->unmap();
+        }
+
+
+        _verticesCount += 4u;
+        _vertices->unmap();
+    }
+
 }
