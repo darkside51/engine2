@@ -5,6 +5,12 @@
 namespace engine::scene {
 
 struct Node {
+    ~Node() {
+        parent = nullptr;
+        firstChild = nullptr;
+        next = nullptr;
+    }
+    
     Node * parent = nullptr;
     Node * firstChild = nullptr;
     Node * next = nullptr;
@@ -25,12 +31,12 @@ template <typename VisibleChecker>
 void recalculateHierarchy(Node * node, bool recalculate, const VisibleChecker & v) noexcept {
     // todo: can do this without recursive call
     recalculate = node->calculateWorldTransform(recalculate);
-    Node * n = node->firstChild;
-    while (n) {
-        if (v(n)) {
+    if (v(node)) {
+        Node * n = node->firstChild;
+        while (n) {
             recalculateHierarchy(n, recalculate, v);
+            n = n->next;
         }
-        n = n->next;
     }
 }
 

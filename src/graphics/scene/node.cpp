@@ -42,7 +42,7 @@ namespace engine::scene {
     }
 
     bool Node::removeChild(Node * child) noexcept {
-        if (!child->parent || !firstChild) {
+        if (!child->parent || child->parent != this || !firstChild) {
             // todo: log
             return false;
         }
@@ -60,6 +60,7 @@ namespace engine::scene {
                 n->next = child->next;
                 return true;
             }
+            n = n->next;
         }
 
         return false;

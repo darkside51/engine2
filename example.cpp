@@ -23,6 +23,7 @@
 
 #include "common/type_id.h"
 #include "graphics/scene/node.h"
+#include "graphics/scene/scene.h"
 
 #include "graphics/debug/debug_draw.h"
 
@@ -52,6 +53,8 @@ namespace example {
     engine::scene::SphereCameraController controller{camera};
     engine::mat4f cameraTransform;
     float m = 0.0f;
+
+    engine::scene::Scene scene{&debugDraw};
 
     struct UniformBuffer {
         engine::mat4f mvp;
@@ -754,35 +757,60 @@ namespace example {
         auto const sss3 = sizeof(engine::rhi::runtime::sh_ptr<int>);
         auto const sss4 = sizeof(engine::rhi::runtime::sh_ptr2<int, D>);
 
-        using NodesAllocator = allocators::PoolAllocatorChain<sizeof(engine::scene::Node), alignof(engine::scene::Node), false>;
-        NodesAllocator nodesAllocator(256u, 32u);
-        auto * rootNode = nodesAllocator.create<engine::scene::Node>();
-        auto * node0 = nodesAllocator.create<engine::scene::Node>();
-        auto * node1 = nodesAllocator.create<engine::scene::Node>();
+        // using NodesAllocator = allocators::PoolAllocatorChain<sizeof(engine::scene::Node), alignof(engine::scene::Node), false>;
+        // NodesAllocator nodesAllocator(512u, 64u);
+        // auto * rootNode = nodesAllocator.create<engine::scene::Node>();
+        // auto * node0 = nodesAllocator.create<engine::scene::Node>();
+        // auto * node1 = nodesAllocator.create<engine::scene::Node>();
 
-        rootNode->addChild(node0);
-        node0->addChild(node1);
+        // rootNode->addChild(node0);
+        // node0->addChild(node1);
 
-        engine::mat4f m0{1.0F};
-        m0[3] = {10.0f, 0.0f, 0.0f, 1.0f};
+        // engine::mat4f m0{1.0F};
+        // m0[3] = {10.0f, 0.0f, 0.0f, 1.0f};
 
-        engine::mat4f m1{1.0F};
-        m1[3] = {20.0f, 0.0f, 0.0f, 1.0f};
+        // engine::mat4f m1{1.0F};
+        // m1[3] = {20.0f, 0.0f, 0.0f, 1.0f};
 
-        node0->setTransform(m0);
-        node1->setTransform(m1);
+        // node0->setTransform(m0);
+        // node1->setTransform(m1);
 
-        engine::scene::recalculateHierarchy(rootNode, false, [](engine::scene::Node*) noexcept { return true; });
+        // engine::scene::recalculateHierarchy(rootNode, false, [](engine::scene::Node*) noexcept { return true; });
 
-        if (node0->removeChild(node1)) {
-            nodesAllocator.destroy(node1);
+        // if (node0->removeChild(node1)) {
+        //     nodesAllocator.destroy(node1);
+        // }
+        // auto * node2 = nodesAllocator.create<engine::scene::Node>();
+        // node0->addChild(node2);
+
+        // engine::scene::recalculateHierarchy(rootNode, false, [](engine::scene::Node*) noexcept { return true; });
+
+        // int a = 0;
+
+        // scene
+        {
+            auto m0 = engine::makeMatrix(0.5F);
+            engine::rotateMatrix_z(m0, 1.57f);
+            m0[3] = {1.0f, 0.0f, 0.0f, 1.0f};
+
+            auto m1 = engine::makeMatrix(0.75F);
+            m1[3] = {1.5f, 0.0f, 0.0f, 1.0f};
+
+            auto * node = scene.createNode();
+            node->setTransform(m0);
+            scene.rootNode()->addChild(node);
+
+            auto * node1 = scene.createNode();
+            node1->setTransform(m1);
+            node->addChild(node1);
+
+            engine::rotateMatrix_y(m0, -1.57f);
+            m0[3] = {-1.0f, 0.0f, 0.0f, 1.0f};
+            auto * node2 = scene.createNode();
+            node2->setTransform(m0);
+            scene.rootNode()->addChild(node2);
         }
-        auto * node2 = nodesAllocator.create<engine::scene::Node>();
-        node0->addChild(node2);
 
-        engine::scene::recalculateHierarchy(rootNode, false, [](engine::scene::Node*) noexcept { return true; });
-
-        int a = 0;
     }
 
     void Example::prepare() {
@@ -882,20 +910,20 @@ namespace example {
 
         _imgui.endFrame();
 
-        debugDraw.drawLines(std::array{engine::vec3f{-2.0f, 0.0f, 0.0f}, engine::vec3f{2.0f, 0.0f, 0.0f}}, 0xff0000ffu, cameraTransform);
-        debugDraw.drawLines(std::array{engine::vec3f{0.0f, -2.0f, 0.0f}, engine::vec3f{0.0f, 2.0f, 0.0f}}, 0xff00ff00u, cameraTransform);
-        debugDraw.drawLines(std::array{engine::vec3f{0.0f, 0.0f, -2.0f}, engine::vec3f{0.0f, 0.0f, 2.0f}}, 0xffff0000u, cameraTransform);
+        // debugDraw.drawLines(std::array{engine::vec3f{-2.0f, 0.0f, 0.0f}, engine::vec3f{2.0f, 0.0f, 0.0f}}, 0xff0000ffu, cameraTransform);
+        // debugDraw.drawLines(std::array{engine::vec3f{0.0f, -2.0f, 0.0f}, engine::vec3f{0.0f, 2.0f, 0.0f}}, 0xff00ff00u, cameraTransform);
+        // debugDraw.drawLines(std::array{engine::vec3f{0.0f, 0.0f, -2.0f}, engine::vec3f{0.0f, 0.0f, 2.0f}}, 0xffff0000u, cameraTransform);
 
-        debugDraw.drawLines(std::array{engine::vec3f{-0.5f, -0.4f, 0.0f}, engine::vec3f{0.5f, -0.4f, 0.0f}}, 0xff000000u);
-        // debugDraw.drawLines(std::array{engine::vec3f{-0.25f, -0.2f, 0.0f}, engine::vec3f{0.25f, -0.2f, 0.0f}, engine::vec3f{0.25f, -0.75f, 0.0f}, engine::vec3f{-0.25f, -0.75f, 0.0f}}, 0xff00ff00u);
-        debugDraw.drawSquare(engine::vec2f{-0.25f, -0.2f}, engine::vec2f{0.25f, -0.9f}, 0x5500ff00u, {1.0f}, engine::debug::DebugDraw::Type::eLines);
-        debugDraw.drawSquare(engine::vec2f{-0.1f, -0.3f}, engine::vec2f{0.1f, -0.5f}, 0x55ff0000u, {1.0f}, engine::debug::DebugDraw::Type::eFill);
-        debugDraw.drawSquare(engine::vec2f{-1.1f, -1.6f}, engine::vec2f{1.1f, -1.8f}, 0x55ff0000u, cameraTransform, engine::debug::DebugDraw::Type::eFull);
+        // debugDraw.drawLines(std::array{engine::vec3f{-0.5f, -0.4f, 0.0f}, engine::vec3f{0.5f, -0.4f, 0.0f}}, 0xff000000u);
+        // // debugDraw.drawLines(std::array{engine::vec3f{-0.25f, -0.2f, 0.0f}, engine::vec3f{0.25f, -0.2f, 0.0f}, engine::vec3f{0.25f, -0.75f, 0.0f}, engine::vec3f{-0.25f, -0.75f, 0.0f}}, 0xff00ff00u);
+        // debugDraw.drawSquare(engine::vec2f{-0.25f, -0.2f}, engine::vec2f{0.25f, -0.9f}, 0x5500ff00u, {1.0f}, engine::debug::DebugDraw::Type::eLines);
+        // debugDraw.drawSquare(engine::vec2f{-0.1f, -0.3f}, engine::vec2f{0.1f, -0.5f}, 0x55ff0000u, {1.0f}, engine::debug::DebugDraw::Type::eFill);
+        // debugDraw.drawSquare(engine::vec2f{-1.1f, -1.6f}, engine::vec2f{1.1f, -1.8f}, 0x55ff0000u, cameraTransform, engine::debug::DebugDraw::Type::eFull);
 
-        debugDraw.drawCircle(engine::vec2f{0.0f, 0.0f}, 2.2f, 0x22ffffffu, 16u, cameraTransform, engine::debug::DebugDraw::Type::eFull);
-        debugDraw.drawSphere(engine::vec3f{1.0f, 1.0f, 1.2f}, 0.4f, 0x2222ffffu, 32u, cameraTransform, engine::debug::DebugDraw::Type::eFull);
+        // debugDraw.drawCircle(engine::vec2f{0.0f, 0.0f}, 2.2f, 0x22ffffffu, 16u, cameraTransform, engine::debug::DebugDraw::Type::eFull);
+        // debugDraw.drawSphere(engine::vec3f{1.0f, 1.0f, 1.2f}, 0.4f, 0x2222ffffu, 32u, cameraTransform, engine::debug::DebugDraw::Type::eFull);
 
-        debugDraw.drawCube(engine::vec3f{1.5f, -0.5f, -0.5f}, engine::vec3f{2.5f, 0.5f, 0.5f}, 0x22ff22ffu, cameraTransform, engine::debug::DebugDraw::Type::eFull);
+        // debugDraw.drawCube(engine::vec3f{1.5f, -0.5f, -0.5f}, engine::vec3f{2.5f, 0.5f, 0.5f}, 0x22ff22ffu, cameraTransform, engine::debug::DebugDraw::Type::eFull);
     }
 
     void Example::prepareFrameDrawData(engine::rhi::runtime::CommandListPtr & commandList, uint8_t frame, float delta) {
@@ -989,17 +1017,21 @@ namespace example {
         // scene pass
         commandList->beginRenderPass(_renderPasses[kSceneRenderPass], _sceneFrameBuffers[imageIndex], sceneClearValues, {{0, 0}, {width, height}});
 
-        commandList->bindPipeline(_pipelines[kSceneTestPipeline]);
-        commandList->bindVertexBuffer(0u, _sphereVtx);
-        commandList->bindIndexBuffer(_sphereIdx, 0u, rhi::IndexType::eU16);
-        commandList->bindImage(1u, _sphereImage, rhi::SamplerInfo{
-            .magFilter = rhi::FilterMode::eLinear,
-            .minFilter = rhi::FilterMode::eLinear});
-        commandList->bindBuffer(0u, (*_uniformBufferI)(frameId), 0u, 0u, sizeof(UniformBuffer));
+        // sphere
+        // commandList->bindPipeline(_pipelines[kSceneTestPipeline]);
+        // commandList->bindVertexBuffer(0u, _sphereVtx);
+        // commandList->bindIndexBuffer(_sphereIdx, 0u, rhi::IndexType::eU16);
+        // commandList->bindImage(1u, _sphereImage, rhi::SamplerInfo{
+        //     .magFilter = rhi::FilterMode::eLinear,
+        //     .minFilter = rhi::FilterMode::eLinear});
+        // commandList->bindBuffer(0u, (*_uniformBufferI)(frameId), 0u, 0u, sizeof(UniformBuffer));
 
-        // for (size_t i = 0; i < 2'000; ++i) {
-            commandList->drawIndexed(_sphereIdx->sizeInBytes() / sizeof(uint16_t), 1u);
-        // }
+        // // for (size_t i = 0; i < 2'000; ++i) {
+        //     commandList->drawIndexed(_sphereIdx->sizeInBytes() / sizeof(uint16_t), 1u);
+        // // }
+        // sphere
+
+        scene.recalculateNodes(cameraTransform);
 
         debugDraw.prepare(transferCommandList, frameId, _api, _device);
         debugDraw.draw(commandList, frameId);

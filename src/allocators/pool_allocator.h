@@ -6,6 +6,7 @@
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
+//#include <cstdlib>
 //#include <tuple>
 
 namespace allocators {
@@ -124,6 +125,8 @@ namespace allocators {
             
             _allocatedMemory = malloc((_capacity * size) + mask);
             _memory = reinterpret_cast<memory_element_type*>((reinterpret_cast<uintptr_t>(_allocatedMemory) + mask) & ~mask);
+            // _allocatedMemory = std::aligned_alloc(align, (_capacity * size));
+            // _memory = reinterpret_cast<memory_element_type*>(_allocatedMemory);
 
             for (size_t i = 0u; i < _capacity; ++i) {
                 _memory[i].template emplace<AllocationHolder>(&_memory[i + 1u]);
