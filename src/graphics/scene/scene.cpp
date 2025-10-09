@@ -1,6 +1,7 @@
 #include "scene.h"
-
 #include "bounds.h"
+
+#include <algorithm>
 
 namespace engine::scene {
 
@@ -61,7 +62,7 @@ namespace engine::scene {
         for (const auto & [id, objects] : _objectCollections) {
             switch (id) {
                 case ctti::typeIndex<Object, EmptyObject>():
-                    drawEmptyObjects(objects->rootObject, cameraTransform, 0xffffffffu);
+                    drawEmptyObjects(*objects, cameraTransform, 0xffffffffu);
                 break;
                 default: 
                 break;
@@ -69,13 +70,12 @@ namespace engine::scene {
         }
     }
 
-    void Scene::drawEmptyObjects(Object * object, const mat4f & cameraTransform, uint32_t color) {
-        while (object) {
-            if (object->node && _debugDraw) {
-                _debugDraw->drawSphere(vec3f{0.0f}, static_cast<EmptyObject*>(object)->size, color, 
-                    32u, cameraTransform * object->node->worldTransform);
+    void Scene::drawEmptyObjects(const ObjectsCollection & objects, const mat4f & cameraTransform, uint32_t color) {
+        for (const auto & object : objects) {
+            if (object.node && _debugDraw) {
+                _debugDraw->drawSphere(vec3f{0.0f}, static_cast<const EmptyObject&>(object).size, color, 
+                    32u, cameraTransform * object.node->worldTransform);
             }
-            object = object->next;
         }
     }
 }

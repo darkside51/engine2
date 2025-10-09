@@ -810,14 +810,15 @@ namespace example {
             m0[3] = {-1.0f, 0.0f, 0.0f, 1.0f};
             auto * node2 = scene.createNode();
             node2->setTransform(m0);
+            node2->setBounds(engine::scene::Bounds::createCube(vec3f{-0.75f}, vec3f{0.75f}));
             scene.rootNode()->addChild(node2);
 
             auto * object = scene.createObject<engine::scene::EmptyObject>(1.0f, node1);
             auto * object2 = scene.createObject<engine::scene::EmptyObject>(1.0f, node2);
 
-            if (scene.destroyObject(object2)) {
-                scene.destroyNode(node2);
-            }
+            // if (scene.destroyObject(object2)) {
+            //     scene.destroyNode(node2);
+            // }
 
             sizeof(engine::scene::Node);
         }
