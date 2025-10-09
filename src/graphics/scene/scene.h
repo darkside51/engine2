@@ -35,9 +35,6 @@ struct ObjectsCollection {
         const Object & operator*() const noexcept { return *value; }
     };
 
-    Object * first = nullptr;
-    Object * last = nullptr;
-
     Iterator begin() const noexcept {
         return Iterator{.value = first};
     }
@@ -116,6 +113,11 @@ struct ObjectsCollection {
         }
         return result;
     }
+
+    public:
+    Object * first = nullptr;
+    Object * last = nullptr;
+    bool dirty = false;
 };
 
 template<typename T>
@@ -143,10 +145,8 @@ struct ObjectsHolder : ObjectsCollection {
 
 class Scene {
 public:
-    Scene(debug::DebugDraw * debugDraw) : _rootNode(createNode()), _debugDraw(debugDraw) {
-        registerTypes();
-    }
 
+    Scene(debug::DebugDraw * debugDraw);
     ~Scene();
 
     Node * createNode() noexcept;
@@ -175,6 +175,7 @@ public:
             objectsData.last->next = object;
         }
         objectsData.last = object;
+        objectsData.dirty = true;
 
         return object;
     }
@@ -182,7 +183,7 @@ public:
     bool destroyObject(Object * object) noexcept;
 
 private:
-    void drawEmptyObjects(const ObjectsCollection & objects, const mat4f & cameraTransform, uint32_t color);
+    void drawEmptyObjects(ObjectsCollection & objects, const mat4f & cameraTransform, uint32_t color);
 
     using NodesAllocator = allocators::PoolAllocatorChain<sizeof(Node), alignof(Node), false>;
     NodesAllocator _nodeAllocator{512u, 64u};

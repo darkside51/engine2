@@ -5,6 +5,10 @@
 
 namespace engine::scene {
 
+    Scene::Scene(debug::DebugDraw * debugDraw) : _rootNode(createNode()), _debugDraw(debugDraw) {
+        registerTypes();
+    }
+
     Scene::~Scene() {
         for (auto & [_, objects] : _objectCollections) {
             delete objects;
@@ -59,7 +63,7 @@ namespace engine::scene {
     }
 
     void Scene::draw(rhi::runtime::CommandListPtr & commandList, uint8_t frame, const mat4f & cameraTransform) {
-        for (const auto & [id, objects] : _objectCollections) {
+        for (auto & [id, objects] : _objectCollections) {
             switch (id) {
                 case ctti::typeIndex<Object, EmptyObject>():
                     drawEmptyObjects(*objects, cameraTransform, 0xffffffffu);
@@ -70,7 +74,12 @@ namespace engine::scene {
         }
     }
 
-    void Scene::drawEmptyObjects(const ObjectsCollection & objects, const mat4f & cameraTransform, uint32_t color) {
+    void Scene::drawEmptyObjects(ObjectsCollection & objects, const mat4f & cameraTransform, uint32_t color) {
+        if (objects.dirty) {
+            // sort by order and layers if need
+            objects.dirty = false;
+        }
+
         for (const auto & object : objects) {
             if (object.node && _debugDraw) {
                 _debugDraw->drawSphere(vec3f{0.0f}, static_cast<const EmptyObject&>(object).size, color, 
