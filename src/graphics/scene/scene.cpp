@@ -5,7 +5,7 @@
 namespace engine::scene {
 
     Scene::Scene(debug::DebugDraw * debugDraw) : _rootNode(createNode()), _debugDraw(debugDraw) {
-        _rootNode->setBounds(Bounds::createCube(vec3f{-0.5f}, vec3f{0.5f}));
+
     }
 
     Scene::~Scene() {
@@ -32,7 +32,7 @@ namespace engine::scene {
 
     void Scene::recalculateNodes(const mat4f & cameraTransform) noexcept {
         recalculateHierarchy(_rootNode, false, [this, &cameraTransform](engine::scene::Node* n) noexcept { 
-            if (_debugDraw) {
+            if (_debugDraw && n->bounds.type != Bounds::Type::eNone) {
                 const auto transform = cameraTransform * n->worldTransform;
                 _debugDraw->drawGizmo(1.0f, transform);
                 _debugDraw->drawBounds(n->bounds, 0xff0000ffu, transform);

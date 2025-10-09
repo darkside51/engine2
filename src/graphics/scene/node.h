@@ -18,7 +18,7 @@ struct Node {
 
     mat4f transform{1.0F};
     mat4f worldTransform{1.0F};
-    Bounds bounds = Bounds::createSphere(vec3f{0.0f}, 1.0f);
+    Bounds bounds{};
     bool dirtyTransform = true;
 
     void setTransform(const mat4f & m) noexcept;

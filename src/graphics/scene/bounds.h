@@ -22,9 +22,10 @@ namespace engine::scene {
 
     struct Bounds {
         enum class Type : uint8_t {
-                eCube = 0u,
-                eSphere = 1u
-        } type;
+                eNone = 0u,
+                eCube = 1u,
+                eSphere = 2u
+        } type = Type::eNone;
         Volume volume;
 
         static constexpr Bounds createCube(const vec3f & corner0, const vec3f & corner1) noexcept {

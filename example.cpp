@@ -113,8 +113,8 @@ namespace example {
 
         bool onInputWheelEvent(float /*dx*/, float dy) override {
             // {
-            //     const auto d = controller.getDistance();
-            //     controller.setDistance(d - (dy / std::pow(2.0f, (8.0f - d))));
+                const auto d = controller.getDistance();
+                controller.setDistance(d - (dy / std::pow(2.0f, (8.0f - d))));
 
             //     const float lerpBegin = 2.0f;
             //     const float lerpEnd = 1.0f;
@@ -798,16 +798,19 @@ namespace example {
 
             auto * node = scene.createNode();
             node->setTransform(m0);
+            node->setBounds(engine::scene::Bounds::createSphere(vec3f{0.0f}, 0.5f));
             scene.rootNode()->addChild(node);
 
             auto * node1 = scene.createNode();
             node1->setTransform(m1);
+            node1->setBounds(engine::scene::Bounds::createSphere(vec3f{0.0f}, 0.5f));
             node->addChild(node1);
 
             engine::rotateMatrix_y(m0, -0.76f);
             m0[3] = {-1.0f, 0.0f, 0.0f, 1.0f};
             auto * node2 = scene.createNode();
             node2->setTransform(m0);
+            node2->setBounds(engine::scene::Bounds::createCube(vec3f{-0.5f}, vec3f{0.5f}));
             scene.rootNode()->addChild(node2);
 
             sizeof(engine::scene::Node);
