@@ -72,7 +72,8 @@ namespace engine::scene {
     void Scene::drawEmptyObjects(Object * object, const mat4f & cameraTransform, uint32_t color) {
         while (object) {
             if (object->node && _debugDraw) {
-                _debugDraw->drawSphere(vec3f{0.0f}, 1.0f, color, 32u, cameraTransform * object->node->worldTransform);
+                _debugDraw->drawSphere(vec3f{0.0f}, static_cast<EmptyObject*>(object)->size, color, 
+                    32u, cameraTransform * object->node->worldTransform);
             }
             object = object->next;
         }
