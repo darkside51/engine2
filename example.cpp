@@ -796,22 +796,28 @@ namespace example {
             auto m1 = engine::makeMatrix(0.75F);
             m1[3] = {1.5f, 0.0f, 0.0f, 1.0f};
 
-            auto * node = scene.createNode();
-            node->setTransform(m0);
-            node->setBounds(engine::scene::Bounds::createSphere(vec3f{0.0f}, 0.5f));
-            scene.rootNode()->addChild(node);
+            auto * node0 = scene.createNode();
+            node0->setTransform(m0);
+            node0->setBounds(engine::scene::Bounds::createSphere(vec3f{0.0f}, 0.5f));
+            scene.rootNode()->addChild(node0);
 
             auto * node1 = scene.createNode();
             node1->setTransform(m1);
             node1->setBounds(engine::scene::Bounds::createSphere(vec3f{0.0f}, 0.5f));
-            node->addChild(node1);
+            node0->addChild(node1);
 
             engine::rotateMatrix_y(m0, -0.76f);
             m0[3] = {-1.0f, 0.0f, 0.0f, 1.0f};
             auto * node2 = scene.createNode();
             node2->setTransform(m0);
-            node2->setBounds(engine::scene::Bounds::createCube(vec3f{-0.5f}, vec3f{0.5f}));
             scene.rootNode()->addChild(node2);
+
+            auto * object = scene.createObject<engine::scene::EmptyObject>(1.0f, node1);
+            auto * object2 = scene.createObject<engine::scene::EmptyObject>(1.0f, node2);
+
+            if (scene.destroyObject(object2)) {
+                scene.destroyNode(node2);
+            }
 
             sizeof(engine::scene::Node);
         }
@@ -1037,6 +1043,7 @@ namespace example {
         // sphere
 
         scene.recalculateNodes(cameraTransform);
+        scene.draw(commandList, frameId, cameraTransform);
 
         debugDraw.prepare(transferCommandList, frameId, _api, _device);
         debugDraw.draw(commandList, frameId);

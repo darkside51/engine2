@@ -4,11 +4,11 @@
 
 namespace engine::scene {
 
-    Scene::Scene(debug::DebugDraw * debugDraw) : _rootNode(createNode()), _debugDraw(debugDraw) {
-
-    }
-
     Scene::~Scene() {
+        for (auto & [_, objects] : _objectCollections) {
+            delete objects;
+        }
+
         destroyNode(_rootNode);
     }
 
@@ -30,18 +30,51 @@ namespace engine::scene {
         }
     }
 
+    bool Scene::destroyObject(Object * object) noexcept {
+        const auto id = object->typeIndex;
+
+        auto it = _objectCollections.find(id);
+        if (it == _objectCollections.end()) {
+            return false;
+        }
+
+        return it->second->destroyObject(object);
+    }
+
     void Scene::recalculateNodes(const mat4f & cameraTransform) noexcept {
         recalculateHierarchy(_rootNode, false, [this, &cameraTransform](engine::scene::Node* n) noexcept { 
-            if (_debugDraw && n->bounds.type != Bounds::Type::eNone) {
+            if (!n->isVisible() || n->isHidden()) {
+                return false;
+            }
+
+            if (_debugDraw) {
                 const auto transform = cameraTransform * n->worldTransform;
                 _debugDraw->drawGizmo(1.0f, transform);
-                _debugDraw->drawBounds(n->bounds, 0xff0000ffu, transform);
+                // _debugDraw->drawCube(vec3f{-0.1f}, vec3f{0.1f}, 0xff00ffffu, transform);
+                _debugDraw->drawBounds(n->bounds, 0xff00ffffu, transform);
             }
             return true;
         });
     }
 
-    void Scene::draw(rhi::runtime::CommandListPtr & commandList, uint8_t frame) {
+    void Scene::draw(rhi::runtime::CommandListPtr & commandList, uint8_t frame, const mat4f & cameraTransform) {
+        for (const auto & [id, objects] : _objectCollections) {
+            switch (id) {
+                case ctti::typeIndex<Object, EmptyObject>():
+                    drawEmptyObjects(objects->rootObject, cameraTransform, 0xffffffffu);
+                break;
+                default: 
+                break;
+            }
+        }
+    }
 
+    void Scene::drawEmptyObjects(Object * object, const mat4f & cameraTransform, uint32_t color) {
+        while (object) {
+            if (object->node && _debugDraw) {
+                _debugDraw->drawSphere(vec3f{0.0f}, 1.0f, color, 32u, cameraTransform * object->node->worldTransform);
+            }
+            object = object->next;
+        }
     }
 }

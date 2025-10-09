@@ -4,17 +4,17 @@ namespace engine::scene {
 
     void Node::setTransform(const mat4f & m) noexcept {
         transform = m;
-        dirtyTransform = true;
+        state.setTransformDirty(true);
     }
 
     bool Node::calculateWorldTransform(bool recalculate) noexcept {
-        if (dirtyTransform || recalculate) {
+        if (state.isTransformDirty() || recalculate) {
             if (parent == nullptr) {
                 worldTransform = transform;
             } else { [[likely]]
                 worldTransform = parent->worldTransform * transform;
             }
-            dirtyTransform = false;
+            state.setTransformDirty(false);
             return true;
         }
 

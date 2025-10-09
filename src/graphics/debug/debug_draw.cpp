@@ -36,7 +36,7 @@ namespace engine::debug {
         info.depthStencilState = {
             {
                 .depthTestEnable = true,
-                .depthWriteEnable = false,
+                .depthWriteEnable = true,
                 .depthCompareOp = rhi::CompareOp::eLess
             }, 
             {}
@@ -71,6 +71,14 @@ namespace engine::debug {
         info.blendModes = {rhi::common_blend_modes::blend_alpha};
         info.rasterisationState = {rhi::PolygonMode::eFill, rhi::CullMode::eNone};
         info.inputAssemblyState = {rhi::PrimitiveTopology::eTriangles, false};
+        info.depthStencilState = {
+            {
+                .depthTestEnable = true,
+                .depthWriteEnable = false,
+                .depthCompareOp = rhi::CompareOp::eLess
+            }, 
+            {}
+        };
 
         _fillPipeline = api->createGraphicsPipeline(device, renderPass, program, info, subpass);
     }
