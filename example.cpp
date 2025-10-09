@@ -804,11 +804,13 @@ namespace example {
             node1->setTransform(m1);
             node->addChild(node1);
 
-            engine::rotateMatrix_y(m0, -1.57f);
+            engine::rotateMatrix_y(m0, -0.76f);
             m0[3] = {-1.0f, 0.0f, 0.0f, 1.0f};
             auto * node2 = scene.createNode();
             node2->setTransform(m0);
             scene.rootNode()->addChild(node2);
+
+            sizeof(engine::scene::Node);
         }
 
     }

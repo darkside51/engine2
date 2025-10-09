@@ -2,6 +2,7 @@
 
 #include "graphics/render/rhi/common/command_list.h"
 #include "graphics/render/rhi/common/pipeline.h"
+#include "graphics/scene/bounds.h"
 #include "math/math.h"
 
 #include <array>
@@ -423,7 +424,7 @@ namespace engine::debug {
     }
 
     void DebugDraw::drawCube(vec3f corner0, vec3f corner1, uint32_t color, const mat4f & transform, Type t) {
-        const auto vSize = static_cast<uint32_t>((_verticesCount + 4u) * kVertexSize);
+        const auto vSize = static_cast<uint32_t>((_verticesCount + 8u) * kVertexSize);
         if (_vertices->sizeInBytes() <= vSize) {
             _vertices->resize(std::max(_vertices->sizeInBytes() * 2u, vSize));
         }
@@ -511,8 +512,28 @@ namespace engine::debug {
         }
 
 
-        _verticesCount += 4u;
+        _verticesCount += 8u;
         _vertices->unmap();
+    }
+
+    void DebugDraw::drawBounds(const scene::Bounds & bounds, uint32_t color, const mat4f & transform) {
+        constexpr uint8_t kBoundsSphereSegments = 7u;
+        switch (bounds.type) {
+        case scene::Bounds::Type::eCube :
+            drawCube(bounds.volume.cube.corner0, bounds.volume.cube.corner1, color, transform);
+            break;
+        case scene::Bounds::Type::eSphere :
+            drawSphere(bounds.volume.sphere.center, bounds.volume.sphere.radius, color, kBoundsSphereSegments, transform);
+            break;
+        default:
+            break;
+        }
+    }
+
+    void DebugDraw::drawGizmo(float size, const mat4f & transform) {
+        drawLines(std::array{engine::vec3f{0.0f, 0.0f, 0.0f}, engine::vec3f{size, 0.0f, 0.0f}}, 0xff0000ffu, transform);
+        drawLines(std::array{engine::vec3f{0.0f, 0.0f, 0.0f}, engine::vec3f{0.0f, size, 0.0f}}, 0xff00ff00u, transform);
+        drawLines(std::array{engine::vec3f{0.0f, 0.0f, 0.0f}, engine::vec3f{0.0f, 0.0f, size}}, 0xffff0000u, transform);
     }
 
 }

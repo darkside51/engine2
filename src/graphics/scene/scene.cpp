@@ -1,8 +1,12 @@
 #include "scene.h"
 
+#include "bounds.h"
+
 namespace engine::scene {
 
-    Scene::Scene(debug::DebugDraw * debugDraw) : _rootNode(createNode()), _debugDraw(debugDraw) {}
+    Scene::Scene(debug::DebugDraw * debugDraw) : _rootNode(createNode()), _debugDraw(debugDraw) {
+        _rootNode->setBounds(Bounds::createCube(vec3f{-0.5f}, vec3f{0.5f}));
+    }
 
     Scene::~Scene() {
         destroyNode(_rootNode);
@@ -29,7 +33,9 @@ namespace engine::scene {
     void Scene::recalculateNodes(const mat4f & cameraTransform) noexcept {
         recalculateHierarchy(_rootNode, false, [this, &cameraTransform](engine::scene::Node* n) noexcept { 
             if (_debugDraw) {
-                _debugDraw->drawSphere(vec3f{0.0f}, 0.5f, 0xff0000ffu, 7u, cameraTransform * n->worldTransform);
+                const auto transform = cameraTransform * n->worldTransform;
+                _debugDraw->drawGizmo(1.0f, transform);
+                _debugDraw->drawBounds(n->bounds, 0xff0000ffu, transform);
             }
             return true;
         });

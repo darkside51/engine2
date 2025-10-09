@@ -71,4 +71,8 @@ namespace engine::scene {
         return parent->removeChild(this);
     }
 
+    void Node::setBounds(const Bounds & newBounds) noexcept {
+        bounds = newBounds;
+    }
+
 }

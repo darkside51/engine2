@@ -8,6 +8,10 @@
 #include <cstdint>
 #include <span>
 
+namespace engine::scene {
+    struct Bounds;
+}
+
 namespace engine::debug {
 
 class DebugDraw {
@@ -40,6 +44,9 @@ public:
     void drawSphere(vec3f center, float r, uint32_t color, uint8_t segments, const mat4f & transform = mat4f{1.0f}, Type t = Type::eFull);
 
     void drawLines(std::span<const vec3f> linesVtxs, uint32_t color, const mat4f & transform = mat4f{1.0f});
+
+    void drawBounds(const scene::Bounds & bounds, uint32_t color, const mat4f & transform = mat4f{1.0f});
+    void drawGizmo(float size, const mat4f & transform = mat4f{1.0f});
 
 private:
     rhi::runtime::PipelinePtr _linePipeline = nullptr;

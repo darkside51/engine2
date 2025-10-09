@@ -123,6 +123,38 @@ namespace engine::vulkan {
             std::span<const VkVertexInputBindingDescription> inputBindings,
             std::span<const VkVertexInputAttributeDescription> attributes
         ) noexcept {
+
+            // can used dinamyc with command if has extensions or vulkan 1.3 :
+            
+            // // Provided by VK_EXT_shader_object, VK_EXT_vertex_input_dynamic_state
+            // typedef struct VkVertexInputBindingDescription2EXT {
+            //     VkStructureType      sType;
+            //     void*                pNext;
+            //     uint32_t             binding;
+            //     uint32_t             stride;
+            //     VkVertexInputRate    inputRate;
+            //     uint32_t             divisor;
+            // } VkVertexInputBindingDescription2EXT;
+
+
+            // Provided by VK_EXT_shader_object, VK_EXT_vertex_input_dynamic_state
+            // typedef struct VkVertexInputAttributeDescription2EXT {
+            //     VkStructureType    sType;
+            //     void*              pNext;
+            //     uint32_t           location;
+            //     uint32_t           binding;
+            //     VkFormat           format;
+            //     uint32_t           offset;
+            // } VkVertexInputAttributeDescription2EXT;
+
+            // Provided by VK_EXT_shader_object, VK_EXT_vertex_input_dynamic_state
+            // void vkCmdSetVertexInputEXT(
+            //     VkCommandBuffer                             commandBuffer,
+            //     uint32_t                                    vertexBindingDescriptionCount,
+            //     const VkVertexInputBindingDescription2EXT*  pVertexBindingDescriptions,
+            //     uint32_t                                    vertexAttributeDescriptionCount,
+            //     const VkVertexInputAttributeDescription2EXT* pVertexAttributeDescriptions);
+
             return {
                 .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
                 .pNext = nullptr,

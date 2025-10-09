@@ -1,6 +1,7 @@
 #pragma once
 
 #include "math/math.h"
+#include "bounds.h"
 
 namespace engine::scene {
 
@@ -13,14 +14,16 @@ struct Node {
     
     Node * parent = nullptr;
     Node * firstChild = nullptr;
-    Node * next = nullptr;
+    Node * next = nullptr; // other childrens in parent (brothers)
 
     mat4f transform{1.0F};
     mat4f worldTransform{1.0F};
+    Bounds bounds = Bounds::createSphere(vec3f{0.0f}, 1.0f);
     bool dirtyTransform = true;
 
     void setTransform(const mat4f & m) noexcept;
     bool calculateWorldTransform(bool recalculate) noexcept;
+    void setBounds(const Bounds & newBounds) noexcept;
 
     void addChild(Node * child) noexcept;
     bool removeChild(Node * child) noexcept;
