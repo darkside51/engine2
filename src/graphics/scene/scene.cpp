@@ -11,7 +11,7 @@ namespace engine::scene {
 
     Scene::~Scene() {
         for (auto & [_, objects] : _objectCollections) {
-            delete objects;
+            delete objects.first;
         }
 
         destroyNode(_rootNode);
@@ -43,11 +43,11 @@ namespace engine::scene {
             return false;
         }
 
-        return it->second->destroyObject(object);
+        return it->second.first->destroyObject(object);
     }
 
     void Scene::recalculateNodes(const mat4f & cameraTransform) noexcept {
-        recalculateHierarchy(_rootNode, false, [this, &cameraTransform](engine::scene::Node* n) noexcept { 
+        recalculateHierarchy(_rootNode, [this, &cameraTransform](engine::scene::Node* n) noexcept { 
             if (!n->isVisible() || n->isHidden()) {
                 return false;
             }
@@ -63,24 +63,45 @@ namespace engine::scene {
     }
 
     void Scene::draw(rhi::runtime::CommandListPtr & commandList, uint8_t frame, const mat4f & cameraTransform) {
-        for (auto & [id, objects] : _objectCollections) {
-            switch (id) {
-                case ctti::typeIndex<Object, EmptyObject>():
-                    drawEmptyObjects(*objects, cameraTransform, 0xffffffffu);
-                break;
-                default: 
-                break;
+        for (uint16_t layer = 0u; layer < 2u; ++layer) {
+            for (auto & [id, objects] : _objectCollections) {
+                if (layer == 0u) {
+                    objects.second = objects.first->begin();
+                }
+
+                switch (id) {
+                    case ctti::typeIndex<Object, EmptyObject>():
+                        if (layer == 0u) {
+                            prepareEmptyObjects(*objects.first);
+                        }
+                        drawEmptyObjects(objects.second, objects.first->end(), cameraTransform, 0xffffffffu, layer);
+                    break;
+                    default: 
+                    break;
+                }
             }
         }
     }
 
-    void Scene::drawEmptyObjects(ObjectsCollection & objects, const mat4f & cameraTransform, uint32_t color) {
+    void Scene::prepareEmptyObjects(ObjectsCollection & objects) {
         if (objects.dirty) {
             // sort by order and layers if need
+            objects.stable_sort([](const Object * a, const Object * b) noexcept {
+                return a->layer < b->layer;
+            });
+
             objects.dirty = false;
         }
+    }
 
-        for (const auto & object : objects) {
+    void Scene::drawEmptyObjects(ObjectsCollection::Iterator it, ObjectsCollection::Iterator end, const mat4f & cameraTransform, 
+        uint32_t color, uint16_t layer) {
+        // for (const auto & object : objects) {
+        for (; it != end; ++it) {
+            const auto & object = *it;
+            if (object.layer > layer) {
+                break;
+            }
             if (object.node && _debugDraw) {
                 _debugDraw->drawSphere(vec3f{0.0f}, static_cast<const EmptyObject&>(object).size, color, 
                     32u, cameraTransform * object.node->worldTransform);

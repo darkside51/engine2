@@ -51,6 +51,7 @@ namespace example {
 
     engine::scene::Camera camera;
     engine::scene::SphereCameraController controller{camera};
+    engine::scene::Node * sceneNodePtr = nullptr;
     engine::mat4f cameraTransform;
     float m = 0.0f;
 
@@ -814,12 +815,15 @@ namespace example {
             scene.rootNode()->addChild(node2);
 
             auto * object = scene.createObject<engine::scene::EmptyObject>(1.0f, node1);
-            auto * object2 = scene.createObject<engine::scene::EmptyObject>(1.0f, node2);
+            auto * object2 = scene.createObject<engine::scene::EmptyObject>(0.5f, node2);
+
+            object->setLayer(1u);
 
             // if (scene.destroyObject(object2)) {
             //     scene.destroyNode(node2);
             // }
 
+            sceneNodePtr = node0;
             sizeof(engine::scene::Node);
         }
 
@@ -936,6 +940,26 @@ namespace example {
         // debugDraw.drawSphere(engine::vec3f{1.0f, 1.0f, 1.2f}, 0.4f, 0x2222ffffu, 32u, cameraTransform, engine::debug::DebugDraw::Type::eFull);
 
         // debugDraw.drawCube(engine::vec3f{1.5f, -0.5f, -0.5f}, engine::vec3f{2.5f, 0.5f, 0.5f}, 0x22ff22ffu, cameraTransform, engine::debug::DebugDraw::Type::eFull);
+    
+        if (sceneNodePtr) {
+            static bool n = false;
+            auto tr = sceneNodePtr->transform;
+            if (!n) {
+                if (tr[3][2] < 1.0f) {
+                    tr[3][2] += 1.0f * delta;
+                } else {
+                    n = true;
+                }
+            } else {
+                if (tr[3][2] > 0.0f) {
+                    tr[3][2] -= 1.0f * delta;
+                } else {
+                    n = false;
+                }
+            }
+            sceneNodePtr->setTransform(tr);
+        }
+    
     }
 
     void Example::prepareFrameDrawData(engine::rhi::runtime::CommandListPtr & commandList, uint8_t frame, float delta) {
