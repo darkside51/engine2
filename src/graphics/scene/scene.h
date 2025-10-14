@@ -9,6 +9,7 @@
 #include "object.h"
 #include "objects_register.h"
 
+#include <memory>
 #include <unordered_map>
 #include <utility>
 
@@ -18,33 +19,12 @@ struct ObjectsCollection {
     virtual ~ObjectsCollection() = default;
     virtual bool destroyObject(Object * object) noexcept { return false; }
 
-    struct Iterator {
-        Object * value = nullptr;
-        Iterator& operator++() noexcept {
-            value = value->next;
-            return *this;
-        }
-        Iterator& operator--() noexcept {
-            value = value->prev;
-            return *this;
-        }
-
-        bool operator==(const Iterator &) const noexcept = default;
-        Object * operator->() noexcept { return value; }
-        Object & operator*() noexcept { return *value; }
-        const Object * operator->() const noexcept { return value; }
-        const Object & operator*() const noexcept { return *value; }
-
-        const Object * get() const noexcept { return value; }
-        Object * get() noexcept { return value; }
-    };
-
-    Iterator begin() const noexcept {
-        return Iterator{.value = first};
+    Object::Iterator begin() const noexcept {
+        return {.value = first};
     }
 
-    Iterator end() const noexcept {
-        return Iterator{.value = nullptr};
+    Object::Iterator end() const noexcept {
+        return {.value = nullptr};
     }
 
     size_t size() const noexcept {
@@ -206,25 +186,29 @@ public:
         constexpr auto id = ctti::typeIndex<Object, T>();
         auto it = _objectCollections.find(id);
         if (it == _objectCollections.end()) {
-            auto [iter, _] = _objectCollections.emplace(id, std::pair{new ObjectsHolder<T>{}, ObjectsCollection::Iterator{}});
+            auto [iter, _] = _objectCollections.emplace(id, std::pair{std::make_unique<ObjectsHolder<T>>(), Object::Iterator{}});
             it = iter;
         }
 
-        auto & objectsData = *static_cast<ObjectsHolder<T>*>(it->second.first);
+        auto & objectsData = static_cast<ObjectsHolder<T>&>(*it->second.first);
         return objectsData.createObject(std::forward<Args>(args)...);
     }
 
     bool destroyObject(Object * object) noexcept;
 
 private:
-    void prepareEmptyObjects(ObjectsCollection & objects);
-    void drawEmptyObjects(ObjectsCollection::Iterator it, ObjectsCollection::Iterator end, const mat4f & cameraTransform, uint32_t color, uint16_t layer);
+    struct Layers {
+        uint16_t minLayer = 0xff'ffu;
+        uint16_t maxLayer = 0u;
+    };
+    Layers prepareObjects(ObjectsCollection & objects, size_t type) noexcept;
+    Object::Iterator drawEmptyObjects(Object::Iterator it, Object::Iterator end, const mat4f & cameraTransform, uint32_t color, uint16_t layer);
 
     using NodesAllocator = allocators::PoolAllocatorChain<sizeof(Node), alignof(Node), false>;
     NodesAllocator _nodeAllocator{512u, 64u};
     Node * _rootNode = nullptr;
 
-    std::unordered_map<size_t, std::pair<ObjectsCollection*, ObjectsCollection::Iterator>> _objectCollections;
+    std::unordered_map<size_t, std::pair<std::unique_ptr<ObjectsCollection>, Object::Iterator>> _objectCollections;
 
     debug::DebugDraw * _debugDraw = nullptr;
 };

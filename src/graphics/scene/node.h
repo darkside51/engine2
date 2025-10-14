@@ -8,17 +8,17 @@
 namespace engine::scene {
 
 constexpr uint8_t kDirtyTransformBit = 0u;
-constexpr uint8_t kVisibleBit = 1u;
+constexpr uint8_t kCulledBit = 1u;
 constexpr uint8_t kHiddenBit = 2u;
 constexpr uint8_t kChildrenTransformsDirty = 3u;
-constexpr uint8_t kDefaultState = 1u << kDirtyTransformBit | 1u << kVisibleBit | 0u << kHiddenBit | 0u << kChildrenTransformsDirty;
+constexpr uint8_t kDefaultState = 1u << kDirtyTransformBit | 0u << kCulledBit | 0u << kHiddenBit | 0u << kChildrenTransformsDirty;
 
 struct Node {
     struct State {
         uint8_t state = kDefaultState;
 
-        inline bool isVisible() const noexcept {
-            return state & (1u << kVisibleBit);
+        inline bool isCulled() const noexcept {
+            return state & (1u << kCulledBit);
         }
 
         inline bool isHidden() const noexcept {
@@ -33,20 +33,21 @@ struct Node {
             return state & (1u << kChildrenTransformsDirty);
         }
 
-        inline void setVisible(bool visible) noexcept {
-            visible ? state |= (1u << kVisibleBit) : state &= ~(1u << kVisibleBit);
-        };
+        inline void setCulled(bool culled) noexcept {
+            culled ? state |= (1u << kCulledBit) : state &= ~(1u << kCulledBit);
+        }
+
         inline void setHidden(bool hidden) noexcept {
             hidden ? state |= (1u << kHiddenBit) : state &= ~(1u << kHiddenBit);
-        };
+        }
 
         inline void setTransformDirty(bool dirty) noexcept {
             dirty ? state |= (1u << kDirtyTransformBit) : state &= ~(1u << kDirtyTransformBit);
-        };
+        }
 
         inline void setChildrenTransformsDirty(bool dirty) noexcept {
             dirty ? state |= (1u << kChildrenTransformsDirty) : state &= ~(1u << kChildrenTransformsDirty);
-        };
+        }
     };
 
     ~Node() {
@@ -72,8 +73,8 @@ struct Node {
     bool removeChild(Node * child) noexcept;
     bool removeFromParent() noexcept;
 
-    inline bool isVisible() const noexcept {
-        return state.isVisible();
+    inline bool isCulled() const noexcept {
+        return state.isCulled();
     }
 
     inline bool isHidden() const noexcept {
@@ -84,20 +85,25 @@ struct Node {
         return state.isTransformDirty();
     }
 
+    inline bool isVisible() const noexcept {
+        return !state.isCulled() && !state.isHidden();
+    }
+
     inline bool isChildrenTransformsDirty() const noexcept {
         return state.isChildrenTransformsDirty();
     }
 
-    inline void setVisible(bool visible) noexcept {
-        state.setVisible(visible);
-    };
+    inline void setCulled(bool culled) noexcept {
+        state.setCulled(culled);
+    }
+    
     inline void setHidden(bool hidden) noexcept {
         state.setHidden(hidden);
-    };
+    }
 
     inline void setTransformDirty(bool dirty) noexcept {
         state.setTransformDirty(dirty);
-    };
+    }
 
     inline void setChildrenTransformsDirty(bool dirty) noexcept {
         state.setChildrenTransformsDirty(dirty);
@@ -125,12 +131,12 @@ void recalculateHierarchy(Node * node, VisibleChecker && v, bool forceRecalculat
             if (node->calculateWorldTransform(forceRecalculate || (node->parent ? node->parent->isChildrenTransformsDirty() : false))) {
                 node->setChildrenTransformsDirty(true);
             }
-            node->setVisible(v(node));
+            node->setCulled(!v(node));
         } else {
             node->setChildrenTransformsDirty(false); // end child calculation
         }
         
-        if (node->isVisible() && !node->isHidden() && node->firstChild && process) {
+        if (node->isVisible() && node->firstChild && process) {
             node = node->firstChild;
             process = true;
         } else if(node->next != nullptr) {

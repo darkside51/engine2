@@ -10,9 +10,8 @@ namespace engine::scene {
     }
 
     Scene::~Scene() {
-        for (auto & [_, objects] : _objectCollections) {
-            delete objects.first;
-        }
+        // for (auto & [_, objects] : _objectCollections) {
+        // }
 
         destroyNode(_rootNode);
     }
@@ -48,7 +47,7 @@ namespace engine::scene {
 
     void Scene::recalculateNodes(const mat4f & cameraTransform) noexcept {
         recalculateHierarchy(_rootNode, [this, &cameraTransform](engine::scene::Node* n) noexcept { 
-            if (!n->isVisible() || n->isHidden()) {
+            if (!n->isVisible()) {
                 return false;
             }
 
@@ -62,19 +61,69 @@ namespace engine::scene {
         });
     }
 
-    void Scene::draw(rhi::runtime::CommandListPtr & commandList, uint8_t frame, const mat4f & cameraTransform) {
-        for (uint16_t layer = 0u; layer < 2u; ++layer) {
-            for (auto & [id, objects] : _objectCollections) {
-                if (layer == 0u) {
-                    objects.second = objects.first->begin();
-                }
+    Scene::Layers Scene::prepareObjects(ObjectsCollection & objects, size_t type) noexcept {
 
+        const auto layersDet2 = [](Scene::Layers & result, const Object * a, const Object * b) noexcept {
+            if (a->node->isVisible() && b->node->isVisible()) {
+                auto const [min, max] = std::minmax(a->layer, b->layer);
+                result.minLayer = std::min(result.minLayer, min);
+                result.maxLayer = std::max(result.maxLayer, max);
+            } else if (a->node->isVisible()){
+                result.minLayer = std::min(result.minLayer, a->layer);
+                result.maxLayer = std::max(result.maxLayer, a->layer);
+            } else if (b->node->isVisible()) {
+                result.minLayer = std::min(result.minLayer, b->layer);
+                result.maxLayer = std::max(result.maxLayer, b->layer);
+            }
+        };
+
+        const auto layersDet1 = [](Scene::Layers & result, const Object & a) noexcept {
+            if (a.node->isVisible()) {
+                result.minLayer = std::min(result.minLayer, a.layer);
+                result.maxLayer = std::max(result.maxLayer, a.layer);
+            }
+        };
+
+        Scene::Layers result{};
+        switch (type) {
+            case ctti::typeIndex<Object, EmptyObject>():
+            {
+                if (objects.dirty) {
+                    // sort by order and layers if need
+                    objects.stable_sort([&result, &layersDet2](const Object * a, const Object * b) noexcept {
+                        layersDet2(result, a, b);
+                        return a->layer < b->layer;
+                    });
+
+                    objects.dirty = false;
+                } else {
+                    for (const auto & object : objects) {
+                        layersDet1(result, object);
+                    }
+                }
+            }
+            break;
+            default: 
+            break;
+        }
+
+        return result;
+    }
+
+    void Scene::draw(rhi::runtime::CommandListPtr & commandList, uint8_t frame, const mat4f & cameraTransform) {
+        Scene::Layers layers{};
+        for (auto & [id, objects] : _objectCollections) {
+            objects.second = objects.first->begin();
+            const auto objectsLayers = prepareObjects(*objects.first, id);
+            layers.minLayer = std::min(layers.minLayer, objectsLayers.minLayer);
+            layers.maxLayer = std::max(layers.maxLayer, objectsLayers.maxLayer);
+        }
+
+        for (uint16_t layer = layers.minLayer; layer <= layers.maxLayer; ++layer) {
+            for (auto & [id, objects] : _objectCollections) {
                 switch (id) {
                     case ctti::typeIndex<Object, EmptyObject>():
-                        if (layer == 0u) {
-                            prepareEmptyObjects(*objects.first);
-                        }
-                        drawEmptyObjects(objects.second, objects.first->end(), cameraTransform, 0xffffffffu, layer);
+                        objects.second = drawEmptyObjects(objects.second, objects.first->end(), cameraTransform, 0xffffffffu, layer);
                     break;
                     default: 
                     break;
@@ -83,29 +132,20 @@ namespace engine::scene {
         }
     }
 
-    void Scene::prepareEmptyObjects(ObjectsCollection & objects) {
-        if (objects.dirty) {
-            // sort by order and layers if need
-            objects.stable_sort([](const Object * a, const Object * b) noexcept {
-                return a->layer < b->layer;
-            });
-
-            objects.dirty = false;
-        }
-    }
-
-    void Scene::drawEmptyObjects(ObjectsCollection::Iterator it, ObjectsCollection::Iterator end, const mat4f & cameraTransform, 
+    Object::Iterator Scene::drawEmptyObjects(Object::Iterator it, Object::Iterator end, const mat4f & cameraTransform, 
         uint32_t color, uint16_t layer) {
         // for (const auto & object : objects) {
         for (; it != end; ++it) {
             const auto & object = *it;
-            if (object.layer > layer) {
+            if (object.layer != layer) {
                 break;
             }
-            if (object.node && _debugDraw) {
+            if (object.node && object.node->isVisible() && _debugDraw) {
                 _debugDraw->drawSphere(vec3f{0.0f}, static_cast<const EmptyObject&>(object).size, color, 
                     32u, cameraTransform * object.node->worldTransform);
             }
         }
+
+        return it;
     }
 }

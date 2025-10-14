@@ -2,15 +2,15 @@
 
 #include "node.h"
 #include "math/math.h"
+#include "utils/intrusive_list.h"
 
 #include <cstdint>
 
 namespace engine::scene {
 
-    struct Object {
+    struct Object : IntrusiveListNode<Object> {
         Node * node = nullptr;
-        Object *next = nullptr;
-        Object *prev = nullptr;
+       
         uint16_t typeIndex = 0u;
         uint16_t layer = 0u;
 
