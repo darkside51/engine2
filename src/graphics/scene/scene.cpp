@@ -45,12 +45,8 @@ namespace engine::scene {
         return it->second.first->destroyObject(object);
     }
 
-    void Scene::recalculateNodes(const mat4f & cameraTransform) noexcept {
+    void Scene::recalculate(const mat4f & cameraTransform) noexcept {
         recalculateHierarchy(_rootNode, [this, &cameraTransform](engine::scene::Node* n) noexcept { 
-            if (!n->isVisible()) {
-                return false;
-            }
-
             if (_debugDraw) {
                 const auto transform = cameraTransform * n->worldTransform;
                 _debugDraw->drawGizmo(1.0f, transform);
@@ -63,17 +59,17 @@ namespace engine::scene {
 
     Scene::Layers Scene::prepareObjects(ObjectsCollection & objects, size_t type) noexcept {
 
-        const auto layersDet2 = [](Scene::Layers & result, const Object * a, const Object * b) noexcept {
-            if (a->node->isVisible() && b->node->isVisible()) {
-                auto const [min, max] = std::minmax(a->layer, b->layer);
+        const auto layersDet2 = [](Scene::Layers & result, const Object & a, const Object & b) noexcept {
+            if (a.node->isVisible() && b.node->isVisible()) {
+                auto const [min, max] = std::minmax(a.layer, b.layer);
                 result.minLayer = std::min(result.minLayer, min);
                 result.maxLayer = std::max(result.maxLayer, max);
-            } else if (a->node->isVisible()){
-                result.minLayer = std::min(result.minLayer, a->layer);
-                result.maxLayer = std::max(result.maxLayer, a->layer);
-            } else if (b->node->isVisible()) {
-                result.minLayer = std::min(result.minLayer, b->layer);
-                result.maxLayer = std::max(result.maxLayer, b->layer);
+            } else if (a.node->isVisible()){
+                result.minLayer = std::min(result.minLayer, a.layer);
+                result.maxLayer = std::max(result.maxLayer, a.layer);
+            } else if (b.node->isVisible()) {
+                result.minLayer = std::min(result.minLayer, b.layer);
+                result.maxLayer = std::max(result.maxLayer, b.layer);
             }
         };
 
@@ -90,9 +86,9 @@ namespace engine::scene {
             {
                 if (objects.dirty) {
                     // sort by order and layers if need
-                    objects.stable_sort([&result, &layersDet2](const Object * a, const Object * b) noexcept {
+                    objects.stable_sort([&result, &layersDet2](const Object & a, const Object & b) noexcept {
                         layersDet2(result, a, b);
-                        return a->layer < b->layer;
+                        return a.layer < b.layer;
                     });
 
                     objects.dirty = false;
@@ -119,7 +115,7 @@ namespace engine::scene {
             layers.maxLayer = std::max(layers.maxLayer, objectsLayers.maxLayer);
         }
 
-        for (uint16_t layer = layers.minLayer; layer <= layers.maxLayer; ++layer) {
+        for (auto layer = layers.minLayer; layer <= layers.maxLayer; ++layer) {
             for (auto & [id, objects] : _objectCollections) {
                 switch (id) {
                     case ctti::typeIndex<Object, EmptyObject>():

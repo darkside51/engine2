@@ -814,10 +814,11 @@ namespace example {
             node2->setBounds(engine::scene::Bounds::createCube(vec3f{-0.75f}, vec3f{0.75f}));
             scene.rootNode()->addChild(node2);
 
-            auto * object = scene.createObject<engine::scene::EmptyObject>(1.0f, node1);
+            auto * object1 = scene.createObject<engine::scene::EmptyObject>(1.0f, node1);
             auto * object2 = scene.createObject<engine::scene::EmptyObject>(0.5f, node2);
 
-            object->setLayer(1u);
+            object1->setLayer(1u);
+            // object1->node->setHidden(true);
 
             // if (scene.destroyObject(object2)) {
             //     scene.destroyNode(node2);
@@ -1067,7 +1068,7 @@ namespace example {
         // // }
         // sphere
 
-        scene.recalculateNodes(cameraTransform);
+        scene.recalculate(cameraTransform);
         scene.draw(commandList, frameId, cameraTransform);
 
         debugDraw.prepare(transferCommandList, frameId, _api, _device);

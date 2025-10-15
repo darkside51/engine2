@@ -9,6 +9,7 @@
 namespace engine::scene {
 
     struct Object : IntrusiveListNode<Object> {
+        using Iterator = IntrusiveList<Object>::Iterator;
         Node * node = nullptr;
        
         uint16_t typeIndex = 0u;
