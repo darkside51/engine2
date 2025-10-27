@@ -1,5 +1,6 @@
 #include "scene.h"
 #include "bounds.h"
+#include "frustum.h"
 
 #include <algorithm>
 
@@ -46,12 +47,20 @@ namespace engine::scene {
     }
 
     void Scene::recalculate(const mat4f & cameraTransform) noexcept {
-        recalculateHierarchy(_rootNode, [this, &cameraTransform](engine::scene::Node* n) noexcept { 
-            if (_debugDraw) {
+        const Frustum frustum(cameraTransform);
+
+        recalculateHierarchy(_rootNode, [this, &frustum, &cameraTransform](engine::scene::Node * n) noexcept { 
+            const auto & bounds = n->bounds;
+            if (bounds.type != Bounds::Type::eNone) {
+                if (!frustum.checkBounds(bounds.transform(n->worldTransform))) {
+                    return false;
+                }
+            }
+
+            if (_debugDraw && !n->isHidden()) {
                 const auto transform = cameraTransform * n->worldTransform;
                 _debugDraw->drawGizmo(1.0f, transform);
-                // _debugDraw->drawCube(vec3f{-0.1f}, vec3f{0.1f}, 0xff00ffffu, transform);
-                _debugDraw->drawBounds(n->bounds, 0xff00ffffu, transform);
+                _debugDraw->drawBounds(bounds, 0xff00ffffu, transform);
             }
             return true;
         });
@@ -60,24 +69,14 @@ namespace engine::scene {
     Scene::Layers Scene::prepareObjects(ObjectsCollection & objects, size_t type) noexcept {
 
         const auto layersDet2 = [](Scene::Layers & result, const Object & a, const Object & b) noexcept {
-            if (a.node->isVisible() && b.node->isVisible()) {
-                auto const [min, max] = std::minmax(a.layer, b.layer);
-                result.minLayer = std::min(result.minLayer, min);
-                result.maxLayer = std::max(result.maxLayer, max);
-            } else if (a.node->isVisible()){
-                result.minLayer = std::min(result.minLayer, a.layer);
-                result.maxLayer = std::max(result.maxLayer, a.layer);
-            } else if (b.node->isVisible()) {
-                result.minLayer = std::min(result.minLayer, b.layer);
-                result.maxLayer = std::max(result.maxLayer, b.layer);
-            }
+            auto const [min, max] = std::minmax(a.layer, b.layer);
+            result.minLayer = std::min(result.minLayer, min);
+            result.maxLayer = std::max(result.maxLayer, max);
         };
 
         const auto layersDet1 = [](Scene::Layers & result, const Object & a) noexcept {
-            if (a.node->isVisible()) {
-                result.minLayer = std::min(result.minLayer, a.layer);
-                result.maxLayer = std::max(result.maxLayer, a.layer);
-            }
+            result.minLayer = std::min(result.minLayer, a.layer);
+            result.maxLayer = std::max(result.maxLayer, a.layer);
         };
 
         Scene::Layers result{};
@@ -88,7 +87,10 @@ namespace engine::scene {
                     // sort by order and layers if need
                     objects.stable_sort([&result, &layersDet2](const Object & a, const Object & b) noexcept {
                         layersDet2(result, a, b);
-                        return a.layer < b.layer;
+                        if (a.layer != b.layer) {
+                            return a.layer < b.layer;
+                        }
+                        return a.node->isVisible() > b.node->isVisible();
                     });
 
                     objects.dirty = false;
@@ -119,7 +121,7 @@ namespace engine::scene {
             for (auto & [id, objects] : _objectCollections) {
                 switch (id) {
                     case ctti::typeIndex<Object, EmptyObject>():
-                        objects.second = drawEmptyObjects(objects.second, objects.first->end(), cameraTransform, 0xffffffffu, layer);
+                        objects.second = drawEmptyObjects(objects.second, objects.first->end(), cameraTransform, 0xff'00'00'ffu, layer);
                     break;
                     default: 
                     break;
@@ -136,9 +138,12 @@ namespace engine::scene {
             if (object.layer != layer) {
                 break;
             }
-            if (object.node && object.node->isVisible() && _debugDraw) {
+            if (object.node) {
+                if (object.node->isVisible() && _debugDraw) {
                 _debugDraw->drawSphere(vec3f{0.0f}, static_cast<const EmptyObject&>(object).size, color, 
                     32u, cameraTransform * object.node->worldTransform);
+                }
+                object.node->setActive(false); //
             }
         }
 

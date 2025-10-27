@@ -11,7 +11,10 @@ constexpr uint8_t kDirtyTransformBit = 0u;
 constexpr uint8_t kCulledBit = 1u;
 constexpr uint8_t kHiddenBit = 2u;
 constexpr uint8_t kChildrenTransformsDirty = 3u;
-constexpr uint8_t kDefaultState = 1u << kDirtyTransformBit | 0u << kCulledBit | 0u << kHiddenBit | 0u << kChildrenTransformsDirty;
+constexpr uint8_t kActive = 4u;
+constexpr uint8_t kDefaultState = 1u << kDirtyTransformBit | 
+                                0u << kCulledBit | 0u << kHiddenBit | 
+                                0u << kChildrenTransformsDirty | 1u << kActive;
 
 struct Node {
     struct State {
@@ -33,6 +36,10 @@ struct Node {
             return state & (1u << kChildrenTransformsDirty);
         }
 
+        inline bool isActive() const noexcept {
+            return state & (1u << kActive);
+        }
+
         inline void setCulled(bool culled) noexcept {
             culled ? state |= (1u << kCulledBit) : state &= ~(1u << kCulledBit);
         }
@@ -47,6 +54,10 @@ struct Node {
 
         inline void setChildrenTransformsDirty(bool dirty) noexcept {
             dirty ? state |= (1u << kChildrenTransformsDirty) : state &= ~(1u << kChildrenTransformsDirty);
+        }
+
+        inline void setActive(bool active) noexcept {
+            active ? state |= (1u << kActive) : state &= ~(1u << kActive);
         }
     };
 
@@ -86,11 +97,15 @@ struct Node {
     }
 
     inline bool isVisible() const noexcept {
-        return !state.isCulled() && !state.isHidden();
+        return !state.isCulled() && !state.isHidden() && state.isActive();
     }
 
     inline bool isChildrenTransformsDirty() const noexcept {
         return state.isChildrenTransformsDirty();
+    }
+
+    inline bool isActive() const noexcept {
+        return state.isActive();
     }
 
     inline void setCulled(bool culled) noexcept {
@@ -107,6 +122,10 @@ struct Node {
 
     inline void setChildrenTransformsDirty(bool dirty) noexcept {
         state.setChildrenTransformsDirty(dirty);
+    }
+
+    inline void setActive(bool active) noexcept {
+        state.setActive(active);
     }
 };
 
@@ -132,6 +151,7 @@ void recalculateHierarchy(Node * node, VisibleChecker && v, bool forceRecalculat
                 node->setChildrenTransformsDirty(true);
             }
             node->setCulled(!v(node));
+            node->setActive(true); // node has been checked!
         } else {
             node->setChildrenTransformsDirty(false); // end child calculation
         }
