@@ -3,16 +3,25 @@
 namespace engine::scene {
 
     void Node::setTransform(const mat4f & m) noexcept {
-        transform = m;
+        if (isFinal()) {
+            return;
+        }
+
+        data.link.transform = m;
         state.setTransformDirty(true);
     }
 
     bool Node::calculateWorldTransform(bool recalculate) noexcept {
+        if (isFinal()) {
+            return false;
+        }
+
         if (state.isTransformDirty() || recalculate) {
+            auto & link = data.link;
             if (parent == nullptr) {
-                worldTransform = transform;
+                link.worldTransform = link.transform;
             } else { [[likely]]
-                worldTransform = parent->worldTransform * transform;
+                link.worldTransform = parent->data.link.worldTransform * link.transform;
             }
             state.setTransformDirty(false);
             return true;
@@ -22,6 +31,11 @@ namespace engine::scene {
     }
 
     void Node::addChild(Node * child) noexcept {
+        if (isFinal()) {
+            // todo: log
+            return;
+        }
+
         if (child->parent) {
             // todo: log
             return;
@@ -29,12 +43,13 @@ namespace engine::scene {
 
         child->parent = this;
 
-        if (firstChild == nullptr) {
-            firstChild = child;
+        auto & link = data.link;
+        if (link.firstChild == nullptr) {
+            link.firstChild = child;
             return;
         }
 
-        Node * n = firstChild;
+        Node * n = link.firstChild;
         while (n->next) {
             n = n->next;
         }
@@ -42,19 +57,25 @@ namespace engine::scene {
     }
 
     bool Node::removeChild(Node * child) noexcept {
-        if (!child->parent || child->parent != this || !firstChild) {
+        if (isFinal()) {
+            // todo: log
+            return false;
+        }
+
+        auto & link = data.link;
+        if (child->parent != this || !link.firstChild) {
             // todo: log
             return false;
         }
 
         child->parent = nullptr;
 
-        if (child == firstChild) {
-            firstChild = child->next;
+        if (child == link.firstChild) {
+            link.firstChild = child->next;
             return true;
         }
 
-        Node * n = firstChild;
+        Node * n = link.firstChild;
         while (n->next) {
             if (n->next == child) {
                 n->next = child->next;

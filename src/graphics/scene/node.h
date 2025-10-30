@@ -3,22 +3,34 @@
 #include "math/math.h"
 #include "bounds.h"
 
+#include <cassert>
 #include <cstdint>
 
 namespace engine::scene {
 
-constexpr uint8_t kDirtyTransformBit = 0u;
-constexpr uint8_t kCulledBit = 1u;
-constexpr uint8_t kHiddenBit = 2u;
-constexpr uint8_t kChildrenTransformsDirty = 3u;
-constexpr uint8_t kActive = 4u;
+constexpr uint8_t kFinalNodeBit = 0u;
+constexpr uint8_t kDirtyTransformBit = 1u;
+constexpr uint8_t kCulledBit = 2u;
+constexpr uint8_t kHiddenBit = 3u;
+constexpr uint8_t kChildrenTransformsDirty = 4u;
+constexpr uint8_t kActive = 5u; // todo: remove it
+
 constexpr uint8_t kDefaultState = 1u << kDirtyTransformBit | 
                                 0u << kCulledBit | 0u << kHiddenBit | 
                                 0u << kChildrenTransformsDirty | 1u << kActive;
 
+constexpr uint8_t kDefaultIntermediateState = 0u << kFinalNodeBit | kDefaultState;
+constexpr uint8_t kDefaultFinalState = 1u << kFinalNodeBit | kDefaultState;
+
+struct Object;
+
 struct Node {
     struct State {
         uint8_t state = kDefaultState;
+
+        inline bool isFinal() const noexcept {
+            return state & 1u;
+        }
 
         inline bool isCulled() const noexcept {
             return state & (1u << kCulledBit);
@@ -61,18 +73,38 @@ struct Node {
         }
     };
 
+    struct Intermediate {
+        Node * firstChild = nullptr; // children begin
+        mat4f transform{1.0F};
+        mat4f worldTransform{1.0F};
+    };
+
+    struct Final {
+        enum class ObjectType : uint8_t {
+            eUnknown = 0u,
+            eGraphics = 1u,
+            eSound = 2u
+        };
+        Object * object = nullptr;
+        ObjectType type = ObjectType::eUnknown;
+    };
+
+    union Data {
+        Intermediate link{};
+        Final object;
+    };
+
+    explicit Node(bool final) : state{final ? kDefaultFinalState : kDefaultIntermediateState} {}
+
     ~Node() {
         parent = nullptr;
-        firstChild = nullptr;
         next = nullptr;
+        data.link.firstChild = nullptr;
     }
     
     Node * parent = nullptr;
-    Node * firstChild = nullptr;
     Node * next = nullptr; // other childrens in parent (brothers)
-
-    mat4f transform{1.0F};
-    mat4f worldTransform{1.0F};
+    Data data = {};
     Bounds bounds{};
     State state;
 
@@ -83,6 +115,14 @@ struct Node {
     void addChild(Node * child) noexcept;
     bool removeChild(Node * child) noexcept;
     bool removeFromParent() noexcept;
+
+    inline bool isFinal() const noexcept {
+        return state.isFinal();
+    }
+
+    inline bool isIntermediate() const noexcept {
+        return !state.isFinal();
+    }
 
     inline bool isCulled() const noexcept {
         return state.isCulled();
@@ -127,6 +167,17 @@ struct Node {
     inline void setActive(bool active) noexcept {
         state.setActive(active);
     }
+
+    const mat4f & getTransform() noexcept {
+        assert(isIntermediate());
+        return data.link.transform;
+    }
+
+    const mat4f & getWorldTransform() noexcept {
+        const bool intermediate = isIntermediate();
+        assert(parent != nullptr || intermediate);
+        return intermediate ? data.link.worldTransform : parent->data.link.worldTransform;
+    } 
 };
 
 // template <typename VisibleChecker>
@@ -146,25 +197,40 @@ template <typename VisibleChecker>
 void recalculateHierarchy(Node * node, VisibleChecker && v, bool forceRecalculate = false) noexcept {
     bool process = true;
     while (node != nullptr) {
-        if (process) {
-            if (node->calculateWorldTransform(forceRecalculate || (node->parent ? node->parent->isChildrenTransformsDirty() : false))) {
-                node->setChildrenTransformsDirty(true);
+        if (node->isFinal()) { // has no children
+            if (process) {
+                node->setCulled(!v(node));
+                node->setActive(true); // node has been checked!
             }
-            node->setCulled(!v(node));
-            node->setActive(true); // node has been checked!
+
+            if (node->next != nullptr) {
+                node = node->next;
+                process = true;
+            } else {
+                node = node->parent;
+                process = false;
+            }
         } else {
-            node->setChildrenTransformsDirty(false); // end child calculation
-        }
-        
-        if (node->isVisible() && node->firstChild && process) {
-            node = node->firstChild;
-            process = true;
-        } else if(node->next != nullptr) {
-            node = node->next;
-            process = true;
-        } else {
-            node = node->parent;
-            process = false;
+            if (process) {
+                if (node->calculateWorldTransform(forceRecalculate || (node->parent ? node->parent->isChildrenTransformsDirty() : false))) {
+                    node->setChildrenTransformsDirty(true);
+                }
+                node->setCulled(!v(node));
+                node->setActive(true); // node has been checked!
+            } else {
+                node->setChildrenTransformsDirty(false); // end child calculation
+            }
+            
+            if (node->isVisible() && node->data.link.firstChild && process) {
+                node = node->data.link.firstChild;
+                process = true;
+            } else if (node->next != nullptr) {
+                node = node->next;
+                process = true;
+            } else {
+                node = node->parent;
+                process = false;
+            }
         }
     }
 }

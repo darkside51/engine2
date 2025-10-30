@@ -945,7 +945,7 @@ namespace example {
     
         if (sceneNodePtr) {
             static bool n = false;
-            auto tr = sceneNodePtr->transform;
+            auto tr = sceneNodePtr->getTransform();
             if (!n) {
                 if (tr[3][2] < 1.0f) {
                     tr[3][2] += 1.0f * delta;

@@ -18,12 +18,16 @@ namespace engine::scene {
     }
 
     Node * Scene::createNode() noexcept {
-        return _nodeAllocator.create<engine::scene::Node>();
+        return _nodeAllocator.create<engine::scene::Node>(false);
+    }
+
+    Node * Scene::createFinalNode() noexcept {
+        return _nodeAllocator.create<engine::scene::Node>(true);
     }
 
     void Scene::destroyNode(Node * node) noexcept {
         if (node->removeFromParent() || node == _rootNode) {
-            if (Node * n = node->firstChild) {
+            if (Node * n = node->isIntermediate() ? node->data.link.firstChild : nullptr) {
                 while (n->next) {
                     auto * n1 = n->next;
                     destroyNode(n);
@@ -49,16 +53,17 @@ namespace engine::scene {
     void Scene::recalculate(const mat4f & cameraTransform) noexcept {
         const Frustum frustum(cameraTransform);
 
-        recalculateHierarchy(_rootNode, [this, &frustum, &cameraTransform](engine::scene::Node * n) noexcept { 
+        recalculateHierarchy(_rootNode, [this, &frustum, &cameraTransform](Node * n) noexcept { 
             const auto & bounds = n->bounds;
+            const auto & worldTransform =  n->getWorldTransform();
             if (bounds.type != Bounds::Type::eNone) {
-                if (!frustum.checkBounds(bounds.transform(n->worldTransform))) {
+                if (!frustum.checkBounds(bounds.transform(worldTransform))) {
                     return false;
                 }
             }
 
             if (_debugDraw && !n->isHidden()) {
-                const auto transform = cameraTransform * n->worldTransform;
+                const auto transform = cameraTransform * worldTransform;
                 _debugDraw->drawGizmo(1.0f, transform);
                 _debugDraw->drawBounds(bounds, 0xff00ffffu, transform);
             }
@@ -141,7 +146,7 @@ namespace engine::scene {
             if (object.node) {
                 if (object.node->isVisible() && _debugDraw) {
                 _debugDraw->drawSphere(vec3f{0.0f}, static_cast<const EmptyObject&>(object).size, color, 
-                    32u, cameraTransform * object.node->worldTransform);
+                    32u, cameraTransform * object.node->getWorldTransform());
                 }
                 object.node->setActive(false); //
             }

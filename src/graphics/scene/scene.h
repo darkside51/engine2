@@ -53,6 +53,7 @@ public:
     ~Scene();
 
     Node * createNode() noexcept;
+    Node * createFinalNode() noexcept;
     void destroyNode(Node * node) noexcept;
     Node * rootNode() noexcept { return _rootNode; }
 
