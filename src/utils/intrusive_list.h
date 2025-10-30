@@ -43,6 +43,10 @@ namespace engine {
             return {.value = nullptr};
         }
 
+        Iterator back() const noexcept {
+            return {.value = last};
+        }
+
         size_t size() const noexcept {
             size_t result = 0u;
             for (const auto & value : *this) {
@@ -52,7 +56,7 @@ namespace engine {
         }
 
         bool empty() const noexcept {
-            return first == last;
+            return first == nullptr;
         }
 
         void clear() noexcept {
@@ -61,6 +65,8 @@ namespace engine {
         }
 
         void emplace(Node * node) noexcept {
+            node->next = nullptr;
+            node->prev = nullptr;
             if (first == nullptr) {
                 first = node;
             } else {

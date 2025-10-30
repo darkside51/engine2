@@ -116,6 +116,10 @@ struct Node {
     bool removeChild(Node * child) noexcept;
     bool removeFromParent() noexcept;
 
+    void setObject(Object * object, Final::ObjectType type = Final::ObjectType::eGraphics) noexcept;
+    Object * removeObject() noexcept;
+    Object * getObject() const noexcept;
+
     inline bool isFinal() const noexcept {
         return state.isFinal();
     }

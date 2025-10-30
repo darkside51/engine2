@@ -123,7 +123,7 @@ namespace allocators {
             constexpr auto size = element_size();
             static_assert((mask & align) == 0u); // check align is pow2
             
-            _allocatedMemory = malloc((_capacity * size) + mask);
+            _allocatedMemory = std::malloc((_capacity * size) + mask);
             _memory = reinterpret_cast<memory_element_type*>((reinterpret_cast<uintptr_t>(_allocatedMemory) + mask) & ~mask);
             // _allocatedMemory = std::aligned_alloc(align, (_capacity * size));
             // _memory = reinterpret_cast<memory_element_type*>(_allocatedMemory);
@@ -136,7 +136,7 @@ namespace allocators {
 
         ~PoolAllocator() {
             if (_allocatedMemory) {
-                free(_allocatedMemory);
+                std::free(_allocatedMemory);
             }
         }
 

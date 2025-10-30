@@ -1,4 +1,5 @@
 #include "node.h"
+#include "object.h"
 
 namespace engine::scene {
 
@@ -90,6 +91,35 @@ namespace engine::scene {
     bool Node::removeFromParent() noexcept {
         if (parent == nullptr) return false;
         return parent->removeChild(this);
+    }
+
+    void Node::setObject(Object * object, Final::ObjectType type) noexcept {
+        if (isIntermediate()) {
+            return;
+        }
+
+        data.object.object = object;
+        data.object.type = type;
+    }
+
+    Object * Node::removeObject() noexcept {
+        if (isIntermediate()) {
+            return nullptr;
+        }
+
+        auto * result = data.object.object;
+        data.object.object = nullptr;
+        data.object.type = Final::ObjectType::eUnknown;
+        result->matrix = nullptr;
+        return result;
+    }
+
+    Object * Node::getObject() const noexcept {
+        if (isIntermediate()) {
+            return nullptr;
+        }
+
+        return data.object.object;
     }
 
     void Node::setBounds(const Bounds & newBounds) noexcept {

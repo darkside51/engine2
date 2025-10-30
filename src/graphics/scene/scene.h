@@ -14,18 +14,10 @@
 #include <utility>
 
 namespace engine::scene {
-
-struct ObjectsCollection : IntrusiveList<Object> {
+    
+struct ObjectsCollection {
     virtual ~ObjectsCollection() = default;
     virtual bool destroyObject(Object * object) noexcept { return false; }
-
-    void emplace(Object * object) noexcept {
-        IntrusiveList<Object>::emplace(object);
-        dirty = true;
-    }
-   
-public:
-    bool dirty = false;
 };
 
 template<typename T>
@@ -36,13 +28,10 @@ struct ObjectsHolder : ObjectsCollection {
 
     template <typename... Args>
     Object * createObject(Args &&... args) noexcept {
-        auto * object = allocator.template create<T>(std::forward<Args>(args)...);
-        emplace(object);
-        return object;
+        return allocator.template create<T>(std::forward<Args>(args)...);
     }
 
     bool destroyObject(Object * object) noexcept override {
-        remove(object);
         return allocator.destroy(object);
     }
 };
@@ -57,37 +46,32 @@ public:
     void destroyNode(Node * node) noexcept;
     Node * rootNode() noexcept { return _rootNode; }
 
-    void recalculate(const mat4f & cameraTransform) noexcept;
-    void draw(rhi::runtime::CommandListPtr & commandList, uint8_t frame, const mat4f & cameraTransform);
+    IntrusiveList<Object> recalculate(const mat4f & cameraTransform) noexcept;
+    void draw(rhi::runtime::CommandListPtr & commandList, uint8_t frame, const mat4f & cameraTransform, IntrusiveList<Object> & objects);
 
     template <typename T, typename... Args>
     Object * createObject(Args &&... args) {
         constexpr auto id = ctti::typeIndex<Object, T>();
         auto it = _objectCollections.find(id);
         if (it == _objectCollections.end()) {
-            auto [iter, _] = _objectCollections.emplace(id, std::pair{std::make_unique<ObjectsHolder<T>>(), Object::Iterator{}});
+            auto [iter, _] = _objectCollections.emplace(id, std::make_unique<ObjectsHolder<T>>());
             it = iter;
         }
 
-        auto & objectsData = static_cast<ObjectsHolder<T>&>(*it->second.first);
+        auto & objectsData = static_cast<ObjectsHolder<T>&>(*it->second);
         return objectsData.createObject(std::forward<Args>(args)...);
     }
 
     bool destroyObject(Object * object) noexcept;
 
 private:
-    struct Layers {
-        uint16_t minLayer = 0xff'ffu;
-        uint16_t maxLayer = 0u;
-    };
-    Layers prepareObjects(ObjectsCollection & objects, size_t type) noexcept;
-    Object::Iterator drawEmptyObjects(Object::Iterator it, Object::Iterator end, const mat4f & cameraTransform, uint32_t color, uint16_t layer);
+    void drawEmptyObjects(Object::Iterator begin, Object::Iterator end, const mat4f & cameraTransform, uint32_t color);
 
     using NodesAllocator = allocators::PoolAllocatorChain<sizeof(Node), alignof(Node), false>;
     NodesAllocator _nodeAllocator{512u, 64u};
     Node * _rootNode = nullptr;
 
-    std::unordered_map<size_t, std::pair<std::unique_ptr<ObjectsCollection>, Object::Iterator>> _objectCollections;
+    std::unordered_map<size_t, std::unique_ptr<ObjectsCollection>> _objectCollections;
 
     debug::DebugDraw * _debugDraw = nullptr;
 };

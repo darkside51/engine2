@@ -3,7 +3,6 @@
 
 namespace engine::scene {
 
-    EmptyObject::EmptyObject(float s, Node * node) : Object(ctti::typeIndex<Object, EmptyObject>(), node), size(s) {
-    }
-
+    EmptyObject::EmptyObject(float s) : Object(ctti::typeIndex<Object, EmptyObject>()), size(s) {}
+    
 }

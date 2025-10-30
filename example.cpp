@@ -814,10 +814,21 @@ namespace example {
             node2->setBounds(engine::scene::Bounds::createCube(vec3f{-0.75f}, vec3f{0.75f}));
             scene.rootNode()->addChild(node2);
 
-            auto * object1 = scene.createObject<engine::scene::EmptyObject>(0.25f, node1);
-            auto * object2 = scene.createObject<engine::scene::EmptyObject>(0.5f, node2);
+            // auto * object0 = scene.createObject<engine::scene::EmptyObject>(0.25f, node1);
+            // auto * object1 = scene.createObject<engine::scene::EmptyObject>(0.5f, node2);
 
-            object1->setLayer(1u);
+            auto * object0 = scene.createObject<engine::scene::EmptyObject>(0.25f);
+            auto * object1 = scene.createObject<engine::scene::EmptyObject>(0.5f);
+
+            auto * finalNode0 = scene.createFinalNode();
+            auto * finalNode1 = scene.createFinalNode();
+            finalNode0->setObject(object0);
+            finalNode1->setObject(object1);
+
+            node1->addChild(finalNode0);
+            node2->addChild(finalNode1);
+
+            object0->setLayer(1u);
             // node2->setHidden(true);
             // object1->node->setHidden(true);
 
@@ -1069,8 +1080,8 @@ namespace example {
         // // }
         // sphere
 
-        scene.recalculate(cameraTransform);
-        scene.draw(commandList, frameId, cameraTransform);
+        auto objects = scene.recalculate(cameraTransform);
+        scene.draw(commandList, frameId, cameraTransform, objects);
 
         debugDraw.prepare(transferCommandList, frameId, _api, _device);
         debugDraw.draw(commandList, frameId);
