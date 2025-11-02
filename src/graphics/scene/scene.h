@@ -65,6 +65,7 @@ public:
     bool destroyObject(Object * object) noexcept;
 
 private:
+    bool lessTypeA(const Object & a, const Object & b) const noexcept;
     void drawEmptyObjects(Object::Iterator begin, Object::Iterator end, const mat4f & cameraTransform, uint32_t color);
 
     using NodesAllocator = allocators::PoolAllocatorChain<sizeof(Node), alignof(Node), false>;

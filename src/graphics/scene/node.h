@@ -13,11 +13,10 @@ constexpr uint8_t kDirtyTransformBit = 1u;
 constexpr uint8_t kCulledBit = 2u;
 constexpr uint8_t kHiddenBit = 3u;
 constexpr uint8_t kChildrenTransformsDirty = 4u;
-constexpr uint8_t kActive = 5u; // todo: remove it
 
 constexpr uint8_t kDefaultState = 1u << kDirtyTransformBit | 
                                 0u << kCulledBit | 0u << kHiddenBit | 
-                                0u << kChildrenTransformsDirty | 1u << kActive;
+                                0u << kChildrenTransformsDirty;
 
 constexpr uint8_t kDefaultIntermediateState = 0u << kFinalNodeBit | kDefaultState;
 constexpr uint8_t kDefaultFinalState = 1u << kFinalNodeBit | kDefaultState;
@@ -48,10 +47,6 @@ struct Node {
             return state & (1u << kChildrenTransformsDirty);
         }
 
-        inline bool isActive() const noexcept {
-            return state & (1u << kActive);
-        }
-
         inline void setCulled(bool culled) noexcept {
             culled ? state |= (1u << kCulledBit) : state &= ~(1u << kCulledBit);
         }
@@ -66,10 +61,6 @@ struct Node {
 
         inline void setChildrenTransformsDirty(bool dirty) noexcept {
             dirty ? state |= (1u << kChildrenTransformsDirty) : state &= ~(1u << kChildrenTransformsDirty);
-        }
-
-        inline void setActive(bool active) noexcept {
-            active ? state |= (1u << kActive) : state &= ~(1u << kActive);
         }
     };
 
@@ -141,15 +132,11 @@ struct Node {
     }
 
     inline bool isVisible() const noexcept {
-        return !state.isCulled() && !state.isHidden() && state.isActive();
+        return !state.isCulled() && !state.isHidden();
     }
 
     inline bool isChildrenTransformsDirty() const noexcept {
         return state.isChildrenTransformsDirty();
-    }
-
-    inline bool isActive() const noexcept {
-        return state.isActive();
     }
 
     inline void setCulled(bool culled) noexcept {
@@ -166,10 +153,6 @@ struct Node {
 
     inline void setChildrenTransformsDirty(bool dirty) noexcept {
         state.setChildrenTransformsDirty(dirty);
-    }
-
-    inline void setActive(bool active) noexcept {
-        state.setActive(active);
     }
 
     const mat4f & getTransform() noexcept {
@@ -204,7 +187,6 @@ void recalculateHierarchy(Node * node, VisibleChecker && v, bool forceRecalculat
         if (node->isFinal()) { // has no children
             if (process) {
                 node->setCulled(!v(node));
-                node->setActive(true); // node has been checked!
             }
 
             if (node->next != nullptr) {
@@ -220,7 +202,6 @@ void recalculateHierarchy(Node * node, VisibleChecker && v, bool forceRecalculat
                     node->setChildrenTransformsDirty(true);
                 }
                 node->setCulled(!v(node));
-                node->setActive(true); // node has been checked!
             } else {
                 node->setChildrenTransformsDirty(false); // end child calculation
             }

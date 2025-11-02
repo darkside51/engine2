@@ -40,7 +40,11 @@ int main() {
             example.prepare();
         }}));
 
+        threads::ExecutionContext mainThreadContext;
+        mainThreadContext.identifyThreadId();
+
         example.setRenderThread(&renderThread);
+        example.setMainThread(&mainThreadContext);
 
         renderThread.run();
 
@@ -74,6 +78,7 @@ int main() {
         });
 
         while (glfwModule.process()) {
+            mainThreadContext.performTasks();
             example.deviceProcess();
             std::this_thread::sleep_for(std::chrono::duration<float>(inputCheckTime));
         }

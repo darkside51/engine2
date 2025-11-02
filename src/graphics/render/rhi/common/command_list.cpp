@@ -136,14 +136,14 @@ namespace engine::rhi::runtime {
         ++_commandsCount;
     }
 
-    void CommandList::bindImage(uint16_t binding, ImagePtr & image, std::optional<rhi::SamplerInfo> sampler, uint8_t setId) noexcept {
+    void CommandList::bindImage(uint16_t binding, ImagePtr & image, std::optional<rhi::SamplerValue> sampler, uint8_t setId) noexcept {
         // no check it with state, correct check into record function!
         _resources.push_back(image);
         _commands->create<BindImageSamplerCommand>(binding, image.get(), sampler, setId);
         ++_commandsCount;
     }
 
-    void CommandList::bindSampler(uint16_t binding, const rhi::SamplerInfo & sampler, uint8_t setId) noexcept {
+    void CommandList::bindSampler(uint16_t binding, const rhi::SamplerValue & sampler, uint8_t setId) noexcept {
         // no check it with state, correct check into record function!
         _commands->create<BindImageSamplerCommand>(binding, nullptr, sampler, setId);
         ++_commandsCount;

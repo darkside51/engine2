@@ -307,4 +307,8 @@ namespace engine::vulkan {
     Device::Sampler Device::getSampler(const rhi::SamplerInfo & samplerInfo) {
         return _samplerManager.getSampler(samplerInfo);
     }
+
+    void Device::evaluateSampler(rhi::SamplerValue & samplerValue) {
+        samplerValue.evaluatedSampler = getSampler(samplerValue.info);
+    }
 }

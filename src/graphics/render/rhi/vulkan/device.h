@@ -80,6 +80,7 @@ public:
     void resetEvent(const Event & event) const noexcept;
 
     Sampler getSampler(const rhi::SamplerInfo & samplerInfo);
+    void evaluateSampler(rhi::SamplerValue & samplerValue) override;
 
     VkDescriptorSetLayout createDescriptorSetLayout(const rhi::shaders::BindingSetLayout & layout) const noexcept;
     void destroyDescriptorSetLayout(VkDescriptorSetLayout layout) const noexcept;

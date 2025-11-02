@@ -200,16 +200,16 @@ namespace engine::rhi::runtime {
         uint32_t baseLevel = 0u;
         uint32_t levelsCount = 1u;
 
-        std::optional<rhi::SamplerInfo> samplerInfo = {};
+        std::optional<rhi::SamplerValue> samplerValue= {};
 
-        BindImageSamplerCommand(uint16_t binding, Image * image, std::optional<rhi::SamplerInfo> sampler, uint8_t setId = 0u) : 
+        BindImageSamplerCommand(uint16_t binding, Image * image, std::optional<rhi::SamplerValue> sampler, uint8_t setId = 0u) : 
             Command(CommandType::eBindImageSampler, sizeof(BindImageSamplerCommand)),
             image(image),
             binding(binding),
             setId(setId),
             layersCount(image->getInfo().arrayLayers),
             levelsCount(image->getInfo().mipLevels),
-            samplerInfo(sampler) {
+            samplerValue(sampler) {
             }
     };
 

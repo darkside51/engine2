@@ -65,6 +65,8 @@ public:
     virtual size_t getTexelBufferOffsetAlignment() const noexcept = 0;
     
     virtual FormatFeatureAccess isFormatSupported(Format format, FormatFeatureFlags featureFlags) const noexcept = 0;
+
+    virtual void evaluateSampler(rhi::SamplerValue & samplerValue) = 0;
 };
 
 struct PipeLineResource {

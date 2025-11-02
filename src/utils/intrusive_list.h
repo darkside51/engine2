@@ -7,8 +7,12 @@ namespace engine {
         using Type = T;
         IntrusiveListNode<T> * next = nullptr;
         IntrusiveListNode<T> * prev = nullptr;
-        inline T & value() noexcept { return static_cast<T&>(*this); }
-        inline const T & value() const noexcept { return static_cast<T&>(*this); }
+
+        inline T * get() noexcept { return static_cast<T*>(this); }
+        inline const T * get() const noexcept { return static_cast<T*>(this); }
+        
+        inline T & operator*() noexcept { return static_cast<T&>(*this); }
+        inline const T & operator*() const noexcept { return static_cast<T&>(*this); }
     };
 
     template <typename T>
@@ -26,13 +30,17 @@ namespace engine {
             }
 
             bool operator==(const Iterator &) const noexcept = default;
-            Node::Type * operator->() noexcept { return &value->value(); }
-            Node::Type & operator*() noexcept { return value->value(); }
-            const Node::Type * operator->() const noexcept { return &value->value(); }
-            const Node::Type & operator*() const noexcept { return value->value(); }
+            Node::Type * operator->() noexcept { return value->get(); }
+            Node::Type & operator*() noexcept { return value->operator*(); }
+            const Node::Type * operator->() const noexcept { return value->get(); }
+            const Node::Type & operator*() const noexcept { return value->operator*(); }
 
-            const Node::Type * get() const noexcept { return &value->value(); }
-            Node::Type * get() noexcept { return &value->value(); }
+            const Node::Type * get() const noexcept { return value->get(); }
+            Node::Type * get() noexcept { return value->get(); }
+
+            bool isLast() const noexcept {
+                return value ? value->next == nullptr : true;
+            }
         };
 
         Iterator begin() const noexcept {
@@ -40,11 +48,7 @@ namespace engine {
         }
 
         Iterator end() const noexcept {
-            return {.value = nullptr};
-        }
-
-        Iterator back() const noexcept {
-            return {.value = last};
+            return {.value = last->next};
         }
 
         size_t size() const noexcept {
@@ -93,7 +97,7 @@ namespace engine {
 
         // sorting the list (e.g., using Merge Sort)
         template <typename Comparator>
-        void stable_sort(const Comparator & cmp) noexcept {
+        void stable_sort(Comparator && cmp) noexcept {
             // https://www.tutorialspoint.com/merge-sort-for-doubly-linked-list-using-cplusplus
             first = mergeSort(first, cmp);
             // update tail after sorting if needed, by traversing to the end
@@ -147,7 +151,7 @@ namespace engine {
             }
 
             Node* result = nullptr;
-            if (!cmp(second->value(), first->value())) {
+            if (!cmp(second->operator*(), first->operator*())) {
                 result = first;
                 result->next = merge(first->next, second, cmp);
                 if (result->next) {

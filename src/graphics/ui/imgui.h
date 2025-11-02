@@ -47,7 +47,7 @@ namespace engine {
         rhi::runtime::PipelinePtr _pipeline = nullptr;
         rhi::runtime::BufferPtr _stagefontBuffer = nullptr;
         rhi::runtime::ImagePtr _fontImage = nullptr;
-        rhi::SamplerInfo _sampler;
+        rhi::SamplerValue _sampler;
         std::unique_ptr<graphics::InflightBuffer> _vertices = nullptr;
         std::unique_ptr<graphics::InflightBuffer> _indices = nullptr;
         std::unique_ptr<graphics::InflightBuffer> _uniform = nullptr;

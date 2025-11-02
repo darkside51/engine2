@@ -456,8 +456,12 @@ namespace engine::vulkan::runtime {
                     ) : nullptr;
 
                     VkSampler sampler = nullptr;
-                    if (command->samplerInfo) {
-                        sampler = device.getSampler(*command->samplerInfo);
+                    if (command->samplerValue) {
+                        if (auto vkSampler = command->samplerValue->evaluatedSampler) {
+                            sampler = static_cast<VkSampler>(vkSampler) ;
+                        } else {
+                            sampler = device.getSampler(command->samplerValue->info);
+                        }
                     }
                     
                     VkImageLayout layout = image ? image->getLayout(command->baseLayer, command->baseLevel) : VkImageLayout::VK_IMAGE_LAYOUT_GENERAL;

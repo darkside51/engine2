@@ -61,6 +61,10 @@ namespace threads {
             }
         }
 
+        void identifyThreadId() noexcept {
+            _threadId = std::this_thread::get_id();
+        }
+
     protected:
          inline void waitPaused() noexcept {
             if (_paused.test(std::memory_order_relaxed) == false) {
@@ -99,7 +103,7 @@ namespace threads {
 
     private:
         void loop() {
-            _threadId = std::this_thread::get_id();
+            identifyThreadId();
 
             while (!isStopped()) {
                 while (isRunning()) {

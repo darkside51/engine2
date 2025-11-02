@@ -6,7 +6,7 @@ namespace engine::graphics {
 
 struct Texture {
     rhi::runtime::ImagePtr image = nullptr;
-    rhi::SamplerInfo sampler = {};
+    rhi::SamplerValue sampler = {};
 
     const rhi::ImageInfo*  getInfo() const noexcept {
         if (image) {

@@ -1289,6 +1289,11 @@ namespace engine::rhi {
         inline bool operator == (const SamplerInfo & other) const noexcept = default;
     };
 
+    struct SamplerValue {
+        SamplerInfo info{};
+        void * evaluatedSampler = nullptr;
+    };
+
     struct VertexInputAttribute {
         uint8_t location = 0u;
         uint8_t binding = 0u;

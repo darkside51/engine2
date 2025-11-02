@@ -6,6 +6,17 @@
 
 namespace engine::scene {
 
+    // struct ColoredVertex {
+    //     std::array<float, 3u> coord;
+    //     uint32_t color;
+    // };
+    
+    // struct TexturedVertex {
+    //     std::array<float, 3u> coord;
+    //     std::array<float, 2u> uv;
+    // };
+
+
     Scene::Scene(debug::DebugDraw * debugDraw) : _rootNode(createNode()), _debugDraw(debugDraw) {
         registerTypes();
     }
@@ -90,25 +101,41 @@ namespace engine::scene {
         return objects;
     }
 
+    bool Scene::lessTypeA(const Object & a, const Object & b) const noexcept {
+        switch(a.typeIndex) {
+        case ctti::typeIndex<Object, EmptyObject>():
+            return static_cast<const EmptyObject &>(a).cmp(static_cast<const EmptyObject &>(b));
+        default:
+            return false;
+        }
+    }
+
     void Scene::draw(rhi::runtime::CommandListPtr & commandList, uint8_t frame, const mat4f & cameraTransform, IntrusiveList<Object> & objects) {
         if (objects.empty()) {
             return;
         }
 
-        objects.stable_sort([](const Object & a, const Object & b) noexcept {
-            if (a.layer != b.layer) {
-                return a.layer < b.layer;
+        objects.stable_sort([this](const Object & a, const Object & b) noexcept {
+            // if (a.layer != b.layer) {
+            //     return a.layer < b.layer;
+            // }
+
+            if (a.order != b.order) {
+                return a.order < b.order;
+            }
+
+            if (a.typeIndex != b.typeIndex) {
+                return a.typeIndex < b.typeIndex;
             }
 
             // todo special sorts for some types
-            return a.typeIndex < b.typeIndex;
+            return lessTypeA(a, b);
         });
 
         auto currentIt = objects.begin();
-        const auto backIt = objects.back();
         uint16_t typeIdx = currentIt->typeIndex;
         for (auto it = currentIt; it != objects.end(); ++it) {
-            bool const last = (it == backIt);
+            bool const last = it.isLast();
             if (it->typeIndex != typeIdx || last) {
                 switch (typeIdx) {
                 case ctti::typeIndex<Object, EmptyObject>():

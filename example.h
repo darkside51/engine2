@@ -45,6 +45,10 @@ public:
         _renderThread = renderThread;
     }
 
+    void setMainThread(threads::ExecutionContext * mainThread) noexcept {
+        _mainThread = mainThread;
+    }
+
 private:
     void loadShaders();
     void createDefaultResources();
@@ -99,6 +103,7 @@ private:
 
     //
     threads::ExecutionContext * _renderThread = nullptr;
+    threads::ExecutionContext * _mainThread = nullptr;
 };
 
 }

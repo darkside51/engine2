@@ -118,11 +118,13 @@ namespace engine {
 
         _fontImage = api->createImage(device, imageInfo);
 
-        _sampler.magFilter = rhi::FilterMode::eLinear;
-        _sampler.minFilter = rhi::FilterMode::eLinear;
-        _sampler.addressModeU = rhi::SamplerAddressMode::eClamp_To_Edge;
-        _sampler.addressModeV = rhi::SamplerAddressMode::eClamp_To_Edge;
-        _sampler.addressModeW = rhi::SamplerAddressMode::eClamp_To_Edge;
+        _sampler.info.magFilter = rhi::FilterMode::eLinear;
+        _sampler.info.minFilter = rhi::FilterMode::eLinear;
+        _sampler.info.addressModeU = rhi::SamplerAddressMode::eClamp_To_Edge;
+        _sampler.info.addressModeV = rhi::SamplerAddressMode::eClamp_To_Edge;
+        _sampler.info.addressModeW = rhi::SamplerAddressMode::eClamp_To_Edge;
+
+        device->evaluateSampler(_sampler);
 
         io.Fonts->SetTexID(&_fontImage);
     }

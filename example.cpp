@@ -828,7 +828,7 @@ namespace example {
             node1->addChild(finalNode0);
             node2->addChild(finalNode1);
 
-            object0->setLayer(1u);
+            object0->setOrder(1u);
             // node2->setHidden(true);
             // object1->node->setHidden(true);
 
@@ -901,6 +901,13 @@ namespace example {
     }
 
     void Example::update(float delta) {
+
+        if (_mainThread) {
+            // _mainThread->emplaceTasks(stl::make_vector(threads::WorkerTask{[](){
+            //     LOG_D("test main thread task");
+            // }}));
+        }
+
         const auto [width, height] = _swapchain->getSize();
         _imgui.beginFrame(delta, width, height);
         // ImGui::ShowDemoWindow();
@@ -1097,7 +1104,7 @@ namespace example {
         commandList->bindPipeline(_pipelines[kPostEffectPipeline]);
         commandList->bindVertexBuffer(0u, _postPositions);
         commandList->bindIndexBuffer(_postIndices, 0u, rhi::IndexType::eU16);
-        commandList->bindImage(0u, _colorAttachmentImages[imageIndex], rhi::SamplerInfo{});
+        commandList->bindImage(0u, _colorAttachmentImages[imageIndex], rhi::SamplerValue{});
         commandList->drawIndexed(6u);
 
         // draw imgui
