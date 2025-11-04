@@ -114,14 +114,14 @@ namespace engine::rhi::runtime {
     // }
 
 /////////////////////// shared versions
-    void CommandList::bindVertexBuffer(uint32_t binding, BufferPtr & buffer, uint32_t offset) noexcept {
+    void CommandList::bindVertexBuffer(uint32_t binding, const BufferPtr & buffer, uint32_t offset) noexcept {
         // todo: use _state to change only right buffers!
         _resources.push_back(buffer);
         _commands->create<BindVertexBufferCommand>(binding, buffer.get(), offset);
         ++_commandsCount;
     }
 
-    void CommandList::bindIndexBuffer(BufferPtr & buffer, uint32_t offset, IndexType type) noexcept {
+    void CommandList::bindIndexBuffer(const BufferPtr & buffer, uint32_t offset, IndexType type) noexcept {
         if (_state.bindIndexBuffer(buffer.get(), offset)) {
             _resources.push_back(buffer);
             _commands->create<BindIndexBufferCommand>(buffer.get(), offset, type);
@@ -129,14 +129,14 @@ namespace engine::rhi::runtime {
         }
     }
 
-    void CommandList::bindBuffer(uint16_t binding, BufferPtr & buffer, uint8_t setId, uint32_t offset, uint32_t range) noexcept {
+    void CommandList::bindBuffer(uint16_t binding, const BufferPtr & buffer, uint8_t setId, uint32_t offset, uint32_t range) noexcept {
         // no check it with state, correct check into record function!
         _resources.push_back(buffer);
         _commands->create<BindBufferCommand>(binding, buffer.get(), setId, offset, range);
         ++_commandsCount;
     }
 
-    void CommandList::bindImage(uint16_t binding, ImagePtr & image, std::optional<rhi::SamplerValue> sampler, uint8_t setId) noexcept {
+    void CommandList::bindImage(uint16_t binding, const ImagePtr & image, std::optional<rhi::SamplerValue> sampler, uint8_t setId) noexcept {
         // no check it with state, correct check into record function!
         _resources.push_back(image);
         _commands->create<BindImageSamplerCommand>(binding, image.get(), sampler, setId);

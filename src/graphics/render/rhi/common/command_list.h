@@ -40,10 +40,10 @@ namespace engine::rhi::runtime {
         // void bindIndexBuffer(const Buffer * buffer, uint32_t offset = 0u, IndexType type = rhi::IndexType::eU32);
         // void bindBuffer(uint16_t binding, const Buffer * buffer, uint8_t setId = 0u, uint32_t offset = 0u, uint32_t range = kWholeSize32);
 
-        void bindVertexBuffer(uint32_t binding, BufferPtr & buffer, uint32_t offset = 0u) noexcept;
-        void bindIndexBuffer(BufferPtr & buffer, uint32_t offset = 0u, IndexType type = rhi::IndexType::eU32) noexcept;
-        void bindBuffer(uint16_t binding, BufferPtr & buffer, uint8_t setId = 0u, uint32_t offset = 0u, uint32_t range = kWholeSize32) noexcept;
-        void bindImage(uint16_t binding, ImagePtr & image, std::optional<rhi::SamplerValue> sampler, uint8_t setId = 0u) noexcept;
+        void bindVertexBuffer(uint32_t binding, const BufferPtr & buffer, uint32_t offset = 0u) noexcept;
+        void bindIndexBuffer(const BufferPtr & buffer, uint32_t offset = 0u, IndexType type = rhi::IndexType::eU32) noexcept;
+        void bindBuffer(uint16_t binding, const BufferPtr & buffer, uint8_t setId = 0u, uint32_t offset = 0u, uint32_t range = kWholeSize32) noexcept;
+        void bindImage(uint16_t binding, const ImagePtr & image, std::optional<rhi::SamplerValue> sampler, uint8_t setId = 0u) noexcept;
         void bindSampler(uint16_t binding, const rhi::SamplerValue & sampler, uint8_t setId = 0u) noexcept;
 
         void draw(uint32_t vertexCount, uint32_t instanceCount = 1u, uint32_t firstVertex = 0u, uint32_t firstInstance = 0u) noexcept;

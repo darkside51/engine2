@@ -13,6 +13,7 @@
 #include "graphics/scene/camera_controller.h"
 
 #include "graphics/texture/texture_data_loader.h"
+#include "graphics/texture/texture_manager.h"
 #include "graphics/mesh/gltf_loader.h"
 #include "graphics/mesh/mesh_data.h"
 
@@ -48,6 +49,7 @@ namespace example {
     constexpr bool kUseTransferCommandListForPrepareImgui = true;
 
     engine::debug::DebugDraw debugDraw;
+    engine::graphics::TextureManager textureManager;
 
     engine::scene::Camera camera;
     engine::scene::SphereCameraController controller{camera};
@@ -192,6 +194,7 @@ namespace example {
         _shaderModulesManager = nullptr;
         _imgui.destroy();
         debugDraw.destroy();
+        textureManager.destroy();
 
         _pipelines.clear();
         _programs.clear();
@@ -664,6 +667,11 @@ namespace example {
         };
 
         _sphereImage = _api->createImage(_device, sphereImageInfo);
+
+        // TextureManager
+        textureManager.addFrame("sphere_texture", _sphereImage);
+        textureManager.addFrame("sphere_texture2", _sphereImage);
+
         const auto stagingSize3 = textureData.data.size();
         StagingBuffer staging3{_api,_device, stagingSize3};
         
@@ -1073,19 +1081,24 @@ namespace example {
         // scene pass
         commandList->beginRenderPass(_renderPasses[kSceneRenderPass], _sceneFrameBuffers[imageIndex], sceneClearValues, {{0, 0}, {width, height}});
 
-        // sphere
+        // // sphere
         // commandList->bindPipeline(_pipelines[kSceneTestPipeline]);
         // commandList->bindVertexBuffer(0u, _sphereVtx);
         // commandList->bindIndexBuffer(_sphereIdx, 0u, rhi::IndexType::eU16);
-        // commandList->bindImage(1u, _sphereImage, rhi::SamplerInfo{
-        //     .magFilter = rhi::FilterMode::eLinear,
-        //     .minFilter = rhi::FilterMode::eLinear});
+
+        // const auto * frame = textureManager.findFrame("sphere_texture");
+        // commandList->bindImage(1u, frame->getImage()/*_sphereImage*/, rhi::SamplerValue {
+        //     .info = {
+        //         .magFilter = rhi::FilterMode::eLinear,
+        //         .minFilter = rhi::FilterMode::eLinear
+        //     }
+        // });
         // commandList->bindBuffer(0u, (*_uniformBufferI)(frameId), 0u, 0u, sizeof(UniformBuffer));
 
         // // for (size_t i = 0; i < 2'000; ++i) {
         //     commandList->drawIndexed(_sphereIdx->sizeInBytes() / sizeof(uint16_t), 1u);
         // // }
-        // sphere
+        // // sphere
 
         auto objects = scene.recalculate(cameraTransform);
         scene.draw(commandList, frameId, cameraTransform, objects);
