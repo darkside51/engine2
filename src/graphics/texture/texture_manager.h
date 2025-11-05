@@ -13,18 +13,18 @@
 
 namespace engine::graphics {
 struct ImageHolder {
-    rhi::runtime::ImagePtr image = nullptr;
+    rhi::runtime::Image * image = nullptr;
     uint32_t count = 0u;
 };
 
 struct ImageHolderEqualTo {
     using is_transparent = void;
 
-    constexpr auto operator()(const rhi::runtime::Image * img, const graphics::ImageHolder * holder) const noexcept { 
-        return img == holder->image.get();
+    constexpr auto operator()(const rhi::runtime::Image * img, const graphics::ImageHolder & holder) const noexcept { 
+        return img == holder.image;
     }
-    constexpr auto operator()(const graphics::ImageHolder * holder0, const graphics::ImageHolder * holder1) const noexcept { 
-        return holder0->image.get() == holder1->image.get();
+    constexpr auto operator()(const graphics::ImageHolder & holder0, const graphics::ImageHolder & holder1) const noexcept { 
+        return holder0.image == holder1.image;
     }
 };
 }
@@ -36,7 +36,7 @@ struct Hasher<graphics::ImageHolder> {
     using is_transparent = void;
 
     std::size_t operator()(const rhi::runtime::Image* image) const { return hash_type{}(image); }
-    std::size_t operator()(const graphics::ImageHolder * image) const { return hash_type{}(image->image.get()); }
+    std::size_t operator()(const graphics::ImageHolder & image) const { return hash_type{}(image.image); }
 };
 
 using ImageHolder_hash = Hasher<graphics::ImageHolder>;
@@ -51,10 +51,10 @@ struct Frame2D {
 
 class ImageFrame2D {
 public:
-    ImageFrame2D(const rhi::runtime::ImagePtr * image, const Frame2D & frame) : _image(image), _frame(frame) {}
+    ImageFrame2D(const rhi::runtime::ImagePtr & image, const Frame2D & frame) : _image(image), _frame(frame) {}
 
     const rhi::runtime::ImagePtr & getImage() const noexcept {
-        return *_image;
+        return _image;
     }
 
     const Frame2D & getFrame() const noexcept {
@@ -62,14 +62,14 @@ public:
     }
     
 private:
-    const rhi::runtime::ImagePtr * _image = nullptr;
+    const rhi::runtime::ImagePtr _image = nullptr;
     Frame2D _frame = {};
 };
 
 class TextureManager {
     using ImageFramesMap = std::unordered_map<std::string, ImageFrame2D, hash::String_hash, std::equal_to<>>;
-    using Images = std::vector<ImageHolder>;
-    using ImagesSet = std::unordered_set<ImageHolder*, hash::ImageHolder_hash, graphics::ImageHolderEqualTo>;
+    using Images = std::vector<rhi::runtime::ImagePtr>;
+    using ImagesSet = std::unordered_set<ImageHolder, hash::ImageHolder_hash, graphics::ImageHolderEqualTo>;
 
 public:
     ~TextureManager() { destroy(); }
