@@ -73,6 +73,8 @@ class TextureManager {
 
 public:
     ~TextureManager() { destroy(); }
+    void createDefaultResources(const std::unique_ptr<rhi::runtime::Rhi> & api, rhi::runtime::DevicePtr & device, 
+        const rhi::runtime::CommandListPtr & commandList);
     void destroy();
 
     bool addFrame(std::string_view name, const rhi::runtime::ImagePtr & image, const Frame2D & frame = {});
@@ -80,6 +82,11 @@ public:
 
     const rhi::runtime::ImagePtr & getImage(uint32_t idx) const noexcept;
     const ImageFrame2D * findFrame(std::string_view name) const noexcept;
+
+    const rhi::runtime::ImagePtr & getDefaultImage() const noexcept { return _defaultImage; }
+    const rhi::runtime::ImagePtr & getWhiteImage() const noexcept { return _whiteImage; }
+    const rhi::runtime::ImagePtr & getBlackImage() const noexcept { return _blackImage; }
+    const rhi::runtime::ImagePtr & getTransparentImage() const noexcept { return _transparentImage; }
 
 private:
     rhi::runtime::ImagePtr _defaultImage;
