@@ -70,6 +70,20 @@ namespace engine::rhi::runtime {
     private:
         void clear() noexcept;
 
+        struct Statistics {
+            void reset() noexcept {
+                drawCalls = 0u;
+                dispatchCalls = 0u;
+                binPipelines = 0u;
+                renderPasses = 0u;
+            }
+
+            uint32_t drawCalls = 0u;
+            uint32_t dispatchCalls = 0u;
+            uint16_t binPipelines = 0u;
+            uint16_t renderPasses = 0u;
+        };
+
         struct State {
             inline constexpr static uint32_t kMaxViewports = 1u; // todo: maybe no 1u if the multiViewport feature is enabled and need to check PhysicalDeviceLimits::maxViewports
 

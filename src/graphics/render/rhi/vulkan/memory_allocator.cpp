@@ -16,6 +16,10 @@ namespace engine::vulkan {
         allocatorCreateInfo.instance = instance;
         allocatorCreateInfo.vulkanApiVersion = info.apiVersion;
 
+        /// Preferred size of a single `VkDeviceMemory` block to be allocated from large heaps > 1 GiB. Optional.
+        /** Set to 0 to use default, which is currently 256 MiB. */
+        allocatorCreateInfo.preferredLargeHeapBlockSize = info.preferredLargeHeapBlockSize;
+
         if (info.flags.KHR_dedicated_allocation_enabled) {
             allocatorCreateInfo.flags |= VMA_ALLOCATOR_CREATE_KHR_DEDICATED_ALLOCATION_BIT;
         }

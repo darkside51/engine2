@@ -113,7 +113,7 @@ public:
     rhi::FormatFeatureAccess isFormatSupported(rhi::Format format, rhi::FormatFeatureFlags featureFlags) const noexcept override;
 
 private:
-    void createAllocator() noexcept;
+    void createAllocator(uint32_t largeHeapBlockSize) noexcept;
     void destroyAllocator() noexcept;
 
     void createPipelineCache() noexcept;

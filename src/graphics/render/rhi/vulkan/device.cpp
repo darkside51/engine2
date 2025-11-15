@@ -97,7 +97,7 @@ namespace engine::vulkan {
             properties.driverVersion);
 
         createPipelineCache();
-        createAllocator();
+        createAllocator(info.largeHeapBlockSize);
     }
 
     Device::~Device() {
@@ -137,13 +137,14 @@ namespace engine::vulkan {
         vkDestroyPipelineCache(_device, _pipelineCache, _gpu.getInstance().getAllocationCallbacks());
     }
 
-    void Device::createAllocator() noexcept {
+    void Device::createAllocator(uint32_t largeHeapBlockSize) noexcept {
         const auto & instance = _gpu.getInstance();
         const auto apiVersion = instance.getApiVersion();
 
         AllocatorCreateInfo allocatorCreateInfo = {};
         allocatorCreateInfo.apiVersion = apiVersion;
         allocatorCreateInfo.allocationCallbacks = instance.getAllocationCallbacks();
+        allocatorCreateInfo.preferredLargeHeapBlockSize = largeHeapBlockSize;
         
         //  fill allocatorCreateInfo flags
         const auto & gpuExtensionNames = _gpu.deviceExtensions();
