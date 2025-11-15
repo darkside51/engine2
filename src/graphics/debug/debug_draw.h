@@ -25,17 +25,17 @@ public:
     // system
     void destroy() noexcept;
 
-    void createPipelines(const std::unique_ptr<rhi::runtime::Rhi> & api,
-        rhi::runtime::DevicePtr & device, 
+    void createPipelines(rhi::runtime::Rhi & api,
+        rhi::runtime::Device & device, 
         const rhi::runtime::GpuProgramPtr & program, rhi::runtime::RenderPass renderPass, 
         uint32_t subpass = 0u);
 
-    void createBuffers(const std::unique_ptr<rhi::runtime::Rhi> & api,
-        rhi::runtime::DevicePtr & device);
+    void createBuffers(rhi::runtime::Rhi & api,
+        rhi::runtime::Device & device);
 
-    void prepare(rhi::runtime::CommandListPtr & commandList, uint8_t frame, 
-        const std::unique_ptr<rhi::runtime::Rhi> & api, rhi::runtime::DevicePtr & device);
-    void draw(rhi::runtime::CommandListPtr & commandList, uint8_t frame) noexcept;
+    void prepare(rhi::runtime::CommandList & commandList, uint8_t frame, 
+        rhi::runtime::Rhi & api, rhi::runtime::Device & device);
+    void draw(rhi::runtime::CommandList & commandList, uint8_t frame) noexcept;
 
     // user
     void drawSquare(vec2f corner0, vec2f corner1, uint32_t color, const mat4f & transform = mat4f{1.0f}, Type t = Type::eFull);

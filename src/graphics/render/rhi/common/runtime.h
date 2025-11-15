@@ -234,40 +234,40 @@ public:
     virtual std::vector<PysicalDevicePtr> enumerateDevices(const PhysicalDeviceRequirements & info) const = 0;
     virtual DevicePtr createDevice(PysicalDevicePtr & gpu, const DeviceCreateInfo & info) const = 0;
 
-    virtual SwapchainPtr createSwapchain(const DevicePtr & device, const SurfacePtr & surface, const SwapchainCreateInfo & info) const = 0;
+    virtual SwapchainPtr createSwapchain(const Device & device, const Surface & surface, const SwapchainCreateInfo & info) const = 0;
 
-    virtual ImagePtr createImage(const DevicePtr & device, const ImageInfo & imageInfo) const noexcept = 0;
+    virtual ImagePtr createImage(Device & device, const ImageInfo & imageInfo) const noexcept = 0;
             
-    virtual RenderPass getRenderPass(DevicePtr & device, const RenderPassDescription & description) const noexcept = 0;
+    virtual RenderPass getRenderPass(Device & device, const RenderPassDescription & description) const noexcept = 0;
 
-    virtual FrameBufferPtr createFrameBuffer(const DevicePtr & device,  std::vector<FrameBufferAttachment> && attachemnts, 
+    virtual FrameBufferPtr createFrameBuffer(const Device & device,  std::vector<FrameBufferAttachment> && attachemnts, 
         const RenderPass & renderPass) const noexcept = 0;
 
-    virtual QueuePtr getQueue(const DevicePtr & device, queue_flags::flags familyFlags, uint8_t queueIdx, uint8_t framesCount) const = 0;
+    virtual QueuePtr getQueue(const Device & device, queue_flags::flags familyFlags, uint8_t queueIdx, uint8_t framesCount) const = 0;
 
-    virtual Fence createFence(const DevicePtr & device, FenceCreateFlags flags) const noexcept = 0;
-    virtual Semaphore createSemaphore(const DevicePtr & device) const noexcept = 0;
-    virtual Event createEvent(const DevicePtr & device, EventCreateFlags flags) const noexcept = 0;
+    virtual Fence createFence(const Device & device, FenceCreateFlags flags) const noexcept = 0;
+    virtual Semaphore createSemaphore(const Device & device) const noexcept = 0;
+    virtual Event createEvent(const Device & device, EventCreateFlags flags) const noexcept = 0;
 
-    virtual void destroyFence(const DevicePtr & device, const Fence & fence) const noexcept = 0;
-    virtual void destroySemaphore(const DevicePtr & device, const Semaphore & semaphore) const noexcept = 0;
-    virtual void destroyEvent(const DevicePtr & device, const Event & event) const noexcept = 0;
+    virtual void destroyFence(const Device & device, const Fence & fence) const noexcept = 0;
+    virtual void destroySemaphore(const Device & device, const Semaphore & semaphore) const noexcept = 0;
+    virtual void destroyEvent(const Device & device, const Event & event) const noexcept = 0;
 
-    virtual void resetEvent(const DevicePtr & device, const Event & event) const noexcept = 0;
+    virtual void resetEvent(const Device & device, const Event & event) const noexcept = 0;
 
     virtual ShaderModulesManagerPtr createShaderModulesManager() const = 0;
 
-    virtual GpuProgramPtr createProgram(DevicePtr & device, std::span<const ShaderModuleView> moduleViews, 
+    virtual GpuProgramPtr createProgram(Device & device, std::span<const ShaderModuleView> moduleViews, 
         shaders::SpecializationInfo && specializationInfo = {}) const = 0;
 
-    virtual PipelinePtr createComputePipeline(DevicePtr & device, const GpuProgramPtr & program) const = 0;
+    virtual PipelinePtr createComputePipeline(Device & device, const GpuProgramPtr & program) const = 0;
 
-    virtual PipelinePtr createGraphicsPipeline(DevicePtr & device, RenderPass renderPass,
+    virtual PipelinePtr createGraphicsPipeline(Device & device, RenderPass renderPass,
         const GpuProgramPtr & program, const GraphicsPipelineStatesInfo & info, uint32_t subpass = 0u) const = 0;
 
-    virtual BufferPtr createBuffer(DevicePtr & device, const rhi::BufferInfo & info, size_t size) = 0;
+    virtual BufferPtr createBuffer(Device & device, const rhi::BufferInfo & info, size_t size) = 0;
 
     virtual CommandListPtr createCommandList(CommandPool * commandPool, rhi::CommandBufferLevel level = rhi::CommandBufferLevel::ePrimary) const = 0;
-    virtual QueryPoolPtr createQueryPool(DevicePtr & device, const rhi::QueryPoolInfo & info) const = 0;
+    virtual QueryPoolPtr createQueryPool(Device & device, const rhi::QueryPoolInfo & info) const = 0;
 };
 }

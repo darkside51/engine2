@@ -44,8 +44,8 @@ namespace engine {
         _staging = nullptr;
     }
 
-    void ImGuiSystem::createPipeline(const std::unique_ptr<rhi::runtime::Rhi> & api,
-        rhi::runtime::DevicePtr & device, 
+    void ImGuiSystem::createPipeline(rhi::runtime::Rhi & api,
+        rhi::runtime::Device & device, 
         const rhi::runtime::GpuProgramPtr & program, rhi::runtime::RenderPass renderPass,
         uint32_t subpass) {
         rhi::GraphicsPipelineStatesInfo info;
@@ -86,11 +86,11 @@ namespace engine {
             }
         };
 
-        _pipeline = api->createGraphicsPipeline(device, renderPass, program, info, subpass);
+        _pipeline = api.createGraphicsPipeline(device, renderPass, program, info, subpass);
     }
 
-    void ImGuiSystem::createFontTexture(const std::unique_ptr<rhi::runtime::Rhi> & api,
-        rhi::runtime::DevicePtr & device) {
+    void ImGuiSystem::createFontTexture(rhi::runtime::Rhi & api,
+        rhi::runtime::Device & device) {
         ImGuiIO &io = ImGui::GetIO();
 
         unsigned char *pixels = nullptr;
@@ -103,7 +103,7 @@ namespace engine {
             rhi::MemoryPropertyFlags::eHostVisible
         };
 
-        _stagefontBuffer = api->createBuffer(device, stageInfo, sizeof(unsigned char) * width * height);
+        _stagefontBuffer = api.createBuffer(device, stageInfo, sizeof(unsigned char) * width * height);
         {
             auto * map = _stagefontBuffer->map2<unsigned char>();
             memcpy(map, pixels, _stagefontBuffer->sizeInBytes());
@@ -116,7 +116,7 @@ namespace engine {
             rhi::Format::eR8_Unorm, {static_cast<uint32_t>(width), static_cast<uint32_t>(height), 1u}
         };
 
-        _fontImage = api->createImage(device, imageInfo);
+        _fontImage = api.createImage(device, imageInfo);
 
         _sampler.info.magFilter = rhi::FilterMode::eLinear;
         _sampler.info.minFilter = rhi::FilterMode::eLinear;
@@ -124,13 +124,13 @@ namespace engine {
         _sampler.info.addressModeV = rhi::SamplerAddressMode::eClamp_To_Edge;
         _sampler.info.addressModeW = rhi::SamplerAddressMode::eClamp_To_Edge;
 
-        device->evaluateSampler(_sampler);
+        device.evaluateSampler(_sampler);
 
         io.Fonts->SetTexID(&_fontImage);
     }
 
-    void ImGuiSystem::createBuffers(const std::unique_ptr<rhi::runtime::Rhi> & api,
-        rhi::runtime::DevicePtr & device) {
+    void ImGuiSystem::createBuffers(rhi::runtime::Rhi & api,
+        rhi::runtime::Device & device) {
         // uniforms
         rhi::BufferInfo unifromsInfo {
             rhi::BufferUsageFlags::eUniform_Buffer,
@@ -165,10 +165,10 @@ namespace engine {
         ImGui::Render();
     }
 
-    void ImGuiSystem::prepare(rhi::runtime::CommandListPtr & commandList, uint8_t frame,
-        const std::unique_ptr<rhi::runtime::Rhi> & api, rhi::runtime::DevicePtr & device) {
+    void ImGuiSystem::prepare(rhi::runtime::CommandList & commandList, uint8_t frame,
+        rhi::runtime::Rhi & api, rhi::runtime::Device & device) {
         if (_stagefontBuffer) {
-            commandList->copyBuffer2Image(_stagefontBuffer, _fontImage, {
+            commandList.copyBuffer2Image(_stagefontBuffer, _fontImage, {
                 .bufferOffset = 0u,
                 .bufferRowLength = 0u,
                 .bufferImageHeight = 0u,
@@ -249,11 +249,11 @@ namespace engine {
         }
     }
 
-    void ImGuiSystem::draw(rhi::runtime::CommandListPtr & commandList, uint8_t frame) noexcept {
+    void ImGuiSystem::draw(rhi::runtime::CommandList & commandList, uint8_t frame) noexcept {
         const ImDrawData *drawData = ImGui::GetDrawData();
         
-        commandList->bindPipeline(_pipeline);
-        commandList->bindBuffer(0u, (*_uniform)(frame)); // bind uniform
+        commandList.bindPipeline(_pipeline);
+        commandList.bindBuffer(0u, (*_uniform)(frame)); // bind uniform
 
         uint32_t vOffset = 0u;
         uint32_t iOffset = 0u;
@@ -268,19 +268,19 @@ namespace engine {
             for (uint32_t j = 0u; j < drawList->CmdBuffer.Size; ++j) {
                 ImDrawCmd const &cmd = drawList->CmdBuffer[j];
 
-                commandList->setScissor({
+                commandList.setScissor({
                     {static_cast<int32_t>(cmd.ClipRect.x), static_cast<int32_t>(cmd.ClipRect.y)}, 
                     {static_cast<uint32_t>(cmd.ClipRect.z - cmd.ClipRect.x), static_cast<uint32_t>(cmd.ClipRect.w - cmd.ClipRect.y)}
                     }
                 );
 
                 auto & texture = *static_cast<rhi::runtime::ImagePtr *>(cmd.TextureId);
-                commandList->bindImage(1u, texture, _sampler);
+                commandList.bindImage(1u, texture, _sampler);
 
-                commandList->bindVertexBuffer(0u, (*_vertices)(frame), vOffset);
-                commandList->bindIndexBuffer((*_indices)(frame), indexBufferOffset, rhi::IndexType::eU16);
+                commandList.bindVertexBuffer(0u, (*_vertices)(frame), vOffset);
+                commandList.bindIndexBuffer((*_indices)(frame), indexBufferOffset, rhi::IndexType::eU16);
 
-                commandList->drawIndexed(static_cast<uint32_t>(cmd.ElemCount), 1u, firstIndex);
+                commandList.drawIndexed(static_cast<uint32_t>(cmd.ElemCount), 1u, firstIndex);
 
                 indexBufferOffset += cmd.ElemCount * sizeof(ImDrawIdx);
             }

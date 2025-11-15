@@ -2,15 +2,15 @@
 
 namespace engine::graphics {
     
-    StagingBuffer::StagingBuffer(const std::unique_ptr<rhi::runtime::Rhi> & api,
-            rhi::runtime::DevicePtr & device, size_t size, rhi::MemoryPropertyFlags memoryFlags) {
+    StagingBuffer::StagingBuffer(rhi::runtime::Rhi & api,
+            rhi::runtime::Device & device, size_t size, rhi::MemoryPropertyFlags memoryFlags) {
 
         const rhi::BufferInfo info {
             rhi::BufferUsageFlags::eTransfer_Src,
             memoryFlags
         };
 
-        _data = {api->createBuffer(device, info, size), 0u};
+        _data = {api.createBuffer(device, info, size), 0u};
     }
 
     void StagingBuffer::reset() noexcept {
@@ -45,11 +45,11 @@ namespace engine::graphics {
 
     /////////////////
 
-    InflightStagingBuffer::InflightStagingBuffer(const std::unique_ptr<rhi::runtime::Rhi> & api,
-            rhi::runtime::DevicePtr & device, size_t size, rhi::MemoryPropertyFlags memoryFlags) {
-        _buffers.reserve(device->inFlightFramesCount());
+    InflightStagingBuffer::InflightStagingBuffer(rhi::runtime::Rhi & api,
+            rhi::runtime::Device & device, size_t size, rhi::MemoryPropertyFlags memoryFlags) {
+        _buffers.reserve(device.inFlightFramesCount());
 
-        for (uint8_t i = 0u; i < device->inFlightFramesCount(); ++i) {
+        for (uint8_t i = 0u; i < device.inFlightFramesCount(); ++i) {
             _buffers.emplace_back(api, device, size, memoryFlags);
         }
     }

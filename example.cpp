@@ -180,11 +180,11 @@ namespace example {
         }
 
         for (auto & semaphore : _readyToPresentSemaphores) {
-            _api->destroySemaphore(_device, semaphore);
+            _api->destroySemaphore(*_device, semaphore);
         }
 
         for (auto & semaphore : _transfersCompleteSemaphores) {
-            _api->destroySemaphore(_device, semaphore);
+            _api->destroySemaphore(*_device, semaphore);
         }
         
         _commandLists.clear();
@@ -296,7 +296,7 @@ namespace example {
         swapchainCreateInfo.imagesCount = inflightFrames;
         swapchainCreateInfo.queueFamilies.push_back(index);
 
-        _swapchain = _api->createSwapchain(_device, _surface, swapchainCreateInfo);
+        _swapchain = _api->createSwapchain(*_device, *_surface, swapchainCreateInfo);
     }
 
     void Example::sizeChanged() {
@@ -315,7 +315,7 @@ namespace example {
         _depthImages.clear();
         _depthImages.reserve(swapchainImagesCount);
         for (uint32_t i = 0u; i < swapchainImagesCount; ++i) {
-            _depthImages.emplace_back(std::move(_api->createImage(_device, imageInfo)));
+            _depthImages.emplace_back(std::move(_api->createImage(*_device, imageInfo)));
         }
 
         //
@@ -328,7 +328,7 @@ namespace example {
         _colorAttachmentImages.clear();
         _colorAttachmentImages.reserve(swapchainImagesCount);
         for (uint32_t i = 0u; i < swapchainImagesCount; ++i) {
-            _colorAttachmentImages.emplace_back(std::move(_api->createImage(_device, colorImageInfo)));
+            _colorAttachmentImages.emplace_back(std::move(_api->createImage(*_device, colorImageInfo)));
         }
 
         _sceneFrameBuffers.clear();
@@ -346,7 +346,7 @@ namespace example {
             fbAttachemnts[1u].imageSize = {depthImage->getExtent().width, depthImage->getExtent().height};
             fbAttachemnts[1u].aspect = engine::rhi::ImageAspectFlags::eDepth;  // can get it from depthImage?
 
-            _sceneFrameBuffers.emplace_back(_api->createFrameBuffer(_device, std::move(fbAttachemnts), _renderPasses[kSceneRenderPass]));
+            _sceneFrameBuffers.emplace_back(_api->createFrameBuffer(*_device, std::move(fbAttachemnts), _renderPasses[kSceneRenderPass]));
         }
 
         _mainFrameBuffers.clear();
@@ -358,7 +358,7 @@ namespace example {
             fbAttachemnts[0u].image = &image;
             fbAttachemnts[0u].imageSize = {image.getExtent().width, image.getExtent().height};
 
-            _mainFrameBuffers.emplace_back(_api->createFrameBuffer(_device, std::move(fbAttachemnts), _renderPasses[kScreenRenderPass]));
+            _mainFrameBuffers.emplace_back(_api->createFrameBuffer(*_device, std::move(fbAttachemnts), _renderPasses[kScreenRenderPass]));
         }
     }
 
@@ -388,8 +388,8 @@ namespace example {
         const auto formats0 = std::array{engine::rhi::Format::eB8G8R8A8_Unorm}; // _swapchain->getFormat()
         const auto formats1 = std::array{engine::rhi::Format::eR8G8B8A8_Unorm, depthFormat};
 
-        _renderPasses.emplace_back(_api->getRenderPass(_device, engine::parseRenderPass(json["screen"], formats0))); // kScreenPass
-        _renderPasses.emplace_back(_api->getRenderPass(_device, engine::parseRenderPass(json["scene"], formats1))); // kScenePass
+        _renderPasses.emplace_back(_api->getRenderPass(*_device, engine::parseRenderPass(json["screen"], formats0))); // kScreenPass
+        _renderPasses.emplace_back(_api->getRenderPass(*_device, engine::parseRenderPass(json["scene"], formats1))); // kScenePass
     }
 
     void Example::loadShaders() {
@@ -402,7 +402,7 @@ namespace example {
             const auto & vsModule = _shaderModulesManager->registerModule("imgui.vert", *_device, engine::rhi::shaders::Stages::eVertex, vBytes);
             const auto & fsModule = _shaderModulesManager->registerModule("imgui.frag", *_device, engine::rhi::shaders::Stages::eFragment, fBytes);
 
-            _programs.emplace_back(_api->createProgram(_device, std::array{vsModule.getView(), fsModule.getView()}));
+            _programs.emplace_back(_api->createProgram(*_device, std::array{vsModule.getView(), fsModule.getView()}));
         }
         { // kPostEffectProgram
             auto const vBytes = _fileManager.readFile("shaders/postEffect.vert.spv");
@@ -411,7 +411,7 @@ namespace example {
             const auto & vsModule = _shaderModulesManager->registerModule("postEffect.vert", *_device, engine::rhi::shaders::Stages::eVertex, vBytes);
             const auto & fsModule = _shaderModulesManager->registerModule("postEffect.frag", *_device, engine::rhi::shaders::Stages::eFragment, fBytes);
 
-            _programs.emplace_back(_api->createProgram(_device, std::array{vsModule.getView(), fsModule.getView()}));
+            _programs.emplace_back(_api->createProgram(*_device, std::array{vsModule.getView(), fsModule.getView()}));
         }
         { // kTestProgram
             auto const vBytes = _fileManager.readFile("shaders/test.vert.spv");
@@ -420,12 +420,12 @@ namespace example {
             const auto & vsModule = _shaderModulesManager->registerModule("test.vert", *_device, engine::rhi::shaders::Stages::eVertex, vBytes);
             const auto & fsModule = _shaderModulesManager->registerModule("test.frag", *_device, engine::rhi::shaders::Stages::eFragment, fBytes);
 
-            _programs.emplace_back(_api->createProgram(_device, std::array{vsModule.getView(), fsModule.getView()}, {.dynamicDescriptorsMask = 0u}));
+            _programs.emplace_back(_api->createProgram(*_device, std::array{vsModule.getView(), fsModule.getView()}, {.dynamicDescriptorsMask = 0u}));
         }
         { // kComputeProgram
             auto const cBytes = _fileManager.readFile("shaders/compute_test.comp.spv");
             const auto & compModule = _shaderModulesManager->registerModule("compute_test.comp", *_device, engine::rhi::shaders::Stages::eCompute, cBytes);
-            _programs.emplace_back(_api->createProgram(_device, std::array{compModule.getView()}));
+            _programs.emplace_back(_api->createProgram(*_device, std::array{compModule.getView()}));
         }
         { // kDebugProgram
             auto const vBytes = _fileManager.readFile("shaders/debug.vert.spv");
@@ -434,7 +434,7 @@ namespace example {
             const auto & vsModule = _shaderModulesManager->registerModule("debug.vert", *_device, engine::rhi::shaders::Stages::eVertex, vBytes);
             const auto & fsModule = _shaderModulesManager->registerModule("debug.frag", *_device, engine::rhi::shaders::Stages::eFragment, fBytes);
 
-            _programs.emplace_back(_api->createProgram(_device, std::array{vsModule.getView(), fsModule.getView()}));
+            _programs.emplace_back(_api->createProgram(*_device, std::array{vsModule.getView(), fsModule.getView()}));
         }
     }
     
@@ -442,8 +442,8 @@ namespace example {
         using namespace engine::rhi;
 
         loadShaders();
-        _imgui.createPipeline(_api, _device, _programs[kImguiProgram], _renderPasses[kScreenRenderPass], 0u);
-        debugDraw.createPipelines(_api, _device, _programs[kDebugProgram], _renderPasses[kSceneRenderPass], 0u);
+        _imgui.createPipeline(*_api, *_device, _programs[kImguiProgram], _renderPasses[kScreenRenderPass], 0u);
+        debugDraw.createPipelines(*_api, *_device, _programs[kDebugProgram], _renderPasses[kSceneRenderPass], 0u);
 
         const auto bytes = _fileManager.readFile("descriptors/pipelines.json");
         std::string_view input(reinterpret_cast<const char*>(bytes.data()), bytes.size());
@@ -452,14 +452,14 @@ namespace example {
 
         // kPostEffectPipeline
         const GraphicsPipelineStatesInfo info0 = engine::parseGraphicsPipelineInfo(json["postEffect"]);
-        _pipelines.emplace_back(_api->createGraphicsPipeline(_device, _renderPasses[kScreenRenderPass], _programs[kPostEffectProgram], info0, 0u));
+        _pipelines.emplace_back(_api->createGraphicsPipeline(*_device, _renderPasses[kScreenRenderPass], _programs[kPostEffectProgram], info0, 0u));
 
         // kSceneTestPipeline
         const GraphicsPipelineStatesInfo info1 = engine::parseGraphicsPipelineInfo(json["sphere"]);
-        _pipelines.emplace_back(_api->createGraphicsPipeline(_device, _renderPasses[kSceneRenderPass], _programs[kTestProgram], info1, 0u));
+        _pipelines.emplace_back(_api->createGraphicsPipeline(*_device, _renderPasses[kSceneRenderPass], _programs[kTestProgram], info1, 0u));
 
         // kComputeTestPipeline
-        _pipelines.emplace_back(_api->createComputePipeline(_device, _programs[kComputeProgram]));
+        _pipelines.emplace_back(_api->createComputePipeline(*_device, _programs[kComputeProgram]));
     }
 
     void Example::createDefaultResources() {
@@ -518,21 +518,21 @@ namespace example {
             MemoryPropertyFlags::eDeviceLocal
         };
 
-        _postPositions = _api->createBuffer(_device, bufferInfo, sizeof(std::array<float, 2u>) * 4u);
+        _postPositions = _api->createBuffer(*_device, bufferInfo, sizeof(std::array<float, 2u>) * 4u);
 
         bufferInfo.usage = BufferUsageFlags::eIndex_Buffer | BufferUsageFlags::eTransfer_Dst;
-        _postIndices = _api->createBuffer(_device, bufferInfo, sizeof(uint16_t) * 6u);
+        _postIndices = _api->createBuffer(*_device, bufferInfo, sizeof(uint16_t) * 6u);
 
         // storage buffer test
         BufferInfo storageBufferInfo {
             BufferUsageFlags::eStorage_Buffer | BufferUsageFlags::eTransfer_Src,
             MemoryPropertyFlags::eDeviceLocal
         };
-        _storageBuffer = _api->createBuffer(_device, storageBufferInfo, sizeof(std::array<float, 4u>)); // test!
+        _storageBuffer = _api->createBuffer(*_device, storageBufferInfo, sizeof(std::array<float, 4u>)); // test!
 
         storageBufferInfo.usage = BufferUsageFlags::eTransfer_Dst;
         storageBufferInfo.memoryFlags = MemoryPropertyFlags::eHostVisible;
-        _cpuStorageResult = _api->createBuffer(_device, storageBufferInfo, sizeof(std::array<float, 4u>)); // test!
+        _cpuStorageResult = _api->createBuffer(*_device, storageBufferInfo, sizeof(std::array<float, 4u>)); // test!
         // storage buffer test
 
         const auto imageInfo = ImageInfo{
@@ -540,11 +540,11 @@ namespace example {
             Format::eR8G8B8A8_Unorm, {2u, 2u, 1u}
         };
 
-        _defaultImage = _api->createImage(_device, imageInfo);
+        _defaultImage = _api->createImage(*_device, imageInfo);
 
         // staging buffer for vtx, idx, image;
         constexpr auto stagingSize = sizeof(std::array<float, 2u>) * 4u + sizeof(uint16_t) * 6u + sizeof(uint32_t) * 4u;
-        StagingBuffer staging{_api,_device, stagingSize};
+        StagingBuffer staging{*_api, *_device, stagingSize};
         
         std::byte * memory = staging.map();
         const auto vtxOffset = staging.requestBytes(sizeof(std::array<float, 2u>) * 4u);
@@ -636,7 +636,7 @@ namespace example {
         const auto idxDataSize = sizeof(uint16_t) * indices.size();
 
         const auto stagingSphereSize = vtxDataSize + idxDataSize;
-        StagingBuffer stagingSphere{_api,_device, stagingSphereSize};
+        StagingBuffer stagingSphere{*_api, *_device, stagingSphereSize};
         std::byte * memory2 = stagingSphere.map();
         const auto vtxOffset2 = stagingSphere.requestBytes(vtxDataSize);
         const auto idxOffset2 = stagingSphere.requestBytes(idxDataSize);
@@ -654,10 +654,10 @@ namespace example {
             BufferUsageFlags::eVertex_Buffer | BufferUsageFlags::eTransfer_Dst,
             MemoryPropertyFlags::eDeviceLocal
         };
-        _sphereVtx = _api->createBuffer(_device, bufferInfoSphere, sizeof(std::array<float, 5u>) * vertices.size());
+        _sphereVtx = _api->createBuffer(*_device, bufferInfoSphere, sizeof(std::array<float, 5u>) * vertices.size());
 
         bufferInfoSphere.usage = BufferUsageFlags::eIndex_Buffer | BufferUsageFlags::eTransfer_Dst;
-        _sphereIdx = _api->createBuffer(_device, bufferInfoSphere, sizeof(uint16_t) * indices.size());
+        _sphereIdx = _api->createBuffer(*_device, bufferInfoSphere, sizeof(uint16_t) * indices.size());
         // sphere data
 
         // sphere texture
@@ -666,14 +666,14 @@ namespace example {
             textureData.metaInfo.format, {textureData.metaInfo.size.x, textureData.metaInfo.size.y, 1u}
         };
 
-        _sphereImage = _api->createImage(_device, sphereImageInfo);
+        _sphereImage = _api->createImage(*_device, sphereImageInfo);
 
         // TextureManager
         textureManager.addFrame("sphere_texture", _sphereImage);
         textureManager.addFrame("sphere_texture2", _sphereImage);
 
         const auto stagingSize3 = textureData.data.size();
-        StagingBuffer staging3{_api, _device, stagingSize3};
+        StagingBuffer staging3{*_api, *_device, stagingSize3};
         
         std::byte * memory3 = staging3.map();
         auto * sphereImgData = reinterpret_cast<std::byte*>(memory3);
@@ -722,13 +722,13 @@ namespace example {
         // sphere
 
         // textureManager resources
-        textureManager.createDefaultResources(_api, _device, tmpCommandList);
+        textureManager.createDefaultResources(*_api, *_device, tmpCommandList);
 
         tmpCommandList->end();
         tmpCommandList->record(0u);
 
         auto lists = std::array{tmpCommandList.get()};
-        auto fence = _api->createFence(_device, FenceCreateFlags::eNone);
+        auto fence = _api->createFence(*_device, FenceCreateFlags::eNone);
         bool const submitted = _renderQueue->submit(0u, std::array{
             engine::rhi::runtime::Queue::SubmitInfo {
                 .w8Semaphores = {},
@@ -739,7 +739,7 @@ namespace example {
         }, fence);
 
         _renderQueue->waitSubmit(0u, UINT64_MAX, fence);
-        _api->destroyFence(_device, fence);
+        _api->destroyFence(*_device, fence);
 
         BufferInfo unifromsInfo {
             BufferUsageFlags::eUniform_Buffer | BufferUsageFlags::eTransfer_Dst,
@@ -747,7 +747,7 @@ namespace example {
         };
 
         const size_t kUniformBufferOffsetAlign = _device->getUniformBufferOffsetAlignment();
-        _uniformBufferI = std::make_unique<engine::graphics::InflightBuffer>(_api, _device, unifromsInfo, std::max(kUniformBufferOffsetAlign, sizeof(UniformBuffer)));
+        _uniformBufferI = std::make_unique<engine::graphics::InflightBuffer>(*_api, *_device, unifromsInfo, std::max(kUniformBufferOffsetAlign, sizeof(UniformBuffer)));
     
         { // update uniforms
             auto * map = _uniformBufferI->map2<UniformBuffer>();
@@ -855,23 +855,23 @@ namespace example {
 
     void Example::prepare() {
         const auto inflightFrames = _device->inFlightFramesCount();
-        _renderQueue = _api->getQueue(_device, engine::rhi::queue_flags::graphics | engine::rhi::queue_flags::present, 0u, inflightFrames);
+        _renderQueue = _api->getQueue(*_device, engine::rhi::queue_flags::graphics | engine::rhi::queue_flags::present, 0u, inflightFrames);
 
         _readyToPresentSemaphores.resize(inflightFrames);
         for (auto & semaphore : _readyToPresentSemaphores) {
-            semaphore = _api->createSemaphore(_device);
+            semaphore = _api->createSemaphore(*_device);
         }
 
         _transfersCompleteSemaphores.resize(inflightFrames);
         for (auto & semaphore : _transfersCompleteSemaphores) {
-            semaphore = _api->createSemaphore(_device);
+            semaphore = _api->createSemaphore(*_device);
         }
 
         _frameIndex.setFramesCount(inflightFrames);
 
-        _imgui.createFontTexture(_api, _device);
-        _imgui.createBuffers(_api, _device);
-        debugDraw.createBuffers(_api, _device);
+        _imgui.createFontTexture(*_api, *_device);
+        _imgui.createBuffers(*_api, *_device);
+        debugDraw.createBuffers(*_api, *_device);
 
         // on render thread
         auto * commandPool = _device->acquireCommandPool(engine::rhi::queue_flags::graphics | engine::rhi::queue_flags::present);
@@ -886,7 +886,7 @@ namespace example {
         }
 
         // queryPool
-        _queryPool = _api->createQueryPool(_device, {
+        _queryPool = _api->createQueryPool(*_device, {
             .queryType = engine::rhi::QueryType::eTimestamp,
             .queryCount = inflightFrames * 2u
         });
@@ -1004,11 +1004,11 @@ namespace example {
             map->time += delta * 0.01f;
 
             _uniformBufferI->unmap();
-            _uniformBufferI->commit(commandList, frame);
+            _uniformBufferI->commit(*commandList, frame);
         }
 
         if constexpr (!kUseTransferCommandListForPrepareImgui) {
-            _imgui.prepare(commandList, frame, _api, _device);
+            _imgui.prepare(*commandList, frame, *_api, *_device);
         }
     }
 
@@ -1097,6 +1097,13 @@ namespace example {
             }
         });
 
+        commandList->bindImage(1u, textureManager.getDefaultImage(), rhi::SamplerValue {
+            .info = {
+                .magFilter = rhi::FilterMode::eNearest,
+                .minFilter = rhi::FilterMode::eNearest
+            }
+        });
+
         commandList->bindBuffer(0u, (*_uniformBufferI)(frameId), 0u, 0u, sizeof(UniformBuffer));
 
         // for (size_t i = 0; i < 2'000; ++i) {
@@ -1107,8 +1114,8 @@ namespace example {
         auto objects = scene.recalculate(cameraTransform);
         scene.draw(commandList, frameId, cameraTransform, objects);
 
-        debugDraw.prepare(transferCommandList, frameId, _api, _device);
-        debugDraw.draw(commandList, frameId);
+        debugDraw.prepare(*transferCommandList, frameId, *_api, *_device);
+        debugDraw.draw(*commandList, frameId);
 
         //commandList->nextSubpass(rhi::SubpassContents::ePrimaryBufferInline);
         commandList->endRenderPass();
@@ -1126,9 +1133,9 @@ namespace example {
 
         // draw imgui
         if constexpr (kUseTransferCommandListForPrepareImgui) {
-            _imgui.prepare(transferCommandList, frameId, _api, _device);
+            _imgui.prepare(*transferCommandList, frameId, *_api, *_device);
         }
-        _imgui.draw(commandList, frameId);
+        _imgui.draw(*commandList, frameId);
 
         commandList->endRenderPass();
 

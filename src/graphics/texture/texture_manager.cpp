@@ -2,6 +2,7 @@
 
 #include "graphics/render/staging_buffer.h"
 #include "graphics/render/rhi/common/command_list.h"
+#include "log/log.h"
 
 #include <cassert>
 
@@ -18,7 +19,7 @@ namespace engine::graphics {
         _transparentImage = nullptr;
     }
 
-    void TextureManager::createDefaultResources(const std::unique_ptr<rhi::runtime::Rhi> & api, rhi::runtime::DevicePtr & device, 
+    void TextureManager::createDefaultResources(rhi::runtime::Rhi & api, rhi::runtime::Device & device, 
         const rhi::runtime::CommandListPtr & commandList) {
         using namespace rhi;
 
@@ -32,10 +33,10 @@ namespace engine::graphics {
             Format::eR8G8B8A8_Unorm, {1u, 1u, 1u}
         };
 
-        _defaultImage = api->createImage(device, imageInfo0);
-        _whiteImage = api->createImage(device, imageInfo1);
-        _blackImage = api->createImage(device, imageInfo1);
-        _transparentImage = api->createImage(device, imageInfo1);
+        _defaultImage = api.createImage(device, imageInfo0);
+        _whiteImage = api.createImage(device, imageInfo1);
+        _blackImage = api.createImage(device, imageInfo1);
+        _transparentImage = api.createImage(device, imageInfo1);
 
         constexpr auto stagingSize = sizeof(uint32_t) * 4u + 
                                      sizeof(uint32_t) * 1u + 
@@ -112,6 +113,7 @@ namespace engine::graphics {
 
     bool TextureManager::addFrame(std::string_view name, const rhi::runtime::ImagePtr & image, const Frame2D & frame) {
         if (auto it = _frames2D.find(name); it != _frames2D.end()) {
+            LOG_D("TextureManager: frame with name %s alredy exists!", name.data());
             return false;
         }
 
@@ -128,6 +130,30 @@ namespace engine::graphics {
         _frames2D.emplace(name, ImageFrame2D{image, frame});
 
         return true;
+    }
+
+    void TextureManager::addFrames(std::span<std::pair<std::string, ImageFrame2D>> frames, const rhi::runtime::ImagePtr & image) {
+        if (frames.empty()) {
+            return;
+        }
+
+        uint32_t newFramesCount = 0u;
+        for (const auto & [name, frame] : frames) {
+            if (auto it = _frames2D.find(name); it == _frames2D.end()) {
+                _frames2D.emplace(name, frame);
+                ++newFramesCount;
+            } else {
+                LOG_D("TextureManager frame with name %s alredy exists!", name.c_str());
+            }
+        }
+
+        auto it = _imagesSet.find(image.get());
+        if (it == _imagesSet.end()) {
+            _images.emplace_back(image);
+            _imagesSet.emplace(image.get(), newFramesCount);
+        } else {
+            const_cast<ImageHolder&>(*it).count += newFramesCount;
+        }
     }
 
     bool TextureManager::removeFrame(std::string_view name) noexcept {

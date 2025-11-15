@@ -12,8 +12,8 @@ namespace engine::graphics {
     public:
         inline static uint32_t kNotEnoughMemory = 0xff'ff'ff'ffu;
 
-        StagingBuffer(const std::unique_ptr<rhi::runtime::Rhi> & api,
-            rhi::runtime::DevicePtr & device, size_t size, 
+        StagingBuffer(rhi::runtime::Rhi & api,
+            rhi::runtime::Device & device, size_t size, 
             rhi::MemoryPropertyFlags memoryFlags = rhi::MemoryPropertyFlags::eHostVisible | rhi::MemoryPropertyFlags::eHostCached);
 
         uint32_t requestBytes(uint32_t bytes) noexcept;
@@ -39,8 +39,8 @@ namespace engine::graphics {
 
     class InflightStagingBuffer {
     public:
-        InflightStagingBuffer(const std::unique_ptr<rhi::runtime::Rhi> & api,
-            rhi::runtime::DevicePtr & device, size_t size, 
+        InflightStagingBuffer(rhi::runtime::Rhi & api,
+            rhi::runtime::Device & device, size_t size, 
             rhi::MemoryPropertyFlags memoryFlags = rhi::MemoryPropertyFlags::eHostVisible | rhi::MemoryPropertyFlags::eHostCached);
 
         uint32_t requestBytes(uint8_t idx, uint32_t bytes) noexcept;

@@ -1,14 +1,17 @@
 #pragma once
 
 #include "common/hash.h"
-#include "graphics/render/rhi/common/runtime.h"
+#include "image_frame.h"
 
 #include <array>
+#include <cstddef>
 #include <cstdint>
+#include <span>
 #include <string>
 #include <string_view>
 #include <unordered_map>
 #include <unordered_set>
+#include <utility>
 #include <vector>
 
 namespace engine::graphics {
@@ -44,28 +47,6 @@ using ImageHolder_hash = Hasher<graphics::ImageHolder>;
 
 namespace engine::graphics {
 
-struct Frame2D {
-    std::array<float, 2u> uvMin = {0.0f, 0.0f};
-    std::array<float, 2u> uvMax = {1.0f, 1.0f};
-};
-
-class ImageFrame2D {
-public:
-    ImageFrame2D(const rhi::runtime::ImagePtr & image, const Frame2D & frame) : _image(image), _frame(frame) {}
-
-    const rhi::runtime::ImagePtr & getImage() const noexcept {
-        return _image;
-    }
-
-    const Frame2D & getFrame() const noexcept {
-        return _frame;
-    }
-    
-private:
-    const rhi::runtime::ImagePtr _image = nullptr;
-    Frame2D _frame = {};
-};
-
 class TextureManager {
     using ImageFramesMap = std::unordered_map<std::string, ImageFrame2D, hash::String_hash, std::equal_to<>>;
     using Images = std::vector<rhi::runtime::ImagePtr>;
@@ -73,13 +54,14 @@ class TextureManager {
 
 public:
     ~TextureManager() { destroy(); }
-    void createDefaultResources(const std::unique_ptr<rhi::runtime::Rhi> & api, rhi::runtime::DevicePtr & device, 
+    void createDefaultResources(rhi::runtime::Rhi & api, rhi::runtime::Device & device, 
         const rhi::runtime::CommandListPtr & commandList);
     void destroy();
 
     bool addFrame(std::string_view name, const rhi::runtime::ImagePtr & image, const Frame2D & frame = {});
+    void addFrames(std::span<std::pair<std::string, ImageFrame2D>> frames, const rhi::runtime::ImagePtr & image);
     bool removeFrame(std::string_view name) noexcept;
-
+    
     const rhi::runtime::ImagePtr & getImage(uint32_t idx) const noexcept;
     const ImageFrame2D * findFrame(std::string_view name) const noexcept;
 

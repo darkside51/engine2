@@ -21,21 +21,21 @@ namespace engine {
 
         void destroy() noexcept;
 
-        void createPipeline(const std::unique_ptr<rhi::runtime::Rhi> & api,
-            rhi::runtime::DevicePtr & device, 
+        void createPipeline(rhi::runtime::Rhi & api,
+            rhi::runtime::Device & device, 
             const rhi::runtime::GpuProgramPtr & program, rhi::runtime::RenderPass renderPass, 
             uint32_t subpass = 0u);
 
-        void createFontTexture(const std::unique_ptr<rhi::runtime::Rhi> & api,
-            rhi::runtime::DevicePtr & device);
-        void createBuffers(const std::unique_ptr<rhi::runtime::Rhi> & api,
-            rhi::runtime::DevicePtr & device);
+        void createFontTexture(rhi::runtime::Rhi & api,
+            rhi::runtime::Device & device);
+        void createBuffers(rhi::runtime::Rhi & api,
+            rhi::runtime::Device & device);
 
         void beginFrame(float delta, uint16_t w, uint16_t h) noexcept;
         void endFrame();
-        void prepare(rhi::runtime::CommandListPtr & commandList, uint8_t frame, 
-            const std::unique_ptr<rhi::runtime::Rhi> & api, rhi::runtime::DevicePtr & device);
-        void draw(rhi::runtime::CommandListPtr & commandList, uint8_t frame) noexcept;
+        void prepare(rhi::runtime::CommandList & commandList, uint8_t frame, 
+            rhi::runtime::Rhi & api, rhi::runtime::Device & device);
+        void draw(rhi::runtime::CommandList & commandList, uint8_t frame) noexcept;
 
         bool onInputPointerEvent(const PointerEvent & event) override;
         bool onInputWheelEvent(float dx, float dy) override;

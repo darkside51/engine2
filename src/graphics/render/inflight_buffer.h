@@ -15,8 +15,8 @@ namespace engine::graphics {
     public:
         ~InflightBuffer();
 
-        InflightBuffer(const std::unique_ptr<rhi::runtime::Rhi> & api,
-            rhi::runtime::DevicePtr & device, const rhi::BufferInfo & info, size_t size);
+        InflightBuffer(rhi::runtime::Rhi & api,
+            rhi::runtime::Device & device, const rhi::BufferInfo & info, size_t size);
 
         void setStagingBuffer(InflightStagingBuffer * staging) noexcept { _stagingBuffer = staging; }
 
@@ -28,7 +28,7 @@ namespace engine::graphics {
 
         void resize(size_t size);
 
-        void commit(rhi::runtime::CommandListPtr & cmd, uint8_t idx) noexcept;
+        void commit(rhi::runtime::CommandList & cmd, uint8_t idx) noexcept;
 
         rhi::runtime::BufferPtr & operator()(uint8_t idx) noexcept {
             return _buffers[idx].buffer;
@@ -75,8 +75,8 @@ namespace engine::graphics {
         uint32_t _size = 0u;
         rhi::BufferInfo _bufferInfo;
     
-        const std::unique_ptr<rhi::runtime::Rhi> & _api;
-        std::unique_ptr<rhi::runtime::Device> & _device;
+        rhi::runtime::Rhi & _api;
+        rhi::runtime::Device & _device;
         InflightStagingBuffer * _stagingBuffer = nullptr;
     };
 }

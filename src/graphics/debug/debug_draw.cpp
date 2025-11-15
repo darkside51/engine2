@@ -25,8 +25,8 @@ namespace engine::debug {
         _staging = nullptr;
     }
 
-    void DebugDraw::createPipelines(const std::unique_ptr<rhi::runtime::Rhi> & api,
-        rhi::runtime::DevicePtr & device, 
+    void DebugDraw::createPipelines(rhi::runtime::Rhi & api,
+        rhi::runtime::Device & device, 
         const rhi::runtime::GpuProgramPtr & program, rhi::runtime::RenderPass renderPass, 
         uint32_t subpass) {
 
@@ -66,7 +66,7 @@ namespace engine::debug {
             }
         };
 
-        _linePipeline = api->createGraphicsPipeline(device, renderPass, program, info, subpass);
+        _linePipeline = api.createGraphicsPipeline(device, renderPass, program, info, subpass);
 
         info.blendModes = {rhi::common_blend_modes::blend_alpha};
         info.rasterisationState = {rhi::PolygonMode::eFill, rhi::CullMode::eNone};
@@ -80,11 +80,11 @@ namespace engine::debug {
             {}
         };
 
-        _fillPipeline = api->createGraphicsPipeline(device, renderPass, program, info, subpass);
+        _fillPipeline = api.createGraphicsPipeline(device, renderPass, program, info, subpass);
     }
 
-    void DebugDraw::createBuffers(const std::unique_ptr<rhi::runtime::Rhi> & api,
-        rhi::runtime::DevicePtr & device) {
+    void DebugDraw::createBuffers(rhi::runtime::Rhi & api,
+        rhi::runtime::Device & device) {
 
         constexpr uint32_t kInitialVerticesCountMax = 1024u;
         constexpr uint32_t kInitialIndicesCountMax = 1024u;
@@ -113,8 +113,8 @@ namespace engine::debug {
         );
     }
 
-    void DebugDraw::prepare(rhi::runtime::CommandListPtr & commandList, uint8_t frame, 
-        const std::unique_ptr<rhi::runtime::Rhi> & api, rhi::runtime::DevicePtr & device) {
+    void DebugDraw::prepare(rhi::runtime::CommandList & commandList, uint8_t frame, 
+        rhi::runtime::Rhi & api, rhi::runtime::Device & device) {
 
         // check we need to use a staging buffer
         const bool useStagingBuffer = !_vertices->isHostVisible() || !_fillIndices->isHostVisible() ||
@@ -148,26 +148,26 @@ namespace engine::debug {
         }
     }
 
-    void DebugDraw::draw(rhi::runtime::CommandListPtr & commandList, uint8_t frame) noexcept {
+    void DebugDraw::draw(rhi::runtime::CommandList & commandList, uint8_t frame) noexcept {
 
         if (_lineIndicesCount) { // draw lines
-            commandList->bindPipeline(_linePipeline);
+            commandList.bindPipeline(_linePipeline);
 
-            commandList->bindVertexBuffer(0u, (*_vertices)(frame), 0u);
-            commandList->bindIndexBuffer((*_linesIndices)(frame), 0u, rhi::IndexType::eU32);
+            commandList.bindVertexBuffer(0u, (*_vertices)(frame), 0u);
+            commandList.bindIndexBuffer((*_linesIndices)(frame), 0u, rhi::IndexType::eU32);
 
-            commandList->drawIndexed(static_cast<uint32_t>(_lineIndicesCount), 1u, 0u);
+            commandList.drawIndexed(static_cast<uint32_t>(_lineIndicesCount), 1u, 0u);
 
             _lineIndicesCount = 0u;
         }
 
         if (_filledIndicesCount) { // draw filled
-            commandList->bindPipeline(_fillPipeline);
+            commandList.bindPipeline(_fillPipeline);
 
-            commandList->bindVertexBuffer(0u, (*_vertices)(frame), 0u);
-            commandList->bindIndexBuffer((*_fillIndices)(frame), 0u, rhi::IndexType::eU32);
+            commandList.bindVertexBuffer(0u, (*_vertices)(frame), 0u);
+            commandList.bindIndexBuffer((*_fillIndices)(frame), 0u, rhi::IndexType::eU32);
 
-            commandList->drawIndexed(static_cast<uint32_t>(_filledIndicesCount), 1u, 0u);
+            commandList.drawIndexed(static_cast<uint32_t>(_filledIndicesCount), 1u, 0u);
 
             _filledIndicesCount = 0u;
         }

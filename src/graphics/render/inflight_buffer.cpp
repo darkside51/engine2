@@ -9,14 +9,14 @@ namespace engine::graphics {
         _tmpMemory = nullptr;
     }
 
-    InflightBuffer::InflightBuffer(const std::unique_ptr<rhi::runtime::Rhi> & api,
-        rhi::runtime::DevicePtr & device, const rhi::BufferInfo & info, size_t size) :
+    InflightBuffer::InflightBuffer(rhi::runtime::Rhi & api,
+        rhi::runtime::Device & device, const rhi::BufferInfo & info, size_t size) :
         _size(size),
         _bufferInfo(info),
         _api(api), 
         _device(device) {
-        _buffers.reserve(device->inFlightFramesCount());
-        for (uint8_t i = 0u; i < _device->inFlightFramesCount(); ++i) {
+        _buffers.reserve(device.inFlightFramesCount());
+        for (uint8_t i = 0u; i < _device.inFlightFramesCount(); ++i) {
             _buffers.emplace_back(nullptr, false);
         }
 
@@ -45,10 +45,10 @@ namespace engine::graphics {
         }
     }
 
-    void InflightBuffer::commit(rhi::runtime::CommandListPtr & cmd, uint8_t idx) noexcept { // can use another command buffer if need to call this function in renderpass time!
+    void InflightBuffer::commit(rhi::runtime::CommandList & cmd, uint8_t idx) noexcept { // can use another command buffer if need to call this function in renderpass time!
         if (auto & [buffer, dirty] = _buffers[idx]; dirty) {
             if (buffer == nullptr || buffer->sizeInBytes() != _size) {
-                buffer = _api->createBuffer(_device, _bufferInfo, _size);
+                buffer = _api.createBuffer(_device, _bufferInfo, _size);
             }
 
             if (buffer->isHostVisible()) { // it is hostVisible
@@ -68,7 +68,7 @@ namespace engine::graphics {
                             //stagingBuffer->unmap();
                         }
 
-                        cmd->copyBuffer2Buffer(*stagingBuffer, buffer, {.srcOffset = offset, .dstOffset = 0u, .size = buffer->sizeInBytes()});
+                        cmd.copyBuffer2Buffer(*stagingBuffer, buffer, {.srcOffset = offset, .dstOffset = 0u, .size = buffer->sizeInBytes()});
                         dirty = false;
                         return;
                     }
@@ -79,7 +79,7 @@ namespace engine::graphics {
                     rhi::MemoryPropertyFlags::eHostVisible | rhi::MemoryPropertyFlags::eHostCached
                 };
             
-                auto stagingBuffer = _api->createBuffer(_device, info, buffer->sizeInBytes());
+                auto stagingBuffer = _api.createBuffer(_device, info, buffer->sizeInBytes());
                 {
                     auto * memory = stagingBuffer->map();
                     memcpy(memory, _tmpMemory.get(), buffer->sizeInBytes());
@@ -87,7 +87,7 @@ namespace engine::graphics {
                     stagingBuffer->unmap();
                 }
 
-                cmd->copyBuffer2Buffer(stagingBuffer, buffer, {.srcOffset = 0u, .dstOffset = 0u, .size = buffer->sizeInBytes()});
+                cmd.copyBuffer2Buffer(stagingBuffer, buffer, {.srcOffset = 0u, .dstOffset = 0u, .size = buffer->sizeInBytes()});
             }
 
             dirty = false;
