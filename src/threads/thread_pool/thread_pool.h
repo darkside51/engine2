@@ -240,7 +240,7 @@ namespace threads {
         Freelist<Task*> _freelist;
 
     #ifdef ENABLE_TASK_POOL
-        using PoolAllocator = allocators::PoolAllocatorChain<sizeof(Task), alignof(Task), true>;
+        using PoolAllocator = allocators::PoolAllocatorChain<sizeof(Task), alignof(Task), true, true>;
         PoolAllocator _taskPool{1024u, 64u};
     #endif
     };

@@ -17,7 +17,7 @@ namespace engine::tests {
                 A(uint16_t v0, double v1, std::function<int()> && v2) : v0(v0), v1(v1), v2(std::move(v2)) {}
             };
 
-            using AllocatorType = allocators::PoolAllocatorChain<sizeof(A), alignof(A), false>;
+            using AllocatorType = allocators::PoolAllocatorChain<sizeof(A), alignof(A), true, false>;
             using AlignInfo = allocators::AlignmentInfo<sizeof(A), alignof(A)>;
 
             AllocatorType poolChain(128, 2u);

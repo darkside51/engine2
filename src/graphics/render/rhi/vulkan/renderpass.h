@@ -44,7 +44,7 @@ private:
     static constexpr uint32_t kRenderPassAlign = alignof(RenderPass);
     static constexpr uint32_t kRenderPassSize = sizeof(RenderPass);
 
-    using RenderPassAllocator = allocators::PoolAllocatorChain<kRenderPassSize, kRenderPassAlign, false>;
+    using RenderPassAllocator = allocators::PoolAllocatorChain<kRenderPassSize, kRenderPassAlign, false, false>;
     RenderPassAllocator _renderPassPool{128u, 4u}; // 12kb max
 };
 

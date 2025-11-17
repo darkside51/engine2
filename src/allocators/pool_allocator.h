@@ -7,6 +7,7 @@
 #include <cstddef>
 #include <cstdint>
 //#include <cstdlib>
+#include <functional>
 //#include <tuple>
 
 namespace allocators {
@@ -202,6 +203,21 @@ namespace allocators {
                 return true;
             }
             return false;
+        }
+
+        inline bool ownsMemory(void * m) const noexcept {
+            const auto * element = reinterpret_cast<memory_element_type *>(m);
+            return std::greater_equal<const memory_element_type *>{}(element, &_memory[0u]) &&
+                std::less<const memory_element_type *>{}(element, &_memory[_capacity]); // no UB!
+
+            // return element >= &_memory[0u] && element < &_memory[_capacity]; // incorrect?
+            // const auto id = (reinterpret_cast<memory_element_type *>(m) - &_memory[0u]);
+            // return id >= 0u && id < _capacity;
+        }
+
+        template<typename T>
+        T & getValueAs(size_t index) noexcept {
+            return std::get<T>(_memory[index]);
         }
 
     private:

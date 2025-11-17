@@ -11,7 +11,7 @@
 
 namespace allocators {
 
-    template<size_t bytes, size_t align, bool thread_safe>
+    template<size_t bytes, size_t align, bool use_meta, bool thread_safe>
     class PoolAllocatorChain;
 
     struct PoolChainAllocationMetaInfo {
@@ -20,19 +20,19 @@ namespace allocators {
 
     template<size_t size, size_t align>
     struct AlignmentInfo {
-        friend class PoolAllocatorChain<size, align, false>;
-        friend class PoolAllocatorChain<size, align, true>;
+        friend class PoolAllocatorChain<size, align, true, false>;
+        friend class PoolAllocatorChain<size, align, true, true>;
 
         static constexpr uintptr_t kMetaAlignMask = alignof(PoolChainAllocationMetaInfo) - 1u;
         static constexpr uintptr_t kAllocationSize = ((size + sizeof(PoolChainAllocationMetaInfo)) + kMetaAlignMask) & ~kMetaAlignMask;
         static constexpr uintptr_t kAllocationAlign = std::max(align, alignof(PoolChainAllocationMetaInfo));
 
-        private:
-            inline static PoolChainAllocationMetaInfo * metaInfo(void * m) noexcept {
-                return reinterpret_cast<PoolChainAllocationMetaInfo*>(
-                    reinterpret_cast<uintptr_t>(
-                        (reinterpret_cast<std::byte*>(m) + size) + kMetaAlignMask) & ~kMetaAlignMask
-                    );
+    private:
+        inline static PoolChainAllocationMetaInfo * metaInfo(void * m) noexcept {
+            return reinterpret_cast<PoolChainAllocationMetaInfo*>(
+                reinterpret_cast<uintptr_t>(
+                    (reinterpret_cast<std::byte*>(m) + size) + kMetaAlignMask) & ~kMetaAlignMask
+                );
         }
     };
 
@@ -54,26 +54,43 @@ namespace allocators {
         PoolChunk & operator=(const PoolChunk & pool) = delete;
     };
 
-    template<size_t bytes, size_t align, bool thread_safe>
-    class PoolAllocatorChain;
+    template <size_t bytes, size_t align, bool use_meta>
+    struct AllocatorType;
 
+    template <size_t bytes, size_t align>
+    struct AllocatorType<bytes, align, false> {
+        template <bool thread_safe>
+        using Allocator = PoolAllocator<bytes, align, thread_safe>;
+    };
+
+    template <size_t bytes, size_t align>
+    struct AllocatorType<bytes, align, true> {
+        using AlignInfo = AlignmentInfo<bytes, align>;
+        template <bool thread_safe>
+        using Allocator = PoolAllocator<AlignInfo::kAllocationSize, AlignInfo::kAllocationAlign, thread_safe>;
+    };
+
+    //
     // common implementation
-    template<size_t bytes, size_t align>
-    class PoolAllocatorChain<bytes, align, false> final {
+    template<size_t bytes, size_t align, bool use_meta>
+    class PoolAllocatorChain<bytes, align, use_meta, false> final {
     public:
         using AllocationMetaInfo = PoolChainAllocationMetaInfo;
         using AlignInfo = AlignmentInfo<bytes, align>;
-        using Allocator = PoolAllocator<AlignInfo::kAllocationSize, AlignInfo::kAllocationAlign, false>;
+        using Allocator = AllocatorType<bytes, align, use_meta>::template Allocator<false>;
         using ChainedPool = PoolChunk<Allocator, uint32_t>;
 
-        inline const AllocationMetaInfo & getMetaInfo(void * m) const noexcept {
-            return *AlignInfo::metaInfo(m);
-        }
+        // inline const AllocationMetaInfo & getMetaInfo(void * m) const noexcept {
+        //     return *AlignInfo::metaInfo(m);
+        // }
 
         [[nodiscard]] inline void * alloc() noexcept {
             for (auto & pool : _poolsChain) {
                 if (void * mem = pool->allocator.alloc()) {
-                    AlignInfo::metaInfo(mem)->pool = pool;
+                    if constexpr (use_meta) {
+                        AlignInfo::metaInfo(mem)->pool = pool;
+                    }
+
                     ++pool->allocations;
                     return mem;
                 };
@@ -81,12 +98,15 @@ namespace allocators {
 
             if (_reservedPool || !_pools.nospace()) {
                 auto * pool = _reservedPool ? _poolsChain.emplace_back(_reservedPool) :
-                                                _poolsChain.emplace_back(_pools.template create<ChainedPool>(_poolCapacity));
+                                              _poolsChain.emplace_back(_pools.template create<ChainedPool>(_poolCapacity));
                 _reservedPool = nullptr;
 
                 void * mem = pool->allocator.alloc();
                 ++pool->allocations;
-                AlignInfo::metaInfo(mem)->pool = pool;
+
+                if constexpr (use_meta) {
+                    AlignInfo::metaInfo(mem)->pool = pool;
+                }
                 return mem;
             }
             
@@ -96,14 +116,30 @@ namespace allocators {
         }
 
         inline bool free(void * mem) noexcept {
-            const auto & info = *AlignInfo::metaInfo(mem);
-            auto * pool = static_cast<ChainedPool*>(info.pool);
+            if constexpr (use_meta) {
+                const auto & info = *AlignInfo::metaInfo(mem);
+                auto * pool = static_cast<ChainedPool*>(info.pool);
 
-            if (pool->allocator.free(mem)) {
-                if (--pool->allocations == 0u) {
-                    setReservedPool(pool);
+                if (pool->allocator.free(mem)) {
+                    if (--pool->allocations == 0u) {
+                        setReservedPool(pool);
+                    }
+                    return true; 
                 }
-                return true; 
+                return false;
+            }
+
+            // else
+            for (size_t i = 0u; i < _pools.capacity(); ++i) {
+                auto & pool = _pools.template getValueAs<ChainedPool>(i);
+                if (pool.allocator.ownsMemory(mem)) {
+                    if (pool.allocator.free(mem)) {
+                        if (--pool.allocations == 0u) {
+                            setReservedPool(&pool);
+                        }
+                        return true; 
+                    }
+                }
             }
             return false;
         }
@@ -119,14 +155,30 @@ namespace allocators {
 
         template<typename T>
         inline bool destroy(T * value) noexcept {  // = free with type
-            const auto & info = *AlignInfo::metaInfo(value);
-            auto * pool = static_cast<ChainedPool*>(info.pool);
+            if constexpr (use_meta) {
+                const auto & info = *AlignInfo::metaInfo(value);
+                auto * pool = static_cast<ChainedPool*>(info.pool);
 
-            if (pool->allocator.destroy(value)) {
-                if (--pool->allocations == 0u) {
-                    setReservedPool(pool);
+                if (pool->allocator.destroy(value)) {
+                    if (--pool->allocations == 0u) {
+                        setReservedPool(pool);
+                    }
+                    return true; 
                 }
-                return true; 
+                return false;
+            }
+
+            // else
+            for (size_t i = 0u; i < _pools.capacity(); ++i) {
+                auto & pool = _pools.template getValueAs<ChainedPool>(i);
+                if (pool.allocator.ownsMemory(value)) {
+                    if (pool.allocator.destroy(value)) {
+                        if (--pool.allocations == 0u) {
+                            setReservedPool(&pool);
+                        }
+                        return true; 
+                    }
+                }
             }
             return false;
         }
@@ -163,19 +215,19 @@ namespace allocators {
         ChainedPool* _reservedPool = nullptr;
     };
 
-
+    //
     // thread safe implementation
-    template<size_t bytes, size_t align>
-    class PoolAllocatorChain<bytes, align, true> final {
+    template<size_t bytes, size_t align, bool use_meta>
+    class PoolAllocatorChain<bytes, align, use_meta, true> final {
     public:
         using AllocationMetaInfo = PoolChainAllocationMetaInfo;
         using AlignInfo = AlignmentInfo<bytes, align>;
-        using Allocator = PoolAllocator<AlignInfo::kAllocationSize, AlignInfo::kAllocationAlign, true>;
+        using Allocator = AllocatorType<bytes, align, use_meta>::template Allocator<true>;
         using ChainedPool = PoolChunk<Allocator, std::atomic<uint32_t>>;
 
-        inline const AllocationMetaInfo & getMetaInfo(void * m) const noexcept {
-            return *AlignInfo::metaInfo(m);
-        }
+        // inline const AllocationMetaInfo & getMetaInfo(void * m) const noexcept {
+        //     return *AlignInfo::metaInfo(m);
+        // }
 
         [[nodiscard]] inline void * alloc() noexcept {
             __alloc_start:
@@ -184,7 +236,10 @@ namespace allocators {
             
             for (auto & pool : _poolsChain) {
                 if (void * mem = pool->allocator.alloc()) {
-                    AlignInfo::metaInfo(mem)->pool = pool;
+                    if constexpr (use_meta) {
+                        AlignInfo::metaInfo(mem)->pool = pool;
+                    }
+
                     pool->allocations.fetch_add(1u, std::memory_order_release);
 
                     //read unlock
@@ -221,15 +276,36 @@ namespace allocators {
         }
 
         inline bool free(void * mem) noexcept {
-            const auto & info = *AlignInfo::metaInfo(mem);
-            auto * pool = static_cast<ChainedPool*>(info.pool);
+            if constexpr (use_meta) {
+                const auto & info = *AlignInfo::metaInfo(mem);
+                auto * pool = static_cast<ChainedPool*>(info.pool);
 
-            if (pool->allocator.free(mem)) {
-                if (pool->allocations.fetch_sub(1u, std::memory_order_acq_rel) == 1u) {
-                    setReservedPool(pool);
+                if (pool->allocator.free(mem)) {
+                    if (pool->allocations.fetch_sub(1u, std::memory_order_acq_rel) == 1u) {
+                        setReservedPool(pool);
+                    }
+                    return true; 
                 }
-                return true; 
+                return false;
             }
+
+            // else
+            threads::RWSpinLock::readLock(_rwLock);
+            for (size_t i = 0u; i < _pools.capacity(); ++i) {
+                auto & pool = _pools.template getValueAs<ChainedPool>(i);
+                if (pool.allocator.ownsMemory(mem)) {
+                    if (pool.allocator.free(mem)) {
+                        //read unlock
+                        _rwLock.fetch_sub(1, std::memory_order_release);
+
+                        if (pool.allocations.fetch_sub(1u, std::memory_order_acq_rel) == 1u) {
+                            setReservedPool(&pool);
+                        }
+                        return true; 
+                    }
+                }
+            }     
+            threads::RWSpinLock::readUnlock(_rwLock);
             return false;
         }
 
@@ -244,15 +320,36 @@ namespace allocators {
 
         template<typename T>
         inline bool destroy(T * value) noexcept {  // = free with type
-            const auto & info = *AlignInfo::metaInfo(value);
-            auto * pool = static_cast<ChainedPool*>(info.pool);
+            if constexpr (use_meta) {
+                const auto & info = *AlignInfo::metaInfo(value);
+                auto * pool = static_cast<ChainedPool*>(info.pool);
 
-            if (pool->allocator.destroy(value)) {
-                if (pool->allocations.fetch_sub(1u, std::memory_order_acq_rel) == 1u) {
-                    setReservedPool(pool);
+                if (pool->allocator.destroy(value)) {
+                    if (pool->allocations.fetch_sub(1u, std::memory_order_acq_rel) == 1u) {
+                        setReservedPool(pool);
+                    }
+                    return true; 
                 }
-                return true; 
+                return false;
             }
+
+            // else
+            threads::RWSpinLock::readLock(_rwLock);
+            for (size_t i = 0u; i < _pools.capacity(); ++i) {
+                auto & pool = _pools.template getValueAs<ChainedPool>(i);
+                if (pool.allocator.ownsMemory(value)) {
+                    if (pool.allocator.destroy(value)) {
+                        //read unlock
+                        _rwLock.fetch_sub(1, std::memory_order_release);
+
+                        if (pool.allocations.fetch_sub(1u, std::memory_order_acq_rel) == 1u) {
+                            setReservedPool(&pool);
+                        }
+                        return true; 
+                    }
+                }
+            }
+            threads::RWSpinLock::readUnlock(_rwLock);
             return false;
         }
 
