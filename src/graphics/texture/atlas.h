@@ -3,6 +3,7 @@
 #include "image_frame.h"
 #include "math/math.h"
 
+#include <span>
 #include <string>
 #include <utility>
 #include <vector>
@@ -24,7 +25,7 @@ public:
         std::vector<std::pair<std::string, Frame2D>> frames;
     };
 
-    static Result loadFrames(std::span<const std::byte> rawBytes, AtlasFormat format, vec2u size);
+    static Result loadFrames(std::span<const std::byte> rawBytes, vec2u size, AtlasFormat format = AtlasFormat::eUnknown);
     static Result loadFramesCommon(std::span<const std::byte> rawBytes, vec2u size);
     static Result loadFramesSpine(std::span<const std::byte> rawBytes, vec2u size);
     static Result loadFramesGodot(std::span<const std::byte> rawBytes, vec2u size);
