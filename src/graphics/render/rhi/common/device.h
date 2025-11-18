@@ -122,7 +122,7 @@ struct DeviceCreateInfo {
         uint8_t flags = 0u;
     };
     std::vector<QueueFamilyInfo> queueFamilies;
-    uint32_t largeHeapBlockSize = 256u;
+    uint32_t largeHeapBlockSize = 256u * 1024u * 1024u; // 256Mb
     uint8_t commandPoolThreadsCount = 1u;
     uint8_t inFlightFramesCount = 3u;
 };

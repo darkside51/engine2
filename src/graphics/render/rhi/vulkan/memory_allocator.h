@@ -20,7 +20,7 @@ struct AllocatorCreateInfo {
     } flags;
 
     uint32_t apiVersion = 0u;
-    uint32_t preferredLargeHeapBlockSize = 256u;
+    uint32_t preferredLargeHeapBlockSize = 256u * 1024u * 1024u; // 256Mb
     const VkAllocationCallbacks* allocationCallbacks = nullptr;
 };
 
