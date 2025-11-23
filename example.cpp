@@ -27,6 +27,7 @@
 #include "graphics/scene/scene.h"
 
 #include "graphics/debug/debug_draw.h"
+#include "graphics/texture/atlas.h"
 
 // https://www.saschawillems.de/blog/2018/07/19/vulkan-input-attachments-and-sub-passes/
 // https://docs.vulkan.org/samples/latest/samples/api/timestamp_queries/README.html
@@ -463,6 +464,10 @@ namespace example {
     }
 
     void Example::createDefaultResources() {
+        // atlas test
+        auto const atlasBytes = _fileManager.readFile("assets/atlases/hero-pma.atlas");
+        engine::graphics::FramesParser::loadFramesSpine(atlasBytes, {0u, 0u});
+
         // gltf test
         auto const modelBytes = _fileManager.readFile("assets/models/model.glb");
         auto modelLayout = engine::graphics::models::loadModelLayout(modelBytes, "assets/models/");
