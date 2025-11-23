@@ -1,6 +1,7 @@
 #include "atlas.h"
 #include "log/log.h"
 #include "utils/json.h"
+#include "utils/string_utils.h"
 
 #include <array>
 #include <cassert>
@@ -9,16 +10,6 @@
 #include <string_view>
 
 namespace engine::graphics {
-
-    template <typename T>
-    T valueFromString(std::string_view data) noexcept {
-        T result;
-        if (std::from_chars(data.data(), data.data() + data.size(), result).ec != std::errc{}) {
-            LOG_E("error from loadFrames in valueFromString, data: %s", data.data());
-        } 
-        return result;
-    };
-
     FramesParser::Result FramesParser::loadFrames(std::span<const std::byte> rawBytes, vec2u size, AtlasFormat format) {
         switch (format) {
         case AtlasFormat::eUnknown:
@@ -102,7 +93,7 @@ namespace engine::graphics {
             line = readLine(sv, pos);
             if (readEntry(line, entry) == 0u) break;
             if (entry[0u] == "size") {
-                size = {valueFromString<uint32_t>(entry[1u]), valueFromString<uint32_t>(entry[2u])};
+                size = {from_chars<uint32_t>(entry[1u]), from_chars<uint32_t>(entry[2u])};
             }
         }
 
@@ -133,12 +124,12 @@ namespace engine::graphics {
                 }
 
                 if (entry[0u] == "xy") {
-					xy = {valueFromString<float>(entry[1u]), valueFromString<float>(entry[2u])};
+					xy = {from_chars<float>(entry[1u]), from_chars<float>(entry[2u])};
 				} else if (entry[0u] == "size") {
-					regionSize = {valueFromString<float>(entry[1u]), valueFromString<float>(entry[2u])};
+					regionSize = {from_chars<float>(entry[1u]), from_chars<float>(entry[2u])};
 				} else if (entry[0u] == "bounds") {
-                    xy = {valueFromString<float>(entry[1u]), valueFromString<float>(entry[2u])};
-                    regionSize = {valueFromString<float>(entry[3u]), valueFromString<float>(entry[4u])};
+                    xy = {from_chars<float>(entry[1u]), from_chars<float>(entry[2u])};
+                    regionSize = {from_chars<float>(entry[3u]), from_chars<float>(entry[4u])};
                 } else if (entry[0] == "rotate") {
                     if (entry[1] != "false") {
 						rotated = true;

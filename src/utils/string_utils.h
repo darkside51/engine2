@@ -1,7 +1,11 @@
 #pragma once
 
+#include "log/log.h"
+
+#include <charconv>
 #include <cstdint>
 #include <string>
+#include <string_view>
 
 namespace engine {
     inline uint16_t stringReplace(std::string & source, const std::string & find, const std::string & replace) noexcept {
@@ -17,4 +21,13 @@ namespace engine {
 
 		return num;
 	};
+
+	template <typename T>
+    inline T from_chars(std::string_view data) noexcept {
+        T result;
+        if (std::from_chars(data.data(), data.data() + data.size(), result).ec != std::errc{}) {
+            LOG_E("from_chars error with data: %s", data.data());
+        } 
+        return result;
+    };
 }
