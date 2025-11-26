@@ -39,7 +39,8 @@ namespace engine::rhi::runtime {
         eResetQueryPool = 22u,
         eWriteTimestamp = 23u,
         eCopyQueryPoolResults = 24u,
-        eDispatch = 25u
+        eDispatch = 25u,
+        eUpdateBuffer = 26u,
     };
 
     class CommandList;
@@ -240,6 +241,17 @@ namespace engine::rhi::runtime {
             firstIndex(firstIndex),
             vertexOffset(vertexOffset),
             firstInstance(firstInstance) {}
+    };
+
+    struct UpdateBufferCommand : Command {
+        Buffer * dst = nullptr;
+        uint32_t dstOffset;
+        uint32_t dataSize;
+        const void* pData;
+
+        UpdateBufferCommand(Buffer * dst, uint32_t dstOffset, uint32_t dataSize, const void* pData) : 
+            Command(CommandType::eUpdateBuffer, sizeof(UpdateBufferCommand)),
+            dst(dst), dstOffset(dstOffset), dataSize(dataSize), pData(pData) {}
     };
 
     struct CopyBuffer2BufferCommand : Command {

@@ -179,6 +179,13 @@ namespace engine::rhi::runtime {
         ++_commandsCount;
     }
 
+    // update data
+    void CommandList::updateBuffer(BufferPtr & dst, uint32_t dstOffset, uint32_t dataSize, const void* pData) noexcept {
+        _resources.push_back(dst);
+        _commands->create<UpdateBufferCommand>(dst.get(), dstOffset, dataSize, pData);
+        ++_commandsCount;
+    }
+
     // copy commands
     void CommandList::copyBuffer2Buffer(const BufferPtr & src, BufferPtr & dst, const CopyBufferInfo & copyInfo, bool autoBarriers) noexcept {
         _resources.push_back(src);

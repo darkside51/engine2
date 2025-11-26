@@ -4,9 +4,17 @@
 #include "graphics/render/rhi/common/command_list.h"
 
 namespace engine::graphics {
+    constexpr uint32_t kMaxMemoryBytesToCopyCommand = 65536u;
+
 
     InflightBuffer::~InflightBuffer() {
         _tmpMemory = nullptr;
+
+        for (auto & [mappedMemory, buffer, _] : _buffers) {
+            if (mappedMemory != nullptr) {
+                buffer->unmap();
+            }
+        }
     }
 
     InflightBuffer::InflightBuffer(rhi::runtime::Rhi & api,
@@ -17,7 +25,7 @@ namespace engine::graphics {
         _device(device) {
         _buffers.reserve(device.inFlightFramesCount());
         for (uint8_t i = 0u; i < _device.inFlightFramesCount(); ++i) {
-            _buffers.emplace_back(nullptr, false);
+            _buffers.emplace_back(nullptr, nullptr, false);
         }
 
         _tmpMemory = std::make_unique_for_overwrite<std::byte[]>(size);
@@ -35,27 +43,31 @@ namespace engine::graphics {
         _size = size;
     }
 
-    void * InflightBuffer::map() noexcept {
+    void * InflightBuffer::memory() noexcept {
         return _tmpMemory.get();
     }
 
-    void InflightBuffer::unmap() noexcept {
-        for (auto & [_, dirty]  : _buffers) {
+    void InflightBuffer::flush() noexcept {
+        for (auto & [_, __, dirty]  : _buffers) {
             dirty = true;
         }
     }
 
     void InflightBuffer::commit(rhi::runtime::CommandList & cmd, uint8_t idx) noexcept { // can use another command buffer if need to call this function in renderpass time!
-        if (auto & [buffer, dirty] = _buffers[idx]; dirty) {
+        if (auto & [mappedMemory, buffer, dirty] = _buffers[idx]; dirty) {
             if (buffer == nullptr || buffer->sizeInBytes() != _size) {
+                if (mappedMemory != nullptr) {
+                    buffer->unmap();
+                }
                 buffer = _api.createBuffer(_device, _bufferInfo, _size);
             }
 
             if (buffer->isHostVisible()) { // it is hostVisible
-                auto * memory = buffer->map();
-                memcpy(memory, _tmpMemory.get(), buffer->sizeInBytes());
-                buffer->flush();
-                buffer->unmap();
+                if (mappedMemory == nullptr) {
+                    mappedMemory = buffer->map();
+                }
+                memcpy(mappedMemory, _tmpMemory.get(), buffer->sizeInBytes());
+                buffer->flush(); // vma check is memory coherent 
             } else { // need use stagingBuffer
                 if (_stagingBuffer) {
                     const auto offset = _stagingBuffer->requestBytes(idx, buffer->sizeInBytes());
@@ -74,6 +86,11 @@ namespace engine::graphics {
                     }
                 }
 
+                if (_size < kMaxMemoryBytesToCopyCommand) { // use cmdUpdateBuffer
+                    cmd.updateBuffer(buffer, 0u, _size, _tmpMemory.get());
+                    return;
+                }
+
                 const rhi::BufferInfo info {
                     rhi::BufferUsageFlags::eTransfer_Src,
                     rhi::MemoryPropertyFlags::eHostVisible | rhi::MemoryPropertyFlags::eHostCached
@@ -83,7 +100,7 @@ namespace engine::graphics {
                 {
                     auto * memory = stagingBuffer->map();
                     memcpy(memory, _tmpMemory.get(), buffer->sizeInBytes());
-                    stagingBuffer->flush();
+                    stagingBuffer->flush(); // vma check is memory coherent
                     stagingBuffer->unmap();
                 }
 

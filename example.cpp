@@ -746,20 +746,25 @@ namespace example {
         _renderQueue->waitSubmit(0u, UINT64_MAX, fence);
         _api->destroyFence(*_device, fence);
 
+        // BufferInfo unifromsInfo {
+        //     BufferUsageFlags::eUniform_Buffer | BufferUsageFlags::eTransfer_Dst,
+        //     MemoryPropertyFlags::eDeviceLocal | MemoryPropertyFlags::eHostVisible
+        // };
+
         BufferInfo unifromsInfo {
             BufferUsageFlags::eUniform_Buffer | BufferUsageFlags::eTransfer_Dst,
-            MemoryPropertyFlags::eDeviceLocal | MemoryPropertyFlags::eHostVisible
+            MemoryPropertyFlags::eDeviceLocal
         };
 
         const size_t kUniformBufferOffsetAlign = _device->getUniformBufferOffsetAlignment();
         _uniformBufferI = std::make_unique<engine::graphics::InflightBuffer>(*_api, *_device, unifromsInfo, std::max(kUniformBufferOffsetAlign, sizeof(UniformBuffer)));
     
         { // update uniforms
-            auto * map = _uniformBufferI->map2<UniformBuffer>();
+            auto * map = _uniformBufferI->memory2<UniformBuffer>();
             map->mvp = engine::makeMatrix(1.0f);
             map->m = m;
             map->time  = 0.0f;
-            _uniformBufferI->unmap();
+            _uniformBufferI->flush();
         }
 
         ////////////////////////////
@@ -1001,14 +1006,14 @@ namespace example {
     void Example::prepareFrameDrawData(engine::rhi::runtime::CommandListPtr & commandList, uint8_t frame, float delta) {
         using namespace engine;
         { // update uniforms
-            auto * map = _uniformBufferI->map2<UniformBuffer>();
+            auto * map = _uniformBufferI->memory2<UniformBuffer>();
             //rotateMatrix_z(*map, -delta);
 
             map->mvp = cameraTransform;
             map->m = m;
             map->time += delta * 0.01f;
 
-            _uniformBufferI->unmap();
+            _uniformBufferI->flush();
             _uniformBufferI->commit(*commandList, frame);
         }
 

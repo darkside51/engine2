@@ -77,6 +77,7 @@ namespace engine::vulkan {
         void setViewport(float x, float y, float w, float h, float minDepth = 0.0f, float maxDepth = 1.0f, uint32_t viewportIdx = 0u) noexcept;
         void setScissorRect(const rhi::Rect2D & area, uint32_t scessorIdx = 0u) noexcept;
 
+        void updateBuffer(const Buffer & dst, uint32_t dstOffset, uint32_t dataSize, const void* pData) const noexcept;
         void copyBuffer2Buffer(const Buffer & src, const Buffer & dst, std::span<VkBufferCopy> copyInfo) const noexcept;
         void copyBuffer2Image(const Buffer & src, const Image & dst, std::span<VkBufferImageCopy> copyInfo) const noexcept;
 

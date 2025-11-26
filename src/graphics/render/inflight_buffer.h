@@ -20,11 +20,11 @@ namespace engine::graphics {
 
         void setStagingBuffer(InflightStagingBuffer * staging) noexcept { _stagingBuffer = staging; }
 
-        void * map() noexcept;
-        void unmap() noexcept;
+        void * memory() noexcept;
+        void flush() noexcept;
 
         template <typename T>
-        inline T * map2() noexcept { return static_cast<T*>(map()); }
+        inline T * memory2() noexcept { return static_cast<T*>(memory()); }
 
         void resize(size_t size);
 
@@ -67,6 +67,7 @@ namespace engine::graphics {
 
     private:
         struct Data {
+            void * mappedMemory = nullptr;
             rhi::runtime::BufferPtr buffer = nullptr;
             bool dirty = false;
         };

@@ -207,8 +207,8 @@ namespace engine {
             _staging->map(frame);
         }
 
-        auto * verticesMem = _vertices->map2<std::byte>();
-        auto * indicesMem = _indices->map2<std::byte>();
+        auto * verticesMem = _vertices->memory2<std::byte>();
+        auto * indicesMem = _indices->memory2<std::byte>();
 
         uint32_t vOffset = 0u;
         uint32_t iOffset = 0u;
@@ -224,10 +224,10 @@ namespace engine {
             iOffset += indexBufferSize;
         }
 
-        _vertices->unmap();
+        _vertices->flush();
         _vertices->commit(commandList, frame);
 
-        _indices->unmap();
+        _indices->flush();
         _indices->commit(commandList, frame);
 
         const vec2f scale{2.0f / drawData->DisplaySize.x, 2.0f / drawData->DisplaySize.y};
@@ -238,9 +238,9 @@ namespace engine {
         const vec4f transform{scale.x, scale.y, translate.x, translate.y};
         if (compare(_transform, transform, kEps)) {
             _transform = transform;
-            auto & uniformMem = *_uniform->map2<vec4f>();
+            auto & uniformMem = *_uniform->memory2<vec4f>();
             uniformMem = _transform;
-            _uniform->unmap();
+            _uniform->flush();
         }
         _uniform->commit(commandList, frame);
 

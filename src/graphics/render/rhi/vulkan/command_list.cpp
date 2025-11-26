@@ -521,6 +521,16 @@ namespace engine::vulkan::runtime {
                     command->query);
             } 
                 break;
+            case CommandType::eUpdateBuffer: {
+                constexpr uint32_t kMaxMemoryBytesToCopyCommand = 65536u;
+                const auto * command = static_cast<UpdateBufferCommand*>(cmd);
+
+                assert(command->dataSize < kMaxMemoryBytesToCopyCommand);
+                
+                auto & vkDstBuffer = *static_cast<Buffer*>(command->dst);
+                _commandbuffer.updateBuffer(vkDstBuffer, command->dstOffset, command->dataSize, command->pData);
+            }
+                break;
             case CommandType::eCopyBuffer2Buffer:
             {
                 const auto * command = static_cast<CopyBuffer2BufferCommand*>(cmd);

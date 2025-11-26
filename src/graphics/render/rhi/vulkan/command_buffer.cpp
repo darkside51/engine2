@@ -91,6 +91,10 @@ namespace engine::vulkan {
         vkCmdNextSubpass(_commandBuffer, utils::convert2vk(contents));
     }
 
+    void CommandBuffer::updateBuffer(const Buffer & dst, uint32_t dstOffset, uint32_t dataSize, const void* pData) const noexcept {
+        vkCmdUpdateBuffer(_commandBuffer, dst(), dstOffset, dataSize, pData);
+    }
+
     void CommandBuffer::copyBuffer2Buffer(const Buffer & src, const Buffer & dst, std::span<VkBufferCopy> copyInfo) const noexcept {
         // vkCmdCopyBuffer2(); // ?
         vkCmdCopyBuffer(_commandBuffer, src(), dst(), copyInfo.size(), copyInfo.data());

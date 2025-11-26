@@ -188,8 +188,8 @@ namespace engine::debug {
             _linesIndices->resize(std::max(_linesIndices->sizeInBytes() * 2u, iSize));
         }
 
-        auto * vMem = _vertices->map2<Vertex>() + _verticesCount;
-        auto * iMem = _linesIndices->map2<uint32_t>() + _lineIndicesCount;
+        auto * vMem = _vertices->memory2<Vertex>() + _verticesCount;
+        auto * iMem = _linesIndices->memory2<uint32_t>() + _lineIndicesCount;
 
         uint32_t i = 0u;
         for (const auto & v : linesVtxs) {
@@ -210,8 +210,8 @@ namespace engine::debug {
         _verticesCount += linesVtxs.size();
         _lineIndicesCount += newIndicesCount;
 
-        _vertices->unmap();
-        _linesIndices->unmap();
+        _vertices->flush();
+        _linesIndices->flush();
     }
 
     void DebugDraw::drawSquare(vec2f corner0, vec2f corner1, uint32_t color, const mat4f & transform, Type t) {
@@ -220,7 +220,7 @@ namespace engine::debug {
             _vertices->resize(std::max(_vertices->sizeInBytes() * 2u, vSize));
         }
 
-        auto * vMem = _vertices->map2<Vertex>() + _verticesCount;
+        auto * vMem = _vertices->memory2<Vertex>() + _verticesCount;
 
         auto vp = transform * vec4f{corner0, 0.0f, 1.0f};
         *(vMem + 0u) = {
@@ -252,7 +252,7 @@ namespace engine::debug {
                 _linesIndices->resize(std::max(_linesIndices->sizeInBytes() * 2u, iSize));
             }
 
-            auto * iMem = _linesIndices->map2<uint32_t>() + _lineIndicesCount;
+            auto * iMem = _linesIndices->memory2<uint32_t>() + _lineIndicesCount;
             
             for (uint8_t i = 0u; i < 3u; ++i) {
                 *(iMem + 2u * i) = _verticesCount + i;
@@ -263,7 +263,7 @@ namespace engine::debug {
             *(iMem + 2u * 3u + 1u) = _verticesCount + 0u;
 
             _lineIndicesCount += 8u;
-            _linesIndices->unmap();
+            _linesIndices->flush();
         }
 
         if (std::to_underlying(t) & std::to_underlying(Type::eFill)) {
@@ -272,7 +272,7 @@ namespace engine::debug {
                 _fillIndices->resize(std::max(_fillIndices->sizeInBytes() * 2u, iSize2));
             }
 
-            auto * iMem2 = _fillIndices->map2<uint32_t>() + _filledIndicesCount;
+            auto * iMem2 = _fillIndices->memory2<uint32_t>() + _filledIndicesCount;
 
             *(iMem2 + 0u) = _verticesCount + 0u;
             *(iMem2 + 1u) = _verticesCount + 1u;
@@ -282,11 +282,11 @@ namespace engine::debug {
             *(iMem2 + 5u) = _verticesCount + 0u;
 
             _filledIndicesCount += 6u;
-            _fillIndices->unmap();
+            _fillIndices->flush();
         }
 
         _verticesCount += 4u;
-        _vertices->unmap();
+        _vertices->flush();
     }
 
     void DebugDraw::drawCircle(vec2f center, float r, uint32_t color, uint8_t segments, const mat4f & transform, Type t) {
@@ -295,7 +295,7 @@ namespace engine::debug {
             _vertices->resize(std::max(_vertices->sizeInBytes() * 2u, vSize));
         }
 
-        auto * vMem = _vertices->map2<Vertex>() + _verticesCount;
+        auto * vMem = _vertices->memory2<Vertex>() + _verticesCount;
 
         float angle = 0.0f;
         const float step = 2.0f * pi / segments;
@@ -316,7 +316,7 @@ namespace engine::debug {
                 _linesIndices->resize(std::max(_linesIndices->sizeInBytes() * 2u, iSize));
             }
 
-            auto * iMem = _linesIndices->map2<uint32_t>() + _lineIndicesCount;
+            auto * iMem = _linesIndices->memory2<uint32_t>() + _lineIndicesCount;
 
             for (uint8_t i = 0u; i < segments - 1u; ++i) {
                 *(iMem + 2u * i) = _verticesCount + i;
@@ -327,7 +327,7 @@ namespace engine::debug {
             *(iMem + 2u * (segments - 1u) + 1u) = _verticesCount + 0u;
 
             _lineIndicesCount += segments * 2u;
-            _linesIndices->unmap();
+            _linesIndices->flush();
         }
 
         if (std::to_underlying(t) & std::to_underlying(Type::eFill)) {
@@ -337,7 +337,7 @@ namespace engine::debug {
                 _fillIndices->resize(std::max(_fillIndices->sizeInBytes() * 2u, iSize2));
             }
 
-            auto * iMem2 = _fillIndices->map2<uint32_t>() + _filledIndicesCount;
+            auto * iMem2 = _fillIndices->memory2<uint32_t>() + _filledIndicesCount;
             auto centralIndex = (segments / 2u);
 
             uint8_t j = 0u;
@@ -353,11 +353,11 @@ namespace engine::debug {
             }
 
             _filledIndicesCount += indexesCount;
-            _fillIndices->unmap();
+            _fillIndices->flush();
         }
 
         _verticesCount += segments;
-        _vertices->unmap();
+        _vertices->flush();
     }
 
     void DebugDraw::drawSphere(vec3f center, float r, uint32_t color, uint8_t segments, const mat4f & transform, Type t) {
@@ -366,7 +366,7 @@ namespace engine::debug {
             _vertices->resize(std::max(_vertices->sizeInBytes() * 2u, vSize));
         }
 
-        auto * vMem = _vertices->map2<Vertex>() + _verticesCount;
+        auto * vMem = _vertices->memory2<Vertex>() + _verticesCount;
 
         float angle = 0.0f;
         const float step = 2.0f * pi / segments;
@@ -393,7 +393,7 @@ namespace engine::debug {
                 _linesIndices->resize(std::max(_linesIndices->sizeInBytes() * 2u, iSize));
             }
 
-            auto * iMem = _linesIndices->map2<uint32_t>() + _lineIndicesCount;
+            auto * iMem = _linesIndices->memory2<uint32_t>() + _lineIndicesCount;
 
             {
                 for (uint8_t j = 0u; j < segments; ++j) {
@@ -424,11 +424,11 @@ namespace engine::debug {
             }
 
             _lineIndicesCount += segments * 2u * segments + segments * 2u * segments;
-            _linesIndices->unmap();
+            _linesIndices->flush();
         }
 
         _verticesCount += segments * segments;
-        _vertices->unmap();
+        _vertices->flush();
     }
 
     void DebugDraw::drawCube(vec3f corner0, vec3f corner1, uint32_t color, const mat4f & transform, Type t) {
@@ -437,7 +437,7 @@ namespace engine::debug {
             _vertices->resize(std::max(_vertices->sizeInBytes() * 2u, vSize));
         }
 
-        auto * vMem = _vertices->map2<Vertex>() + _verticesCount;
+        auto * vMem = _vertices->memory2<Vertex>() + _verticesCount;
 
         auto vp = transform * vec4f{corner0, 1.0f};
         *(vMem + 0u) = {
@@ -493,7 +493,7 @@ namespace engine::debug {
                 _linesIndices->resize(std::max(_linesIndices->sizeInBytes() * 2u, iSize));
             }
 
-            auto * iMem = _linesIndices->map2<uint32_t>() + _lineIndicesCount;
+            auto * iMem = _linesIndices->memory2<uint32_t>() + _lineIndicesCount;
             for (uint8_t j = 0u; j < 2u; ++j) {
                 auto * mem = iMem + 8u * j;
                 const auto vertexStart = _verticesCount + j * 4u;
@@ -516,12 +516,12 @@ namespace engine::debug {
             *(iMem + 23u) = _verticesCount + 7u;
 
             _lineIndicesCount += 24u;
-            _linesIndices->unmap();
+            _linesIndices->flush();
         }
 
 
         _verticesCount += 8u;
-        _vertices->unmap();
+        _vertices->flush();
     }
 
     void DebugDraw::drawBounds(const scene::Bounds & bounds, uint32_t color, const mat4f & transform) {
