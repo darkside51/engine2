@@ -180,9 +180,9 @@ namespace engine::rhi::runtime {
     }
 
     // update data
-    void CommandList::updateBuffer(BufferPtr & dst, uint32_t dstOffset, uint32_t dataSize, const void* pData) noexcept {
+    void CommandList::updateBuffer(BufferPtr & dst, uint32_t dstOffset, uint32_t dataSize, const void* pData, bool autoBarriers) noexcept {
         _resources.push_back(dst);
-        _commands->create<UpdateBufferCommand>(dst.get(), dstOffset, dataSize, pData);
+        _commands->create<UpdateBufferCommand>(dst.get(), dstOffset, dataSize, pData, autoBarriers);
         ++_commandsCount;
     }
 

@@ -22,6 +22,7 @@
 #include <utility>
 
 namespace engine::vulkan::runtime {
+    constexpr uint32_t kMaxMemoryBytesToCopyCommand = 65536u;
     
     CommandList::CommandList(rhi::runtime::CommandPool * commandPool, rhi::CommandBufferLevel level) :
         _pool(static_cast<vulkan::CommandPool*>(commandPool)),
@@ -57,7 +58,7 @@ namespace engine::vulkan::runtime {
         _postBarriersBuffers.clear();
         _postBarriersImages.clear();
 
-        const auto applyPostBarriers = [&]() {
+        const auto applyPostBarriers = [&]() noexcept {
             // buffers barriers
             for (auto & [buffer, offset, size] : _postBarriersBuffers) {
                 auto const usage = buffer->usage();
@@ -522,12 +523,26 @@ namespace engine::vulkan::runtime {
             } 
                 break;
             case CommandType::eUpdateBuffer: {
-                constexpr uint32_t kMaxMemoryBytesToCopyCommand = 65536u;
                 const auto * command = static_cast<UpdateBufferCommand*>(cmd);
-
                 assert(command->dataSize < kMaxMemoryBytesToCopyCommand);
                 
                 auto & vkDstBuffer = *static_cast<Buffer*>(command->dst);
+
+                if (command->autoBarriers) {
+                    vkDstBuffer.transition(_barriers,
+                        VkPipelineStageFlagBits::VK_PIPELINE_STAGE_TRANSFER_BIT,
+                        VkAccessFlagBits::VK_ACCESS_TRANSFER_WRITE_BIT, 
+                        command->dstOffset, command->dataSize
+                    );
+
+                    _barriers.flush(_commandbuffer());
+
+                    if (vkDstBuffer.usage() != rhi::BufferUsageFlags::eTransfer_Dst &&
+                        vkDstBuffer.usage() != (rhi::BufferUsageFlags::eTransfer_Src | rhi::BufferUsageFlags::eTransfer_Dst)) {
+                        _postBarriersBuffers.emplace_back(&vkDstBuffer, command->dstOffset, command->dataSize); // dstBuffer
+                    }
+                }
+
                 _commandbuffer.updateBuffer(vkDstBuffer, command->dstOffset, command->dataSize, command->pData);
             }
                 break;

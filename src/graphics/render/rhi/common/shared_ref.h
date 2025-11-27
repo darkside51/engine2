@@ -12,6 +12,7 @@ namespace engine::rhi::runtime {
     template <typename T>
     class sh_ptr {
     public:
+        // using Deleter = void(*)(void * ptr);
         using Deleter = std::function<void(void * ptr)>;
         using counter_type = std::atomic<uint32_t>;
 
@@ -24,12 +25,24 @@ namespace engine::rhi::runtime {
         struct DefaultValueComposition {
             ControlBlock ctrlBlock = {};
             T data;
+
+            inline static consteval size_t data_offset() noexcept {
+                return offsetof(DefaultValueComposition, data);
+            }
         };
 
         struct DefaultValueCompositionWithDeleter {
             ControlBlock ctrlBlock = {};
             T data;
             Deleter deleter = nullptr;
+
+            inline static consteval size_t data_offset() noexcept {
+                return offsetof(DefaultValueCompositionWithDeleter, data);
+            }
+
+            inline static consteval size_t deleter_offset() noexcept {
+                return offsetof(DefaultValueCompositionWithDeleter, deleter);
+            }
         };
 
         sh_ptr(std::nullptr_t) : _ctrlBlock(nullptr) { }
@@ -51,6 +64,7 @@ namespace engine::rhi::runtime {
         static sh_ptr make(Args&&...args) {
             auto * mem = malloc(sizeof(DefaultValueComposition));
             auto * objectMem = reinterpret_cast<std::byte*>(mem) + align_value(sizeof(ControlBlock), alignof(T));
+            // auto * objectMem = reinterpret_cast<std::byte*>(mem) + DefaultValueComposition::data_offset();
             T* object = new(objectMem) T(std::forward<Args>(args)...);
             return sh_ptr(mem, alignof(T), 0u);
         }

@@ -155,6 +155,11 @@ namespace engine::vulkan::runtime {
         using BufferPtr = rhi::runtime::BufferPtr;
         
         auto * mem = _buffersPool.alloc();
+
+        // constexpr auto data_offset0 = BufferComposition::data_offset();
+        // constexpr auto data_offset1 = align_value(sizeof(BufferPtr::ControlBlock), alignof(Api::Buffer));
+        // static_assert(data_offset0 == data_offset1);
+
         auto * objectMem = reinterpret_cast<std::byte*>(mem) + align_value(sizeof(BufferPtr::ControlBlock), alignof(Api::Buffer));
         auto * buffer = new(objectMem) Api::Buffer(static_cast<Api::Device &>(device), info, size);
 

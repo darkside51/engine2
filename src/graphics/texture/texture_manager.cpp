@@ -132,15 +132,15 @@ namespace engine::graphics {
         return true;
     }
 
-    void TextureManager::addFrames(std::span<std::pair<std::string, ImageFrame2D>> frames, const rhi::runtime::ImagePtr & image) {
-        if (frames.empty()) {
+    void TextureManager::addFrames(std::span<std::pair<std::string, Frame2D>> frames, const rhi::runtime::ImagePtr & image) {
+        if (frames.empty() || image == nullptr) {
             return;
         }
 
         uint32_t newFramesCount = 0u;
         for (const auto & [name, frame] : frames) {
             if (auto it = _frames2D.find(name); it == _frames2D.end()) {
-                _frames2D.emplace(name, frame);
+                _frames2D.emplace(name, ImageFrame2D{image, frame});
                 ++newFramesCount;
             } else {
                 LOG_D("TextureManager frame with name %s alredy exists!", name.c_str());

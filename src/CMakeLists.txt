@@ -85,6 +85,7 @@ set(
 	graphics/render/rhi/common
 	graphics/ui
 	graphics/scene
+	graphics/scene/sprite
 	graphics/texture
 	graphics/mesh
 	graphics/common

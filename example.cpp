@@ -464,9 +464,46 @@ namespace example {
     }
 
     void Example::createDefaultResources() {
-        // atlas test
-        auto const atlasBytes = _fileManager.readFile("assets/atlases/hero-pma.atlas");
-        engine::graphics::FramesParser::loadFramesSpine(atlasBytes, {0u, 0u});
+        auto * commandPool = _device->acquireCommandPool(engine::rhi::queue_flags::transfrer);
+        auto tmpCommandList = _api->createCommandList(commandPool, engine::rhi::CommandBufferLevel::ePrimary);
+
+        tmpCommandList->begin(engine::rhi::CommandBufferUsageFlags::eOne_Time_Submit);
+
+        {
+            // atlas test
+            auto const imageBytes = _fileManager.readFile("assets/atlases/hero-pma.png");
+            auto textureData = engine::graphics::parseTextureData(imageBytes);
+
+            using namespace engine::rhi;
+            const auto imageInfo = ImageInfo{
+                ImageUsageFlags::eSampled | ImageUsageFlags::eTransfer_Dst,
+                textureData.metaInfo.format, {textureData.metaInfo.size.x, textureData.metaInfo.size.y, 1u}
+            };
+
+            auto image = _api->createImage(*_device, imageInfo);
+            const auto stagingSize = textureData.data.size();
+            engine::graphics::StagingBuffer staging{*_api, *_device, stagingSize};
+            
+            auto * imgData = staging.map();
+            std::memcpy(imgData, textureData.data.data(), stagingSize);
+            staging.flush();
+
+            tmpCommandList->copyBuffer2Image(staging.getBuffer(), image, 
+                {
+                    .bufferOffset = 0u,
+                    .bufferRowLength = 0u,
+                    .bufferImageHeight = 0u,
+                    .imageSubresource = {.aspectMask = engine::rhi::ImageAspectFlags::eColor},
+                    .imageOffset = {0u, 0u, 0u},
+                    .imageExtent = image->getExtent()
+                }
+            );
+
+            auto const atlasBytes = _fileManager.readFile("assets/atlases/hero-pma.atlas");
+            auto frames = engine::graphics::FramesParser::loadFramesSpine(atlasBytes, {0u, 0u});
+
+            textureManager.addFrames(frames.frames, image);
+        }
 
         // gltf test
         auto const modelBytes = _fileManager.readFile("assets/models/model.glb");
@@ -686,11 +723,6 @@ namespace example {
         staging3.flush();
         staging3.unmap();
         // sphere texture
-
-        auto * commandPool = _device->acquireCommandPool(engine::rhi::queue_flags::transfrer);
-        auto tmpCommandList = _api->createCommandList(commandPool, engine::rhi::CommandBufferLevel::ePrimary);
-
-        tmpCommandList->begin(engine::rhi::CommandBufferUsageFlags::eOne_Time_Submit);
 
         tmpCommandList->copyBuffer2Buffer(staging.getBuffer(), _postPositions, 
             {.srcOffset = vtxOffset, .dstOffset = 0u, .size = _postPositions->sizeInBytes()});
@@ -1099,13 +1131,21 @@ namespace example {
         commandList->bindVertexBuffer(0u, _sphereVtx);
         commandList->bindIndexBuffer(_sphereIdx, 0u, rhi::IndexType::eU16);
 
-        const auto * frame = textureManager.findFrame("sphere_texture");
-        commandList->bindImage(1u, frame->getImage()/*_sphereImage*/, rhi::SamplerValue {
-            .info = {
-                .magFilter = rhi::FilterMode::eLinear,
-                .minFilter = rhi::FilterMode::eLinear
-            }
-        });
+        // const auto * frame = textureManager.findFrame("sphere_texture");
+        // commandList->bindImage(1u, frame->getImage()/*_sphereImage*/, rhi::SamplerValue {
+        //     .info = {
+        //         .magFilter = rhi::FilterMode::eLinear,
+        //         .minFilter = rhi::FilterMode::eLinear
+        //     }
+        // });
+
+        // const auto * frame = textureManager.findFrame("upper-arm1");
+        // commandList->bindImage(1u, frame->getImage(), rhi::SamplerValue {
+        //     .info = {
+        //         .magFilter = rhi::FilterMode::eLinear,
+        //         .minFilter = rhi::FilterMode::eLinear
+        //     }
+        // });
 
         commandList->bindImage(1u, textureManager.getDefaultImage(), rhi::SamplerValue {
             .info = {

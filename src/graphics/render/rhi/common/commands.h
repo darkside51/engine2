@@ -248,10 +248,12 @@ namespace engine::rhi::runtime {
         uint32_t dstOffset;
         uint32_t dataSize;
         const void* pData;
+        bool autoBarriers = true;
 
-        UpdateBufferCommand(Buffer * dst, uint32_t dstOffset, uint32_t dataSize, const void* pData) : 
+        UpdateBufferCommand(Buffer * dst, uint32_t dstOffset, uint32_t dataSize, const void* pData, bool autoBarriers) : 
             Command(CommandType::eUpdateBuffer, sizeof(UpdateBufferCommand)),
-            dst(dst), dstOffset(dstOffset), dataSize(dataSize), pData(pData) {}
+            dst(dst), dstOffset(dstOffset), dataSize(dataSize), pData(pData),
+            autoBarriers(autoBarriers) {}
     };
 
     struct CopyBuffer2BufferCommand : Command {

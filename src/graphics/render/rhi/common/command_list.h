@@ -57,7 +57,7 @@ namespace engine::rhi::runtime {
 
         void copyBuffer2Buffer(const BufferPtr & src, BufferPtr & dst, const CopyBufferInfo & copyInfos, bool autoBarriers = true) noexcept;
         void copyBuffer2Image(const BufferPtr & src, ImagePtr & dst, const CopyBufferImageInfo & copyInfos, bool autoBarriers = true) noexcept;
-        void updateBuffer(BufferPtr & dst, uint32_t dstOffset, uint32_t dataSize, const void* pData) noexcept;
+        void updateBuffer(BufferPtr & dst, uint32_t dstOffset, uint32_t dataSize, const void* pData, bool autoBarriers = true) noexcept;
 
         void insertBarriers() noexcept;
 
