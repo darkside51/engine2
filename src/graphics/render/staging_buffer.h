@@ -16,6 +16,8 @@ namespace engine::graphics {
             rhi::runtime::Device & device, size_t size, 
             rhi::MemoryPropertyFlags memoryFlags = rhi::MemoryPropertyFlags::eHostVisible | rhi::MemoryPropertyFlags::eHostCached);
 
+        ~StagingBuffer();
+
         uint32_t requestBytes(uint32_t bytes) noexcept;
         rhi::runtime::BufferPtr & getBuffer() noexcept;
 
@@ -35,6 +37,7 @@ namespace engine::graphics {
             uint32_t offset = 0u;
         };
         Data _data;
+        std::byte * _mappedMemory = nullptr;
     };
 
     class InflightStagingBuffer {

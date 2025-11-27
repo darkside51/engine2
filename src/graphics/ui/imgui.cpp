@@ -224,10 +224,10 @@ namespace engine {
             iOffset += indexBufferSize;
         }
 
-        _vertices->flush();
+        _vertices->modify();
         _vertices->commit(commandList, frame);
 
-        _indices->flush();
+        _indices->modify();
         _indices->commit(commandList, frame);
 
         const vec2f scale{2.0f / drawData->DisplaySize.x, 2.0f / drawData->DisplaySize.y};
@@ -240,13 +240,13 @@ namespace engine {
             _transform = transform;
             auto & uniformMem = *_uniform->memory2<vec4f>();
             uniformMem = _transform;
-            _uniform->flush();
+            _uniform->modify();
         }
         _uniform->commit(commandList, frame);
 
-        if (useStagingBuffer) {
-            _staging->unmap();
-        }
+        // if (useStagingBuffer) { // do not unmap
+        //     _staging->unmap();
+        // }
     }
 
     void ImGuiSystem::draw(rhi::runtime::CommandList & commandList, uint8_t frame) noexcept {

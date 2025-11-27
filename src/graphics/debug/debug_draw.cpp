@@ -143,9 +143,9 @@ namespace engine::debug {
         _fillIndices->commit(commandList, frame);
         _linesIndices->commit(commandList, frame);
 
-        if (useStagingBuffer) {
-            _staging->unmap();
-        }
+        // if (useStagingBuffer) { // do not unmap
+        //     _staging->unmap();
+        // }
     }
 
     void DebugDraw::draw(rhi::runtime::CommandList & commandList, uint8_t frame) noexcept {
@@ -210,8 +210,8 @@ namespace engine::debug {
         _verticesCount += linesVtxs.size();
         _lineIndicesCount += newIndicesCount;
 
-        _vertices->flush();
-        _linesIndices->flush();
+        _vertices->modify();
+        _linesIndices->modify();
     }
 
     void DebugDraw::drawSquare(vec2f corner0, vec2f corner1, uint32_t color, const mat4f & transform, Type t) {
@@ -263,7 +263,7 @@ namespace engine::debug {
             *(iMem + 2u * 3u + 1u) = _verticesCount + 0u;
 
             _lineIndicesCount += 8u;
-            _linesIndices->flush();
+            _linesIndices->modify();
         }
 
         if (std::to_underlying(t) & std::to_underlying(Type::eFill)) {
@@ -282,11 +282,11 @@ namespace engine::debug {
             *(iMem2 + 5u) = _verticesCount + 0u;
 
             _filledIndicesCount += 6u;
-            _fillIndices->flush();
+            _fillIndices->modify();
         }
 
         _verticesCount += 4u;
-        _vertices->flush();
+        _vertices->modify();
     }
 
     void DebugDraw::drawCircle(vec2f center, float r, uint32_t color, uint8_t segments, const mat4f & transform, Type t) {
@@ -327,7 +327,7 @@ namespace engine::debug {
             *(iMem + 2u * (segments - 1u) + 1u) = _verticesCount + 0u;
 
             _lineIndicesCount += segments * 2u;
-            _linesIndices->flush();
+            _linesIndices->modify();
         }
 
         if (std::to_underlying(t) & std::to_underlying(Type::eFill)) {
@@ -353,11 +353,11 @@ namespace engine::debug {
             }
 
             _filledIndicesCount += indexesCount;
-            _fillIndices->flush();
+            _fillIndices->modify();
         }
 
         _verticesCount += segments;
-        _vertices->flush();
+        _vertices->modify();
     }
 
     void DebugDraw::drawSphere(vec3f center, float r, uint32_t color, uint8_t segments, const mat4f & transform, Type t) {
@@ -424,11 +424,11 @@ namespace engine::debug {
             }
 
             _lineIndicesCount += segments * 2u * segments + segments * 2u * segments;
-            _linesIndices->flush();
+            _linesIndices->modify();
         }
 
         _verticesCount += segments * segments;
-        _vertices->flush();
+        _vertices->modify();
     }
 
     void DebugDraw::drawCube(vec3f corner0, vec3f corner1, uint32_t color, const mat4f & transform, Type t) {
@@ -516,12 +516,12 @@ namespace engine::debug {
             *(iMem + 23u) = _verticesCount + 7u;
 
             _lineIndicesCount += 24u;
-            _linesIndices->flush();
+            _linesIndices->modify();
         }
 
 
         _verticesCount += 8u;
-        _vertices->flush();
+        _vertices->modify();
     }
 
     void DebugDraw::drawBounds(const scene::Bounds & bounds, uint32_t color, const mat4f & transform) {

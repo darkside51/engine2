@@ -21,7 +21,7 @@ namespace engine::graphics {
         void setStagingBuffer(InflightStagingBuffer * staging) noexcept { _stagingBuffer = staging; }
 
         void * memory() noexcept;
-        void flush() noexcept;
+        void modify() noexcept;
 
         template <typename T>
         inline T * memory2() noexcept { return static_cast<T*>(memory()); }

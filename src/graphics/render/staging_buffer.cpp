@@ -13,15 +13,27 @@ namespace engine::graphics {
         _data = {api.createBuffer(device, info, size), 0u};
     }
 
+    StagingBuffer::~StagingBuffer() {
+        if (_mappedMemory) {
+            _data.buffer->unmap();
+        }
+        _mappedMemory = nullptr;
+    }
+
     void StagingBuffer::reset() noexcept {
         _data.offset = 0u;
     }
 
     std::byte* StagingBuffer::map() noexcept {
-        return _data.buffer->map2<std::byte>();
+        if (_mappedMemory == nullptr) {
+            _mappedMemory = _data.buffer->map2<std::byte>();
+        }
+        
+        return _mappedMemory;
     }
 
     void StagingBuffer::unmap() noexcept {
+        _mappedMemory = nullptr;
         _data.buffer->unmap();        
     }
 

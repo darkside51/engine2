@@ -764,7 +764,7 @@ namespace example {
             map->mvp = engine::makeMatrix(1.0f);
             map->m = m;
             map->time  = 0.0f;
-            _uniformBufferI->flush();
+            _uniformBufferI->modify();
         }
 
         ////////////////////////////
@@ -1013,7 +1013,7 @@ namespace example {
             map->m = m;
             map->time += delta * 0.01f;
 
-            _uniformBufferI->flush();
+            _uniformBufferI->modify();
             _uniformBufferI->commit(*commandList, frame);
         }
 

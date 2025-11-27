@@ -47,7 +47,7 @@ namespace engine::graphics {
         return _tmpMemory.get();
     }
 
-    void InflightBuffer::flush() noexcept {
+    void InflightBuffer::modify() noexcept {
         for (auto & [_, __, dirty]  : _buffers) {
             dirty = true;
         }
