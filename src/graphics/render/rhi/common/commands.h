@@ -4,11 +4,13 @@
 #include "runtime.h"
 
 #include "utils/dynamic_array.h"
+#include "log/log.h"
 
 #include <cstddef>
 #include <cstdint>
 #include <optional>
 #include <span>
+#include <utility>
 #include <vector>
 
 namespace engine::rhi::runtime {
@@ -358,10 +360,16 @@ namespace engine::rhi::runtime {
             case CommandType::eResetQueryPool: [[fallthrough]];
             case CommandType::eWriteTimestamp: [[fallthrough]];
             case CommandType::eCopyQueryPoolResults: [[fallthrough]];
-            case CommandType::eDispatch:
+            case CommandType::eDispatch: [[fallthrough]];
+            case CommandType::eUpdateBuffer:
                 return;
-            case CommandType::eBeginRenderPass: 
+            case CommandType::eBeginRenderPass: {
                 static_cast<const BeginRenderPassCommand*>(this)->~BeginRenderPassCommand();
+                return;
+            }
         }
+
+        LOG_E("destroy Command with type %d not handled", std::to_underlying(cmdType));
+        assert(false);
     }
 }

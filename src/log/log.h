@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <string>
 #include <string_view>
+#include <thread>
 #include <utility>
 
 #define LOG_LEVEL_DEBUG 0
@@ -52,13 +53,15 @@ namespace engine {
 
         template <typename... Args>
         inline void log(const char* fmt, Args &&...args) const {
-            const auto format = fmt_string("[%lu] %s\n", time::unixUTCTime(), fmt);
+            const auto threadId = std::hash<std::thread::id>{}(std::this_thread::get_id());
+            const auto format = fmt_string("[%lu] <%lu> %s\n", time::unixUTCTime(), threadId, fmt);
             _printer(format, std::forward<Args>(args)...);
         }
 
         template <typename... Args>
         inline void log(LogLevel level, const char* fmt, Args &&...args) const {
-            const auto format = fmt_string("[%lu] (%s) %s\n", time::unixUTCTime(), _printer.level(level), fmt);
+            const auto threadId = std::hash<std::thread::id>{}(std::this_thread::get_id());
+            const auto format = fmt_string("[%lu] <%lu> (%s) %s\n", time::unixUTCTime(), threadId, _printer.level(level), fmt);
             _printer(format, std::forward<Args>(args)...);
         }
 
@@ -80,7 +83,7 @@ namespace engine {
             constexpr std::string_view kCyan    = "\x1B[36m";
             constexpr std::string_view kBlack   = "\033[0m";
             constexpr std::string_view kOrange  = "\x1b[38;5;203m";
-
+            
             switch (l) {
                 case LogLevel::eDebug:
                     return fmt_string("%s%s%s", kYellow.data(), logLevelToStr(l), kBlack.data());
