@@ -5,15 +5,33 @@
 #include <atomic>
 #include <cstdint>
 #include <cstddef>
-#include <functional>
+// #include <functional>
 
 namespace engine::rhi::runtime {
     
+    struct DeleterBase {
+        void operator()(void* ptr) {
+            delete_call(ptr);
+        }
+
+        virtual void delete_call(void*) = 0;
+    };
+
+    template<typename Deleter>
+    struct DeleterImpl final : DeleterBase {
+        DeleterImpl(Deleter && deleter) : deleter(std::move(deleter)) {}
+        void delete_call(void* ptr) override {
+            deleter(ptr);
+        }
+        Deleter deleter;
+    };
+
     template <typename T>
     class sh_ptr {
     public:
         // using Deleter = void(*)(void * ptr);
-        using Deleter = std::function<void(void * ptr)>;
+        // using Deleter = std::function<void(void * ptr)>;
+        
         using counter_type = std::atomic<uint32_t>;
 
         struct ControlBlock {
@@ -31,10 +49,11 @@ namespace engine::rhi::runtime {
             }
         };
 
+        template <typename Deleter>
         struct DefaultValueCompositionWithDeleter {
             ControlBlock ctrlBlock = {};
             T data;
-            Deleter deleter = nullptr;
+            DeleterImpl<Deleter> deleter;
 
             inline static consteval size_t data_offset() noexcept {
                 return offsetof(DefaultValueCompositionWithDeleter, data);
@@ -48,16 +67,24 @@ namespace engine::rhi::runtime {
         sh_ptr(std::nullptr_t) : _ctrlBlock(nullptr) { }
         sh_ptr() : sh_ptr(nullptr) {}
 
-        sh_ptr(void * mem, uint32_t align, uint32_t dOffset, Deleter && d = nullptr) : 
+        sh_ptr(void * mem, uint32_t align, uint32_t dOffset) : 
             _ctrlBlock(static_cast<ControlBlock*>(mem)) {
             _ctrlBlock->align = align;
-            _ctrlBlock->deleterOffset = d ? dOffset : 0u;
+            _ctrlBlock->deleterOffset = 0u;
             counter().store(1u, std::memory_order_release);
-            if (d) {
-                auto * deleterMem = reinterpret_cast<Deleter*>(
-                    reinterpret_cast<std::byte*>(get()) + align_value(_ctrlBlock->deleterOffset, alignof(Deleter)));
-                new(deleterMem) Deleter{std::move(d)};
-            }
+        }
+
+        template <typename Deleter>
+        sh_ptr(void * mem, uint32_t align, uint32_t dOffset, Deleter && d) : 
+            _ctrlBlock(static_cast<ControlBlock*>(mem)) {
+            using Deleter2 = DeleterImpl<Deleter>;
+            _ctrlBlock->align = align;
+            _ctrlBlock->deleterOffset = align_value(dOffset, alignof(Deleter2));
+            counter().store(1u, std::memory_order_release);
+            
+            auto * deleterMem = reinterpret_cast<Deleter2*>(
+                reinterpret_cast<std::byte*>(get()) + _ctrlBlock->deleterOffset);
+            new(deleterMem) Deleter2{std::move(d)};
         }
 
         template <typename...Args>
@@ -151,7 +178,7 @@ namespace engine::rhi::runtime {
         inline void decrease_counter() noexcept {
             if (_ctrlBlock && _dec() == 0u) {
                 if (_ctrlBlock->deleterOffset > 0u) {
-                    deleter()(this);
+                    deleter<DeleterBase>()(this);
                 } else {
                     get()->~T();
                     free(_ctrlBlock);
@@ -166,9 +193,10 @@ namespace engine::rhi::runtime {
             return _ctrlBlock->counter;
         }
 
+        template <typename Deleter>
         inline Deleter & deleter() noexcept {
             return *reinterpret_cast<Deleter*>(
-                reinterpret_cast<std::byte*>(get()) + align_value(_ctrlBlock->deleterOffset, alignof(Deleter)));
+                reinterpret_cast<std::byte*>(get()) + _ctrlBlock->deleterOffset);
         }
 
         ControlBlock * _ctrlBlock = nullptr;

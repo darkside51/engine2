@@ -90,7 +90,7 @@ namespace engine::vulkan::runtime {
     private:
         Api::Instance _instance;
 
-        using BufferComposition = rhi::runtime::sh_ptr<Api::Buffer>::DefaultValueCompositionWithDeleter;
+        using BufferComposition = rhi::runtime::sh_ptr<Api::Buffer>::DefaultValueCompositionWithDeleter<decltype([ptr = nullptr](void*){})>;
         static constexpr uint32_t kBufferAlign = alignof(BufferComposition);
         static constexpr uint32_t kBufferPtrSize = sizeof(BufferComposition);
 
