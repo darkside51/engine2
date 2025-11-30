@@ -100,7 +100,7 @@ public:
     virtual ~Image() = default;
 
     const rhi::ImageInfo & getInfo() const noexcept { return _info; }
-    rhi::Extent3D getExtent() const noexcept { return _info.extent; }
+    const rhi::Extent3D & getExtent() const noexcept { return _info.extent; }
 
     rhi::ImageUsageFlags usage() const noexcept {
         return _info.usage;

@@ -1160,7 +1160,7 @@ namespace example {
             commandList->drawIndexed(_sphereIdx->sizeInBytes() / sizeof(uint16_t), 1u);
         // }
         // sphere
-
+        scene.newFrame();
         auto objects = scene.recalculate(cameraTransform);
         scene.draw(commandList, frameId, cameraTransform, objects);
 

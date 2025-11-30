@@ -9,9 +9,11 @@
 #include "object.h"
 #include "objects_register.h"
 
+#include <cstdint>
 #include <memory>
 #include <unordered_map>
 #include <utility>
+#include <vector>
 
 namespace engine::scene {
     
@@ -46,6 +48,7 @@ public:
     void destroyNode(Node * node) noexcept;
     Node * rootNode() noexcept { return _rootNode; }
 
+    void newFrame() noexcept;
     IntrusiveList<Object> recalculate(const mat4f & cameraTransform) noexcept;
     void draw(rhi::runtime::CommandListPtr & commandList, uint8_t frame, const mat4f & cameraTransform, IntrusiveList<Object> & objects);
 
@@ -64,9 +67,17 @@ public:
 
     bool destroyObject(Object * object) noexcept;
 
+    uint32_t registerPipeline(rhi::runtime::PipelinePtr && pipeline);
+    const rhi::runtime::PipelinePtr & getPipeline(uint32_t pipelineId) const noexcept;
+
 private:
-    bool lessTypeA(const Object & a, const Object & b) const noexcept;
+    bool compareObjects(const Object & a, const Object & b) const noexcept;
+
     void drawEmptyObjects(Object::Iterator begin, Object::Iterator end, const mat4f & cameraTransform, uint32_t color);
+
+    void drawSprites(rhi::runtime::CommandListPtr & commandList, uint8_t frame, Object::Iterator begin, Object::Iterator end, const mat4f & cameraTransform);
+    void drawSpritesBatch(rhi::runtime::CommandListPtr & commandList, uint8_t frame, Object::Iterator begin, Object::Iterator end, 
+        const mat4f & cameraTransform, uint32_t batchVertexesCount, uint32_t batchIndicesCount);
 
     using NodesAllocator = allocators::PoolAllocatorChain<sizeof(Node), alignof(Node), false, false>;
     NodesAllocator _nodeAllocator{512u, 64u};
@@ -75,6 +86,13 @@ private:
     std::unordered_map<size_t, std::unique_ptr<ObjectsCollection>> _objectCollections;
 
     debug::DebugDraw * _debugDraw = nullptr;
+
+    std::vector<rhi::runtime::PipelinePtr> _pipelines;
+
+    uint32_t _spritesVertexesCount = 0u;
+    uint32_t _spritesIndicesCount = 0u;
+    std::unique_ptr<graphics::InflightBuffer> _spritesVertices = nullptr;
+    std::unique_ptr<graphics::InflightBuffer> _spritesIndices = nullptr;
 };
 
 }

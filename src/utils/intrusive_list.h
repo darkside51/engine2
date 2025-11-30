@@ -37,10 +37,7 @@ namespace engine {
 
             const Node::Type * get() const noexcept { return value->get(); }
             Node::Type * get() noexcept { return value->get(); }
-
-            bool isLast() const noexcept {
-                return value ? value->next == nullptr : true;
-            }
+            const Node * node() const noexcept { return value; }
         };
 
         Iterator begin() const noexcept {

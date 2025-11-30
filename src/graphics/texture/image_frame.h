@@ -12,6 +12,11 @@ struct Frame2D {
 class ImageFrame2D {
 public:
     ImageFrame2D(const rhi::runtime::ImagePtr & image, const Frame2D & frame) : _image(image), _frame(frame) {}
+    // ImageFrame2D(const ImageFrame2D &) = default;
+    // ImageFrame2D(ImageFrame2D &&) = default;
+
+    // ImageFrame2D & operator=(const ImageFrame2D &) = default;
+    // ImageFrame2D & operator=(ImageFrame2D &&) = default;
 
     const rhi::runtime::ImagePtr & getImage() const noexcept {
         return _image;
@@ -22,7 +27,7 @@ public:
     }
     
 private:
-    const rhi::runtime::ImagePtr _image = nullptr;
+    rhi::runtime::ImagePtr _image = nullptr;
     Frame2D _frame = {};
 };
 
