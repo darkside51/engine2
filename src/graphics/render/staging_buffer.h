@@ -52,6 +52,8 @@ namespace engine::graphics {
         void map(uint8_t idx) noexcept;
         void unmap() noexcept;
 
+        void reset(uint8_t idx) noexcept;
+
         uint32_t sizeInBytes() const noexcept {
             if (_buffers.empty()) {
                 return 0u;

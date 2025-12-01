@@ -31,10 +31,19 @@ namespace engine::scene {
     }
 
     Scene::~Scene() {
-        destroyNode(_rootNode);
+        destroy();
 
         // for (auto & [_, objects] : _objectCollections) {
         // }
+    }
+
+    void Scene::destroy() noexcept {
+        _spritesVertices = nullptr;
+        _spritesIndices = nullptr;
+        _staging = nullptr;
+        _pipelines.clear();
+
+        destroyNode(_rootNode);
     }
 
     Node * Scene::createNode() noexcept {
@@ -132,6 +141,17 @@ namespace engine::scene {
     }
 
     void Scene::initRenderData(rhi::runtime::Rhi & api, rhi::runtime::Device & device) {
+        _api = &api;
+        _device = &device;
+
+        // samplers
+        _linearSampler.info.magFilter = rhi::FilterMode::eLinear;
+        _linearSampler.info.minFilter = rhi::FilterMode::eLinear;
+        _linearSampler.info.addressModeU = rhi::SamplerAddressMode::eClamp_To_Edge;
+        _linearSampler.info.addressModeV = rhi::SamplerAddressMode::eClamp_To_Edge;
+        _linearSampler.info.addressModeW = rhi::SamplerAddressMode::eClamp_To_Edge;
+        device.evaluateSampler(_linearSampler);
+
         //create vertex and index buffers
         constexpr uint32_t kInitialVerticesCountMax = 1024u;
         constexpr uint32_t kInitialIndicesCountMax = 1024u;
@@ -194,30 +214,37 @@ namespace engine::scene {
             return compareObjects(a, b);
         });
 
+        const auto drawObjects = [this](rhi::runtime::CommandListPtr & commandList, uint8_t frame, 
+            const mat4f & cameraTransform, Object::Iterator begin, Object::Iterator end, uint16_t typeIdx) noexcept {
+            switch (typeIdx) {
+            case ctti::typeIndex<Object, EmptyObject>():
+            {
+                drawEmptyObjects(begin, end, cameraTransform, 0xff'00'00'ffu);
+            }
+                break;
+            case ctti::typeIndex<Object, Sprite>():
+            {
+                drawSprites(commandList, frame, begin, end, cameraTransform);
+            }
+                break;
+            default:
+                break;
+            }
+        };
+
         auto currentIt = objects.begin();
         uint16_t typeIdx = currentIt->typeIndex;
         for (auto it = currentIt; it != objects.end(); ++it) {
-            bool const last = it.node()->next == nullptr;
-            if (it->typeIndex != typeIdx || last) {
-                switch (typeIdx) {
-                case ctti::typeIndex<Object, EmptyObject>():
-                {
-                    drawEmptyObjects(currentIt, (last ? objects.end(): it), cameraTransform, 0xff'00'00'ffu);
-                }
-                    break;
-                case ctti::typeIndex<Object, Sprite>():
-                {
-                    drawSprites(commandList, frame, currentIt, (last ? objects.end(): it), cameraTransform);
-                }
-                    break;
-                default:
-                    break;
-                }
+            //bool const last = it.node()->next == nullptr;
+            if (it->typeIndex != typeIdx /*|| last*/) {
+                drawObjects(commandList, frame, cameraTransform, currentIt, it, typeIdx);
 
                 currentIt = it;
                 typeIdx = it->typeIndex;
             }
         }
+
+        drawObjects(commandList, frame, cameraTransform, currentIt, objects.end(), typeIdx);
 
         performCommits(transferCommandList, frame);
     }
@@ -250,9 +277,8 @@ namespace engine::scene {
             const auto & currentImage = sprite.getFrame().getImage();
             const uint32_t currentPipeline = sprite.getPipeline();
 
-            const bool completeBatch = it.node()->next == end.node() ||
-                                 currentPipeline != pipeline ||
-                                 currentImage.get() != image.get();
+            const bool completeBatch = currentPipeline != pipeline ||
+                                       currentImage.get() != image.get();
 
             if (completeBatch) {
                 // draw
@@ -268,6 +294,8 @@ namespace engine::scene {
                 batchIndicesCount += 6u;
             }
         }
+
+        drawSpritesBatch(commandList, frame, currentIt, end, cameraTransform, batchVertexesCount, batchIndicesCount);
     }
 
     void Scene::drawSpritesBatch(rhi::runtime::CommandListPtr & commandList, uint8_t frame, Object::Iterator begin, Object::Iterator end, 
@@ -303,26 +331,27 @@ namespace engine::scene {
             const auto & frame2D = sprite.getFrame().getFrame();
             const auto mvp = cameraTransform * (*sprite.matrix);
 
-            const vec2f corner0 = {frame2D.uvMin[0u] * imageSize.x, frame2D.uvMin[1u] * imageSize.y};
-            const vec2f corner1 = {frame2D.uvMax[0u] * imageSize.x, frame2D.uvMax[1u] * imageSize.y};
+            const vec2f corner0 = {0.0f, 0.0f};
+            const vec2f corner1 = {(frame2D.uvMax[0u] - frame2D.uvMin[0u]) * imageSize.x, 
+                                   (frame2D.uvMax[1u] - frame2D.uvMin[1u]) * imageSize.y};
 
             // fill vertexes and indices
             // vertexes
             *(vMem + i + 0u) = {
                 .position = mvp * vec4f(corner0.x, corner0.y, 0.0f, 1.0f),
-                .uv = {frame2D.uvMin[0u], frame2D.uvMin[1u]}
+                .uv = {frame2D.uvMin[0u], frame2D.uvMax[1u]}
             };
             *(vMem + i + 1u) = {
                 .position = mvp * vec4f(corner1.x, corner0.y, 0.0f, 1.0f),
-                .uv = {frame2D.uvMax[0u], frame2D.uvMin[1u]}
+                .uv = {frame2D.uvMax[0u], frame2D.uvMax[1u]}
             };
             *(vMem + i + 2u) = {
                 .position = mvp * vec4f(corner0.x, corner1.y, 0.0f, 1.0f),
-                .uv = {frame2D.uvMin[0u], frame2D.uvMax[1u]}
+                .uv = {frame2D.uvMin[0u], frame2D.uvMin[1u]}
             };
             *(vMem + i + 3u) = {
                 .position = mvp * vec4f(corner1.x, corner1.y, 0.0f, 1.0f),
-                .uv = {frame2D.uvMax[0u], frame2D.uvMax[1u]}
+                .uv = {frame2D.uvMax[0u], frame2D.uvMin[1u]}
             };
             
             // indices
@@ -341,26 +370,37 @@ namespace engine::scene {
         _spritesVertices->modify();
         _spritesIndices->modify();
 
-        commandList->bindPipeline(pipeline);
-        commandList->bindVertexBuffer(0u, (*_spritesVertices)(frame), 0u);
-        commandList->bindIndexBuffer((*_spritesIndices)(frame), 0u, rhi::IndexType::eU32);
-        commandList->bindImage(0u, image, rhi::SamplerValue{}); // todo: sampler!
+        if (auto & vertexBuffer = (*_spritesVertices)(frame)) { // hmmm
+            commandList->bindPipeline(pipeline);
+            commandList->bindVertexBuffer(0u, vertexBuffer, 0u);
+            commandList->bindIndexBuffer((*_spritesIndices)(frame), 0u, rhi::IndexType::eU32);
+            commandList->bindImage(0u, image, _linearSampler);
 
-        commandList->drawIndexed(batchIndicesCount, 1u, _spritesIndicesCount);
+            commandList->drawIndexed(batchIndicesCount, 1u, _spritesIndicesCount);
+        }
         _spritesVertexesCount += batchVertexesCount;
         _spritesIndicesCount += batchIndicesCount;
     }
 
-
     void Scene::performCommits(rhi::runtime::CommandListPtr & commandList, uint8_t frame) {
-        // const bool useStagingBuffer = !_spritesVertices->isHostVisible() || !_spritesIndices->isHostVisible();
-        // todo: 
+        const bool useStagingBuffer = !_spritesVertices->isHostVisible() || !_spritesIndices->isHostVisible();
+        if (useStagingBuffer) {
+            const auto allSize = _spritesVertices->sizeInBytes() + _spritesIndices->sizeInBytes();
+            if (_staging == nullptr || allSize >= _staging->sizeInBytes()) {
+                constexpr uint32_t kMinStagingSize = 100u * 1024u /*100 Kb*/;
+                _staging = std::make_unique<graphics::InflightStagingBuffer>(*_api, *_device, std::max(allSize * 2u, kMinStagingSize), 
+                    rhi::MemoryPropertyFlags::eHostVisible | rhi::MemoryPropertyFlags::eHostCached);
+            }
+        }
 
-        if (_spritesVertices) {
-            _spritesVertices->commit(*commandList, frame);
+        if (_staging) {
+            _staging->map(frame); // reset staging data into + mapped memory set frame
+
+            _spritesVertices->setStagingBuffer(_staging.get());
+            _spritesIndices->setStagingBuffer(_staging.get());
         }
-        if (_spritesIndices) {
-            _spritesIndices->commit(*commandList, frame);
-        }
+        
+        _spritesVertices->commit(*commandList, frame);
+        _spritesIndices->commit(*commandList, frame);
     }
 }

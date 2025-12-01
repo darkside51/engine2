@@ -42,6 +42,7 @@ namespace example {
     constexpr uint8_t kTestProgram = 2u;
     constexpr uint8_t kComputeProgram = 3u;
     constexpr uint8_t kDebugProgram = 4u;
+    constexpr uint8_t kSpritesProgram = 5u;
 
     constexpr uint8_t kPostEffectPipeline = 0u;
     constexpr uint8_t kSceneTestPipeline = 1u;
@@ -196,6 +197,7 @@ namespace example {
         _imgui.destroy();
         debugDraw.destroy();
         textureManager.destroy();
+        scene.destroy();
 
         _pipelines.clear();
         _programs.clear();
@@ -437,6 +439,15 @@ namespace example {
 
             _programs.emplace_back(_api->createProgram(*_device, std::array{vsModule.getView(), fsModule.getView()}));
         }
+        { // kSpritesProgram
+            auto const vBytes = _fileManager.readFile("shaders/sprite.vert.spv");
+            auto const fBytes = _fileManager.readFile("shaders/sprite.frag.spv");
+
+            const auto & vsModule = _shaderModulesManager->registerModule("sprite.vert", *_device, engine::rhi::shaders::Stages::eVertex, vBytes);
+            const auto & fsModule = _shaderModulesManager->registerModule("sprite.frag", *_device, engine::rhi::shaders::Stages::eFragment, fBytes);
+
+            _programs.emplace_back(_api->createProgram(*_device, std::array{vsModule.getView(), fsModule.getView()}));
+        }
     }
     
     void Example::createPipelines() {
@@ -461,6 +472,10 @@ namespace example {
 
         // kComputeTestPipeline
         _pipelines.emplace_back(_api->createComputePipeline(*_device, _programs[kComputeProgram]));
+
+        // scene pipelines
+        const GraphicsPipelineStatesInfo info2 = engine::parseGraphicsPipelineInfo(json["sprite_common"]);
+        scene.registerPipeline(_api->createGraphicsPipeline(*_device, _renderPasses[kSceneRenderPass], _programs[kSpritesProgram], info2, 0u));
     }
 
     void Example::createDefaultResources() {
@@ -889,6 +904,29 @@ namespace example {
             //     scene.destroyNode(node2);
             // }
 
+            auto m2 = engine::makeMatrix(0.01F);
+            auto * node3 = scene.createNode();
+            node3->setTransform(m2);
+            node3->setBounds(engine::scene::Bounds::createCube(vec3f{0.0f}, vec3f{200.0f, 200.0f, 0.0f}));
+            scene.rootNode()->addChild(node3);
+
+            const auto * frame = textureManager.findFrame("head");
+            auto * sprite = scene.createObject<engine::scene::Sprite>(*frame, 0u);
+            auto * spriteNode = scene.createFinalNode();
+            spriteNode->setObject(sprite);
+            node3->addChild(spriteNode);
+
+            m2[1][1] *= -1.0f;
+            auto * node4 = scene.createNode();
+            node4->setTransform(m2);
+            scene.rootNode()->addChild(node4);
+
+            const auto * frame2 = textureManager.findFrame("sword");
+            auto * sprite2 = scene.createObject<engine::scene::Sprite>(*frame2, 0u);
+            auto * spriteNode2 = scene.createFinalNode();
+            spriteNode2->setObject(sprite2);
+            node4->addChild(spriteNode2);
+
             sceneNodePtr = node0;
             sizeof(engine::scene::Node);
         }
@@ -1127,40 +1165,40 @@ namespace example {
         // scene pass
         commandList->beginRenderPass(_renderPasses[kSceneRenderPass], _sceneFrameBuffers[imageIndex], sceneClearValues, {{0, 0}, {width, height}});
 
-        // sphere
-        commandList->bindPipeline(_pipelines[kSceneTestPipeline]);
-        commandList->bindVertexBuffer(0u, _sphereVtx);
-        commandList->bindIndexBuffer(_sphereIdx, 0u, rhi::IndexType::eU16);
+        // // sphere
+        // commandList->bindPipeline(_pipelines[kSceneTestPipeline]);
+        // commandList->bindVertexBuffer(0u, _sphereVtx);
+        // commandList->bindIndexBuffer(_sphereIdx, 0u, rhi::IndexType::eU16);
 
-        // const auto * frame = textureManager.findFrame("sphere_texture");
-        // commandList->bindImage(1u, frame->getImage()/*_sphereImage*/, rhi::SamplerValue {
+        // // const auto * frame = textureManager.findFrame("sphere_texture");
+        // // commandList->bindImage(1u, frame->getImage()/*_sphereImage*/, rhi::SamplerValue {
+        // //     .info = {
+        // //         .magFilter = rhi::FilterMode::eLinear,
+        // //         .minFilter = rhi::FilterMode::eLinear
+        // //     }
+        // // });
+
+        // // const auto * frame = textureManager.findFrame("upper-arm1");
+        // // commandList->bindImage(1u, frame->getImage(), rhi::SamplerValue {
+        // //     .info = {
+        // //         .magFilter = rhi::FilterMode::eLinear,
+        // //         .minFilter = rhi::FilterMode::eLinear
+        // //     }
+        // // });
+
+        // commandList->bindImage(1u, textureManager.getDefaultImage(), rhi::SamplerValue {
         //     .info = {
-        //         .magFilter = rhi::FilterMode::eLinear,
-        //         .minFilter = rhi::FilterMode::eLinear
+        //         .magFilter = rhi::FilterMode::eNearest,
+        //         .minFilter = rhi::FilterMode::eNearest
         //     }
         // });
 
-        // const auto * frame = textureManager.findFrame("upper-arm1");
-        // commandList->bindImage(1u, frame->getImage(), rhi::SamplerValue {
-        //     .info = {
-        //         .magFilter = rhi::FilterMode::eLinear,
-        //         .minFilter = rhi::FilterMode::eLinear
-        //     }
-        // });
+        // commandList->bindBuffer(0u, (*_uniformBufferI)(frameId), 0u, 0u, sizeof(UniformBuffer));
 
-        commandList->bindImage(1u, textureManager.getDefaultImage(), rhi::SamplerValue {
-            .info = {
-                .magFilter = rhi::FilterMode::eNearest,
-                .minFilter = rhi::FilterMode::eNearest
-            }
-        });
-
-        commandList->bindBuffer(0u, (*_uniformBufferI)(frameId), 0u, 0u, sizeof(UniformBuffer));
-
-        // for (size_t i = 0; i < 2'000; ++i) {
-            commandList->drawIndexed(_sphereIdx->sizeInBytes() / sizeof(uint16_t), 1u);
-        // }
-        // sphere
+        // // for (size_t i = 0; i < 2'000; ++i) {
+        //     commandList->drawIndexed(_sphereIdx->sizeInBytes() / sizeof(uint16_t), 1u);
+        // // }
+        // // sphere
         scene.newFrame();
         auto objects = scene.recalculate(cameraTransform);
         scene.draw(commandList, transferCommandList, frameId, cameraTransform, objects);

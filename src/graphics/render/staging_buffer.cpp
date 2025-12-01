@@ -79,6 +79,10 @@ namespace engine::graphics {
         _mappedMemory = nullptr;
     }
 
+    void InflightStagingBuffer::reset(uint8_t idx) noexcept {
+        _buffers[idx].reset();
+    }
+
     uint32_t InflightStagingBuffer::requestBytes(uint8_t idx, uint32_t bytes) noexcept { 
         return _buffers[idx].requestBytes(bytes);
      }

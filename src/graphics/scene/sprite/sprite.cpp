@@ -1,4 +1,5 @@
 #include "sprite.h"
+#include "graphics/scene/objects_register.h"
 #include "common/type_id.h"
 
 namespace engine::scene {

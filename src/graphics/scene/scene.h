@@ -43,6 +43,8 @@ public:
     Scene(debug::DebugDraw * debugDraw);
     ~Scene();
 
+    void destroy() noexcept;
+
     // nodes
     Node * createNode() noexcept;
     Node * createFinalNode() noexcept;
@@ -95,6 +97,9 @@ private:
     debug::DebugDraw * _debugDraw = nullptr;
 
     // render
+    rhi::runtime::Rhi * _api = nullptr;
+    rhi::runtime::Device * _device = nullptr;
+
     std::vector<rhi::runtime::PipelinePtr> _pipelines;
     std::unique_ptr<graphics::InflightStagingBuffer> _staging = nullptr;
 
@@ -102,6 +107,8 @@ private:
     uint32_t _spritesIndicesCount = 0u;
     std::unique_ptr<graphics::InflightBuffer> _spritesVertices = nullptr;
     std::unique_ptr<graphics::InflightBuffer> _spritesIndices = nullptr;
+
+    rhi::SamplerValue _linearSampler;
 };
 
 }

@@ -120,12 +120,12 @@ namespace engine::debug {
         const bool useStagingBuffer = !_vertices->isHostVisible() || !_fillIndices->isHostVisible() ||
                                       !_linesIndices->isHostVisible(); 
 
-        const auto allSize = _vertices->sizeInBytes() + _fillIndices->sizeInBytes() + 
+        if (useStagingBuffer) { 
+            const auto allSize = _vertices->sizeInBytes() + _fillIndices->sizeInBytes() + 
                              _linesIndices->sizeInBytes();
 
-        if (useStagingBuffer) { 
             if (_staging == nullptr || allSize >= _staging->sizeInBytes()) {
-                constexpr uint32_t kMinStagingSize = 100'000u /*100 Kb*/;
+                constexpr uint32_t kMinStagingSize = 100u * 1024u /*100 Kb*/;
                 _staging = std::make_unique<graphics::InflightStagingBuffer>(api, device, std::max(allSize * 2u, kMinStagingSize), 
                     rhi::MemoryPropertyFlags::eHostVisible | rhi::MemoryPropertyFlags::eHostCached);
             }

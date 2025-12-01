@@ -76,5 +76,45 @@
 				}
 			]
 		}
+	},
+	"sprite_common": {
+		"blendModes": ["blend_alpha"],
+		"rasterisationState": {
+			"polygonMode": "eFill",
+			"cullmode": "eNone"
+		},
+		"depthStencilState": {
+			"depth": {
+				"depthTestEnable": true,
+				"depthWriteEnable": false,
+				"depthCompareOp": "eLess"
+			}
+		},
+		"inputAssemblyState": {
+			"topology" : "eTriangles"
+		},
+		"vertexInputState": {
+			"inputBindings": [
+				{
+					"stride" : 24,
+					"binding" : 0,
+					"inputRate": "eVertex"
+				}
+			],
+			"attributes":[
+				{
+					"location": 0,
+                    "binding": 0,
+                    "format": "eR32G32B32A32_Sfloat",
+                    "offset": 0
+				},
+				{
+					"location": 1,
+                    "binding": 0,
+                    "format": "eR32G32_Sfloat",
+                    "offset": 16
+				}
+			]
+		}
 	}
 }
