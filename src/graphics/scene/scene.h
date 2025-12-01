@@ -43,15 +43,13 @@ public:
     Scene(debug::DebugDraw * debugDraw);
     ~Scene();
 
+    // nodes
     Node * createNode() noexcept;
     Node * createFinalNode() noexcept;
     void destroyNode(Node * node) noexcept;
     Node * rootNode() noexcept { return _rootNode; }
 
-    void newFrame() noexcept;
-    IntrusiveList<Object> recalculate(const mat4f & cameraTransform) noexcept;
-    void draw(rhi::runtime::CommandListPtr & commandList, uint8_t frame, const mat4f & cameraTransform, IntrusiveList<Object> & objects);
-
+    // objects
     template <typename T, typename... Args>
     Object * createObject(Args &&... args) {
         constexpr auto id = ctti::typeIndex<Object, T>();
@@ -67,10 +65,19 @@ public:
 
     bool destroyObject(Object * object) noexcept;
 
+    // render
     uint32_t registerPipeline(rhi::runtime::PipelinePtr && pipeline);
     const rhi::runtime::PipelinePtr & getPipeline(uint32_t pipelineId) const noexcept;
 
+    void initRenderData(rhi::runtime::Rhi & api, rhi::runtime::Device & device);
+    void newFrame() noexcept;
+    IntrusiveList<Object> recalculate(const mat4f & cameraTransform) noexcept;
+    void draw(rhi::runtime::CommandListPtr & commandList, rhi::runtime::CommandListPtr & transferCommandList, uint8_t frame, 
+        const mat4f & cameraTransform, IntrusiveList<Object> & objects);
+
 private:
+    void performCommits(rhi::runtime::CommandListPtr & commandList, uint8_t frame);
+
     bool compareObjects(const Object & a, const Object & b) const noexcept;
 
     void drawEmptyObjects(Object::Iterator begin, Object::Iterator end, const mat4f & cameraTransform, uint32_t color);
@@ -87,7 +94,9 @@ private:
 
     debug::DebugDraw * _debugDraw = nullptr;
 
+    // render
     std::vector<rhi::runtime::PipelinePtr> _pipelines;
+    std::unique_ptr<graphics::InflightStagingBuffer> _staging = nullptr;
 
     uint32_t _spritesVertexesCount = 0u;
     uint32_t _spritesIndicesCount = 0u;

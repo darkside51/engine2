@@ -914,6 +914,7 @@ namespace example {
         _imgui.createFontTexture(*_api, *_device);
         _imgui.createBuffers(*_api, *_device);
         debugDraw.createBuffers(*_api, *_device);
+        scene.initRenderData(*_api, *_device);
 
         // on render thread
         auto * commandPool = _device->acquireCommandPool(engine::rhi::queue_flags::graphics | engine::rhi::queue_flags::present);
@@ -1162,7 +1163,7 @@ namespace example {
         // sphere
         scene.newFrame();
         auto objects = scene.recalculate(cameraTransform);
-        scene.draw(commandList, frameId, cameraTransform, objects);
+        scene.draw(commandList, transferCommandList, frameId, cameraTransform, objects);
 
         debugDraw.prepare(*transferCommandList, frameId, *_api, *_device);
         debugDraw.draw(*commandList, frameId);

@@ -19,6 +19,12 @@ namespace engine::scene {
     //     std::array<float, 2u> uv;
     // };
 
+     struct SpriteVertex {
+        vec4f position;
+        vec2f uv;
+    };
+
+    constexpr uint32_t kSpriteVertexSize = sizeof(SpriteVertex);
 
     Scene::Scene(debug::DebugDraw * debugDraw) : _rootNode(createNode()), _debugDraw(debugDraw) {
         registerTypes();
@@ -125,6 +131,35 @@ namespace engine::scene {
         return _pipelines[pipelineId];
     }
 
+    void Scene::initRenderData(rhi::runtime::Rhi & api, rhi::runtime::Device & device) {
+        //create vertex and index buffers
+        constexpr uint32_t kInitialVerticesCountMax = 1024u;
+        constexpr uint32_t kInitialIndicesCountMax = 1024u;
+
+        const rhi::BufferInfo verticesInfo {
+            rhi::BufferUsageFlags::eVertex_Buffer | rhi::BufferUsageFlags::eTransfer_Dst,
+            rhi::MemoryPropertyFlags::eDeviceLocal
+        };
+
+        const rhi::BufferInfo indicesInfo {
+            rhi::BufferUsageFlags::eIndex_Buffer | rhi::BufferUsageFlags::eTransfer_Dst,
+            rhi::MemoryPropertyFlags::eDeviceLocal
+        };
+
+        // sprites:
+        // vertices
+        _spritesVertices = std::make_unique<graphics::InflightBuffer>(
+            api, device, verticesInfo, kSpriteVertexSize * kInitialVerticesCountMax
+        );
+
+        // indices
+        _spritesIndices = std::make_unique<graphics::InflightBuffer>(
+            api, device, indicesInfo, sizeof(uint32_t) * kInitialIndicesCountMax
+        );
+
+        //
+    }
+
     bool Scene::compareObjects(const Object & a, const Object & b) const noexcept {
         switch(a.typeIndex) {
         case ctti::typeIndex<Object, EmptyObject>():
@@ -136,7 +171,8 @@ namespace engine::scene {
         }
     }
 
-    void Scene::draw(rhi::runtime::CommandListPtr & commandList, uint8_t frame, const mat4f & cameraTransform, IntrusiveList<Object> & objects) {
+    void Scene::draw(rhi::runtime::CommandListPtr & commandList, rhi::runtime::CommandListPtr & transferCommandList, uint8_t frame, 
+        const mat4f & cameraTransform, IntrusiveList<Object> & objects) {
         if (objects.empty()) {
             return;
         }
@@ -182,6 +218,8 @@ namespace engine::scene {
                 typeIdx = it->typeIndex;
             }
         }
+
+        performCommits(transferCommandList, frame);
     }
 
     void Scene::drawEmptyObjects(Object::Iterator begin, Object::Iterator end, const mat4f & cameraTransform, uint32_t color) {
@@ -244,19 +282,22 @@ namespace engine::scene {
         const auto & imageExtent = image->getExtent();
         vec2f imageSize = {imageExtent.width, imageExtent.height};
 
-        // const auto vSize = static_cast<uint32_t>((_verticesCount + linesVtxs.size()) * kVertexSize);
-        // if (_vertices->sizeInBytes() <= vSize) {
-        //     _vertices->resize(std::max(_vertices->sizeInBytes() * 2u, vSize));
-        // }
+        const auto vSize = static_cast<uint32_t>((_spritesVertexesCount + batchVertexesCount) * kSpriteVertexSize);
+        const auto currentVSize = _spritesVertices->sizeInBytes();
+        if (currentVSize <= vSize) {
+            _spritesVertices->resize(std::max(currentVSize * 2u, vSize));
+        }
 
-        // const auto lineParts = linesVtxs.size() - 1u;
-        // const auto newIndicesCount = lineParts * 2u;
-        // const auto iSize = static_cast<uint32_t>((_lineIndicesCount + newIndicesCount) * sizeof(uint32_t));
-        // if (_linesIndices->sizeInBytes() <= iSize) {
-        //     _linesIndices->resize(std::max(_linesIndices->sizeInBytes() * 2u, iSize));
-        // }
+        const auto iSize = static_cast<uint32_t>((_spritesIndicesCount + batchIndicesCount) * sizeof(uint32_t));
+        const auto currentISize = _spritesIndices->sizeInBytes();
+        if (currentISize <= iSize) {
+            _spritesIndices->resize(std::max(currentISize * 2u, iSize));
+        }
 
-        uint32_t indexCount = 0u;
+        auto * vMem = _spritesVertices->memory2<SpriteVertex>() + _spritesVertexesCount;
+        auto * iMem = _spritesIndices->memory2<uint32_t>() + _spritesIndicesCount;
+
+        uint32_t i = 0u, j = 0u;
         for (auto it = begin; it != end; ++it) {
             const auto & sprite = static_cast<const Sprite&>(*it);
             const auto & frame2D = sprite.getFrame().getFrame();
@@ -265,23 +306,61 @@ namespace engine::scene {
             const vec2f corner0 = {frame2D.uvMin[0u] * imageSize.x, frame2D.uvMin[1u] * imageSize.y};
             const vec2f corner1 = {frame2D.uvMax[0u] * imageSize.x, frame2D.uvMax[1u] * imageSize.y};
 
-            vec4f p0 = mvp * vec4f(corner0.x, corner0.y, 0.0f, 1.0f);
-            vec4f p1 = mvp * vec4f(corner1.x, corner0.y, 0.0f, 1.0f);
-            vec4f p2 = mvp * vec4f(corner0.x, corner1.y, 0.0f, 1.0f);
-            vec4f p3 = mvp * vec4f(corner1.x, corner1.y, 0.0f, 1.0f);
+            // fill vertexes and indices
+            // vertexes
+            *(vMem + i + 0u) = {
+                .position = mvp * vec4f(corner0.x, corner0.y, 0.0f, 1.0f),
+                .uv = {frame2D.uvMin[0u], frame2D.uvMin[1u]}
+            };
+            *(vMem + i + 1u) = {
+                .position = mvp * vec4f(corner1.x, corner0.y, 0.0f, 1.0f),
+                .uv = {frame2D.uvMax[0u], frame2D.uvMin[1u]}
+            };
+            *(vMem + i + 2u) = {
+                .position = mvp * vec4f(corner0.x, corner1.y, 0.0f, 1.0f),
+                .uv = {frame2D.uvMin[0u], frame2D.uvMax[1u]}
+            };
+            *(vMem + i + 3u) = {
+                .position = mvp * vec4f(corner1.x, corner1.y, 0.0f, 1.0f),
+                .uv = {frame2D.uvMax[0u], frame2D.uvMax[1u]}
+            };
+            
+            // indices
+            *(iMem + j + 0u) = _spritesVertexesCount + i + 0u;
+            *(iMem + j + 1u) = _spritesVertexesCount + i + 1u;
+            *(iMem + j + 2u) = _spritesVertexesCount + i + 2u;
 
-            // todo: fill vertexes and indices
-            // ....
+            *(iMem + j + 3u) = _spritesVertexesCount + i + 2u;
+            *(iMem + j + 4u) = _spritesVertexesCount + i + 1u;
+            *(iMem + j + 5u) = _spritesVertexesCount + i + 3u;
 
-            indexCount += 6u;
+            i += 4u;
+            j += 6u;
         }
+
+        _spritesVertices->modify();
+        _spritesIndices->modify();
 
         commandList->bindPipeline(pipeline);
         commandList->bindVertexBuffer(0u, (*_spritesVertices)(frame), 0u);
         commandList->bindIndexBuffer((*_spritesIndices)(frame), 0u, rhi::IndexType::eU32);
-        commandList->bindImage(0u, image, rhi::SamplerValue{});
+        commandList->bindImage(0u, image, rhi::SamplerValue{}); // todo: sampler!
 
-        commandList->drawIndexed(indexCount, 1u, _spritesIndicesCount);
-        _spritesIndicesCount += indexCount;
+        commandList->drawIndexed(batchIndicesCount, 1u, _spritesIndicesCount);
+        _spritesVertexesCount += batchVertexesCount;
+        _spritesIndicesCount += batchIndicesCount;
+    }
+
+
+    void Scene::performCommits(rhi::runtime::CommandListPtr & commandList, uint8_t frame) {
+        // const bool useStagingBuffer = !_spritesVertices->isHostVisible() || !_spritesIndices->isHostVisible();
+        // todo: 
+
+        if (_spritesVertices) {
+            _spritesVertices->commit(*commandList, frame);
+        }
+        if (_spritesIndices) {
+            _spritesIndices->commit(*commandList, frame);
+        }
     }
 }
