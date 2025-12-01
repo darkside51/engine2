@@ -2,6 +2,8 @@
 #include "graphics/scene/objects_register.h"
 #include "common/type_id.h"
 
+#include <functional>
+
 namespace engine::scene {
 
     Sprite::Sprite(const graphics::ImageFrame2D & frame, uint32_t pipeline) : 
@@ -25,8 +27,12 @@ namespace engine::scene {
         return _frame;
     }
 
-    bool Sprite::cmp(const Sprite &) const noexcept {
-        return false;
+    bool Sprite::cmp(const Sprite & other) const noexcept {
+        if (_pipeline != other._pipeline) {
+            return _pipeline < other._pipeline;
+        }
+
+        return std::less<const rhi::runtime::Image*>{}(_frame.getImage().get(), other._frame.getImage().get());
     }
 
 }

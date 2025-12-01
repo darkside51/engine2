@@ -235,8 +235,7 @@ namespace engine::scene {
         auto currentIt = objects.begin();
         uint16_t typeIdx = currentIt->typeIndex;
         for (auto it = currentIt; it != objects.end(); ++it) {
-            //bool const last = it.node()->next == nullptr;
-            if (it->typeIndex != typeIdx /*|| last*/) {
+            if (it->typeIndex != typeIdx) {
                 drawObjects(commandList, frame, cameraTransform, currentIt, it, typeIdx);
 
                 currentIt = it;

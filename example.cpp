@@ -908,8 +908,7 @@ namespace example {
             auto * node3 = scene.createNode();
             node3->setTransform(m2);
             node3->setBounds(engine::scene::Bounds::createCube(vec3f{0.0f}, vec3f{200.0f, 200.0f, 0.0f}));
-            scene.rootNode()->addChild(node3);
-
+            
             const auto * frame = textureManager.findFrame("head");
             auto * sprite = scene.createObject<engine::scene::Sprite>(*frame, 0u);
             auto * spriteNode = scene.createFinalNode();
@@ -919,13 +918,30 @@ namespace example {
             m2[1][1] *= -1.0f;
             auto * node4 = scene.createNode();
             node4->setTransform(m2);
-            scene.rootNode()->addChild(node4);
-
+            
             const auto * frame2 = textureManager.findFrame("sword");
             auto * sprite2 = scene.createObject<engine::scene::Sprite>(*frame2, 0u);
             auto * spriteNode2 = scene.createFinalNode();
             spriteNode2->setObject(sprite2);
             node4->addChild(spriteNode2);
+            // sprite2->setOrder(1u);
+
+            m2[0][0] *= 0.25f;
+            m2[1][1] *= -0.25f;
+            m2[3] = {0.0f, -1.0f, 0.0f, 1.0f};
+            auto * node5 = scene.createNode();
+            node5->setTransform(m2);
+            
+            const auto * frame3 = textureManager.findFrame("sphere_texture");
+            auto * sprite3 = scene.createObject<engine::scene::Sprite>(*frame3, 0u);
+            auto * spriteNode3 = scene.createFinalNode();
+            spriteNode3->setObject(sprite3);
+            node5->addChild(spriteNode3);
+            //sprite3->setOrder(1u);
+
+            scene.rootNode()->addChild(node3);
+            scene.rootNode()->addChild(node5);
+            scene.rootNode()->addChild(node4);
 
             sceneNodePtr = node0;
             sizeof(engine::scene::Node);
