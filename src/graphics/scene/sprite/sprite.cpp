@@ -8,7 +8,6 @@ namespace engine::scene {
 
     Sprite::Sprite(const graphics::ImageFrame2D & frame, uint32_t pipeline) : 
         Object(ctti::typeIndex<Object, Sprite>()), _frame(frame), _pipeline(pipeline) {
-
     }
 
     void Sprite::setPipeline(uint32_t pipeline) noexcept {

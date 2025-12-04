@@ -47,16 +47,12 @@ namespace engine::scene {
     }
 
     Node * Scene::createNode() noexcept {
-        return _nodeAllocator.create<engine::scene::Node>(false);
-    }
-
-    Node * Scene::createFinalNode() noexcept {
-        return _nodeAllocator.create<engine::scene::Node>(true);
+        return _nodeAllocator.create<engine::scene::Node>();
     }
 
     void Scene::destroyNode(Node * node) noexcept {
         if (node->removeFromParent() || node == _rootNode) {
-            if (Node * n = node->isIntermediate() ? node->data.link.firstChild : nullptr) {
+            if (Node * n = node->firstChild) {
                 while (n->next) {
                     auto * n1 = n->next;
                     destroyNode(n);
@@ -64,11 +60,11 @@ namespace engine::scene {
                 }
                 destroyNode(n);
             }
-            if (node->isFinal()) {
-                if (auto * object = node->getObject()) {
-                    destroyObject(object);
-                }
+
+            if (auto * object = node->getObject()) {
+                destroyObject(object);
             }
+
             _nodeAllocator.destroy(node);
         }
     }
@@ -106,11 +102,9 @@ namespace engine::scene {
                 }
             }
 
-            if (n->isFinal()) {
-                if (auto * object = n->getObject()) {
-                    object->matrix = &n->getWorldTransform();
-                    objects.emplace(object);
-                }
+            if (auto * object = n->getObject()) {
+                object->matrix = &n->getWorldTransform();
+                objects.emplace(object);
             }
 
             if (_debugDraw) {

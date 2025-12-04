@@ -26,6 +26,8 @@ constexpr uint32_t kCachelineSize = 64u;
     constexpr uint32_t kCachelineSize = 32u;
   #elif defined(__ARM_ARCH_7A__)
     constexpr uint32_t kCachelineSize = 64u;
+  #else // ARM v8
+    constexpr uint32_t kCachelineSize = 64u;
   #endif
 #else
 // A reasonable default guess.  Note that overestimates tend to waste more
