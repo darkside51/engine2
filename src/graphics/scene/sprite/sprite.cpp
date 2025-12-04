@@ -26,6 +26,12 @@ namespace engine::scene {
         return _frame;
     }
 
+    vec2f Sprite::calculateSize() const noexcept {
+        const auto & extent = _frame.getImage()->getExtent();
+        const auto & frame = _frame.getFrame();
+        return vec2f{frame.uvMax[0u] - frame.uvMin[0u], frame.uvMax[1u] - frame.uvMin[1u]} * vec2f{extent.width, extent.height};
+    }
+
     bool Sprite::cmp(const Sprite & other) const noexcept {
         if (_pipeline != other._pipeline) {
             return _pipeline < other._pipeline;

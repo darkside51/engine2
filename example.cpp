@@ -907,16 +907,24 @@ namespace example {
             auto m2 = engine::makeMatrix(0.01F);
             auto * node3 = scene.createNode();
             node3->setTransform(m2);
-            node3->setBounds(engine::scene::Bounds::createCube(vec3f{0.0f}, vec3f{200.0f, 200.0f, 0.0f}));
-            
+
             auto * sprite = scene.createObject<engine::scene::Sprite>(*textureManager.findFrame("head"), 0u);
+            {
+                const auto spriteSize = sprite->calculateSize();
+                node3->setBounds(engine::scene::Bounds::createCube(vec3f{0.0f}, vec3f{spriteSize.x, spriteSize.y, 0.0f}));
+            }
             node3->setObject(sprite);
 
             m2[1][1] *= -1.0f;
+            m2[3] = {0.0f, -0.2f, 0.5f, 1.0f};
             auto * node4 = scene.createNode();
             node4->setTransform(m2);
             
             auto * sprite2 = scene.createObject<engine::scene::Sprite>(*textureManager.findFrame("sword"), 0u);
+            {
+                const auto spriteSize = sprite2->calculateSize();
+                node4->setBounds(engine::scene::Bounds::createCube(vec3f{0.0f}, vec3f{spriteSize.x, spriteSize.y, 0.0f}));
+            }
             node4->setObject(sprite2);
             // node4->setOrder(1u);
 
@@ -928,6 +936,10 @@ namespace example {
             
             const auto * frame3 = textureManager.findFrame("sphere_texture");
             auto * sprite3 = scene.createObject<engine::scene::Sprite>(*frame3, 0u);
+            {
+                const auto spriteSize = sprite3->calculateSize();
+                node5->setBounds(engine::scene::Bounds::createCube(vec3f{0.0f}, vec3f{spriteSize.x, spriteSize.y, 0.0f}));
+            }
             node5->setObject(sprite3);
             //node5->setOrder(1u);
 

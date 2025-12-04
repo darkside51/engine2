@@ -3,6 +3,8 @@
 #include "graphics/scene/object.h"
 #include "graphics/texture/image_frame.h"
 
+#include "math/math.h"
+
 #include <cstdint>
 
 namespace engine::scene {
@@ -19,6 +21,8 @@ namespace engine::scene {
         const graphics::ImageFrame2D & getFrame() const noexcept;
 
         bool cmp(const Sprite &) const noexcept;
+
+        vec2f calculateSize() const noexcept;
 
     private:
         graphics::ImageFrame2D _frame;

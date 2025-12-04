@@ -53,7 +53,7 @@ public:
 
     // objects
     template <typename T, typename... Args>
-    Object * createObject(Args &&... args) {
+    T * createObject(Args &&... args) {
         constexpr auto id = ctti::typeIndex<Object, T>();
         auto it = _objectCollections.find(id);
         if (it == _objectCollections.end()) {
@@ -62,7 +62,7 @@ public:
         }
 
         auto & objectsData = static_cast<ObjectsHolder<T>&>(*it->second);
-        return objectsData.createObject(std::forward<Args>(args)...);
+        return static_cast<T*>(objectsData.createObject(std::forward<Args>(args)...));
     }
 
     bool destroyObject(Object * object) noexcept;
