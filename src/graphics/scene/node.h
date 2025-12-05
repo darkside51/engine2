@@ -121,11 +121,11 @@ struct Node {
         state.setChildrenTransformsDirty(dirty);
     }
 
-    const mat4f & getTransform() noexcept {
+    const mat4f & getTransform() const noexcept {
         return transform;
     }
 
-    const mat4f & getWorldTransform() noexcept {
+    const mat4f & getWorldTransform() const noexcept {
         return worldTransform;
     } 
 };

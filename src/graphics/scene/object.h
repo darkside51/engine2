@@ -7,9 +7,11 @@
 
 namespace engine::scene {
 
+    struct Node;
+
     struct Object : IntrusiveListNode<Object> {
         using Iterator = IntrusiveList<Object>::Iterator;
-        const mat4f * matrix = nullptr;
+        Node * node = nullptr;
        
         uint16_t typeIndex = 0u;
         // uint16_t layer = 0u;
@@ -27,10 +29,9 @@ namespace engine::scene {
         bool cmp(const Object &) const noexcept { return false; }
     };
 
-    struct EmptyObject : Object {
-        float size = 0.0f;
-        explicit EmptyObject(float s);
-        ~EmptyObject() = default;
+    struct Dummy : Object {
+        explicit Dummy();
+        ~Dummy() override = default;
     };
 
 }

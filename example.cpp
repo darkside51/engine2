@@ -515,7 +515,7 @@ namespace example {
             );
 
             auto const atlasBytes = _fileManager.readFile("assets/atlases/hero-pma.atlas");
-            auto frames = engine::graphics::FramesParser::loadFramesSpine(atlasBytes, {0u, 0u});
+            auto frames = engine::graphics::FramesParser::loadFramesSpine(atlasBytes, {0u, 0u}, "hero_");
 
             textureManager.addFrames(frames.frames, image);
         }
@@ -882,16 +882,13 @@ namespace example {
             node2->setBounds(engine::scene::Bounds::createCube(vec3f{-0.75f}, vec3f{0.75f}));
             scene.rootNode()->addChild(node2);
 
-            // auto * object0 = scene.createObject<engine::scene::EmptyObject>(0.25f, node1);
-            // auto * object1 = scene.createObject<engine::scene::EmptyObject>(0.5f, node2);
-
-            auto * object0 = scene.createObject<engine::scene::EmptyObject>(0.25f);
-            auto * object1 = scene.createObject<engine::scene::EmptyObject>(0.5f);
+            auto * object0 = scene.createObject<engine::scene::Dummy>();
+            auto * object1 = scene.createObject<engine::scene::Dummy>();
 
             auto * finalNode0 = scene.createNode();
             auto * finalNode1 = scene.createNode();
-            finalNode0->setObject(object0);
-            finalNode1->setObject(object1);
+            engine::scene::attachObjectToNode(*object0, *finalNode0);
+            engine::scene::attachObjectToNode(*object1, *finalNode1);
 
             node1->addChild(finalNode0);
             node2->addChild(finalNode1);
@@ -908,24 +905,16 @@ namespace example {
             auto * node3 = scene.createNode();
             node3->setTransform(m2);
 
-            auto * sprite = scene.createObject<engine::scene::Sprite>(*textureManager.findFrame("head"), 0u);
-            {
-                const auto spriteSize = sprite->calculateSize();
-                node3->setBounds(engine::scene::Bounds::createCube(vec3f{0.0f}, vec3f{spriteSize.x, spriteSize.y, 0.0f}));
-            }
-            node3->setObject(sprite);
+            auto * sprite = scene.createObject<engine::scene::Sprite>(*textureManager.findFrame("hero_head"), 0u);
+            engine::scene::attachObjectToNode(*sprite, *node3);
 
             m2[1][1] *= -1.0f;
             m2[3] = {0.0f, -0.2f, 0.5f, 1.0f};
             auto * node4 = scene.createNode();
             node4->setTransform(m2);
             
-            auto * sprite2 = scene.createObject<engine::scene::Sprite>(*textureManager.findFrame("sword"), 0u);
-            {
-                const auto spriteSize = sprite2->calculateSize();
-                node4->setBounds(engine::scene::Bounds::createCube(vec3f{0.0f}, vec3f{spriteSize.x, spriteSize.y, 0.0f}));
-            }
-            node4->setObject(sprite2);
+            auto * sprite2 = scene.createObject<engine::scene::Sprite>(*textureManager.findFrame("hero_sword"), 0u);
+            engine::scene::attachObjectToNode(*sprite2, *node4);
             // node4->setOrder(1u);
 
             m2[0][0] *= 0.25f;
@@ -936,11 +925,7 @@ namespace example {
             
             const auto * frame3 = textureManager.findFrame("sphere_texture");
             auto * sprite3 = scene.createObject<engine::scene::Sprite>(*frame3, 0u);
-            {
-                const auto spriteSize = sprite3->calculateSize();
-                node5->setBounds(engine::scene::Bounds::createCube(vec3f{0.0f}, vec3f{spriteSize.x, spriteSize.y, 0.0f}));
-            }
-            node5->setObject(sprite3);
+            engine::scene::attachObjectToNode(*sprite3, *node5);
             //node5->setOrder(1u);
 
             scene.rootNode()->addChild(node3);

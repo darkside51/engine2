@@ -26,6 +26,17 @@ namespace engine::scene {
 
     constexpr uint32_t kSpriteVertexSize = sizeof(SpriteVertex);
 
+    void attachObjectToNode(Object & object, Node & node) noexcept {
+        switch(object.typeIndex) {
+        case ctti::typeIndex<Object, Dummy>():
+            node.setObject(&object);
+            return;
+        case ctti::typeIndex<Object, Sprite>():
+            static_cast<Sprite &>(object).attachToNode(&node);
+            return;
+        }
+    }
+
     Scene::Scene(debug::DebugDraw * debugDraw) : _rootNode(createNode()), _debugDraw(debugDraw) {
         registerTypes();
     }
@@ -103,7 +114,6 @@ namespace engine::scene {
             }
 
             if (auto * object = n->getObject()) {
-                object->matrix = &n->getWorldTransform();
                 objects.emplace(object);
             }
 
@@ -176,8 +186,8 @@ namespace engine::scene {
 
     bool Scene::compareObjects(const Object & a, const Object & b) const noexcept {
         switch(a.typeIndex) {
-        case ctti::typeIndex<Object, EmptyObject>():
-            return static_cast<const EmptyObject &>(a).cmp(static_cast<const EmptyObject &>(b));
+        case ctti::typeIndex<Object, Dummy>():
+            return static_cast<const Dummy &>(a).cmp(static_cast<const Dummy &>(b));
         case ctti::typeIndex<Object, Sprite>():
             return static_cast<const Sprite &>(a).cmp(static_cast<const Sprite &>(b));
         default:
@@ -211,9 +221,9 @@ namespace engine::scene {
         const auto drawObjects = [this](rhi::runtime::CommandListPtr & commandList, uint8_t frame, 
             const mat4f & cameraTransform, Object::Iterator begin, Object::Iterator end, uint16_t typeIdx) noexcept {
             switch (typeIdx) {
-            case ctti::typeIndex<Object, EmptyObject>():
+            case ctti::typeIndex<Object, Dummy>():
             {
-                drawEmptyObjects(begin, end, cameraTransform, 0xff'00'00'ffu);
+                drawDummies(begin, end, cameraTransform, 0xff'00'00'ffu);
             }
                 break;
             case ctti::typeIndex<Object, Sprite>():
@@ -242,15 +252,14 @@ namespace engine::scene {
         performCommits(transferCommandList, frame);
     }
 
-    void Scene::drawEmptyObjects(Object::Iterator begin, Object::Iterator end, const mat4f & cameraTransform, uint32_t color) {
+    void Scene::drawDummies(Object::Iterator begin, Object::Iterator end, const mat4f & cameraTransform, uint32_t color) {
         if (_debugDraw == nullptr) {
             return;
         }
 
         for (auto it = begin; it != end; ++it) {
             const auto & object = *it;
-            _debugDraw->drawSphere(vec3f{0.0f}, static_cast<const EmptyObject&>(object).size, color, 
-                32u, cameraTransform * (*object.matrix));
+            _debugDraw->drawSphere(vec3f{0.0f}, 0.1f, color, 32u, cameraTransform * object.node->getWorldTransform());
         }
     }
 
@@ -322,7 +331,7 @@ namespace engine::scene {
         for (auto it = begin; it != end; ++it) {
             const auto & sprite = static_cast<const Sprite&>(*it);
             const auto & frame2D = sprite.getFrame().getFrame();
-            const auto mvp = cameraTransform * (*sprite.matrix);
+            const auto mvp = cameraTransform * sprite.node->getWorldTransform();
 
             const vec2f corner0 = {0.0f, 0.0f};
             const vec2f corner1 = {(frame2D.uvMax[0u] - frame2D.uvMin[0u]) * imageSize.x, 

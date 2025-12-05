@@ -7,10 +7,9 @@
 #include <cassert>
 #include <charconv>
 #include <cstdint>
-#include <string_view>
 
 namespace engine::graphics {
-    FramesParser::Result FramesParser::loadFrames(std::span<const std::byte> rawBytes, vec2u size, AtlasFormat format) {
+    FramesParser::Result FramesParser::loadFrames(std::span<const std::byte> rawBytes, vec2u size, std::string_view prefix, AtlasFormat format) {
         switch (format) {
         case AtlasFormat::eUnknown:
         { // parse format from file content
@@ -18,15 +17,15 @@ namespace engine::graphics {
         }
             break;
         case AtlasFormat::eEngine2:
-            return loadFramesCommon(rawBytes, size);
+            return loadFramesCommon(rawBytes, size, prefix);
         case AtlasFormat::eSpine:
-            return loadFramesSpine(rawBytes, size);
+            return loadFramesSpine(rawBytes, size, prefix);
         case AtlasFormat::eGodot:
-            return loadFramesGodot(rawBytes, size);
+            return loadFramesGodot(rawBytes, size, prefix);
         case AtlasFormat::ePixiJs:
-            return loadFramesPixiJs(rawBytes, size);
+            return loadFramesPixiJs(rawBytes, size, prefix);
         case AtlasFormat::eMapBox:
-            return loadFramesMapBox(rawBytes, size);
+            return loadFramesMapBox(rawBytes, size, prefix);
         default:
             break;
         }
@@ -34,11 +33,11 @@ namespace engine::graphics {
         return {};
     }
 
-    FramesParser::Result FramesParser::loadFramesCommon(std::span<const std::byte> rawBytes, vec2u size) {
+    FramesParser::Result FramesParser::loadFramesCommon(std::span<const std::byte> rawBytes, vec2u size, std::string_view prefix) {
         return {};
     }
 
-    FramesParser::Result FramesParser::loadFramesSpine(std::span<const std::byte> rawBytes, vec2u size) {
+    FramesParser::Result FramesParser::loadFramesSpine(std::span<const std::byte> rawBytes, vec2u size, std::string_view prefix) {
         auto readLine = [](std::string_view data, size_t & begin) noexcept -> std::string_view {
             auto end = data.find('\n', begin);
             if (end != std::string_view::npos) {
@@ -106,7 +105,7 @@ namespace engine::graphics {
                 break;
             }
 
-            auto & frame = result.frames.emplace_back(line, Frame2D{}).second;
+            auto & frame = result.frames.emplace_back(std::string{prefix}.append(line), Frame2D{}).second;
 
             vec2f xy = vec2f{0.0f};
             vec2f regionSize = vec2f{0.0f};
@@ -151,15 +150,15 @@ namespace engine::graphics {
         return result;
     }
 
-    FramesParser::Result FramesParser::loadFramesGodot(std::span<const std::byte> rawBytes, vec2u size) {
+    FramesParser::Result FramesParser::loadFramesGodot(std::span<const std::byte> rawBytes, vec2u size, std::string_view prefix) {
         return {};
     }
 
-    FramesParser::Result FramesParser::loadFramesPixiJs(std::span<const std::byte> rawBytes, vec2u size) {
+    FramesParser::Result FramesParser::loadFramesPixiJs(std::span<const std::byte> rawBytes, vec2u size, std::string_view prefix) {
         return {};
     }
 
-    FramesParser::Result FramesParser::loadFramesMapBox(std::span<const std::byte> rawBytes, vec2u size) {
+    FramesParser::Result FramesParser::loadFramesMapBox(std::span<const std::byte> rawBytes, vec2u size, std::string_view prefix) {
         return {};
     }
 

@@ -74,10 +74,11 @@ namespace engine::scene {
 
     void Node::setObject(Object * object) noexcept {
         this->object = object;
+        object->node = this;
     }
 
     Object * Node::removeObject() noexcept {
-        object->matrix = nullptr;
+        object->node = nullptr;
         auto * result = object;
         object = nullptr;
         return result;

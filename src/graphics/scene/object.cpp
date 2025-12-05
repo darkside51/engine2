@@ -3,7 +3,5 @@
 #include "graphics/scene/objects_register.h"
 
 namespace engine::scene {
-
-    EmptyObject::EmptyObject(float s) : Object(ctti::typeIndex<Object, EmptyObject>()), size(s) {}
-    
+    Dummy::Dummy() : Object(ctti::typeIndex<Object, Dummy>()) {}
 }

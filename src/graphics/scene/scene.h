@@ -38,6 +38,9 @@ struct ObjectsHolder : ObjectsCollection {
     }
 };
 
+// global
+void attachObjectToNode(Object & object, Node & node) noexcept;
+
 class Scene {
 public:
     Scene(debug::DebugDraw * debugDraw);
@@ -82,7 +85,7 @@ private:
 
     bool compareObjects(const Object & a, const Object & b) const noexcept;
 
-    void drawEmptyObjects(Object::Iterator begin, Object::Iterator end, const mat4f & cameraTransform, uint32_t color);
+    void drawDummies(Object::Iterator begin, Object::Iterator end, const mat4f & cameraTransform, uint32_t color);
 
     void drawSprites(rhi::runtime::CommandListPtr & commandList, uint8_t frame, Object::Iterator begin, Object::Iterator end, const mat4f & cameraTransform);
     void drawSpritesBatch(rhi::runtime::CommandListPtr & commandList, uint8_t frame, Object::Iterator begin, Object::Iterator end, 

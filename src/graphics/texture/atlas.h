@@ -5,6 +5,7 @@
 
 #include <span>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -25,12 +26,12 @@ public:
         std::vector<std::pair<std::string, Frame2D>> frames;
     };
 
-    static Result loadFrames(std::span<const std::byte> rawBytes, vec2u size, AtlasFormat format = AtlasFormat::eUnknown);
-    static Result loadFramesCommon(std::span<const std::byte> rawBytes, vec2u size);
-    static Result loadFramesSpine(std::span<const std::byte> rawBytes, vec2u size);
-    static Result loadFramesGodot(std::span<const std::byte> rawBytes, vec2u size);
-    static Result loadFramesPixiJs(std::span<const std::byte> rawBytes, vec2u size);
-    static Result loadFramesMapBox(std::span<const std::byte> rawBytes, vec2u size);
+    static Result loadFrames(std::span<const std::byte> rawBytes, vec2u size, std::string_view prefix = "", AtlasFormat format = AtlasFormat::eUnknown);
+    static Result loadFramesCommon(std::span<const std::byte> rawBytes, vec2u size, std::string_view prefix = "");
+    static Result loadFramesSpine(std::span<const std::byte> rawBytes, vec2u size, std::string_view prefix = "");
+    static Result loadFramesGodot(std::span<const std::byte> rawBytes, vec2u size, std::string_view prefix = "");
+    static Result loadFramesPixiJs(std::span<const std::byte> rawBytes, vec2u size, std::string_view prefix = "");
+    static Result loadFramesMapBox(std::span<const std::byte> rawBytes, vec2u size, std::string_view prefix = "");
 };
 
 }

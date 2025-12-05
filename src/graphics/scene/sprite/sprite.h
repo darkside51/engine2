@@ -12,7 +12,7 @@ namespace engine::scene {
     class Sprite : public Object {
     public:
         explicit Sprite(const graphics::ImageFrame2D & frame, uint32_t pipeline);
-        ~Sprite() = default;
+        ~Sprite() override = default;
 
         void setPipeline(uint32_t pipeline) noexcept;
         uint32_t getPipeline() const noexcept;
@@ -24,8 +24,10 @@ namespace engine::scene {
 
         vec2f calculateSize() const noexcept;
 
+        void attachToNode(Node * node) noexcept;
+
     private:
-        graphics::ImageFrame2D _frame;
+        const graphics::ImageFrame2D * _frame = nullptr;
         uint32_t _pipeline = 0u;
     };
 
