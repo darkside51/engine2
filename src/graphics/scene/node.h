@@ -144,7 +144,8 @@ struct Node {
 // }
 
 template <typename VisibleChecker>
-void recalculateHierarchy(Node * node, VisibleChecker && v, bool forceRecalculate = false) noexcept {
+void recalculateHierarchy(Node * root, VisibleChecker && v, bool forceRecalculate = false) noexcept {
+    Node * node = root;
     bool process = true;
     while (node != nullptr) {
         if (process) {
@@ -159,12 +160,15 @@ void recalculateHierarchy(Node * node, VisibleChecker && v, bool forceRecalculat
         if (node->isVisible() && node->firstChild && process) {
             node = node->firstChild;
             process = true;
-        } else if (node->next != nullptr) {
+        } else if (node->next != nullptr && node != root) {
             node = node->next;
             process = true;
         } else {
             node = node->parent;
             process = false;
+            if (node == root) {
+                break;
+            }
         }
     }
 }

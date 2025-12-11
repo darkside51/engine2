@@ -76,7 +76,7 @@ public:
 
     void initRenderData(rhi::runtime::Rhi & api, rhi::runtime::Device & device);
     void newFrame() noexcept;
-    IntrusiveList<Object> recalculate(const mat4f & cameraTransform) noexcept;
+    IntrusiveList<Object> makeRenderList(const mat4f & cameraTransform, Node * root) noexcept;
     void draw(rhi::runtime::CommandListPtr & commandList, rhi::runtime::CommandListPtr & transferCommandList, uint8_t frame, 
         const mat4f & cameraTransform, IntrusiveList<Object> & objects);
 

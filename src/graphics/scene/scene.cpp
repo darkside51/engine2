@@ -96,11 +96,11 @@ namespace engine::scene {
         _spritesIndicesCount = 0u;
     }
 
-    IntrusiveList<Object> Scene::recalculate(const mat4f & cameraTransform) noexcept {
+    IntrusiveList<Object> Scene::makeRenderList(const mat4f & cameraTransform, Node * root) noexcept {
         const Frustum frustum(cameraTransform);
         IntrusiveList<Object> objects;
 
-        recalculateHierarchy(_rootNode, [this, &frustum, &cameraTransform, &objects](Node * n) noexcept { 
+        recalculateHierarchy(root, [this, &frustum, &cameraTransform, &objects](Node * n) noexcept { 
             if (n->isHidden()) {
                 return false;
             }

@@ -55,6 +55,7 @@ namespace example {
 
     engine::scene::Camera camera;
     engine::scene::SphereCameraController controller{camera};
+    engine::scene::Node * sceneWorldRoot = nullptr;
     engine::scene::Node * sceneNodePtr = nullptr;
     engine::mat4f cameraTransform;
     float m = 0.0f;
@@ -858,6 +859,9 @@ namespace example {
 
         // scene
         {
+            sceneWorldRoot = scene.createNode();
+            scene.rootNode()->addChild(sceneWorldRoot);
+
             auto m0 = engine::makeMatrix(0.5F);
             engine::rotateMatrix_z(m0, 1.57f);
             m0[3] = {1.0f, 0.0f, 0.0f, 1.0f};
@@ -868,7 +872,7 @@ namespace example {
             auto * node0 = scene.createNode();
             node0->setTransform(m0);
             node0->setBounds(engine::scene::Bounds::createSphere(vec3f{0.0f}, 0.5f));
-            scene.rootNode()->addChild(node0);
+            sceneWorldRoot->addChild(node0);
 
             auto * node1 = scene.createNode();
             node1->setTransform(m1);
@@ -880,7 +884,7 @@ namespace example {
             auto * node2 = scene.createNode();
             node2->setTransform(m0);
             node2->setBounds(engine::scene::Bounds::createCube(vec3f{-0.75f}, vec3f{0.75f}));
-            scene.rootNode()->addChild(node2);
+            sceneWorldRoot->addChild(node2);
 
             auto * object0 = scene.createObject<engine::scene::Dummy>();
             auto * object1 = scene.createObject<engine::scene::Dummy>();
@@ -928,9 +932,9 @@ namespace example {
             engine::scene::attachObjectToNode(*sprite3, *node5);
             //node5->setOrder(1u);
 
-            scene.rootNode()->addChild(node3);
-            scene.rootNode()->addChild(node5);
-            scene.rootNode()->addChild(node4);
+            sceneWorldRoot->addChild(node3);
+            sceneWorldRoot->addChild(node5);
+            sceneWorldRoot->addChild(node4);
 
             sceneNodePtr = node0;
             sizeof(engine::scene::Bounds);
@@ -1206,7 +1210,7 @@ namespace example {
         // // }
         // // sphere
         scene.newFrame();
-        auto objects = scene.recalculate(cameraTransform);
+        auto objects = scene.makeRenderList(cameraTransform, sceneWorldRoot);
         scene.draw(commandList, transferCommandList, frameId, cameraTransform, objects);
 
         debugDraw.prepare(*transferCommandList, frameId, *_api, *_device);
