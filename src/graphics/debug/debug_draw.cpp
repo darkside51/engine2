@@ -10,7 +10,7 @@
 namespace engine::debug {
     
     struct Vertex {
-        std::array<float, 3u> coord;
+        std::array<float, 4u> coord;
         uint32_t color;
     };
     
@@ -54,14 +54,14 @@ namespace engine::debug {
                 rhi::VertexInputAttribute{ // position
                     .location = 0u,
                     .binding = 0u,
-                    .format = rhi::Format::eR32G32B32_Sfloat,
+                    .format = rhi::Format::eR32G32B32A32_Sfloat,
                     .offset = 0u
                 },
                 rhi::VertexInputAttribute{ // color
                     .location = 1u,
                     .binding = 0u,
                     .format = rhi::Format::eR8G8B8A8_Unorm,
-                    .offset = 3u * sizeof(float)
+                    .offset = 4u * sizeof(float)
                 }
             }
         };
@@ -195,7 +195,7 @@ namespace engine::debug {
         for (const auto & v : linesVtxs) {
             const auto p = transform * vec4f{v, 1.0f};
             *(vMem + i) = {
-                .coord = {p.x / p.w, p.y / p.w, p.z / p.w},
+                .coord = {p.x, p.y, p.z, p.w},
                 .color = color
             };
 
@@ -224,25 +224,25 @@ namespace engine::debug {
 
         auto vp = transform * vec4f{corner0, 0.0f, 1.0f};
         *(vMem + 0u) = {
-            .coord = {vp.x / vp.w, vp.y / vp.w, vp.z / vp.w},
+            .coord = {vp.x, vp.y, vp.z, vp.w},
             .color = color
         };
 
         vp = transform * vec4f{corner1.x, corner0.y, 0.0f, 1.0f};
         *(vMem + 1u) = {
-            .coord = {vp.x / vp.w, vp.y / vp.w, vp.z / vp.w},
+            .coord = {vp.x, vp.y, vp.z, vp.w},
             .color = color
         };
 
         vp = transform * vec4f{corner1, 0.0f, 1.0f};
         *(vMem + 2u) = {
-            .coord = {vp.x / vp.w, vp.y / vp.w, vp.z / vp.w},
+            .coord = {vp.x, vp.y, vp.z, vp.w},
             .color = color
         };
 
         vp = transform * vec4f{corner0.x, corner1.y, 0.0f, 1.0f};
         *(vMem + 3u) = {
-            .coord = {vp.x / vp.w, vp.y / vp.w, vp.z / vp.w},
+            .coord = {vp.x, vp.y, vp.z, vp.w},
             .color = color
         };
 
@@ -304,7 +304,7 @@ namespace engine::debug {
             const vec2f p = center + r * vec2f{std::cos(angle), std::sin(angle)};
             const auto vp = transform * vec4f{p, 0.0f, 1.0f};
             *(vMem + s) = {
-                .coord = {vp.x / vp.w, vp.y / vp.w, vp.z / vp.w},
+                .coord = {vp.x, vp.y, vp.z, vp.w},
                 .color = color
             };
             angle += step;
@@ -380,7 +380,7 @@ namespace engine::debug {
                 p.z += r * sin;
                 const auto vp = transform * vec4f{p, 1.0f};
                 *(vMem + s + (i * segments)) = {
-                    .coord = {vp.x / vp.w, vp.y / vp.w, vp.z / vp.w},
+                    .coord = {vp.x, vp.y, vp.z, vp.w},
                     .color = color
                 };
                 angle += step;
@@ -441,49 +441,49 @@ namespace engine::debug {
 
         auto vp = transform * vec4f{corner0, 1.0f};
         *(vMem + 0u) = {
-            .coord = {vp.x / vp.w, vp.y / vp.w, vp.z / vp.w},
+            .coord = {vp.x, vp.y, vp.z, vp.w},
             .color = color
         };
 
         vp = transform * vec4f{corner1.x, corner0.y, corner0.z, 1.0f};
         *(vMem + 1u) = {
-            .coord = {vp.x / vp.w, vp.y / vp.w, vp.z / vp.w},
+            .coord = {vp.x, vp.y, vp.z, vp.w},
             .color = color
         };
 
         vp = transform * vec4f{corner1.x, corner1.y, corner0.z, 1.0f};
         *(vMem + 2u) = {
-            .coord = {vp.x / vp.w, vp.y / vp.w, vp.z / vp.w},
+            .coord = {vp.x, vp.y, vp.z, vp.w},
             .color = color
         };
 
         vp = transform * vec4f{corner0.x, corner1.y, corner0.z, 1.0f};
         *(vMem + 3u) = {
-            .coord = {vp.x / vp.w, vp.y / vp.w, vp.z / vp.w},
+            .coord = {vp.x, vp.y, vp.z, vp.w},
             .color = color
         };
 
         vp = transform * vec4f{corner0.x, corner0.y, corner1.z, 1.0f};
         *(vMem + 4u) = {
-            .coord = {vp.x / vp.w, vp.y / vp.w, vp.z / vp.w},
+            .coord = {vp.x, vp.y, vp.z, vp.w},
             .color = color
         };
 
         vp = transform * vec4f{corner1.x, corner0.y, corner1.z, 1.0f};
         *(vMem + 5u) = {
-            .coord = {vp.x / vp.w, vp.y / vp.w, vp.z / vp.w},
+            .coord = {vp.x, vp.y, vp.z, vp.w},
             .color = color
         };
 
         vp = transform * vec4f{corner1, 1.0f};
         *(vMem + 6u) = {
-            .coord = {vp.x / vp.w, vp.y / vp.w, vp.z / vp.w},
+            .coord = {vp.x, vp.y, vp.z, vp.w},
             .color = color
         };
 
         vp = transform * vec4f{corner0.x, corner1.y, corner1.z, 1.0f};
         *(vMem + 7u) = {
-            .coord = {vp.x / vp.w, vp.y / vp.w, vp.z / vp.w},
+            .coord = {vp.x, vp.y, vp.z, vp.w},
             .color = color
         };
 
