@@ -11,6 +11,4 @@ namespace engine::scene {
         static_assert(ctti::typeIndex<Object, Sprite>() == 1u);
     }
 
-    // static consteval 
-
 }

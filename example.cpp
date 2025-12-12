@@ -57,6 +57,7 @@ namespace example {
     engine::scene::SphereCameraController controller{camera};
     engine::scene::Node * sceneWorldRoot = nullptr;
     engine::scene::Node * sceneNodePtr = nullptr;
+    engine::scene::Sprite * testSprite = nullptr;
     engine::mat4f cameraTransform;
     float m = 0.0f;
 
@@ -518,7 +519,41 @@ namespace example {
             auto const atlasBytes = _fileManager.readFile("assets/atlases/hero-pma.atlas");
             auto frames = engine::graphics::FramesParser::loadFramesSpine(atlasBytes, {0u, 0u}, "hero_");
 
-            textureManager.addFrames(frames.frames, image);
+            textureManager.addFrames(frames, image);
+        }
+
+        if (1) {
+            // atlas test2
+            auto const imageBytes = _fileManager.readFile("assets/atlases/explosion2.png");
+            auto textureData = engine::graphics::parseTextureData(imageBytes);
+
+            using namespace engine::rhi;
+            const auto imageInfo = ImageInfo{
+                ImageUsageFlags::eSampled | ImageUsageFlags::eTransfer_Dst,
+                textureData.metaInfo.format, {textureData.metaInfo.size.x, textureData.metaInfo.size.y, 1u}
+            };
+
+            auto image = _api->createImage(*_device, imageInfo);
+            const auto stagingSize = textureData.data.size();
+            engine::graphics::StagingBuffer staging{*_api, *_device, stagingSize};
+            
+            auto * imgData = staging.map();
+            std::memcpy(imgData, textureData.data.data(), stagingSize);
+            staging.flush();
+
+            tmpCommandList->copyBuffer2Image(staging.getBuffer(), image, 
+                {
+                    .bufferOffset = 0u,
+                    .bufferRowLength = 0u,
+                    .bufferImageHeight = 0u,
+                    .imageSubresource = {.aspectMask = engine::rhi::ImageAspectFlags::eColor},
+                    .imageOffset = {0u, 0u, 0u},
+                    .imageExtent = image->getExtent()
+                }
+            );
+
+            auto frames = engine::graphics::FramesParser::generateFrames({8u, 6u}, "explosion_");
+            textureManager.addFrames(frames, image);
         }
 
         // gltf test
@@ -919,7 +954,7 @@ namespace example {
             
             auto * sprite2 = scene.createObject<engine::scene::Sprite>(*textureManager.findFrame("hero_sword"), 0u);
             engine::scene::attachObjectToNode(*sprite2, *node4);
-            // node4->setOrder(1u);
+            //sprite2->setOrder(1u);
 
             m2[0][0] *= 0.25f;
             m2[1][1] *= -0.25f;
@@ -927,9 +962,10 @@ namespace example {
             auto * node5 = scene.createNode();
             node5->setTransform(m2);
             
-            const auto * frame3 = textureManager.findFrame("sphere_texture");
+            const auto * frame3 = textureManager.findFrame("explosion_33");
             auto * sprite3 = scene.createObject<engine::scene::Sprite>(*frame3, 0u);
             engine::scene::attachObjectToNode(*sprite3, *node5);
+            testSprite = sprite3;
             //node5->setOrder(1u);
 
             sceneWorldRoot->addChild(node3);
@@ -1080,6 +1116,18 @@ namespace example {
                 }
             }
             sceneNodePtr->setTransform(tr);
+        }
+
+        if (testSprite) {
+            static int a = 0;
+            if (++a == 4) {
+                a = 0;
+                static uint8_t animFrame = 0u;
+                testSprite->setFrame(*textureManager.findFrame(engine::fmt_string("explosion_%d", animFrame)));
+                if (++animFrame >= 48) {
+                    animFrame = 0u;
+                }
+            }
         }
     
     }

@@ -1,5 +1,6 @@
 #include "atlas.h"
 #include "log/log.h"
+#include "utils/format_string.h"
 #include "utils/json.h"
 #include "utils/string_utils.h"
 
@@ -105,7 +106,7 @@ namespace engine::graphics {
                 break;
             }
 
-            auto & frame = result.frames.emplace_back(std::string{prefix}.append(line), Frame2D{}).second;
+            auto & frame = result.emplace_back(std::string{prefix}.append(line), Frame2D{}).second;
 
             vec2f xy = vec2f{0.0f};
             vec2f regionSize = vec2f{0.0f};
@@ -160,6 +161,23 @@ namespace engine::graphics {
 
     FramesParser::Result FramesParser::loadFramesMapBox(std::span<const std::byte> rawBytes, vec2u size, std::string_view prefix) {
         return {};
+    }
+
+    FramesParser::Result FramesParser::generateFrames(vec2u size, std::string_view prefix) {
+        vec2f step = vec2f{1.0f / size.x, 1.0f / size.y};
+
+        FramesParser::Result result;
+        result.reserve(size.x * size.y);
+
+        for (uint32_t j = 0; j < size.y; ++j) {
+            for (uint32_t i = 0; i < size.x; ++i) {
+                auto & frame = result.emplace_back(fmt_string("%s%d", prefix.data(), j * size.x + i), Frame2D{}).second;
+                frame.uvMin = {i * step.x, j * step.y};
+                frame.uvMax = {(i + 1) * step.x, (j + 1) * step.y};
+            }
+        }
+
+        return result;
     }
 
 }

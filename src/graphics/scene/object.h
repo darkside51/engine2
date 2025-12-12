@@ -15,7 +15,7 @@ namespace engine::scene {
        
         uint16_t typeIndex = 0u;
         // uint16_t layer = 0u;
-        uint16_t order = 0u;
+        int16_t order = 0u;
 
         Object(uint16_t typeIndex) : typeIndex(typeIndex) {}
         virtual ~Object() = default;
@@ -23,8 +23,8 @@ namespace engine::scene {
         // void setLayer(uint16_t l) noexcept { layer = l; }
         // uint16_t getLayer() const noexcept { return layer; }
 
-        void setOrder(uint16_t o) noexcept { order = o; }
-        uint16_t getOrder() const noexcept { return order; }
+        void setOrder(int16_t o) noexcept { order = o; }
+        int16_t getOrder() const noexcept { return order; }
         
         bool cmp(const Object &) const noexcept { return false; }
     };
