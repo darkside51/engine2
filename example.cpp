@@ -28,6 +28,7 @@
 
 #include "graphics/debug/debug_draw.h"
 #include "graphics/texture/atlas.h"
+#include "graphics/scene/animation/texture/frame_sequence_animation.h"
 
 // https://www.saschawillems.de/blog/2018/07/19/vulkan-input-attachments-and-sub-passes/
 // https://docs.vulkan.org/samples/latest/samples/api/timestamp_queries/README.html
@@ -58,6 +59,10 @@ namespace example {
     engine::scene::Node * sceneWorldRoot = nullptr;
     engine::scene::Node * sceneNodePtr = nullptr;
     engine::scene::Sprite * testSprite = nullptr;
+
+    engine::scene::FramesSequence * sequence0 = nullptr;
+    engine::scene::FramesSequenceAnimator sequenceAnimator{1.0f / 30.0f};
+
     engine::mat4f cameraTransform;
     float m = 0.0f;
 
@@ -200,6 +205,8 @@ namespace example {
         debugDraw.destroy();
         textureManager.destroy();
         scene.destroy();
+
+        delete sequence0;
 
         _pipelines.clear();
         _programs.clear();
@@ -554,6 +561,15 @@ namespace example {
 
             auto frames = engine::graphics::FramesParser::generateFrames({8u, 6u}, "explosion_");
             textureManager.addFrames(frames, image);
+
+            {
+                std::vector<std::string> animFrames;
+                animFrames.reserve(48u);
+                for (size_t i = 0; i < 48; ++i) {
+                    animFrames.emplace_back(engine::fmt_string("explosion_%d", i));
+                }
+                sequence0 = new engine::scene::FramesSequence(textureManager, animFrames);
+            }
         }
 
         // gltf test
@@ -1119,15 +1135,7 @@ namespace example {
         }
 
         if (testSprite) {
-            static int a = 0;
-            if (++a == 4) {
-                a = 0;
-                static uint8_t animFrame = 0u;
-                testSprite->setFrame(*textureManager.findFrame(engine::fmt_string("explosion_%d", animFrame)));
-                if (++animFrame >= 48) {
-                    animFrame = 0u;
-                }
-            }
+            testSprite->setFrame(sequenceAnimator.update(delta, *sequence0));
         }
     
     }

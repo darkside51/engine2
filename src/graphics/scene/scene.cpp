@@ -91,43 +91,6 @@ namespace engine::scene {
         return it->second->destroyObject(object);
     }
 
-    void Scene::newFrame() noexcept {
-        _spritesVertexesCount = 0u;
-        _spritesIndicesCount = 0u;
-    }
-
-    IntrusiveList<Object> Scene::makeRenderList(const mat4f & cameraTransform, Node * root) noexcept {
-        const Frustum frustum(cameraTransform);
-        IntrusiveList<Object> objects;
-
-        recalculateHierarchy(root, [this, &frustum, &cameraTransform, &objects](Node * n) noexcept { 
-            if (n->isHidden()) {
-                return false;
-            }
-
-            const auto & bounds = n->bounds;
-            const auto & worldTransform =  n->getWorldTransform();
-            if (bounds.type != Bounds::Type::eNone) {
-                if (!frustum.checkBounds(bounds.transform(worldTransform))) {
-                    return false;
-                }
-            }
-
-            if (auto * object = n->getObject()) {
-                objects.emplace(object);
-            }
-
-            if (_debugDraw) {
-                const auto transform = cameraTransform * worldTransform;
-                _debugDraw->drawGizmo(1.0f, transform);
-                _debugDraw->drawBounds(bounds, 0xff00ffffu, transform);
-            }
-            return true;
-        });
-
-        return objects;
-    }
-
     uint32_t Scene::registerPipeline(rhi::runtime::PipelinePtr && pipeline) {
         if (pipeline) {
             _pipelines.push_back(std::move(pipeline));
@@ -184,7 +147,12 @@ namespace engine::scene {
         //
     }
 
-    bool Scene::compareObjects(const Object & a, const Object & b) const noexcept {
+    bool Scene::compareObjectsAnimate(const Object & a, const Object & b) const noexcept {
+        // return a.animationId < b.animationId;
+        return false;
+    }
+
+    bool Scene::compareObjectsForDraw(const Object & a, const Object & b) const noexcept {
         switch(a.typeIndex) {
         case ctti::typeIndex<Object, Dummy>():
             return static_cast<const Dummy &>(a).cmp(static_cast<const Dummy &>(b));
@@ -193,6 +161,53 @@ namespace engine::scene {
         default:
             return false;
         }
+    }
+
+    IntrusiveList<Object> Scene::makeRenderList(const mat4f & cameraTransform, Node * root) noexcept {
+        const Frustum frustum(cameraTransform);
+        IntrusiveList<Object> objects;
+
+        recalculateHierarchy(root, [this, &frustum, &cameraTransform, &objects](Node * n) noexcept { 
+            if (n->isHidden()) {
+                return false;
+            }
+
+            const auto & bounds = n->bounds;
+            const auto & worldTransform =  n->getWorldTransform();
+            if (bounds.type != Bounds::Type::eNone) {
+                if (!frustum.checkBounds(bounds.transform(worldTransform))) {
+                    return false;
+                }
+            }
+
+            if (auto * object = n->getObject()) {
+                objects.emplace(object);
+            }
+
+            if (_debugDraw) {
+                const auto transform = cameraTransform * worldTransform;
+                _debugDraw->drawGizmo(1.0f, transform);
+                _debugDraw->drawBounds(bounds, 0xff00ffffu, transform);
+            }
+            return true;
+        });
+
+        return objects;
+    }
+
+    void Scene::updateAnimations(float delta, IntrusiveList<Object> & objects) {
+        if (objects.empty()) {
+            return;
+        }
+
+        objects.stable_sort([this](const Object & a, const Object & b) noexcept {
+            if (a.typeIndex != b.typeIndex) {
+                return a.typeIndex < b.typeIndex;
+            }
+            return compareObjectsAnimate(a, b);
+        });
+
+        // todo!
     }
 
     void Scene::draw(rhi::runtime::CommandListPtr & commandList, rhi::runtime::CommandListPtr & transferCommandList, uint8_t frame, 
@@ -215,7 +230,7 @@ namespace engine::scene {
             }
 
             // todo special sorts for some types
-            return compareObjects(a, b);
+            return compareObjectsForDraw(a, b);
         });
 
         const auto drawObjects = [this](rhi::runtime::CommandListPtr & commandList, uint8_t frame, 
@@ -382,6 +397,11 @@ namespace engine::scene {
         }
         _spritesVertexesCount += batchVertexesCount;
         _spritesIndicesCount += batchIndicesCount;
+    }
+
+    void Scene::newFrame() noexcept {
+        _spritesVertexesCount = 0u;
+        _spritesIndicesCount = 0u;
     }
 
     void Scene::performCommits(rhi::runtime::CommandListPtr & commandList, uint8_t frame) {

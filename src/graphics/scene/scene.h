@@ -76,14 +76,17 @@ public:
 
     void initRenderData(rhi::runtime::Rhi & api, rhi::runtime::Device & device);
     void newFrame() noexcept;
+
     IntrusiveList<Object> makeRenderList(const mat4f & cameraTransform, Node * root) noexcept;
+    void updateAnimations(float delta, IntrusiveList<Object> & objects);
     void draw(rhi::runtime::CommandListPtr & commandList, rhi::runtime::CommandListPtr & transferCommandList, uint8_t frame, 
         const mat4f & cameraTransform, IntrusiveList<Object> & objects);
 
 private:
     void performCommits(rhi::runtime::CommandListPtr & commandList, uint8_t frame);
 
-    bool compareObjects(const Object & a, const Object & b) const noexcept;
+    bool compareObjectsForDraw(const Object & a, const Object & b) const noexcept;
+    bool compareObjectsAnimate(const Object & a, const Object & b) const noexcept;
 
     void drawDummies(Object::Iterator begin, Object::Iterator end, const mat4f & cameraTransform, uint32_t color);
 

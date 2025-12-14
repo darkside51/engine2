@@ -27,7 +27,7 @@ namespace engine::scene {
         void attachToNode(Node * node) noexcept;
 
     private:
-        const graphics::ImageFrame2D * _frame = nullptr;
+        graphics::ImageFrame2D _frame;
         uint32_t _pipeline = 0u;
     };
 
