@@ -69,6 +69,11 @@ namespace engine::graphics {
                 memcpy(mappedMemory, _tmpMemory.get(), buffer->sizeInBytes());
                 buffer->flush(); // vma check is memory coherent 
             } else { // need use stagingBuffer
+                if (_size < kMaxMemoryBytesToCopyCommand) { // use cmdUpdateBuffer
+                    cmd.updateBuffer(buffer, 0u, _size, _tmpMemory.get());
+                    return;
+                }
+
                 if (_stagingBuffer) {
                     const auto offset = _stagingBuffer->requestBytes(idx, buffer->sizeInBytes());
                     if (offset != StagingBuffer::kNotEnoughMemory) {
@@ -84,11 +89,6 @@ namespace engine::graphics {
                         dirty = false;
                         return;
                     }
-                }
-
-                if (_size < kMaxMemoryBytesToCopyCommand) { // use cmdUpdateBuffer
-                    cmd.updateBuffer(buffer, 0u, _size, _tmpMemory.get());
-                    return;
                 }
 
                 const rhi::BufferInfo info {

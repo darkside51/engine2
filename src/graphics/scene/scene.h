@@ -5,6 +5,7 @@
 #include "graphics/render/rhi/common/runtime.h"
 #include "graphics/debug/debug_draw.h"
 #include "math/math.h"
+#include "animation.h"
 #include "node.h"
 #include "object.h"
 #include "register.h"
@@ -28,7 +29,7 @@ template<typename T>
 struct ObjectsHolder : ObjectsCollection {
     using Type = T;
     using ObjectsAllocator = allocators::PoolAllocatorChain<sizeof(T), alignof(T), false, false>;
-    ObjectsAllocator allocator{512u, 16u};
+    ObjectsAllocator allocator{512u, 32u}; // 16'384 objects max
 
     template <typename... Args>
     Object * createObject(Args &&... args) noexcept {
@@ -74,6 +75,10 @@ public:
 
     bool destroyObject(Object * object) noexcept;
 
+    // anims
+    AnimationInfoChain * createAnimInfo(uint16_t animationId, uint16_t animationType, float startTime, float weight = 1.0f);
+    bool destroyAnimInfo(AnimationInfoChain * info) noexcept;
+
     // render
     uint32_t registerPipeline(rhi::runtime::PipelinePtr && pipeline);
     const rhi::runtime::PipelinePtr & getPipeline(uint32_t pipelineId) const noexcept;
@@ -82,7 +87,7 @@ public:
     void newFrame() noexcept;
 
     IntrusiveList<Object> makeRenderList(const mat4f & cameraTransform, Node * root) noexcept;
-    void update(std::chrono::time_point<std::chrono::steady_clock> now, float delta, IntrusiveList<Object> & objects);
+    void update(std::chrono::time_point<std::chrono::steady_clock> now, float delta, IntrusiveList<Object> & objects, const Animation & tmpAnimTest);
     void draw(rhi::runtime::CommandListPtr & commandList, rhi::runtime::CommandListPtr & transferCommandList, uint8_t frame, 
         const mat4f & cameraTransform, IntrusiveList<Object> & objects);
 
@@ -90,7 +95,6 @@ private:
     void performCommits(rhi::runtime::CommandListPtr & commandList, uint8_t frame);
 
     bool compareObjectsForDraw(const Object & a, const Object & b) const noexcept;
-    bool compareObjectsAnimate(const Object & a, const Object & b) const noexcept;
 
     void drawDummies(Object::Iterator begin, Object::Iterator end, const mat4f & cameraTransform, uint32_t color);
 
@@ -100,6 +104,10 @@ private:
 
     using NodesAllocator = allocators::PoolAllocatorChain<sizeof(Node), alignof(Node), false, false>;
     NodesAllocator _nodeAllocator{512u, 64u};
+
+    using AnimationInfosAllocator = allocators::PoolAllocatorChain<sizeof(AnimationInfoChain), alignof(AnimationInfoChain), false, false>;
+    AnimationInfosAllocator _animationInfosAllocator{512u, 64u};
+
     Node * _rootNode = nullptr;
 
     std::unordered_map<size_t, std::unique_ptr<ObjectsCollection>> _objectCollections;

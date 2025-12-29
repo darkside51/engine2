@@ -2,13 +2,20 @@
 #include "animation.h"
 #include "bounds.h"
 #include "frustum.h"
+#include "animation/texture/frame_sequence_animation.h"
 #include "sprite/sprite.h"
 
 #include "graphics/render/rhi/common/command_list.h"
 
 #include <algorithm>
 
+#include <unordered_map>
+
 namespace engine::scene {
+
+    constexpr bool kDebugDrawBounds = true;
+
+    FramesSequenceAnimator gSequenceAnimator{1.0f / 30.0f};
 
     // struct ColoredVertex {
     //     std::array<float, 3u> coord;
@@ -59,7 +66,7 @@ namespace engine::scene {
     }
 
     Node * Scene::createNode() noexcept {
-        return _nodeAllocator.create<engine::scene::Node>();
+        return _nodeAllocator.create<Node>();
     }
 
     void Scene::destroyNode(Node * node) noexcept {
@@ -89,7 +96,25 @@ namespace engine::scene {
             return false;
         }
 
+        if (object->animInfo) {
+            destroyAnimInfo(object->animInfo);
+        }
+
         return it->second->destroyObject(object);
+    }
+
+    AnimationInfoChain * Scene::createAnimInfo(uint16_t animationId, uint16_t animationType, float startTime, float weight) {
+        return _animationInfosAllocator.create<AnimationInfoChain>(startTime, weight, animationId, animationType);
+    }
+
+    bool Scene::destroyAnimInfo(AnimationInfoChain * info) noexcept {
+        const bool result = (info != nullptr);
+        while (info) {
+            auto next = info->next;
+            _animationInfosAllocator.destroy(info);
+            info = next;
+        }
+        return result;
     }
 
     uint32_t Scene::registerPipeline(rhi::runtime::PipelinePtr && pipeline) {
@@ -148,11 +173,6 @@ namespace engine::scene {
         //
     }
 
-    bool Scene::compareObjectsAnimate(const Object & a, const Object & b) const noexcept {
-        // return a.animationDataIndex.animationIndex < b.animationDataIndex.animationIndex;
-        return a.animationDataIndex < b.animationDataIndex;
-    }
-
     bool Scene::compareObjectsForDraw(const Object & a, const Object & b) const noexcept {
         switch(a.typeIndex) {
         case ctti::typeIndex<Object, Dummy>():
@@ -185,10 +205,12 @@ namespace engine::scene {
                 objects.emplace(object);
             }
 
-            if (_debugDraw) {
-                const auto transform = cameraTransform * worldTransform;
-                _debugDraw->drawGizmo(1.0f, transform);
-                _debugDraw->drawBounds(bounds, 0xff00ffffu, transform);
+            if constexpr (kDebugDrawBounds) {
+                if (_debugDraw) {
+                    const auto transform = cameraTransform * worldTransform;
+                    _debugDraw->drawGizmo(1.0f, transform);
+                    _debugDraw->drawBounds(bounds, 0xff00ffffu, transform);
+                }
             }
             return true;
         });
@@ -196,33 +218,61 @@ namespace engine::scene {
         return objects;
     }
 
-    struct AnimationData {
-        struct AnimationWeight {
-            uint16_t amimationId;
-            uint16_t animationType;
-            float weight = 1.0f;
-            float startTime = 0.0f;
-        };
-
-        std::vector<AnimationData> animations;
-    };
-
-    void Scene::update(std::chrono::time_point<std::chrono::steady_clock> now, float delta, IntrusiveList<Object> & objects) {
+    void Scene::update(std::chrono::time_point<std::chrono::steady_clock> now, float delta, IntrusiveList<Object> & objects, const Animation & tmpAnimTest) {
         if (objects.empty()) {
             return;
         }
 
-        objects.stable_sort([this](const Object & a, const Object & b) noexcept {
-            if (a.typeIndex != b.typeIndex) {
-                return a.typeIndex < b.typeIndex;
+        struct AnimatedObject {
+            const AnimationInfo* animInfo = nullptr;
+            Object * object = nullptr;
+        };
+
+        static thread_local std::vector<AnimatedObject> sequences; // todo: remove static
+        sequences.clear();
+
+        for (auto & object : objects) {
+            const auto * animInfo = object.animInfo;
+            while (animInfo) {
+                if (animInfo->info.weight > 0.0f) {
+                    switch (animInfo->info.animationType) {
+                    case ctti::typeIndex<Animation, FramesSequence>() : 
+                    {
+                        sequences.emplace_back(&animInfo->info, &object);
+                    }
+                        break;
+                    default:
+                        break;
+                    }
+                }
+                animInfo = animInfo->next;
             }
-            return compareObjectsAnimate(a, b);
-        });
+        }
 
         const std::chrono::duration<float> nowDuration = now.time_since_epoch();
         const float nowTimeCount = nowDuration.count();
 
-        // todo!
+        if (!sequences.empty()) { // sequences
+            std::sort(sequences.begin(), sequences.end(), [](const auto & seq0, const auto & seq1) {
+                        return seq0.animInfo->animationId < seq1.animInfo->animationId;
+                    });
+
+            auto animId = sequences[0u].animInfo->animationId;
+            const FramesSequence * currentAnim = static_cast<const FramesSequence*>(&tmpAnimTest); // animationManager.getAnimation<FramesSequence>(animId);
+            
+            for (const auto & [animInfo, object] : sequences) {
+                if (animInfo->animationId != animId) {
+                    animId = animInfo->animationId;
+                    currentAnim = static_cast<const FramesSequence*>(&tmpAnimTest);
+                }
+
+                if (currentAnim) {
+                    static_cast<Sprite*>(object)->setFrame(gSequenceAnimator.update(nowDuration, animInfo->startTime, *currentAnim));
+                }
+            }
+        }
+
+        // todo: other types!
     }
 
     void Scene::draw(rhi::runtime::CommandListPtr & commandList, rhi::runtime::CommandListPtr & transferCommandList, uint8_t frame, 

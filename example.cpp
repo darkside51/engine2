@@ -2,6 +2,7 @@
 
 #include "threads/executor.h"
 #include "file/common_file_system.h"
+#include "common/random.h"
 #include "graphics/render/rhi/vulkan/runtime.h"
 #include "graphics/render/rhi/common/command_list.h"
 #include "graphics/render/rhi/common/pipeline.h"
@@ -58,7 +59,6 @@ namespace example {
     engine::scene::SphereCameraController controller{camera};
     engine::scene::Node * sceneWorldRoot = nullptr;
     engine::scene::Node * sceneNodePtr = nullptr;
-    engine::scene::Sprite * testSprite = nullptr;
 
     engine::scene::FramesSequence * sequence0 = nullptr;
     engine::scene::FramesSequenceAnimator sequenceAnimator{1.0f / 30.0f};
@@ -175,7 +175,7 @@ namespace example {
         controller.setDistance(5.0f);
         controller.setMinMaxDistance(0.01f, 8.0f);
 
-        camera.makePerspective(std::numbers::pi_v<float> / 3.0f, 1024.0f / 768.0f, 0.001f, 10.0f);
+        camera.makePerspective(std::numbers::pi_v<float> / 3.0f, 1024.0f / 768.0f, 0.001f, 100.0f);
     }
 
     Example::~Example() = default;
@@ -972,22 +972,31 @@ namespace example {
             engine::scene::attachObjectToNode(*sprite2, *node4);
             //sprite2->setOrder(1u);
 
-            m2[0][0] *= 0.25f;
-            m2[1][1] *= -0.25f;
-            m2[3] = {0.0f, -1.0f, 0.0f, 1.0f};
-            auto * node5 = scene.createNode();
-            node5->setTransform(m2);
-            
-            const auto * frame3 = textureManager.findFrame("explosion_33");
-            auto * sprite3 = scene.createObject<engine::scene::Sprite>(*frame3, 0u);
-            engine::scene::attachObjectToNode(*sprite3, *node5);
-            sprite3->setOrder(-1);
-            testSprite = sprite3;
-            
             sceneWorldRoot->addChild(node3);
-            sceneWorldRoot->addChild(node5);
             sceneWorldRoot->addChild(node4);
 
+            {
+                m2[0][0] *= 0.25f;
+                m2[1][1] *= -0.25f;
+
+                for (size_t i = 0u; i < 10u; ++i) {
+                    for (size_t j = 0u; j < 10u; ++j) {
+                        m2[3] = {-3.0f + static_cast<float>(i) * 0.75f, -1.0f - static_cast<float>(j) * 0.75f, 0.0f, 1.0f};
+                        auto * node5 = scene.createNode();
+                        node5->setTransform(m2);
+                        
+                        const auto * frame3 = textureManager.findFrame("explosion_33");
+                        auto * sprite3 = scene.createObject<engine::scene::Sprite>(*frame3, 0u);
+                        engine::scene::attachObjectToNode(*sprite3, *node5);
+                        sprite3->setOrder(-1);
+                        auto * anim0 = scene.createAnimInfo(0u, ctti::typeIndex<engine::scene::Animation, engine::scene::FramesSequence>(),
+                            engine::common::random(0.25f, 1.7f));
+                        sprite3->addAnimation(anim0);
+                        sceneWorldRoot->addChild(node5);
+                    }
+                }
+            }
+            
             sceneNodePtr = node0;
             sizeof(engine::scene::Bounds);
             sizeof(engine::scene::Node);
@@ -1134,11 +1143,8 @@ namespace example {
             sceneNodePtr->setTransform(tr);
         }
 
-        if (testSprite) {
-            const std::chrono::duration<float> duration = now.time_since_epoch();
-            testSprite->setFrame(sequenceAnimator.update(duration, 0.0f, *sequence0));
-        }
-    
+        auto objects = scene.makeRenderList(cameraTransform, sceneWorldRoot); ///?
+        scene.update(now, delta, objects, *sequence0);
     }
 
     void Example::prepareFrameDrawData(engine::rhi::runtime::CommandListPtr & commandList, uint8_t frame, float delta) {
