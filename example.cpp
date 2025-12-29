@@ -981,9 +981,9 @@ namespace example {
             const auto * frame3 = textureManager.findFrame("explosion_33");
             auto * sprite3 = scene.createObject<engine::scene::Sprite>(*frame3, 0u);
             engine::scene::attachObjectToNode(*sprite3, *node5);
-            testSprite = sprite3;
             sprite3->setOrder(-1);
-
+            testSprite = sprite3;
+            
             sceneWorldRoot->addChild(node3);
             sceneWorldRoot->addChild(node5);
             sceneWorldRoot->addChild(node4);
@@ -1136,7 +1136,7 @@ namespace example {
 
         if (testSprite) {
             const std::chrono::duration<float> duration = now.time_since_epoch();
-            testSprite->setFrame(sequenceAnimator.update(duration, *sequence0));
+            testSprite->setFrame(sequenceAnimator.update(duration, 0.0f, *sequence0));
         }
     
     }

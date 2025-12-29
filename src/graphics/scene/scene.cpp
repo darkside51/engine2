@@ -1,4 +1,5 @@
 #include "scene.h"
+#include "animation.h"
 #include "bounds.h"
 #include "frustum.h"
 #include "sprite/sprite.h"
@@ -194,6 +195,16 @@ namespace engine::scene {
 
         return objects;
     }
+
+    struct AnimationData {
+        struct AnimationWeight {
+            const Animation & animation;
+            float weight = 1.0f;
+            float startTime = 0.0f;
+        };
+
+        std::vector<AnimationData> animations;
+    };
 
     void Scene::update(std::chrono::time_point<std::chrono::steady_clock> now, float delta, IntrusiveList<Object> & objects) {
         if (objects.empty()) {

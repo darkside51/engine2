@@ -37,7 +37,7 @@ namespace scene {
         
         const graphics::ImageFrame2D & getFrame(float time, const FramesSequence & sequence) const noexcept;
         const graphics::ImageFrame2D & update(float delta, const FramesSequence & sequence) noexcept;
-        const graphics::ImageFrame2D & update(std::chrono::duration<float> now, const FramesSequence & sequence) const noexcept;
+        const graphics::ImageFrame2D & update(std::chrono::duration<float> now, float startTime, const FramesSequence & sequence) const noexcept;
 
     private:
         float _frameTime = 1.0f / 30.0f; // 30fps as default
