@@ -1,7 +1,7 @@
 #include "sprite.h"
 
 #include "common/type_id.h"
-#include "graphics/scene/objects_register.h"
+#include "graphics/scene/register.h"
 #include "graphics/scene/node.h"
 
 #include <functional>

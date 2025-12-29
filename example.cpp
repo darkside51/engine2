@@ -982,7 +982,7 @@ namespace example {
             auto * sprite3 = scene.createObject<engine::scene::Sprite>(*frame3, 0u);
             engine::scene::attachObjectToNode(*sprite3, *node5);
             testSprite = sprite3;
-            //node5->setOrder(1u);
+            sprite3->setOrder(-1);
 
             sceneWorldRoot->addChild(node3);
             sceneWorldRoot->addChild(node5);

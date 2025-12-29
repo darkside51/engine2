@@ -7,8 +7,9 @@
 #include "math/math.h"
 #include "node.h"
 #include "object.h"
-#include "objects_register.h"
+#include "register.h"
 
+#include <cassert>
 #include <chrono>
 #include <cstdint>
 #include <memory>
@@ -35,7 +36,9 @@ struct ObjectsHolder : ObjectsCollection {
     }
 
     bool destroyObject(Object * object) noexcept override {
-        return allocator.destroy(object);
+        constexpr auto typeIndex = ctti::typeIndex<Object, T>();
+        assert(object->typeIndex == typeIndex);
+        return allocator.destroy(static_cast<T*>(object));
     }
 };
 

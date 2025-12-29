@@ -20,7 +20,7 @@ namespace engine::scene {
         uint32_t animationDataIndex = kEmptyAnimationDataIndex; 
 
         Object(uint16_t typeIndex) : typeIndex(typeIndex) {}
-        virtual ~Object() = default;
+        /*virtual*/ ~Object() = default; // call typed, virtual not need
 
         // void setLayer(uint16_t l) noexcept { layer = l; }
         // uint16_t getLayer() const noexcept { return layer; }
@@ -33,7 +33,7 @@ namespace engine::scene {
 
     struct Dummy : Object {
         explicit Dummy();
-        ~Dummy() override = default;
+        ~Dummy() /*override*/ = default;
     };
 
 }

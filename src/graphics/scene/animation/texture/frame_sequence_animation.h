@@ -1,5 +1,6 @@
 #pragma once
 
+#include "graphics/scene/animation.h"
 #include "graphics/texture/image_frame.h"
 
 #include <chrono>
@@ -15,10 +16,9 @@ namespace graphics {
 
 namespace scene {
 
-    class FramesSequence {
+    class FramesSequence : public Animation {
     public:
-        explicit FramesSequence(std::vector<graphics::ImageFrame2D> frames) :
-            _frames(std::move(frames)) {}
+        explicit FramesSequence(std::vector<graphics::ImageFrame2D> frames);
 
         FramesSequence(const graphics::TextureManager & textureManager, 
             std::span<std::string const> frames);

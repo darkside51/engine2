@@ -1,11 +1,17 @@
 #include "frame_sequence_animation.h"
 
+#include "common/type_id.h"
+#include "graphics/scene/register.h"
 #include "graphics/texture/texture_manager.h"
 
 namespace engine::scene {
     
+    FramesSequence::FramesSequence(std::vector<graphics::ImageFrame2D> frames) : 
+        Animation(ctti::typeIndex<Animation, FramesSequence>()), 
+        _frames(std::move(frames)) {}
+
     FramesSequence::FramesSequence(const graphics::TextureManager & textureManager, 
-        std::span<std::string const> frames) {
+        std::span<std::string const> frames) : Animation(ctti::typeIndex<Animation, FramesSequence>()) {
         _frames.reserve(frames.size());
         for (auto frameName : frames) {
             if (auto * frame = textureManager.findFrame(frameName)) {
