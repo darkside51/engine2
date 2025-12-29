@@ -9,6 +9,7 @@
 #include "object.h"
 #include "objects_register.h"
 
+#include <chrono>
 #include <cstdint>
 #include <memory>
 #include <unordered_map>
@@ -78,7 +79,7 @@ public:
     void newFrame() noexcept;
 
     IntrusiveList<Object> makeRenderList(const mat4f & cameraTransform, Node * root) noexcept;
-    void updateAnimations(float delta, IntrusiveList<Object> & objects);
+    void update(std::chrono::time_point<std::chrono::steady_clock> now, float delta, IntrusiveList<Object> & objects);
     void draw(rhi::runtime::CommandListPtr & commandList, rhi::runtime::CommandListPtr & transferCommandList, uint8_t frame, 
         const mat4f & cameraTransform, IntrusiveList<Object> & objects);
 

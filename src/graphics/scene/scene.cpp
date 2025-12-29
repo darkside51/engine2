@@ -148,8 +148,8 @@ namespace engine::scene {
     }
 
     bool Scene::compareObjectsAnimate(const Object & a, const Object & b) const noexcept {
-        // return a.animationId < b.animationId;
-        return false;
+        // return a.animationDataIndex.animationIndex < b.animationDataIndex.animationIndex;
+        return a.animationDataIndex < b.animationDataIndex;
     }
 
     bool Scene::compareObjectsForDraw(const Object & a, const Object & b) const noexcept {
@@ -195,7 +195,7 @@ namespace engine::scene {
         return objects;
     }
 
-    void Scene::updateAnimations(float delta, IntrusiveList<Object> & objects) {
+    void Scene::update(std::chrono::time_point<std::chrono::steady_clock> now, float delta, IntrusiveList<Object> & objects) {
         if (objects.empty()) {
             return;
         }
@@ -206,6 +206,9 @@ namespace engine::scene {
             }
             return compareObjectsAnimate(a, b);
         });
+
+        const std::chrono::duration<float> nowDuration = now.time_since_epoch();
+        const float nowTimeCount = nowDuration.count();
 
         // todo!
     }

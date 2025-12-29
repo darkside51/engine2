@@ -6,6 +6,7 @@
 #include <cstdint>
 
 namespace engine::scene {
+    constexpr uint32_t kEmptyAnimationDataIndex = 0xff'ff'ff'ffu;
 
     struct Node;
 
@@ -16,6 +17,7 @@ namespace engine::scene {
         uint16_t typeIndex = 0u;
         // uint16_t layer = 0u;
         int16_t order = 0u;
+        uint32_t animationDataIndex = kEmptyAnimationDataIndex; 
 
         Object(uint16_t typeIndex) : typeIndex(typeIndex) {}
         virtual ~Object() = default;

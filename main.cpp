@@ -30,9 +30,9 @@ int main() {
         constexpr float inputCheckTime = 1.0f / 60.0f;
         constexpr float redrawTime = 1.0f / 120.0f;
 
-        threads::Executor renderThread([&](auto & executionContext, float delta) {
+        threads::Executor renderThread([&](auto & executionContext, threads::ExecutionTimePoint now, float delta) {
             executionContext.performTasks();
-            example.update(delta);
+            example.update(now, delta);
             example.draw(delta);
         }, redrawTime);
 

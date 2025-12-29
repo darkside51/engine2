@@ -15,7 +15,7 @@ namespace engine::scene {
     }
 
     const graphics::ImageFrame2D & FramesSequenceAnimator::getFrame(float time, const FramesSequence & sequence) const noexcept {
-        const auto frames = sequence.frames();
+        const auto frames = sequence.frames(); // span
         const auto frame = static_cast<uint32_t>(time / _frameTime) % frames.size();
         return frames[frame];
     }
@@ -25,4 +25,7 @@ namespace engine::scene {
         return getFrame(_time, sequence);
     }
 
+    const graphics::ImageFrame2D & FramesSequenceAnimator::update(std::chrono::duration<float> now, const FramesSequence & sequence) const noexcept {
+        return getFrame(now.count(), sequence);
+    }
 }

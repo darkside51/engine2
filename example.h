@@ -4,6 +4,7 @@
 #include "graphics/render/rhi/common/runtime.h"
 #include "graphics/render/rhi/common/utils.h"
 #include "graphics/render/inflight_buffer.h"
+#include "threads/executor.h"
 
 #include "input/input.h"
 
@@ -11,9 +12,9 @@
 
 #include <vector>
 
-namespace threads {
-    class ExecutionContext;
-}
+// namespace threads {
+//     class ExecutionContext;
+// }
 
 namespace example {
 
@@ -37,7 +38,7 @@ public:
 
     void prepare();
 
-    void update(float delta);
+    void update(threads::ExecutionTimePoint now, float delta);
     void draw(float delta);
 
     void deviceProcess();

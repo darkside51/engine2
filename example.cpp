@@ -1054,7 +1054,7 @@ namespace example {
         }
     }
 
-    void Example::update(float delta) {
+    void Example::update(threads::ExecutionTimePoint now, float delta) {
 
         if (_mainThread) {
             // _mainThread->emplaceTasks(stl::make_vector(threads::WorkerTask{[](){
@@ -1135,7 +1135,8 @@ namespace example {
         }
 
         if (testSprite) {
-            testSprite->setFrame(sequenceAnimator.update(delta, *sequence0));
+            const std::chrono::duration<float> duration = now.time_since_epoch();
+            testSprite->setFrame(sequenceAnimator.update(duration, *sequence0));
         }
     
     }

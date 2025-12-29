@@ -7,6 +7,8 @@
 #include <functional>
 
 namespace threads {
+    
+    using ExecutionTimePoint = std::chrono::time_point<std::chrono::steady_clock>;
 
     class ExecutionContext {
     public:
@@ -120,7 +122,7 @@ namespace threads {
 
                     _time = std::chrono::steady_clock::now();
 
-                    _job(*this, delta);
+                    _job(*this, _time, delta);
                 }
 
                 if (!_paused.test_and_set(std::memory_order_relaxed)) {
