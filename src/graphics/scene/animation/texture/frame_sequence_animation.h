@@ -23,6 +23,9 @@ namespace scene {
         FramesSequence(const graphics::TextureManager & textureManager, 
             std::span<std::string const> frames);
 
+        FramesSequence(FramesSequence&&) = default;
+        FramesSequence& operator= (FramesSequence&&) = default;
+
         std::span<graphics::ImageFrame2D const> frames() const noexcept {
             return _frames;
         }

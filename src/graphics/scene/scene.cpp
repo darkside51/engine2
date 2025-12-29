@@ -198,7 +198,8 @@ namespace engine::scene {
 
     struct AnimationData {
         struct AnimationWeight {
-            const Animation & animation;
+            uint16_t amimationId;
+            uint16_t animationType;
             float weight = 1.0f;
             float startTime = 0.0f;
         };
