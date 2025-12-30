@@ -33,7 +33,7 @@ int main() {
         threads::Executor renderThread([&](auto & executionContext, threads::ExecutionTimePoint now, float delta) {
             executionContext.performTasks();
             example.update(now, delta);
-            example.draw(delta);
+            example.draw(now, delta);
         }, redrawTime);
 
         renderThread.emplaceTasks(stl::make_vector(threads::WorkerTask{[&](){

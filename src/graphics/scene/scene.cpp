@@ -13,9 +13,10 @@
 
 namespace engine::scene {
 
-    constexpr uint32_t kFramesCountToTryReduceUsedMemory = 120u;
+    constexpr float kTryReduceUsedMemoryTimePeriodSeconds = 5.0f;
     constexpr uint32_t kInitialVerticesCountMax = 1024u;
     constexpr uint32_t kInitialIndicesCountMax = 1024u;
+    constexpr uint32_t kMinStagingSize = 100u * 1024u /*100 Kb*/;
     constexpr uint32_t kStaginBufferEnlargeSizeMult = 2u;
 
     constexpr bool kDebugDrawBounds = true;
@@ -318,14 +319,12 @@ namespace engine::scene {
             }
         };
 
-        auto currentIt = objects.begin();
-
         // resize buffers
         // todo: make as class function
         auto spritesVertexesCount = _spritesVertexesCount;
         auto spritesIndicesCount = _spritesIndicesCount;
-        for (auto it = currentIt; it != objects.end(); ++it) {
-            switch (it->typeIndex) {
+        for (auto const & object : objects) {
+            switch (object.typeIndex) {
             case ctti::typeIndex<Object, Sprite>():
                 spritesVertexesCount += 4u;
                 spritesIndicesCount += 6u;
@@ -353,6 +352,7 @@ namespace engine::scene {
         _spritesIndices->applySize(frame);
         //
 
+        auto currentIt = objects.begin();
         uint16_t typeIdx = currentIt->typeIndex;
         for (auto it = currentIt; it != objects.end(); ++it) {
             if (it->typeIndex != typeIdx) {
@@ -501,46 +501,62 @@ namespace engine::scene {
         _spritesIndicesCount += batchIndicesCount;
     }
 
-    void Scene::newFrame() noexcept {
-        if (_framesToTryReduceUsedMemory == 0u) {
-            _framesToTryReduceUsedMemory = kFramesCountToTryReduceUsedMemory;
-        }
+    void Scene::reduceUsedMemory(std::chrono::time_point<std::chrono::steady_clock> now) noexcept {
+        const std::chrono::duration<float> duration = now - _tryReduceUsedMemoryTime; // as default in seconds
+		const auto elapsed = duration.count();
 
-        if (--_framesToTryReduceUsedMemory == 0u) {
+        if (elapsed >= kTryReduceUsedMemoryTimePeriodSeconds) {
+            _tryReduceUsedMemoryTime = now;
+
             auto const vertexMinCount = std::max(_spritesVertexesCount, kInitialVerticesCountMax);
             if (vertexMinCount * 2u < _lastFramesUsedSpritesVertexCount) {
                 _spritesVertices->resize(vertexMinCount * kSpriteVertexSize);
             }
+            _lastFramesUsedSpritesVertexCount = _spritesVertexesCount;
 
             auto const indexMinCount = std::max(_spritesIndicesCount, kInitialIndicesCountMax);
             if (indexMinCount * 2u < _lastFramesUsedSpritesIndicesCount) {
                 _spritesIndices->resize(indexMinCount * sizeof(uint32_t));
             }
-
-            _lastFramesUsedSpritesVertexCount = _spritesVertexesCount;
             _lastFramesUsedSpritesIndicesCount = _spritesIndicesCount;
+
+            // for staging buffer
+            if (_staging) {
+                auto const stagingTargetSize = std::max(calculateTargetStagingSize() * kStaginBufferEnlargeSizeMult, kMinStagingSize);
+                auto const stagingCurrentSize = _staging->sizeInBytes();
+                if (stagingTargetSize < stagingCurrentSize) {
+                    _staging = std::make_unique<graphics::InflightStagingBuffer>(*_api, *_device, stagingTargetSize, 
+                        rhi::MemoryPropertyFlags::eHostVisible | rhi::MemoryPropertyFlags::eHostCached);
+                }
+            }
         } else {
             if (_spritesVertexesCount > _lastFramesUsedSpritesVertexCount || _spritesIndicesCount > _lastFramesUsedSpritesIndicesCount) {
                 _lastFramesUsedSpritesVertexCount = _spritesVertexesCount;
                 _lastFramesUsedSpritesIndicesCount = _spritesIndicesCount;
-                _framesToTryReduceUsedMemory = kFramesCountToTryReduceUsedMemory;
+                _tryReduceUsedMemoryTime = now;
             }
         }
+    }
 
+    void Scene::newFrame(std::chrono::time_point<std::chrono::steady_clock> now) noexcept {
+        reduceUsedMemory(now);
         _spritesVertexesCount = 0u;
         _spritesIndicesCount = 0u;
     }
 
-    void Scene::performCommits(rhi::runtime::CommandListPtr & commandList, uint8_t frame) {
+    uint32_t Scene::calculateTargetStagingSize() const noexcept {
         const bool useStagingBuffer = !_spritesVertices->isHostVisible() || !_spritesIndices->isHostVisible();
         if (useStagingBuffer) {
-            const auto allSize = _spritesVertices->sizeInBytes() + _spritesIndices->sizeInBytes();
-            const bool tryToReduceMemory = (_framesToTryReduceUsedMemory == 0u) && (allSize * kStaginBufferEnlargeSizeMult < _staging->sizeInBytes());
+            return _spritesVertices->sizeInBytes() + _spritesIndices->sizeInBytes();
+        }
+        return 0u;
+    }
 
-            if (_staging == nullptr || allSize >= _staging->sizeInBytes() || tryToReduceMemory) {
-                constexpr uint32_t kMinStagingSize = 100u * 1024u /*100 Kb*/;
+    void Scene::performCommits(rhi::runtime::CommandListPtr & commandList, uint8_t frame) {
+        if (auto const stagingTargetSize = calculateTargetStagingSize(); stagingTargetSize > 0u) {
+            if (_staging == nullptr || stagingTargetSize >= _staging->sizeInBytes()) { // enlarge staging
                 _staging = std::make_unique<graphics::InflightStagingBuffer>(*_api, *_device, 
-                    std::max(allSize * kStaginBufferEnlargeSizeMult, kMinStagingSize), 
+                    std::max(stagingTargetSize * kStaginBufferEnlargeSizeMult, kMinStagingSize), 
                     rhi::MemoryPropertyFlags::eHostVisible | rhi::MemoryPropertyFlags::eHostCached);
             }
         }

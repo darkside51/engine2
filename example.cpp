@@ -979,8 +979,8 @@ namespace example {
                 m2[0][0] *= 0.25f;
                 m2[1][1] *= -0.25f;
 
-                for (size_t i = 0u; i < 10u; ++i) {
-                    for (size_t j = 0u; j < 10u; ++j) {
+                for (size_t i = 0u; i < 100u; ++i) {
+                    for (size_t j = 0u; j < 100u; ++j) {
                         m2[3] = {-3.0f + static_cast<float>(i) * 0.75f, -1.0f - static_cast<float>(j) * 0.75f, 0.0f, 1.0f};
                         auto * node5 = scene.createNode();
                         node5->setTransform(m2);
@@ -1166,7 +1166,7 @@ namespace example {
         }
     }
 
-    void Example::draw(float delta) {
+    void Example::draw(threads::ExecutionTimePoint now, float delta) {
         using namespace engine;
         if (_commandLists.empty()) {
             return;
@@ -1272,12 +1272,12 @@ namespace example {
         //     commandList->drawIndexed(_sphereIdx->sizeInBytes() / sizeof(uint16_t), 1u);
         // // }
         // // sphere
-        scene.newFrame();
+        scene.newFrame(now);
         auto objects = scene.makeRenderList(cameraTransform, sceneWorldRoot);
         scene.draw(commandList, transferCommandList, frameId, cameraTransform, objects);
 
-        debugDraw.prepare(*transferCommandList, frameId, *_api, *_device);
-        debugDraw.draw(*commandList, frameId);
+        debugDraw.prepare(*transferCommandList, frameId);
+        debugDraw.draw(*commandList, frameId, now);
 
         //commandList->nextSubpass(rhi::SubpassContents::ePrimaryBufferInline);
         commandList->endRenderPass();

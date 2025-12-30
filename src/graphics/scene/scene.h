@@ -84,7 +84,7 @@ public:
     const rhi::runtime::PipelinePtr & getPipeline(uint32_t pipelineId) const noexcept;
 
     void initRenderData(rhi::runtime::Rhi & api, rhi::runtime::Device & device);
-    void newFrame() noexcept;
+    void newFrame(std::chrono::time_point<std::chrono::steady_clock> now) noexcept;
 
     IntrusiveList<Object> makeRenderList(const mat4f & cameraTransform, Node * root) noexcept;
     void update(std::chrono::time_point<std::chrono::steady_clock> now, float delta, IntrusiveList<Object> & objects, const Animation & tmpAnimTest);
@@ -92,7 +92,10 @@ public:
         const mat4f & cameraTransform, IntrusiveList<Object> & objects);
 
 private:
+    uint32_t calculateTargetStagingSize() const noexcept;
     void performCommits(rhi::runtime::CommandListPtr & commandList, uint8_t frame);
+
+    void reduceUsedMemory(std::chrono::time_point<std::chrono::steady_clock> now) noexcept;
 
     bool compareObjectsForDraw(const Object & a, const Object & b) const noexcept;
 
@@ -124,7 +127,7 @@ private:
     uint32_t _spritesVertexesCount = 0u;
     uint32_t _spritesIndicesCount = 0u;
 
-    uint32_t _framesToTryReduceUsedMemory = 0u;
+    std::chrono::time_point<std::chrono::steady_clock> _tryReduceUsedMemoryTime;
     uint32_t _lastFramesUsedSpritesVertexCount = 0u;
     uint32_t _lastFramesUsedSpritesIndicesCount = 0u;
     

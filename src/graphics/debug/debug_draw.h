@@ -6,6 +6,7 @@
 #include "math/math.h"
 
 #include <cstdint>
+#include <chrono>
 #include <span>
 
 namespace engine::scene {
@@ -33,9 +34,8 @@ public:
     void createBuffers(rhi::runtime::Rhi & api,
         rhi::runtime::Device & device);
 
-    void prepare(rhi::runtime::CommandList & commandList, uint8_t frame, 
-        rhi::runtime::Rhi & api, rhi::runtime::Device & device);
-    void draw(rhi::runtime::CommandList & commandList, uint8_t frame) noexcept;
+    void prepare(rhi::runtime::CommandList & commandList, uint8_t frame);
+    void draw(rhi::runtime::CommandList & commandList, uint8_t frame, std::chrono::time_point<std::chrono::steady_clock> now) noexcept;
 
     // user
     void drawSquare(vec2f corner0, vec2f corner1, uint32_t color, const mat4f & transform = mat4f{1.0f}, Type t = Type::eFull);
@@ -49,6 +49,12 @@ public:
     void drawGizmo(float size, const mat4f & transform = mat4f{1.0f});
 
 private:
+    uint32_t calculateTargetStagingSize() const noexcept;
+    void reduceUsedMemory(std::chrono::time_point<std::chrono::steady_clock> now) noexcept;
+
+    rhi::runtime::Rhi * _api = nullptr;
+    rhi::runtime::Device * _device = nullptr;
+
     rhi::runtime::PipelinePtr _linePipeline = nullptr;
     rhi::runtime::PipelinePtr _fillPipeline = nullptr;
     std::unique_ptr<graphics::InflightBuffer> _vertices = nullptr;
@@ -60,6 +66,7 @@ private:
     uint32_t _filledIndicesCount = 0u;
     uint32_t _lineIndicesCount = 0u;
 
+    std::chrono::time_point<std::chrono::steady_clock> _tryReduceUsedMemoryTime;
     uint32_t _lastFramesUsedVertexCount = 0u;
     uint32_t _lastFramesUsedFilledIndicesCount = 0u;
     uint32_t _lastFramesUsedLineIndicesCount = 0u;

@@ -9,8 +9,10 @@
 
 namespace engine::debug {
     
+    constexpr float kTryReduceUsedMemoryTimePeriodSeconds = 5.0f;
     constexpr uint32_t kInitialVerticesCountMax = 1024u;
     constexpr uint32_t kInitialIndicesCountMax = 1024u;
+    constexpr uint32_t kMinStagingSize = 100u * 1024u /*100 Kb*/;
     constexpr uint32_t kStaginBufferEnlargeSizeMult = 2u;
 
     struct Vertex {
@@ -33,6 +35,14 @@ namespace engine::debug {
         rhi::runtime::Device & device, 
         const rhi::runtime::GpuProgramPtr & program, rhi::runtime::RenderPass renderPass, 
         uint32_t subpass) {
+
+        if (_api == nullptr) {
+            _api = &api;
+        }
+
+        if (_device == nullptr) {
+            _device = &device;
+        }
 
         rhi::GraphicsPipelineStatesInfo info;
         info.viewportState = {1u, 1u};
@@ -89,6 +99,13 @@ namespace engine::debug {
 
     void DebugDraw::createBuffers(rhi::runtime::Rhi & api,
         rhi::runtime::Device & device) {
+        if (_api == nullptr) {
+            _api = &api;
+        }
+
+        if (_device == nullptr) {
+            _device = &device;
+        }
         const rhi::BufferInfo verticesInfo {
             rhi::BufferUsageFlags::eVertex_Buffer | rhi::BufferUsageFlags::eTransfer_Dst,
             rhi::MemoryPropertyFlags::eDeviceLocal
@@ -113,21 +130,11 @@ namespace engine::debug {
         );
     }
 
-    void DebugDraw::prepare(rhi::runtime::CommandList & commandList, uint8_t frame, 
-        rhi::runtime::Rhi & api, rhi::runtime::Device & device) {
-
-        // check we need to use a staging buffer
-        const bool useStagingBuffer = !_vertices->isHostVisible() || !_fillIndices->isHostVisible() ||
-                                      !_linesIndices->isHostVisible(); 
-
-        if (useStagingBuffer) { 
-            const auto allSize = _vertices->sizeInBytes() + _fillIndices->sizeInBytes() + 
-                             _linesIndices->sizeInBytes();
-
-            if (_staging == nullptr || allSize >= _staging->sizeInBytes() || allSize * kStaginBufferEnlargeSizeMult < _staging->sizeInBytes()) {
-                constexpr uint32_t kMinStagingSize = 100u * 1024u /*100 Kb*/;
-                _staging = std::make_unique<graphics::InflightStagingBuffer>(api, device, 
-                    std::max(allSize * kStaginBufferEnlargeSizeMult, kMinStagingSize), 
+    void DebugDraw::prepare(rhi::runtime::CommandList & commandList, uint8_t frame) {
+        if (auto const stagingTargetSize = calculateTargetStagingSize(); stagingTargetSize > 0u) { 
+            if (_staging == nullptr || stagingTargetSize >= _staging->sizeInBytes()) {
+                _staging = std::make_unique<graphics::InflightStagingBuffer>(*_api, *_device, 
+                    std::max(stagingTargetSize * kStaginBufferEnlargeSizeMult, kMinStagingSize), 
                     rhi::MemoryPropertyFlags::eHostVisible | rhi::MemoryPropertyFlags::eHostCached);
             }
 
@@ -149,7 +156,66 @@ namespace engine::debug {
         // }
     }
 
-    void DebugDraw::draw(rhi::runtime::CommandList & commandList, uint8_t frame) noexcept {
+    uint32_t DebugDraw::calculateTargetStagingSize() const noexcept {
+        const bool useStagingBuffer = !_vertices->isHostVisible() || !_fillIndices->isHostVisible() ||
+                                      !_linesIndices->isHostVisible();
+        if (useStagingBuffer) {
+            return _vertices->sizeInBytes() + _fillIndices->sizeInBytes() + _linesIndices->sizeInBytes();
+        }
+        return 0u;
+    }
+
+    void DebugDraw::reduceUsedMemory(std::chrono::time_point<std::chrono::steady_clock> now) noexcept {
+        const std::chrono::duration<float> duration = now - _tryReduceUsedMemoryTime; // as default in seconds
+		const auto elapsed = duration.count();
+
+        if (elapsed >= kTryReduceUsedMemoryTimePeriodSeconds) {
+            _tryReduceUsedMemoryTime = now;
+            
+            {
+                auto const indicesMinCount = std::max(_lineIndicesCount, kInitialIndicesCountMax);
+                if (indicesMinCount * 2u < _lastFramesUsedLineIndicesCount) {
+                    _linesIndices->resize(indicesMinCount * sizeof(uint32_t));
+                }
+                _lastFramesUsedLineIndicesCount = _lineIndicesCount;
+            }
+
+            {
+                auto const indicesMinCount = std::max(_filledIndicesCount, kInitialIndicesCountMax);
+                if (indicesMinCount * 2u < _lastFramesUsedFilledIndicesCount) {
+                    _fillIndices->resize(indicesMinCount * sizeof(uint32_t));
+                }
+                _lastFramesUsedFilledIndicesCount = _filledIndicesCount;
+            }
+
+            {
+                auto const vertexMinCount = std::max(_verticesCount, kInitialVerticesCountMax);
+                if (vertexMinCount * 2u < _lastFramesUsedVertexCount) {
+                    _vertices->resize(vertexMinCount * kVertexSize);
+                }
+                _lastFramesUsedVertexCount = _verticesCount;
+            }
+
+            // for staging buffer
+            if (_staging) {
+                auto const stagingTargetSize = std::max(calculateTargetStagingSize() * kStaginBufferEnlargeSizeMult, kMinStagingSize);
+                auto const stagingCurrentSize = _staging->sizeInBytes();
+                if (stagingTargetSize < stagingCurrentSize) {
+                    _staging = std::make_unique<graphics::InflightStagingBuffer>(*_api, *_device, stagingTargetSize, 
+                        rhi::MemoryPropertyFlags::eHostVisible | rhi::MemoryPropertyFlags::eHostCached);
+                }
+            }
+        } else {
+            if (_lineIndicesCount > _lastFramesUsedLineIndicesCount || _filledIndicesCount > _lastFramesUsedFilledIndicesCount || _verticesCount > _lastFramesUsedVertexCount) {
+                _lastFramesUsedLineIndicesCount = std::max(_lineIndicesCount, _lastFramesUsedLineIndicesCount);
+                _lastFramesUsedFilledIndicesCount = std::max(_filledIndicesCount, _lastFramesUsedFilledIndicesCount);
+                _lastFramesUsedVertexCount = std::max(_verticesCount, _lastFramesUsedVertexCount);
+                _tryReduceUsedMemoryTime = now;
+            }
+        }
+    }
+
+    void DebugDraw::draw(rhi::runtime::CommandList & commandList, uint8_t frame, std::chrono::time_point<std::chrono::steady_clock> now) noexcept {
         if (_lineIndicesCount) { // draw lines
             commandList.bindPipeline(_linePipeline);
 
@@ -157,14 +223,6 @@ namespace engine::debug {
             commandList.bindIndexBuffer((*_linesIndices)(frame), 0u, rhi::IndexType::eU32);
 
             commandList.drawIndexed(static_cast<uint32_t>(_lineIndicesCount), 1u, 0u);
-
-            auto const indicesMinCount = std::max(_lineIndicesCount, kInitialIndicesCountMax);
-            if (indicesMinCount * 2u < _lastFramesUsedLineIndicesCount) {
-                _linesIndices->resize(indicesMinCount * sizeof(uint32_t));
-            }
-
-            _lastFramesUsedLineIndicesCount = _lineIndicesCount;
-            _lineIndicesCount = 0u;
         }
 
         if (_filledIndicesCount) { // draw filled
@@ -174,22 +232,12 @@ namespace engine::debug {
             commandList.bindIndexBuffer((*_fillIndices)(frame), 0u, rhi::IndexType::eU32);
 
             commandList.drawIndexed(static_cast<uint32_t>(_filledIndicesCount), 1u, 0u);
-
-            auto const indicesMinCount = std::max(_filledIndicesCount, kInitialIndicesCountMax);
-            if (indicesMinCount * 2u < _lastFramesUsedFilledIndicesCount) {
-                _fillIndices->resize(indicesMinCount * sizeof(uint32_t));
-            }
-            
-            _lastFramesUsedFilledIndicesCount = _filledIndicesCount;
-            _filledIndicesCount = 0u;
         }
 
-        auto const vertexMinCount = std::max(_verticesCount, kInitialVerticesCountMax);
-        if (vertexMinCount * 2u < _lastFramesUsedVertexCount) {
-            _vertices->resize(vertexMinCount * kVertexSize);
-        }
+        reduceUsedMemory(now);
 
-        _lastFramesUsedVertexCount = _verticesCount;
+        _lineIndicesCount = 0u;
+        _filledIndicesCount = 0u;
         _verticesCount = 0u;
     }
 

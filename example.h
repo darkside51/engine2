@@ -39,7 +39,7 @@ public:
     void prepare();
 
     void update(threads::ExecutionTimePoint now, float delta);
-    void draw(float delta);
+    void draw(threads::ExecutionTimePoint now, float delta);
 
     void deviceProcess();
     void setRenderThread(threads::ExecutionContext * renderThread) noexcept {
