@@ -53,6 +53,16 @@ namespace engine::graphics {
         }
     }
 
+    void InflightBuffer::applySize(uint8_t idx) noexcept {
+        auto & [mappedMemory, buffer, _] = _buffers[idx];
+        if (buffer == nullptr || buffer->sizeInBytes() != _size) {
+            if (mappedMemory != nullptr) {
+                buffer->unmap();
+            }
+            buffer = _api.createBuffer(_device, _bufferInfo, _size);
+        }
+    }
+
     void InflightBuffer::commit(rhi::runtime::CommandList & cmd, uint8_t idx) noexcept { // can use another command buffer if need to call this function in renderpass time!
         if (auto & [mappedMemory, buffer, dirty] = _buffers[idx]; dirty) {
             if (buffer == nullptr || buffer->sizeInBytes() != _size) {
@@ -71,6 +81,7 @@ namespace engine::graphics {
             } else { // need use stagingBuffer
                 if (_size < kMaxMemoryBytesToCopyCommand) { // use cmdUpdateBuffer
                     cmd.updateBuffer(buffer, 0u, _size, _tmpMemory.get());
+                    dirty = false;
                     return;
                 }
 

@@ -28,6 +28,7 @@ namespace engine::graphics {
 
         void resize(size_t size);
 
+        void applySize(uint8_t idx) noexcept;
         void commit(rhi::runtime::CommandList & cmd, uint8_t idx) noexcept;
 
         rhi::runtime::BufferPtr & operator()(uint8_t idx) noexcept {

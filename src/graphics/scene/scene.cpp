@@ -13,6 +13,8 @@
 
 namespace engine::scene {
 
+    constexpr uint32_t kInitialVerticesCountMax = 1024u;
+    constexpr uint32_t kInitialIndicesCountMax = 1024u;
     constexpr bool kDebugDrawBounds = true;
 
     FramesSequenceAnimator gSequenceAnimator{1.0f / 30.0f};
@@ -146,9 +148,6 @@ namespace engine::scene {
         device.evaluateSampler(_linearSampler);
 
         //create vertex and index buffers
-        constexpr uint32_t kInitialVerticesCountMax = 1024u;
-        constexpr uint32_t kInitialIndicesCountMax = 1024u;
-
         const rhi::BufferInfo verticesInfo {
             rhi::BufferUsageFlags::eVertex_Buffer | rhi::BufferUsageFlags::eTransfer_Dst,
             rhi::MemoryPropertyFlags::eDeviceLocal
@@ -317,6 +316,40 @@ namespace engine::scene {
         };
 
         auto currentIt = objects.begin();
+
+        // resize buffers
+        // todo: make as class function
+        auto spritesVertexesCount = _spritesVertexesCount;
+        auto spritesIndicesCount = _spritesIndicesCount;
+        for (auto it = currentIt; it != objects.end(); ++it) {
+            switch (it->typeIndex) {
+            case ctti::typeIndex<Object, Sprite>():
+                spritesVertexesCount += 4u;
+                spritesIndicesCount += 6u;
+                break;
+            default:
+                break;
+            }
+        }
+
+        const auto vSize = static_cast<uint32_t>((spritesVertexesCount) * kSpriteVertexSize);
+        const auto currentVSize = _spritesVertices->sizeInBytes();
+        bool spiteVtxChanged = false;
+        if (currentVSize <= vSize) {
+            _spritesVertices->resize(std::max(currentVSize * 2u, vSize));
+        }
+
+        const auto iSize = static_cast<uint32_t>((spritesIndicesCount) * sizeof(uint32_t));
+        const auto currentISize = _spritesIndices->sizeInBytes();
+        bool spiteIdxChanged = false;
+        if (currentISize <= iSize) {
+            _spritesIndices->resize(std::max(currentISize * 2u, iSize));
+        }
+
+        _spritesVertices->applySize(frame);
+        _spritesIndices->applySize(frame);
+        //
+
         uint16_t typeIdx = currentIt->typeIndex;
         for (auto it = currentIt; it != objects.end(); ++it) {
             if (it->typeIndex != typeIdx) {
@@ -392,17 +425,17 @@ namespace engine::scene {
         const auto & imageExtent = image->getExtent();
         vec2f imageSize = {imageExtent.width, imageExtent.height};
 
-        const auto vSize = static_cast<uint32_t>((_spritesVertexesCount + batchVertexesCount) * kSpriteVertexSize);
-        const auto currentVSize = _spritesVertices->sizeInBytes();
-        if (currentVSize <= vSize) {
-            _spritesVertices->resize(std::max(currentVSize * 2u, vSize));
-        }
+        // const auto vSize = static_cast<uint32_t>((_spritesVertexesCount + batchVertexesCount) * kSpriteVertexSize);
+        // const auto currentVSize = _spritesVertices->sizeInBytes();
+        // if (currentVSize <= vSize) {
+        //     _spritesVertices->resize(std::max(currentVSize * 2u, vSize));
+        // }
 
-        const auto iSize = static_cast<uint32_t>((_spritesIndicesCount + batchIndicesCount) * sizeof(uint32_t));
-        const auto currentISize = _spritesIndices->sizeInBytes();
-        if (currentISize <= iSize) {
-            _spritesIndices->resize(std::max(currentISize * 2u, iSize));
-        }
+        // const auto iSize = static_cast<uint32_t>((_spritesIndicesCount + batchIndicesCount) * sizeof(uint32_t));
+        // const auto currentISize = _spritesIndices->sizeInBytes();
+        // if (currentISize <= iSize) {
+        //     _spritesIndices->resize(std::max(currentISize * 2u, iSize));
+        // }
 
         auto * vMem = _spritesVertices->memory2<SpriteVertex>() + _spritesVertexesCount;
         auto * iMem = _spritesIndices->memory2<uint32_t>() + _spritesIndicesCount;
@@ -452,10 +485,11 @@ namespace engine::scene {
         _spritesVertices->modify();
         _spritesIndices->modify();
 
-        if (auto & vertexBuffer = (*_spritesVertices)(frame)) { // hmmm
+        if (auto & vertexBuffer = (*_spritesVertices)(frame)) { // hmmm, must be after buffer commits!
+            auto & indexBuffer = (*_spritesIndices)(frame);
             commandList->bindPipeline(pipeline);
             commandList->bindVertexBuffer(0u, vertexBuffer, 0u);
-            commandList->bindIndexBuffer((*_spritesIndices)(frame), 0u, rhi::IndexType::eU32);
+            commandList->bindIndexBuffer(indexBuffer, 0u, rhi::IndexType::eU32);
             commandList->bindImage(0u, image, _linearSampler);
 
             commandList->drawIndexed(batchIndicesCount, 1u, _spritesIndicesCount);
@@ -465,6 +499,19 @@ namespace engine::scene {
     }
 
     void Scene::newFrame() noexcept {
+        auto const vertexMinCount = std::max(_spritesVertexesCount, kInitialVerticesCountMax);
+        if (vertexMinCount * 2u < _lastFramesUsedSpritesVertexCount) {
+            _spritesVertices->resize(vertexMinCount * kSpriteVertexSize);
+        }
+
+        auto const indexMinCount = std::max(_spritesIndicesCount, kInitialIndicesCountMax);
+        if (indexMinCount * 2u < _lastFramesUsedSpritesIndicesCount) {
+            _spritesIndices->resize(indexMinCount * sizeof(uint32_t));
+        }
+
+        _lastFramesUsedSpritesVertexCount = _spritesVertexesCount;
+        _lastFramesUsedSpritesIndicesCount = _spritesIndicesCount;
+
         _spritesVertexesCount = 0u;
         _spritesIndicesCount = 0u;
     }
