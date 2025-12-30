@@ -13,8 +13,11 @@
 
 namespace engine::scene {
 
+    constexpr uint32_t kFramesCountToTryReduceUsedMemory = 120u;
     constexpr uint32_t kInitialVerticesCountMax = 1024u;
     constexpr uint32_t kInitialIndicesCountMax = 1024u;
+    constexpr uint32_t kStaginBufferEnlargeSizeMult = 2u;
+
     constexpr bool kDebugDrawBounds = true;
 
     FramesSequenceAnimator gSequenceAnimator{1.0f / 30.0f};
@@ -499,18 +502,30 @@ namespace engine::scene {
     }
 
     void Scene::newFrame() noexcept {
-        auto const vertexMinCount = std::max(_spritesVertexesCount, kInitialVerticesCountMax);
-        if (vertexMinCount * 2u < _lastFramesUsedSpritesVertexCount) {
-            _spritesVertices->resize(vertexMinCount * kSpriteVertexSize);
+        if (_framesToTryReduceUsedMemory == 0u) {
+            _framesToTryReduceUsedMemory = kFramesCountToTryReduceUsedMemory;
         }
 
-        auto const indexMinCount = std::max(_spritesIndicesCount, kInitialIndicesCountMax);
-        if (indexMinCount * 2u < _lastFramesUsedSpritesIndicesCount) {
-            _spritesIndices->resize(indexMinCount * sizeof(uint32_t));
-        }
+        if (--_framesToTryReduceUsedMemory == 0u) {
+            auto const vertexMinCount = std::max(_spritesVertexesCount, kInitialVerticesCountMax);
+            if (vertexMinCount * 2u < _lastFramesUsedSpritesVertexCount) {
+                _spritesVertices->resize(vertexMinCount * kSpriteVertexSize);
+            }
 
-        _lastFramesUsedSpritesVertexCount = _spritesVertexesCount;
-        _lastFramesUsedSpritesIndicesCount = _spritesIndicesCount;
+            auto const indexMinCount = std::max(_spritesIndicesCount, kInitialIndicesCountMax);
+            if (indexMinCount * 2u < _lastFramesUsedSpritesIndicesCount) {
+                _spritesIndices->resize(indexMinCount * sizeof(uint32_t));
+            }
+
+            _lastFramesUsedSpritesVertexCount = _spritesVertexesCount;
+            _lastFramesUsedSpritesIndicesCount = _spritesIndicesCount;
+        } else {
+            if (_spritesVertexesCount > _lastFramesUsedSpritesVertexCount || _spritesIndicesCount > _lastFramesUsedSpritesIndicesCount) {
+                _lastFramesUsedSpritesVertexCount = _spritesVertexesCount;
+                _lastFramesUsedSpritesIndicesCount = _spritesIndicesCount;
+                _framesToTryReduceUsedMemory = kFramesCountToTryReduceUsedMemory;
+            }
+        }
 
         _spritesVertexesCount = 0u;
         _spritesIndicesCount = 0u;
@@ -520,9 +535,12 @@ namespace engine::scene {
         const bool useStagingBuffer = !_spritesVertices->isHostVisible() || !_spritesIndices->isHostVisible();
         if (useStagingBuffer) {
             const auto allSize = _spritesVertices->sizeInBytes() + _spritesIndices->sizeInBytes();
-            if (_staging == nullptr || allSize >= _staging->sizeInBytes()) {
+            const bool tryToReduceMemory = (_framesToTryReduceUsedMemory == 0u) && (allSize * kStaginBufferEnlargeSizeMult < _staging->sizeInBytes());
+
+            if (_staging == nullptr || allSize >= _staging->sizeInBytes() || tryToReduceMemory) {
                 constexpr uint32_t kMinStagingSize = 100u * 1024u /*100 Kb*/;
-                _staging = std::make_unique<graphics::InflightStagingBuffer>(*_api, *_device, std::max(allSize * 2u, kMinStagingSize), 
+                _staging = std::make_unique<graphics::InflightStagingBuffer>(*_api, *_device, 
+                    std::max(allSize * kStaginBufferEnlargeSizeMult, kMinStagingSize), 
                     rhi::MemoryPropertyFlags::eHostVisible | rhi::MemoryPropertyFlags::eHostCached);
             }
         }

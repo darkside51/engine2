@@ -124,9 +124,10 @@ private:
     uint32_t _spritesVertexesCount = 0u;
     uint32_t _spritesIndicesCount = 0u;
 
+    uint32_t _framesToTryReduceUsedMemory = 0u;
     uint32_t _lastFramesUsedSpritesVertexCount = 0u;
     uint32_t _lastFramesUsedSpritesIndicesCount = 0u;
-
+    
     std::unique_ptr<graphics::InflightBuffer> _spritesVertices = nullptr;
     std::unique_ptr<graphics::InflightBuffer> _spritesIndices = nullptr;
 

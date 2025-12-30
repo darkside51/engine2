@@ -59,6 +59,10 @@ private:
     uint32_t _verticesCount = 0u;
     uint32_t _filledIndicesCount = 0u;
     uint32_t _lineIndicesCount = 0u;
+
+    uint32_t _lastFramesUsedVertexCount = 0u;
+    uint32_t _lastFramesUsedFilledIndicesCount = 0u;
+    uint32_t _lastFramesUsedLineIndicesCount = 0u;
 };
 
 }

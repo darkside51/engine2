@@ -9,6 +9,10 @@
 
 namespace engine::debug {
     
+    constexpr uint32_t kInitialVerticesCountMax = 1024u;
+    constexpr uint32_t kInitialIndicesCountMax = 1024u;
+    constexpr uint32_t kStaginBufferEnlargeSizeMult = 2u;
+
     struct Vertex {
         std::array<float, 4u> coord;
         uint32_t color;
@@ -85,10 +89,6 @@ namespace engine::debug {
 
     void DebugDraw::createBuffers(rhi::runtime::Rhi & api,
         rhi::runtime::Device & device) {
-
-        constexpr uint32_t kInitialVerticesCountMax = 1024u;
-        constexpr uint32_t kInitialIndicesCountMax = 1024u;
-
         const rhi::BufferInfo verticesInfo {
             rhi::BufferUsageFlags::eVertex_Buffer | rhi::BufferUsageFlags::eTransfer_Dst,
             rhi::MemoryPropertyFlags::eDeviceLocal
@@ -124,9 +124,10 @@ namespace engine::debug {
             const auto allSize = _vertices->sizeInBytes() + _fillIndices->sizeInBytes() + 
                              _linesIndices->sizeInBytes();
 
-            if (_staging == nullptr || allSize >= _staging->sizeInBytes()) {
+            if (_staging == nullptr || allSize >= _staging->sizeInBytes() || allSize * kStaginBufferEnlargeSizeMult < _staging->sizeInBytes()) {
                 constexpr uint32_t kMinStagingSize = 100u * 1024u /*100 Kb*/;
-                _staging = std::make_unique<graphics::InflightStagingBuffer>(api, device, std::max(allSize * 2u, kMinStagingSize), 
+                _staging = std::make_unique<graphics::InflightStagingBuffer>(api, device, 
+                    std::max(allSize * kStaginBufferEnlargeSizeMult, kMinStagingSize), 
                     rhi::MemoryPropertyFlags::eHostVisible | rhi::MemoryPropertyFlags::eHostCached);
             }
 
@@ -149,7 +150,6 @@ namespace engine::debug {
     }
 
     void DebugDraw::draw(rhi::runtime::CommandList & commandList, uint8_t frame) noexcept {
-
         if (_lineIndicesCount) { // draw lines
             commandList.bindPipeline(_linePipeline);
 
@@ -158,6 +158,12 @@ namespace engine::debug {
 
             commandList.drawIndexed(static_cast<uint32_t>(_lineIndicesCount), 1u, 0u);
 
+            auto const indicesMinCount = std::max(_lineIndicesCount, kInitialIndicesCountMax);
+            if (indicesMinCount * 2u < _lastFramesUsedLineIndicesCount) {
+                _linesIndices->resize(indicesMinCount * sizeof(uint32_t));
+            }
+
+            _lastFramesUsedLineIndicesCount = _lineIndicesCount;
             _lineIndicesCount = 0u;
         }
 
@@ -169,9 +175,21 @@ namespace engine::debug {
 
             commandList.drawIndexed(static_cast<uint32_t>(_filledIndicesCount), 1u, 0u);
 
+            auto const indicesMinCount = std::max(_filledIndicesCount, kInitialIndicesCountMax);
+            if (indicesMinCount * 2u < _lastFramesUsedFilledIndicesCount) {
+                _fillIndices->resize(indicesMinCount * sizeof(uint32_t));
+            }
+            
+            _lastFramesUsedFilledIndicesCount = _filledIndicesCount;
             _filledIndicesCount = 0u;
         }
 
+        auto const vertexMinCount = std::max(_verticesCount, kInitialVerticesCountMax);
+        if (vertexMinCount * 2u < _lastFramesUsedVertexCount) {
+            _vertices->resize(vertexMinCount * kVertexSize);
+        }
+
+        _lastFramesUsedVertexCount = _verticesCount;
         _verticesCount = 0u;
     }
 
