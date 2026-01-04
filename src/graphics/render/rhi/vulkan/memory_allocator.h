@@ -1,6 +1,11 @@
 #pragma once
 
 #include "graphics/render/rhi/common/types.h"
+#include "log/log.h"
+
+#ifdef DEBUG
+#define VMA_DEBUG_LOG_FORMAT(format, ...) LOG_I((format), __VA_ARGS__);
+#endif
 
 #include <vk_mem_alloc.h>
 #include <vulkan/vulkan.h>

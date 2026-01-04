@@ -18,6 +18,7 @@ namespace scene {
 
     class FramesSequence : public Animation {
     public:
+        ~FramesSequence() = default;
         explicit FramesSequence(std::vector<graphics::ImageFrame2D> frames);
 
         FramesSequence(const graphics::TextureManager & textureManager, 

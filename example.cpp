@@ -30,6 +30,7 @@
 #include "graphics/debug/debug_draw.h"
 #include "graphics/texture/atlas.h"
 #include "graphics/scene/animation/texture/frame_sequence_animation.h"
+#include "graphics/scene/animation_manager.h"
 
 // https://www.saschawillems.de/blog/2018/07/19/vulkan-input-attachments-and-sub-passes/
 // https://docs.vulkan.org/samples/latest/samples/api/timestamp_queries/README.html
@@ -54,14 +55,12 @@ namespace example {
 
     engine::debug::DebugDraw debugDraw;
     engine::graphics::TextureManager textureManager;
+    engine::scene::AnimationManager animationManager;
 
     engine::scene::Camera camera;
     engine::scene::SphereCameraController controller{camera};
     engine::scene::Node * sceneWorldRoot = nullptr;
     engine::scene::Node * sceneNodePtr = nullptr;
-
-    engine::scene::FramesSequence * sequence0 = nullptr;
-    engine::scene::FramesSequenceAnimator sequenceAnimator{1.0f / 30.0f};
 
     engine::mat4f cameraTransform;
     float m = 0.0f;
@@ -200,13 +199,17 @@ namespace example {
         _transferCommandLists.clear();
         _queryPool = nullptr;
 
+        _defaultImage = nullptr;
+        _sphereImage = nullptr;
+
+        scene.destroy();
+
         _shaderModulesManager = nullptr;
         _imgui.destroy();
         debugDraw.destroy();
+        
+        animationManager.destroy();
         textureManager.destroy();
-        scene.destroy();
-
-        delete sequence0;
 
         _pipelines.clear();
         _programs.clear();
@@ -565,10 +568,11 @@ namespace example {
             {
                 std::vector<std::string> animFrames;
                 animFrames.reserve(48u);
-                for (size_t i = 0; i < 48; ++i) {
+                for (size_t i = 0u; i < 48u; ++i) {
                     animFrames.emplace_back(engine::fmt_string("explosion_%d", i));
                 }
-                sequence0 = new engine::scene::FramesSequence(textureManager, animFrames);
+
+                animationManager.registerAnimation("anim0", engine::scene::FramesSequence(textureManager, animFrames));
             }
         }
 
@@ -844,6 +848,7 @@ namespace example {
 
         _renderQueue->waitSubmit(0u, UINT64_MAX, fence);
         _api->destroyFence(*_device, fence);
+        tmpCommandList = nullptr;
 
         // BufferInfo unifromsInfo {
         //     BufferUsageFlags::eUniform_Buffer | BufferUsageFlags::eTransfer_Dst,
@@ -868,15 +873,15 @@ namespace example {
 
         ////////////////////////////
         // auto ppp = std::shared_ptr<int>(new int{10}, [](int *a){});
-        struct D{
-            void _(engine::rhi::runtime::sh_ptr2<int, D> *) {}
-        };
+        // struct D{
+        //     void _(engine::rhi::runtime::sh_ptr2<int, D> *) {}
+        // };
 
         auto const sss = sizeof(std::function<void(void * ptr)>);
         auto const sss1 = sizeof(void(*)(void * ptr));
         auto const sss2 = sizeof(std::shared_ptr<int>);
         auto const sss3 = sizeof(engine::rhi::runtime::sh_ptr<int>);
-        auto const sss4 = sizeof(engine::rhi::runtime::sh_ptr2<int, D>);
+        // auto const sss4 = sizeof(engine::rhi::runtime::sh_ptr2<int, D>);
 
         // using NodesAllocator = allocators::PoolAllocatorChain<sizeof(engine::scene::Node), alignof(engine::scene::Node), false>;
         // NodesAllocator nodesAllocator(512u, 64u);
@@ -979,6 +984,7 @@ namespace example {
                 m2[0][0] *= 0.25f;
                 m2[1][1] *= -0.25f;
 
+                auto const animId = animationManager.getAnimationIndex("anim0");
                 for (size_t i = 0u; i < 100u; ++i) {
                     for (size_t j = 0u; j < 100u; ++j) {
                         m2[3] = {-3.0f + static_cast<float>(i) * 0.75f, -1.0f - static_cast<float>(j) * 0.75f, 0.0f, 1.0f};
@@ -989,8 +995,7 @@ namespace example {
                         auto * sprite3 = scene.createObject<engine::scene::Sprite>(*frame3, 0u);
                         engine::scene::attachObjectToNode(*sprite3, *node5);
                         sprite3->setOrder(-1);
-                        auto * anim0 = scene.createAnimInfo(0u, ctti::typeIndex<engine::scene::Animation, engine::scene::FramesSequence>(),
-                            engine::common::random(0.25f, 1.7f));
+                        auto * anim0 = scene.createAnimInfo<engine::scene::FramesSequence>(animId, engine::common::random(0.25f, 1.7f));
                         sprite3->addAnimation(anim0);
                         sceneWorldRoot->addChild(node5);
                     }
@@ -1144,7 +1149,7 @@ namespace example {
         }
 
         auto objects = scene.makeRenderList(cameraTransform, sceneWorldRoot); ///?
-        scene.update(now, delta, objects, *sequence0);
+        scene.update(now, delta, objects, animationManager);
     }
 
     void Example::prepareFrameDrawData(engine::rhi::runtime::CommandListPtr & commandList, uint8_t frame, float delta) {

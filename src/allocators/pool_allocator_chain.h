@@ -126,6 +126,7 @@ namespace allocators {
                     }
                     return true; 
                 }
+                assert(false);
                 return false;
             }
 
@@ -139,6 +140,7 @@ namespace allocators {
                         }
                         return true; 
                     }
+                    assert(false);
                 }
             }
             return false;
@@ -165,6 +167,7 @@ namespace allocators {
                     }
                     return true; 
                 }
+                assert(false);
                 return false;
             }
 
@@ -178,6 +181,7 @@ namespace allocators {
                         }
                         return true; 
                     }
+                    assert(false);
                 }
             }
             return false;

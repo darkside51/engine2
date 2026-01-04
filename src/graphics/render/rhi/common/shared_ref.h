@@ -102,11 +102,11 @@ namespace engine::rhi::runtime {
 
         template <typename U>
         sh_ptr(const sh_ptr<U> & p) : _ctrlBlock(static_cast<ControlBlock*>(p.memory())) {
-			_inc();
+			increase_counter();
 		}
 
         sh_ptr(const sh_ptr & p) : _ctrlBlock(p._ctrlBlock) {
-			_inc();
+			increase_counter();
 		}
 
 		sh_ptr(sh_ptr && p) noexcept : _ctrlBlock(p._ctrlBlock) {
@@ -164,8 +164,15 @@ namespace engine::rhi::runtime {
 
         explicit operator bool() const noexcept { return _ctrlBlock != nullptr; }
 
-        void * memory() const noexcept {
+        inline void * memory() const noexcept {
             return _ctrlBlock;
+        }
+
+        inline uint32_t use_count() const noexcept {
+            if (_ctrlBlock) {
+                return _ctrlBlock->counter.load(std::memory_order_acquire);
+            }
+            return 0u;
         }
 
     private:
@@ -203,120 +210,120 @@ namespace engine::rhi::runtime {
     };
 
     //////
-    template <typename T, typename Deleter>
-    class sh_ptr2 {
-    public:
-        using counter_type = std::atomic<uint32_t>;
+    // template <typename T, typename Deleter>
+    // class sh_ptr2 {
+    // public:
+    //     using counter_type = std::atomic<uint32_t>;
 
-        struct Value {
-            counter_type counter = {};
-            T data;
-        };
+    //     struct Value {
+    //         counter_type counter = {};
+    //         T data;
+    //     };
 
-        sh_ptr2(std::nullptr_t) : _counter(nullptr), _data(nullptr) { }
-        sh_ptr2() : sh_ptr2(nullptr) {}
+    //     sh_ptr2(std::nullptr_t) : _counter(nullptr), _data(nullptr) { }
+    //     sh_ptr2() : sh_ptr2(nullptr) {}
 
-        sh_ptr2(void * mem, uint32_t align) : 
-            _counter(static_cast<counter_type*>(mem)),
-            _data(reinterpret_cast<T*>(
-                reinterpret_cast<std::byte*>(mem) + align_value(sizeof(counter_type), align))) {
-            _counter->store(1u, std::memory_order_release);
-        }
+    //     sh_ptr2(void * mem, uint32_t align) : 
+    //         _counter(static_cast<counter_type*>(mem)),
+    //         _data(reinterpret_cast<T*>(
+    //             reinterpret_cast<std::byte*>(mem) + align_value(sizeof(counter_type), align))) {
+    //         _counter->store(1u, std::memory_order_release);
+    //     }
 
-        template <typename...Args>
-        static sh_ptr2 make(Args&&...args) {
-            auto * mem = malloc(sizeof(Value));
-            auto * objectMem = reinterpret_cast<std::byte*>(mem) + align_value(sizeof(counter_type), alignof(T));
-            T* object = new(objectMem) T(std::forward<Args>(args)...);
-            return sh_ptr2(mem, alignof(T));
-        }
+    //     template <typename...Args>
+    //     static sh_ptr2 make(Args&&...args) {
+    //         auto * mem = malloc(sizeof(Value));
+    //         auto * objectMem = reinterpret_cast<std::byte*>(mem) + align_value(sizeof(counter_type), alignof(T));
+    //         T* object = new(objectMem) T(std::forward<Args>(args)...);
+    //         return sh_ptr2(mem, alignof(T));
+    //     }
 
-        ~sh_ptr2() {
-            decrease_counter();
-        }
+    //     ~sh_ptr2() {
+    //         decrease_counter();
+    //     }
 
-        template <typename U>
-        sh_ptr2(const sh_ptr2<U, Deleter> & p) : _counter(static_cast<counter_type*>(p.memory())), 
-            _data(static_cast<T*>(p.get())) {
-			_inc();
-		}
+    //     template <typename U>
+    //     sh_ptr2(const sh_ptr2<U, Deleter> & p) : _counter(static_cast<counter_type*>(p.memory())), 
+    //         _data(static_cast<T*>(p.get())) {
+	// 		_inc();
+	// 	}
 
-        sh_ptr2(const sh_ptr2 & p) : _counter(p._counter), _data(p._data) {
-			_inc();
-		}
+    //     sh_ptr2(const sh_ptr2 & p) : _counter(p._counter), _data(p._data) {
+	// 		_inc();
+	// 	}
 
-		sh_ptr2(sh_ptr2 && p) noexcept : _counter(p._counter), _data(p._data) {
-			p._counter = nullptr;
-            p._data = nullptr;
-		}
+	// 	sh_ptr2(sh_ptr2 && p) noexcept : _counter(p._counter), _data(p._data) {
+	// 		p._counter = nullptr;
+    //         p._data = nullptr;
+	// 	}
 
-        inline void reset() noexcept {
-            if (_counter) {
-                decrease_counter();
-                _counter = nullptr;
-                _data = nullptr;
-            }
-        }
+    //     inline void reset() noexcept {
+    //         if (_counter) {
+    //             decrease_counter();
+    //             _counter = nullptr;
+    //             _data = nullptr;
+    //         }
+    //     }
 
-        inline sh_ptr2 & operator= (std::nullptr_t) noexcept {
-            reset();
-            return *this;
-        }
+    //     inline sh_ptr2 & operator= (std::nullptr_t) noexcept {
+    //         reset();
+    //         return *this;
+    //     }
 
-        inline sh_ptr2 & operator= (const sh_ptr2 & p) noexcept {
-            if (&p != this && p._counter != _counter) {
-                decrease_counter();
-                _counter = p._counter;
-                _data = p._data;
-                increase_counter();
-            }
-            return *this;
-        }
+    //     inline sh_ptr2 & operator= (const sh_ptr2 & p) noexcept {
+    //         if (&p != this && p._counter != _counter) {
+    //             decrease_counter();
+    //             _counter = p._counter;
+    //             _data = p._data;
+    //             increase_counter();
+    //         }
+    //         return *this;
+    //     }
 
-        inline sh_ptr2 & operator= (sh_ptr2 && p) noexcept {
-            if (p._counter != _counter) {
-                decrease_counter();
-            }
+    //     inline sh_ptr2 & operator= (sh_ptr2 && p) noexcept {
+    //         if (p._counter != _counter) {
+    //             decrease_counter();
+    //         }
 
-            _counter = p._counter;
-            _data = p._data;
-            p._counter = nullptr;
-            p._data = nullptr;
-            return *this;
-        }
+    //         _counter = p._counter;
+    //         _data = p._data;
+    //         p._counter = nullptr;
+    //         p._data = nullptr;
+    //         return *this;
+    //     }
 
-        T * get() noexcept { return _data; }
-        T * get() const noexcept { return _data; }
+    //     T * get() noexcept { return _data; }
+    //     T * get() const noexcept { return _data; }
 
-        T * operator->() noexcept { return _data; }
-        const T * operator->() const noexcept { return _data; }
+    //     T * operator->() noexcept { return _data; }
+    //     const T * operator->() const noexcept { return _data; }
 
-        T & operator*() noexcept { return *_data; }
-        const T & operator*() const noexcept { return *_data; }
+    //     T & operator*() noexcept { return *_data; }
+    //     const T & operator*() const noexcept { return *_data; }
 
-        explicit operator bool() const noexcept { return _data != nullptr; }
+    //     explicit operator bool() const noexcept { return _data != nullptr; }
 
-        void * memory() const noexcept {
-            return _counter;
-        }
+    //     void * memory() const noexcept {
+    //         return _counter;
+    //     }
 
-    private:
-        inline void increase_counter() noexcept {
-            if (_counter) {
-                _inc();
-            }
-        }
+    // private:
+    //     inline void increase_counter() noexcept {
+    //         if (_counter) {
+    //             _inc();
+    //         }
+    //     }
 
-        inline void decrease_counter() noexcept {
-            if (_counter && _dec() == 0u) {
-                Deleter::_(this);
-            }
-        }
+    //     inline void decrease_counter() noexcept {
+    //         if (_counter && _dec() == 0u) {
+    //             Deleter::_(this);
+    //         }
+    //     }
 
-        inline counter_type _dec() noexcept { return _counter->fetch_sub(1u, std::memory_order_release) - 1u; }
-		inline counter_type _inc() noexcept { return _counter->fetch_add(1u, std::memory_order_release) + 1u; }
+    //     inline counter_type _dec() noexcept { return _counter->fetch_sub(1u, std::memory_order_release) - 1u; }
+	// 	inline counter_type _inc() noexcept { return _counter->fetch_add(1u, std::memory_order_release) + 1u; }
 
-        counter_type * _counter = nullptr;
-        T * _data = nullptr;
-    };
+    //     counter_type * _counter = nullptr;
+    //     T * _data = nullptr;
+    // };
 }

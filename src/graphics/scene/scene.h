@@ -20,6 +20,8 @@
 
 namespace engine::scene {
     
+class AnimationManager;
+
 struct ObjectsCollection {
     virtual ~ObjectsCollection() = default;
     virtual bool destroyObject(Object * object) noexcept { return false; }
@@ -42,6 +44,13 @@ struct ObjectsHolder : ObjectsCollection {
         return allocator.destroy(static_cast<T*>(object));
     }
 };
+
+namespace animation {
+struct AnimatedObject {
+    const AnimationInfo* animInfo = nullptr;
+    Object * object = nullptr;
+};
+}
 
 // global
 void attachObjectToNode(Object & object, Node & node) noexcept;
@@ -76,7 +85,10 @@ public:
     bool destroyObject(Object * object) noexcept;
 
     // anims
-    AnimationInfoChain * createAnimInfo(uint16_t animationId, uint16_t animationType, float startTime, float weight = 1.0f);
+    template<typename T>
+    AnimationInfoChain * createAnimInfo(uint16_t animationId, float startTime, float weight = 1.0f) {
+        return _animationInfosAllocator.create<AnimationInfoChain>(startTime, weight, animationId, ctti::typeIndex<Animation, T>());
+    }
     bool destroyAnimInfo(AnimationInfoChain * info) noexcept;
 
     // render
@@ -87,20 +99,24 @@ public:
     void newFrame(std::chrono::time_point<std::chrono::steady_clock> now) noexcept;
 
     IntrusiveList<Object> makeRenderList(const mat4f & cameraTransform, Node * root) noexcept;
-    void update(std::chrono::time_point<std::chrono::steady_clock> now, float delta, IntrusiveList<Object> & objects, const Animation & tmpAnimTest);
+    void update(std::chrono::time_point<std::chrono::steady_clock> now, float delta, IntrusiveList<Object> & objects, 
+        const AnimationManager & animationManager);
     void draw(rhi::runtime::CommandListPtr & commandList, rhi::runtime::CommandListPtr & transferCommandList, uint8_t frame, 
         const mat4f & cameraTransform, IntrusiveList<Object> & objects);
 
 private:
+    bool compareObjectsForDraw(const Object & a, const Object & b) const noexcept;
+    void prepareDrawData(IntrusiveList<Object> & objects, uint8_t frame) noexcept;
+
     uint32_t calculateTargetStagingSize() const noexcept;
     void performCommits(rhi::runtime::CommandListPtr & commandList, uint8_t frame);
-
     void reduceUsedMemory(std::chrono::time_point<std::chrono::steady_clock> now) noexcept;
 
-    bool compareObjectsForDraw(const Object & a, const Object & b) const noexcept;
+    // draw
+    void drawObjects(rhi::runtime::CommandListPtr & commandList, uint8_t frame, 
+        const mat4f & cameraTransform, Object::Iterator begin, Object::Iterator end, uint16_t typeIdx);
 
     void drawDummies(Object::Iterator begin, Object::Iterator end, const mat4f & cameraTransform, uint32_t color);
-
     void drawSprites(rhi::runtime::CommandListPtr & commandList, uint8_t frame, Object::Iterator begin, Object::Iterator end, const mat4f & cameraTransform);
     void drawSpritesBatch(rhi::runtime::CommandListPtr & commandList, uint8_t frame, Object::Iterator begin, Object::Iterator end, 
         const mat4f & cameraTransform, uint32_t batchVertexesCount, uint32_t batchIndicesCount);
@@ -115,7 +131,10 @@ private:
 
     std::unordered_map<size_t, std::unique_ptr<ObjectsCollection>> _objectCollections;
 
-    debug::DebugDraw * _debugDraw = nullptr;
+    // animation
+    // static thread_local std::vector<animation::AnimatedObject> _sequences; //
+    // can use threads::unique_t<animation::AnimatedObject>::id() - if want to create AnimatedObjects on some threads!
+    std::vector<animation::AnimatedObject> _sequences;
 
     // render
     rhi::runtime::Rhi * _api = nullptr;
@@ -131,6 +150,7 @@ private:
     uint32_t _lastFramesUsedSpritesVertexCount = 0u;
     uint32_t _lastFramesUsedSpritesIndicesCount = 0u;
     
+    debug::DebugDraw * _debugDraw = nullptr;
     std::unique_ptr<graphics::InflightBuffer> _spritesVertices = nullptr;
     std::unique_ptr<graphics::InflightBuffer> _spritesIndices = nullptr;
 

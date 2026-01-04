@@ -138,6 +138,10 @@ namespace allocators {
         ~PoolAllocator() {
             if (_allocatedMemory) {
                 std::free(_allocatedMemory);
+                _capacity = 0u;
+                _allocatedMemory = nullptr;
+                _memory = nullptr;
+                _current = nullptr;
             }
         }
 
@@ -206,6 +210,10 @@ namespace allocators {
         }
 
         inline bool ownsMemory(void * m) const noexcept {
+            if (_allocatedMemory == nullptr) {
+                return false;
+            }
+            
             const auto * element = reinterpret_cast<memory_element_type *>(m);
             return std::greater_equal<const memory_element_type *>{}(element, &_memory[0u]) &&
                 std::less<const memory_element_type *>{}(element, &_memory[_capacity]); // no UB!
@@ -213,6 +221,11 @@ namespace allocators {
             // return element >= &_memory[0u] && element < &_memory[_capacity]; // incorrect?
             // const auto id = (reinterpret_cast<memory_element_type *>(m) - &_memory[0u]);
             // return id >= 0u && id < _capacity;
+
+            // const auto ptr = reinterpret_cast<size_t>(m);
+            // const auto ptr0 = reinterpret_cast<size_t>(&_memory[0u]);
+            // const auto ptr1 = reinterpret_cast<size_t>(&_memory[_capacity - 1u]);
+            // return ptr >= ptr0 && ptr <= ptr1; // no UB!
         }
 
         template<typename T>

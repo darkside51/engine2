@@ -1,5 +1,6 @@
 #include "scene.h"
 #include "animation.h"
+#include "animation_manager.h"
 #include "bounds.h"
 #include "frustum.h"
 #include "animation/texture/frame_sequence_animation.h"
@@ -18,6 +19,8 @@ namespace engine::scene {
     constexpr uint32_t kInitialIndicesCountMax = 1024u;
     constexpr uint32_t kMinStagingSize = 100u * 1024u /*100 Kb*/;
     constexpr uint32_t kStaginBufferEnlargeSizeMult = 2u;
+
+    constexpr uint16_t kUndefinedAnimId = 0xff'ffu;
 
     constexpr bool kDebugDrawBounds = true;
 
@@ -63,12 +66,13 @@ namespace engine::scene {
     }
 
     void Scene::destroy() noexcept {
+        destroyNode(_rootNode);
+
+        _sequences.clear();
         _spritesVertices = nullptr;
         _spritesIndices = nullptr;
         _staging = nullptr;
         _pipelines.clear();
-
-        destroyNode(_rootNode);
     }
 
     Node * Scene::createNode() noexcept {
@@ -104,13 +108,10 @@ namespace engine::scene {
 
         if (object->animInfo) {
             destroyAnimInfo(object->animInfo);
+            object->animInfo = nullptr;
         }
 
         return it->second->destroyObject(object);
-    }
-
-    AnimationInfoChain * Scene::createAnimInfo(uint16_t animationId, uint16_t animationType, float startTime, float weight) {
-        return _animationInfosAllocator.create<AnimationInfoChain>(startTime, weight, animationId, animationType);
     }
 
     bool Scene::destroyAnimInfo(AnimationInfoChain * info) noexcept {
@@ -218,72 +219,6 @@ namespace engine::scene {
             return true;
         });
 
-        return objects;
-    }
-
-    void Scene::update(std::chrono::time_point<std::chrono::steady_clock> now, float delta, IntrusiveList<Object> & objects, const Animation & tmpAnimTest) {
-        if (objects.empty()) {
-            return;
-        }
-
-        struct AnimatedObject {
-            const AnimationInfo* animInfo = nullptr;
-            Object * object = nullptr;
-        };
-
-        static thread_local std::vector<AnimatedObject> sequences; // todo: remove static
-        sequences.clear();
-
-        for (auto & object : objects) {
-            const auto * animInfo = object.animInfo;
-            while (animInfo) {
-                if (animInfo->info.weight > 0.0f) {
-                    switch (animInfo->info.animationType) {
-                    case ctti::typeIndex<Animation, FramesSequence>() : 
-                    {
-                        sequences.emplace_back(&animInfo->info, &object);
-                    }
-                        break;
-                    default:
-                        break;
-                    }
-                }
-                animInfo = animInfo->next;
-            }
-        }
-
-        const std::chrono::duration<float> nowDuration = now.time_since_epoch();
-        const float nowTimeCount = nowDuration.count();
-
-        if (!sequences.empty()) { // sequences
-            std::sort(sequences.begin(), sequences.end(), [](const auto & seq0, const auto & seq1) {
-                        return seq0.animInfo->animationId < seq1.animInfo->animationId;
-                    });
-
-            auto animId = sequences[0u].animInfo->animationId;
-            const FramesSequence * currentAnim = static_cast<const FramesSequence*>(&tmpAnimTest); // animationManager.getAnimation<FramesSequence>(animId);
-            
-            for (const auto & [animInfo, object] : sequences) {
-                if (animInfo->animationId != animId) {
-                    animId = animInfo->animationId;
-                    currentAnim = static_cast<const FramesSequence*>(&tmpAnimTest);
-                }
-
-                if (currentAnim) {
-                    static_cast<Sprite*>(object)->setFrame(gSequenceAnimator.update(nowDuration, animInfo->startTime, *currentAnim));
-                }
-            }
-        }
-
-        // todo: other types!
-    }
-
-    void Scene::draw(rhi::runtime::CommandListPtr & commandList, rhi::runtime::CommandListPtr & transferCommandList, uint8_t frame, 
-        const mat4f & cameraTransform, IntrusiveList<Object> & objects) {
-        if (objects.empty()) {
-            return;
-        }
-
         objects.stable_sort([this](const Object & a, const Object & b) noexcept {
             // if (a.layer != b.layer) {
             //     return a.layer < b.layer;
@@ -301,26 +236,67 @@ namespace engine::scene {
             return compareObjectsForDraw(a, b);
         });
 
-        const auto drawObjects = [this](rhi::runtime::CommandListPtr & commandList, uint8_t frame, 
-            const mat4f & cameraTransform, Object::Iterator begin, Object::Iterator end, uint16_t typeIdx) noexcept {
-            switch (typeIdx) {
-            case ctti::typeIndex<Object, Dummy>():
-            {
-                drawDummies(begin, end, cameraTransform, 0xff'00'00'ffu);
-            }
-                break;
-            case ctti::typeIndex<Object, Sprite>():
-            {
-                drawSprites(commandList, frame, begin, end, cameraTransform);
-            }
-                break;
-            default:
-                break;
-            }
-        };
+        return objects;
+    }
 
+    void Scene::update(std::chrono::time_point<std::chrono::steady_clock> now, float delta, IntrusiveList<Object> & objects, 
+        const AnimationManager & animationManager) {
+        if (objects.empty()) {
+            return;
+        }
+
+        // static thread_local std::vector<animation::AnimatedObject> sequences; // todo: remove static
+        
+        for (auto & object : objects) {
+            const auto * animInfo = object.animInfo;
+            while (animInfo) {
+                if (animInfo->info.weight > 0.0f) {
+                    switch (animInfo->info.animationType) {
+                    case ctti::typeIndex<Animation, FramesSequence>() : 
+                    {
+                        _sequences.emplace_back(&animInfo->info, &object);
+                    }
+                        break;
+                    default:
+                        break;
+                    }
+                }
+                animInfo = animInfo->next;
+            }
+        }
+
+        const std::chrono::duration<float> nowDuration = now.time_since_epoch();
+        const float nowTimeCount = nowDuration.count();
+
+        if (!_sequences.empty()) { // sequences
+            std::sort(_sequences.begin(), _sequences.end(), [](const auto & seq0, const auto & seq1) {
+                        return seq0.animInfo->animationId < seq1.animInfo->animationId;
+                    });
+
+            auto animId = kUndefinedAnimId;
+            const FramesSequence * currentAnim = nullptr;
+            
+            for (const auto & [animInfo, object] : _sequences) {
+                if (animInfo->animationId != animId) {
+                    animId = animInfo->animationId;
+                    currentAnim = animationManager.getAnimation<FramesSequence>(animId);
+                }
+
+                if (currentAnim) {
+                    static_cast<Sprite*>(object)->setFrame(gSequenceAnimator.update(nowDuration, animInfo->startTime, *currentAnim));
+                }
+            }
+        }
+
+        auto const seqSize = _sequences.size();
+        _sequences.clear();
+        _sequences.reserve(seqSize);
+
+        // todo: other types!
+    }
+
+    void Scene::prepareDrawData(IntrusiveList<Object> & objects, uint8_t frame) noexcept {
         // resize buffers
-        // todo: make as class function
         auto spritesVertexesCount = _spritesVertexesCount;
         auto spritesIndicesCount = _spritesIndicesCount;
         for (auto const & object : objects) {
@@ -350,7 +326,49 @@ namespace engine::scene {
 
         _spritesVertices->applySize(frame);
         _spritesIndices->applySize(frame);
-        //
+
+        // staging buffer
+        if (auto const stagingTargetSize = calculateTargetStagingSize(); stagingTargetSize > 0u) {
+            if (_staging == nullptr || stagingTargetSize >= _staging->sizeInBytes()) { // enlarge staging
+                _staging = std::make_unique<graphics::InflightStagingBuffer>(*_api, *_device, 
+                    std::max(stagingTargetSize * kStaginBufferEnlargeSizeMult, kMinStagingSize), 
+                    rhi::MemoryPropertyFlags::eHostVisible | rhi::MemoryPropertyFlags::eHostCached);
+            }
+        }
+
+        if (_staging) {
+            _staging->map(frame); // reset staging data into + mapped memory set frame
+
+            _spritesVertices->setStagingBuffer(_staging.get());
+            _spritesIndices->setStagingBuffer(_staging.get());
+        }
+    }
+
+    void Scene::drawObjects(rhi::runtime::CommandListPtr & commandList, uint8_t frame, 
+        const mat4f & cameraTransform, Object::Iterator begin, Object::Iterator end, uint16_t typeIdx) {
+        switch (typeIdx) {
+        case ctti::typeIndex<Object, Dummy>():
+        {
+            drawDummies(begin, end, cameraTransform, 0xff'00'00'ffu);
+        }
+            break;
+        case ctti::typeIndex<Object, Sprite>():
+        {
+            drawSprites(commandList, frame, begin, end, cameraTransform);
+        }
+            break;
+        default:
+            break;
+        }
+    }
+
+    void Scene::draw(rhi::runtime::CommandListPtr & commandList, rhi::runtime::CommandListPtr & transferCommandList, uint8_t frame, 
+        const mat4f & cameraTransform, IntrusiveList<Object> & objects) {
+        if (objects.empty()) {
+            return;
+        }
+
+        prepareDrawData(objects, frame);
 
         auto currentIt = objects.begin();
         uint16_t typeIdx = currentIt->typeIndex;
@@ -553,21 +571,6 @@ namespace engine::scene {
     }
 
     void Scene::performCommits(rhi::runtime::CommandListPtr & commandList, uint8_t frame) {
-        if (auto const stagingTargetSize = calculateTargetStagingSize(); stagingTargetSize > 0u) {
-            if (_staging == nullptr || stagingTargetSize >= _staging->sizeInBytes()) { // enlarge staging
-                _staging = std::make_unique<graphics::InflightStagingBuffer>(*_api, *_device, 
-                    std::max(stagingTargetSize * kStaginBufferEnlargeSizeMult, kMinStagingSize), 
-                    rhi::MemoryPropertyFlags::eHostVisible | rhi::MemoryPropertyFlags::eHostCached);
-            }
-        }
-
-        if (_staging) {
-            _staging->map(frame); // reset staging data into + mapped memory set frame
-
-            _spritesVertices->setStagingBuffer(_staging.get());
-            _spritesIndices->setStagingBuffer(_staging.get());
-        }
-        
         _spritesVertices->commit(*commandList, frame);
         _spritesIndices->commit(*commandList, frame);
     }
