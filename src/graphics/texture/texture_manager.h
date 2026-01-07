@@ -76,6 +76,8 @@ private:
     rhi::runtime::ImagePtr _blackImage;
     rhi::runtime::ImagePtr _transparentImage;
 
+    ImageFrame2D _defaultFrame;
+
     Images _images;
     ImagesSet _imagesSet;
     ImageFramesMap _frames2D;

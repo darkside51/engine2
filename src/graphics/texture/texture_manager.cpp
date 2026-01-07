@@ -12,6 +12,8 @@ namespace engine::graphics {
         _imagesSet.clear();
         _frames2D.clear();
         _images.clear();
+        
+        _defaultFrame = {};
 
         _defaultImage = nullptr;
         _whiteImage = nullptr;
@@ -37,6 +39,8 @@ namespace engine::graphics {
         _whiteImage = api.createImage(device, imageInfo1);
         _blackImage = api.createImage(device, imageInfo1);
         _transparentImage = api.createImage(device, imageInfo1);
+
+        _defaultFrame = {_defaultImage, {}};
 
         constexpr auto stagingSize = sizeof(uint32_t) * 4u + 
                                      sizeof(uint32_t) * 1u + 
@@ -181,10 +185,10 @@ namespace engine::graphics {
     }
 
     const ImageFrame2D * TextureManager::findFrame(std::string_view name) const noexcept {
-         if (auto it = _frames2D.find(name); it != _frames2D.end()) {
+        if (auto it = _frames2D.find(name); it != _frames2D.end()) {
             return &it->second;
         }
-        return nullptr;
+        return &_defaultFrame;
     }
 
 }

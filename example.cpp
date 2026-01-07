@@ -496,6 +496,9 @@ namespace example {
 
         tmpCommandList->begin(engine::rhi::CommandBufferUsageFlags::eOne_Time_Submit);
 
+        // textureManager resources
+        textureManager.createDefaultResources(*_api, *_device, tmpCommandList);
+
         {
             // atlas test
             auto const imageBytes = _fileManager.readFile("assets/atlases/hero-pma.png");
@@ -829,9 +832,6 @@ namespace example {
         );
         // sphere
 
-        // textureManager resources
-        textureManager.createDefaultResources(*_api, *_device, tmpCommandList);
-
         tmpCommandList->end();
         tmpCommandList->record(0u);
 
@@ -996,7 +996,8 @@ namespace example {
                         engine::scene::attachObjectToNode(*sprite3, *node5);
                         sprite3->setOrder(-1);
                         auto * anim0 = scene.createAnimInfo<engine::scene::FramesSequence>(animId, engine::common::random(0.25f, 1.7f));
-                        sprite3->addAnimation(anim0);
+                        scene.destroyAnimInfo(sprite3->setAnimation(anim0));
+                        
                         sceneWorldRoot->addChild(node5);
                     }
                 }
