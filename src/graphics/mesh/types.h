@@ -44,12 +44,12 @@ namespace engine::graphics::models {
         eUv4 = 1u << 13u,
         eSemanticsCount = 14u
     };
-    inline AttributesSemantic operator | (AttributesSemantic a, AttributesSemantic b) {
-        return static_cast<AttributesSemantic>(std::to_underlying(a) | std::to_underlying(b));
-    }
-    inline AttributesSemantic operator & (AttributesSemantic a, AttributesSemantic b) {
-        return static_cast<AttributesSemantic>(std::to_underlying(a) & std::to_underlying(b));
-    }
+    // inline AttributesSemantic operator | (AttributesSemantic a, AttributesSemantic b) {
+    //     return static_cast<AttributesSemantic>(std::to_underlying(a) | std::to_underlying(b));
+    // }
+    // inline AttributesSemantic operator & (AttributesSemantic a, AttributesSemantic b) {
+    //     return static_cast<AttributesSemantic>(std::to_underlying(a) & std::to_underlying(b));
+    // }
 
     inline constexpr static auto kDefaultSemanticsSizeBytes = std::array{
         12u, // ePosition: vec3 (3 floats of 4 bytes)

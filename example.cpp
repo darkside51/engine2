@@ -586,11 +586,16 @@ namespace example {
         meshData.loadSkins(modelLayout);
         meshData.loadAnimations(modelLayout);
 
+        // const auto semanticsArray = std::array {engine::graphics::models::AttributesSemantic::ePosition, 
+        //                                         engine::graphics::models::AttributesSemantic::eNormal | 
+        //                                         engine::graphics::models::AttributesSemantic::eUv0};
+
         const auto semanticsArray = std::array {engine::graphics::models::AttributesSemantic::ePosition, 
-                                                engine::graphics::models::AttributesSemantic::eNormal | 
+                                                engine::graphics::models::AttributesSemantic::eNormal, 
                                                 engine::graphics::models::AttributesSemantic::eUv0};
 
-        meshData.loadMeshes(modelLayout, semanticsArray);
+        auto [meshVtxData, meshIdxData] = meshData.loadMeshes(modelLayout, semanticsArray);
+        meshData.loadNodes(modelLayout);
         // gltf test
 
         // sail test

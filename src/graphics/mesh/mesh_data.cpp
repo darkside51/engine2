@@ -1,10 +1,17 @@
 #include "mesh_data.h"
 #include "gltf_loader.h"
 
+#include <cassert>
+
 namespace engine::graphics::models {
     
-    void Mesh_Data::loadMeshes(const Layout & layout, std::span<const AttributesSemantic> allowedAttributes) {
+    Mesh_Buffers_Data Mesh_Data::loadMeshes(const Layout & layout, std::span<const AttributesSemantic> allowedAttributes) {
         meshes.reserve(layout.meshes.size());
+
+        Mesh_Buffers_Data result;
+        auto & vertexBuffersData = result.vertexBuffersData;
+        auto & indexBufferData = result.indexBufferData;
+
         vertexBuffersData.resize(allowedAttributes.size());
 
         for (const auto & srcMesh : layout.meshes) {
@@ -61,13 +68,11 @@ namespace engine::graphics::models {
 					}
                 }
 
-                std::array<std::pair<size_t, uint32_t>, std::to_underlying(AttributesSemantic::eSemanticsCount)> counts{}; 
-
                 uint32_t attributeId = 0u;
                 for (const auto & [semantic, accessorId] : srcPrimitive.attributes) {
                     size_t i = 0u;
                     for (auto attributeSemantic : allowedAttributes) {
-                        if ((attributeSemantic & semantic) == semantic) {
+                        if (attributeSemantic == semantic) {
                             break;
                         }
                         ++i;
@@ -75,50 +80,116 @@ namespace engine::graphics::models {
 
                     if (i < allowedAttributes.size()) {
                         const Accessor & accessor = layout.accessors[accessorId];
-                        // counts[i].first += accessor.getElementSize() * accessor.count; // need to get element size from in params (use predefined size for attributes (12 bytes for position, 4 bytes for color...))
-                        // need to convert data after
-                        counts[i].first += kDefaultSemanticsSizeBytes[std::log2(std::to_underlying(semantic))] * accessor.count;
-                        counts[i].second |= 1u << attributeId;
 
-                        // auto & vbOffset = primitive.vbOffsets[i];
-                        // auto & vbData = vertexBuffersData[i];
-                        // vbOffset.offset = vbData.size();
+                        if (semantic == AttributesSemantic::ePosition) { // position is vec3, alltimes is true?
+                            primitive.minCorner = vec3f(accessor.min[0], accessor.min[1], accessor.min[2]);
+                            primitive.maxCorner = vec3f(accessor.max[0], accessor.max[1], accessor.max[2]);
+                        }
 
-                        // const Accessor & accessor = layout.accessors[accessorId];
-						// const BufferView & view = layout.bufferViews[accessor.bufferView];
+                        const auto count = accessor.count;
+                        const auto semanticId = std::log2(std::to_underlying(semantic));
+                        const auto semanticDimension = kDefaultSemanticsSizeBytes[semanticId];
+                        const auto targetDataSize = count * semanticDimension;
 
-                        // const auto count = accessor.count;
-                        // const auto componentTtype = accessor.componentType;
-                        // const auto type = accessor.type;
+                        auto & vbOffset = primitive.vbOffsets[i];
+                        auto & vbData = vertexBuffersData[i];
+                        vbOffset.offset = vbData.size();
+                        vbData.resize(vbData.size() + targetDataSize);
 
-                        // vbData.resize(vbData.size() + accessor.count * sizeof(float) * 3);
+                        const BufferView & view = layout.bufferViews[accessor.bufferView];
+                        std::span<const std::byte> bufferViewData = {&layout.buffers[view.buffer].data[accessor.offset + view.offset], count}; // const vector<byte> &
+
+                        const auto componentType = accessor.componentType;
+                        const auto acessorType = accessor.type;
+
+                        if (accessor.getElementSize() == semanticDimension) {
+                            memcpy(&vbData[vbOffset.offset], &bufferViewData[0u], targetDataSize);
+                        } else { // attribute convertion
+                            assert(false); // need impl
+                            switch (acessorType) {
+                            case AccessorType::eScalar: {
+
+                            }
+                                break;
+                            case AccessorType::eVec2: {
+
+                            }
+                                break;
+                            case AccessorType::eVec3: {
+
+                            }
+                                break;
+                            case AccessorType::eVec4: {
+
+                            }
+                                break;
+                            
+                            default:
+                                break;
+                            }
+                        }
                     }
                     ++attributeId;
                 }
 
-                for (size_t j = 0u; j < allowedAttributes.size(); ++j) {
-                    auto & vbData = vertexBuffersData[j];
-                    auto & vbOffset = primitive.vbOffsets[j];
-                    vbOffset.offset = vbData.size();
-                    vbData.resize(vbData.size() + counts[j].first);
+                // std::array<std::pair<size_t, uint32_t>, std::to_underlying(AttributesSemantic::eSemanticsCount)> counts{}; 
+                // for (const auto & [semantic, accessorId] : srcPrimitive.attributes) {
+                //     size_t i = 0u;
+                //     for (auto attributeSemantic : allowedAttributes) {
+                //         if ((attributeSemantic & semantic) == semantic) {
+                //             break;
+                //         }
+                //         ++i;
+                //     }
 
-                    uint32_t attributeId = 0u;
-                    for (const auto & [semantic, accessorId] : srcPrimitive.attributes) {
-                        if (counts[j].second & (1u << attributeId)) {
-                            const Accessor & accessor = layout.accessors[accessorId];
-                            const BufferView & view = layout.bufferViews[accessor.bufferView];
+                //     if (i < allowedAttributes.size()) {
+                //         const Accessor & accessor = layout.accessors[accessorId];
+                //         // counts[i].first += accessor.getElementSize() * accessor.count; // need to get element size from in params (use predefined size for attributes (12 bytes for position, 4 bytes for color...))
+                //         // need to convert data after
+                //         const auto count = accessor.count;
+                //         const auto semanticDimension = kDefaultSemanticsSizeBytes[std::log2(std::to_underlying(semantic))];
+                //         counts[i].first += semanticDimension * count;
+                //         counts[i].second |= 1u << attributeId;
 
-                            const auto dataSize = accessor.getElementSize() * accessor.count; // 
+                //         //auto & vbOffset = primitive.vbOffsets[i];
+                //         //auto & vbData = vertexBuffersData[i];
+                //         //vbOffset.offset = vbData.size();
+                //         //vbData.resize(vbData.size() + count * semanticDimension);
 
-                            // copy per elements data
-                        }
-                        ++attributeId;
-                    }
-                }
+                //         // const BufferView & view = layout.bufferViews[accessor.bufferView];
+                //         // const auto componentType = accessor.componentType;
+                //         // const auto type = accessor.type;
+                //     }
+                //     ++attributeId;
+                // }
+
+                // for (size_t j = 0u; j < allowedAttributes.size(); ++j) {
+                //     auto & vbData = vertexBuffersData[j];
+                //     auto & vbOffset = primitive.vbOffsets[j];
+                //     vbOffset.offset = vbData.size();
+                //     vbData.resize(vbData.size() + counts[j].first);
+
+                //     uint32_t attributeId = 0u;
+                //     for (const auto & [semantic, accessorId] : srcPrimitive.attributes) {
+                //         if (counts[j].second & (1u << attributeId)) {
+                //             const Accessor & accessor = layout.accessors[accessorId];
+                //             const BufferView & view = layout.bufferViews[accessor.bufferView];
+
+                //             const auto dataSize = accessor.getElementSize() * accessor.count; // 
+
+                //             // copy per elements data
+                //         }
+                //         ++attributeId;
+                //     }
+                // }
             }
-
-            int a = 0;
         }
+
+        for (auto & vertexBuffer : vertexBuffersData) {
+            vertexBuffer.shrink_to_fit();
+        }
+        indexBufferData.shrink_to_fit();
+        return result;
     }
 
 	void Mesh_Data::loadNodes(const Layout & layout) {

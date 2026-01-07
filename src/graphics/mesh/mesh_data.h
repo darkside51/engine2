@@ -46,7 +46,7 @@ namespace engine::graphics::models {
 
     struct Mesh_Animation {
 		std::string name;
-		// maybe move all animation data to special storges in inimation manager for cache locallity?
+		// maybe move all animation data to special storges in animation manager for cache locallity?
         std::vector<float> samplerInputs;
 		std::vector<vec4f> samplerOutputs;
 
@@ -71,6 +71,11 @@ namespace engine::graphics::models {
 		uint16_t maxTargetNodeId = 0u;
     };
 
+	struct Mesh_Buffers_Data {
+		std::vector<std::vector<std::byte>> vertexBuffersData;
+		std::vector<uint32_t> indexBufferData;
+	};
+
     struct Mesh_Data {
         std::vector<uint16_t> sceneNodes;
 		std::vector<Mesh_Skin> skins;
@@ -78,12 +83,9 @@ namespace engine::graphics::models {
 		std::vector<Mesh_Geometry> meshes;
         std::vector<Node> nodes;
 
-		std::vector<std::vector<std::byte>> vertexBuffersData;
-		std::vector<uint32_t> indexBufferData;
-        
 		void loadSkins(const Layout & layout);
 		void loadAnimations(const Layout & layout);
-    	void loadMeshes(const Layout & layout, std::span<const AttributesSemantic> allowedAttributes);
+    	Mesh_Buffers_Data loadMeshes(const Layout & layout, std::span<const AttributesSemantic> allowedAttributes);
 		void loadNodes(const Layout & layout);
 	};
 }
