@@ -595,6 +595,7 @@ namespace example {
                                                 engine::graphics::models::AttributesSemantic::eUv0};
 
         auto [meshVtxData, meshIdxData] = meshData.loadMeshes(modelLayout, semanticsArray);
+        // need use mesh optimiser
         meshData.loadNodes(modelLayout);
         // gltf test
 
