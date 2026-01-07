@@ -33,5 +33,16 @@ namespace engine::scene {
         return false;
     }
 
+    AnimationInfoChain * Object::setAnimation(AnimationInfoChain * anim) noexcept {
+        if (animInfo == nullptr) {
+            animInfo = anim;
+            return nullptr;
+        } else {
+            auto * result = animInfo;
+            animInfo = anim;
+            return result;
+        }
+    }
+
     Dummy::Dummy() : Object(ctti::typeIndex<Object, Dummy>()) {}
 }

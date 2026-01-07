@@ -32,6 +32,7 @@ namespace engine::scene {
 
         void addAnimation(AnimationInfoChain * anim) noexcept;
         bool removeAnimation(AnimationInfoChain * anim) noexcept;
+        AnimationInfoChain * setAnimation(AnimationInfoChain * anim) noexcept;
         
         bool cmp(const Object &) const noexcept { return false; }
     };

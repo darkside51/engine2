@@ -50,11 +50,11 @@ public:
         
     void destroyImage(VkImage & image, MemoryAllocation & allocation);
 
-    void * mapMemory(const MemoryAllocation & allocation);
-    void unmapMemory(const MemoryAllocation & allocation);
+    void * mapMemory(const MemoryAllocation & allocation) noexcept;
+    void unmapMemory(const MemoryAllocation & allocation) noexcept;
 
-    VkResult flushMemory(const MemoryAllocation & allocation, VkDeviceSize offset = 0u, VkDeviceSize size = VK_WHOLE_SIZE);
-    VkResult invalidateMemory(const MemoryAllocation & allocation, VkDeviceSize offset = 0u, VkDeviceSize size = VK_WHOLE_SIZE);
+    VkResult flushMemory(const MemoryAllocation & allocation, VkDeviceSize offset = 0u, VkDeviceSize size = VK_WHOLE_SIZE) noexcept;
+    VkResult invalidateMemory(const MemoryAllocation & allocation, VkDeviceSize offset = 0u, VkDeviceSize size = VK_WHOLE_SIZE) noexcept;
 
 private:
     VmaAllocator _allocator = VK_NULL_HANDLE;

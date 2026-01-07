@@ -85,7 +85,7 @@ namespace engine::vulkan {
 // #endif
 // }
 
-    void * GPUMemoryAllocator::mapMemory(const MemoryAllocation & allocation) {
+    void * GPUMemoryAllocator::mapMemory(const MemoryAllocation & allocation) noexcept {
         void * ptr;
         const auto result = vmaMapMemory(_allocator, allocation.allocation, &ptr);
         if (result == VK_SUCCESS) {
@@ -95,16 +95,24 @@ namespace engine::vulkan {
         return nullptr;
     }
 
-    void GPUMemoryAllocator::unmapMemory(const MemoryAllocation & allocation) {
+    void GPUMemoryAllocator::unmapMemory(const MemoryAllocation & allocation) noexcept {
         vmaUnmapMemory(_allocator, allocation.allocation);
     }
 
-    VkResult GPUMemoryAllocator::flushMemory(const MemoryAllocation & allocation, VkDeviceSize offset, VkDeviceSize size ) {
-        return vmaFlushAllocation(_allocator, allocation.allocation, offset, size);
+    VkResult GPUMemoryAllocator::flushMemory(const MemoryAllocation & allocation, VkDeviceSize offset, VkDeviceSize size ) noexcept {
+        auto * memoryAllocation = allocation.allocation;
+        if (size > 0u && _allocator->IsMemoryTypeNonCoherent(memoryAllocation->GetMemoryTypeIndex())) {
+            return vmaFlushAllocation(_allocator, memoryAllocation, offset, size);
+        }
+        return VkResult::VK_SUCCESS;
     }
 
-    VkResult GPUMemoryAllocator::invalidateMemory(const MemoryAllocation & allocation, VkDeviceSize offset, VkDeviceSize size) {
-        return vmaInvalidateAllocation(_allocator, allocation.allocation, offset, size);
+    VkResult GPUMemoryAllocator::invalidateMemory(const MemoryAllocation & allocation, VkDeviceSize offset, VkDeviceSize size) noexcept {
+        auto * memoryAllocation = allocation.allocation;
+        if (size > 0u && _allocator->IsMemoryTypeNonCoherent(memoryAllocation->GetMemoryTypeIndex())) {
+            return vmaInvalidateAllocation(_allocator, allocation.allocation, offset, size);
+        }
+        return VkResult::VK_SUCCESS;
     }
 
     inline VmaAllocationCreateFlags receiveAllocationCreateFlags(rhi::MemoryExtendedFlags memoryExtFlags) noexcept {
