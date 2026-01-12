@@ -506,7 +506,7 @@ namespace engine::scene {
         _spritesVertices->modify();
         _spritesIndices->modify();
 
-        if (auto & vertexBuffer = (*_spritesVertices)(frame)) { // hmmm, must be after buffer commits!
+        if (auto & vertexBuffer = (*_spritesVertices)(frame)) { // hmmm, must be after buffer resize!
             auto & indexBuffer = (*_spritesIndices)(frame);
             commandList->bindPipeline(pipeline);
             commandList->bindVertexBuffer(0u, vertexBuffer, 0u);

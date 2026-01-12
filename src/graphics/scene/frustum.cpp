@@ -31,7 +31,8 @@ namespace engine::scene {
 
         // normalize planes:
         for (auto & plane : _frustum) { // bring the equations of the planes to normal form
-			plane /= std::sqrt(plane.x * plane.x + plane.y * plane.y + plane.z * plane.z);
+			// plane /= std::sqrt(plane.x * plane.x + plane.y * plane.y + plane.z * plane.z);
+            plane *= inv_sqrt(plane.x * plane.x + plane.y * plane.y + plane.z * plane.z);
 		}
     }
     
