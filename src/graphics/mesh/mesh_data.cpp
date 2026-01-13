@@ -1,6 +1,8 @@
 #include "mesh_data.h"
 #include "gltf_loader.h"
 
+#include "meshoptimizer.h"
+
 #include <cassert>
 
 namespace engine::graphics::models {
@@ -13,6 +15,10 @@ namespace engine::graphics::models {
         auto & indexBufferData = result.indexBufferData;
 
         vertexBuffersData.resize(allowedAttributes.size());
+
+        // mesh optimizer
+        std::vector<meshopt_Stream> streams;
+        streams.resize(vertexBuffersData.size());
 
         for (const auto & srcMesh : layout.meshes) {
             auto & mesh = meshes.emplace_back();
@@ -32,6 +38,7 @@ namespace engine::graphics::models {
 
                     primitive.indexCount = accessor.count;
                     primitive.firstIndex = static_cast<uint32_t>(indexBufferData.size());
+
                     indexBufferData.resize(primitive.firstIndex + primitive.indexCount);
 
                     switch (accessor.componentType) {
@@ -67,7 +74,7 @@ namespace engine::graphics::models {
 							break;
 					}
                 }
-
+                
                 uint32_t attributeId = 0u;
                 for (const auto & [semantic, accessorId] : srcPrimitive.attributes) {
                     size_t i = 0u;
@@ -95,6 +102,10 @@ namespace engine::graphics::models {
                         auto & vbData = vertexBuffersData[i];
                         vbOffset.offset = vbData.size();
                         vbData.resize(vbData.size() + targetDataSize);
+
+                        streams[i].size = semanticDimension;
+                        streams[i].stride = semanticDimension;
+                        //streams[i].data = &vertexBuffersData[i];
 
                         const BufferView & view = layout.bufferViews[accessor.bufferView];
                         std::span<const std::byte> bufferViewData = {&layout.buffers[view.buffer].data[accessor.offset + view.offset], count}; // const vector<byte> &
@@ -185,10 +196,47 @@ namespace engine::graphics::models {
             }
         }
 
+        // mesh optimizer
+        size_t j = 0U;
+        for (auto & stream : streams) {
+            stream.data = vertexBuffersData[j].data();
+            ++j;
+        }
+
+        const auto indexCount = indexBufferData.size();
+        const auto vertexCount = vertexBuffersData[0u].size() / streams[0u].size;
+        std::vector<uint32_t> remap(indexCount);
+        size_t vertexCountNew = meshopt_generateVertexRemapMulti(remap.data(), indexBufferData.data(), indexCount, vertexCount, streams.data(), streams.size());
+
+        std::vector<uint32_t> indices(indexCount);
+        meshopt_remapIndexBuffer(indices.data(), indexBufferData.data(), indexCount, remap.data());
+
+        j = 0U;
+        for (auto & vertexBuffer : vertexBuffersData) {
+            std::vector<std::byte> vertices(vertexCountNew * streams[j].size);
+            meshopt_remapVertexBuffer(vertices.data(), vertexBuffer.data(), vertexCountNew, streams[j].size, remap.data());
+            std::swap(vertices, vertexBuffer);
+            ++j;
+        }
+
+        meshopt_optimizeVertexCache(indices.data(), indices.data(), indexCount, vertexCountNew);
+
+        meshopt_optimizeVertexFetchRemap(indexBufferData.data(), indices.data(), indexCount, vertexCountNew);
+
+        j = 0U;
+        for (auto & vertexBuffer : vertexBuffersData) {
+            std::vector<std::byte> vertices(vertexCountNew * streams[j].size);
+            meshopt_remapVertexBuffer(vertices.data(), vertexBuffer.data(), vertexCountNew, streams[j].size, indexBufferData.data());
+            std::swap(vertices, vertexBuffer);
+            ++j;
+        }
+
+        ////
         for (auto & vertexBuffer : vertexBuffersData) {
             vertexBuffer.shrink_to_fit();
         }
         indexBufferData.shrink_to_fit();
+ 
         return result;
     }
 
