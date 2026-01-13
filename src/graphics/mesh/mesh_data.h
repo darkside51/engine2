@@ -17,13 +17,6 @@ namespace engine::graphics::models {
 	struct Node;
 
 	struct Primitive {
-		struct VertexBufferOffsets {
-			size_t offset = 0u;
-			//uint8_t bufferId = 0u;
-		};
-		
-		size_t ibOffset = 0u;
-		std::vector<VertexBufferOffsets> vbOffsets;
 		uint32_t firstIndex = 0u;
 		uint32_t indexCount = 0u;
 		vec3f minCorner{};
