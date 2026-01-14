@@ -91,6 +91,9 @@ private:
     std::unique_ptr<engine::graphics::InflightBuffer> _uniformBufferI = nullptr;
     engine::rhi::runtime::BufferPtr _storageBuffer = nullptr;
     engine::rhi::runtime::BufferPtr _cpuStorageResult = nullptr;
+
+    engine::rhi::runtime::BufferPtr _meshPositions = nullptr;
+    engine::rhi::runtime::BufferPtr _meshIndices = nullptr;
     bool _canDraw = true;
 
     // sphere

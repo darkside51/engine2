@@ -80,5 +80,7 @@ namespace engine::graphics::models {
 		void loadAnimations(const Layout & layout);
     	Mesh_Buffers_Data loadMeshes(const Layout & layout, std::span<const AttributesSemantic> allowedAttributes);
 		void loadNodes(const Layout & layout);
+
+		void optimizeBuffers(Mesh_Buffers_Data & meshBuffers, std::span<const AttributesSemantic> allowedAttributes);
 	};
 }

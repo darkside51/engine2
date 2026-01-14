@@ -16,16 +16,14 @@ namespace engine::graphics::models {
 
         vertexBuffersData.resize(allowedAttributes.size());
 
-        // mesh optimizer
-        std::vector<meshopt_Stream> streams;
-        streams.resize(vertexBuffersData.size());
-
         for (const auto & srcMesh : layout.meshes) {
             auto & mesh = meshes.emplace_back();
             mesh.primitives.reserve(srcMesh.primitives.size());
             //const auto firstIndex = static_cast<uint32_t>(indexBufferData.size());
-
+            //int aaa = 0;
             for (const auto & srcPrimitive : srcMesh.primitives) {
+                //++aaa;
+                //if (aaa == 1) continue;
                 auto & primitive = mesh.primitives.emplace_back();
                 primitive.material = srcPrimitive.material;
                 primitive.primitiveMode = srcPrimitive.mode;
@@ -100,10 +98,6 @@ namespace engine::graphics::models {
                         auto & vbData = vertexBuffersData[i];
                         const auto currentBufferOffset = vbData.size();
                         vbData.resize(vbData.size() + targetDataSize);
-
-                        streams[i].size = semanticDimension;
-                        streams[i].stride = semanticDimension;
-                        //streams[i].data = &vertexBuffersData[i];
 
                         const BufferView & view = layout.bufferViews[accessor.bufferView];
                         std::span<const std::byte> bufferViewData = {&layout.buffers[view.buffer].data[accessor.offset + view.offset], count}; // const vector<byte> &
@@ -191,12 +185,27 @@ namespace engine::graphics::models {
                 //         ++attributeId;
                 //     }
                 // }
+                // break;
             }
         }
 
+        return result;
+    }
+
+    void Mesh_Data::optimizeBuffers(Mesh_Buffers_Data & meshBuffers, std::span<const AttributesSemantic> allowedAttributes) {
+        auto & vertexBuffersData = meshBuffers.vertexBuffersData;
+        auto & indexBufferData = meshBuffers.indexBufferData;
+
         // mesh optimizer
+        std::vector<meshopt_Stream> streams;
+        streams.resize(vertexBuffersData.size());
+
         size_t j = 0U;
         for (auto & stream : streams) {
+            const auto semanticId = std::log2(std::to_underlying(allowedAttributes[j]));
+            const auto semanticDimension = kDefaultSemanticsSizeBytes[semanticId];
+            stream.size = semanticDimension;
+            stream.stride = semanticDimension;
             stream.data = vertexBuffersData[j].data();
             ++j;
         }
@@ -234,8 +243,6 @@ namespace engine::graphics::models {
             vertexBuffer.shrink_to_fit();
         }
         indexBufferData.shrink_to_fit();
- 
-        return result;
     }
 
 	void Mesh_Data::loadNodes(const Layout & layout) {

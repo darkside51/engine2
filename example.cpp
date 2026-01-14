@@ -46,10 +46,12 @@ namespace example {
     constexpr uint8_t kComputeProgram = 3u;
     constexpr uint8_t kDebugProgram = 4u;
     constexpr uint8_t kSpritesProgram = 5u;
+    constexpr uint8_t kMeshProgram = 6u;
 
     constexpr uint8_t kPostEffectPipeline = 0u;
     constexpr uint8_t kSceneTestPipeline = 1u;
     constexpr uint8_t kComputeTestPipeline = 2u;
+    constexpr uint8_t kMeshTestPipeline = 3u;
 
     constexpr bool kUseTransferCommandListForPrepareImgui = true;
 
@@ -460,6 +462,16 @@ namespace example {
 
             _programs.emplace_back(_api->createProgram(*_device, std::array{vsModule.getView(), fsModule.getView()}));
         }
+
+        { // kMeshProgram
+            auto const vBytes = _fileManager.readFile("shaders/mesh.vert.spv");
+            auto const fBytes = _fileManager.readFile("shaders/mesh.frag.spv");
+
+            const auto & vsModule = _shaderModulesManager->registerModule("mesh.vert", *_device, engine::rhi::shaders::Stages::eVertex, vBytes);
+            const auto & fsModule = _shaderModulesManager->registerModule("mesh.frag", *_device, engine::rhi::shaders::Stages::eFragment, fBytes);
+
+            _programs.emplace_back(_api->createProgram(*_device, std::array{vsModule.getView(), fsModule.getView()}));
+        }
     }
     
     void Example::createPipelines() {
@@ -485,12 +497,19 @@ namespace example {
         // kComputeTestPipeline
         _pipelines.emplace_back(_api->createComputePipeline(*_device, _programs[kComputeProgram]));
 
+        // kMeshTestPipeline
+        const GraphicsPipelineStatesInfo info3 = engine::parseGraphicsPipelineInfo(json["mesh"]);
+        _pipelines.emplace_back(_api->createGraphicsPipeline(*_device, _renderPasses[kSceneRenderPass], _programs[kMeshProgram], info3, 0u));
+
         // scene pipelines
         const GraphicsPipelineStatesInfo info2 = engine::parseGraphicsPipelineInfo(json["sprite_common"]);
         scene.registerPipeline(_api->createGraphicsPipeline(*_device, _renderPasses[kSceneRenderPass], _programs[kSpritesProgram], info2, 0u));
     }
 
     void Example::createDefaultResources() {
+        using namespace engine::rhi;
+        using namespace engine::graphics;
+
         auto * commandPool = _device->acquireCommandPool(engine::rhi::queue_flags::transfrer);
         auto tmpCommandList = _api->createCommandList(commandPool, engine::rhi::CommandBufferLevel::ePrimary);
 
@@ -594,9 +613,54 @@ namespace example {
                                                 engine::graphics::models::AttributesSemantic::eNormal, 
                                                 engine::graphics::models::AttributesSemantic::eUv0};
 
-        auto [meshVtxData, meshIdxData] = meshData.loadMeshes(modelLayout, semanticsArray);
-        // need use mesh optimiser
+        auto meshBuffers = meshData.loadMeshes(modelLayout, semanticsArray);
+        // meshData.optimizeBuffers(meshBuffers, semanticsArray);
         meshData.loadNodes(modelLayout);
+
+        // gpu buffers
+        auto & [meshVtx, meshIdx] = meshBuffers;
+
+        BufferInfo meshVtxBufferInfo {
+            BufferUsageFlags::eVertex_Buffer | BufferUsageFlags::eTransfer_Dst,
+            MemoryPropertyFlags::eDeviceLocal
+        };
+
+        BufferInfo meshIdxBufferInfo {
+            BufferUsageFlags::eIndex_Buffer | BufferUsageFlags::eTransfer_Dst,
+            MemoryPropertyFlags::eDeviceLocal
+        };
+
+        _meshPositions = _api->createBuffer(*_device, meshVtxBufferInfo, meshVtx[0u].size());
+        _meshIndices = _api->createBuffer(*_device, meshIdxBufferInfo, sizeof(uint32_t) * meshIdx.size());
+
+
+        const auto meshVtxDataSize = meshVtx[0u].size();
+        const auto meshIdxDataSize = sizeof(uint32_t) * meshIdx.size();
+
+        const auto stagingMeshSize = meshVtxDataSize + meshIdxDataSize;
+        StagingBuffer stagingMesh{*_api, *_device, stagingMeshSize};
+        std::byte * memoryMeshStaging = stagingMesh.map();
+        const auto vtxOffsetMesh = stagingMesh.requestBytes(meshVtxDataSize);
+        const auto idxOffsetMesh = stagingMesh.requestBytes(meshIdxDataSize);
+
+        auto * vtxDataMeshPositions = (memoryMeshStaging + vtxOffsetMesh);
+        auto * idxDataMesh = (memoryMeshStaging + idxOffsetMesh);
+
+        std::memcpy(vtxDataMeshPositions, meshVtx[0u].data(), meshVtxDataSize);
+        std::memcpy(idxDataMesh, meshIdx.data(), meshIdxDataSize);
+
+        stagingMesh.flush();
+        stagingMesh.unmap();
+
+        tmpCommandList->copyBuffer2Buffer(stagingMesh.getBuffer(), _meshPositions, 
+            {.srcOffset = vtxOffsetMesh, .dstOffset = 0u, .size = _meshPositions->sizeInBytes()});
+        tmpCommandList->copyBuffer2Buffer(stagingMesh.getBuffer(), _meshIndices, 
+            {.srcOffset = idxOffsetMesh, .dstOffset = 0u, .size = _meshIndices->sizeInBytes()});
+
+        // constexpr uint32_t kMaxMemoryBytesToCopyCommand = 65536u;
+        // tmpCommandList->updateBuffer(_meshPositions, 0u, meshVtx[0u].size(), meshVtx[0u].data());
+        // tmpCommandList->updateBuffer(_meshIndices, 0u, meshIdx.size(), meshIdx.data());
+
         // gltf test
 
         // sail test
@@ -632,9 +696,6 @@ namespace example {
         }
 
         // create post buffers and default image
-        using namespace engine::rhi;
-        using namespace engine::graphics;
-
         BufferInfo bufferInfo {
             BufferUsageFlags::eVertex_Buffer | BufferUsageFlags::eTransfer_Dst,
             MemoryPropertyFlags::eDeviceLocal
@@ -1284,6 +1345,15 @@ namespace example {
         //     commandList->drawIndexed(_sphereIdx->sizeInBytes() / sizeof(uint16_t), 1u);
         // // }
         // // sphere
+
+        // mesh test
+        commandList->bindPipeline(_pipelines[kMeshTestPipeline]);
+        commandList->bindVertexBuffer(0u, _meshPositions);
+        commandList->bindIndexBuffer(_meshIndices, 0u, rhi::IndexType::eU32);
+        commandList->bindBuffer(0u, (*_uniformBufferI)(frameId), 0u, 0u, sizeof(UniformBuffer));
+        commandList->drawIndexed(_meshIndices->sizeInBytes() / sizeof(uint32_t), 1u);
+        // mesh test
+
         scene.newFrame(now);
         auto objects = scene.makeRenderList(cameraTransform, sceneWorldRoot);
         scene.draw(commandList, transferCommandList, frameId, cameraTransform, objects);

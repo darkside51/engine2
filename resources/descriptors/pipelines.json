@@ -116,5 +116,39 @@
 				}
 			]
 		}
+	},
+	"mesh": {
+		"blendModes": ["blend_none"],
+		"rasterisationState": {
+			"polygonMode": "eFill",
+			"cullmode": "eNone"
+		},
+		"depthStencilState": {
+			"depth": {
+				"depthTestEnable": true,
+				"depthWriteEnable": true,
+				"depthCompareOp": "eLess"
+			}
+		},
+		"inputAssemblyState": {
+			"topology" : "eTriangles"
+		},
+		"vertexInputState": {
+			"inputBindings": [
+				{
+					"stride" : 12,
+					"binding" : 0,
+					"inputRate": "eVertex"
+				}
+			],
+			"attributes":[
+				{
+					"location": 0,
+                    "binding": 0,
+                    "format": "eR32G32B32_Sfloat",
+                    "offset": 0
+				}
+			]
+		}
 	}
 }
