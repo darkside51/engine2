@@ -20,13 +20,13 @@ namespace engine::graphics::models {
             auto & mesh = meshes.emplace_back();
             mesh.primitives.reserve(srcMesh.primitives.size());
             //const auto firstIndex = static_cast<uint32_t>(indexBufferData.size());
-            //int aaa = 0;
             for (const auto & srcPrimitive : srcMesh.primitives) {
-                //++aaa;
-                //if (aaa == 1) continue;
                 auto & primitive = mesh.primitives.emplace_back();
                 primitive.material = srcPrimitive.material;
                 primitive.primitiveMode = srcPrimitive.mode;
+
+                // std::vector<uint32_t> indices;
+                // std::vector<std::vector<std::byte>> vertices(allowedAttributes.size());
 
                 { // indices
                     const Accessor & accessor = layout.accessors[srcPrimitive.indices];
@@ -37,6 +37,7 @@ namespace engine::graphics::models {
                     primitive.firstIndex = static_cast<uint32_t>(indexBufferData.size());
 
                     indexBufferData.resize(primitive.firstIndex + primitive.indexCount);
+                    // indices.resize(primitive.indexCount);
                     const auto vertexCount = vertexBuffersData[0u].size() / kDefaultSemanticsSizeBytes[0u];
 
                     switch (accessor.componentType) {
@@ -51,6 +52,7 @@ namespace engine::graphics::models {
 									(static_cast<uint32_t>(v2) << 8) | (static_cast<uint32_t>(v3) << 16) | 
 									(static_cast<uint32_t>(v4) << 24));
 								indexBufferData[primitive.firstIndex + index] = v + vertexCount;
+                                // indices[index] = v;
 							}
 								break;
 						case AccessorComponentType::eUnsigned_Short:
@@ -61,11 +63,13 @@ namespace engine::graphics::models {
 								const auto v = static_cast<uint16_t>((static_cast<uint16_t>(v1) << 0) | 
 									(static_cast<uint16_t>(v2) << 8));
 								indexBufferData[primitive.firstIndex + index] = v + vertexCount;
+                                // indices[index] = v;
 							}
 								break;
 						case AccessorComponentType::eUnsigned_Byte:
 							for (uint32_t index = 0u; index < accessor.count; ++index) {
 								indexBufferData[primitive.firstIndex + index] = static_cast<uint32_t>(buffer.data[accessor.offset + view.offset + index]) + vertexCount;
+                                // indices[index] = static_cast<uint32_t>(buffer.data[accessor.offset + view.offset + index]);
 							}
 							break;
 						default:
@@ -100,6 +104,9 @@ namespace engine::graphics::models {
                         const auto currentBufferOffset = vbData.size();
                         vbData.resize(vbData.size() + targetDataSize);
 
+                        // auto & vbData = vertices[i];
+                        // vbData.resize(targetDataSize);
+
                         const BufferView & view = layout.bufferViews[accessor.bufferView];
                         std::span<const std::byte> bufferViewData = {&layout.buffers[view.buffer].data[accessor.offset + view.offset], count}; // const vector<byte> &
 
@@ -108,6 +115,7 @@ namespace engine::graphics::models {
 
                         if (accessor.getElementSize() == semanticDimension) {
                             memcpy(&vbData[currentBufferOffset], &bufferViewData[0u], targetDataSize);
+                            // memcpy(vbData.data(), bufferViewData.data(), targetDataSize);
                         } else { // attribute convertion
                             assert(false); // need impl
                             switch (acessorType) {
@@ -135,6 +143,25 @@ namespace engine::graphics::models {
                     }
                     ++attributeId;
                 }
+
+                // optimizeBuffers(vertices, indices, allowedAttributes);
+
+                // indexBufferData.reserve(indexBufferData.size() + indices.size());
+                // const auto vertexCount = vertexBuffersData[0u].size() / kDefaultSemanticsSizeBytes[0u];
+                // for (size_t i = 0; i < indices.size(); ++i) {
+                //     indexBufferData.push_back(indices[i] + vertexCount);
+                // }
+
+                // size_t j = 0;
+                // for (auto & vertexBuffer : vertexBuffersData) {
+                //     vertexBuffer.reserve(vertexBuffer.size() + vertices[j].size());
+                //     for (size_t i = 0; i < vertices[j].size(); ++i) {
+                //         vertexBuffer.push_back(vertices[j][i]);
+                //     }
+                //     ++j;
+                // }
+
+////
 
                 // std::array<std::pair<size_t, uint32_t>, std::to_underlying(AttributesSemantic::eSemanticsCount)> counts{}; 
                 // for (const auto & [semantic, accessorId] : srcPrimitive.attributes) {
@@ -193,14 +220,9 @@ namespace engine::graphics::models {
         return result;
     }
 
-    void Mesh_Data::optimizeBuffers(Mesh_Buffers_Data & meshBuffers, std::span<const AttributesSemantic> allowedAttributes) {
-        return;
-        auto & vertexBuffersData = meshBuffers.vertexBuffersData;
-        auto & indexBufferData = meshBuffers.indexBufferData;
-
+    void Mesh_Data::optimizeBuffers(std::span<std::vector<std::byte>> vertexBuffersData, std::vector<uint32_t> & indexBufferData, std::span<const AttributesSemantic> allowedAttributes) {
         // mesh optimizer
-        std::vector<meshopt_Stream> streams;
-        streams.resize(vertexBuffersData.size());
+        std::vector<meshopt_Stream> streams(vertexBuffersData.size());
 
         size_t j = 0U;
         for (auto & stream : streams) {
@@ -213,32 +235,33 @@ namespace engine::graphics::models {
         }
 
         const auto indexCount = indexBufferData.size();
-        auto vertexCount = vertexBuffersData[0u].size() / streams[0u].size;
-        std::vector<uint32_t> remap(indexCount);
-        vertexCount = meshopt_generateVertexRemapMulti(remap.data(), indexBufferData.data(), indexCount, vertexCount, streams.data(), streams.size());
-
-        std::vector<uint32_t> indices(indexCount);
-        meshopt_remapIndexBuffer(indices.data(), indexBufferData.data(), indexCount, remap.data());
+        const auto baseVertexCount = vertexBuffersData[0u].size() / streams[0u].size;
+        
+        std::vector<uint32_t> remap;
+        remap.resize(std::max(indexCount, baseVertexCount));
+        const auto vertexCount = meshopt_generateVertexRemapMulti(remap.data(), indexBufferData.data(), indexCount, baseVertexCount, streams.data(), streams.size());
+        
+        meshopt_remapIndexBuffer(indexBufferData.data(), indexBufferData.data(), indexCount, remap.data());
 
         j = 0U;
         for (auto & vertexBuffer : vertexBuffersData) {
             std::vector<std::byte> vertices(vertexCount * streams[j].size);
-            meshopt_remapVertexBuffer(vertices.data(), vertexBuffer.data(), vertexCount, streams[j].size, remap.data());
+            meshopt_remapVertexBuffer(vertices.data(), vertexBuffer.data(), baseVertexCount, streams[j].size, remap.data());
             std::swap(vertices, vertexBuffer);
             ++j;
         }
         
-        meshopt_optimizeVertexCache(indices.data(), indices.data(), indexCount, vertexCount);
-        meshopt_optimizeVertexFetchRemap(indexBufferData.data(), indices.data(), indexCount, vertexCount);
-
+        meshopt_optimizeVertexCache(indexBufferData.data(), indexBufferData.data(), indexCount, vertexCount);
+        meshopt_optimizeVertexFetchRemap(remap.data(), indexBufferData.data(), indexCount, vertexCount);
+        
+        meshopt_remapIndexBuffer(indexBufferData.data(), indexBufferData.data(), indexCount, remap.data());
+        
         j = 0U;
         for (auto & vertexBuffer : vertexBuffersData) {
-            std::vector<std::byte> vertices(vertexCount * streams[j].size);
-            meshopt_remapVertexBuffer(vertices.data(), vertexBuffer.data(), vertexCount, streams[j].size, indexBufferData.data());
-            std::swap(vertices, vertexBuffer);
+            meshopt_remapVertexBuffer(vertexBuffer.data(), vertexBuffer.data(), vertexCount, streams[j].size, remap.data());
             ++j;
         }
-
+        
         ////
         for (auto & vertexBuffer : vertexBuffersData) {
             vertexBuffer.shrink_to_fit();

@@ -515,6 +515,68 @@ namespace example {
 
         tmpCommandList->begin(engine::rhi::CommandBufferUsageFlags::eOne_Time_Submit);
 
+        // gltf test
+        auto const modelBytes = _fileManager.readFile("assets/models/model.glb");
+        auto modelLayout = engine::graphics::models::loadModelLayout(modelBytes, "assets/models/");
+        engine::graphics::models::Mesh_Data meshData;
+        meshData.loadSkins(modelLayout);
+        meshData.loadAnimations(modelLayout);
+
+        // const auto semanticsArray = std::array {engine::graphics::models::AttributesSemantic::ePosition, 
+        //                                         engine::graphics::models::AttributesSemantic::eNormal | 
+        //                                         engine::graphics::models::AttributesSemantic::eUv0};
+
+        const auto semanticsArray = std::array {engine::graphics::models::AttributesSemantic::ePosition, 
+                                                engine::graphics::models::AttributesSemantic::eNormal, 
+                                                engine::graphics::models::AttributesSemantic::eUv0};
+
+        auto  [meshVtx, meshIdx] = meshData.loadMeshes(modelLayout, semanticsArray);
+        meshData.optimizeBuffers(meshVtx, meshIdx, semanticsArray);
+        meshData.loadNodes(modelLayout);
+
+        // gpu buffers
+        BufferInfo meshVtxBufferInfo {
+            BufferUsageFlags::eVertex_Buffer | BufferUsageFlags::eTransfer_Dst,
+            MemoryPropertyFlags::eDeviceLocal
+        };
+
+        BufferInfo meshIdxBufferInfo {
+            BufferUsageFlags::eIndex_Buffer | BufferUsageFlags::eTransfer_Dst,
+            MemoryPropertyFlags::eDeviceLocal
+        };
+
+        _meshPositions = _api->createBuffer(*_device, meshVtxBufferInfo, meshVtx[0u].size());
+        _meshIndices = _api->createBuffer(*_device, meshIdxBufferInfo, sizeof(uint32_t) * meshIdx.size());
+
+        const auto meshVtxDataSize = meshVtx[0u].size();
+        const auto meshIdxDataSize = sizeof(uint32_t) * meshIdx.size();
+
+        const auto stagingMeshSize = meshVtxDataSize + meshIdxDataSize;
+        StagingBuffer stagingMesh{*_api, *_device, stagingMeshSize};
+        std::byte * memoryMeshStaging = stagingMesh.map();
+        const auto vtxOffsetMesh = stagingMesh.requestBytes(meshVtxDataSize);
+        const auto idxOffsetMesh = stagingMesh.requestBytes(meshIdxDataSize);
+
+        auto * vtxDataMeshPositions = (memoryMeshStaging + vtxOffsetMesh);
+        auto * idxDataMesh = (memoryMeshStaging + idxOffsetMesh);
+
+        std::memcpy(vtxDataMeshPositions, meshVtx[0u].data(), meshVtxDataSize);
+        std::memcpy(idxDataMesh, meshIdx.data(), meshIdxDataSize);
+
+        stagingMesh.flush();
+        stagingMesh.unmap();
+
+        tmpCommandList->copyBuffer2Buffer(stagingMesh.getBuffer(), _meshPositions, 
+            {.srcOffset = vtxOffsetMesh, .dstOffset = 0u, .size = _meshPositions->sizeInBytes()});
+        tmpCommandList->copyBuffer2Buffer(stagingMesh.getBuffer(), _meshIndices, 
+            {.srcOffset = idxOffsetMesh, .dstOffset = 0u, .size = _meshIndices->sizeInBytes()});
+
+        // constexpr uint32_t kMaxMemoryBytesToCopyCommand = 65536u;
+        // tmpCommandList->updateBuffer(_meshPositions, 0u, meshVtx[0u].size(), meshVtx[0u].data());
+        // tmpCommandList->updateBuffer(_meshIndices, 0u, meshIdx.size(), meshIdx.data());
+
+        // gltf test
+
         // textureManager resources
         textureManager.createDefaultResources(*_api, *_device, tmpCommandList);
 
@@ -597,71 +659,6 @@ namespace example {
                 animationManager.registerAnimation("anim0", engine::scene::FramesSequence(textureManager, animFrames));
             }
         }
-
-        // gltf test
-        auto const modelBytes = _fileManager.readFile("assets/models/model.glb");
-        auto modelLayout = engine::graphics::models::loadModelLayout(modelBytes, "assets/models/");
-        engine::graphics::models::Mesh_Data meshData;
-        meshData.loadSkins(modelLayout);
-        meshData.loadAnimations(modelLayout);
-
-        // const auto semanticsArray = std::array {engine::graphics::models::AttributesSemantic::ePosition, 
-        //                                         engine::graphics::models::AttributesSemantic::eNormal | 
-        //                                         engine::graphics::models::AttributesSemantic::eUv0};
-
-        const auto semanticsArray = std::array {engine::graphics::models::AttributesSemantic::ePosition, 
-                                                engine::graphics::models::AttributesSemantic::eNormal, 
-                                                engine::graphics::models::AttributesSemantic::eUv0};
-
-        auto meshBuffers = meshData.loadMeshes(modelLayout, semanticsArray);
-        meshData.optimizeBuffers(meshBuffers, semanticsArray);
-        meshData.loadNodes(modelLayout);
-
-        // gpu buffers
-        auto & [meshVtx, meshIdx] = meshBuffers;
-
-        BufferInfo meshVtxBufferInfo {
-            BufferUsageFlags::eVertex_Buffer | BufferUsageFlags::eTransfer_Dst,
-            MemoryPropertyFlags::eDeviceLocal
-        };
-
-        BufferInfo meshIdxBufferInfo {
-            BufferUsageFlags::eIndex_Buffer | BufferUsageFlags::eTransfer_Dst,
-            MemoryPropertyFlags::eDeviceLocal
-        };
-
-        _meshPositions = _api->createBuffer(*_device, meshVtxBufferInfo, meshVtx[0u].size());
-        _meshIndices = _api->createBuffer(*_device, meshIdxBufferInfo, sizeof(uint32_t) * meshIdx.size());
-
-
-        const auto meshVtxDataSize = meshVtx[0u].size();
-        const auto meshIdxDataSize = sizeof(uint32_t) * meshIdx.size();
-
-        const auto stagingMeshSize = meshVtxDataSize + meshIdxDataSize;
-        StagingBuffer stagingMesh{*_api, *_device, stagingMeshSize};
-        std::byte * memoryMeshStaging = stagingMesh.map();
-        const auto vtxOffsetMesh = stagingMesh.requestBytes(meshVtxDataSize);
-        const auto idxOffsetMesh = stagingMesh.requestBytes(meshIdxDataSize);
-
-        auto * vtxDataMeshPositions = (memoryMeshStaging + vtxOffsetMesh);
-        auto * idxDataMesh = (memoryMeshStaging + idxOffsetMesh);
-
-        std::memcpy(vtxDataMeshPositions, meshVtx[0u].data(), meshVtxDataSize);
-        std::memcpy(idxDataMesh, meshIdx.data(), meshIdxDataSize);
-
-        stagingMesh.flush();
-        stagingMesh.unmap();
-
-        tmpCommandList->copyBuffer2Buffer(stagingMesh.getBuffer(), _meshPositions, 
-            {.srcOffset = vtxOffsetMesh, .dstOffset = 0u, .size = _meshPositions->sizeInBytes()});
-        tmpCommandList->copyBuffer2Buffer(stagingMesh.getBuffer(), _meshIndices, 
-            {.srcOffset = idxOffsetMesh, .dstOffset = 0u, .size = _meshIndices->sizeInBytes()});
-
-        // constexpr uint32_t kMaxMemoryBytesToCopyCommand = 65536u;
-        // tmpCommandList->updateBuffer(_meshPositions, 0u, meshVtx[0u].size(), meshVtx[0u].data());
-        // tmpCommandList->updateBuffer(_meshIndices, 0u, meshIdx.size(), meshIdx.data());
-
-        // gltf test
 
         // sail test
         auto const imageBytes = _fileManager.readFile("assets/earth.ktx2");

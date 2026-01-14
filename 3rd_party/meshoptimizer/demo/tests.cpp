@@ -1104,6 +1104,70 @@ static void encodeFilterExpClamp()
 		assert(fabsf(decoded[i] - data[i]) < 1e-3f);
 }
 
+static void encodeFilterColor8()
+{
+	const float data[4 * 4] = {
+	    1.0f, 0.0f, 0.0f, 1.0f,
+	    0.0f, 1.0f, 0.0f, 0.5f,
+	    0.0f, 0.0f, 1.0f, 0.25f,
+	    0.4f, 0.4f, 0.4f, 0.75f, // clang-format :-/
+	};
+
+	const unsigned char expected[4 * 4] = {
+	    0x40, 0x7f, 0xc1, 0xff,
+	    0x7f, 0x00, 0x7f, 0xc0,
+	    0x40, 0x81, 0xc0, 0xa0,
+	    0x66, 0x00, 0x00, 0xdf, // clang-format :-/
+	};
+
+	unsigned char encoded[4 * 4];
+	meshopt_encodeFilterColor(encoded, 4, 4, 8, data);
+
+	assert(memcmp(encoded, expected, sizeof(expected)) == 0);
+
+	unsigned char decoded[4 * 4];
+	memcpy(decoded, encoded, sizeof(decoded));
+	meshopt_decodeFilterColor(decoded, 4, 4);
+
+	for (size_t i = 0; i < 4 * 4; ++i)
+		assert(fabsf(decoded[i] / 255.f - data[i]) < 1e-2f);
+
+	// ensure grayscale is preserved
+	assert(decoded[12] == decoded[13] && decoded[12] == decoded[14]);
+}
+
+static void encodeFilterColor12()
+{
+	const float data[4 * 4] = {
+	    1.0f, 0.0f, 0.0f, 1.0f,
+	    0.0f, 1.0f, 0.0f, 0.5f,
+	    0.0f, 0.0f, 1.0f, 0.25f,
+	    0.4f, 0.4f, 0.4f, 0.75f, // clang-format :-/
+	};
+
+	const unsigned short expected[4 * 4] = {
+	    0x0400, 0x07ff, 0xfc01, 0x0fff,
+	    0x07ff, 0x0000, 0x07ff, 0x0c00,
+	    0x0400, 0xf801, 0xfc00, 0x0a00,
+	    0x0666, 0x0000, 0x0000, 0x0dff, // clang-format :-/
+	};
+
+	unsigned short encoded[4 * 4];
+	meshopt_encodeFilterColor(encoded, 4, 8, 12, data);
+
+	assert(memcmp(encoded, expected, sizeof(expected)) == 0);
+
+	unsigned short decoded[4 * 4];
+	memcpy(decoded, encoded, sizeof(decoded));
+	meshopt_decodeFilterColor(decoded, 4, 8);
+
+	for (size_t i = 0; i < 4 * 4; ++i)
+		assert(fabsf(decoded[i] / 65535.f - data[i]) < 1e-3f);
+
+	// ensure grayscale is preserved
+	assert(decoded[12] == decoded[13] && decoded[12] == decoded[14]);
+}
+
 static void clusterBoundsDegenerate()
 {
 	const float vbd[] = {0, 0, 0, 0, 0, 0, 0, 0, 0};
@@ -1262,17 +1326,6 @@ static void meshletsFlex()
 	assert(ml[0].vertex_count == 4);
 	assert(ml[1].triangle_count == 4);
 	assert(ml[1].vertex_count == 4);
-
-	// this should hold when using axis-aligned metric as well (negative cone weight)
-	assert(meshopt_buildMeshletsFlex(ml, mv, mt, ib, sizeof(ib) / sizeof(ib[0]), vb, 8, sizeof(float) * 3, 16, 4, 8, -1.f, 10.f) == 1);
-	assert(ml[0].triangle_count == 8);
-	assert(ml[0].vertex_count == 8);
-
-	assert(meshopt_buildMeshletsFlex(ml, mv, mt, ib, sizeof(ib) / sizeof(ib[0]), vb, 8, sizeof(float) * 3, 16, 4, 8, -1.f, 1.f) == 2);
-	assert(ml[0].triangle_count == 4);
-	assert(ml[0].vertex_count == 4);
-	assert(ml[1].triangle_count == 4);
-	assert(ml[1].vertex_count == 4);
 }
 
 static void meshletsMax()
@@ -1381,8 +1434,8 @@ static void meshletsSpatialDeep()
 
 	size_t max_meshlets = meshopt_buildMeshletsBound(N * 3, max_vertices, max_triangles);
 	std::vector<meshopt_Meshlet> meshlets(max_meshlets);
-	std::vector<unsigned int> meshlet_vertices(max_meshlets * max_vertices);
-	std::vector<unsigned char> meshlet_triangles(max_meshlets * max_triangles * 3);
+	std::vector<unsigned int> meshlet_vertices(N * 3);
+	std::vector<unsigned char> meshlet_triangles(N * 3);
 
 	size_t result = meshopt_buildMeshletsSpatial(&meshlets[0], &meshlet_vertices[0], &meshlet_triangles[0], &ib[0], N * 3, &vb[0], N + 1, sizeof(float) * 3, max_vertices, max_triangles, max_triangles, 0.f);
 	assert(result == N);
@@ -1438,6 +1491,30 @@ static void partitionSpatial()
 
 	assert(meshopt_partitionClusters(part, ci, sizeof(ci) / sizeof(ci[0]), cc, 3, vb, 7, sizeof(float) * 3, 2) == 2);
 	assert(part[0] == 0 && part[1] == 1 && part[2] == 0);
+}
+
+static void partitionSpatialMerge()
+{
+	const unsigned int ci[] = {
+	    0, 1, 2,
+	    3, 4, 5,
+	    6, 7, 8, // clang-format :-/
+	};
+
+	const float vb[] = {
+	    0, 0, 0, 1, 0, 0, 0, 1, 0,
+	    0, 0, 0, 0, 2, 0, 2, 0, 0,
+	    10, 0, 0, 10, 1, 0, 10, 2, 0, // clang-format :-/
+	};
+
+	const unsigned int cc[3] = {3, 3, 3};
+	unsigned int part[3];
+
+	assert(meshopt_partitionClusters(part, ci, sizeof(ci) / sizeof(ci[0]), cc, 3, NULL, 9, 0, 2) == 3);
+	assert(part[0] == 0 && part[1] == 1 && part[2] == 2);
+
+	assert(meshopt_partitionClusters(part, ci, sizeof(ci) / sizeof(ci[0]), cc, 3, vb, 9, sizeof(float) * 3, 2) == 2);
+	assert(part[0] == 0 && part[1] == 0 && part[2] == 1);
 }
 
 static int remapCustomFalse(void*, unsigned int, unsigned int)
@@ -1572,7 +1649,7 @@ static void simplify()
 
 	float error;
 	assert(meshopt_simplify(ib, ib, 12, vb, 6, 12, 3, 1e-2f, 0, &error) == 3);
-	assert(error == 0.f);
+	assert(error < 1e-4f);
 	assert(memcmp(ib, expected, sizeof(expected)) == 0);
 }
 
@@ -1617,6 +1694,45 @@ static void simplifySloppyStuck()
 
 	// simplifying down to 2 triangles given that all triangles are degenerate results in 0 as well
 	assert(meshopt_simplifySloppy(target, ib, 6, vb, 3, 12, 6, 0.f) == 0);
+}
+
+static void simplifySloppyLocks()
+{
+	// 0
+	// 1 2
+	// 3 4 5
+	unsigned int ib[] = {
+	    0, 2, 1,
+	    1, 2, 3,
+	    3, 2, 4,
+	    2, 5, 4, // clang-format :-/
+	};
+
+	float vb[] = {
+	    0, 4, 0,
+	    0, 1, 0,
+	    2, 2, 0,
+	    0, 0, 0,
+	    1, 0, 0,
+	    4, 0, 0, // clang-format :-/
+	};
+
+	// lock spine
+	unsigned char locks[] = {1, 0, 1, 0, 0, 1};
+
+	unsigned int expected[] = {
+	    0,
+	    2,
+	    1,
+	    1,
+	    2,
+	    5,
+	};
+
+	float error;
+	assert(meshopt_simplifySloppy(ib, ib, 12, vb, 6, 12, locks, 3, 1.f, &error) == 6);
+	assert(error == 0.f);
+	assert(memcmp(ib, expected, sizeof(expected)) == 0);
 }
 
 static void simplifyPointsStuck()
@@ -2097,12 +2213,12 @@ static void simplifySeam()
 
 	assert(meshopt_simplify(res, ib, 36, vb, 16, 16, 12, 1.f, 0, &error) == 12);
 	assert(memcmp(res, expected, sizeof(expected)) == 0);
-	assert(fabsf(error - 0.09f) < 0.01f); // note: the error is not zero because there is a difference in height between the seam vertices
+	assert(fabsf(error - 0.1f) < 0.01f); // note: the error is not zero because there is a difference in height between the seam vertices
 
 	float aw = 1;
 	assert(meshopt_simplifyWithAttributes(res, ib, 36, vb, 16, 16, vb + 3, 16, &aw, 1, NULL, 12, 2.f, 0, &error) == 12);
 	assert(memcmp(res, expected, sizeof(expected)) == 0);
-	assert(fabsf(error - 0.09f) < 0.01f); // note: this is the same error as above because the attribute is constant on either side of the seam
+	assert(fabsf(error - 0.1f) < 0.01f); // note: this is the same error as above because the attribute is constant on either side of the seam
 }
 
 static void simplifySeamFake()
@@ -2209,7 +2325,7 @@ static void simplifyDebug()
 
 	float error;
 	assert(meshopt_simplify(ib, ib, 12, vb, 6, 12, 3, 1e-2f, meshopt_SimplifyInternalDebug, &error) == 3);
-	assert(error == 0.f);
+	assert(error < 1e-4f);
 	assert(memcmp(ib, expected, sizeof(expected)) == 0);
 }
 
@@ -2221,9 +2337,9 @@ static void simplifyPrune()
 	// +
 	// 6 7 8 (same position)
 	unsigned int ib[] = {
+	    3, 2, 4,
 	    0, 2, 1,
 	    1, 2, 3,
-	    3, 2, 4,
 	    2, 5, 4,
 	    6, 7, 8, // clang-format :-/
 	};
@@ -2248,7 +2364,7 @@ static void simplifyPrune()
 
 	float error;
 	assert(meshopt_simplify(ib, ib, 15, vb, 9, 12, 3, 1e-2f, meshopt_SimplifyPrune, &error) == 3);
-	assert(error == 0.f);
+	assert(error < 1e-4f);
 	assert(memcmp(ib, expected, sizeof(expected)) == 0);
 
 	// re-run prune with and without sparsity on a small subset to make sure the component code correctly handles sparse subsets
@@ -2317,6 +2433,83 @@ static void simplifyPruneFunc()
 
 	assert(meshopt_simplifyPrune(ib, ib, 9, vb, 9, 12, 0.5f) == 3);
 	assert(memcmp(ib, expected, sizeof(expected)) == 0);
+}
+
+static void simplifyUpdate()
+{
+	float vb[5][4] = {
+	    {0, 0, 0, 0},
+	    {1, 1, 0, 0},
+	    {2, 0, 0, 0},
+	    {0.9f, 0.2f, 0.1f, 0.2f},
+	    {1.1f, 0.2f, 0.1f, 0.1f},
+	};
+
+	//     1
+	//    3 4
+	// 0       2
+	unsigned int ib[15] = {
+	    0, 1, 3, 3, 1, 4, 4, 1, 2, 0, 3, 2, 3, 4, 2, //
+	};
+
+	float attr_weight = 1.f;
+
+	assert(meshopt_simplifyWithUpdate(ib, 15, vb[0], 5, 4 * sizeof(float), vb[0] + 3, 4 * sizeof(float), &attr_weight, 1, NULL, 9, 1.f) == 9);
+
+	unsigned int expected[] = {
+	    0, 1, 3, 3, 1, 2, 0, 3, 2, //
+	};
+
+	assert(memcmp(ib, expected, sizeof(expected)) == 0);
+
+	// border vertices haven't moved but may have small floating point drift
+	for (int i = 0; i < 3; ++i)
+		assert(fabsf(vb[i][3]) < 1e-6f);
+
+	// center vertex got updated
+	assert(fabsf(vb[3][0] - 0.88f) < 1e-2f);
+	assert(fabsf(vb[3][1] - 0.19f) < 1e-2f);
+	assert(fabsf(vb[3][2] - 0.11f) < 1e-2f);
+	assert(fabsf(vb[3][3] - 0.18f) < 1e-2f);
+}
+
+static void simplifyUpdateLocked(unsigned int options)
+{
+	float vb[5][4] = {
+	    {0, 0, 0, 0},
+	    {1, 1, 0, 0},
+	    {2, 0, 0, 0},
+	    {0.9f, 0.2f, 0.1f, 0.2f},
+	    {1.1f, 0.2f, 0.1f, 0.1f},
+	};
+
+	//     1
+	//    3 4
+	// 0       2
+	unsigned int ib[15] = {
+	    0, 1, 3, 3, 1, 4, 4, 1, 2, 0, 3, 2, 3, 4, 2, //
+	};
+
+	float attr_weight = 1.f;
+
+	unsigned char vertex_lock[5] = {0, 0, 0, 1, 0};
+
+	assert(meshopt_simplifyWithUpdate(ib, 15, vb[0], 5, 4 * sizeof(float), vb[0] + 3, 4 * sizeof(float), &attr_weight, 1, vertex_lock, 9, 1.f, options) == 9);
+
+	unsigned int expected[] = {
+	    0, 1, 3, 3, 1, 2, 0, 3, 2, //
+	};
+
+	assert(memcmp(ib, expected, sizeof(expected)) == 0);
+
+	for (int i = 0; i < 3; ++i)
+		assert(fabsf(vb[i][3]) < 1e-6f);
+
+	// locking guarantees exact result
+	assert(vb[3][0] == 0.9f);
+	assert(vb[3][1] == 0.2f);
+	assert(vb[3][2] == 0.1f);
+	assert(vb[3][3] == 0.2f);
 }
 
 static void adjacency()
@@ -2572,6 +2765,8 @@ void runTests()
 	encodeFilterExpZero();
 	encodeFilterExpAlias();
 	encodeFilterExpClamp();
+	encodeFilterColor8();
+	encodeFilterColor12();
 
 	clusterBoundsDegenerate();
 	sphereBounds();
@@ -2586,6 +2781,7 @@ void runTests()
 
 	partitionBasic();
 	partitionSpatial();
+	partitionSpatialMerge();
 
 	remapCustom();
 
@@ -2596,6 +2792,7 @@ void runTests()
 	simplify();
 	simplifyStuck();
 	simplifySloppyStuck();
+	simplifySloppyLocks();
 	simplifyPointsStuck();
 	simplifyFlip();
 	simplifyScale();
@@ -2614,6 +2811,9 @@ void runTests()
 	simplifyPrune();
 	simplifyPruneCleanup();
 	simplifyPruneFunc();
+	simplifyUpdate();
+	simplifyUpdateLocked(0);
+	simplifyUpdateLocked(meshopt_SimplifySparse);
 
 	adjacency();
 	tessellation();
