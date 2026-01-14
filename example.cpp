@@ -614,7 +614,7 @@ namespace example {
                                                 engine::graphics::models::AttributesSemantic::eUv0};
 
         auto meshBuffers = meshData.loadMeshes(modelLayout, semanticsArray);
-        // meshData.optimizeBuffers(meshBuffers, semanticsArray);
+        meshData.optimizeBuffers(meshBuffers, semanticsArray);
         meshData.loadNodes(modelLayout);
 
         // gpu buffers
@@ -1352,6 +1352,8 @@ namespace example {
         commandList->bindIndexBuffer(_meshIndices, 0u, rhi::IndexType::eU32);
         commandList->bindBuffer(0u, (*_uniformBufferI)(frameId), 0u, 0u, sizeof(UniformBuffer));
         commandList->drawIndexed(_meshIndices->sizeInBytes() / sizeof(uint32_t), 1u);
+        // commandList->drawIndexed(31890u, 1u, 0u);
+        // commandList->drawIndexed(1017u, 1u, 31890u);
         // mesh test
 
         scene.newFrame(now);

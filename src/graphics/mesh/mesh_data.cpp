@@ -37,6 +37,7 @@ namespace engine::graphics::models {
                     primitive.firstIndex = static_cast<uint32_t>(indexBufferData.size());
 
                     indexBufferData.resize(primitive.firstIndex + primitive.indexCount);
+                    const auto vertexCount = vertexBuffersData[0u].size() / kDefaultSemanticsSizeBytes[0u];
 
                     switch (accessor.componentType) {
 						case AccessorComponentType::eUnsigned_int:
@@ -49,7 +50,7 @@ namespace engine::graphics::models {
 								const auto v = static_cast<uint32_t>((static_cast<uint32_t>(v1) << 0) | 
 									(static_cast<uint32_t>(v2) << 8) | (static_cast<uint32_t>(v3) << 16) | 
 									(static_cast<uint32_t>(v4) << 24));
-								indexBufferData[primitive.firstIndex + index] = v;
+								indexBufferData[primitive.firstIndex + index] = v + vertexCount;
 							}
 								break;
 						case AccessorComponentType::eUnsigned_Short:
@@ -59,12 +60,12 @@ namespace engine::graphics::models {
 								const auto v2 = static_cast<uint8_t>(buffer.data[offset + 1]);
 								const auto v = static_cast<uint16_t>((static_cast<uint16_t>(v1) << 0) | 
 									(static_cast<uint16_t>(v2) << 8));
-								indexBufferData[primitive.firstIndex + index] = v;
+								indexBufferData[primitive.firstIndex + index] = v + vertexCount;
 							}
 								break;
 						case AccessorComponentType::eUnsigned_Byte:
 							for (uint32_t index = 0u; index < accessor.count; ++index) {
-								indexBufferData[primitive.firstIndex + index] = static_cast<uint32_t>(buffer.data[accessor.offset + view.offset + index]);
+								indexBufferData[primitive.firstIndex + index] = static_cast<uint32_t>(buffer.data[accessor.offset + view.offset + index]) + vertexCount;
 							}
 							break;
 						default:
@@ -193,6 +194,7 @@ namespace engine::graphics::models {
     }
 
     void Mesh_Data::optimizeBuffers(Mesh_Buffers_Data & meshBuffers, std::span<const AttributesSemantic> allowedAttributes) {
+        return;
         auto & vertexBuffersData = meshBuffers.vertexBuffersData;
         auto & indexBufferData = meshBuffers.indexBufferData;
 
@@ -225,9 +227,8 @@ namespace engine::graphics::models {
             std::swap(vertices, vertexBuffer);
             ++j;
         }
-
+        
         meshopt_optimizeVertexCache(indices.data(), indices.data(), indexCount, vertexCount);
-
         meshopt_optimizeVertexFetchRemap(indexBufferData.data(), indices.data(), indexCount, vertexCount);
 
         j = 0U;
