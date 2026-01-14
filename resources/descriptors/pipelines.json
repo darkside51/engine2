@@ -139,6 +139,11 @@
 					"stride" : 12,
 					"binding" : 0,
 					"inputRate": "eVertex"
+				},
+				{
+					"stride" : 8,
+					"binding" : 1,
+					"inputRate": "eVertex"
 				}
 			],
 			"attributes":[
@@ -146,6 +151,12 @@
 					"location": 0,
                     "binding": 0,
                     "format": "eR32G32B32_Sfloat",
+                    "offset": 0
+				},
+				{
+					"location": 1,
+                    "binding": 1,
+                    "format": "eR32G32_Sfloat",
                     "offset": 0
 				}
 			]
