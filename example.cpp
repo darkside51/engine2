@@ -1049,8 +1049,8 @@ namespace example {
                 m2[1][1] *= -0.25f;
 
                 auto const animId = animationManager.getAnimationIndex("anim0");
-                for (size_t i = 0u; i < 100u; ++i) {
-                    for (size_t j = 0u; j < 100u; ++j) {
+                for (size_t i = 0u; i < 10u; ++i) {
+                    for (size_t j = 0u; j < 10u; ++j) {
                         m2[3] = {-3.0f + static_cast<float>(i) * 0.75f, -1.0f - static_cast<float>(j) * 0.75f, 0.0f, 1.0f};
                         auto * node5 = scene.createNode();
                         node5->setTransform(m2);
@@ -1348,7 +1348,7 @@ namespace example {
         commandList->bindVertexBuffer(0u, _meshPositions);
         commandList->bindIndexBuffer(_meshIndices, 0u, rhi::IndexType::eU32);
         commandList->bindBuffer(0u, (*_uniformBufferI)(frameId), 0u, 0u, sizeof(UniformBuffer));
-        commandList->drawIndexed(_meshIndices->sizeInBytes() / sizeof(uint32_t), 1u);
+        commandList->drawIndexed(_meshIndices->sizeInBytes() / sizeof(uint32_t), 100u);
         // commandList->drawIndexed(31890u, 1u, 0u);
         // commandList->drawIndexed(1017u, 1u, 31890u);
         // mesh test
