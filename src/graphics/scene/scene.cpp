@@ -1,8 +1,6 @@
 #include "scene.h"
 #include "animation.h"
 #include "animation_manager.h"
-#include "bounds.h"
-#include "frustum.h"
 #include "animation/texture/frame_sequence_animation.h"
 #include "sprite/sprite.h"
 
@@ -21,8 +19,6 @@ namespace engine::scene {
     constexpr uint32_t kStaginBufferEnlargeSizeMult = 2u;
 
     constexpr uint16_t kUndefinedAnimId = 0xff'ffu;
-
-    constexpr bool kDebugDrawBounds = true;
 
     FramesSequenceAnimator gSequenceAnimator{1.0f / 30.0f};
 
@@ -177,7 +173,19 @@ namespace engine::scene {
         //
     }
 
-    bool Scene::compareObjectsForDraw(const Object & a, const Object & b) const noexcept {
+    bool Scene::compareObjectsForDraw(const Object & a, const Object & b) noexcept {
+        // if (a.layer != b.layer) {
+        //     return a.layer < b.layer;
+        // }
+
+        if (a.order != b.order) {
+            return a.order < b.order;
+        }
+
+        if (a.typeIndex != b.typeIndex) {
+            return a.typeIndex < b.typeIndex;
+        }
+
         switch(a.typeIndex) {
         case ctti::typeIndex<Object, Dummy>():
             return static_cast<const Dummy &>(a).cmp(static_cast<const Dummy &>(b));
@@ -198,7 +206,7 @@ namespace engine::scene {
             }
 
             const auto & bounds = n->bounds;
-            const auto & worldTransform =  n->getWorldTransform();
+            const auto & worldTransform = n->getWorldTransform();
             if (bounds.type != Bounds::Type::eNone) {
                 if (!frustum.checkBounds(bounds.transform(worldTransform))) {
                     return false;
@@ -219,20 +227,7 @@ namespace engine::scene {
             return true;
         });
 
-        objects.stable_sort([this](const Object & a, const Object & b) noexcept {
-            // if (a.layer != b.layer) {
-            //     return a.layer < b.layer;
-            // }
-
-            if (a.order != b.order) {
-                return a.order < b.order;
-            }
-
-            if (a.typeIndex != b.typeIndex) {
-                return a.typeIndex < b.typeIndex;
-            }
-
-            // todo special sorts for some types
+        objects.stable_sort([](const Object & a, const Object & b) noexcept {
             return compareObjectsForDraw(a, b);
         });
 

@@ -1356,7 +1356,7 @@ namespace example {
         commandList->bindVertexBuffer(1u, _meshUvs);
         commandList->bindIndexBuffer(_meshIndices, 0u, rhi::IndexType::eU32);
         commandList->bindBuffer(0u, (*_uniformBufferI)(frameId), 0u, 0u, sizeof(UniformBuffer));
-        commandList->drawIndexed(_meshIndices->sizeInBytes() / sizeof(uint32_t), 100u);
+        commandList->drawIndexed(_meshIndices->sizeInBytes() / sizeof(uint32_t), 4'000u);
         // commandList->drawIndexed(31890u, 100u, 0u);
         // commandList->drawIndexed(1017u, 100u, 31890u);
         // mesh test

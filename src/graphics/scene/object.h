@@ -12,7 +12,6 @@ namespace engine::scene {
     struct AnimationInfoChain;
 
     struct Object : IntrusiveListNode<Object> {
-        using Iterator = IntrusiveList<Object>::Iterator;
         Node * node = nullptr;
         AnimationInfoChain * animInfo = nullptr;
        

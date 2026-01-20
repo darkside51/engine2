@@ -6,6 +6,8 @@
 #include "graphics/debug/debug_draw.h"
 #include "math/math.h"
 #include "animation.h"
+#include "bounds.h"
+#include "frustum.h"
 #include "node.h"
 #include "object.h"
 #include "register.h"
@@ -14,11 +16,14 @@
 #include <chrono>
 #include <cstdint>
 #include <memory>
+#include <span>
 #include <unordered_map>
 #include <utility>
 #include <vector>
 
 namespace engine::scene {
+
+constexpr bool kDebugDrawBounds = true;
     
 class AnimationManager;
 
@@ -99,13 +104,17 @@ public:
     void newFrame(std::chrono::time_point<std::chrono::steady_clock> now) noexcept;
 
     IntrusiveList<Object> makeRenderList(const mat4f & cameraTransform, Node * root) noexcept;
+
+    template <typename Condition>
+    void fillRenderObjects(const mat4f & cameraTransform, Node * root, Condition && condition, std::vector<Object*> & objects);
+
     void update(std::chrono::time_point<std::chrono::steady_clock> now, float delta, IntrusiveList<Object> & objects, 
         const AnimationManager & animationManager);
     void draw(rhi::runtime::CommandListPtr & commandList, rhi::runtime::CommandListPtr & transferCommandList, uint8_t frame, 
         const mat4f & cameraTransform, IntrusiveList<Object> & objects);
 
 private:
-    bool compareObjectsForDraw(const Object & a, const Object & b) const noexcept;
+    static bool compareObjectsForDraw(const Object & a, const Object & b) noexcept;
     void prepareDrawData(IntrusiveList<Object> & objects, uint8_t frame) noexcept;
 
     uint32_t calculateTargetStagingSize() const noexcept;
@@ -156,5 +165,43 @@ private:
 
     rhi::SamplerValue _linearSampler;
 };
+
+template <typename Condition>
+void Scene::fillRenderObjects(const mat4f & cameraTransform, Node * root, Condition && condition, std::vector<Object*> & objects) {
+    const Frustum frustum(cameraTransform);
+    objects.clear();
+    objects.reserve(1024u);
+
+    recalculateHierarchy(root, [this, &frustum, &cameraTransform, &objects, &condition](Node * n) noexcept { 
+        if (n->isHidden()) {
+            return false;
+        }
+
+        const auto & bounds = n->bounds;
+        const auto & worldTransform = n->getWorldTransform();
+        if (bounds.type != Bounds::Type::eNone) {
+            if (!frustum.checkBounds(bounds.transform(worldTransform))) {
+                return false;
+            }
+        }
+
+        if (auto * object = n->getObject() && condition(object)) {
+            objects.emplace_back(object);
+        }
+
+        if constexpr (kDebugDrawBounds) {
+            if (_debugDraw) {
+                const auto transform = cameraTransform * worldTransform;
+                _debugDraw->drawGizmo(1.0f, transform);
+                _debugDraw->drawBounds(bounds, 0xff00ffffu, transform);
+            }
+        }
+        return true;
+    });
+
+    std::sort(objects.begin(), objects.end(), [](const Object * a, const Object * b) noexcept {
+        return compareObjectsForDraw(*a, *b);
+    });
+}
 
 }

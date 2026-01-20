@@ -10,6 +10,7 @@
 #define GLM_FORCE_CXX20
 #define GLM_FORCE_MESSAGES
 #define GLM_FORCE_XYZW_ONLY
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
 // glm options
 
 #include <glm/glm.hpp>

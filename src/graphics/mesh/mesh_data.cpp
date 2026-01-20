@@ -273,7 +273,7 @@ namespace engine::graphics::models {
 		sceneNodes = layout.scenes[layout.scene].nodes;
 		nodes = layout.nodes; // copy data
 
-        auto loadMeshNode = [&](const auto & self, uint16_t nodeId) -> void {
+        auto loadMeshNode = [&](const auto & self, uint16_t nodeId) noexcept -> void {
             const auto & node = nodes[nodeId];
 
             if (node.mesh != kInvalidValue) {

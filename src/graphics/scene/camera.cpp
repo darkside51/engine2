@@ -4,14 +4,14 @@ namespace engine::scene {
 
     void Camera::makePerspective(float fov, float aspect, float znear, float zfar) noexcept {
         _type = ProjectionType::ePerspective;
-		_projection = glm::perspective(fov, aspect, znear, zfar);
+		_projection = glm::perspectiveRH_ZO(fov, aspect, znear, zfar);
 		_projection[1][1] *= -1.0f;
 		_dirty->transform = 1u;
     }
 
     void Camera::makeOrtho(float left, float right, float bottom, float top, float znear, float zfar) noexcept {
         _type = ProjectionType::eOrtho;
-		_projection = glm::ortho(left, right, bottom, top, znear, zfar);
+		_projection = glm::orthoRH_ZO(left, right, bottom, top, znear, zfar);
 		_projection[3][2] = 0.0f;
 		_projection[1][1] *= -1.0f;
 		_dirty->transform = 1u;

@@ -1,10 +1,14 @@
 #pragma once
 
 namespace engine {
-
+    template <typename T>
+    struct IntrusiveList;
+    
     template <typename T>
     struct IntrusiveListNode {
         using Type = T;
+        using Iterator = IntrusiveList<T>::Iterator;
+
         IntrusiveListNode<T> * next = nullptr;
         IntrusiveListNode<T> * prev = nullptr;
 
