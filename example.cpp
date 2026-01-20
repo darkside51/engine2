@@ -546,25 +546,30 @@ namespace example {
         };
 
         _meshPositions = _api->createBuffer(*_device, meshVtxBufferInfo, meshVtx[0u].size());
+        _meshNormals = _api->createBuffer(*_device, meshVtxBufferInfo, meshVtx[1u].size());
         _meshUvs = _api->createBuffer(*_device, meshVtxBufferInfo, meshVtx[2u].size());
         _meshIndices = _api->createBuffer(*_device, meshIdxBufferInfo, sizeof(uint32_t) * meshIdx.size());
 
         const auto meshVtxDataSize = meshVtx[0u].size();
+        const auto meshNormalsDataSize = meshVtx[1u].size();
         const auto meshUvDataSize = meshVtx[2u].size();
         const auto meshIdxDataSize = sizeof(uint32_t) * meshIdx.size();
 
-        const auto stagingMeshSize = meshVtxDataSize + meshUvDataSize + meshIdxDataSize;
+        const auto stagingMeshSize = meshVtxDataSize + meshNormalsDataSize + meshUvDataSize + meshIdxDataSize;
         StagingBuffer stagingMesh{*_api, *_device, stagingMeshSize};
         std::byte * memoryMeshStaging = stagingMesh.map();
         const auto vtxOffsetMesh = stagingMesh.requestBytes(meshVtxDataSize);
+        const auto normalOffsetMesh = stagingMesh.requestBytes(meshNormalsDataSize);
         const auto uvOffsetMesh = stagingMesh.requestBytes(meshUvDataSize);
         const auto idxOffsetMesh = stagingMesh.requestBytes(meshIdxDataSize);
 
         auto * vtxDataMeshPositions = (memoryMeshStaging + vtxOffsetMesh);
+        auto * vtxDataMeshNormals = (memoryMeshStaging + normalOffsetMesh);
         auto * vtxDataMeshUvs = (memoryMeshStaging + uvOffsetMesh);
         auto * idxDataMesh = (memoryMeshStaging + idxOffsetMesh);
 
         std::memcpy(vtxDataMeshPositions, meshVtx[0u].data(), meshVtxDataSize);
+        std::memcpy(vtxDataMeshNormals, meshVtx[1u].data(), meshNormalsDataSize);
         std::memcpy(vtxDataMeshUvs, meshVtx[2u].data(), meshUvDataSize);
         std::memcpy(idxDataMesh, meshIdx.data(), meshIdxDataSize);
 
@@ -573,6 +578,8 @@ namespace example {
 
         tmpCommandList->copyBuffer2Buffer(stagingMesh.getBuffer(), _meshPositions, 
             {.srcOffset = vtxOffsetMesh, .dstOffset = 0u, .size = _meshPositions->sizeInBytes()});
+        tmpCommandList->copyBuffer2Buffer(stagingMesh.getBuffer(), _meshNormals, 
+            {.srcOffset = normalOffsetMesh, .dstOffset = 0u, .size = _meshNormals->sizeInBytes()});
         tmpCommandList->copyBuffer2Buffer(stagingMesh.getBuffer(), _meshUvs, 
             {.srcOffset = uvOffsetMesh, .dstOffset = 0u, .size = _meshUvs->sizeInBytes()});
         tmpCommandList->copyBuffer2Buffer(stagingMesh.getBuffer(), _meshIndices, 
@@ -1354,7 +1361,8 @@ namespace example {
         // mesh test
         commandList->bindPipeline(_pipelines[kMeshTestPipeline]);
         commandList->bindVertexBuffer(0u, _meshPositions);
-        commandList->bindVertexBuffer(1u, _meshUvs);
+        commandList->bindVertexBuffer(1u, _meshNormals);
+        commandList->bindVertexBuffer(2u, _meshUvs);
         commandList->bindIndexBuffer(_meshIndices, 0u, rhi::IndexType::eU32);
         commandList->bindBuffer(0u, (*_uniformBufferI)(frameId), 0u, 0u, sizeof(UniformBuffer));
         // commandList->drawIndexed(_meshIndices->sizeInBytes() / sizeof(uint32_t), 4'000u);

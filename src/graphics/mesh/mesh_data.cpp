@@ -261,7 +261,62 @@ namespace engine::graphics::models {
             meshopt_remapVertexBuffer(vertexBuffer.data(), vertexBuffer.data(), vertexCount, streams[j].size, remap.data());
             ++j;
         }
-        
+      
+        // quantize attributes
+        for (size_t i = 0u; i < allowedAttributes.size(); ++i) {
+            if (allowedAttributes[i] == AttributesSemantic::ePosition) {
+                constexpr auto quantizePositionSemanticSize = 6u; // eR16G16B16_Sfloat
+                constexpr auto defaultPositionSemanticSize = kDefaultSemanticsSizeBytes[0u];
+                std::vector<std::byte> vertices(vertexCount * quantizePositionSemanticSize);
+                auto & vb = vertexBuffersData[i];
+                for (size_t n = 0u; n < vertexCount; ++n) {
+                    const float * position = reinterpret_cast<const float*>(&vb[n * defaultPositionSemanticSize]);
+                    uint16_t * targetPosition = reinterpret_cast<uint16_t*>(&vertices[n * quantizePositionSemanticSize]);
+
+                    targetPosition[0u] = meshopt_quantizeHalf(position[0u]);
+                    targetPosition[1u] = meshopt_quantizeHalf(position[1u]);
+                    targetPosition[2u] = meshopt_quantizeHalf(position[2u]);
+                }
+                std::swap(vertices, vb);
+            }
+
+            if (allowedAttributes[i] == AttributesSemantic::eNormal) {
+                constexpr auto quantizeNormalSemanticSize = 3u; // eR8G8B8_Snorm
+                constexpr auto defaultNormalSemanticSize = kDefaultSemanticsSizeBytes[1u];
+                std::vector<std::byte> vertices(vertexCount * quantizeNormalSemanticSize);
+                auto & vb = vertexBuffersData[i];
+                for (size_t n = 0u; n < vertexCount; ++n) {
+                    const float * normal = reinterpret_cast<const float*>(&vb[n * defaultNormalSemanticSize]);
+
+                    vertices[n * quantizeNormalSemanticSize + 0u] = static_cast<std::byte>(meshopt_quantizeSnorm(normal[0u], 8u));
+                    vertices[n * quantizeNormalSemanticSize + 1u] = static_cast<std::byte>(meshopt_quantizeSnorm(normal[1u], 8u));
+                    vertices[n * quantizeNormalSemanticSize + 2u] = static_cast<std::byte>(meshopt_quantizeSnorm(normal[2u], 8u));
+                }
+                std::swap(vertices, vb);
+            }
+
+            if (allowedAttributes[i] == AttributesSemantic::eUv0) {
+                constexpr auto quantizeUvSemanticSize = 4u; // eR16G16_Sfloat
+                constexpr auto defaultUvSemanticSize = kDefaultSemanticsSizeBytes[9u];
+                std::vector<std::byte> vertices(vertexCount * quantizeUvSemanticSize);
+                auto & vb = vertexBuffersData[i];
+                for (size_t n = 0u; n < vertexCount; ++n) {
+                    const float * uv = reinterpret_cast<const float*>(&vb[n * defaultUvSemanticSize]);
+                    uint16_t * targetUv = reinterpret_cast<uint16_t*>(&vertices[n * quantizeUvSemanticSize]);
+                    targetUv[0u] = meshopt_quantizeHalf(uv[0u]);
+                    targetUv[1u] = meshopt_quantizeHalf(uv[1u]);
+                    // const uint16_t u = meshopt_quantizeUnorm(uv[0u], 16u);
+                    // const uint16_t v = meshopt_quantizeUnorm(uv[1u], 16u);
+
+                    // vertices[n * quantizeUvSemanticSize + 0u] = static_cast<std::byte>(u);
+                    // vertices[n * quantizeUvSemanticSize + 1u] = static_cast<std::byte>(u >> 8u);
+                    // vertices[n * quantizeUvSemanticSize + 2u] = static_cast<std::byte>(v);
+                    // vertices[n * quantizeUvSemanticSize + 3u] = static_cast<std::byte>(v >> 8u);
+                }
+                std::swap(vertices, vb);
+            }
+        }
+
         ////
         for (auto & vertexBuffer : vertexBuffersData) {
             vertexBuffer.shrink_to_fit();

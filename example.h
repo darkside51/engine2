@@ -94,6 +94,7 @@ private:
 
     engine::rhi::runtime::BufferPtr _meshPositions = nullptr;
     engine::rhi::runtime::BufferPtr _meshUvs = nullptr;
+    engine::rhi::runtime::BufferPtr _meshNormals = nullptr;
     engine::rhi::runtime::BufferPtr _meshIndices = nullptr;
     bool _canDraw = true;
 
