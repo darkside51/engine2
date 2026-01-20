@@ -196,45 +196,7 @@ namespace engine::scene {
         }
     }
 
-    IntrusiveList<Object> Scene::makeRenderList(const mat4f & cameraTransform, Node * root) noexcept {
-        const Frustum frustum(cameraTransform);
-        IntrusiveList<Object> objects;
-
-        recalculateHierarchy(root, [this, &frustum, &cameraTransform, &objects](Node * n) noexcept { 
-            if (n->isHidden()) {
-                return false;
-            }
-
-            const auto & bounds = n->bounds;
-            const auto & worldTransform = n->getWorldTransform();
-            if (bounds.type != Bounds::Type::eNone) {
-                if (!frustum.checkBounds(bounds.transform(worldTransform))) {
-                    return false;
-                }
-            }
-
-            if (auto * object = n->getObject()) {
-                objects.emplace(object);
-            }
-
-            if constexpr (kDebugDrawBounds) {
-                if (_debugDraw) {
-                    const auto transform = cameraTransform * worldTransform;
-                    _debugDraw->drawGizmo(1.0f, transform);
-                    _debugDraw->drawBounds(bounds, 0xff00ffffu, transform);
-                }
-            }
-            return true;
-        });
-
-        objects.stable_sort([](const Object & a, const Object & b) noexcept {
-            return compareObjectsForDraw(a, b);
-        });
-
-        return objects;
-    }
-
-    void Scene::update(std::chrono::time_point<std::chrono::steady_clock> now, float delta, IntrusiveList<Object> & objects, 
+    void Scene::update(std::chrono::time_point<std::chrono::steady_clock> now, float delta, std::span<Object*> objects, 
         const AnimationManager & animationManager) {
         if (objects.empty()) {
             return;
@@ -242,14 +204,14 @@ namespace engine::scene {
 
         // static thread_local std::vector<animation::AnimatedObject> sequences; // todo: remove static
         
-        for (auto & object : objects) {
-            const auto * animInfo = object.animInfo;
+        for (auto * object : objects) {
+            const auto * animInfo = object->animInfo;
             while (animInfo) {
                 if (animInfo->info.weight > 0.0f) {
                     switch (animInfo->info.animationType) {
                     case ctti::typeIndex<Animation, FramesSequence>() : 
                     {
-                        _sequences.emplace_back(&animInfo->info, &object);
+                        _sequences.emplace_back(&animInfo->info, object);
                     }
                         break;
                     default:
@@ -290,12 +252,12 @@ namespace engine::scene {
         // todo: other types!
     }
 
-    void Scene::prepareDrawData(IntrusiveList<Object> & objects, uint8_t frame) noexcept {
+    void Scene::prepareDrawData(std::span<Object*> objects, uint8_t frame) noexcept {
         // resize buffers
         auto spritesVertexesCount = _spritesVertexesCount;
         auto spritesIndicesCount = _spritesIndicesCount;
-        for (auto const & object : objects) {
-            switch (object.typeIndex) {
+        for (auto const * object : objects) {
+            switch (object->typeIndex) {
             case ctti::typeIndex<Object, Sprite>():
                 spritesVertexesCount += 4u;
                 spritesIndicesCount += 6u;
@@ -340,7 +302,7 @@ namespace engine::scene {
     }
 
     void Scene::drawObjects(rhi::runtime::CommandListPtr & commandList, uint8_t frame, 
-        const mat4f & cameraTransform, Object::Iterator begin, Object::Iterator end, uint16_t typeIdx) {
+        const mat4f & cameraTransform, ObjectsIterator begin, ObjectsIterator end, uint16_t typeIdx) {
         switch (typeIdx) {
         case ctti::typeIndex<Object, Dummy>():
         {
@@ -358,7 +320,7 @@ namespace engine::scene {
     }
 
     void Scene::draw(rhi::runtime::CommandListPtr & commandList, rhi::runtime::CommandListPtr & transferCommandList, uint8_t frame, 
-        const mat4f & cameraTransform, IntrusiveList<Object> & objects) {
+        const mat4f & cameraTransform, std::span<Object*> objects) {
         if (objects.empty()) {
             return;
         }
@@ -366,13 +328,14 @@ namespace engine::scene {
         prepareDrawData(objects, frame);
 
         auto currentIt = objects.begin();
-        uint16_t typeIdx = currentIt->typeIndex;
-        for (auto it = currentIt; it != objects.end(); ++it) {
-            if (it->typeIndex != typeIdx) {
+        uint16_t typeIdx = (*currentIt)->typeIndex;
+        for (auto it = currentIt + 1u; it != objects.end(); ++it) {
+            const auto currenTypeIndex = (*it)->typeIndex;
+            if (currenTypeIndex != typeIdx) {
                 drawObjects(commandList, frame, cameraTransform, currentIt, it, typeIdx);
 
                 currentIt = it;
-                typeIdx = it->typeIndex;
+                typeIdx = currenTypeIndex;
             }
         }
 
@@ -381,22 +344,22 @@ namespace engine::scene {
         performCommits(transferCommandList, frame);
     }
 
-    void Scene::drawDummies(Object::Iterator begin, Object::Iterator end, const mat4f & cameraTransform, uint32_t color) {
+    void Scene::drawDummies(ObjectsIterator begin, ObjectsIterator end, const mat4f & cameraTransform, uint32_t color) {
         if (_debugDraw == nullptr) {
             return;
         }
 
         for (auto it = begin; it != end; ++it) {
             const auto & object = *it;
-            _debugDraw->drawSphere(vec3f{0.0f}, 0.1f, color, 32u, cameraTransform * object.node->getWorldTransform());
+            _debugDraw->drawSphere(vec3f{0.0f}, 0.1f, color, 32u, cameraTransform * object->node->getWorldTransform());
         }
     }
 
-    void Scene::drawSprites(rhi::runtime::CommandListPtr & commandList, uint8_t frame, Object::Iterator begin, Object::Iterator end, 
+    void Scene::drawSprites(rhi::runtime::CommandListPtr & commandList, uint8_t frame, ObjectsIterator begin, ObjectsIterator end, 
         const mat4f & cameraTransform) {
         auto currentIt = begin;
         auto it = currentIt;
-        const auto & sprite = static_cast<const Sprite&>(*it);
+        const auto & sprite = *static_cast<const Sprite*>(*it);
         uint32_t pipeline = sprite.getPipeline();
         auto image = sprite.getFrame().getImage();
         ++it;
@@ -404,7 +367,7 @@ namespace engine::scene {
         uint32_t batchVertexesCount = 4u;
         uint32_t batchIndicesCount = 6u;
         for (; it != end; ++it) {
-            const auto & sprite = static_cast<const Sprite&>(*it);
+            const auto & sprite = *static_cast<const Sprite*>(*it);
             const auto & currentImage = sprite.getFrame().getImage();
             const uint32_t currentPipeline = sprite.getPipeline();
 
@@ -429,10 +392,10 @@ namespace engine::scene {
         drawSpritesBatch(commandList, frame, currentIt, end, cameraTransform, batchVertexesCount, batchIndicesCount);
     }
 
-    void Scene::drawSpritesBatch(rhi::runtime::CommandListPtr & commandList, uint8_t frame, Object::Iterator begin, Object::Iterator end, 
+    void Scene::drawSpritesBatch(rhi::runtime::CommandListPtr & commandList, uint8_t frame, ObjectsIterator begin, ObjectsIterator end, 
         const mat4f & cameraTransform, uint32_t batchVertexesCount, uint32_t batchIndicesCount) {
 
-        const auto & sprite = static_cast<const Sprite&>(*begin);
+        const auto & sprite = *static_cast<const Sprite*>(*begin);
         const auto & pipeline = getPipeline(sprite.getPipeline());
         if (pipeline == nullptr) {
             return;
@@ -458,7 +421,7 @@ namespace engine::scene {
 
         uint32_t i = 0u, j = 0u;
         for (auto it = begin; it != end; ++it) {
-            const auto & sprite = static_cast<const Sprite&>(*it);
+            const auto & sprite = *static_cast<const Sprite*>(*it);
             const auto & frame2D = sprite.getFrame().getFrame();
             const auto mvp = cameraTransform * sprite.node->getWorldTransform();
 

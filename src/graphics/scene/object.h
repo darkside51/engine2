@@ -1,7 +1,7 @@
 #pragma once
 
-#include "math/math.h"
-#include "utils/intrusive_list.h"
+// #include "math/math.h"
+// #include "utils/intrusive_list.h"
 
 #include <cstdint>
 
@@ -11,7 +11,7 @@ namespace engine::scene {
     struct Node;
     struct AnimationInfoChain;
 
-    struct Object : IntrusiveListNode<Object> {
+    struct Object /*: IntrusiveListNode<Object>*/ {
         Node * node = nullptr;
         AnimationInfoChain * animInfo = nullptr;
        

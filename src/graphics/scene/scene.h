@@ -62,6 +62,8 @@ struct AnimatedObject {
 void attachObjectToNode(Object & object, Node & node) noexcept;
 
 class Scene {
+    using ObjectsIterator = std::span<Object*>::iterator;
+    
 public:
     Scene(debug::DebugDraw * debugDraw);
     ~Scene();
@@ -104,19 +106,17 @@ public:
     void initRenderData(rhi::runtime::Rhi & api, rhi::runtime::Device & device);
     void newFrame(std::chrono::time_point<std::chrono::steady_clock> now) noexcept;
 
-    IntrusiveList<Object> makeRenderList(const mat4f & cameraTransform, Node * root) noexcept;
-
     template <typename Condition>
     void fillRenderObjects(const mat4f & cameraTransform, Node * root, Condition && condition, std::vector<Object*> & objects);
 
-    void update(std::chrono::time_point<std::chrono::steady_clock> now, float delta, IntrusiveList<Object> & objects, 
+    void update(std::chrono::time_point<std::chrono::steady_clock> now, float delta, std::span<Object*> objects, 
         const AnimationManager & animationManager);
     void draw(rhi::runtime::CommandListPtr & commandList, rhi::runtime::CommandListPtr & transferCommandList, uint8_t frame, 
-        const mat4f & cameraTransform, IntrusiveList<Object> & objects);
+        const mat4f & cameraTransform, std::span<Object*> objects);
 
 private:
     static bool compareObjectsForDraw(const Object & a, const Object & b) noexcept;
-    void prepareDrawData(IntrusiveList<Object> & objects, uint8_t frame) noexcept;
+    void prepareDrawData(std::span<Object*> objects, uint8_t frame) noexcept;
 
     uint32_t calculateTargetStagingSize() const noexcept;
     void performCommits(rhi::runtime::CommandListPtr & commandList, uint8_t frame);
@@ -124,11 +124,11 @@ private:
 
     // draw
     void drawObjects(rhi::runtime::CommandListPtr & commandList, uint8_t frame, 
-        const mat4f & cameraTransform, Object::Iterator begin, Object::Iterator end, uint16_t typeIdx);
+        const mat4f & cameraTransform, ObjectsIterator begin, ObjectsIterator end, uint16_t typeIdx);
 
-    void drawDummies(Object::Iterator begin, Object::Iterator end, const mat4f & cameraTransform, uint32_t color);
-    void drawSprites(rhi::runtime::CommandListPtr & commandList, uint8_t frame, Object::Iterator begin, Object::Iterator end, const mat4f & cameraTransform);
-    void drawSpritesBatch(rhi::runtime::CommandListPtr & commandList, uint8_t frame, Object::Iterator begin, Object::Iterator end, 
+    void drawDummies(ObjectsIterator begin, ObjectsIterator end, const mat4f & cameraTransform, uint32_t color);
+    void drawSprites(rhi::runtime::CommandListPtr & commandList, uint8_t frame, ObjectsIterator begin, ObjectsIterator end, const mat4f & cameraTransform);
+    void drawSpritesBatch(rhi::runtime::CommandListPtr & commandList, uint8_t frame, ObjectsIterator begin, ObjectsIterator end, 
         const mat4f & cameraTransform, uint32_t batchVertexesCount, uint32_t batchIndicesCount);
 
     using NodesAllocator = allocators::PoolAllocatorChain<sizeof(Node), alignof(Node), false, false>;
@@ -186,7 +186,7 @@ void Scene::fillRenderObjects(const mat4f & cameraTransform, Node * root, Condit
             }
         }
 
-        if (auto * object = n->getObject() && condition(object)) {
+        if (auto * object = n->getObject(); (object != nullptr) && condition(object)) {
             objects.emplace_back(object);
         }
 

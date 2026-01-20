@@ -1046,7 +1046,7 @@ namespace example {
             
             auto * sprite2 = scene.createObject<engine::scene::Sprite>(*textureManager.findFrame("hero_sword"), 0u);
             engine::scene::attachObjectToNode(*sprite2, *node4);
-            //sprite2->setOrder(1u);
+            sprite2->setOrder(1u);
 
             sceneWorldRoot->addChild(node3);
             sceneWorldRoot->addChild(node4);
@@ -1220,7 +1220,8 @@ namespace example {
             sceneNodePtr->setTransform(tr);
         }
 
-        auto objects = scene.makeRenderList(cameraTransform, sceneWorldRoot); ///?
+        std::vector<engine::scene::Object*> objects(1024u);
+        scene.fillRenderObjects(cameraTransform, sceneWorldRoot, [](engine::scene::Object*) { return true; }, objects);
         scene.update(now, delta, objects, animationManager);
     }
 
@@ -1356,13 +1357,14 @@ namespace example {
         commandList->bindVertexBuffer(1u, _meshUvs);
         commandList->bindIndexBuffer(_meshIndices, 0u, rhi::IndexType::eU32);
         commandList->bindBuffer(0u, (*_uniformBufferI)(frameId), 0u, 0u, sizeof(UniformBuffer));
-        commandList->drawIndexed(_meshIndices->sizeInBytes() / sizeof(uint32_t), 4'000u);
-        // commandList->drawIndexed(31890u, 100u, 0u);
-        // commandList->drawIndexed(1017u, 100u, 31890u);
+        // commandList->drawIndexed(_meshIndices->sizeInBytes() / sizeof(uint32_t), 4'000u);
+        commandList->drawIndexed(31890u, 4'000u, 0u);
+        commandList->drawIndexed(1017u, 4'000u, 31890u);
         // mesh test
 
         scene.newFrame(now);
-        auto objects = scene.makeRenderList(cameraTransform, sceneWorldRoot);
+        std::vector<engine::scene::Object*> objects(1024u);
+        scene.fillRenderObjects(cameraTransform, sceneWorldRoot, [](engine::scene::Object*) { return true; }, objects);
         scene.draw(commandList, transferCommandList, frameId, cameraTransform, objects);
 
         debugDraw.prepare(*transferCommandList, frameId);
