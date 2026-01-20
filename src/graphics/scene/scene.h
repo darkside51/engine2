@@ -24,6 +24,7 @@
 namespace engine::scene {
 
 constexpr bool kDebugDrawBounds = true;
+constexpr uint32_t kFillNodesReserveSize = 1024u;
     
 class AnimationManager;
 
@@ -170,7 +171,7 @@ template <typename Condition>
 void Scene::fillRenderObjects(const mat4f & cameraTransform, Node * root, Condition && condition, std::vector<Object*> & objects) {
     const Frustum frustum(cameraTransform);
     objects.clear();
-    objects.reserve(1024u);
+    objects.reserve(kFillNodesReserveSize);
 
     recalculateHierarchy(root, [this, &frustum, &cameraTransform, &objects, &condition](Node * n) noexcept { 
         if (n->isHidden()) {
