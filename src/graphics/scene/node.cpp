@@ -93,13 +93,13 @@ namespace engine::scene {
     }
 
     void Node::applyTransformations() noexcept {
-        if (!state.isTransformationDirty()) {
+        if (!state.isTransformationsDirty()) {
             return;
         }
 
         transformation.apply(transform);
-        
-        state.setTransformationDirty(false);
+
+        state.setTransformationsDirty(false);
         state.setTransformDirty(true);
     }
 
