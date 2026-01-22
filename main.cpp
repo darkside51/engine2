@@ -79,7 +79,13 @@ int main() {
                 example.destroy();
             });
 
+            // uint32_t counter = 0u;
             while (glfwModule.process()) {
+                // LOG_I("%d", counter);
+                // if (++counter == 100) {
+                //     window0.close();
+                //     continue;
+                // }
                 mainThreadContext.performTasks();
                 example.deviceProcess();
                 std::this_thread::sleep_for(std::chrono::duration<float>(inputCheckTime));

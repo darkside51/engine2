@@ -2,6 +2,7 @@
 
 #include "math/math.h"
 #include "bounds.h"
+#include "transform.h"
 
 #include <cassert>
 #include <cstdint>
@@ -12,10 +13,11 @@ constexpr uint8_t kDirtyTransformBit = 0u;
 constexpr uint8_t kCulledBit = 1u;
 constexpr uint8_t kHiddenBit = 2u;
 constexpr uint8_t kChildrenTransformsDirty = 3u;
+constexpr uint8_t kTransformationDirty = 4u;
 
 constexpr uint8_t kDefaultState = 1u << kDirtyTransformBit | 
                                 0u << kCulledBit | 0u << kHiddenBit | 
-                                0u << kChildrenTransformsDirty;
+                                0u << kChildrenTransformsDirty | 0u << kTransformationDirty;
 
 struct Object;
 
@@ -39,6 +41,10 @@ struct Node {
             return state & (1u << kChildrenTransformsDirty);
         }
 
+        inline bool isTransformationDirty() const noexcept {
+            return state & (1u << kTransformationDirty);
+        }
+
         inline void setCulled(bool culled) noexcept {
             culled ? state |= (1u << kCulledBit) : state &= ~(1u << kCulledBit);
         }
@@ -53,6 +59,10 @@ struct Node {
 
         inline void setChildrenTransformsDirty(bool dirty) noexcept {
             dirty ? state |= (1u << kChildrenTransformsDirty) : state &= ~(1u << kChildrenTransformsDirty);
+        }
+
+        inline void setTransformationDirty(bool dirty) noexcept {
+            dirty ? state |= (1u << kTransformationDirty) : state &= ~(1u << kTransformationDirty);
         }
     };
 
@@ -70,6 +80,7 @@ struct Node {
     Object * object = nullptr;
     mat4f transform{1.0F};
     mat4f worldTransform{1.0F};
+    Transformation transformation{};
     Bounds bounds{};
     State state;
 
@@ -127,7 +138,35 @@ struct Node {
 
     const mat4f & getWorldTransform() const noexcept {
         return worldTransform;
-    } 
+    }
+    
+    // transformation
+    quatf getRotation() const noexcept { return transformation.getRotation(); }
+    vec3f getRotationAngles() const noexcept { return transformation.getRotationAngles(); }
+    vec3f getScale() const noexcept { return transformation.getScale(); }
+    vec3f getPosition() const noexcept { return transformation.getPosition(); }
+
+    void setPosition(const vec3f & p) noexcept {
+        if (transformation.setPosition(p)) {
+            state.setTransformationDirty(true);
+        }
+    }
+
+    template <typename T>
+    void setScale(T && s) noexcept {
+        if (transformation.setScale(s)) {
+            state.setTransformationDirty(true);
+        }
+    }
+
+    template <typename T>
+    void setRotation(T && r) noexcept {
+        if (transformation.setRotation(r)) {
+            state.setTransformationDirty(true);
+        }
+    }
+
+    void applyTransformations() noexcept;
 };
 
 // template <typename VisibleChecker>
@@ -149,6 +188,7 @@ void recalculateHierarchy(Node * root, VisibleChecker && v, bool forceRecalculat
     bool process = true;
     while (node != nullptr) {
         if (process) {
+            node->applyTransformations();
             if (node->calculateWorldTransform(forceRecalculate || (node->parent ? node->parent->isChildrenTransformsDirty() : false))) {
                 node->setChildrenTransformsDirty(true);
             }

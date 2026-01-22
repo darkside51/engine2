@@ -26,6 +26,7 @@
 #include "common/type_id.h"
 #include "graphics/scene/node.h"
 #include "graphics/scene/scene.h"
+#include "graphics/scene/transform.h"
 
 #include "graphics/debug/debug_draw.h"
 #include "graphics/texture/atlas.h"
@@ -1004,7 +1005,10 @@ namespace example {
             m1[3] = {1.5f, 0.0f, 0.0f, 1.0f};
 
             auto * node0 = scene.createNode();
-            node0->setTransform(m0);
+            node0->setScale(0.5f);
+            node0->setRotation(engine::vec3f{0.0f, 0.0f, 1.57f});
+            node0->setPosition(engine::vec3f{1.0f, 0.0f, 0.0f});
+            // node0->setTransform(m0);
             node0->setBounds(engine::scene::Bounds::createSphere(vec3f{0.0f}, 0.5f));
             sceneWorldRoot->addChild(node0);
 
@@ -1039,10 +1043,19 @@ namespace example {
                 // scene.destroyNode(node2);
             // }
 
-            auto m2 = engine::makeMatrix(0.01F);
-            auto * node3 = scene.createNode();
-            node3->setTransform(m2);
+            // engine::scene::Transformation transform(0.01f);
+            // transform.setRotation(engine::vec3f{1.0f, 0.0f, 0.0f});
+            // transform.setPosition(engine::vec3f(0.0f, 2.0f, 0.0f));
+            // auto mt = engine::mat4f{};
+            // transform.apply(mt);
 
+            auto * node3 = scene.createNode();
+            node3->setScale(engine::vec3f{0.01f});
+            node3->setRotation(engine::vec3f{1.0f, 0.0f, 0.0f});
+            node3->setPosition(engine::vec3f(0.0f, 2.0f, 0.0f));
+            // node3->setTransform(mt);
+
+            auto m2 = engine::makeMatrix(0.01F);
             auto * sprite = scene.createObject<engine::scene::Sprite>(*textureManager.findFrame("hero_head"), 0u);
             engine::scene::attachObjectToNode(*sprite, *node3);
 
@@ -1063,12 +1076,13 @@ namespace example {
                 m2[1][1] *= -0.25f;
 
                 auto const animId = animationManager.getAnimationIndex("anim0");
+
                 for (size_t i = 0u; i < 10u; ++i) {
                     for (size_t j = 0u; j < 10u; ++j) {
-                        m2[3] = {-3.0f + static_cast<float>(i) * 0.75f, -1.0f - static_cast<float>(j) * 0.75f, 0.0f, 1.0f};
                         auto * node5 = scene.createNode();
-                        node5->setTransform(m2);
-                        
+                        node5->setScale(engine::vec3f{0.0025f});
+                        node5->setPosition(engine::vec3f{-3.0f + static_cast<float>(i) * 0.75f, -1.0f - static_cast<float>(j) * 0.75f, 0.0f});
+
                         const auto * frame3 = textureManager.findFrame("explosion_33");
                         auto * sprite3 = scene.createObject<engine::scene::Sprite>(*frame3, 0u);
                         engine::scene::attachObjectToNode(*sprite3, *node5);
@@ -1084,6 +1098,7 @@ namespace example {
             sceneNodePtr = node0;
             sizeof(engine::scene::Bounds);
             sizeof(engine::scene::Node);
+            sizeof(engine::scene::Transformation);
         }
 
     }
@@ -1210,21 +1225,22 @@ namespace example {
     
         if (sceneNodePtr) {
             static bool n = false;
-            auto tr = sceneNodePtr->getTransform();
+            auto position = sceneNodePtr->getPosition();
             if (!n) {
-                if (tr[3][2] < 1.0f) {
-                    tr[3][2] += 1.0f * delta;
+                if (position.z < 1.0f) {
+                    position.z += 1.0f * delta;
                 } else {
                     n = true;
                 }
             } else {
-                if (tr[3][2] > 0.0f) {
-                    tr[3][2] -= 1.0f * delta;
+                if (position.z > 0.0f) {
+                    position.z -= 1.0f * delta;
                 } else {
                     n = false;
                 }
             }
-            sceneNodePtr->setTransform(tr);
+            sceneNodePtr->setPosition(position);
+            // sceneNodePtr->setTransform(tr);
         }
 
         std::vector<engine::scene::Object*> objects(1024u);

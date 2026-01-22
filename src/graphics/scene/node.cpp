@@ -92,4 +92,15 @@ namespace engine::scene {
         bounds = newBounds;
     }
 
+    void Node::applyTransformations() noexcept {
+        if (!state.isTransformationDirty()) {
+            return;
+        }
+
+        transformation.apply(transform);
+        
+        state.setTransformationDirty(false);
+        state.setTransformDirty(true);
+    }
+
 }
