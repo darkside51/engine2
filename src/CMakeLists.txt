@@ -94,6 +94,7 @@ set(
 	graphics/mesh
 	graphics/common
 	graphics/debug
+	graphics/utils
 	input
 	log
 	math

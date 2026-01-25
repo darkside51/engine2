@@ -27,8 +27,8 @@ namespace engine::graphics::models {
 
     struct Mesh_Geometry {
 		std::vector<Primitive> primitives;
-		uint16_t nodeIndex = kInvalidValue;
-        uint16_t skinIndex = kInvalidValue;
+		// uint16_t nodeIndex = kInvalidValue;
+        // uint16_t skinIndex = kInvalidValue;
 	};
 
     struct Mesh_Skin {

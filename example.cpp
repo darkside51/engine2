@@ -997,6 +997,64 @@ namespace example {
             sceneWorldRoot = scene.createNode();
             scene.rootNode()->addChild(sceneWorldRoot);
 
+            { // mesh hierarchy test
+                vec3f minCorner{std::numeric_limits<float>::max()};
+                vec3f maxCorner{std::numeric_limits<float>::lowest()};
+
+                auto loadNode = [&](const auto & self, const uint16_t nodeId, engine::scene::Node * parent) -> engine::scene::Node* {
+                    const auto & node = meshData.nodes[nodeId];
+                    auto * current = scene.createNode();
+                    if (parent) {
+                        parent->addChild(current);
+                    }
+
+                    current->setScale(vec3f{node.scale.x, node.scale.y, node.scale.z});
+                    current->setRotation(quatf{node.rotation.w, node.rotation.x, node.rotation.y, node.rotation.z});
+                    current->setPosition(vec3f{node.translation.x, node.translation.y, node.translation.z});
+
+                    current->applyTransformations();
+                    current->calculateWorldTransform(true);
+
+                    if (node.mesh != engine::graphics::models::kInvalidValue) {
+                        for (const auto & p : meshData.meshes[node.mesh].primitives) {
+                            const vec3f corner1 = current->worldTransform * vec4f(p.minCorner, 1.0f);
+				            const vec3f corner2 = current->worldTransform * vec4f(p.maxCorner, 1.0f);
+
+                            minCorner.x = std::min({minCorner.x, corner1.x, corner2.x});
+                            minCorner.y = std::min({minCorner.y, corner1.y, corner2.y});
+                            minCorner.z = std::min({minCorner.z, corner1.z, corner2.z});
+
+                            maxCorner.x = std::max({maxCorner.x, corner1.x, corner2.x});
+                            maxCorner.y = std::max({maxCorner.y, corner1.y, corner2.y});
+                            maxCorner.z = std::max({maxCorner.z, corner1.z, corner2.z});
+                        }
+
+                        // node.skin; // createMeshRenderObject with skin node(current) and primitiveves + skeleton
+                    }
+
+                    for (const uint16_t cNodeId : node.children) {
+                        self(self, cNodeId, current);
+                    }
+                    return current;
+                };
+
+                auto * meshRoot = scene.createNode();
+
+                for (const uint16_t nodeId : meshData.sceneNodes) {
+				    auto * node = loadNode(loadNode, nodeId, meshRoot);
+			    }
+
+                // engine::scene::hierarchyPass(meshRoot, [](engine::scene::Node * n) noexcept{ });
+                engine::scene::recalculateHierarchy(meshRoot, [](engine::scene::Node * n) noexcept { 
+                    return true;
+                });
+                meshRoot->setBounds(engine::scene::Bounds::createCube(minCorner, maxCorner));
+
+                meshRoot->setRotation(engine::vec3f(1.57f, 0.0f, 0.0f));
+                sceneWorldRoot->addChild(meshRoot);
+            }
+            
+
             auto m0 = engine::makeMatrix(0.5F);
             engine::rotateMatrix_z(m0, 1.57f);
             m0[3] = {1.0f, 0.0f, 0.0f, 1.0f};

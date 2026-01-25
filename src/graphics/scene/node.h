@@ -182,6 +182,31 @@ struct Node {
 //     }
 // }
 
+template <typename Function>
+void hierarchyPass(Node * root, Function && f) noexcept {
+    Node * node = root;
+    bool process = true;
+    while (node != nullptr) {
+        if (process) {
+            f(node);
+        }
+        
+        if (node->isVisible() && node->firstChild && process) {
+            node = node->firstChild;
+            process = true;
+        } else if (node->next != nullptr && node != root) {
+            node = node->next;
+            process = true;
+        } else {
+            node = node->parent;
+            process = false;
+            if (node == root) {
+                break;
+            }
+        }
+    }
+}
+
 template <typename VisibleChecker>
 void recalculateHierarchy(Node * root, VisibleChecker && v, bool forceRecalculate = false) noexcept {
     Node * node = root;

@@ -16,7 +16,7 @@ layout (set = 0, binding = 0) uniform UniformBuffer {
 
 void main() {
 	vec2 offset = vec2(-16.0 + mod(gl_InstanceIndex, 64) * 0.5, -16.0 + (gl_InstanceIndex / 64) * 0.5);
-	gl_Position = ubo.model * vec4(0.2 * a_position.xy + offset, 0.2 * -a_position.z, 1.0);
+	gl_Position = ubo.model * vec4(0.15 * a_position.xy + offset, 0.15 * -a_position.z, 1.0);
 	//v_normal = unpackUnorm4x8(a_normal).rgb;
 	v_normal = a_normal.rgb;
 	v_uv = a_uv;

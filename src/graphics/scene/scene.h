@@ -192,9 +192,12 @@ void Scene::fillRenderObjects(const mat4f & cameraTransform, Node * root, Condit
 
         if constexpr (kDebugDrawBounds) {
             if (_debugDraw) {
-                const auto transform = cameraTransform * worldTransform;
-                _debugDraw->drawGizmo(1.0f, transform);
-                _debugDraw->drawBounds(bounds, 0xff00ffffu, transform);
+                auto wtr = worldTransform;
+                wtr[0u] = glm::normalize(wtr[0u]);
+                wtr[1u] = glm::normalize(wtr[1u]);
+                wtr[2u] = glm::normalize(wtr[2u]);
+                _debugDraw->drawGizmo(0.1f, cameraTransform * wtr);
+                _debugDraw->drawBounds(bounds, 0xff00ffffu, cameraTransform * worldTransform);
             }
         }
         return true;

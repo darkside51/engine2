@@ -1,5 +1,6 @@
 #include "mesh_data.h"
 #include "gltf_loader.h"
+#include "graphics/utils/vertex_processing.h"
 
 #include "meshoptimizer.h"
 
@@ -273,9 +274,9 @@ namespace engine::graphics::models {
                     const float * position = reinterpret_cast<const float*>(&vb[n * defaultPositionSemanticSize]);
                     uint16_t * targetPosition = reinterpret_cast<uint16_t*>(&vertices[n * quantizePositionSemanticSize]);
 
-                    targetPosition[0u] = meshopt_quantizeHalf(position[0u]);
-                    targetPosition[1u] = meshopt_quantizeHalf(position[1u]);
-                    targetPosition[2u] = meshopt_quantizeHalf(position[2u]);
+                    targetPosition[0u] = float_to_uint16(position[0u]);
+                    targetPosition[1u] = float_to_uint16(position[1u]);
+                    targetPosition[2u] = float_to_uint16(position[2u]);
                 }
                 std::swap(vertices, vb);
             }
@@ -288,9 +289,9 @@ namespace engine::graphics::models {
                 for (size_t n = 0u; n < vertexCount; ++n) {
                     const float * normal = reinterpret_cast<const float*>(&vb[n * defaultNormalSemanticSize]);
 
-                    vertices[n * quantizeNormalSemanticSize + 0u] = static_cast<std::byte>(meshopt_quantizeSnorm(normal[0u], 8u));
-                    vertices[n * quantizeNormalSemanticSize + 1u] = static_cast<std::byte>(meshopt_quantizeSnorm(normal[1u], 8u));
-                    vertices[n * quantizeNormalSemanticSize + 2u] = static_cast<std::byte>(meshopt_quantizeSnorm(normal[2u], 8u));
+                    vertices[n * quantizeNormalSemanticSize + 0u] = static_cast<std::byte>(float_to_snorm(normal[0u], 8u));
+                    vertices[n * quantizeNormalSemanticSize + 1u] = static_cast<std::byte>(float_to_snorm(normal[1u], 8u));
+                    vertices[n * quantizeNormalSemanticSize + 2u] = static_cast<std::byte>(float_to_snorm(normal[2u], 8u));
                 }
                 std::swap(vertices, vb);
             }
@@ -303,10 +304,10 @@ namespace engine::graphics::models {
                 for (size_t n = 0u; n < vertexCount; ++n) {
                     const float * uv = reinterpret_cast<const float*>(&vb[n * defaultUvSemanticSize]);
                     uint16_t * targetUv = reinterpret_cast<uint16_t*>(&vertices[n * quantizeUvSemanticSize]);
-                    targetUv[0u] = meshopt_quantizeHalf(uv[0u]);
-                    targetUv[1u] = meshopt_quantizeHalf(uv[1u]);
-                    // const uint16_t u = meshopt_quantizeUnorm(uv[0u], 16u);
-                    // const uint16_t v = meshopt_quantizeUnorm(uv[1u], 16u);
+                    targetUv[0u] = float_to_uint16(uv[0u]);
+                    targetUv[1u] = float_to_uint16(uv[1u]);
+                    // const uint16_t u = float_to_unorm(uv[0u], 16u);
+                    // const uint16_t v = float_to_unorm(uv[1u], 16u);
 
                     // vertices[n * quantizeUvSemanticSize + 0u] = static_cast<std::byte>(u);
                     // vertices[n * quantizeUvSemanticSize + 1u] = static_cast<std::byte>(u >> 8u);
@@ -331,10 +332,10 @@ namespace engine::graphics::models {
         auto loadMeshNode = [&](const auto & self, uint16_t nodeId) noexcept -> void {
             const auto & node = nodes[nodeId];
 
-            if (node.mesh != kInvalidValue) {
-                meshes[node.mesh].nodeIndex = nodeId;
-                meshes[node.mesh].skinIndex = node.skin;
-            }
+            // if (node.mesh != kInvalidValue) {
+            //     meshes[node.mesh].nodeIndex = nodeId;
+            //     meshes[node.mesh].skinIndex = node.skin;
+            // }
 
             for (uint16_t cNodeId : node.children) {
 			    self(self, cNodeId);
