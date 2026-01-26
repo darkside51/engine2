@@ -96,7 +96,7 @@
 		"vertexInputState": {
 			"inputBindings": [
 				{
-					"stride" : 24,
+					"stride" : 16,
 					"binding" : 0,
 					"inputRate": "eVertex"
 				}
@@ -105,14 +105,14 @@
 				{
 					"location": 0,
                     "binding": 0,
-                    "format": "eR32G32B32A32_Sfloat",
+                    "format": "eR32G32B32_Sfloat",
                     "offset": 0
 				},
 				{
 					"location": 1,
                     "binding": 0,
-                    "format": "eR32G32_Sfloat",
-                    "offset": 16
+                    "format": "eR16G16_Sfloat",
+                    "offset": 12
 				}
 			]
 		}

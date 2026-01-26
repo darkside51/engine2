@@ -5,8 +5,10 @@
 #include "sprite/sprite.h"
 
 #include "graphics/render/rhi/common/command_list.h"
+#include "graphics/utils/vertex_processing.h"
 
 #include <algorithm>
+#include <array>
 
 #include <unordered_map>
 
@@ -33,8 +35,8 @@ namespace engine::scene {
     // };
 
      struct SpriteVertex {
-        vec4f position;
-        vec2f uv;
+        std::array<float, 3u> position;
+        std::array<uint16_t, 2u> uv;
     };
 
     constexpr uint32_t kSpriteVertexSize = sizeof(SpriteVertex);
@@ -436,21 +438,30 @@ namespace engine::scene {
 
             // fill vertexes and indices
             // vertexes
+            using namespace graphics;
+            auto v = mvp * vec4f(corner0.x, corner0.y, 0.0f, 1.0f);
+            v /= v.w;
             *(vMem + i + 0u) = {
-                .position = mvp * vec4f(corner0.x, corner0.y, 0.0f, 1.0f),
-                .uv = {frame2D.uvMin[0u], frame2D.uvMax[1u]}
+                .position = {v.x, v.y, v.z},
+                .uv = to_vec2u16(frame2D.uvMin[0u], frame2D.uvMax[1u])
             };
+            v = mvp * vec4f(corner1.x, corner0.y, 0.0f, 1.0f);
+            v /= v.w;
             *(vMem + i + 1u) = {
-                .position = mvp * vec4f(corner1.x, corner0.y, 0.0f, 1.0f),
-                .uv = {frame2D.uvMax[0u], frame2D.uvMax[1u]}
+                .position = {v.x, v.y, v.z},
+                .uv = to_vec2u16(frame2D.uvMax[0u], frame2D.uvMax[1u])
             };
+            v = mvp * vec4f(corner0.x, corner1.y, 0.0f, 1.0f);
+            v /= v.w;
             *(vMem + i + 2u) = {
-                .position = mvp * vec4f(corner0.x, corner1.y, 0.0f, 1.0f),
-                .uv = {frame2D.uvMin[0u], frame2D.uvMin[1u]}
+                .position = {v.x, v.y, v.z},
+                .uv = to_vec2u16(frame2D.uvMin[0u], frame2D.uvMin[1u])
             };
+            v = mvp * vec4f(corner1.x, corner1.y, 0.0f, 1.0f);
+            v /= v.w;
             *(vMem + i + 3u) = {
-                .position = mvp * vec4f(corner1.x, corner1.y, 0.0f, 1.0f),
-                .uv = {frame2D.uvMax[0u], frame2D.uvMin[1u]}
+                .position = {v.x, v.y, v.z},
+                .uv = to_vec2u16(frame2D.uvMax[0u], frame2D.uvMin[1u])
             };
             
             // indices
