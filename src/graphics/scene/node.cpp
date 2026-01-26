@@ -1,6 +1,8 @@
 #include "node.h"
 #include "object.h"
 
+#include "log/log.h"
+
 namespace engine::scene {
 
     void Node::setTransform(const mat4f & m) noexcept {
@@ -22,9 +24,39 @@ namespace engine::scene {
         return false;
     }
 
+    Node * Node::getChild(uint16_t nodeId) const noexcept {
+        if (firstChild == nullptr) {
+            return nullptr;
+        }
+
+        Node * n = firstChild;
+        while (n) {
+            if (n->id == nodeId) {
+                return n;
+            }
+            n = n->next;
+        }
+
+        return nullptr;
+    }
+
+    Node * Node::findChild(uint16_t nodeId) const noexcept {
+        auto * result = getChild(nodeId);
+        if (result == nullptr) {
+            Node * n = firstChild;
+            while (n) {
+                result = n->findChild(nodeId);
+                if (result) {
+                    break;
+                }
+            }
+        }
+        return result;
+    }
+
     void Node::addChild(Node * child) noexcept {
         if (child->parent) {
-            // todo: log
+            LOG_E("Node::addChild: child already has parent!");
             return;
         }
 
@@ -40,11 +72,12 @@ namespace engine::scene {
             n = n->next;
         }
         n->next = child;
+        child->setTransformDirty(true);
     }
 
     bool Node::removeChild(Node * child) noexcept {
         if (child->parent != this || !firstChild) {
-            // todo: log
+            LOG_E("Node::removeChild: child has no parent!");
             return false;
         }
 

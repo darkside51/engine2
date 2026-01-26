@@ -22,6 +22,7 @@ constexpr uint8_t kDefaultState = 1u << kDirtyTransformBit |
 struct Object;
 
 struct Node {
+    inline static constexpr uint16_t kUnknownId = 0xff'ff;
     struct State {
         uint8_t state = kDefaultState;
 
@@ -82,20 +83,22 @@ struct Node {
     mat4f worldTransform{1.0F};
     Transformation transformation{};
     Bounds bounds{};
-    State state;
+    uint16_t id = kUnknownId;
+    State state{kDefaultState};
+
+    uint16_t getId() const noexcept { return id; }
+    void setId(uint16_t nodeId) noexcept { id = nodeId; }
 
     void setTransform(const mat4f & m) noexcept;
     bool calculateWorldTransform(bool recalculate) noexcept;
     void setBounds(const Bounds & newBounds) noexcept;
 
-    void addChild(Node * child) noexcept;
-    bool removeChild(Node * child) noexcept;
-    bool removeFromParent() noexcept;
-
+    // object
     void setObject(Object * object) noexcept;
     Object * removeObject() noexcept;
     Object * getObject() const noexcept;
 
+    // state
     inline bool isCulled() const noexcept {
         return state.isCulled();
     }
@@ -139,7 +142,15 @@ struct Node {
     const mat4f & getWorldTransform() const noexcept {
         return worldTransform;
     }
-    
+
+    // children
+    void addChild(Node * child) noexcept;
+    bool removeChild(Node * child) noexcept;
+    bool removeFromParent() noexcept;
+
+    Node * getChild(uint16_t nodeId) const noexcept;
+    Node * findChild(uint16_t nodeId) const noexcept;
+
     // transformation
     quatf getRotation() const noexcept { return transformation.getRotation(); }
     vec3f getRotationAngles() const noexcept { return transformation.getRotationAngles(); }
