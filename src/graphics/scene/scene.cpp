@@ -63,6 +63,7 @@ namespace engine::scene {
 
     void Scene::destroy() noexcept {
         destroyNode(_rootNode);
+        _rootNode = nullptr;
 
         _sequences.clear();
         _spritesVertices = nullptr;
@@ -76,6 +77,10 @@ namespace engine::scene {
     }
 
     void Scene::destroyNode(Node * node) noexcept {
+        if (node == nullptr) {
+            return;
+        }
+
         if (node->removeFromParent() || node == _rootNode) {
             if (Node * n = node->firstChild) {
                 while (n->next) {
