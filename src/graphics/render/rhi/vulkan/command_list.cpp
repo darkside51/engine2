@@ -477,6 +477,13 @@ namespace engine::vulkan::runtime {
                 }
             }
                 break;
+            case CommandType::ePushConstants:
+            {
+                const auto * command = static_cast<PushConstantsCommand*>(cmd);
+                vkCmdPushConstants(_commandbuffer(), currentPipeline->layout, utils::convert2vk(command->stages), 
+                    command->offset, command->size, command->data.data());
+            }
+                break;
             case CommandType::eDraw:
             {
                 applyDescriptorSets();

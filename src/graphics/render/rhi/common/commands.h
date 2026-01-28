@@ -6,6 +6,7 @@
 #include "utils/dynamic_array.h"
 #include "log/log.h"
 
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <optional>
@@ -43,6 +44,7 @@ namespace engine::rhi::runtime {
         eCopyQueryPoolResults = 24u,
         eDispatch = 25u,
         eUpdateBuffer = 26u,
+        ePushConstants = 27u,
     };
 
     class CommandList;
@@ -216,6 +218,20 @@ namespace engine::rhi::runtime {
             }
     };
 
+    struct PushConstantsCommand : Command {
+        uint32_t offset = 0u;
+        uint32_t size = 0u;
+        shaders::Stages stages = shaders::Stages::eNone;
+        std::array<std::byte, 128u> data;
+        PushConstantsCommand(shaders::Stages stages, uint32_t offset, uint32_t size, void * bytes) : 
+            Command(CommandType::ePushConstants, sizeof(PushConstantsCommand)),
+            stages(stages),
+            offset(offset),
+            size(size) {
+                memcpy(data.data(), bytes, size);
+            }
+    };
+
     struct DrawCommand : Command {
         uint32_t vertexCount = 0u;
         uint32_t instanceCount = 1u;
@@ -361,7 +377,8 @@ namespace engine::rhi::runtime {
             case CommandType::eWriteTimestamp: [[fallthrough]];
             case CommandType::eCopyQueryPoolResults: [[fallthrough]];
             case CommandType::eDispatch: [[fallthrough]];
-            case CommandType::eUpdateBuffer:
+            case CommandType::eUpdateBuffer: [[fallthrough]];
+            case CommandType::ePushConstants:
                 return;
             case CommandType::eBeginRenderPass: {
                 static_cast<const BeginRenderPassCommand*>(this)->~BeginRenderPassCommand();

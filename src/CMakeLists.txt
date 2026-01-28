@@ -89,7 +89,7 @@ set(
 	graphics/scene/animation/action
 	graphics/scene/animation/mesh
 	graphics/scene/animation/texture
-	graphics/scene/sprite
+	graphics/scene/objects
 	graphics/texture
 	graphics/mesh
 	graphics/common

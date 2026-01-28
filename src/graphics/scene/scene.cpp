@@ -2,7 +2,8 @@
 #include "animation.h"
 #include "animation_manager.h"
 #include "animation/texture/frame_sequence_animation.h"
-#include "sprite/sprite.h"
+#include "objects/sprite.h"
+#include "objects/mesh.h"
 
 #include "graphics/render/rhi/common/command_list.h"
 #include "graphics/utils/vertex_processing.h"
@@ -17,6 +18,7 @@ namespace engine::scene {
     constexpr float kTryReduceUsedMemoryTimePeriodSeconds = 5.0f;
     constexpr uint32_t kInitialVerticesCountMax = 1024u;
     constexpr uint32_t kInitialIndicesCountMax = 1024u;
+    constexpr uint32_t kInitialMeshTransformsCountMax = 128u;
     constexpr uint32_t kMinStagingSize = 100u * 1024u /*100 Kb*/;
     constexpr uint32_t kStaginBufferEnlargeSizeMult = 2u;
 
@@ -49,6 +51,9 @@ namespace engine::scene {
         case ctti::typeIndex<Object, Sprite>():
             static_cast<Sprite &>(object).attachToNode(&node);
             return;
+        case ctti::typeIndex<Object, Mesh>():
+            static_cast<Mesh &>(object).attachToNode(&node);
+            return;
         }
     }
 
@@ -70,6 +75,7 @@ namespace engine::scene {
         _sequences.clear();
         _spritesVertices = nullptr;
         _spritesIndices = nullptr;
+        _meshTransforms = nullptr;
         _staging = nullptr;
         _pipelines.clear();
     }
@@ -177,7 +183,14 @@ namespace engine::scene {
             api, device, indicesInfo, sizeof(uint32_t) * kInitialIndicesCountMax
         );
 
-        //
+        // meshes:
+        const rhi::BufferInfo storageInfo {
+            rhi::BufferUsageFlags::eStorage_Buffer | rhi::BufferUsageFlags::eTransfer_Dst,
+            rhi::MemoryPropertyFlags::eDeviceLocal
+        };
+        _meshTransforms = std::make_unique<graphics::InflightBuffer>(
+            api, device, storageInfo, sizeof(mat4f) * kInitialMeshTransformsCountMax
+        );
     }
 
     bool Scene::compareObjectsForDraw(const Object & a, const Object & b) noexcept {
@@ -198,6 +211,8 @@ namespace engine::scene {
             return static_cast<const Dummy &>(a).cmp(static_cast<const Dummy &>(b));
         case ctti::typeIndex<Object, Sprite>():
             return static_cast<const Sprite &>(a).cmp(static_cast<const Sprite &>(b));
+        case ctti::typeIndex<Object, Mesh>():
+            return static_cast<const Mesh &>(a).cmp(static_cast<const Mesh &>(b));
         default:
             return false;
         }
@@ -263,33 +278,49 @@ namespace engine::scene {
         // resize buffers
         auto spritesVertexesCount = _spritesVertexesCount;
         auto spritesIndicesCount = _spritesIndicesCount;
+        auto meshTransformsCount = _meshTransformsCount;
+
         for (auto const * object : objects) {
             switch (object->typeIndex) {
             case ctti::typeIndex<Object, Sprite>():
                 spritesVertexesCount += 4u;
                 spritesIndicesCount += 6u;
                 break;
+            case ctti::typeIndex<Object, Mesh>():
+                ++meshTransformsCount;
+                break;
             default:
                 break;
             }
         }
 
-        const auto vSize = static_cast<uint32_t>((spritesVertexesCount) * kSpriteVertexSize);
-        const auto currentVSize = _spritesVertices->sizeInBytes();
-        bool spiteVtxChanged = false;
-        if (currentVSize <= vSize) {
-            _spritesVertices->resize(std::max(currentVSize * 2u, vSize));
+        {
+            const auto size = static_cast<uint32_t>((spritesVertexesCount) * kSpriteVertexSize);
+            const auto currentSize = _spritesVertices->sizeInBytes();
+            if (currentSize <= size) {
+                _spritesVertices->resize(std::max(currentSize * 2u, size));
+            }
         }
 
-        const auto iSize = static_cast<uint32_t>((spritesIndicesCount) * sizeof(uint32_t));
-        const auto currentISize = _spritesIndices->sizeInBytes();
-        bool spiteIdxChanged = false;
-        if (currentISize <= iSize) {
-            _spritesIndices->resize(std::max(currentISize * 2u, iSize));
+        {
+            const auto size = static_cast<uint32_t>((spritesIndicesCount) * sizeof(uint32_t));
+            const auto currentSize = _spritesIndices->sizeInBytes();
+            if (currentSize <= size) {
+                _spritesIndices->resize(std::max(currentSize * 2u, size));
+            }
+        }
+
+        {
+            const auto size = static_cast<uint32_t>((meshTransformsCount) * sizeof(mat4f));
+            const auto currentSize = _meshTransforms->sizeInBytes();
+            if (currentSize <= size) {
+                _meshTransforms->resize(std::max(currentSize * 2u, size));
+            }
         }
 
         _spritesVertices->applySize(frame);
         _spritesIndices->applySize(frame);
+        _meshTransforms->applySize(frame);
 
         // staging buffer
         if (auto const stagingTargetSize = calculateTargetStagingSize(); stagingTargetSize > 0u) {
@@ -305,6 +336,7 @@ namespace engine::scene {
 
             _spritesVertices->setStagingBuffer(_staging.get());
             _spritesIndices->setStagingBuffer(_staging.get());
+            _meshTransforms->setStagingBuffer(_staging.get());
         }
     }
 
@@ -319,6 +351,11 @@ namespace engine::scene {
         case ctti::typeIndex<Object, Sprite>():
         {
             drawSprites(commandList, frame, begin, end, cameraTransform);
+        }
+            break;
+        case ctti::typeIndex<Object, Mesh>():
+        {
+            drawMeshes(commandList, frame, begin, end, cameraTransform);
         }
             break;
         default:
@@ -493,6 +530,75 @@ namespace engine::scene {
         _spritesIndicesCount += batchIndicesCount;
     }
 
+    void Scene::drawMeshes(rhi::runtime::CommandListPtr & commandList, uint8_t frame, ObjectsIterator begin, ObjectsIterator end, const mat4f & cameraTransform) {
+        auto currentIt = begin;
+        auto it = currentIt;
+        const auto & mesh = *static_cast<const Mesh*>(*it);
+        uint32_t pipeline = mesh.getPipeline();
+        // auto image = sprite.getFrame().getImage();
+        ++it;
+
+        for (; it != end; ++it) {
+            const auto & mesh = *static_cast<const Mesh*>(*it);
+            // const auto & currentImage = sprite.getFrame().getImage();
+            const uint32_t currentPipeline = mesh.getPipeline();
+
+            const bool completePack = currentPipeline != pipeline;// ||
+                                    //    currentImage.get() != image.get();
+
+            if (completePack) {
+                // draw
+                drawSameMeshes(commandList, frame, currentIt, it, cameraTransform);
+                // begin next pack
+                // image = currentImage;
+                pipeline = currentPipeline;
+                currentIt = it;
+            }
+        }
+
+        drawSameMeshes(commandList, frame, currentIt, end, cameraTransform);
+    }
+
+    void Scene::drawSameMeshes(rhi::runtime::CommandListPtr & commandList, uint8_t frame, ObjectsIterator begin, ObjectsIterator end, 
+        const mat4f & cameraTransform) {
+        const auto & mesh = *static_cast<const Mesh*>(*begin);
+        const auto & pipeline = getPipeline(mesh.getPipeline());
+        if (pipeline == nullptr) {
+            return;
+        }
+
+        auto * mem = _meshTransforms->memory2<mat4f>() + _meshTransformsCount;
+
+        uint32_t drawObjectsCount = 0u;
+        for (auto it = begin; it != end; ++it) {
+            const auto & mesh = *static_cast<const Mesh*>(*it);
+            const auto mvp = cameraTransform * mesh.node->getWorldTransform();
+            *(mem + drawObjectsCount) = mvp;
+
+            ++drawObjectsCount;
+        }
+
+        _meshTransforms->modify();
+
+        if (auto & transforms = (*_meshTransforms)(frame)) {
+            commandList->bindPipeline(pipeline);
+            commandList->bindVertexBuffer(0u, mesh.getAttribute(mesh::Semantic::ePosition).buffer, 0u);
+            commandList->bindVertexBuffer(1u, mesh.getAttribute(mesh::Semantic::eNormal).buffer, 0u);
+            commandList->bindVertexBuffer(2u, mesh.getAttribute(mesh::Semantic::eUv0).buffer, 0u);
+            
+            commandList->bindIndexBuffer(mesh.getIndices().buffer, 0u, rhi::IndexType::eU32);
+            commandList->bindBuffer(0u, (*_meshTransforms)(frame), 0u, 0u);
+            commandList->pushConstants(rhi::shaders::Stages::eVertex, 0u, sizeof(uint32_t), &_meshTransformsCount);
+
+            const auto & geometry = mesh.geometry();
+            for (const auto & p : geometry.primitives) {
+                commandList->drawIndexed(p.indexCount, drawObjectsCount, p.firstIndex);
+            }
+        }
+
+        _meshTransformsCount += drawObjectsCount;
+    }
+
     void Scene::reduceUsedMemory(std::chrono::time_point<std::chrono::steady_clock> now) noexcept {
         const std::chrono::duration<float> duration = now - _tryReduceUsedMemoryTime; // as default in seconds
 		const auto elapsed = duration.count();
@@ -500,17 +606,29 @@ namespace engine::scene {
         if (elapsed >= kTryReduceUsedMemoryTimePeriodSeconds) {
             _tryReduceUsedMemoryTime = now;
 
-            auto const vertexMinCount = std::max(_spritesVertexesCount, kInitialVerticesCountMax);
-            if (vertexMinCount * 2u < _lastFramesUsedSpritesVertexCount) {
-                _spritesVertices->resize(vertexMinCount * kSpriteVertexSize);
+            {
+                auto const minCount = std::max(_spritesVertexesCount, kInitialVerticesCountMax);
+                if (minCount * 2u < _lastFramesUsedSpritesVertexCount) {
+                    _spritesVertices->resize(minCount * kSpriteVertexSize);
+                }
+                _lastFramesUsedSpritesVertexCount = _spritesVertexesCount;
             }
-            _lastFramesUsedSpritesVertexCount = _spritesVertexesCount;
 
-            auto const indexMinCount = std::max(_spritesIndicesCount, kInitialIndicesCountMax);
-            if (indexMinCount * 2u < _lastFramesUsedSpritesIndicesCount) {
-                _spritesIndices->resize(indexMinCount * sizeof(uint32_t));
+            {
+                auto const minCount = std::max(_spritesIndicesCount, kInitialIndicesCountMax);
+                if (minCount * 2u < _lastFramesUsedSpritesIndicesCount) {
+                    _spritesIndices->resize(minCount * sizeof(uint32_t));
+                }
+                _lastFramesUsedSpritesIndicesCount = _spritesIndicesCount;
             }
-            _lastFramesUsedSpritesIndicesCount = _spritesIndicesCount;
+
+            {
+                auto const minCount = std::max(_meshTransformsCount, kInitialMeshTransformsCountMax);
+                if (minCount * 2u < _lastFramesUsedMeshTransformsCount) {
+                    _meshTransforms->resize(minCount * sizeof(mat4f));
+                }
+                _lastFramesUsedMeshTransformsCount = _meshTransformsCount;
+            }
 
             // for staging buffer
             if (_staging) {
@@ -522,9 +640,13 @@ namespace engine::scene {
                 }
             }
         } else {
-            if (_spritesVertexesCount > _lastFramesUsedSpritesVertexCount || _spritesIndicesCount > _lastFramesUsedSpritesIndicesCount) {
+            if (_spritesVertexesCount > _lastFramesUsedSpritesVertexCount || 
+                _spritesIndicesCount > _lastFramesUsedSpritesIndicesCount ||
+                _meshTransformsCount > _lastFramesUsedMeshTransformsCount
+            ) {
                 _lastFramesUsedSpritesVertexCount = _spritesVertexesCount;
                 _lastFramesUsedSpritesIndicesCount = _spritesIndicesCount;
+                _lastFramesUsedMeshTransformsCount = _meshTransformsCount;
                 _tryReduceUsedMemoryTime = now;
             }
         }
@@ -534,18 +656,20 @@ namespace engine::scene {
         reduceUsedMemory(now);
         _spritesVertexesCount = 0u;
         _spritesIndicesCount = 0u;
+        _meshTransformsCount = 0u;
     }
 
-    uint32_t Scene::calculateTargetStagingSize() const noexcept {
-        const bool useStagingBuffer = !_spritesVertices->isHostVisible() || !_spritesIndices->isHostVisible();
-        if (useStagingBuffer) {
-            return _spritesVertices->sizeInBytes() + _spritesIndices->sizeInBytes();
-        }
-        return 0u;
+    uint32_t Scene::calculateTargetStagingSize() const noexcept { 
+        constexpr auto bufferTargetSize = [](const graphics::InflightBuffer & buffer) noexcept {
+            return buffer.isHostVisible() ? 0u : buffer.sizeInBytes();
+        };
+
+        return bufferTargetSize(*_spritesVertices) + bufferTargetSize(*_spritesIndices) + bufferTargetSize(*_meshTransforms);
     }
 
     void Scene::performCommits(rhi::runtime::CommandListPtr & commandList, uint8_t frame) {
         _spritesVertices->commit(*commandList, frame);
         _spritesIndices->commit(*commandList, frame);
+        _meshTransforms->commit(*commandList, frame);
     }
 }

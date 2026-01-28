@@ -11,7 +11,7 @@ namespace engine::scene {
 
     class Sprite : public Object {
     public:
-        explicit Sprite(const graphics::ImageFrame2D & frame, uint32_t pipeline);
+        Sprite(const graphics::ImageFrame2D & frame, uint32_t pipeline);
         ~Sprite() /*override*/ = default;
 
         void setPipeline(uint32_t pipeline) noexcept;

@@ -78,9 +78,9 @@ namespace engine::graphics::models {
 
 		void loadSkins(const Layout & layout);
 		void loadAnimations(const Layout & layout);
-    	Mesh_Buffers_Data loadMeshes(const Layout & layout, std::span<const AttributesSemantic> allowedAttributes);
+    	Mesh_Buffers_Data loadMeshes(const Layout & layout, std::span<const AttributeSemantic> allowedAttributes);
 		void loadNodes(const Layout & layout);
 
-		void optimizeBuffers(std::span<std::vector<std::byte>> vertexBuffersData, std::vector<uint32_t> & indexBufferData, std::span<const AttributesSemantic> allowedAttributes);
+		void optimizeBuffers(std::span<std::vector<std::byte>> vertexBuffersData, std::vector<uint32_t> & indexBufferData, std::span<const AttributeSemantic> allowedAttributes);
 	};
 }

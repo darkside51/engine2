@@ -8,7 +8,7 @@
 
 namespace engine::graphics::models {
     
-    Mesh_Buffers_Data Mesh_Data::loadMeshes(const Layout & layout, std::span<const AttributesSemantic> allowedAttributes) {
+    Mesh_Buffers_Data Mesh_Data::loadMeshes(const Layout & layout, std::span<const AttributeSemantic> allowedAttributes) {
         meshes.reserve(layout.meshes.size());
 
         Mesh_Buffers_Data result;
@@ -91,13 +91,13 @@ namespace engine::graphics::models {
                     if (i < allowedAttributes.size()) {
                         const Accessor & accessor = layout.accessors[accessorId];
 
-                        if (semantic == AttributesSemantic::ePosition) { // position is vec3, alltimes is true?
+                        if (semantic == AttributeSemantic::ePosition) { // position is vec3, alltimes is true?
                             primitive.minCorner = vec3f(accessor.min[0], accessor.min[1], accessor.min[2]);
                             primitive.maxCorner = vec3f(accessor.max[0], accessor.max[1], accessor.max[2]);
                         }
 
                         const auto count = accessor.count;
-                        const auto semanticId = std::log2(std::to_underlying(semantic));
+                        const auto semanticId = std::to_underlying(semantic);
                         const auto semanticDimension = kDefaultSemanticsSizeBytes[semanticId];
                         const auto targetDataSize = count * semanticDimension;
 
@@ -164,7 +164,7 @@ namespace engine::graphics::models {
 
 ////
 
-                // std::array<std::pair<size_t, uint32_t>, std::to_underlying(AttributesSemantic::eSemanticsCount)> counts{}; 
+                // std::array<std::pair<size_t, uint32_t>, std::to_underlying(AttributeSemantic::eSemanticsCount)> counts{}; 
                 // for (const auto & [semantic, accessorId] : srcPrimitive.attributes) {
                 //     size_t i = 0u;
                 //     for (auto attributeSemantic : allowedAttributes) {
@@ -221,13 +221,13 @@ namespace engine::graphics::models {
         return result;
     }
 
-    void Mesh_Data::optimizeBuffers(std::span<std::vector<std::byte>> vertexBuffersData, std::vector<uint32_t> & indexBufferData, std::span<const AttributesSemantic> allowedAttributes) {
+    void Mesh_Data::optimizeBuffers(std::span<std::vector<std::byte>> vertexBuffersData, std::vector<uint32_t> & indexBufferData, std::span<const AttributeSemantic> allowedAttributes) {
         // mesh optimizer
         std::vector<meshopt_Stream> streams(vertexBuffersData.size());
 
         size_t j = 0U;
         for (auto & stream : streams) {
-            const auto semanticId = std::log2(std::to_underlying(allowedAttributes[j]));
+            const auto semanticId = std::to_underlying(allowedAttributes[j]);
             const auto semanticDimension = kDefaultSemanticsSizeBytes[semanticId];
             stream.size = semanticDimension;
             stream.stride = semanticDimension;
@@ -265,7 +265,7 @@ namespace engine::graphics::models {
       
         // quantize attributes
         for (size_t i = 0u; i < allowedAttributes.size(); ++i) {
-            if (allowedAttributes[i] == AttributesSemantic::ePosition) {
+            if (allowedAttributes[i] == AttributeSemantic::ePosition) {
                 constexpr auto quantizePositionSemanticSize = 6u; // eR16G16B16_Sfloat
                 constexpr auto defaultPositionSemanticSize = kDefaultSemanticsSizeBytes[0u];
                 std::vector<std::byte> vertices(vertexCount * quantizePositionSemanticSize);
@@ -281,7 +281,7 @@ namespace engine::graphics::models {
                 std::swap(vertices, vb);
             }
 
-            if (allowedAttributes[i] == AttributesSemantic::eNormal) {
+            if (allowedAttributes[i] == AttributeSemantic::eNormal) {
                 constexpr auto quantizeNormalSemanticSize = 3u; // eR8G8B8_Snorm
                 constexpr auto defaultNormalSemanticSize = kDefaultSemanticsSizeBytes[1u];
                 std::vector<std::byte> vertices(vertexCount * quantizeNormalSemanticSize);
@@ -296,7 +296,7 @@ namespace engine::graphics::models {
                 std::swap(vertices, vb);
             }
 
-            if (allowedAttributes[i] == AttributesSemantic::eUv0) {
+            if (allowedAttributes[i] == AttributeSemantic::eUv0) {
                 constexpr auto quantizeUvSemanticSize = 4u; // eR16G16_Sfloat
                 constexpr auto defaultUvSemanticSize = kDefaultSemanticsSizeBytes[9u];
                 std::vector<std::byte> vertices(vertexCount * quantizeUvSemanticSize);

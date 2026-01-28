@@ -83,8 +83,8 @@ namespace engine::graphics::models {
 	};
 
     struct Primitives {
-		// std::map<AttributesSemantic, uint16_t> attributes;
-		std::vector<std::pair<AttributesSemantic, uint16_t>> attributes;
+		// std::map<AttributeSemantic, uint16_t> attributes;
+		std::vector<std::pair<AttributeSemantic, uint16_t>> attributes;
 		uint16_t indices = kInvalidValue;
 		uint16_t material = kInvalidValue;
 		PrimitiveMode mode = PrimitiveMode::eTriangles;

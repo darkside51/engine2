@@ -1,0 +1,71 @@
+#pragma once
+
+#include "graphics/mesh/mesh_data.h"
+#include "graphics/mesh/types.h"
+#include "graphics/render/rhi/common/runtime.h"
+#include "graphics/scene/object.h"
+
+#include "math/math.h"
+
+#include <array>
+#include <cstdint>
+#include <utility>
+
+namespace engine::scene {
+
+namespace mesh {
+    using Semantic = graphics::models::AttributeSemantic;
+
+    struct Attribute {
+        rhi::runtime::BufferPtr buffer = nullptr;
+        // uint32_t offset = 0u;
+        // uint32_t size = 0u;
+    };
+}
+
+    class Mesh : public Object {
+    public:
+        Mesh(const graphics::models::Mesh_Data & meshData, uint16_t meshIdx, uint32_t pipeline);
+        ~Mesh() /*override*/ = default;
+
+        void setPipeline(uint32_t pipeline) noexcept;
+        uint32_t getPipeline() const noexcept;
+
+        bool cmp(const Mesh &) const noexcept;
+        void attachToNode(Node * node) noexcept;
+
+        void setIndices(mesh::Attribute attribute) noexcept {
+            _indices = std::move(attribute);
+        }
+
+        void setAttribute(mesh::Attribute attribute, mesh::Semantic semantic) noexcept {
+            _attributes[std::to_underlying(semantic)] = std::move(attribute);
+        }
+
+        const mesh::Attribute & getIndices() const noexcept {
+            return _indices;
+        }
+
+        const mesh::Attribute & getAttribute(mesh::Semantic semantic) const noexcept {
+            return _attributes[std::to_underlying(semantic)];
+        }
+
+        const graphics::models::Mesh_Data & meshData() const noexcept {
+            return _meshData;
+        }
+
+        const graphics::models::Mesh_Geometry geometry() const noexcept {
+            return _meshData.meshes[_meshIdx];
+        }
+
+    private:
+        const graphics::models::Mesh_Data & _meshData;
+
+        mesh::Attribute _indices;
+        std::array<mesh::Attribute, static_cast<uint8_t>(mesh::Semantic::eSemanticsCount)> _attributes;
+        
+        uint32_t _pipeline = 0u;
+        uint16_t _meshIdx = 0u;
+    };
+
+}

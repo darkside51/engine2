@@ -55,21 +55,21 @@ namespace engine::graphics::models {
         dst[3u] = src[0u];
     };
 
-    const static string_map<AttributesSemantic> semantics = {
-        {"POSITION", AttributesSemantic::ePosition},
-        {"NORMAL", AttributesSemantic::eNormal},
-        {"TANGENT", AttributesSemantic::eTangent},
-        {"COLOR_0", AttributesSemantic::eColor0},
-        {"COLOR_1", AttributesSemantic::eColor1},
-        {"COLOR_2", AttributesSemantic::eColor2},
-        {"COLOR_3", AttributesSemantic::eColor3},
-        {"JOINTS_0", AttributesSemantic::eJoints},
-        {"WEIGHTS_0", AttributesSemantic::eWeight},
-        {"TEXCOORD_0", AttributesSemantic::eUv0},
-        {"TEXCOORD_1", AttributesSemantic::eUv1},
-        {"TEXCOORD_2", AttributesSemantic::eUv2},
-        {"TEXCOORD_3", AttributesSemantic::eUv3},
-        {"TEXCOORD_4", AttributesSemantic::eUv4}
+    const static string_map<AttributeSemantic> semantics = {
+        {"POSITION", AttributeSemantic::ePosition},
+        {"NORMAL", AttributeSemantic::eNormal},
+        {"TANGENT", AttributeSemantic::eTangent},
+        {"COLOR_0", AttributeSemantic::eColor0},
+        {"COLOR_1", AttributeSemantic::eColor1},
+        {"COLOR_2", AttributeSemantic::eColor2},
+        {"COLOR_3", AttributeSemantic::eColor3},
+        {"JOINTS_0", AttributeSemantic::eJoints},
+        {"WEIGHTS_0", AttributeSemantic::eWeight},
+        {"TEXCOORD_0", AttributeSemantic::eUv0},
+        {"TEXCOORD_1", AttributeSemantic::eUv1},
+        {"TEXCOORD_2", AttributeSemantic::eUv2},
+        {"TEXCOORD_3", AttributeSemantic::eUv3},
+        {"TEXCOORD_4", AttributeSemantic::eUv4}
     };
 
     const static string_map<AccessorType> accesorTypes = {
@@ -177,8 +177,8 @@ namespace engine::graphics::models {
             const uint8_t mode = json::getValue(primitive, "mode", 4u);
 
             auto & meshPrimitive = mesh.primitives.emplace_back(
-                // std::map<AttributesSemantic, uint16_t>{}, 
-                std::vector<std::pair<AttributesSemantic, uint16_t>>{},
+                // std::map<AttributeSemantic, uint16_t>{}, 
+                std::vector<std::pair<AttributeSemantic, uint16_t>>{},
                 indices, 
                 material, 
                 static_cast<PrimitiveMode>(mode)

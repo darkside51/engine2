@@ -121,7 +121,7 @@
 		"blendModes": ["blend_none"],
 		"rasterisationState": {
 			"polygonMode": "eFill",
-			"cullmode": "eFront"
+			"cullmode": "eBack"
 		},
 		"depthStencilState": {
 			"depth": {

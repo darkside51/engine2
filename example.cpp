@@ -48,6 +48,7 @@ namespace example {
     constexpr uint8_t kDebugProgram = 4u;
     constexpr uint8_t kSpritesProgram = 5u;
     constexpr uint8_t kMeshProgram = 6u;
+    constexpr uint8_t  kMeshInstancedProgram = 7u;
 
     constexpr uint8_t kPostEffectPipeline = 0u;
     constexpr uint8_t kSceneTestPipeline = 1u;
@@ -473,6 +474,16 @@ namespace example {
 
             _programs.emplace_back(_api->createProgram(*_device, std::array{vsModule.getView(), fsModule.getView()}));
         }
+
+        { // kMeshInstancedProgram
+            auto const vBytes = _fileManager.readFile("shaders/mesh_instanced.vert.spv");
+            auto const fBytes = _fileManager.readFile("shaders/mesh.frag.spv");
+
+            const auto & vsModule = _shaderModulesManager->registerModule("mesh_instanced.vert", *_device, engine::rhi::shaders::Stages::eVertex, vBytes);
+            const auto & fsModule = _shaderModulesManager->registerModule("mesh.frag", *_device, engine::rhi::shaders::Stages::eFragment, fBytes);
+
+            _programs.emplace_back(_api->createProgram(*_device, std::array{vsModule.getView(), fsModule.getView()}));
+        }
     }
     
     void Example::createPipelines() {
@@ -505,7 +516,12 @@ namespace example {
         // scene pipelines
         const GraphicsPipelineStatesInfo info2 = engine::parseGraphicsPipelineInfo(json["sprite_common"]);
         scene.registerPipeline(_api->createGraphicsPipeline(*_device, _renderPasses[kSceneRenderPass], _programs[kSpritesProgram], info2, 0u));
+
+        const GraphicsPipelineStatesInfo info4 = engine::parseGraphicsPipelineInfo(json["mesh"]);
+        scene.registerPipeline(_api->createGraphicsPipeline(*_device, _renderPasses[kSceneRenderPass], _programs[kMeshInstancedProgram], info4, 0u));
     }
+
+    engine::graphics::models::Mesh_Data meshData;
 
     void Example::createDefaultResources() {
         using namespace engine::rhi;
@@ -519,17 +535,17 @@ namespace example {
         // gltf test
         auto const modelBytes = _fileManager.readFile("assets/models/model.glb");
         auto modelLayout = engine::graphics::models::loadModelLayout(modelBytes, "assets/models/");
-        engine::graphics::models::Mesh_Data meshData;
+        // engine::graphics::models::Mesh_Data meshData;
         meshData.loadSkins(modelLayout);
         meshData.loadAnimations(modelLayout);
 
-        // const auto semanticsArray = std::array {engine::graphics::models::AttributesSemantic::ePosition, 
-        //                                         engine::graphics::models::AttributesSemantic::eNormal | 
-        //                                         engine::graphics::models::AttributesSemantic::eUv0};
+        // const auto semanticsArray = std::array {engine::graphics::models::AttributeSemantic::ePosition, 
+        //                                         engine::graphics::models::AttributeSemantic::eNormal | 
+        //                                         engine::graphics::models::AttributeSemantic::eUv0};
 
-        const auto semanticsArray = std::array {engine::graphics::models::AttributesSemantic::ePosition, 
-                                                engine::graphics::models::AttributesSemantic::eNormal, 
-                                                engine::graphics::models::AttributesSemantic::eUv0};
+        const auto semanticsArray = std::array {engine::graphics::models::AttributeSemantic::ePosition, 
+                                                engine::graphics::models::AttributeSemantic::eNormal, 
+                                                engine::graphics::models::AttributeSemantic::eUv0};
 
         auto  [meshVtx, meshIdx] = meshData.loadMeshes(modelLayout, semanticsArray);
         meshData.optimizeBuffers(meshVtx, meshIdx, semanticsArray);
@@ -997,7 +1013,7 @@ namespace example {
             sceneWorldRoot = scene.createNode();
             scene.rootNode()->addChild(sceneWorldRoot);
 
-            { // mesh hierarchy test
+            for (size_t i = 0; i < 4; ++i) { // mesh hierarchy test
                 vec3f minCorner{std::numeric_limits<float>::max()};
                 vec3f maxCorner{std::numeric_limits<float>::lowest()};
 
@@ -1016,18 +1032,25 @@ namespace example {
                     current->calculateWorldTransform(true);
 
                     if (node.mesh != engine::graphics::models::kInvalidValue) {
-                        for (const auto & p : meshData.meshes[node.mesh].primitives) {
-                            const vec3f corner1 = current->worldTransform * vec4f(p.minCorner, 1.0f);
-				            const vec3f corner2 = current->worldTransform * vec4f(p.maxCorner, 1.0f);
+                        auto * mesh = scene.createObject<engine::scene::Mesh>(meshData, node.mesh, 1u);
+                        mesh->setIndices({_meshIndices});
+                        mesh->setAttribute({_meshPositions}, engine::scene::mesh::Semantic::ePosition);
+                        mesh->setAttribute({_meshNormals}, engine::scene::mesh::Semantic::eNormal);
+                        mesh->setAttribute({_meshUvs}, engine::scene::mesh::Semantic::eUv0);
+                        engine::scene::attachObjectToNode(*mesh, *current);
 
-                            minCorner.x = std::min({minCorner.x, corner1.x, corner2.x});
-                            minCorner.y = std::min({minCorner.y, corner1.y, corner2.y});
-                            minCorner.z = std::min({minCorner.z, corner1.z, corner2.z});
+                        // for (const auto & p : meshData.meshes[node.mesh].primitives) {
+                        //     const vec3f corner1 = current->worldTransform * vec4f(p.minCorner, 1.0f);
+				        //     const vec3f corner2 = current->worldTransform * vec4f(p.maxCorner, 1.0f);
 
-                            maxCorner.x = std::max({maxCorner.x, corner1.x, corner2.x});
-                            maxCorner.y = std::max({maxCorner.y, corner1.y, corner2.y});
-                            maxCorner.z = std::max({maxCorner.z, corner1.z, corner2.z});
-                        }
+                        //     minCorner.x = std::min({minCorner.x, corner1.x, corner2.x});
+                        //     minCorner.y = std::min({minCorner.y, corner1.y, corner2.y});
+                        //     minCorner.z = std::min({minCorner.z, corner1.z, corner2.z});
+
+                        //     maxCorner.x = std::max({maxCorner.x, corner1.x, corner2.x});
+                        //     maxCorner.y = std::max({maxCorner.y, corner1.y, corner2.y});
+                        //     maxCorner.z = std::max({maxCorner.z, corner1.z, corner2.z});
+                        // }
 
                         // node.skin; // createMeshRenderObject with skin node(current) and primitiveves + skeleton
                     }
@@ -1045,12 +1068,13 @@ namespace example {
 			    }
 
                 // engine::scene::hierarchyPass(meshRoot, [](engine::scene::Node * n) noexcept{ });
-                engine::scene::recalculateHierarchy(meshRoot, [](engine::scene::Node * n) noexcept { 
-                    return true;
-                });
-                meshRoot->setBounds(engine::scene::Bounds::createCube(minCorner, maxCorner));
+                // engine::scene::recalculateHierarchy(meshRoot, [](engine::scene::Node * n) noexcept { 
+                //     return true;
+                // });
+                // meshRoot->setBounds(engine::scene::Bounds::createCube(minCorner, maxCorner));
 
                 meshRoot->setRotation(engine::vec3f(1.57f, 0.0f, 0.0f));
+                meshRoot->setPosition(engine::vec3f(i * 1.0f, 0.0f, 0.0f));
                 sceneWorldRoot->addChild(meshRoot);
             }
             
@@ -1440,8 +1464,8 @@ namespace example {
         commandList->bindIndexBuffer(_meshIndices, 0u, rhi::IndexType::eU32);
         commandList->bindBuffer(0u, (*_uniformBufferI)(frameId), 0u, 0u, sizeof(UniformBuffer));
         // commandList->drawIndexed(_meshIndices->sizeInBytes() / sizeof(uint32_t), 4'000u);
-        commandList->drawIndexed(31890u, 4'000u, 0u);
-        commandList->drawIndexed(1017u, 4'000u, 31890u);
+        // commandList->drawIndexed(31890u, 4'000u, 0u);
+        // commandList->drawIndexed(1017u, 4'000u, 31890u);
         // mesh test
 
         scene.newFrame(now);

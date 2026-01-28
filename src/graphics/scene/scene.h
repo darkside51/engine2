@@ -131,6 +131,10 @@ private:
     void drawSpritesBatch(rhi::runtime::CommandListPtr & commandList, uint8_t frame, ObjectsIterator begin, ObjectsIterator end, 
         const mat4f & cameraTransform, uint32_t batchVertexesCount, uint32_t batchIndicesCount);
 
+    void drawMeshes(rhi::runtime::CommandListPtr & commandList, uint8_t frame, ObjectsIterator begin, ObjectsIterator end, const mat4f & cameraTransform);
+    void drawSameMeshes(rhi::runtime::CommandListPtr & commandList, uint8_t frame, ObjectsIterator begin, ObjectsIterator end, 
+        const mat4f & cameraTransform);   
+
     using NodesAllocator = allocators::PoolAllocatorChain<sizeof(Node), alignof(Node), false, false>;
     NodesAllocator _nodeAllocator{512u, 64u};
 
@@ -155,14 +159,18 @@ private:
 
     uint32_t _spritesVertexesCount = 0u;
     uint32_t _spritesIndicesCount = 0u;
+    uint32_t _meshTransformsCount = 0u;
 
     std::chrono::time_point<std::chrono::steady_clock> _tryReduceUsedMemoryTime;
     uint32_t _lastFramesUsedSpritesVertexCount = 0u;
     uint32_t _lastFramesUsedSpritesIndicesCount = 0u;
+    uint32_t _lastFramesUsedMeshTransformsCount = 0u;
     
     debug::DebugDraw * _debugDraw = nullptr;
     std::unique_ptr<graphics::InflightBuffer> _spritesVertices = nullptr;
     std::unique_ptr<graphics::InflightBuffer> _spritesIndices = nullptr;
+
+    std::unique_ptr<graphics::InflightBuffer> _meshTransforms = nullptr;
 
     rhi::SamplerValue _linearSampler;
 };

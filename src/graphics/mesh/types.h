@@ -27,28 +27,28 @@ namespace engine::graphics::models {
 		eMat4 = 6u
 	};
 
-    enum class AttributesSemantic : uint16_t {
-        ePosition = 1u << 0u,
-        eNormal = 1u << 1u,
-        eTangent = 1u << 2u,
-        eColor0 = 1u << 3u,
-        eColor1 = 1u << 4u,
-        eColor2 = 1u << 5u,
-        eColor3 = 1u << 6u,
-        eJoints = 1u << 7u,
-        eWeight = 1u << 8u,
-        eUv0 = 1u << 9u,
-        eUv1 = 1u << 10u,
-        eUv2 = 1u << 11u,
-        eUv3 = 1u << 12u,
-        eUv4 = 1u << 13u,
+    enum class AttributeSemantic : uint8_t {
+        ePosition = 0u,
+        eNormal = 1u,
+        eTangent = 2u,
+        eColor0 = 3u,
+        eColor1 = 4u,
+        eColor2 = 5u,
+        eColor3 = 6u,
+        eJoints = 7u,
+        eWeight = 8u,
+        eUv0 = 9u,
+        eUv1 = 10u,
+        eUv2 = 11u,
+        eUv3 = 12u,
+        eUv4 = 13u,
         eSemanticsCount = 14u
     };
-    // inline AttributesSemantic operator | (AttributesSemantic a, AttributesSemantic b) {
-    //     return static_cast<AttributesSemantic>(std::to_underlying(a) | std::to_underlying(b));
+    // inline AttributeSemantic operator | (AttributeSemantic a, AttributeSemantic b) {
+    //     return static_cast<AttributeSemantic>(std::to_underlying(a) | std::to_underlying(b));
     // }
-    // inline AttributesSemantic operator & (AttributesSemantic a, AttributesSemantic b) {
-    //     return static_cast<AttributesSemantic>(std::to_underlying(a) & std::to_underlying(b));
+    // inline AttributeSemantic operator & (AttributeSemantic a, AttributeSemantic b) {
+    //     return static_cast<AttributeSemantic>(std::to_underlying(a) & std::to_underlying(b));
     // }
 
     inline constexpr static auto kDefaultSemanticsSizeBytes = std::array{

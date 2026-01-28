@@ -148,6 +148,11 @@ namespace engine::rhi::runtime {
         _commands->create<BindImageSamplerCommand>(binding, nullptr, sampler, setId);
         ++_commandsCount;
     }
+
+    void CommandList::pushConstants(shaders::Stages stages, uint32_t offset, uint32_t size, void * bytes) noexcept {
+        _commands->create<PushConstantsCommand>(stages, offset, size, bytes);
+        ++_commandsCount;
+    }
 ///////////////////////
 
     // draw commands
