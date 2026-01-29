@@ -160,17 +160,21 @@ private:
     uint32_t _spritesVertexesCount = 0u;
     uint32_t _spritesIndicesCount = 0u;
     uint32_t _meshTransformsCount = 0u;
+    uint32_t _meshTransformsOffsetsCount = 0u;
 
     std::chrono::time_point<std::chrono::steady_clock> _tryReduceUsedMemoryTime;
     uint32_t _lastFramesUsedSpritesVertexCount = 0u;
     uint32_t _lastFramesUsedSpritesIndicesCount = 0u;
     uint32_t _lastFramesUsedMeshTransformsCount = 0u;
+    uint32_t _lastFramesUsedMeshTransformsOffsetsCount = 0u;
     
     debug::DebugDraw * _debugDraw = nullptr;
     std::unique_ptr<graphics::InflightBuffer> _spritesVertices = nullptr;
     std::unique_ptr<graphics::InflightBuffer> _spritesIndices = nullptr;
 
+    std::unordered_map<const Object*, uint32_t> _meshTransformIndices;
     std::unique_ptr<graphics::InflightBuffer> _meshTransforms = nullptr;
+    std::unique_ptr<graphics::InflightBuffer> _meshTransformsOffsets = nullptr;
 
     rhi::SamplerValue _linearSampler;
 };

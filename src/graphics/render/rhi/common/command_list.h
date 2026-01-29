@@ -45,7 +45,7 @@ namespace engine::rhi::runtime {
         void bindBuffer(uint16_t binding, const BufferPtr & buffer, uint8_t setId = 0u, uint32_t offset = 0u, uint32_t range = kWholeSize32) noexcept;
         void bindImage(uint16_t binding, const ImagePtr & image, std::optional<rhi::SamplerValue> sampler, uint8_t setId = 0u) noexcept;
         void bindSampler(uint16_t binding, const rhi::SamplerValue & sampler, uint8_t setId = 0u) noexcept;
-        void pushConstants(shaders::Stages stages, uint32_t offset, uint32_t size, void * bytes) noexcept;
+        void pushConstants(shaders::Stages stages, uint32_t offset, uint32_t size, const void * bytes) noexcept;
 
         void draw(uint32_t vertexCount, uint32_t instanceCount = 1u, uint32_t firstVertex = 0u, uint32_t firstInstance = 0u) noexcept;
         void drawIndexed(uint32_t indexCount, uint32_t instanceCount = 1u, uint32_t firstIndex = 0u, int32_t vertexOffset = 0u, 

@@ -6,7 +6,6 @@
 namespace engine::graphics {
     constexpr uint32_t kMaxMemoryBytesToCopyCommand = 65536u;
 
-
     InflightBuffer::~InflightBuffer() {
         _tmpMemory = nullptr;
 

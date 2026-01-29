@@ -149,7 +149,7 @@ namespace engine::rhi::runtime {
         ++_commandsCount;
     }
 
-    void CommandList::pushConstants(shaders::Stages stages, uint32_t offset, uint32_t size, void * bytes) noexcept {
+    void CommandList::pushConstants(shaders::Stages stages, uint32_t offset, uint32_t size, const void * bytes) noexcept {
         _commands->create<PushConstantsCommand>(stages, offset, size, bytes);
         ++_commandsCount;
     }

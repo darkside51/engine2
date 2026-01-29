@@ -223,7 +223,7 @@ namespace engine::rhi::runtime {
         uint32_t size = 0u;
         shaders::Stages stages = shaders::Stages::eNone;
         std::array<std::byte, 128u> data;
-        PushConstantsCommand(shaders::Stages stages, uint32_t offset, uint32_t size, void * bytes) : 
+        PushConstantsCommand(shaders::Stages stages, uint32_t offset, uint32_t size, const void * bytes) : 
             Command(CommandType::ePushConstants, sizeof(PushConstantsCommand)),
             stages(stages),
             offset(offset),
