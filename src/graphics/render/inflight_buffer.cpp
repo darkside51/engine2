@@ -4,7 +4,6 @@
 #include "graphics/render/rhi/common/command_list.h"
 
 namespace engine::graphics {
-    constexpr uint32_t kMaxMemoryBytesToCopyCommand = 65536u;
 
     InflightBuffer::~InflightBuffer() {
         _tmpMemory = nullptr;
@@ -78,7 +77,7 @@ namespace engine::graphics {
                 memcpy(mappedMemory, _tmpMemory.get(), buffer->sizeInBytes());
                 buffer->flush(); // vma check is memory coherent 
             } else { // need use stagingBuffer
-                if (_size < kMaxMemoryBytesToCopyCommand) { // use cmdUpdateBuffer
+                if (_size < rhi::runtime::command_limits::kMaxMemoryBytesToCopyCommand) { // use cmdUpdateBuffer
                     cmd.updateBuffer(buffer, 0u, _size, _tmpMemory.get());
                     dirty = false;
                     return;

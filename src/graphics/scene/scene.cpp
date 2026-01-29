@@ -18,7 +18,7 @@ namespace engine::scene {
     constexpr float kTryReduceUsedMemoryTimePeriodSeconds = 5.0f;
     constexpr uint32_t kInitialVerticesCountMax = 1024u;
     constexpr uint32_t kInitialIndicesCountMax = 1024u;
-    constexpr uint32_t kInitialMeshTransformsCountMax = 128u;
+    constexpr uint32_t kInitialMeshesInFrameMax = 128u;
     constexpr uint32_t kMinStagingSize = 100u * 1024u /*100 Kb*/;
     constexpr uint32_t kStaginBufferEnlargeSizeMult = 2u;
 
@@ -190,11 +190,11 @@ namespace engine::scene {
             rhi::MemoryPropertyFlags::eDeviceLocal
         };
         _meshTransforms = std::make_unique<graphics::InflightBuffer>(
-            api, device, storageInfo, sizeof(mat4f) * kInitialMeshTransformsCountMax
+            api, device, storageInfo, sizeof(mat4f) * kInitialMeshesInFrameMax
         );
 
         _meshTransformsOffsets = std::make_unique<graphics::InflightBuffer>(
-            api, device, verticesInfo, sizeof(uint32_t) * kInitialMeshTransformsCountMax
+            api, device, verticesInfo, sizeof(uint16_t) * kInitialMeshesInFrameMax
         );
     }
 
@@ -283,8 +283,10 @@ namespace engine::scene {
         // resize buffers
         auto spritesVertexesCount = _spritesVertexesCount;
         auto spritesIndicesCount = _spritesIndicesCount;
-        auto meshTransformsCount = _meshTransformsCount;
-        auto meshTransformsOffsetsCount = _meshTransformsOffsetsCount;
+
+        auto meshesInFrame = _meshesInFrame;
+        auto meshesDrawInFrame = _meshesDrawInFrame;
+        _tmpNoTransformSetMeshes.reserve(kInitialMeshesInFrameMax);
 
         for (auto const * object : objects) {
             switch (object->typeIndex) {
@@ -295,10 +297,12 @@ namespace engine::scene {
             case ctti::typeIndex<Object, Mesh>():
             {
                 if (!_meshTransformIndices.contains(object)) {
-                    _meshTransformIndices.emplace(object, meshTransformsCount);
-                    ++meshTransformsCount;
+                    const auto [it, success] = _meshTransformIndices.emplace(object, meshesInFrame);
+                    assert(success);
+                    _tmpNoTransformSetMeshes.emplace_back(it->first, it->second);
+                    ++meshesInFrame;
                 }
-                ++meshTransformsOffsetsCount; // every draw mesh has offset (for get correct matrices from meshTransforms)
+                ++meshesDrawInFrame; // every draw mesh has offset (for get correct matrices from meshTransforms)
             }
                 break;
             default:
@@ -323,7 +327,7 @@ namespace engine::scene {
         }
 
         {
-            const auto size = static_cast<uint32_t>((meshTransformsCount) * sizeof(mat4f));
+            const auto size = static_cast<uint32_t>((meshesInFrame) * sizeof(mat4f));
             const auto currentSize = _meshTransforms->sizeInBytes();
             if (currentSize <= size) {
                 _meshTransforms->resize(std::max(currentSize * 2u, size));
@@ -331,7 +335,7 @@ namespace engine::scene {
         }
 
         {
-            const auto size = static_cast<uint32_t>((meshTransformsOffsetsCount) * sizeof(uint32_t));
+            const auto size = static_cast<uint32_t>((meshesDrawInFrame) * sizeof(uint16_t));
             const auto currentSize = _meshTransformsOffsets->sizeInBytes();
             if (currentSize <= size) {
                 _meshTransformsOffsets->resize(std::max(currentSize * 2u, size));
@@ -361,18 +365,17 @@ namespace engine::scene {
             _meshTransformsOffsets->setStagingBuffer(_staging.get());
         }
 
-////
-        if (meshTransformsCount > _meshTransformsCount) {
+        // map new meshes world transforms to storage buffer
+        if (meshesInFrame > _meshesInFrame) {
             auto * mem = _meshTransforms->memory2<mat4f>();
-            for (const auto & [object, idx] : _meshTransformIndices) {
+            for (const auto & [object, idx] : _tmpNoTransformSetMeshes) {
                 *(mem + idx) = object->node->getWorldTransform();
             }
 
             _meshTransforms->modify();
-            _meshTransformsCount = meshTransformsCount;
+            _meshesInFrame = meshesInFrame;
+            _tmpNoTransformSetMeshes.clear();
         }
-////
-
     }
 
     void Scene::drawObjects(rhi::runtime::CommandListPtr & commandList, uint8_t frame, 
@@ -570,22 +573,22 @@ namespace engine::scene {
         auto it = currentIt;
         const auto & mesh = *static_cast<const Mesh*>(*it);
         uint32_t pipeline = mesh.getPipeline();
-        // auto image = sprite.getFrame().getImage();
+        const auto * meshData = &mesh.meshData();
         ++it;
 
         for (; it != end; ++it) {
-            const auto & mesh = *static_cast<const Mesh*>(*it);
-            // const auto & currentImage = sprite.getFrame().getImage();
-            const uint32_t currentPipeline = mesh.getPipeline();
+            const auto & mesh2 = *static_cast<const Mesh*>(*it);
+            const uint32_t currentPipeline = mesh2.getPipeline();
+            const auto * currentMeshData = &mesh2.meshData();
 
-            const bool completePack = currentPipeline != pipeline;// ||
-                                    //    currentImage.get() != image.get();
+            const bool completePack = currentPipeline != pipeline ||
+                                      meshData != currentMeshData;
 
             if (completePack) {
                 // draw
                 drawSameMeshes(commandList, frame, currentIt, it, cameraTransform);
                 // begin next pack
-                // image = currentImage;
+                meshData = currentMeshData;
                 pipeline = currentPipeline;
                 currentIt = it;
             }
@@ -602,13 +605,14 @@ namespace engine::scene {
             return;
         }
 
-        auto * mem2 = _meshTransformsOffsets->memory2<uint32_t>() + _meshTransformsOffsetsCount;
+        auto * mem2 = _meshTransformsOffsets->memory2<uint16_t>() + _meshesDrawInFrame;
 
         uint32_t drawObjectsCount = 0u;
         for (auto it = begin; it != end; ++it) {
             *(mem2 + drawObjectsCount) = _meshTransformIndices[*it];
             ++drawObjectsCount;
         }
+        assert(drawObjectsCount < std::numeric_limits<uint16_t>::max()); // need to use 32bits _meshTransformsOffsets instead of 16bits
 
         _meshTransformsOffsets->modify();
 
@@ -635,7 +639,7 @@ namespace engine::scene {
             }
         }
 
-        _meshTransformsOffsetsCount += drawObjectsCount;
+        _meshesDrawInFrame += drawObjectsCount;
     }
 
     void Scene::reduceUsedMemory(std::chrono::time_point<std::chrono::steady_clock> now) noexcept {
@@ -662,19 +666,20 @@ namespace engine::scene {
             }
 
             {
-                auto const minCount = std::max(_meshTransformsCount, kInitialMeshTransformsCountMax);
-                if (minCount * 2u < _lastFramesUsedMeshTransformsCount) {
+                auto const minCount = std::max(_meshesInFrame, kInitialMeshesInFrameMax);
+                if (minCount * 2u < _lastFramesUsedMeshesInFrame) {
                     _meshTransforms->resize(minCount * sizeof(mat4f));
+                    _tmpNoTransformSetMeshes.resize(minCount);
                 }
-                _lastFramesUsedMeshTransformsCount = _meshTransformsCount;
+                _lastFramesUsedMeshesInFrame = _meshesInFrame;
             }
 
             {
-                auto const minCount = std::max(_meshTransformsOffsetsCount, kInitialMeshTransformsCountMax);
-                if (minCount * 2u < _lastFramesUsedMeshTransformsOffsetsCount) {
-                    _meshTransformsOffsets->resize(minCount * sizeof(mat4f));
+                auto const minCount = std::max(_meshesDrawInFrame, kInitialMeshesInFrameMax);
+                if (minCount * 2u < _lastFramesUsedMeshesDrawInFrame) {
+                    _meshTransformsOffsets->resize(minCount * sizeof(uint16_t));
                 }
-                _lastFramesUsedMeshTransformsOffsetsCount = _meshTransformsOffsetsCount;
+                _lastFramesUsedMeshesDrawInFrame = _meshesDrawInFrame;
             }
 
             // for staging buffer
@@ -689,13 +694,13 @@ namespace engine::scene {
         } else {
             if (_spritesVertexesCount > _lastFramesUsedSpritesVertexCount || 
                 _spritesIndicesCount > _lastFramesUsedSpritesIndicesCount ||
-                _meshTransformsCount > _lastFramesUsedMeshTransformsCount ||
-                _meshTransformsOffsetsCount > _lastFramesUsedMeshTransformsOffsetsCount
+                _meshesInFrame > _lastFramesUsedMeshesInFrame ||
+                _meshesDrawInFrame > _lastFramesUsedMeshesDrawInFrame
             ) {
                 _lastFramesUsedSpritesVertexCount = _spritesVertexesCount;
                 _lastFramesUsedSpritesIndicesCount = _spritesIndicesCount;
-                _lastFramesUsedMeshTransformsCount = _meshTransformsCount;
-                _lastFramesUsedMeshTransformsOffsetsCount = _meshTransformsOffsetsCount;
+                _lastFramesUsedMeshesInFrame = _meshesInFrame;
+                _lastFramesUsedMeshesDrawInFrame = _meshesDrawInFrame;
                 _tryReduceUsedMemoryTime = now;
             }
         }
@@ -704,19 +709,19 @@ namespace engine::scene {
     void Scene::newFrame(std::chrono::time_point<std::chrono::steady_clock> now) noexcept {
         reduceUsedMemory(now);
         _meshTransformIndices.clear();
-        _meshTransformIndices.reserve(_meshTransformsCount);
-
+        _tmpNoTransformSetMeshes.clear();
+        _meshTransformIndices.reserve(_meshesInFrame);
+    
         _spritesVertexesCount = 0u;
         _spritesIndicesCount = 0u;
-        _meshTransformsCount = 0u;
-        _meshTransformsOffsetsCount = 0u;
+        _meshesInFrame = 0u;
+        _meshesDrawInFrame = 0u;
     }
 
     uint32_t Scene::calculateTargetStagingSize() const noexcept { 
         constexpr auto bufferTargetSize = [](const graphics::InflightBuffer & buffer) noexcept {
-            constexpr uint32_t kMaxMemoryBytesToCopyCommand = 65536u;
             const auto size = buffer.sizeInBytes();
-            return buffer.isHostVisible() ? 0u : (size < kMaxMemoryBytesToCopyCommand ? 0u : size);
+            return buffer.isHostVisible() ? 0u : (size < rhi::runtime::command_limits::kMaxMemoryBytesToCopyCommand ? 0u : size);
         };
 
         return bufferTargetSize(*_spritesVertices) + bufferTargetSize(*_spritesIndices) + 

@@ -13,6 +13,11 @@
 
 namespace engine::rhi::runtime {
 
+    namespace command_limits {
+        constexpr uint8_t kMaxDescriptorsSets = 4u;
+        constexpr uint32_t kMaxMemoryBytesToCopyCommand = 65536u;
+    }
+
     class CommandList {
     public:
         virtual ~CommandList() { clear(); };

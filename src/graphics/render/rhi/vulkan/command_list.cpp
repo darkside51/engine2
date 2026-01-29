@@ -22,7 +22,6 @@
 #include <utility>
 
 namespace engine::vulkan::runtime {
-    constexpr uint32_t kMaxMemoryBytesToCopyCommand = 65536u;
     
     CommandList::CommandList(rhi::runtime::CommandPool * commandPool, rhi::CommandBufferLevel level) :
         _pool(static_cast<vulkan::CommandPool*>(commandPool)),
@@ -42,18 +41,16 @@ namespace engine::vulkan::runtime {
     void CommandList::record(uint8_t frameIdx) noexcept {
         using namespace rhi::runtime;
 
-        constexpr uint8_t kMaxDescriptorsSets = 4u;
-
         std::byte * memory = _commands.memory().data();
         size_t totalMem = 0u;
 
         auto & device = const_cast<Device&>(_pool->getDevice()); // todo remove const_cast
         const Pipeline * currentPipeline = nullptr;
-        std::array<DescriptorSetUpdater, kMaxDescriptorsSets> descriptorSetUpdaters;
+        std::array<DescriptorSetUpdater, command_limits::kMaxDescriptorsSets> descriptorSetUpdaters;
 
         uint8_t changedSets = 0u;
         uint8_t changeDynamicBufferSets = 0u;
-        std::array<VkDescriptorSet, kMaxDescriptorsSets> descriptorSets;
+        std::array<VkDescriptorSet, command_limits::kMaxDescriptorsSets> descriptorSets;
 
         _postBarriersBuffers.clear();
         _postBarriersImages.clear();
@@ -138,9 +135,9 @@ namespace engine::vulkan::runtime {
 
         const auto applyDescriptorSets = [&]() noexcept {
             uint8_t firstSet = 0xffu;
-            dynamic_array<uint32_t, kMaxDescriptorsSets * DescriptorSetUpdater::kDescriptorsOnStackLimit> dynamicOffsets;
+            dynamic_array<uint32_t, command_limits::kMaxDescriptorsSets * DescriptorSetUpdater::kDescriptorsOnStackLimit> dynamicOffsets;
 
-            for (uint8_t set = 0u; set < kMaxDescriptorsSets; ++set) {
+            for (uint8_t set = 0u; set < command_limits::kMaxDescriptorsSets; ++set) {
                 const bool changeDynamicOffset = ((changeDynamicBufferSets >> set) & 1u) == 1u;
                 const bool changeSet = ((changedSets >> set) & 1u) == 1u;
 
@@ -406,7 +403,7 @@ namespace engine::vulkan::runtime {
             {
                 const auto * command = static_cast<BindBufferCommand*>(cmd);
                 const auto setId = command->setId;
-                assert(setId < kMaxDescriptorsSets);
+                assert(setId < command_limits::kMaxDescriptorsSets);
 
                 if (!descriptorSetUpdaters[setId]) {
                     if (const auto * setLayout = currentPipeline->getLayout(setId)) {
@@ -438,7 +435,7 @@ namespace engine::vulkan::runtime {
             {
                 const auto * command = static_cast<BindImageSamplerCommand*>(cmd);
                 const auto setId = command->setId;
-                assert(setId < kMaxDescriptorsSets);
+                assert(setId < command_limits::kMaxDescriptorsSets);
 
                 if (!descriptorSetUpdaters[setId]) {
                     if (const auto * setLayout = currentPipeline->getLayout(setId)) {
@@ -531,7 +528,7 @@ namespace engine::vulkan::runtime {
                 break;
             case CommandType::eUpdateBuffer: {
                 const auto * command = static_cast<UpdateBufferCommand*>(cmd);
-                assert(command->dataSize < kMaxMemoryBytesToCopyCommand);
+                assert(command->dataSize < command_limits::kMaxMemoryBytesToCopyCommand);
                 
                 auto & vkDstBuffer = *static_cast<Buffer*>(command->dst);
 

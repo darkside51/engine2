@@ -1013,7 +1013,7 @@ namespace example {
             sceneWorldRoot = scene.createNode();
             scene.rootNode()->addChild(sceneWorldRoot);
 
-            for (size_t i = 0; i < 4; ++i) { // mesh hierarchy test
+            for (size_t i = 0; i < 10; ++i) { // mesh hierarchy test
                 vec3f minCorner{std::numeric_limits<float>::max()};
                 vec3f maxCorner{std::numeric_limits<float>::lowest()};
 
@@ -1073,8 +1073,10 @@ namespace example {
                 // });
                 // meshRoot->setBounds(engine::scene::Bounds::createCube(minCorner, maxCorner));
 
-                meshRoot->setRotation(engine::vec3f(1.57f, 0.0f, 0.0f));
-                meshRoot->setPosition(engine::vec3f(i * 1.0f, 0.0f, 0.0f));
+                meshRoot->setScale(engine::common::random(0.9f, 1.1f));
+                meshRoot->setRotation(engine::vec3f(1.57f, 0.0f, engine::common::random(-3.14f, 3.14f)));
+                meshRoot->setPosition(engine::vec3f(-4.0f + i * 1.0f, 0.0f, 0.0f));
+                
                 sceneWorldRoot->addChild(meshRoot);
             }
             
@@ -1100,7 +1102,7 @@ namespace example {
             node0->addChild(node1);
 
             engine::rotateMatrix_y(m0, -0.76f);
-            m0[3] = {-1.0f, 0.0f, 0.0f, 1.0f};
+            m0[3] = {-1.0f, 2.0f, 0.0f, 1.0f};
             auto * node2 = scene.createNode();
             node2->setTransform(m0);
             node2->setBounds(engine::scene::Bounds::createCube(vec3f{-0.75f}, vec3f{0.75f}));

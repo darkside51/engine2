@@ -151,7 +151,7 @@
 					"inputRate": "eVertex"
 				},
 				{
-					"stride" : 4,
+					"stride" : 2,
 					"binding" : 3,
 					"inputRate": "eInstance"
 				}
@@ -178,7 +178,7 @@
 				{
 					"location": 3,
                     "binding": 3,
-                    "format": "eR8G8B8A8_Uint",
+                    "format": "eR8G8_Uint",
                     "offset": 0
 				}
 			]
