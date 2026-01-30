@@ -507,7 +507,7 @@ namespace engine::scene {
         for (auto it = begin; it != end; ++it) {
             const auto & sprite = *static_cast<const Sprite*>(*it);
             const auto & frame2D = sprite.getFrame().getFrame();
-            const auto mvp = cameraTransform * sprite.node->getWorldTransform();
+            const auto & model = sprite.node->getWorldTransform();
 
             const vec2f corner0 = {0.0f, 0.0f};
             const vec2f corner1 = {(frame2D.uvMax[0u] - frame2D.uvMin[0u]) * imageSize.x, 
@@ -516,25 +516,25 @@ namespace engine::scene {
             // fill vertexes and indices
             // vertexes
             using namespace graphics;
-            auto v = mvp * vec4f(corner0.x, corner0.y, 0.0f, 1.0f);
+            auto v = model * vec4f(corner0.x, corner0.y, 0.0f, 1.0f);
             v /= v.w;
             *(vMem + i + 0u) = {
                 .position = {v.x, v.y, v.z},
                 .uv = to_vec2u16(frame2D.uvMin[0u], frame2D.uvMax[1u])
             };
-            v = mvp * vec4f(corner1.x, corner0.y, 0.0f, 1.0f);
+            v = model * vec4f(corner1.x, corner0.y, 0.0f, 1.0f);
             v /= v.w;
             *(vMem + i + 1u) = {
                 .position = {v.x, v.y, v.z},
                 .uv = to_vec2u16(frame2D.uvMax[0u], frame2D.uvMax[1u])
             };
-            v = mvp * vec4f(corner0.x, corner1.y, 0.0f, 1.0f);
+            v = model * vec4f(corner0.x, corner1.y, 0.0f, 1.0f);
             v /= v.w;
             *(vMem + i + 2u) = {
                 .position = {v.x, v.y, v.z},
                 .uv = to_vec2u16(frame2D.uvMin[0u], frame2D.uvMin[1u])
             };
-            v = mvp * vec4f(corner1.x, corner1.y, 0.0f, 1.0f);
+            v = model * vec4f(corner1.x, corner1.y, 0.0f, 1.0f);
             v /= v.w;
             *(vMem + i + 3u) = {
                 .position = {v.x, v.y, v.z},
@@ -563,6 +563,7 @@ namespace engine::scene {
             commandList->bindVertexBuffer(0u, vertexBuffer, 0u);
             commandList->bindIndexBuffer(indexBuffer, 0u, rhi::IndexType::eU32);
             commandList->bindImage(0u, image, _linearSampler);
+            commandList->pushConstants(rhi::shaders::Stages::eVertex, 0u, sizeof(mat4f), &cameraTransform);
 
             commandList->drawIndexed(batchIndicesCount, 1u, _spritesIndicesCount);
         }
