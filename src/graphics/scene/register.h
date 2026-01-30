@@ -11,9 +11,10 @@ namespace engine::scene {
 
     static consteval void registerTypes() noexcept {
         // objects
-        static_assert(ctti::typeIndex<Object, Mesh>() == 0u);
-        static_assert(ctti::typeIndex<Object, Dummy>() == 1u);
-        static_assert(ctti::typeIndex<Object, Sprite>() == 2u);
+        static_assert(ctti::typeIndex<AttachmentObject, Skeleton>() == 0u);
+        static_assert(ctti::typeIndex<AttachmentObject, Mesh>() == 1u);
+        static_assert(ctti::typeIndex<AttachmentObject, Dummy>() == 2u);
+        static_assert(ctti::typeIndex<AttachmentObject, Sprite>() == 3u);
         
         // animations
         static_assert(ctti::typeIndex<Animation, FramesSequence>() == 0u);

@@ -1009,7 +1009,7 @@ namespace example {
         // int a = 0;
 
         // scene
-        {
+        if (true) {
             sceneWorldRoot = scene.createNode();
             scene.rootNode()->addChild(sceneWorldRoot);
 
@@ -1017,11 +1017,15 @@ namespace example {
                 vec3f minCorner{std::numeric_limits<float>::max()};
                 vec3f maxCorner{std::numeric_limits<float>::lowest()};
 
-                auto loadNode = [&](const auto & self, const uint16_t nodeId, engine::scene::Node * parent) -> engine::scene::Node* {
+                auto loadNode = [&](const auto & self, const uint16_t nodeId, engine::scene::Node * parent, engine::scene::Skeleton * skeleton) -> engine::scene::Node* {
                     const auto & node = meshData.nodes[nodeId];
                     auto * current = scene.createNode();
                     if (parent) {
                         parent->addChild(current);
+                    }
+
+                    if (skeleton) {
+                        skeleton->node(nodeId) = current;
                     }
 
                     current->setScale(vec3f{node.scale.x, node.scale.y, node.scale.z});
@@ -1032,45 +1036,56 @@ namespace example {
                     current->calculateWorldTransform(true);
 
                     if (node.mesh != engine::graphics::models::kInvalidValue) {
-                        auto * mesh = scene.createObject<engine::scene::Mesh>(meshData, node.mesh, 1u);
+                        auto * mesh = scene.createObject<engine::scene::Mesh>(meshData, node.mesh, node.skin, 1u);
+                        mesh->setSkeleton(skeleton);
                         mesh->setIndices({_meshIndices});
                         mesh->setAttribute({_meshPositions}, engine::scene::mesh::Semantic::ePosition);
                         mesh->setAttribute({_meshNormals}, engine::scene::mesh::Semantic::eNormal);
                         mesh->setAttribute({_meshUvs}, engine::scene::mesh::Semantic::eUv0);
                         engine::scene::attachObjectToNode(*mesh, *current);
 
-                        // for (const auto & p : meshData.meshes[node.mesh].primitives) {
-                        //     const vec3f corner1 = current->worldTransform * vec4f(p.minCorner, 1.0f);
-				        //     const vec3f corner2 = current->worldTransform * vec4f(p.maxCorner, 1.0f);
+                        for (const auto & p : meshData.meshes[node.mesh].primitives) {
+                            const vec3f corner1 = current->worldTransform * vec4f(p.minCorner, 1.0f);
+				            const vec3f corner2 = current->worldTransform * vec4f(p.maxCorner, 1.0f);
 
-                        //     minCorner.x = std::min({minCorner.x, corner1.x, corner2.x});
-                        //     minCorner.y = std::min({minCorner.y, corner1.y, corner2.y});
-                        //     minCorner.z = std::min({minCorner.z, corner1.z, corner2.z});
+                            minCorner.x = std::min({minCorner.x, corner1.x, corner2.x});
+                            minCorner.y = std::min({minCorner.y, corner1.y, corner2.y});
+                            minCorner.z = std::min({minCorner.z, corner1.z, corner2.z});
 
-                        //     maxCorner.x = std::max({maxCorner.x, corner1.x, corner2.x});
-                        //     maxCorner.y = std::max({maxCorner.y, corner1.y, corner2.y});
-                        //     maxCorner.z = std::max({maxCorner.z, corner1.z, corner2.z});
-                        // }
+                            maxCorner.x = std::max({maxCorner.x, corner1.x, corner2.x});
+                            maxCorner.y = std::max({maxCorner.y, corner1.y, corner2.y});
+                            maxCorner.z = std::max({maxCorner.z, corner1.z, corner2.z});
+                        }
+
 
                         // node.skin; // createMeshRenderObject with skin node(current) and primitiveves + skeleton
                     }
 
                     for (const uint16_t cNodeId : node.children) {
-                        self(self, cNodeId, current);
+                        self(self, cNodeId, current, skeleton);
                     }
                     return current;
                 };
 
                 auto * meshRoot = scene.createNode();
+                engine::scene::Skeleton * skeleton = meshData.skins.empty() ? nullptr : 
+                    scene.createObject<engine::scene::Skeleton>(meshData);
 
                 for (const uint16_t nodeId : meshData.sceneNodes) {
-				    auto * node = loadNode(loadNode, nodeId, meshRoot);
+				    auto * node = loadNode(loadNode, nodeId, meshRoot, skeleton);
 			    }
 
                 // engine::scene::hierarchyPass(meshRoot, [](engine::scene::Node * n) noexcept{ });
                 // engine::scene::recalculateHierarchy(meshRoot, [](engine::scene::Node * n) noexcept { 
                 //     return true;
                 // });
+                engine::scene::attachObjectToNode(*skeleton, *meshRoot);
+                auto const center = (minCorner + maxCorner) * 0.5f;
+                auto const radius = std::max({
+                    std::abs(minCorner.x - center.x), std::abs(minCorner.y - center.y), std::abs(minCorner.z - center.z),
+                    std::abs(maxCorner.x - center.x), std::abs(maxCorner.y - center.y), std::abs(maxCorner.z - center.z)
+                });
+                meshRoot->setBounds(engine::scene::Bounds::createSphere(center, radius));
                 // meshRoot->setBounds(engine::scene::Bounds::createCube(minCorner, maxCorner));
 
                 meshRoot->setScale(engine::common::random(0.9f, 1.1f));
@@ -1327,8 +1342,8 @@ namespace example {
             // sceneNodePtr->setTransform(tr);
         }
 
-        std::vector<engine::scene::Object*> objects(1024u);
-        scene.fillRenderObjects(cameraTransform, sceneWorldRoot, [](engine::scene::Object*) { return true; }, objects);
+        std::vector<engine::scene::AttachmentObject*> objects(1024u);
+        scene.fillAttachmentsArray(cameraTransform, sceneWorldRoot, [](engine::scene::AttachmentObject*) { return true; }, objects);
         scene.update(now, delta, objects, animationManager);
     }
 
@@ -1471,8 +1486,8 @@ namespace example {
         // mesh test
 
         scene.newFrame(now);
-        std::vector<engine::scene::Object*> objects(1024u);
-        scene.fillRenderObjects(cameraTransform, sceneWorldRoot, [](engine::scene::Object*) { return true; }, objects);
+        std::vector<engine::scene::AttachmentObject*> objects(1024u);
+        scene.fillAttachmentsArray(cameraTransform, sceneWorldRoot, [](engine::scene::AttachmentObject*) { return true; }, objects);
         scene.draw(commandList, transferCommandList, frameId, cameraTransform, objects);
 
         debugDraw.prepare(*transferCommandList, frameId);

@@ -30,7 +30,7 @@ class AnimationManager;
 
 struct ObjectsCollection {
     virtual ~ObjectsCollection() = default;
-    virtual bool destroyObject(Object * object) noexcept { return false; }
+    virtual bool destroyObject(AttachmentObject * object) noexcept { return false; }
 };
 
 template<typename T>
@@ -40,12 +40,12 @@ struct ObjectsHolder : ObjectsCollection {
     ObjectsAllocator allocator{512u, 32u}; // 16'384 objects max
 
     template <typename... Args>
-    Object * createObject(Args &&... args) noexcept {
+    AttachmentObject * createObject(Args &&... args) noexcept {
         return allocator.template create<T>(std::forward<Args>(args)...);
     }
 
-    bool destroyObject(Object * object) noexcept override {
-        constexpr auto typeIndex = ctti::typeIndex<Object, T>();
+    bool destroyObject(AttachmentObject * object) noexcept override {
+        constexpr auto typeIndex = ctti::typeIndex<AttachmentObject, T>();
         assert(object->typeIndex == typeIndex);
         return allocator.destroy(static_cast<T*>(object));
     }
@@ -54,15 +54,15 @@ struct ObjectsHolder : ObjectsCollection {
 namespace animation {
 struct AnimatedObject {
     const AnimationInfo* animInfo = nullptr;
-    Object * object = nullptr;
+    AttachmentObject * object = nullptr;
 };
 }
 
 // global
-void attachObjectToNode(Object & object, Node & node) noexcept;
+void attachObjectToNode(AttachmentObject & object, Node & node) noexcept;
 
 class Scene {
-    using ObjectsIterator = std::span<Object*>::iterator;
+    using AttachmentsIterator = std::span<AttachmentObject*>::iterator;
     
 public:
     Scene(debug::DebugDraw * debugDraw);
@@ -76,10 +76,10 @@ public:
     void destroyNode(Node * node) noexcept;
     Node * rootNode() noexcept { return _rootNode; }
 
-    // objects
+    // attachments
     template <typename T, typename... Args>
     T * createObject(Args &&... args) {
-        constexpr auto id = ctti::typeIndex<Object, T>();
+        constexpr auto id = ctti::typeIndex<AttachmentObject, T>();
         auto it = _objectCollections.find(id);
         if (it == _objectCollections.end()) {
             auto [iter, _] = _objectCollections.emplace(id, std::make_unique<ObjectsHolder<T>>());
@@ -90,7 +90,7 @@ public:
         return static_cast<T*>(objectsData.createObject(std::forward<Args>(args)...));
     }
 
-    bool destroyObject(Object * object) noexcept;
+    bool destroyObject(AttachmentObject * object) noexcept;
 
     // anims
     template<typename T>
@@ -107,16 +107,16 @@ public:
     void newFrame(std::chrono::time_point<std::chrono::steady_clock> now) noexcept;
 
     template <typename Condition>
-    void fillRenderObjects(const mat4f & cameraTransform, Node * root, Condition && condition, std::vector<Object*> & objects);
+    void fillAttachmentsArray(const mat4f & cameraTransform, Node * root, Condition && condition, std::vector<AttachmentObject*> & objects);
 
-    void update(std::chrono::time_point<std::chrono::steady_clock> now, float delta, std::span<Object*> objects, 
+    void update(std::chrono::time_point<std::chrono::steady_clock> now, float delta, std::span<AttachmentObject*> objects, 
         const AnimationManager & animationManager);
     void draw(rhi::runtime::CommandListPtr & commandList, rhi::runtime::CommandListPtr & transferCommandList, uint8_t frame, 
-        const mat4f & cameraTransform, std::span<Object*> objects);
+        const mat4f & cameraTransform, std::span<AttachmentObject*> objects);
 
 private:
-    static bool compareObjectsForDraw(const Object & a, const Object & b) noexcept;
-    void prepareDrawData(std::span<Object*> objects, uint8_t frame) noexcept;
+    static bool compareAttachmentsForDraw(const AttachmentObject & a, const AttachmentObject & b) noexcept;
+    void prepareDrawData(std::span<AttachmentObject*> objects, uint8_t frame) noexcept;
 
     uint32_t calculateTargetStagingSize() const noexcept;
     void performCommits(rhi::runtime::CommandListPtr & commandList, uint8_t frame);
@@ -124,15 +124,15 @@ private:
 
     // draw
     void drawObjects(rhi::runtime::CommandListPtr & commandList, uint8_t frame, 
-        const mat4f & cameraTransform, ObjectsIterator begin, ObjectsIterator end, uint16_t typeIdx);
+        const mat4f & cameraTransform, AttachmentsIterator begin, AttachmentsIterator end, uint16_t typeIdx);
 
-    void drawDummies(ObjectsIterator begin, ObjectsIterator end, const mat4f & cameraTransform, uint32_t color);
-    void drawSprites(rhi::runtime::CommandListPtr & commandList, uint8_t frame, ObjectsIterator begin, ObjectsIterator end, const mat4f & cameraTransform);
-    void drawSpritesBatch(rhi::runtime::CommandListPtr & commandList, uint8_t frame, ObjectsIterator begin, ObjectsIterator end, 
+    void drawDummies(AttachmentsIterator begin, AttachmentsIterator end, const mat4f & cameraTransform, uint32_t color);
+    void drawSprites(rhi::runtime::CommandListPtr & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end, const mat4f & cameraTransform);
+    void drawSpritesBatch(rhi::runtime::CommandListPtr & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end, 
         const mat4f & cameraTransform, uint32_t batchVertexesCount, uint32_t batchIndicesCount);
 
-    void drawMeshes(rhi::runtime::CommandListPtr & commandList, uint8_t frame, ObjectsIterator begin, ObjectsIterator end, const mat4f & cameraTransform);
-    void drawSameMeshes(rhi::runtime::CommandListPtr & commandList, uint8_t frame, ObjectsIterator begin, ObjectsIterator end, 
+    void drawMeshes(rhi::runtime::CommandListPtr & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end, const mat4f & cameraTransform);
+    void drawSameMeshes(rhi::runtime::CommandListPtr & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end, 
         const mat4f & cameraTransform);   
 
     using NodesAllocator = allocators::PoolAllocatorChain<sizeof(Node), alignof(Node), false, false>;
@@ -174,8 +174,8 @@ private:
     std::unique_ptr<graphics::InflightBuffer> _spritesVertices = nullptr;
     std::unique_ptr<graphics::InflightBuffer> _spritesIndices = nullptr;
 
-    std::unordered_map<const Object*, uint16_t> _meshTransformIndices;
-    std::vector<std::pair<const Object*, uint16_t>> _tmpNoTransformSetMeshes;
+    std::unordered_map<const AttachmentObject*, uint16_t> _meshTransformIndices;
+    std::vector<std::pair<const AttachmentObject*, uint16_t>> _tmpNoTransformSetMeshes;
     std::unique_ptr<graphics::InflightBuffer> _meshTransforms = nullptr;
     std::unique_ptr<graphics::InflightBuffer> _meshTransformsOffsets = nullptr;
 
@@ -183,7 +183,7 @@ private:
 };
 
 template <typename Condition>
-void Scene::fillRenderObjects(const mat4f & cameraTransform, Node * root, Condition && condition, std::vector<Object*> & objects) {
+void Scene::fillAttachmentsArray(const mat4f & cameraTransform, Node * root, Condition && condition, std::vector<AttachmentObject*> & objects) {
     const Frustum frustum(cameraTransform);
     objects.clear();
     objects.reserve(kFillNodesReserveSize);
@@ -201,7 +201,7 @@ void Scene::fillRenderObjects(const mat4f & cameraTransform, Node * root, Condit
             }
         }
 
-        if (auto * object = n->getObject(); (object != nullptr) && condition(object)) {
+        if (auto * object = n->getAttachment(); (object != nullptr) && condition(object)) {
             objects.emplace_back(object);
         }
 
@@ -218,8 +218,8 @@ void Scene::fillRenderObjects(const mat4f & cameraTransform, Node * root, Condit
         return true;
     });
 
-    std::sort(objects.begin(), objects.end(), [](const Object * a, const Object * b) noexcept {
-        return compareObjectsForDraw(*a, *b);
+    std::sort(objects.begin(), objects.end(), [](const AttachmentObject * a, const AttachmentObject * b) noexcept {
+        return compareAttachmentsForDraw(*a, *b);
     });
 }
 

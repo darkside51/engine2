@@ -11,7 +11,7 @@ namespace engine::scene {
     struct Node;
     struct AnimationInfoChain;
 
-    struct Object /*: IntrusiveListNode<Object>*/ {
+    struct AttachmentObject /*: IntrusiveListNode<Object>*/ {
         Node * node = nullptr;
         AnimationInfoChain * animInfo = nullptr;
        
@@ -20,8 +20,8 @@ namespace engine::scene {
         int16_t order = 0u;
         // uint32_t animationDataIndex = kEmptyAnimationDataIndex; 
 
-        Object(uint16_t typeIndex) : typeIndex(typeIndex) {}
-        /*virtual*/ ~Object() = default; // call typed, virtual not need
+        AttachmentObject(uint16_t typeIndex) : typeIndex(typeIndex) {}
+        /*virtual*/ ~AttachmentObject() = default; // call typed, virtual not need
 
         // void setLayer(uint16_t l) noexcept { layer = l; }
         // uint16_t getLayer() const noexcept { return layer; }
@@ -33,10 +33,10 @@ namespace engine::scene {
         bool removeAnimation(AnimationInfoChain * anim) noexcept;
         AnimationInfoChain * setAnimation(AnimationInfoChain * anim) noexcept;
         
-        bool cmp(const Object &) const noexcept { return false; }
+        bool cmp(const AttachmentObject &) const noexcept { return false; }
     };
 
-    struct Dummy : Object {
+    struct Dummy : AttachmentObject {
         explicit Dummy();
         ~Dummy() /*override*/ = default;
     };

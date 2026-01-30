@@ -1,6 +1,7 @@
 #include "mesh.h"
 
 #include "common/type_id.h"
+#include "graphics/mesh/gltf_loader.h"
 #include "graphics/scene/register.h"
 #include "graphics/scene/node.h"
 
@@ -8,8 +9,21 @@
 #include <limits>
 
 namespace engine::scene {
-    Mesh::Mesh(const graphics::models::Mesh_Data & meshData, uint16_t meshIdx, uint32_t pipeline) :
-        Object(ctti::typeIndex<Object, Mesh>()), _meshData(meshData), _pipeline(pipeline), _meshIdx(meshIdx) {
+
+    // skeleton:
+    Skeleton::Skeleton(const graphics::models::Mesh_Data & meshData) :
+        AttachmentObject(ctti::typeIndex<AttachmentObject, Skeleton>()), _meshData(meshData), _nodes(meshData.nodes.size()) {
+
+    }
+
+    bool Skeleton::cmp(const Skeleton & other) const noexcept {
+        return std::less<const graphics::models::Mesh_Data*>{}(&_meshData, &other._meshData);
+    }
+
+
+    // mesh:
+    Mesh::Mesh(const graphics::models::Mesh_Data & meshData, uint16_t meshIdx, uint16_t skin, uint32_t pipeline) :
+        AttachmentObject(ctti::typeIndex<AttachmentObject, Mesh>()), _meshData(meshData), _pipeline(pipeline), _meshIdx(meshIdx), _skin(skin) {
     }
 
     void Mesh::setPipeline(uint32_t pipeline) noexcept {
@@ -27,6 +41,14 @@ namespace engine::scene {
 
         if (_meshIdx != other._meshIdx) {
             return _meshIdx < other._meshIdx;
+        }
+
+        if (_skin != other._skin) {
+            return _skin < other._skin;
+        }
+
+        if (_skeleton != other._skeleton) {
+            return std::less<const Skeleton *>{}(_skeleton, other._skeleton);
         }
 
         // attributes?????
@@ -49,7 +71,7 @@ namespace engine::scene {
                 maxCorner.z = std::max({maxCorner.z, p.minCorner.z, p.maxCorner.z});
             }
 
-            node->setObject(this);
+            node->setAttachment(this);
             node->setBounds(engine::scene::Bounds::createCube(minCorner, maxCorner));
         }
     }

@@ -4,7 +4,7 @@
 
 namespace engine::scene {
 
-    void Object::addAnimation(AnimationInfoChain * anim) noexcept {
+    void AttachmentObject::addAnimation(AnimationInfoChain * anim) noexcept {
         if (animInfo == nullptr) {
             animInfo = anim;
         } else {
@@ -16,7 +16,7 @@ namespace engine::scene {
         }
     }
 
-    bool Object::removeAnimation(AnimationInfoChain * anim) noexcept { // extract
+    bool AttachmentObject::removeAnimation(AnimationInfoChain * anim) noexcept { // extract
         auto * freeInfo = animInfo;
         while (freeInfo) {
             if (freeInfo == anim) {
@@ -33,7 +33,7 @@ namespace engine::scene {
         return false;
     }
 
-    AnimationInfoChain * Object::setAnimation(AnimationInfoChain * anim) noexcept {
+    AnimationInfoChain * AttachmentObject::setAnimation(AnimationInfoChain * anim) noexcept {
         if (animInfo == nullptr) {
             animInfo = anim;
             return nullptr;
@@ -44,5 +44,5 @@ namespace engine::scene {
         }
     }
 
-    Dummy::Dummy() : Object(ctti::typeIndex<Object, Dummy>()) {}
+    Dummy::Dummy() : AttachmentObject(ctti::typeIndex<AttachmentObject, Dummy>()) {}
 }

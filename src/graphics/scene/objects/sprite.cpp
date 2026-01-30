@@ -9,7 +9,7 @@
 namespace engine::scene {
 
     Sprite::Sprite(const graphics::ImageFrame2D & frame, uint32_t pipeline) : 
-        Object(ctti::typeIndex<Object, Sprite>()), _frame(frame), _pipeline(pipeline) {
+        AttachmentObject(ctti::typeIndex<AttachmentObject, Sprite>()), _frame(frame), _pipeline(pipeline) {
     }
 
     void Sprite::setPipeline(uint32_t pipeline) noexcept {
@@ -49,7 +49,7 @@ namespace engine::scene {
     void Sprite::attachToNode(Node * node) noexcept {
         if (node) {
             const auto spriteSize = calculateSize();
-            node->setObject(this);
+            node->setAttachment(this);
             node->setBounds(Bounds::createCube(vec3f{0.0f}, vec3f{spriteSize.x, spriteSize.y, 0.0f}));
         }
     }

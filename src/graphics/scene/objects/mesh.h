@@ -8,6 +8,7 @@
 #include "math/math.h"
 
 #include <array>
+#include <cassert>
 #include <cstdint>
 #include <utility>
 
@@ -23,9 +24,26 @@ namespace mesh {
     };
 }
 
-    class Mesh : public Object {
+    class Skeleton : public AttachmentObject {
     public:
-        Mesh(const graphics::models::Mesh_Data & meshData, uint16_t meshIdx, uint32_t pipeline);
+        Skeleton(const graphics::models::Mesh_Data & meshData);
+        ~Skeleton() /*override*/ = default;
+
+        Node *& node(uint16_t idx) noexcept {
+            assert(idx < _nodes.size());
+            return _nodes[idx];
+        }
+
+        bool cmp(const Skeleton &) const noexcept;
+
+    private:
+        const graphics::models::Mesh_Data & _meshData;
+        std::vector<Node *> _nodes;
+    };
+
+    class Mesh : public AttachmentObject {
+    public:
+        Mesh(const graphics::models::Mesh_Data & meshData, uint16_t meshIdx, uint16_t skin, uint32_t pipeline);
         ~Mesh() /*override*/ = default;
 
         void setPipeline(uint32_t pipeline) noexcept;
@@ -58,14 +76,20 @@ namespace mesh {
             return _meshData.meshes[_meshIdx];
         }
 
+        // skeleton:
+        const Skeleton * getSkeleton() const noexcept { return _skeleton; }
+        void setSkeleton(Skeleton * skeleton) noexcept { _skeleton = skeleton; }
+
     private:
         const graphics::models::Mesh_Data & _meshData;
 
         mesh::Attribute _indices;
         std::array<mesh::Attribute, static_cast<uint8_t>(mesh::Semantic::eSemanticsCount)> _attributes;
+        Skeleton * _skeleton = nullptr;
         
         uint32_t _pipeline = 0u;
         uint16_t _meshIdx = 0u;
+        uint16_t _skin = graphics::models::kInvalidValue;
     };
 
 }

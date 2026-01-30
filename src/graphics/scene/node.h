@@ -19,7 +19,7 @@ constexpr uint8_t kDefaultState = 1u << kDirtyTransformBit |
                                 0u << kCulledBit | 0u << kHiddenBit | 
                                 0u << kChildrenTransformsDirty | 0u << kTransformationsDirty;
 
-struct Object;
+struct AttachmentObject;
 
 struct Node {
     inline static constexpr uint16_t kUnknownId = 0xff'ff;
@@ -78,7 +78,7 @@ struct Node {
     Node * parent = nullptr;
     Node * next = nullptr; // other childrens in parent (brothers)
     Node * firstChild = nullptr; // children begin
-    Object * object = nullptr;
+    AttachmentObject * attachment = nullptr;
     mat4f transform{1.0F};
     mat4f worldTransform{1.0F};
     Transformation transformation{};
@@ -93,10 +93,10 @@ struct Node {
     bool calculateWorldTransform(bool recalculate) noexcept;
     void setBounds(const Bounds & newBounds) noexcept;
 
-    // object
-    void setObject(Object * object) noexcept;
-    Object * removeObject() noexcept;
-    Object * getObject() const noexcept;
+    // attachment
+    void setAttachment(AttachmentObject * object) noexcept;
+    AttachmentObject * removeAttachment() noexcept;
+    AttachmentObject * getAttachment() const noexcept;
 
     // state
     inline bool isCulled() const noexcept {

@@ -9,7 +9,7 @@
 
 namespace engine::scene {
 
-    class Sprite : public Object {
+    class Sprite : public AttachmentObject {
     public:
         Sprite(const graphics::ImageFrame2D & frame, uint32_t pipeline);
         ~Sprite() /*override*/ = default;

@@ -105,20 +105,20 @@ namespace engine::scene {
         return parent->removeChild(this);
     }
 
-    void Node::setObject(Object * object) noexcept {
-        this->object = object;
-        object->node = this;
+    void Node::setAttachment(AttachmentObject * object) noexcept {
+        attachment = object;
+        attachment->node = this;
     }
 
-    Object * Node::removeObject() noexcept {
-        object->node = nullptr;
-        auto * result = object;
-        object = nullptr;
+    AttachmentObject * Node::removeAttachment() noexcept {
+        attachment->node = nullptr;
+        auto * result = attachment;
+        attachment = nullptr;
         return result;
     }
 
-    Object * Node::getObject() const noexcept {
-        return object;
+    AttachmentObject * Node::getAttachment() const noexcept {
+        return attachment;
     }
 
     void Node::setBounds(const Bounds & newBounds) noexcept {

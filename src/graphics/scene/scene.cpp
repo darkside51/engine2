@@ -43,15 +43,16 @@ namespace engine::scene {
 
     constexpr uint32_t kSpriteVertexSize = sizeof(SpriteVertex);
 
-    void attachObjectToNode(Object & object, Node & node) noexcept {
+    void attachObjectToNode(AttachmentObject & object, Node & node) noexcept {
         switch(object.typeIndex) {
-        case ctti::typeIndex<Object, Dummy>():
-            node.setObject(&object);
+        case ctti::typeIndex<AttachmentObject, Dummy>(): [[fallthrough]]
+        case ctti::typeIndex<AttachmentObject, Skeleton>():
+            node.setAttachment(&object);
             return;
-        case ctti::typeIndex<Object, Sprite>():
+        case ctti::typeIndex<AttachmentObject, Sprite>():
             static_cast<Sprite &>(object).attachToNode(&node);
             return;
-        case ctti::typeIndex<Object, Mesh>():
+        case ctti::typeIndex<AttachmentObject, Mesh>():
             static_cast<Mesh &>(object).attachToNode(&node);
             return;
         }
@@ -100,7 +101,7 @@ namespace engine::scene {
                 destroyNode(n);
             }
 
-            if (auto * object = node->getObject()) {
+            if (auto * object = node->getAttachment()) {
                 destroyObject(object);
             }
 
@@ -108,7 +109,7 @@ namespace engine::scene {
         }
     }
 
-    bool Scene::destroyObject(Object * object) noexcept {
+    bool Scene::destroyObject(AttachmentObject * object) noexcept {
         const auto id = object->typeIndex;
 
         auto it = _objectCollections.find(id);
@@ -198,7 +199,7 @@ namespace engine::scene {
         );
     }
 
-    bool Scene::compareObjectsForDraw(const Object & a, const Object & b) noexcept {
+    bool Scene::compareAttachmentsForDraw(const AttachmentObject & a, const AttachmentObject & b) noexcept {
         // if (a.layer != b.layer) {
         //     return a.layer < b.layer;
         // }
@@ -212,18 +213,18 @@ namespace engine::scene {
         }
 
         switch(a.typeIndex) {
-        case ctti::typeIndex<Object, Dummy>():
+        case ctti::typeIndex<AttachmentObject, Dummy>():
             return static_cast<const Dummy &>(a).cmp(static_cast<const Dummy &>(b));
-        case ctti::typeIndex<Object, Sprite>():
+        case ctti::typeIndex<AttachmentObject, Sprite>():
             return static_cast<const Sprite &>(a).cmp(static_cast<const Sprite &>(b));
-        case ctti::typeIndex<Object, Mesh>():
+        case ctti::typeIndex<AttachmentObject, Mesh>():
             return static_cast<const Mesh &>(a).cmp(static_cast<const Mesh &>(b));
-        default:
-            return false;
+        case ctti::typeIndex<AttachmentObject, Skeleton>():
+            return static_cast<const Skeleton &>(a).cmp(static_cast<const Skeleton &>(b));
         }
     }
 
-    void Scene::update(std::chrono::time_point<std::chrono::steady_clock> now, float delta, std::span<Object*> objects, 
+    void Scene::update(std::chrono::time_point<std::chrono::steady_clock> now, float delta, std::span<AttachmentObject*> objects, 
         const AnimationManager & animationManager) {
         if (objects.empty()) {
             return;
@@ -279,7 +280,7 @@ namespace engine::scene {
         // todo: other types!
     }
 
-    void Scene::prepareDrawData(std::span<Object*> objects, uint8_t frame) noexcept {
+    void Scene::prepareDrawData(std::span<AttachmentObject*> objects, uint8_t frame) noexcept {
         // resize buffers
         auto spritesVertexesCount = _spritesVertexesCount;
         auto spritesIndicesCount = _spritesIndicesCount;
@@ -290,11 +291,14 @@ namespace engine::scene {
 
         for (auto const * object : objects) {
             switch (object->typeIndex) {
-            case ctti::typeIndex<Object, Sprite>():
+            case ctti::typeIndex<AttachmentObject, Dummy>(): [[fallthrough]];
+            case ctti::typeIndex<AttachmentObject, Skeleton>():
+                break;
+            case ctti::typeIndex<AttachmentObject, Sprite>():
                 spritesVertexesCount += 4u;
                 spritesIndicesCount += 6u;
                 break;
-            case ctti::typeIndex<Object, Mesh>():
+            case ctti::typeIndex<AttachmentObject, Mesh>():
             {
                 if (!_meshTransformIndices.contains(object)) {
                     const auto [it, success] = _meshTransformIndices.emplace(object, meshesInFrame);
@@ -304,8 +308,6 @@ namespace engine::scene {
                 }
                 ++meshesDrawInFrame; // every draw mesh has offset (for get correct matrices from meshTransforms)
             }
-                break;
-            default:
                 break;
             }
         }
@@ -379,30 +381,30 @@ namespace engine::scene {
     }
 
     void Scene::drawObjects(rhi::runtime::CommandListPtr & commandList, uint8_t frame, 
-        const mat4f & cameraTransform, ObjectsIterator begin, ObjectsIterator end, uint16_t typeIdx) {
+        const mat4f & cameraTransform, AttachmentsIterator begin, AttachmentsIterator end, uint16_t typeIdx) {
         switch (typeIdx) {
-        case ctti::typeIndex<Object, Dummy>():
+        case ctti::typeIndex<AttachmentObject, Skeleton>(): // do not draw skeletons
+            break;
+        case ctti::typeIndex<AttachmentObject, Dummy>():
         {
             drawDummies(begin, end, cameraTransform, 0xff'00'00'ffu);
         }
             break;
-        case ctti::typeIndex<Object, Sprite>():
+        case ctti::typeIndex<AttachmentObject, Sprite>():
         {
             drawSprites(commandList, frame, begin, end, cameraTransform);
         }
             break;
-        case ctti::typeIndex<Object, Mesh>():
+        case ctti::typeIndex<AttachmentObject, Mesh>():
         {
             drawMeshes(commandList, frame, begin, end, cameraTransform);
         }
-            break;
-        default:
             break;
         }
     }
 
     void Scene::draw(rhi::runtime::CommandListPtr & commandList, rhi::runtime::CommandListPtr & transferCommandList, uint8_t frame, 
-        const mat4f & cameraTransform, std::span<Object*> objects) {
+        const mat4f & cameraTransform, std::span<AttachmentObject*> objects) {
         if (objects.empty()) {
             return;
         }
@@ -426,7 +428,7 @@ namespace engine::scene {
         performCommits(transferCommandList, frame);
     }
 
-    void Scene::drawDummies(ObjectsIterator begin, ObjectsIterator end, const mat4f & cameraTransform, uint32_t color) {
+    void Scene::drawDummies(AttachmentsIterator begin, AttachmentsIterator end, const mat4f & cameraTransform, uint32_t color) {
         if (_debugDraw == nullptr) {
             return;
         }
@@ -437,7 +439,7 @@ namespace engine::scene {
         }
     }
 
-    void Scene::drawSprites(rhi::runtime::CommandListPtr & commandList, uint8_t frame, ObjectsIterator begin, ObjectsIterator end, 
+    void Scene::drawSprites(rhi::runtime::CommandListPtr & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end, 
         const mat4f & cameraTransform) {
         auto currentIt = begin;
         auto it = currentIt;
@@ -474,7 +476,7 @@ namespace engine::scene {
         drawSpritesBatch(commandList, frame, currentIt, end, cameraTransform, batchVertexesCount, batchIndicesCount);
     }
 
-    void Scene::drawSpritesBatch(rhi::runtime::CommandListPtr & commandList, uint8_t frame, ObjectsIterator begin, ObjectsIterator end, 
+    void Scene::drawSpritesBatch(rhi::runtime::CommandListPtr & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end, 
         const mat4f & cameraTransform, uint32_t batchVertexesCount, uint32_t batchIndicesCount) {
 
         const auto & sprite = *static_cast<const Sprite*>(*begin);
@@ -568,7 +570,7 @@ namespace engine::scene {
         _spritesIndicesCount += batchIndicesCount;
     }
 
-    void Scene::drawMeshes(rhi::runtime::CommandListPtr & commandList, uint8_t frame, ObjectsIterator begin, ObjectsIterator end, const mat4f & cameraTransform) {
+    void Scene::drawMeshes(rhi::runtime::CommandListPtr & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end, const mat4f & cameraTransform) {
         auto currentIt = begin;
         auto it = currentIt;
         const auto & mesh = *static_cast<const Mesh*>(*it);
@@ -597,7 +599,7 @@ namespace engine::scene {
         drawSameMeshes(commandList, frame, currentIt, end, cameraTransform);
     }
 
-    void Scene::drawSameMeshes(rhi::runtime::CommandListPtr & commandList, uint8_t frame, ObjectsIterator begin, ObjectsIterator end, 
+    void Scene::drawSameMeshes(rhi::runtime::CommandListPtr & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end, 
         const mat4f & cameraTransform) {
         const auto & mesh = *static_cast<const Mesh*>(*begin);
         const auto & pipeline = getPipeline(mesh.getPipeline());
