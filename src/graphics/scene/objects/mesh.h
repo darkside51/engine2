@@ -29,9 +29,17 @@ namespace mesh {
         Skeleton(const graphics::models::Mesh_Data & meshData);
         ~Skeleton() /*override*/ = default;
 
+        uint32_t nodesCount() const noexcept {
+            return _nodes.size();
+        }
+
         Node *& node(uint16_t idx) noexcept {
             assert(idx < _nodes.size());
             return _nodes[idx];
+        }
+
+        const graphics::models::Mesh_Data & meshData() const noexcept {
+            return _meshData;
         }
 
         bool cmp(const Skeleton &) const noexcept;

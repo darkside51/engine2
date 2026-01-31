@@ -50,8 +50,8 @@ namespace engine::graphics::models {
 		};
 
         struct AnimationChannel {
-			uint16_t sampler = 0u;
-			uint16_t target_node = 0u;
+			uint16_t sampler = kInvalidValue;
+			uint16_t target_node = kInvalidValue;
 			AnimationChannelPath path = AnimationChannelPath::eTranslation;
 		};
 

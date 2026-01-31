@@ -31,6 +31,7 @@
 #include "graphics/debug/debug_draw.h"
 #include "graphics/texture/atlas.h"
 #include "graphics/scene/animation/texture/frame_sequence_animation.h"
+#include "graphics/scene/animation/mesh/skeletal_animation.h"
 #include "graphics/scene/animation_manager.h"
 
 // https://www.saschawillems.de/blog/2018/07/19/vulkan-input-attachments-and-sub-passes/
@@ -65,6 +66,10 @@ namespace example {
     engine::scene::SphereCameraController controller{camera};
     engine::scene::Node * sceneWorldRoot = nullptr;
     engine::scene::Node * sceneNodePtr = nullptr;
+    engine::scene::Skeleton * tmpSkeleton = nullptr;
+    engine::scene::SkeletalAnimation * skeletalAnimation = nullptr;
+
+    engine::scene::SkeletalAnimator gSkeletalAnimator{};
 
     engine::mat4f cameraTransform;
     float m = 0.0f;
@@ -205,6 +210,11 @@ namespace example {
 
         _defaultImage = nullptr;
         _sphereImage = nullptr;
+
+        if (skeletalAnimation) {
+            delete skeletalAnimation;
+            skeletalAnimation = nullptr;
+        }
 
         scene.destroy();
 
@@ -1091,6 +1101,12 @@ namespace example {
                 meshRoot->setScale(engine::common::random(0.9f, 1.1f));
                 meshRoot->setRotation(engine::vec3f(1.57f, 0.0f, engine::common::random(-3.14f, 3.14f)));
                 meshRoot->setPosition(engine::vec3f(-4.0f + i * 1.0f, 0.0f, 0.0f));
+
+                if (i == 5u) {
+                    tmpSkeleton = skeleton;
+                    skeletalAnimation = new engine::scene::SkeletalAnimation(meshData.animations[0u]);
+                    gSkeletalAnimator.enlarge2(skeleton->nodesCount());
+                }
                 
                 sceneWorldRoot->addChild(meshRoot);
             }
@@ -1340,6 +1356,14 @@ namespace example {
             }
             sceneNodePtr->setPosition(position);
             // sceneNodePtr->setTransform(tr);
+        }
+
+        if (skeletalAnimation && tmpSkeleton) {
+            const std::chrono::duration<float> nowDuration = now.time_since_epoch();
+            const float nowTimeCount = nowDuration.count();
+
+            gSkeletalAnimator.update2(nowTimeCount, *skeletalAnimation);
+            gSkeletalAnimator.apply2(*tmpSkeleton);
         }
 
         std::vector<engine::scene::AttachmentObject*> objects(1024u);

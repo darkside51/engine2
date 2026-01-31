@@ -23,7 +23,9 @@
 
 namespace engine::scene {
 
-constexpr bool kDebugDrawBounds = true;
+constexpr bool kDebugDrawBounds = false;
+constexpr bool kDebugDrawGizmos = true;
+
 constexpr uint32_t kFillNodesReserveSize = 1024u;
     
 class AnimationManager;
@@ -205,14 +207,18 @@ void Scene::fillAttachmentsArray(const mat4f & cameraTransform, Node * root, Con
             objects.emplace_back(object);
         }
 
-        if constexpr (kDebugDrawBounds) {
+        if constexpr (kDebugDrawBounds || kDebugDrawGizmos) {
             if (_debugDraw) {
-                auto wtr = worldTransform;
-                wtr[0u] = glm::normalize(wtr[0u]);
-                wtr[1u] = glm::normalize(wtr[1u]);
-                wtr[2u] = glm::normalize(wtr[2u]);
-                _debugDraw->drawGizmo(0.1f, cameraTransform * wtr);
-                _debugDraw->drawBounds(bounds, 0xff00ffffu, cameraTransform * worldTransform);
+                if constexpr (kDebugDrawGizmos) {
+                    auto wtr = worldTransform;
+                    wtr[0u] = glm::normalize(wtr[0u]);
+                    wtr[1u] = glm::normalize(wtr[1u]);
+                    wtr[2u] = glm::normalize(wtr[2u]);
+                    _debugDraw->drawGizmo(0.1f, cameraTransform * wtr);
+                }
+                if constexpr (kDebugDrawBounds) {
+                    _debugDraw->drawBounds(bounds, 0xff00ffffu, cameraTransform * worldTransform);
+                }
             }
         }
         return true;

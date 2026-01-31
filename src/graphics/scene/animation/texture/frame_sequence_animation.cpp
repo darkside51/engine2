@@ -31,8 +31,7 @@ namespace engine::scene {
         return getFrame(_time, sequence);
     }
 
-    const graphics::ImageFrame2D & FramesSequenceAnimator::update(std::chrono::duration<float> now, float startTime, 
-        const FramesSequence & sequence) const noexcept {
-        return getFrame(now.count() - startTime, sequence);
+    const graphics::ImageFrame2D & FramesSequenceAnimator::update2(float time, const FramesSequence & sequence) const noexcept {
+        return getFrame(time, sequence);
     }
 }
