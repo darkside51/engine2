@@ -24,6 +24,9 @@ namespace engine::scene {
 
     constexpr uint16_t kUndefinedAnimId = 0xff'ffu;
 
+    using SsboTransform = glm::mat3x4; // to use 48bytes transposed matrices
+    constexpr uint32_t kSsboTransformSize = sizeof(SsboTransform);
+
     FramesSequenceAnimator gSequenceAnimator{1.0f / 30.0f};
 
     // struct ColoredVertex {
@@ -191,7 +194,7 @@ namespace engine::scene {
             rhi::MemoryPropertyFlags::eDeviceLocal
         };
         _meshTransforms = std::make_unique<graphics::InflightBuffer>(
-            api, device, storageInfo, sizeof(mat4f) * kInitialMeshesInFrameMax
+            api, device, storageInfo, kSsboTransformSize * kInitialMeshesInFrameMax
         );
 
         _meshTransformsOffsets = std::make_unique<graphics::InflightBuffer>(
@@ -287,7 +290,7 @@ namespace engine::scene {
 
         auto meshesInFrame = _meshesInFrame;
         auto meshesDrawInFrame = _meshesDrawInFrame;
-        _tmpNoTransformSetMeshes.reserve(kInitialMeshesInFrameMax);
+        _tmpNoTransformSetMeshes.reserve(kInitialMeshesInFrameMax); // meshes/ who transfroms no set to _meshTransforms, must be renamed
 
         for (auto const * object : objects) {
             switch (object->typeIndex) {
@@ -329,7 +332,7 @@ namespace engine::scene {
         }
 
         {
-            const auto size = static_cast<uint32_t>((meshesInFrame) * sizeof(mat4f));
+            const auto size = static_cast<uint32_t>((meshesInFrame) * kSsboTransformSize);
             const auto currentSize = _meshTransforms->sizeInBytes();
             if (currentSize <= size) {
                 _meshTransforms->resize(std::max(currentSize * 2u, size));
@@ -369,9 +372,21 @@ namespace engine::scene {
 
         // map new meshes world transforms to storage buffer
         if (meshesInFrame > _meshesInFrame) {
-            auto * mem = _meshTransforms->memory2<mat4f>();
+            auto * mem = _meshTransforms->memory2<SsboTransform>();
             for (const auto & [object, idx] : _tmpNoTransformSetMeshes) {
-                *(mem + idx) = object->node->getWorldTransform();
+                memcpy(
+                    (mem + idx), 
+                    &glm::transpose(object->node->getWorldTransform())[0u][0u], 
+                    sizeof(SsboTransform)
+                );
+
+                // const auto tr = glm::transpose(object->node->getWorldTransform());
+                // *(mem + idx) = {
+                //     tr[0u],
+                //     tr[1u],
+                //     tr[2u]
+                // };
+                // *(mem + idx) = object->node->getWorldTransform();
             }
 
             _meshTransforms->modify();
@@ -671,7 +686,7 @@ namespace engine::scene {
             {
                 auto const minCount = std::max(_meshesInFrame, kInitialMeshesInFrameMax);
                 if (minCount * 2u < _lastFramesUsedMeshesInFrame) {
-                    _meshTransforms->resize(minCount * sizeof(mat4f));
+                    _meshTransforms->resize(minCount * kSsboTransformSize);
                     _tmpNoTransformSetMeshes.resize(minCount);
                 }
                 _lastFramesUsedMeshesInFrame = _meshesInFrame;
