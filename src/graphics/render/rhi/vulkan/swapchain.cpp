@@ -66,7 +66,7 @@ namespace engine::vulkan {
 			// iterate over the list of available surface format and
 			// check for the presence of VK_FORMAT_B8G8R8A8_UNORM
             uint8_t priority = 0u;
-			for (const auto & format : surfaceSupportDetails.formats) {
+			for (const auto & format : surfaceSupportDetails.formats) { // hmmm....
                 if (format.colorSpace == utils::convert2vk(_info.colorSpace)) {
                     surfaceFormat.format = format.format;
 					surfaceFormat.colorSpace = format.colorSpace;

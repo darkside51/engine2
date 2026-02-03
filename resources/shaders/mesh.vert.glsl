@@ -3,6 +3,7 @@
 layout (location = 0) in vec3 a_position;
 layout (location = 1) in vec3 a_normal;
 layout (location = 2) in vec2 a_uv;
+layout (location = 3) in uint a_sbo_offset; // per instance value
 
 layout (location = 0) out vec3 v_normal;
 layout (location = 1) out vec2 v_uv;
@@ -20,5 +21,5 @@ void main() {
 	//v_normal = unpackUnorm4x8(a_normal).rgb;
 	v_normal = a_normal.rgb;
 	v_uv = a_uv;
-	v_color_mix = float(mod(gl_InstanceIndex, 2));
+	v_color_mix = float(mod(gl_InstanceIndex + a_sbo_offset, 2));
 }

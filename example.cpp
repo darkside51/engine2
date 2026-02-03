@@ -415,6 +415,7 @@ namespace example {
 
         const auto depthFormat = _device->getSupportedDepthFormat(32u, false);
         const auto formats0 = std::array{engine::rhi::Format::eB8G8R8A8_Unorm}; // _swapchain->getFormat()
+        // const auto formats0 = std::array{engine::rhi::Format::eB8G8R8A8_Srgb}; // for my amd gpu
         const auto formats1 = std::array{engine::rhi::Format::eR8G8B8A8_Unorm, depthFormat};
 
         _renderPasses.emplace_back(_api->getRenderPass(*_device, engine::parseRenderPass(json["screen"], formats0))); // kScreenPass
