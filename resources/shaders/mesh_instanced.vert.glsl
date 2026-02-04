@@ -14,6 +14,10 @@ layout (set = 0, binding = 0, std430) readonly buffer Transformations {
    mat3x4 transforms[];
 } sbo;
 
+layout (set = 0, binding = 1, std430) readonly buffer SkinTransformations {
+   mat3x4 transforms[];
+} sbo_skin;
+
 layout(push_constant, std430) uniform Camera {
 	mat4 viewProjection;
 } push;

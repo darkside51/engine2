@@ -349,7 +349,7 @@ namespace engine::graphics::models {
 
     void Mesh_Data::loadSkins(const Layout & layout) {
         skins.reserve(layout.skins.size());
-
+        skinMatricesCount = 0u;
         for (const auto & srcSkin : layout.skins) {
             auto & skin = skins.emplace_back(srcSkin.skeleton);
             skin.joints = srcSkin.joints; // copy
@@ -360,6 +360,7 @@ namespace engine::graphics::models {
 				const auto & buffer = layout.buffers[bufferView.buffer];
 				skin.inverseBindMatrices.resize(accessor.count);
                 memcpy(&skin.inverseBindMatrices[0u], &buffer.data[accessor.offset + bufferView.offset], accessor.count * sizeof(mat4f));
+                skinMatricesCount += accessor.count;
             }
         }
     }

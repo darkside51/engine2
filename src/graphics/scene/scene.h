@@ -169,17 +169,26 @@ private:
     uint32_t _lastFramesUsedSpritesVertexCount = 0u;
     uint32_t _lastFramesUsedSpritesIndicesCount = 0u;
     
-    uint32_t _lastFramesUsedMeshesInFrame = 0u;
-    uint32_t _lastFramesUsedMeshesDrawInFrame = 0u;
+    uint32_t _lastFramesUsedMeshes = 0u;
+    uint32_t _lastFramesUsedMeshesDraw = 0u;
     
     debug::DebugDraw * _debugDraw = nullptr;
     std::unique_ptr<graphics::InflightBuffer> _spritesVertices = nullptr;
     std::unique_ptr<graphics::InflightBuffer> _spritesIndices = nullptr;
 
-    std::unordered_map<const AttachmentObject*, uint16_t> _meshTransformIndices;
-    std::vector<std::pair<const AttachmentObject*, uint16_t>> _tmpNoTransformSetMeshes;
+    struct MeshTransformsIndices {
+        uint16_t transformIndex = 0xff'ffu;
+        uint16_t skeletalTransformIndex = 0xff'ffu;
+    };
+
+    std::unordered_map<const AttachmentObject*, MeshTransformsIndices> _meshTransformIndicesMap;
+    std::vector<std::pair<const AttachmentObject*, MeshTransformsIndices>> _tmpUniqueMeshes;
     std::unique_ptr<graphics::InflightBuffer> _meshTransforms = nullptr;
-    std::unique_ptr<graphics::InflightBuffer> _meshTransformsOffsets = nullptr;
+    std::unique_ptr<graphics::InflightBuffer> _meshTransformIndices = nullptr;
+
+    uint32_t _skeletalTransformsInFrame = 0u;
+    uint32_t _lastFramesUsedSkeletalTransforms = 0u;
+    std::unique_ptr<graphics::InflightBuffer> _meshSkeletalTransforms = nullptr;
 
     rhi::SamplerValue _linearSampler;
 };

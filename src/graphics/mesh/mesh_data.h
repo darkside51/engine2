@@ -76,6 +76,8 @@ namespace engine::graphics::models {
 		std::vector<Mesh_Geometry> meshes;
         std::vector<Node> nodes;
 
+		uint32_t skinMatricesCount = 0u;
+
 		void loadSkins(const Layout & layout);
 		void loadAnimations(const Layout & layout);
     	Mesh_Buffers_Data loadMeshes(const Layout & layout, std::span<const AttributeSemantic> allowedAttributes);

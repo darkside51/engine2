@@ -13,13 +13,30 @@ namespace engine::scene {
     // skeleton:
     Skeleton::Skeleton(const graphics::models::Mesh_Data & meshData) :
         AttachmentObject(ctti::typeIndex<AttachmentObject, Skeleton>()), _meshData(meshData), _nodes(meshData.nodes.size()) {
+    }
 
+    uint16_t Skeleton::skinMatricesCount() const noexcept {
+        return _meshData.skinMatricesCount;
     }
 
     bool Skeleton::cmp(const Skeleton & other) const noexcept {
         return std::less<const graphics::models::Mesh_Data*>{}(&_meshData, &other._meshData);
     }
 
+    void Skeleton::fillSkinMatrices2(std::span<mat3x4f> target) const noexcept {
+        assert(target.size() >= _meshData.skinMatricesCount);
+
+        uint32_t n = 0u;
+        for (const auto & skin : _meshData.skins) {
+			const auto numJoints = skin.joints.size();
+            for (uint32_t i = 0u; i < numJoints; ++i) {
+                const auto & node = _nodes[skin.joints[i]];
+                const auto tr = node->getWorldTransform() * skin.inverseBindMatrices[i];
+                target[n] = glm::transpose(tr);
+            }
+			++n;
+		}
+    }
 
     // mesh:
     Mesh::Mesh(const graphics::models::Mesh_Data & meshData, uint16_t meshIdx, uint16_t skin, uint32_t pipeline) :

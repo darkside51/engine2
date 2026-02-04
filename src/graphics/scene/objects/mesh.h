@@ -10,6 +10,7 @@
 #include <array>
 #include <cassert>
 #include <cstdint>
+#include <span>
 #include <utility>
 
 namespace engine::scene {
@@ -33,6 +34,8 @@ namespace mesh {
             return _nodes.size();
         }
 
+        uint16_t skinMatricesCount() const noexcept;
+
         Node *& node(uint16_t idx) noexcept {
             assert(idx < _nodes.size());
             return _nodes[idx];
@@ -43,6 +46,8 @@ namespace mesh {
         }
 
         bool cmp(const Skeleton &) const noexcept;
+
+        void fillSkinMatrices2(std::span<mat3x4f> target) const noexcept;
 
     private:
         const graphics::models::Mesh_Data & _meshData;

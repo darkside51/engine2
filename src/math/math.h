@@ -42,10 +42,28 @@ namespace engine {
     using mat2 = glm::mat<2, 2, T, glm::defaultp>;
 
     template <typename T>
+    using mat2x3 = glm::mat<2, 3, T, glm::defaultp>;
+
+    template <typename T>
+    using mat2x4 = glm::mat<2, 4, T, glm::defaultp>;
+
+    template <typename T>
     using mat3 = glm::mat<3, 3, T, glm::defaultp>;
 
     template <typename T>
+    using mat3x2 = glm::mat<3, 2, T, glm::defaultp>;
+
+    template <typename T>
+    using mat3x4 = glm::mat<3, 4, T, glm::defaultp>;
+
+    template <typename T>
     using mat4 = glm::mat<4, 4, T, glm::defaultp>;
+
+    template <typename T>
+    using mat4x2 = glm::mat<4, 2, T, glm::defaultp>;
+
+    template <typename T>
+    using mat4x3 = glm::mat<4, 3, T, glm::defaultp>;
 
     template <typename T>
     using quat = glm::qua<T, glm::defaultp>;
@@ -54,16 +72,28 @@ namespace engine {
     using vec3f = vec3<float>;
     using vec4f = vec4<float>;
     using mat2f = mat2<float>;
+    using mat2x3f = mat2x3<float>;
+    using mat2x4f = mat2x4<float>;
     using mat3f = mat3<float>;
+    using mat3x2f = mat3x2<float>;
+    using mat3x4f = mat3x4<float>;
     using mat4f = mat4<float>;
+    using mat4x2f = mat4x2<float>;
+    using mat4x3f = mat4x3<float>;
     using quatf = quat<float>;
 
     using vec2d = vec2<double>;
     using vec3d = vec3<double>;
     using vec4d = vec4<double>;
     using mat2d = mat2<double>;
+    using mat2x3d = mat2x3<double>;
+    using mat2x4d = mat2x4<double>;
     using mat3d = mat3<double>;
+    using mat3x2d = mat3x2<double>;
+    using mat3x4d = mat3x4<double>;
     using mat4d = mat4<double>;
+    using mat4x2d = mat4x2<double>;
+    using mat4x3d = mat4x3<double>;
     using quatd = quat<double>;
 
     using vec2i = vec2<int32_t>;
