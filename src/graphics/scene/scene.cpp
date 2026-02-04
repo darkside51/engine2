@@ -431,7 +431,7 @@ namespace engine::scene {
             _meshesInFrame = meshesInFrame;
 
             if (skeletalTransformsInFrame > _skeletalTransformsInFrame) {
-                _meshSkeletalTransforms->modify();
+                _meshSkeletalTransforms->modify(skeletalTransformsInFrame * kSsboTransformSize);
                 _skeletalTransformsInFrame = skeletalTransformsInFrame;
             }
 
@@ -700,7 +700,7 @@ namespace engine::scene {
             commandList->bindIndexBuffer(mesh.getIndices().buffer, 0u, rhi::IndexType::eU32);
 
             commandList->bindBuffer(0u, (*_meshTransforms)(frame), 0u, 0u);
-            commandList->bindBuffer(1u, (*_meshSkeletalTransforms)(frame), 0u, 0u);
+            commandList->bindBuffer(1u, (*_meshSkeletalTransforms)(frame), 0u, 0u); // todo: check setId 1 !!!!!!!!!!!!!!!!!!!!!!!!
             commandList->pushConstants(rhi::shaders::Stages::eVertex, 0u, sizeof(Uniform), &uniform);
 
             const auto & geometry = mesh.geometry();

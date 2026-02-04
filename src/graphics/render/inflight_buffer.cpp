@@ -45,9 +45,9 @@ namespace engine::graphics {
         return _tmpMemory.get();
     }
 
-    void InflightBuffer::modify() noexcept {
+    void InflightBuffer::modify(uint32_t bytesCount) noexcept {
         for (auto & [_, __, dirty]  : _buffers) {
-            dirty = true;
+            dirty = std::max(bytesCount, dirty); // todo: check offset too!
         }
     }
 
@@ -62,7 +62,8 @@ namespace engine::graphics {
     }
 
     void InflightBuffer::commit(rhi::runtime::CommandList & cmd, uint8_t idx) noexcept { // can use another command buffer if need to call this function in renderpass time!
-        if (auto & [mappedMemory, buffer, dirty] = _buffers[idx]; dirty) {
+        if (auto & [mappedMemory, buffer, dirty] = _buffers[idx]; dirty > 0u) {
+            const auto bytesChanged = std::min(_size, dirty);
             if (buffer == nullptr || buffer->sizeInBytes() != _size) {
                 if (mappedMemory != nullptr) {
                     buffer->unmap();
@@ -74,28 +75,28 @@ namespace engine::graphics {
                 if (mappedMemory == nullptr) {
                     mappedMemory = buffer->map();
                 }
-                memcpy(mappedMemory, _tmpMemory.get(), buffer->sizeInBytes());
+                memcpy(mappedMemory, _tmpMemory.get(), bytesChanged);
                 buffer->flush(); // vma check is memory coherent 
             } else { // need use stagingBuffer
-                if (_size < rhi::runtime::command_limits::kMaxMemoryBytesToCopyCommand) { // use cmdUpdateBuffer
-                    cmd.updateBuffer(buffer, 0u, _size, _tmpMemory.get());
-                    dirty = false;
+                if (bytesChanged < rhi::runtime::command_limits::kMaxMemoryBytesToCopyCommand) { // use cmdUpdateBuffer
+                    cmd.updateBuffer(buffer, 0u, bytesChanged, _tmpMemory.get());
+                    dirty = 0u;
                     return;
                 }
 
                 if (_stagingBuffer) {
-                    const auto offset = _stagingBuffer->requestBytes(idx, buffer->sizeInBytes());
+                    const auto offset = _stagingBuffer->requestBytes(idx, bytesChanged);
                     if (offset != StagingBuffer::kNotEnoughMemory) {
                         auto [stagingBuffer, memory] = _stagingBuffer->getBuffer(idx);
                         {
                             //auto * memory = stagingBuffer->map2<std::byte>();
-                            memcpy(memory + offset, _tmpMemory.get(), buffer->sizeInBytes());
-                            (*stagingBuffer)->flush(offset, buffer->sizeInBytes());
+                            memcpy(memory + offset, _tmpMemory.get(), bytesChanged);
+                            (*stagingBuffer)->flush(offset, bytesChanged);
                             //stagingBuffer->unmap();
                         }
 
-                        cmd.copyBuffer2Buffer(*stagingBuffer, buffer, {.srcOffset = offset, .dstOffset = 0u, .size = buffer->sizeInBytes()});
-                        dirty = false;
+                        cmd.copyBuffer2Buffer(*stagingBuffer, buffer, {.srcOffset = offset, .dstOffset = 0u, .size = bytesChanged});
+                        dirty = 0u;
                         return;
                     }
                 }
@@ -105,18 +106,18 @@ namespace engine::graphics {
                     rhi::MemoryPropertyFlags::eHostVisible | rhi::MemoryPropertyFlags::eHostCached
                 };
             
-                auto stagingBuffer = _api.createBuffer(_device, info, buffer->sizeInBytes());
+                auto stagingBuffer = _api.createBuffer(_device, info, bytesChanged);
                 {
                     auto * memory = stagingBuffer->map();
-                    memcpy(memory, _tmpMemory.get(), buffer->sizeInBytes());
+                    memcpy(memory, _tmpMemory.get(), bytesChanged);
                     stagingBuffer->flush(); // vma check is memory coherent
                     stagingBuffer->unmap();
                 }
 
-                cmd.copyBuffer2Buffer(stagingBuffer, buffer, {.srcOffset = 0u, .dstOffset = 0u, .size = buffer->sizeInBytes()});
+                cmd.copyBuffer2Buffer(stagingBuffer, buffer, {.srcOffset = 0u, .dstOffset = 0u, .size = bytesChanged});
             }
 
-            dirty = false;
+            dirty = 0u;
         }
     }
 }

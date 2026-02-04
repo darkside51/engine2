@@ -21,7 +21,7 @@ namespace engine::graphics {
         void setStagingBuffer(InflightStagingBuffer * staging) noexcept { _stagingBuffer = staging; }
 
         void * memory() noexcept;
-        void modify() noexcept;
+        void modify(uint32_t bytesCount = 0xff'ff'ff'ffu) noexcept;
 
         template <typename T>
         inline T * memory2() noexcept { return static_cast<T*>(memory()); }
@@ -70,7 +70,7 @@ namespace engine::graphics {
         struct Data {
             void * mappedMemory = nullptr;
             rhi::runtime::BufferPtr buffer = nullptr;
-            bool dirty = false;
+            uint32_t dirty = 0u;
         };
         std::vector<Data> _buffers;
         std::unique_ptr<std::byte[]> _tmpMemory = nullptr;
