@@ -33,8 +33,8 @@ namespace engine::scene {
                 const auto & node = _nodes[skin.joints[i]];
                 const auto tr = node->getWorldTransform() * skin.inverseBindMatrices[i];
                 target[n] = glm::transpose(tr);
+                ++n;
             }
-			++n;
 		}
     }
 

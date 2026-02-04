@@ -556,7 +556,9 @@ namespace example {
 
         const auto semanticsArray = std::array {engine::graphics::models::AttributeSemantic::ePosition, 
                                                 engine::graphics::models::AttributeSemantic::eNormal, 
-                                                engine::graphics::models::AttributeSemantic::eUv0};
+                                                engine::graphics::models::AttributeSemantic::eUv0,
+                                                engine::graphics::models::AttributeSemantic::eJoints,
+                                                engine::graphics::models::AttributeSemantic::eWeights};
 
         auto  [meshVtx, meshIdx] = meshData.loadMeshes(modelLayout, semanticsArray);
         meshData.optimizeBuffers(meshVtx, meshIdx, semanticsArray);
@@ -576,29 +578,41 @@ namespace example {
         _meshPositions = _api->createBuffer(*_device, meshVtxBufferInfo, meshVtx[0u].size());
         _meshNormals = _api->createBuffer(*_device, meshVtxBufferInfo, meshVtx[1u].size());
         _meshUvs = _api->createBuffer(*_device, meshVtxBufferInfo, meshVtx[2u].size());
+        _meshJoints = _api->createBuffer(*_device, meshVtxBufferInfo, meshVtx[3u].size());
+        _meshWeights = _api->createBuffer(*_device, meshVtxBufferInfo, meshVtx[4u].size());
         _meshIndices = _api->createBuffer(*_device, meshIdxBufferInfo, sizeof(uint32_t) * meshIdx.size());
 
         const auto meshVtxDataSize = meshVtx[0u].size();
         const auto meshNormalsDataSize = meshVtx[1u].size();
         const auto meshUvDataSize = meshVtx[2u].size();
+        const auto meshJointsDataSize = meshVtx[3u].size();
+        const auto meshWeightsDataSize = meshVtx[4u].size();
         const auto meshIdxDataSize = sizeof(uint32_t) * meshIdx.size();
 
-        const auto stagingMeshSize = meshVtxDataSize + meshNormalsDataSize + meshUvDataSize + meshIdxDataSize;
+        const auto stagingMeshSize = meshVtxDataSize + meshNormalsDataSize + meshUvDataSize + 
+            meshJointsDataSize + meshWeightsDataSize + meshIdxDataSize;
+
         StagingBuffer stagingMesh{*_api, *_device, stagingMeshSize};
         std::byte * memoryMeshStaging = stagingMesh.map();
         const auto vtxOffsetMesh = stagingMesh.requestBytes(meshVtxDataSize);
         const auto normalOffsetMesh = stagingMesh.requestBytes(meshNormalsDataSize);
         const auto uvOffsetMesh = stagingMesh.requestBytes(meshUvDataSize);
+        const auto jointsOffsetMesh = stagingMesh.requestBytes(meshJointsDataSize);
+        const auto weightsOffsetMesh = stagingMesh.requestBytes(meshWeightsDataSize);
         const auto idxOffsetMesh = stagingMesh.requestBytes(meshIdxDataSize);
 
         auto * vtxDataMeshPositions = (memoryMeshStaging + vtxOffsetMesh);
         auto * vtxDataMeshNormals = (memoryMeshStaging + normalOffsetMesh);
         auto * vtxDataMeshUvs = (memoryMeshStaging + uvOffsetMesh);
+        auto * vtxDataMeshJoints = (memoryMeshStaging + jointsOffsetMesh);
+        auto * vtxDataMeshWeights = (memoryMeshStaging + weightsOffsetMesh);
         auto * idxDataMesh = (memoryMeshStaging + idxOffsetMesh);
 
         std::memcpy(vtxDataMeshPositions, meshVtx[0u].data(), meshVtxDataSize);
         std::memcpy(vtxDataMeshNormals, meshVtx[1u].data(), meshNormalsDataSize);
         std::memcpy(vtxDataMeshUvs, meshVtx[2u].data(), meshUvDataSize);
+        std::memcpy(vtxDataMeshJoints, meshVtx[3u].data(), meshJointsDataSize);
+        std::memcpy(vtxDataMeshWeights, meshVtx[4u].data(), meshWeightsDataSize);
         std::memcpy(idxDataMesh, meshIdx.data(), meshIdxDataSize);
 
         stagingMesh.flush();
@@ -610,6 +624,11 @@ namespace example {
             {.srcOffset = normalOffsetMesh, .dstOffset = 0u, .size = _meshNormals->sizeInBytes()});
         tmpCommandList->copyBuffer2Buffer(stagingMesh.getBuffer(), _meshUvs, 
             {.srcOffset = uvOffsetMesh, .dstOffset = 0u, .size = _meshUvs->sizeInBytes()});
+        tmpCommandList->copyBuffer2Buffer(stagingMesh.getBuffer(), _meshJoints, 
+            {.srcOffset = jointsOffsetMesh, .dstOffset = 0u, .size = _meshJoints->sizeInBytes()});
+        tmpCommandList->copyBuffer2Buffer(stagingMesh.getBuffer(), _meshWeights, 
+            {.srcOffset = weightsOffsetMesh, .dstOffset = 0u, .size = _meshWeights->sizeInBytes()});
+
         tmpCommandList->copyBuffer2Buffer(stagingMesh.getBuffer(), _meshIndices, 
             {.srcOffset = idxOffsetMesh, .dstOffset = 0u, .size = _meshIndices->sizeInBytes()});
 
@@ -1053,6 +1072,8 @@ namespace example {
                         mesh->setAttribute({_meshPositions}, engine::scene::mesh::Semantic::ePosition);
                         mesh->setAttribute({_meshNormals}, engine::scene::mesh::Semantic::eNormal);
                         mesh->setAttribute({_meshUvs}, engine::scene::mesh::Semantic::eUv0);
+                        mesh->setAttribute({_meshJoints}, engine::scene::mesh::Semantic::eJoints);
+                        mesh->setAttribute({_meshWeights}, engine::scene::mesh::Semantic::eWeights);
                         engine::scene::attachObjectToNode(*mesh, *current);
 
                         for (const auto & p : meshData.meshes[node.mesh].primitives) {
@@ -1112,7 +1133,6 @@ namespace example {
                 sceneWorldRoot->addChild(meshRoot);
             }
             
-
             auto m0 = engine::makeMatrix(0.5F);
             engine::rotateMatrix_z(m0, 1.57f);
             m0[3] = {1.0f, 0.0f, 0.0f, 1.0f};

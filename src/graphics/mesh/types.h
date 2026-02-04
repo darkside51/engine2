@@ -36,7 +36,7 @@ namespace engine::graphics::models {
         eColor2 = 5u,
         eColor3 = 6u,
         eJoints = 7u,
-        eWeight = 8u,
+        eWeights = 8u,
         eUv0 = 9u,
         eUv1 = 10u,
         eUv2 = 11u,
@@ -60,7 +60,7 @@ namespace engine::graphics::models {
         4u, // eColor2
         4u, // eColor3
         8u, // eJoints: 4 uint16_t
-        16u, // eWeight: 4 floats
+        16u, // eWeights: 4 floats
         8u, // eUv0: 2 floats
         8u, // eUv1
         8u, // eUv2

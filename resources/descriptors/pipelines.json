@@ -151,8 +151,18 @@
 					"inputRate": "eVertex"
 				},
 				{
-					"stride" : 2,
+					"stride" : 8,
 					"binding" : 3,
+					"inputRate": "eVertex"
+				},
+				{
+					"stride" : 8,
+					"binding" : 4,
+					"inputRate": "eVertex"
+				},
+				{
+					"stride" : 2,
+					"binding" : 5,
 					"inputRate": "eInstance"
 				}
 			],
@@ -178,7 +188,19 @@
 				{
 					"location": 3,
                     "binding": 3,
-                    "format": "eR8G8_Uint",
+                    "format": "eR16G16B16A16_Uint",
+                    "offset": 0
+				},
+				{
+					"location": 4,
+                    "binding": 4,
+                    "format": "eR16G16B16A16_Sfloat",
+                    "offset": 0
+				},
+				{
+					"location": 5,
+                    "binding": 5,
+                    "format": "eR16_Uint",
                     "offset": 0
 				}
 			]

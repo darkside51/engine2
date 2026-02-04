@@ -316,6 +316,24 @@ namespace engine::graphics::models {
                 }
                 std::swap(vertices, vb);
             }
+
+            if (allowedAttributes[i] == AttributeSemantic::eWeights/* || allowedAttributes[i] == AttributeSemantic::eJoints*/) {
+                constexpr auto quantizeSemanticSize = 8u; // eR16G16B16A16_Sfloat
+                constexpr auto defaultSemanticSize = kDefaultSemanticsSizeBytes[8u];
+                 std::vector<std::byte> vertices(vertexCount * quantizeSemanticSize);
+                auto & vb = vertexBuffersData[i];
+
+                for (size_t n = 0u; n < vertexCount; ++n) {
+                    const float * value = reinterpret_cast<const float*>(&vb[n * defaultSemanticSize]);
+                    uint16_t * targetValue = reinterpret_cast<uint16_t*>(&vertices[n * quantizeSemanticSize]);
+
+                    targetValue[0u] = float_to_uint16(value[0u]);
+                    targetValue[1u] = float_to_uint16(value[1u]);
+                    targetValue[2u] = float_to_uint16(value[2u]);
+                    targetValue[3u] = float_to_uint16(value[3u]);
+                }
+                std::swap(vertices, vb);
+            }
         }
 
         ////

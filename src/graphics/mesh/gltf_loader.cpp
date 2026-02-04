@@ -64,7 +64,7 @@ namespace engine::graphics::models {
         {"COLOR_2", AttributeSemantic::eColor2},
         {"COLOR_3", AttributeSemantic::eColor3},
         {"JOINTS_0", AttributeSemantic::eJoints},
-        {"WEIGHTS_0", AttributeSemantic::eWeight},
+        {"WEIGHTS_0", AttributeSemantic::eWeights},
         {"TEXCOORD_0", AttributeSemantic::eUv0},
         {"TEXCOORD_1", AttributeSemantic::eUv1},
         {"TEXCOORD_2", AttributeSemantic::eUv2},

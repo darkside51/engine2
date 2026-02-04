@@ -671,7 +671,8 @@ namespace engine::scene {
 
         uint32_t drawObjectsCount = 0u;
         for (auto it = begin; it != end; ++it) {
-            *(mem2 + drawObjectsCount) = _meshTransformIndicesMap[*it].transformIndex;
+            // *(mem2 + drawObjectsCount) = _meshTransformIndicesMap[*it].transformIndex;
+            *(mem2 + drawObjectsCount) = _meshTransformIndicesMap[*it].skeletalTransformIndex;
             ++drawObjectsCount;
         }
         assert(drawObjectsCount < std::numeric_limits<uint16_t>::max()); // need to use 32bits _meshTransformIndices instead of 16bits
@@ -689,7 +690,12 @@ namespace engine::scene {
             commandList->bindVertexBuffer(0u, mesh.getAttribute(mesh::Semantic::ePosition).buffer, 0u);
             commandList->bindVertexBuffer(1u, mesh.getAttribute(mesh::Semantic::eNormal).buffer, 0u);
             commandList->bindVertexBuffer(2u, mesh.getAttribute(mesh::Semantic::eUv0).buffer, 0u);
-            commandList->bindVertexBuffer(3u, (*_meshTransformIndices)(frame), 0u);
+
+            // skinning in vertex shader impl (want to get skinning in compute too)
+            commandList->bindVertexBuffer(3u, mesh.getAttribute(mesh::Semantic::eJoints).buffer, 0u);
+            commandList->bindVertexBuffer(4u, mesh.getAttribute(mesh::Semantic::eWeights).buffer, 0u);
+
+            commandList->bindVertexBuffer(5u, (*_meshTransformIndices)(frame), 0u);
             
             commandList->bindIndexBuffer(mesh.getIndices().buffer, 0u, rhi::IndexType::eU32);
 
