@@ -153,7 +153,8 @@ namespace engine::scene {
 
     const rhi::runtime::PipelinePtr & Scene::getPipeline(uint32_t pipelineId) const noexcept {
         if (pipelineId >= _pipelines.size()) {
-            return nullptr;
+            static constexpr rhi::runtime::PipelinePtr kNullPipeline = nullptr;
+            return kNullPipeline;
         }
         return _pipelines[pipelineId];
     }
@@ -234,6 +235,8 @@ namespace engine::scene {
         case ctti::typeIndex<AttachmentObject, Skeleton>():
             return static_cast<const Skeleton &>(a).cmp(static_cast<const Skeleton &>(b));
         }
+
+        return false;
     }
 
     void Scene::update(std::chrono::time_point<std::chrono::steady_clock> now, float delta, std::span<AttachmentObject*> objects, 
