@@ -151,6 +151,73 @@
 					"inputRate": "eVertex"
 				},
 				{
+					"stride" : 2,
+					"binding" : 3,
+					"inputRate": "eInstance"
+				}
+			],
+			"attributes":[
+				{
+					"location": 0,
+                    "binding": 0,
+                    "format": "eR16G16B16_Sfloat",
+                    "offset": 0
+				},
+				{
+					"location": 1,
+                    "binding": 1,
+                    "format": "eR8G8B8_Snorm",
+                    "offset": 0
+				},
+				{
+					"location": 2,
+                    "binding": 2,
+                    "format": "eR16G16_Sfloat",
+                    "offset": 0
+				},
+				{
+					"location": 3,
+                    "binding": 3,
+                    "format": "eR16_Uint",
+                    "offset": 0
+				}
+			]
+		}
+	},
+	"mesh_skeletal": {
+		"blendModes": ["blend_none"],
+		"rasterisationState": {
+			"polygonMode": "eFill",
+			"cullmode": "eBack"
+		},
+		"depthStencilState": {
+			"depth": {
+				"depthTestEnable": true,
+				"depthWriteEnable": true,
+				"depthCompareOp": "eLess"
+			}
+		},
+		"inputAssemblyState": {
+			"topology" : "eTriangles"
+		},
+		"vertexInputState": {
+			"inputBindings": [
+				{
+					"stride" : 6,
+					"binding" : 0,
+					"inputRate": "eVertex"
+				},
+				{
+					"stride" : 3,
+					"binding" : 1,
+					"inputRate": "eVertex"
+				},
+				{
+					"stride" : 4,
+					"binding" : 2,
+					"inputRate": "eVertex"
+				},
+				{
 					"stride" : 4,
 					"binding" : 3,
 					"inputRate": "eVertex"

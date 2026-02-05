@@ -159,23 +159,19 @@ private:
     std::vector<rhi::runtime::PipelinePtr> _pipelines;
     std::unique_ptr<graphics::InflightStagingBuffer> _staging = nullptr;
 
-    uint32_t _spritesVertexesCount = 0u;
-    uint32_t _spritesIndicesCount = 0u;
-
-    uint32_t _meshesInFrame = 0u;
-    uint32_t _meshesDrawInFrame = 0u;
-
-    std::chrono::time_point<std::chrono::steady_clock> _tryReduceUsedMemoryTime;
-    uint32_t _lastFramesUsedSpritesVertexCount = 0u;
-    uint32_t _lastFramesUsedSpritesIndicesCount = 0u;
-    
-    uint32_t _lastFramesUsedMeshes = 0u;
-    uint32_t _lastFramesUsedMeshesDraw = 0u;
-    
     debug::DebugDraw * _debugDraw = nullptr;
-    std::unique_ptr<graphics::InflightBuffer> _spritesVertices = nullptr;
-    std::unique_ptr<graphics::InflightBuffer> _spritesIndices = nullptr;
+    std::chrono::time_point<std::chrono::steady_clock> _tryReduceUsedMemoryTime;
 
+    // sprites:
+    uint32_t _spritesVertexesCount = 0u;
+    uint32_t _lastFramesUsedSpritesVertexCount = 0u;
+    std::unique_ptr<graphics::InflightBuffer> _spritesVertices = nullptr;
+
+    uint32_t _spritesIndicesCount = 0u;
+    uint32_t _lastFramesUsedSpritesIndicesCount = 0u;
+    std::unique_ptr<graphics::InflightBuffer> _spritesIndices = nullptr;
+        
+    // meshes:
     struct MeshTransformsIndices {
         uint16_t transformIndex = 0xff'ffu;
         uint16_t skeletalTransformIndex = 0xff'ffu;
@@ -183,13 +179,20 @@ private:
 
     std::unordered_map<const AttachmentObject*, MeshTransformsIndices> _meshTransformIndicesMap;
     std::vector<std::pair<const AttachmentObject*, MeshTransformsIndices>> _tmpUniqueMeshes;
-    std::unique_ptr<graphics::InflightBuffer> _meshTransforms = nullptr;
+    
+    uint32_t _meshesDrawInFrame = 0u;
+    uint32_t _lastFramesUsedMeshesDraw = 0u;
     std::unique_ptr<graphics::InflightBuffer> _meshTransformIndices = nullptr;
+
+    uint32_t _meshTransformsInFrame = 0u;
+    uint32_t _lastFramesUsedMeshsTransforms = 0u;
+    std::unique_ptr<graphics::InflightBuffer> _meshTransforms = nullptr;
 
     uint32_t _skeletalTransformsInFrame = 0u;
     uint32_t _lastFramesUsedSkeletalTransforms = 0u;
     std::unique_ptr<graphics::InflightBuffer> _meshSkeletalTransforms = nullptr;
 
+    // samplers:
     rhi::SamplerValue _linearSampler;
 };
 

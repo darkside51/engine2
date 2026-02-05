@@ -18,8 +18,8 @@ namespace engine::scene {
     constexpr float kTryReduceUsedMemoryTimePeriodSeconds = 5.0f;
     constexpr uint32_t kInitialVerticesCountMax = 1024u;
     constexpr uint32_t kInitialIndicesCountMax = 1024u;
-    constexpr uint32_t kInitialMeshesInFrameMax = 128u;
-    constexpr uint32_t kInitialSkeletalMeshesInFrameMax = 128u;
+    constexpr uint32_t kInitialmeshTransformsInFrameMax = 128u;
+    constexpr uint32_t kInitialSkeletalmeshTransformsInFrameMax = 128u;
     constexpr uint32_t kMinStagingSize = 100u * 1024u /*100 Kb*/;
     constexpr uint32_t kStaginBufferEnlargeSizeMult = 2u;
 
@@ -80,11 +80,14 @@ namespace engine::scene {
         _rootNode = nullptr;
 
         _sequences.clear();
+
         _spritesVertices = nullptr;
         _spritesIndices = nullptr;
+
+        _meshTransformIndices = nullptr;
         _meshTransforms = nullptr;
         _meshSkeletalTransforms = nullptr;
-        _meshTransformIndices = nullptr;
+        
         _staging = nullptr;
         _pipelines.clear();
     }
@@ -200,15 +203,15 @@ namespace engine::scene {
         };
 
         _meshTransforms = std::make_unique<graphics::InflightBuffer>(
-            api, device, storageInfo, kSsboTransformSize * kInitialMeshesInFrameMax
+            api, device, storageInfo, kSsboTransformSize * kInitialmeshTransformsInFrameMax
         );
 
         _meshSkeletalTransforms = std::make_unique<graphics::InflightBuffer>(
-            api, device, storageInfo, kSsboSkeletalTransformSize * kInitialSkeletalMeshesInFrameMax
+            api, device, storageInfo, kSsboSkeletalTransformSize * kInitialSkeletalmeshTransformsInFrameMax
         );
 
         _meshTransformIndices = std::make_unique<graphics::InflightBuffer>(
-            api, device, verticesInfo, sizeof(uint16_t) * kInitialMeshesInFrameMax
+            api, device, verticesInfo, sizeof(uint16_t) * kInitialmeshTransformsInFrameMax
         );
     }
 
@@ -300,10 +303,10 @@ namespace engine::scene {
         auto spritesVertexesCount = _spritesVertexesCount;
         auto spritesIndicesCount = _spritesIndicesCount;
 
-        auto meshesInFrame = _meshesInFrame;
+        auto meshTransformsInFrame = _meshTransformsInFrame;
         auto meshesDrawInFrame = _meshesDrawInFrame;
         auto skeletalTransformsInFrame = _skeletalTransformsInFrame;
-        _tmpUniqueMeshes.reserve(kInitialMeshesInFrameMax); // meshes, who transfroms no set to _meshTransforms, must be renamed
+        _tmpUniqueMeshes.reserve(kInitialmeshTransformsInFrameMax);
 
         for (auto const * object : objects) {
             switch (object->typeIndex) {
@@ -321,15 +324,17 @@ namespace engine::scene {
                     const bool isSkeletalMesh = skeleton != nullptr;
                     const auto [it, success] = _meshTransformIndicesMap.emplace(object, 
                         MeshTransformsIndices{
-                            .transformIndex = static_cast<uint16_t>(meshesInFrame),
+                            .transformIndex = static_cast<uint16_t>(isSkeletalMesh ? 0xff'ffu : meshTransformsInFrame),
                             .skeletalTransformIndex = static_cast<uint16_t>(isSkeletalMesh ? skeletalTransformsInFrame : 0xff'ffu)
                         });
                     assert(success);
-                    _tmpUniqueMeshes.emplace_back(it->first, it->second);
-                    ++meshesInFrame;
 
+                    _tmpUniqueMeshes.emplace_back(it->first, it->second);
+                
                     if (isSkeletalMesh) {
                         skeletalTransformsInFrame += skeleton->skinMatricesCount();
+                    } else {
+                        ++meshTransformsInFrame;
                     }
                 }
                 ++meshesDrawInFrame; // every draw mesh has offset (for get correct matrices from meshTransforms)
@@ -355,7 +360,7 @@ namespace engine::scene {
         }
 
         {
-            const auto size = static_cast<uint32_t>(meshesInFrame * kSsboTransformSize);
+            const auto size = static_cast<uint32_t>(meshTransformsInFrame * kSsboTransformSize);
             const auto currentSize = _meshTransforms->sizeInBytes();
             if (currentSize <= size) {
                 _meshTransforms->resize(std::max(currentSize * 2u, size));
@@ -403,35 +408,37 @@ namespace engine::scene {
             _meshTransformIndices->setStagingBuffer(_staging.get());
         }
 
-        // map new meshes world transforms to storage buffer
-        if (meshesInFrame > _meshesInFrame) {
+        if (!_tmpUniqueMeshes.empty()) { // mehses transforms to storage buffers
             auto * mem = _meshTransforms->memory2<SsboTransform>();
             auto * mem2 = _meshSkeletalTransforms->memory2<SsboTransform>();
             for (const auto & [object, idx] : _tmpUniqueMeshes) {
-                memcpy(
-                    (mem + idx.transformIndex), 
-                    &glm::transpose(object->node->getWorldTransform())[0u][0u], 
-                    sizeof(SsboTransform)
-                );
+                if (idx.transformIndex != 0xff'ffu) {
+                    memcpy(
+                        (mem + idx.transformIndex), 
+                        &glm::transpose(object->node->getWorldTransform())[0u][0u], 
+                        sizeof(SsboTransform)
+                    );
 
-                // const auto tr = glm::transpose(object->node->getWorldTransform());
-                // *(mem + idx) = {
-                //     tr[0u],
-                //     tr[1u],
-                //     tr[2u]
-                // };
-                // *(mem + idx) = object->node->getWorldTransform();
+                    // const auto tr = glm::transpose(object->node->getWorldTransform());
+                    // *(mem + idx) = {
+                    //     tr[0u],
+                    //     tr[1u],
+                    //     tr[2u]
+                    // };
+                    // *(mem + idx) = object->node->getWorldTransform();
+                }
 
                 if (idx.skeletalTransformIndex != 0xff'ffu) {
                     const auto * skeleton = static_cast<const Mesh*>(object)->getSkeleton();
                     assert(skeleton != nullptr);
-                    // std::span<mat3x4f> data{mem2 + idx.skeletalTransformIndex, skeleton->skinMatricesCount()};
                     skeleton->fillSkinMatrices2({mem2 + idx.skeletalTransformIndex, skeleton->skinMatricesCount()});
                 }
             }
 
-            _meshTransforms->modify();
-            _meshesInFrame = meshesInFrame;
+            if (meshTransformsInFrame > _meshTransformsInFrame) {
+                _meshTransforms->modify(meshTransformsInFrame * kSsboTransformSize);
+                _meshTransformsInFrame = meshTransformsInFrame;
+            }
 
             if (skeletalTransformsInFrame > _skeletalTransformsInFrame) {
                 _meshSkeletalTransforms->modify(skeletalTransformsInFrame * kSsboTransformSize);
@@ -670,12 +677,16 @@ namespace engine::scene {
             return;
         }
 
-        auto * mem2 = _meshTransformIndices->memory2<uint16_t>() + _meshesDrawInFrame;
+        const bool isSkeletalMesh = mesh.getSkeleton() != nullptr;
 
+        auto * mem2 = _meshTransformIndices->memory2<uint16_t>() + _meshesDrawInFrame;
         uint32_t drawObjectsCount = 0u;
         for (auto it = begin; it != end; ++it) {
-            // *(mem2 + drawObjectsCount) = _meshTransformIndicesMap[*it].transformIndex;
-            *(mem2 + drawObjectsCount) = _meshTransformIndicesMap[*it].skeletalTransformIndex;
+            if (isSkeletalMesh) {
+                *(mem2 + drawObjectsCount) = _meshTransformIndicesMap[*it].skeletalTransformIndex;
+            } else {
+                *(mem2 + drawObjectsCount) = _meshTransformIndicesMap[*it].transformIndex;
+            }
             ++drawObjectsCount;
         }
         assert(drawObjectsCount < std::numeric_limits<uint16_t>::max()); // need to use 32bits _meshTransformIndices instead of 16bits
@@ -690,20 +701,25 @@ namespace engine::scene {
 
         if (auto & transforms = (*_meshTransforms)(frame)) {
             commandList->bindPipeline(pipeline);
-            commandList->bindVertexBuffer(0u, mesh.getAttribute(mesh::Semantic::ePosition).buffer, 0u);
-            commandList->bindVertexBuffer(1u, mesh.getAttribute(mesh::Semantic::eNormal).buffer, 0u);
-            commandList->bindVertexBuffer(2u, mesh.getAttribute(mesh::Semantic::eUv0).buffer, 0u);
 
-            // skinning in vertex shader impl (want to get skinning in compute too)
-            commandList->bindVertexBuffer(3u, mesh.getAttribute(mesh::Semantic::eJoints).buffer, 0u);
-            commandList->bindVertexBuffer(4u, mesh.getAttribute(mesh::Semantic::eWeights).buffer, 0u);
+            uint32_t binding_v = 0u;
+            commandList->bindVertexBuffer(binding_v++, mesh.getAttribute(mesh::Semantic::ePosition).buffer, 0u);
+            commandList->bindVertexBuffer(binding_v++, mesh.getAttribute(mesh::Semantic::eNormal).buffer, 0u);
+            commandList->bindVertexBuffer(binding_v++, mesh.getAttribute(mesh::Semantic::eUv0).buffer, 0u);
 
-            commandList->bindVertexBuffer(5u, (*_meshTransformIndices)(frame), 0u);
-            
+            if (isSkeletalMesh) {
+                // skinning in vertex shader impl (want to get skinning in compute too)
+                commandList->bindVertexBuffer(binding_v++, mesh.getAttribute(mesh::Semantic::eJoints).buffer, 0u);
+                commandList->bindVertexBuffer(binding_v++, mesh.getAttribute(mesh::Semantic::eWeights).buffer, 0u);
+                commandList->bindVertexBuffer(binding_v++, (*_meshTransformIndices)(frame), sizeof(uint16_t) * _meshesDrawInFrame);
+                commandList->bindBuffer(0u, (*_meshSkeletalTransforms)(frame), 0u, 0u);
+            } else {
+                commandList->bindVertexBuffer(binding_v++, (*_meshTransformIndices)(frame), sizeof(uint16_t) * _meshesDrawInFrame);
+                commandList->bindBuffer(0u, (*_meshTransforms)(frame), 0u, 0u);
+            }
+
             commandList->bindIndexBuffer(mesh.getIndices().buffer, 0u, rhi::IndexType::eU32);
 
-            commandList->bindBuffer(0u, (*_meshTransforms)(frame), 0u, 0u);
-            commandList->bindBuffer(1u, (*_meshSkeletalTransforms)(frame), 0u, 0u);
             commandList->pushConstants(rhi::shaders::Stages::eVertex, 0u, sizeof(Uniform), &uniform);
 
             const auto & geometry = mesh.geometry();
@@ -739,16 +755,16 @@ namespace engine::scene {
             }
 
             {
-                auto const minCount = std::max(_meshesInFrame, kInitialMeshesInFrameMax);
-                if (minCount * 2u < _lastFramesUsedMeshes) {
+                auto const minCount = std::max(_meshTransformsInFrame, kInitialmeshTransformsInFrameMax);
+                if (minCount * 2u < _lastFramesUsedMeshsTransforms) {
                     _meshTransforms->resize(minCount * kSsboTransformSize);
                     _tmpUniqueMeshes.resize(minCount);
                 }
-                _lastFramesUsedMeshes = _meshesInFrame;
+                _lastFramesUsedMeshsTransforms = _meshTransformsInFrame;
             }
 
             {
-                auto const minCount = std::max(_skeletalTransformsInFrame, kInitialSkeletalMeshesInFrameMax * kDefaultSkeletoneBonesCount);
+                auto const minCount = std::max(_skeletalTransformsInFrame, kInitialSkeletalmeshTransformsInFrameMax * kDefaultSkeletoneBonesCount);
                 if (minCount * 2u < _lastFramesUsedSkeletalTransforms) {
                     _meshSkeletalTransforms->resize(minCount * kSsboTransformSize);
                 }
@@ -756,7 +772,7 @@ namespace engine::scene {
             }
 
             {
-                auto const minCount = std::max(_meshesDrawInFrame, kInitialMeshesInFrameMax);
+                auto const minCount = std::max(_meshesDrawInFrame, kInitialmeshTransformsInFrameMax);
                 if (minCount * 2u < _lastFramesUsedMeshesDraw) {
                     _meshTransformIndices->resize(minCount * sizeof(uint16_t));
                 }
@@ -775,13 +791,13 @@ namespace engine::scene {
         } else {
             if (_spritesVertexesCount > _lastFramesUsedSpritesVertexCount || 
                 _spritesIndicesCount > _lastFramesUsedSpritesIndicesCount ||
-                _meshesInFrame > _lastFramesUsedMeshes ||
+                _meshTransformsInFrame > _lastFramesUsedMeshsTransforms ||
                 _meshesDrawInFrame > _lastFramesUsedMeshesDraw ||
                 _skeletalTransformsInFrame > _lastFramesUsedSkeletalTransforms
             ) {
                 _lastFramesUsedSpritesVertexCount = _spritesVertexesCount;
                 _lastFramesUsedSpritesIndicesCount = _spritesIndicesCount;
-                _lastFramesUsedMeshes = _meshesInFrame;
+                _lastFramesUsedMeshsTransforms = _meshTransformsInFrame;
                 _lastFramesUsedMeshesDraw = _meshesDrawInFrame;
                 _lastFramesUsedSkeletalTransforms = _skeletalTransformsInFrame;
                 _tryReduceUsedMemoryTime = now;
@@ -793,11 +809,11 @@ namespace engine::scene {
         reduceUsedMemory(now);
         _meshTransformIndicesMap.clear();
         _tmpUniqueMeshes.clear();
-        _meshTransformIndicesMap.reserve(_meshesInFrame);
+        _meshTransformIndicesMap.reserve(_meshTransformsInFrame);
     
         _spritesVertexesCount = 0u;
         _spritesIndicesCount = 0u;
-        _meshesInFrame = 0u;
+        _meshTransformsInFrame = 0u;
         _meshesDrawInFrame = 0u;
         _skeletalTransformsInFrame = 0u;
     }

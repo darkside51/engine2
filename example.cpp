@@ -49,7 +49,8 @@ namespace example {
     constexpr uint8_t kDebugProgram = 4u;
     constexpr uint8_t kSpritesProgram = 5u;
     constexpr uint8_t kMeshProgram = 6u;
-    constexpr uint8_t  kMeshInstancedProgram = 7u;
+    constexpr uint8_t  kMeshSkeletalInstancedProgram = 7u;
+    constexpr uint8_t  kMeshInstancedProgram = 8u;
 
     constexpr uint8_t kPostEffectPipeline = 0u;
     constexpr uint8_t kSceneTestPipeline = 1u;
@@ -486,6 +487,16 @@ namespace example {
             _programs.emplace_back(_api->createProgram(*_device, std::array{vsModule.getView(), fsModule.getView()}));
         }
 
+        { // kMeshSkeletalInstancedProgram
+            auto const vBytes = _fileManager.readFile("shaders/mesh_skeletal_instanced.vert.spv");
+            auto const fBytes = _fileManager.readFile("shaders/mesh.frag.spv");
+
+            const auto & vsModule = _shaderModulesManager->registerModule("mesh_skeletal_instanced.vert", *_device, engine::rhi::shaders::Stages::eVertex, vBytes);
+            const auto & fsModule = _shaderModulesManager->registerModule("mesh.frag", *_device, engine::rhi::shaders::Stages::eFragment, fBytes);
+
+            _programs.emplace_back(_api->createProgram(*_device, std::array{vsModule.getView(), fsModule.getView()}));
+        }
+
         { // kMeshInstancedProgram
             auto const vBytes = _fileManager.readFile("shaders/mesh_instanced.vert.spv");
             auto const fBytes = _fileManager.readFile("shaders/mesh.frag.spv");
@@ -528,8 +539,10 @@ namespace example {
         const GraphicsPipelineStatesInfo info2 = engine::parseGraphicsPipelineInfo(json["sprite_common"]);
         scene.registerPipeline(_api->createGraphicsPipeline(*_device, _renderPasses[kSceneRenderPass], _programs[kSpritesProgram], info2, 0u));
 
-        const GraphicsPipelineStatesInfo info4 = engine::parseGraphicsPipelineInfo(json["mesh"]);
-        scene.registerPipeline(_api->createGraphicsPipeline(*_device, _renderPasses[kSceneRenderPass], _programs[kMeshInstancedProgram], info4, 0u));
+        const GraphicsPipelineStatesInfo info4 = engine::parseGraphicsPipelineInfo(json["mesh_skeletal"]);
+        scene.registerPipeline(_api->createGraphicsPipeline(*_device, _renderPasses[kSceneRenderPass], _programs[kMeshSkeletalInstancedProgram], info4, 0u));
+        const GraphicsPipelineStatesInfo info5 = engine::parseGraphicsPipelineInfo(json["mesh"]);
+        scene.registerPipeline(_api->createGraphicsPipeline(*_device, _renderPasses[kSceneRenderPass], _programs[kMeshInstancedProgram], info5, 0u));
     }
 
     engine::graphics::models::Mesh_Data meshData;
@@ -1048,7 +1061,6 @@ namespace example {
                 vec3f maxCorner{std::numeric_limits<float>::lowest()};
 
                 auto loadNode = [&](const auto & self, const uint16_t nodeId, engine::scene::Node * parent, engine::scene::Skeleton * skeleton) -> engine::scene::Node* {
-                    const auto & node = meshData.nodes[nodeId];
                     auto * current = scene.createNode();
                     if (parent) {
                         parent->addChild(current);
@@ -1058,6 +1070,7 @@ namespace example {
                         skeleton->node(nodeId) = current;
                     }
 
+                    const auto & node = meshData.nodes[nodeId];
                     current->setScale(vec3f{node.scale.x, node.scale.y, node.scale.z});
                     current->setRotation(quatf{node.rotation.w, node.rotation.x, node.rotation.y, node.rotation.z});
                     current->setPosition(vec3f{node.translation.x, node.translation.y, node.translation.z});
@@ -1066,14 +1079,18 @@ namespace example {
                     current->calculateWorldTransform(true);
 
                     if (node.mesh != engine::graphics::models::kInvalidValue) {
-                        auto * mesh = scene.createObject<engine::scene::Mesh>(meshData, node.mesh, node.skin, 1u);
+                        const auto pipelineId = skeleton ? 1u : 2u;
+                        auto * mesh = scene.createObject<engine::scene::Mesh>(meshData, node.mesh, node.skin, pipelineId);
                         mesh->setSkeleton(skeleton);
                         mesh->setIndices({_meshIndices});
                         mesh->setAttribute({_meshPositions}, engine::scene::mesh::Semantic::ePosition);
                         mesh->setAttribute({_meshNormals}, engine::scene::mesh::Semantic::eNormal);
                         mesh->setAttribute({_meshUvs}, engine::scene::mesh::Semantic::eUv0);
-                        mesh->setAttribute({_meshJoints}, engine::scene::mesh::Semantic::eJoints);
-                        mesh->setAttribute({_meshWeights}, engine::scene::mesh::Semantic::eWeights);
+                        
+                        if (skeleton) {
+                            mesh->setAttribute({_meshJoints}, engine::scene::mesh::Semantic::eJoints);
+                            mesh->setAttribute({_meshWeights}, engine::scene::mesh::Semantic::eWeights);
+                        }
                         engine::scene::attachObjectToNode(*mesh, *current);
 
                         for (const auto & p : meshData.meshes[node.mesh].primitives) {
@@ -1088,8 +1105,6 @@ namespace example {
                             maxCorner.y = std::max({maxCorner.y, corner1.y, corner2.y});
                             maxCorner.z = std::max({maxCorner.z, corner1.z, corner2.z});
                         }
-
-
                         // node.skin; // createMeshRenderObject with skin node(current) and primitiveves + skeleton
                     }
 
@@ -1100,8 +1115,11 @@ namespace example {
                 };
 
                 auto * meshRoot = scene.createNode();
-                engine::scene::Skeleton * skeleton = meshData.skins.empty() ? nullptr : 
-                    scene.createObject<engine::scene::Skeleton>(meshData);
+                engine::scene::Skeleton * skeleton = nullptr;
+                if (i & 1) {
+                    skeleton = meshData.skins.empty() ? nullptr : 
+                        scene.createObject<engine::scene::Skeleton>(meshData);
+                }
 
                 for (const uint16_t nodeId : meshData.sceneNodes) {
 				    auto * node = loadNode(loadNode, nodeId, meshRoot, skeleton);
@@ -1111,7 +1129,10 @@ namespace example {
                 // engine::scene::recalculateHierarchy(meshRoot, [](engine::scene::Node * n) noexcept { 
                 //     return true;
                 // });
-                engine::scene::attachObjectToNode(*skeleton, *meshRoot);
+                if (skeleton) {
+                    engine::scene::attachObjectToNode(*skeleton, *meshRoot);
+                }
+
                 auto const center = (minCorner + maxCorner) * 0.5f;
                 auto const radius = std::max({
                     std::abs(minCorner.x - center.x), std::abs(minCorner.y - center.y), std::abs(minCorner.z - center.z),
@@ -1210,7 +1231,9 @@ namespace example {
 
             sceneWorldRoot->addChild(node3);
 
-            tmpSkeleton->node(15u)->addChild(node4);
+            if (tmpSkeleton) {
+                tmpSkeleton->node(15u)->addChild(node4);
+            }
 
             // sceneWorldRoot->addChild(node4);
 
