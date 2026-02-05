@@ -151,7 +151,7 @@
 					"inputRate": "eVertex"
 				},
 				{
-					"stride" : 8,
+					"stride" : 4,
 					"binding" : 3,
 					"inputRate": "eVertex"
 				},
@@ -188,7 +188,7 @@
 				{
 					"location": 3,
                     "binding": 3,
-                    "format": "eR16G16B16A16_Uint",
+                    "format": "eR8G8B8A8_Uint",
                     "offset": 0
 				},
 				{

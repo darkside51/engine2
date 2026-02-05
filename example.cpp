@@ -1122,7 +1122,7 @@ namespace example {
 
                 meshRoot->setScale(engine::common::random(0.9f, 1.1f));
                 meshRoot->setRotation(engine::vec3f(1.57f, 0.0f, engine::common::random(-3.14f, 3.14f)));
-                meshRoot->setPosition(engine::vec3f(-4.0f + i * 1.0f, 0.0f, 0.0f));
+                meshRoot->setPosition(engine::vec3f(-4.0f + i * 1.25f, 0.0f, 0.0f));
 
                 if (i == 5u) {
                     tmpSkeleton = skeleton;
@@ -1199,14 +1199,20 @@ namespace example {
             m2[1][1] *= -1.0f;
             m2[3] = {0.0f, -0.2f, 0.5f, 1.0f};
             auto * node4 = scene.createNode();
-            node4->setTransform(m2);
+            node4->setRotation(engine::vec3f{1.57f, 0.2f, 3.0f});
+            node4->setScale(0.015f);
+            node4->setPosition(engine::vec3f(0.57f, 0.05f, -0.85f));
+            //node4->setTransform(m2);
             
             auto * sprite2 = scene.createObject<engine::scene::Sprite>(*textureManager.findFrame("hero_sword"), 0u);
             engine::scene::attachObjectToNode(*sprite2, *node4);
             sprite2->setOrder(1u);
 
             sceneWorldRoot->addChild(node3);
-            sceneWorldRoot->addChild(node4);
+
+            tmpSkeleton->node(15u)->addChild(node4);
+
+            // sceneWorldRoot->addChild(node4);
 
             {
                 m2[0][0] *= 0.25f;

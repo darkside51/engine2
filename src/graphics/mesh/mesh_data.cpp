@@ -317,7 +317,25 @@ namespace engine::graphics::models {
                 std::swap(vertices, vb);
             }
 
-            if (allowedAttributes[i] == AttributeSemantic::eWeights/* || allowedAttributes[i] == AttributeSemantic::eJoints*/) {
+            if (allowedAttributes[i] == AttributeSemantic::eJoints) { // support 256 bones max if it enabled!
+                constexpr auto quantizeSemanticSize = 4u; // eR8G8B8A8_Uint
+                constexpr auto defaultSemanticSize = kDefaultSemanticsSizeBytes[7u];
+                 std::vector<std::byte> vertices(vertexCount * quantizeSemanticSize);
+                auto & vb = vertexBuffersData[i];
+
+                for (size_t n = 0u; n < vertexCount; ++n) {
+                    const auto * value = reinterpret_cast<const uint16_t*>(&vb[n * defaultSemanticSize]);
+                    auto * targetValue = reinterpret_cast<uint8_t*>(&vertices[n * quantizeSemanticSize]);
+
+                    targetValue[0u] = static_cast<uint8_t>(value[0u]);
+                    targetValue[1u] = static_cast<uint8_t>(value[1u]);
+                    targetValue[2u] = static_cast<uint8_t>(value[2u]);
+                    targetValue[3u] = static_cast<uint8_t>(value[3u]);
+                }
+                std::swap(vertices, vb);
+            }
+
+            if (allowedAttributes[i] == AttributeSemantic::eWeights) {
                 constexpr auto quantizeSemanticSize = 8u; // eR16G16B16A16_Sfloat
                 constexpr auto defaultSemanticSize = kDefaultSemanticsSizeBytes[8u];
                  std::vector<std::byte> vertices(vertexCount * quantizeSemanticSize);
@@ -347,22 +365,22 @@ namespace engine::graphics::models {
 		sceneNodes = layout.scenes[layout.scene].nodes;
 		nodes = layout.nodes; // copy data
 
-        auto loadMeshNode = [&](const auto & self, uint16_t nodeId) noexcept -> void {
-            const auto & node = nodes[nodeId];
+        // auto loadMeshNode = [&](const auto & self, uint16_t nodeId) noexcept -> void {
+        //     const auto & node = nodes[nodeId];
 
-            // if (node.mesh != kInvalidValue) {
-            //     meshes[node.mesh].nodeIndex = nodeId;
-            //     meshes[node.mesh].skinIndex = node.skin;
-            // }
+        //     // if (node.mesh != kInvalidValue) {
+        //     //     meshes[node.mesh].nodeIndex = nodeId;
+        //     //     meshes[node.mesh].skinIndex = node.skin;
+        //     // }
 
-            for (uint16_t cNodeId : node.children) {
-			    self(self, cNodeId);
-		    }
-        };
+        //     for (uint16_t cNodeId : node.children) {
+		// 	    self(self, cNodeId);
+		//     }
+        // };
 
-		for (uint16_t nodeId : sceneNodes) {
-			loadMeshNode(loadMeshNode, nodeId);
-		}
+		// for (uint16_t nodeId : sceneNodes) {
+		// 	loadMeshNode(loadMeshNode, nodeId);
+		// }
 	}
 
     void Mesh_Data::loadSkins(const Layout & layout) {
@@ -381,6 +399,7 @@ namespace engine::graphics::models {
                 skinMatricesCount += accessor.count;
             }
         }
+        assert(skinMatricesCount <= 0xffu); // support 256 bones max if enabled uint8_t joints!
     }
 
     void Mesh_Data::loadAnimations(const Layout & layout) {

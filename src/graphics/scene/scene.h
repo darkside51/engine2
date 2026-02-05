@@ -24,7 +24,7 @@
 namespace engine::scene {
 
 constexpr bool kDebugDrawBounds = false;
-constexpr bool kDebugDrawGizmos = true;
+constexpr bool kDebugDrawGizmos = false;
 
 constexpr uint32_t kFillNodesReserveSize = 1024u;
     
