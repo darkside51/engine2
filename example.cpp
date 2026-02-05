@@ -1625,21 +1625,44 @@ namespace example {
         //     }
         // });
 
-        const auto transferWaitSemaphores = std::array{_swapchain->imageAvailableSemaphore(frameId)};
-        const auto transferSignalSemaphores = std::array{_transfersCompleteSemaphores[frameId]};
-        const auto transferWaitStages = std::array{engine::rhi::PipelineStageFlags::eColor_Attachment_Output};
-        auto transferLists = std::array{transferCommandList.get()};
+        // draw after transfer variant
+        // const auto transferWaitSemaphores = std::array{_swapchain->imageAvailableSemaphore(frameId)};
+        // const auto transferSignalSemaphores = std::array{_transfersCompleteSemaphores[frameId]};
+        // const auto transferWaitStages = std::array{engine::rhi::PipelineStageFlags::eColor_Attachment_Output};
+        // auto transferLists = std::array{transferCommandList.get()};
 
-        const auto waitSemaphores = transferSignalSemaphores;
+        // const auto waitSemaphores = transferSignalSemaphores;
+        // const auto signalSemaphores = std::array{_readyToPresentSemaphores[frameId]};
+        // const auto waitStages = std::array{engine::rhi::PipelineStageFlags::eTransfer};
+        // auto lists = std::array{commandList.get()};
+
+        // bool const submitted = _renderQueue->submit(frameId, std::array{
+        //     engine::rhi::runtime::Queue::SubmitInfo {
+        //         .w8Semaphores = transferWaitSemaphores,
+        //         .w8DstStages = transferWaitStages,
+        //         .signalSemaphores = transferSignalSemaphores,
+        //         .lists = transferLists
+        //     },
+        //     engine::rhi::runtime::Queue::SubmitInfo {
+        //         .w8Semaphores = waitSemaphores,
+        //         .w8DstStages = waitStages,
+        //         .signalSemaphores = signalSemaphores,
+        //         .lists = lists
+        //     }
+        // });
+
+        const auto waitSemaphores = std::array{_swapchain->imageAvailableSemaphore(frameId)};
         const auto signalSemaphores = std::array{_readyToPresentSemaphores[frameId]};
-        const auto waitStages = std::array{engine::rhi::PipelineStageFlags::eTransfer};
+        const auto waitStages = std::array{engine::rhi::PipelineStageFlags::eColor_Attachment_Output};
+
+        auto transferLists = std::array{transferCommandList.get()};
         auto lists = std::array{commandList.get()};
 
         bool const submitted = _renderQueue->submit(frameId, std::array{
             engine::rhi::runtime::Queue::SubmitInfo {
-                .w8Semaphores = transferWaitSemaphores,
-                .w8DstStages = transferWaitStages,
-                .signalSemaphores = transferSignalSemaphores,
+                .w8Semaphores = {},
+                .w8DstStages = {},
+                .signalSemaphores = {},
                 .lists = transferLists
             },
             engine::rhi::runtime::Queue::SubmitInfo {
