@@ -13,8 +13,8 @@ namespace engine::scene {
         // objects
         static_assert(ctti::typeIndex<AttachmentObject, Skeleton>() == 0u);
         static_assert(ctti::typeIndex<AttachmentObject, Mesh>() == 1u);
-        static_assert(ctti::typeIndex<AttachmentObject, Dummy>() == 2u);
-        static_assert(ctti::typeIndex<AttachmentObject, Sprite>() == 3u);
+        static_assert(ctti::typeIndex<AttachmentObject, Sprite>() == 2u);
+        static_assert(ctti::typeIndex<AttachmentObject, Dummy>() == 3u); // maintain last position to avoid breaking batches
         
         // animations
         static_assert(ctti::typeIndex<Animation, FramesSequence>() == 0u);

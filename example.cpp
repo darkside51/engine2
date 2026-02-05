@@ -1172,6 +1172,7 @@ namespace example {
             node2->addChild(finalNode1);
 
             object0->setOrder(1u);
+            object1->setOrder(1u);
             // node2->setHidden(true);
             // object1->node->setHidden(true);
 
