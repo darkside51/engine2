@@ -324,8 +324,8 @@ namespace engine::scene {
                     const bool isSkeletalMesh = skeleton != nullptr;
                     const auto [it, success] = _meshTransformIndicesMap.emplace(object, 
                         MeshTransformsIndices{
-                            .transformIndex = static_cast<uint16_t>(isSkeletalMesh ? 0xff'ffu : meshTransformsInFrame),
-                            .skeletalTransformIndex = static_cast<uint16_t>(isSkeletalMesh ? skeletalTransformsInFrame : 0xff'ffu)
+                            .transformIndex = static_cast<uint16_t>(isSkeletalMesh ? kUnknownTransformIndex : meshTransformsInFrame),
+                            .skeletalTransformIndex = static_cast<uint16_t>(isSkeletalMesh ? skeletalTransformsInFrame : kUnknownTransformIndex)
                         });
                     assert(success);
 
@@ -412,7 +412,7 @@ namespace engine::scene {
             auto * mem = _meshTransforms->memory2<SsboTransform>();
             auto * mem2 = _meshSkeletalTransforms->memory2<SsboTransform>();
             for (const auto & [object, idx] : _tmpUniqueMeshes) {
-                if (idx.transformIndex != 0xff'ffu) {
+                if (idx.transformIndex != kUnknownTransformIndex) {
                     memcpy(
                         (mem + idx.transformIndex), 
                         &glm::transpose(object->node->getWorldTransform())[0u][0u], 
@@ -426,9 +426,7 @@ namespace engine::scene {
                     //     tr[2u]
                     // };
                     // *(mem + idx) = object->node->getWorldTransform();
-                }
-
-                if (idx.skeletalTransformIndex != 0xff'ffu) {
+                } else if (idx.skeletalTransformIndex != kUnknownTransformIndex) {
                     const auto * skeleton = static_cast<const Mesh*>(object)->getSkeleton();
                     assert(skeleton != nullptr);
                     skeleton->fillSkinMatrices2({mem2 + idx.skeletalTransformIndex, skeleton->skinMatricesCount()});
@@ -679,13 +677,13 @@ namespace engine::scene {
 
         const bool isSkeletalMesh = mesh.getSkeleton() != nullptr;
 
-        auto * mem2 = _meshTransformIndices->memory2<uint16_t>() + _meshesDrawInFrame;
+        auto * memory = _meshTransformIndices->memory2<uint16_t>() + _meshesDrawInFrame;
         uint32_t drawObjectsCount = 0u;
         for (auto it = begin; it != end; ++it) {
             if (isSkeletalMesh) {
-                *(mem2 + drawObjectsCount) = _meshTransformIndicesMap[*it].skeletalTransformIndex;
+                *(memory + drawObjectsCount) = _meshTransformIndicesMap[*it].skeletalTransformIndex;
             } else {
-                *(mem2 + drawObjectsCount) = _meshTransformIndicesMap[*it].transformIndex;
+                *(memory + drawObjectsCount) = _meshTransformIndicesMap[*it].transformIndex;
             }
             ++drawObjectsCount;
         }

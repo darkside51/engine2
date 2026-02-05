@@ -194,6 +194,15 @@ struct Node {
 // }
 
 template <typename Function>
+void childrenPass(Node * root, Function && f) noexcept {
+    Node * node = root->firstChild;
+    while (node != nullptr) {
+        f(node);
+        node = node->next;
+    }
+}
+
+template <typename Function>
 void hierarchyPass(Node * root, Function && f) noexcept {
     Node * node = root;
     bool process = true;
