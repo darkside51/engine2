@@ -406,9 +406,14 @@ namespace engine::vulkan::runtime {
                 assert(setId < command_limits::kMaxDescriptorsSets);
 
                 if (!descriptorSetUpdaters[setId]) {
-                    if (const auto * setLayout = currentPipeline->getLayout(setId)) {
-                        descriptorSetUpdaters[setId] = DescriptorSetUpdater{device, *setLayout};
-                    }
+                    // if (const auto * setLayout = currentPipeline->getLayout(setId)) {
+                    //     descriptorSetUpdaters[setId] = DescriptorSetUpdater{device, *setLayout};
+                    // } else {
+                    //     assert(false); // we must use all sets in shader for correct working
+                    // }
+                    const auto * setLayout = currentPipeline->getLayout(setId);
+                    assert(setLayout != nullptr); // we must use all sets in shader for correct working
+                    descriptorSetUpdaters[setId] = DescriptorSetUpdater{device, *setLayout};
                 }
 
                 if (descriptorSetUpdaters[setId]) {

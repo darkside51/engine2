@@ -12,15 +12,15 @@ layout (location = 1) out vec2 v_uv;
 layout (location = 2) out float v_color_mix;
 
 // storage buffer
-layout (set = 0, binding = 0, std430) readonly buffer Transformations {
+layout (set = 0, binding = 0) readonly buffer Transformations {
    mat3x4 transforms[];
 } sbo;
 
-layout (set = 0, binding = 1, std430) readonly buffer SkinTransformations {
+layout (set = 0, binding = 1) readonly buffer SkinTransformations {
    mat3x4 transforms[];
 } sbo_skin;
 
-layout(push_constant, std430) uniform Camera {
+layout(push_constant) uniform Camera {
 	mat4 viewProjection;
 } push;
 
@@ -76,5 +76,6 @@ void main() {
 
 		gl_Position = push.viewProjection * (vec4(a_position, 1.0) * skin);
 		v_normal = (vec4(a_normal, 0.0) * skin).xyz;
+		v_color_mix += sbo.transforms[a_sbo_offset][0].x; // we must use all sets in shader for correct working
 	}
 }
