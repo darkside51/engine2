@@ -688,6 +688,9 @@ namespace engine::scene {
             ++drawObjectsCount;
         }
         assert(drawObjectsCount < std::numeric_limits<uint16_t>::max()); // need to use 32bits _meshTransformIndices instead of 16bits
+        if (drawObjectsCount == 0u) {
+            return;
+        }
 
         _meshTransformIndices->modify();
 
@@ -695,9 +698,8 @@ namespace engine::scene {
             mat4f cameraTransform;
         };
 
-       const Uniform uniform {.cameraTransform = cameraTransform};
-
-        if (auto & transforms = (*_meshTransforms)(frame)) {
+        {
+            const Uniform uniform {.cameraTransform = cameraTransform};
             commandList->bindPipeline(pipeline);
 
             uint32_t binding_v = 0u;
