@@ -89,6 +89,10 @@ namespace mesh {
             return _meshData.meshes[_meshIdx];
         }
 
+        uint16_t meshIndex() const noexcept {
+            return _meshIdx;
+        }
+
         // skeleton:
         const Skeleton * getSkeleton() const noexcept { return _skeleton; }
         void setSkeleton(Skeleton * skeleton) noexcept { _skeleton = skeleton; }

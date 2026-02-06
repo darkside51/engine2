@@ -252,8 +252,9 @@ namespace engine::graphics::models {
             ++j;
         }
         
-        meshopt_optimizeVertexCache(indexBufferData.data(), indexBufferData.data(), indexCount, vertexCount);
-        meshopt_optimizeVertexFetchRemap(remap.data(), indexBufferData.data(), indexCount, vertexCount);
+        std::vector<uint32_t> tmp(indexCount);
+        meshopt_optimizeVertexCache(tmp.data(), indexBufferData.data(), indexCount, vertexCount);
+        meshopt_optimizeVertexFetchRemap(remap.data(), tmp.data(), indexCount, vertexCount);
         
         meshopt_remapIndexBuffer(indexBufferData.data(), indexBufferData.data(), indexCount, remap.data());
         

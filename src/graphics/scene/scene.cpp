@@ -420,7 +420,7 @@ namespace engine::scene {
                     );
 
                     // const auto tr = glm::transpose(object->node->getWorldTransform());
-                    // *(mem + idx) = {
+                    // *(mem + idx.transformIndex) = {
                     //     tr[0u],
                     //     tr[1u],
                     //     tr[2u]
@@ -642,16 +642,18 @@ namespace engine::scene {
         auto currentIt = begin;
         auto it = currentIt;
         const auto & mesh = *static_cast<const Mesh*>(*it);
-        uint32_t pipeline = mesh.getPipeline();
+        auto pipeline = mesh.getPipeline();
+        auto meshIndex = mesh.meshIndex();
         const auto * meshData = &mesh.meshData();
         ++it;
 
         for (; it != end; ++it) {
             const auto & mesh2 = *static_cast<const Mesh*>(*it);
-            const uint32_t currentPipeline = mesh2.getPipeline();
+            const auto currentPipeline = mesh2.getPipeline();
             const auto * currentMeshData = &mesh2.meshData();
+            const auto meshIndex2 = mesh2.meshIndex();
 
-            const bool completePack = currentPipeline != pipeline ||
+            const bool completePack = currentPipeline != pipeline || meshIndex != meshIndex2 ||
                                       meshData != currentMeshData;
 
             if (completePack) {
@@ -660,6 +662,7 @@ namespace engine::scene {
                 // begin next pack
                 meshData = currentMeshData;
                 pipeline = currentPipeline;
+                meshIndex = meshIndex2;
                 currentIt = it;
             }
         }

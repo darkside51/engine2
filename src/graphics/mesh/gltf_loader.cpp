@@ -172,8 +172,8 @@ namespace engine::graphics::models {
         auto const & primitivesArray = object["primitives"].get_array();
         mesh.primitives.reserve(primitivesArray.size());
         for (const auto & primitive : primitivesArray) {
-            const uint8_t indices = json::getValue(primitive, "indices", kInvalidValue);
-            const uint8_t material = json::getValue(primitive, "material", kInvalidValue);
+            const uint16_t indices = json::getValue(primitive, "indices", kInvalidValue);
+            const uint16_t material = json::getValue(primitive, "material", kInvalidValue);
             const uint8_t mode = json::getValue(primitive, "mode", 4u);
 
             auto & meshPrimitive = mesh.primitives.emplace_back(
