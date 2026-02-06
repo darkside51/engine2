@@ -56,7 +56,7 @@ namespace mesh {
 
     class Mesh : public AttachmentObject {
     public:
-        Mesh(const graphics::models::Mesh_Data & meshData, uint16_t meshIdx, uint16_t skin, uint32_t pipeline);
+        Mesh(const graphics::models::Mesh_Data & meshData, uint16_t geometryDataIndex, uint16_t skin, uint32_t pipeline);
         ~Mesh() /*override*/ = default;
 
         void setPipeline(uint32_t pipeline) noexcept;
@@ -86,11 +86,11 @@ namespace mesh {
         }
 
         const graphics::models::Mesh_Geometry geometry() const noexcept {
-            return _meshData.meshes[_meshIdx];
+            return _meshData.meshes[_geometryDataIndex];
         }
 
-        uint16_t meshIndex() const noexcept {
-            return _meshIdx;
+        uint16_t geometryDataIndex() const noexcept {
+            return _geometryDataIndex;
         }
 
         // skeleton:
@@ -105,7 +105,7 @@ namespace mesh {
         Skeleton * _skeleton = nullptr;
         
         uint32_t _pipeline = 0u;
-        uint16_t _meshIdx = 0u;
+        uint16_t _geometryDataIndex = 0u;
         uint16_t _skin = graphics::models::kInvalidValue;
     };
 

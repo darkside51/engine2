@@ -643,7 +643,7 @@ namespace engine::scene {
         auto it = currentIt;
         const auto & mesh = *static_cast<const Mesh*>(*it);
         auto pipeline = mesh.getPipeline();
-        auto meshIndex = mesh.meshIndex();
+        auto geometryDataIndex = mesh.geometryDataIndex();
         const auto * meshData = &mesh.meshData();
         ++it;
 
@@ -651,9 +651,10 @@ namespace engine::scene {
             const auto & mesh2 = *static_cast<const Mesh*>(*it);
             const auto currentPipeline = mesh2.getPipeline();
             const auto * currentMeshData = &mesh2.meshData();
-            const auto meshIndex2 = mesh2.meshIndex();
+            const auto currentGeometryDataIndex = mesh2.geometryDataIndex();
 
-            const bool completePack = currentPipeline != pipeline || meshIndex != meshIndex2 ||
+            const bool completePack = currentPipeline != pipeline || 
+                                      currentGeometryDataIndex != geometryDataIndex ||
                                       meshData != currentMeshData;
 
             if (completePack) {
@@ -662,7 +663,7 @@ namespace engine::scene {
                 // begin next pack
                 meshData = currentMeshData;
                 pipeline = currentPipeline;
-                meshIndex = meshIndex2;
+                geometryDataIndex = currentGeometryDataIndex;
                 currentIt = it;
             }
         }
