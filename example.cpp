@@ -1079,7 +1079,8 @@ namespace example {
                     current->calculateWorldTransform(true);
 
                     if (node.mesh != engine::graphics::models::kInvalidValue) {
-                        const auto pipelineId = skeleton ? 1u : 2u;
+                        bool const createSkeletalMesh = skeleton != nullptr && node.skin != engine::graphics::models::kInvalidValue;
+                        const auto pipelineId = createSkeletalMesh ? 1u : 2u;
                         auto * mesh = scene.createObject<engine::scene::Mesh>(meshData, node.mesh, node.skin, pipelineId);
                         
                         mesh->setIndices({_meshIndices});
@@ -1087,7 +1088,7 @@ namespace example {
                         mesh->setAttribute({_meshNormals}, engine::scene::mesh::Semantic::eNormal);
                         mesh->setAttribute({_meshUvs}, engine::scene::mesh::Semantic::eUv0);
                         
-                        if (skeleton && node.skin != engine::graphics::models::kInvalidValue) {
+                        if (createSkeletalMesh) {
                             mesh->setSkeleton(skeleton);
                             mesh->setAttribute({_meshJoints}, engine::scene::mesh::Semantic::eJoints);
                             mesh->setAttribute({_meshWeights}, engine::scene::mesh::Semantic::eWeights);
@@ -1116,11 +1117,7 @@ namespace example {
                 };
 
                 auto * meshRoot = scene.createNode();
-                engine::scene::Skeleton * skeleton = nullptr;
-                if (i & 1) {
-                    skeleton = meshData.skins.empty() ? nullptr : 
-                        scene.createObject<engine::scene::Skeleton>(meshData);
-                }
+                engine::scene::Skeleton * skeleton = scene.createObject<engine::scene::Skeleton>(meshData);
 
                 for (const uint16_t nodeId : meshData.sceneNodes) {
 				    auto * node = loadNode(loadNode, nodeId, meshRoot, skeleton);
@@ -1235,11 +1232,12 @@ namespace example {
 
             sceneWorldRoot->addChild(node3);
 
-            if (tmpSkeleton) {
-                tmpSkeleton->node(15u)->addChild(node4);
+            auto * handBone = tmpSkeleton ? tmpSkeleton->node(15u) : nullptr;
+            if (handBone) {
+                handBone->addChild(node4);
+            } else {
+                sceneWorldRoot->addChild(node4);
             }
-
-            // sceneWorldRoot->addChild(node4);
 
             {
                 m2[0][0] *= 0.25f;
