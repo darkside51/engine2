@@ -1081,16 +1081,18 @@ namespace example {
                     if (node.mesh != engine::graphics::models::kInvalidValue) {
                         const auto pipelineId = skeleton ? 1u : 2u;
                         auto * mesh = scene.createObject<engine::scene::Mesh>(meshData, node.mesh, node.skin, pipelineId);
-                        mesh->setSkeleton(skeleton);
+                        
                         mesh->setIndices({_meshIndices});
                         mesh->setAttribute({_meshPositions}, engine::scene::mesh::Semantic::ePosition);
                         mesh->setAttribute({_meshNormals}, engine::scene::mesh::Semantic::eNormal);
                         mesh->setAttribute({_meshUvs}, engine::scene::mesh::Semantic::eUv0);
                         
-                        if (skeleton) {
+                        if (skeleton && node.skin != engine::graphics::models::kInvalidValue) {
+                            mesh->setSkeleton(skeleton);
                             mesh->setAttribute({_meshJoints}, engine::scene::mesh::Semantic::eJoints);
                             mesh->setAttribute({_meshWeights}, engine::scene::mesh::Semantic::eWeights);
                         }
+
                         engine::scene::attachObjectToNode(*mesh, *current);
 
                         for (const auto & p : meshData.meshes[node.mesh].primitives) {
@@ -1105,7 +1107,6 @@ namespace example {
                             maxCorner.y = std::max({maxCorner.y, corner1.y, corner2.y});
                             maxCorner.z = std::max({maxCorner.z, corner1.z, corner2.z});
                         }
-                        // node.skin; // createMeshRenderObject with skin node(current) and primitiveves + skeleton
                     }
 
                     for (const uint16_t cNodeId : node.children) {
@@ -1144,6 +1145,9 @@ namespace example {
                 meshRoot->setScale(engine::common::random(0.9f, 1.1f));
                 meshRoot->setRotation(engine::vec3f(1.57f, 0.0f, engine::common::random(-3.14f, 3.14f)));
                 meshRoot->setPosition(engine::vec3f(-4.0f + i * 1.25f, 0.0f, 0.0f));
+                // meshRoot->setScale(0.002f);
+                // meshRoot->setRotation(engine::vec3f(1.57f, 0.0f, 0.0f));
+                // meshRoot->setPosition(engine::vec3f(0.0f, 0.0f, 0.0f));
 
                 if (i == 5u) {
                     tmpSkeleton = skeleton;

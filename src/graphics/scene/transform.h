@@ -59,7 +59,7 @@ public:
 
     void apply(mat4f & matrix) noexcept {
         matrix = makeMatrix(_scale);
-        matrix = matrix * glm::mat4_cast(_rotation);
+        matrix = glm::mat4_cast(_rotation) * matrix;
         matrix[3] = {_position, 1.0f};
     }
 

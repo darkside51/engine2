@@ -20,7 +20,7 @@ layout(push_constant) uniform Camera {
 
 void main() {
 	v_uv = a_uv;
-	v_color_mix = 0.0;
+	v_color_mix = 1.0;
 
 	{ // with 48 bytes transforms
 		// common 
@@ -32,6 +32,6 @@ void main() {
 		);
 
 		gl_Position = push.viewProjection * (vec4(a_position, 1.0) * model);
-		v_normal = (vec4(a_normal, 0.0) * model).xyz;
+		v_normal = normalize((vec4(a_normal, 0.0) * model).xyz);
 	}
 }
