@@ -17,7 +17,9 @@
 #include <utility>
 #include <vector>
 
-namespace engine::graphics::models {
+namespace engine {
+    class FileManager;
+namespace graphics::models {
     
     struct vec3 {
         union {
@@ -261,5 +263,6 @@ namespace engine::graphics::models {
         Layout& operator= (const Layout&) = delete;
 	};
 
-    Layout loadModelLayout(std::span<std::byte const> bytes, std::string_view path = {});
+    Layout loadModelLayout(std::span<std::byte const> bytes, const FileManager & fileManager, std::string_view path = {});
+}
 }

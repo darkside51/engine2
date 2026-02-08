@@ -561,7 +561,9 @@ namespace example {
 
         // gltf test
         auto const modelBytes = _fileManager.readFile("assets/models/model.glb");
-        auto modelLayout = engine::graphics::models::loadModelLayout(modelBytes, "assets/models/");
+        auto modelLayout = engine::graphics::models::loadModelLayout(modelBytes, _fileManager, "assets/models/");
+        // auto const modelBytes = _fileManager.readFile("assets/models/1/scene.gltf");
+        // auto modelLayout = engine::graphics::models::loadModelLayout(modelBytes, _fileManager, "assets/models/1");
         // engine::graphics::models::Mesh_Data meshData;
         meshData.loadSkins(modelLayout);
         meshData.loadAnimations(modelLayout);
@@ -634,19 +636,31 @@ namespace example {
         stagingMesh.flush();
         stagingMesh.unmap();
 
-        tmpCommandList->copyBuffer2Buffer(stagingMesh.getBuffer(), _meshPositions, 
-            {.srcOffset = vtxOffsetMesh, .dstOffset = 0u, .size = _meshPositions->sizeInBytes()});
-        tmpCommandList->copyBuffer2Buffer(stagingMesh.getBuffer(), _meshNormals, 
-            {.srcOffset = normalOffsetMesh, .dstOffset = 0u, .size = _meshNormals->sizeInBytes()});
-        tmpCommandList->copyBuffer2Buffer(stagingMesh.getBuffer(), _meshUvs, 
-            {.srcOffset = uvOffsetMesh, .dstOffset = 0u, .size = _meshUvs->sizeInBytes()});
-        tmpCommandList->copyBuffer2Buffer(stagingMesh.getBuffer(), _meshJoints, 
-            {.srcOffset = jointsOffsetMesh, .dstOffset = 0u, .size = _meshJoints->sizeInBytes()});
-        tmpCommandList->copyBuffer2Buffer(stagingMesh.getBuffer(), _meshWeights, 
-            {.srcOffset = weightsOffsetMesh, .dstOffset = 0u, .size = _meshWeights->sizeInBytes()});
+        if (const auto size = _meshPositions->sizeInBytes()) {
+            tmpCommandList->copyBuffer2Buffer(stagingMesh.getBuffer(), _meshPositions, 
+                {.srcOffset = vtxOffsetMesh, .dstOffset = 0u, .size = size});
+        }
+        if (const auto size = _meshNormals->sizeInBytes()) {
+            tmpCommandList->copyBuffer2Buffer(stagingMesh.getBuffer(), _meshNormals, 
+                {.srcOffset = normalOffsetMesh, .dstOffset = 0u, .size = size});
+        }
+        if (const auto size = _meshUvs->sizeInBytes()) {
+            tmpCommandList->copyBuffer2Buffer(stagingMesh.getBuffer(), _meshUvs, 
+                {.srcOffset = uvOffsetMesh, .dstOffset = 0u, .size = size});
+        }
+        if (const auto size = _meshJoints->sizeInBytes()) {
+            tmpCommandList->copyBuffer2Buffer(stagingMesh.getBuffer(), _meshJoints, 
+                {.srcOffset = jointsOffsetMesh, .dstOffset = 0u, .size = size});
+        }
+        if (const auto size = _meshWeights->sizeInBytes()) {
+            tmpCommandList->copyBuffer2Buffer(stagingMesh.getBuffer(), _meshWeights, 
+                {.srcOffset = weightsOffsetMesh, .dstOffset = 0u, .size = size});
+        }
 
-        tmpCommandList->copyBuffer2Buffer(stagingMesh.getBuffer(), _meshIndices, 
-            {.srcOffset = idxOffsetMesh, .dstOffset = 0u, .size = _meshIndices->sizeInBytes()});
+        if (const auto size = _meshIndices->sizeInBytes()) {
+            tmpCommandList->copyBuffer2Buffer(stagingMesh.getBuffer(), _meshIndices, 
+                {.srcOffset = idxOffsetMesh, .dstOffset = 0u, .size = size});
+        }
 
         // constexpr uint32_t kMaxMemoryBytesToCopyCommand = 65536u;
         // tmpCommandList->updateBuffer(_meshPositions, 0u, meshVtx[0u].size(), meshVtx[0u].data());

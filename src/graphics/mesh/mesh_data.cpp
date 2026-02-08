@@ -223,15 +223,18 @@ namespace engine::graphics::models {
 
     void Mesh_Data::optimizeBuffers(std::span<std::vector<std::byte>> vertexBuffersData, std::vector<uint32_t> & indexBufferData, std::span<const AttributeSemantic> allowedAttributes) {
         // mesh optimizer
-        std::vector<meshopt_Stream> streams(vertexBuffersData.size());
+        std::vector<meshopt_Stream> streams;
+        streams.reserve(vertexBuffersData.size());
 
         size_t j = 0U;
-        for (auto & stream : streams) {
+        for (const auto & vb : vertexBuffersData) {
+            if (vb.empty()) {
+                ++j;
+                continue;
+            }
             const auto semanticId = std::to_underlying(allowedAttributes[j]);
             const auto semanticDimension = kDefaultSemanticsSizeBytes[semanticId];
-            stream.size = semanticDimension;
-            stream.stride = semanticDimension;
-            stream.data = vertexBuffersData[j].data();
+            streams.emplace_back(vb.data(), semanticDimension, semanticDimension);
             ++j;
         }
 
@@ -246,6 +249,10 @@ namespace engine::graphics::models {
 
         j = 0U;
         for (auto & vertexBuffer : vertexBuffersData) {
+            if (vertexBuffer.empty()) {
+                ++j;
+                continue;
+            }
             std::vector<std::byte> vertices(vertexCount * streams[j].size);
             meshopt_remapVertexBuffer(vertices.data(), vertexBuffer.data(), baseVertexCount, streams[j].size, remap.data());
             std::swap(vertices, vertexBuffer);
@@ -260,6 +267,10 @@ namespace engine::graphics::models {
         
         j = 0U;
         for (auto & vertexBuffer : vertexBuffersData) {
+            if (vertexBuffer.empty()) {
+                ++j;
+                continue;
+            }
             meshopt_remapVertexBuffer(vertexBuffer.data(), vertexBuffer.data(), vertexCount, streams[j].size, remap.data());
             ++j;
         }
@@ -271,6 +282,10 @@ namespace engine::graphics::models {
                 constexpr auto defaultPositionSemanticSize = kDefaultSemanticsSizeBytes[0u];
                 std::vector<std::byte> vertices(vertexCount * quantizePositionSemanticSize);
                 auto & vb = vertexBuffersData[i];
+                if (vb.empty()) {
+                    continue;
+                }
+
                 for (size_t n = 0u; n < vertexCount; ++n) {
                     const float * position = reinterpret_cast<const float*>(&vb[n * defaultPositionSemanticSize]);
                     uint16_t * targetPosition = reinterpret_cast<uint16_t*>(&vertices[n * quantizePositionSemanticSize]);
@@ -287,6 +302,10 @@ namespace engine::graphics::models {
                 constexpr auto defaultNormalSemanticSize = kDefaultSemanticsSizeBytes[1u];
                 std::vector<std::byte> vertices(vertexCount * quantizeNormalSemanticSize);
                 auto & vb = vertexBuffersData[i];
+                if (vb.empty()) {
+                    continue;
+                }
+
                 for (size_t n = 0u; n < vertexCount; ++n) {
                     const float * normal = reinterpret_cast<const float*>(&vb[n * defaultNormalSemanticSize]);
 
@@ -302,6 +321,10 @@ namespace engine::graphics::models {
                 constexpr auto defaultUvSemanticSize = kDefaultSemanticsSizeBytes[9u];
                 std::vector<std::byte> vertices(vertexCount * quantizeUvSemanticSize);
                 auto & vb = vertexBuffersData[i];
+                if (vb.empty()) {
+                    continue;
+                }
+
                 for (size_t n = 0u; n < vertexCount; ++n) {
                     const float * uv = reinterpret_cast<const float*>(&vb[n * defaultUvSemanticSize]);
                     uint16_t * targetUv = reinterpret_cast<uint16_t*>(&vertices[n * quantizeUvSemanticSize]);
@@ -323,6 +346,9 @@ namespace engine::graphics::models {
                 constexpr auto defaultSemanticSize = kDefaultSemanticsSizeBytes[7u];
                  std::vector<std::byte> vertices(vertexCount * quantizeSemanticSize);
                 auto & vb = vertexBuffersData[i];
+                if (vb.empty()) {
+                    continue;
+                }
 
                 for (size_t n = 0u; n < vertexCount; ++n) {
                     const auto * value = reinterpret_cast<const uint16_t*>(&vb[n * defaultSemanticSize]);
@@ -341,6 +367,9 @@ namespace engine::graphics::models {
                 constexpr auto defaultSemanticSize = kDefaultSemanticsSizeBytes[8u];
                  std::vector<std::byte> vertices(vertexCount * quantizeSemanticSize);
                 auto & vb = vertexBuffersData[i];
+                if (vb.empty()) {
+                    continue;
+                }
 
                 for (size_t n = 0u; n < vertexCount; ++n) {
                     const float * value = reinterpret_cast<const float*>(&vb[n * defaultSemanticSize]);

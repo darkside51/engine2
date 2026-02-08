@@ -2,6 +2,7 @@
 
 #include "common/hash.h"
 #include "math/math.h"
+#include "file/file_manager.h"
 #include "utils/base64.h"
 #include "utils/json.h"
 #include "utils/system.h"
@@ -195,7 +196,7 @@ namespace engine::graphics::models {
         }
 	}
 
-    void parseBuffer(Buffer & buffer, const json::Json & object, std::string_view path, const std::byte * binData) {
+    void parseBuffer(Buffer & buffer, const json::Json & object, const FileManager & fileManager, std::string_view path, const std::byte * binData) {
         buffer.name = json::getValue(object, "name", std::string_view(""));
 		buffer.byteLength = object["byteLength"].as<uint32_t>();
 
@@ -214,9 +215,7 @@ namespace engine::graphics::models {
                 buffer.data.resize(buffer.byteLength);
                 std::memmove(buffer.data.data(), data.data(), buffer.byteLength);
             } else {
-                assert(false);
-                // auto & fm = FileManager;
-                // buffer.data = fm.readFile((path + / + uri));
+                buffer.data = fileManager.readFile(std::string{path}.append("/", 1u).append(uri.data(), uri.size()));
             }
 		} else if (binData) {
             buffer.data.resize(buffer.byteLength);
@@ -395,7 +394,7 @@ namespace engine::graphics::models {
         }
 	}
 
-    Layout loadModelLayout(std::span<std::byte const> bytes, std::string_view path) {
+    Layout loadModelLayout(std::span<std::byte const> bytes, const FileManager & fileManager, std::string_view path) {
         const std::byte * binData = nullptr;
         size_t binSize = 0u;
 
@@ -451,7 +450,7 @@ namespace engine::graphics::models {
         parseArray(layout.scenes, parseScene, "scenes",	js);
         parseArray(layout.nodes, parseNode,	"nodes", js);
         parseArray(layout.meshes, parseMesh, "meshes", js);
-        parseArray(layout.buffers, parseBuffer, "buffers", js, path, binData);
+        parseArray(layout.buffers, parseBuffer, "buffers", js, fileManager, path, binData);
         parseArray(layout.bufferViews, parseBufferView, "bufferViews", js);
         parseArray(layout.accessors, parseAccessor, "accessors", js);
         parseArray(layout.animations, parseAnimation, "animations", js);
