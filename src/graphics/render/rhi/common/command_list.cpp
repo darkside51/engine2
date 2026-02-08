@@ -132,7 +132,14 @@ namespace engine::rhi::runtime {
     void CommandList::bindBuffer(uint16_t binding, const BufferPtr & buffer, uint8_t setId, uint32_t offset, uint32_t range) noexcept {
         // no check it with state, correct check into record function!
         _resources.push_back(buffer);
-        _commands->create<BindBufferCommand>(binding, buffer.get(), setId, offset, range);
+        _commands->create<BindBufferCommand>(binding, buffer.get(), setId, offset, range, false);
+        ++_commandsCount;
+    }
+
+    void CommandList::bindBufferDynamic(uint16_t binding, const BufferPtr & buffer, uint8_t setId, uint32_t offset, uint32_t range) noexcept {
+        // no check it with state, correct check into record function!
+        _resources.push_back(buffer);
+        _commands->create<BindBufferCommand>(binding, buffer.get(), setId, offset, range, true);
         ++_commandsCount;
     }
 

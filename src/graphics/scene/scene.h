@@ -107,7 +107,8 @@ public:
     const rhi::runtime::PipelinePtr & getPipeline(uint32_t pipelineId) const noexcept;
 
     void initRenderData(rhi::runtime::Rhi & api, rhi::runtime::Device & device);
-    void newFrame(std::chrono::time_point<std::chrono::steady_clock> now) noexcept;
+    void beginFrame(std::chrono::time_point<std::chrono::steady_clock> now) noexcept;
+    void endFrame(rhi::runtime::CommandListPtr & commandList, rhi::runtime::CommandListPtr & transferCommandList, uint8_t frame);
 
     template <typename Condition>
     void fillAttachmentsArray(const mat4f & cameraTransform, Node * root, Condition && condition, std::vector<AttachmentObject*> & objects);

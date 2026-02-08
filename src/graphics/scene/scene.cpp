@@ -491,8 +491,6 @@ namespace engine::scene {
         }
 
         drawObjects(commandList, frame, cameraTransform, currentIt, objects.end(), typeIdx);
-
-        performCommits(transferCommandList, frame);
     }
 
     void Scene::drawDummies(AttachmentsIterator begin, AttachmentsIterator end, const mat4f & cameraTransform, uint32_t color) {
@@ -809,7 +807,7 @@ namespace engine::scene {
         }
     }
 
-    void Scene::newFrame(std::chrono::time_point<std::chrono::steady_clock> now) noexcept {
+    void Scene::beginFrame(std::chrono::time_point<std::chrono::steady_clock> now) noexcept {
         reduceUsedMemory(now);
         _meshTransformIndicesMap.clear();
         _tmpUniqueMeshes.clear();
@@ -820,6 +818,10 @@ namespace engine::scene {
         _meshTransformsInFrame = 0u;
         _meshesDrawInFrame = 0u;
         _skeletalTransformsInFrame = 0u;
+    }
+
+    void Scene::endFrame(rhi::runtime::CommandListPtr & commandList, rhi::runtime::CommandListPtr & transferCommandList, uint8_t frame) {
+        performCommits(transferCommandList, frame);
     }
 
     uint32_t Scene::calculateTargetStagingSize() const noexcept { 

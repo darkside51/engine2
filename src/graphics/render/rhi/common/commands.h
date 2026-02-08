@@ -184,14 +184,16 @@ namespace engine::rhi::runtime {
         uint32_t range = kWholeSize32;
         uint16_t binding = 0u;
         uint8_t setId = 0u;
+        bool dynamic = false;
         
-        BindBufferCommand(uint16_t binding, const Buffer * buffer, uint8_t setId = 0u, uint32_t offset = 0u, uint32_t range = kWholeSize32) : 
+        BindBufferCommand(uint16_t binding, const Buffer * buffer, uint8_t setId = 0u, uint32_t offset = 0u, uint32_t range = kWholeSize32, bool dynamic = false) : 
             Command(CommandType::eBindBuffer, sizeof(BindBufferCommand)), 
             buffer(buffer),
             binding(binding),
             setId(setId), 
             offset(offset),
-            range(range) {}
+            range(range),
+            dynamic(dynamic) {}
     };
 
     struct BindImageSamplerCommand : Command { // todo!

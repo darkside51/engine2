@@ -418,7 +418,7 @@ namespace engine::vulkan::runtime {
 
                 if (descriptorSetUpdaters[setId]) {
                     const auto bufferUpdateResult = descriptorSetUpdaters[setId].updateBuffer(static_cast<const Buffer*>(command->buffer), 
-                        command->binding, command->offset, command->range);
+                        command->binding, command->offset, command->range, command->dynamic);
                     
                     switch (bufferUpdateResult) {
                         case DescriptorSetUpdater::BufferUpdateResult::eChangeBufferOrOffset:

@@ -170,7 +170,7 @@ namespace engine::vulkan {
     }
 
     DescriptorSetUpdater::BufferUpdateResult DescriptorSetUpdater::updateBuffer(const Buffer* buffer, 
-        uint32_t binding, uint32_t offset, uint32_t range) noexcept {
+        uint32_t binding, uint32_t offset, uint32_t range, bool dynamic) noexcept {
         if (!isValid()) { 
             return BufferUpdateResult::eNone; 
         }
@@ -192,12 +192,15 @@ namespace engine::vulkan {
             // _layout->findLayout(binding)->type; or can use buffer->usage() for get type
             // offset = align_value(offset, align);
 
+            #ifdef DEBUG
             const auto type = _layout->findLayout(binding)->type;
             const bool isDynamic = type == rhi::shaders::DescriptorType::eUniform_Buffer_Dynamic || 
                                    type == rhi::shaders::DescriptorType::eStorage_Buffer_Dynamic;
+            assert(dynamic == isDynamic);
+            #endif
 
             bool dynamicOffsetChanged = false;
-            if (isDynamic) {
+            if (dynamic) {
                 // store offset
                 if (info.dynamicOffset != offset) {
                     info.dynamicOffset = offset;
@@ -213,7 +216,7 @@ namespace engine::vulkan {
                 info.vkInfo.offset = offset;
                 info.vkInfo.range = finalRange;
                 _buffersDirty = true;
-                return isDynamic ? BufferUpdateResult::eChangeBufferAndDynamicOffset : BufferUpdateResult::eChangeBufferOrOffset;
+                return dynamic ? BufferUpdateResult::eChangeBufferAndDynamicOffset : BufferUpdateResult::eChangeBufferOrOffset;
             }
 
             return dynamicOffsetChanged ? BufferUpdateResult::eChangeDynamicOffset : BufferUpdateResult::eNone;

@@ -494,7 +494,7 @@ namespace example {
             const auto & vsModule = _shaderModulesManager->registerModule("mesh_skeletal_instanced.vert", *_device, engine::rhi::shaders::Stages::eVertex, vBytes);
             const auto & fsModule = _shaderModulesManager->registerModule("mesh.frag", *_device, engine::rhi::shaders::Stages::eFragment, fBytes);
 
-            _programs.emplace_back(_api->createProgram(*_device, std::array{vsModule.getView(), fsModule.getView()}));
+            _programs.emplace_back(_api->createProgram(*_device, std::array{vsModule.getView(), fsModule.getView()}, {.dynamicDescriptorsMask = 0x0u}));
         }
 
         { // kMeshInstancedProgram
@@ -539,8 +539,11 @@ namespace example {
         const GraphicsPipelineStatesInfo info2 = engine::parseGraphicsPipelineInfo(json["sprite_common"]);
         scene.registerPipeline(_api->createGraphicsPipeline(*_device, _renderPasses[kSceneRenderPass], _programs[kSpritesProgram], info2, 0u));
 
+        // skeletal mesh
         const GraphicsPipelineStatesInfo info4 = engine::parseGraphicsPipelineInfo(json["mesh_skeletal"]);
         scene.registerPipeline(_api->createGraphicsPipeline(*_device, _renderPasses[kSceneRenderPass], _programs[kMeshSkeletalInstancedProgram], info4, 0u));
+        
+        // mesh
         const GraphicsPipelineStatesInfo info5 = engine::parseGraphicsPipelineInfo(json["mesh"]);
         scene.registerPipeline(_api->createGraphicsPipeline(*_device, _renderPasses[kSceneRenderPass], _programs[kMeshInstancedProgram], info5, 0u));
     }
@@ -1512,6 +1515,11 @@ namespace example {
         commandList->setViewport(0.0f, 0.0f, width, height);
         commandList->setScissor({{0, 0}, {width, height}});
 
+
+        scene.beginFrame(now);
+        std::vector<engine::scene::AttachmentObject*> objects(1024u);
+        scene.fillAttachmentsArray(cameraTransform, sceneWorldRoot, [](engine::scene::AttachmentObject*) { return true; }, objects);
+
         // scene pass
         commandList->beginRenderPass(_renderPasses[kSceneRenderPass], _sceneFrameBuffers[imageIndex], sceneClearValues, {{0, 0}, {width, height}});
 
@@ -1562,10 +1570,8 @@ namespace example {
         // commandList->drawIndexed(1017u, 4'000u, 31890u);
         // mesh test
 
-        scene.newFrame(now);
-        std::vector<engine::scene::AttachmentObject*> objects(1024u);
-        scene.fillAttachmentsArray(cameraTransform, sceneWorldRoot, [](engine::scene::AttachmentObject*) { return true; }, objects);
-        scene.draw(commandList, transferCommandList, frameId, cameraTransform, objects);
+    
+        scene.draw(commandList, transferCommandList, frameId, cameraTransform, objects);    
 
         debugDraw.prepare(*transferCommandList, frameId);
         debugDraw.draw(*commandList, frameId, now);
@@ -1591,6 +1597,8 @@ namespace example {
         _imgui.draw(*commandList, frameId);
 
         commandList->endRenderPass();
+
+        scene.endFrame(commandList, transferCommandList, frameId);
 
         commandList->writeTimestamp(_queryPool.get(), rhi::PipelineStageFlags::eBottom_Of_Pipe, frameId * 2u + 1u);
         commandList->end();
