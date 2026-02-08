@@ -33,6 +33,8 @@ Image::Image(Device & device, const rhi::ImageInfo & info) :
         .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED
     };
 
+    // const auto formatFeatureAccess = _device->isFormatSupported(_info.format, rhi::FormatFeatureFlags::eFormatFeature_Sampled_Image);
+
     if (auto result = _device->getMemoryAllocator().createImage(imageInfo, utils::convert2vk(_info.memoryFlags), 
         info.memoryExtFlags, _image, _allocation); 
         result != VK_SUCCESS) {

@@ -560,10 +560,10 @@ namespace example {
         tmpCommandList->begin(engine::rhi::CommandBufferUsageFlags::eOne_Time_Submit);
 
         // gltf test
-        auto const modelBytes = _fileManager.readFile("assets/models/model.glb");
-        auto modelLayout = engine::graphics::models::loadModelLayout(modelBytes, _fileManager, "assets/models/");
-        // auto const modelBytes = _fileManager.readFile("assets/models/1/scene.gltf");
-        // auto modelLayout = engine::graphics::models::loadModelLayout(modelBytes, _fileManager, "assets/models/1");
+        // auto const modelBytes = _fileManager.readFile("assets/models/model.glb");
+        // auto modelLayout = engine::graphics::models::loadModelLayout(modelBytes, _fileManager, "assets/models/");
+        auto const modelBytes = _fileManager.readFile("assets/models/1/scene.gltf");
+        auto modelLayout = engine::graphics::models::loadModelLayout(modelBytes, _fileManager, "assets/models/1");
         // engine::graphics::models::Mesh_Data meshData;
         meshData.loadSkins(modelLayout);
         meshData.loadAnimations(modelLayout);
@@ -709,6 +709,7 @@ namespace example {
 
         if (1) {
             // atlas test2
+            // auto const imageBytes = _fileManager.readFile("assets/atlases/fire2.png");
             auto const imageBytes = _fileManager.readFile("assets/atlases/explosion2.png");
             auto textureData = engine::graphics::parseTextureData(imageBytes);
 
@@ -738,6 +739,7 @@ namespace example {
             );
 
             auto frames = engine::graphics::FramesParser::generateFrames({8u, 6u}, "explosion_");
+            // auto frames = engine::graphics::FramesParser::generateFrames({6u, 6u}, "explosion_");
             textureManager.addFrames(frames, image);
 
             {
@@ -746,6 +748,11 @@ namespace example {
                 for (size_t i = 0u; i < 48u; ++i) {
                     animFrames.emplace_back(engine::fmt_string("explosion_%d", i));
                 }
+
+                // animFrames.reserve(36u);
+                // for (size_t i = 0u; i < 36u; ++i) {
+                //     animFrames.emplace_back(engine::fmt_string("explosion_%d", i));
+                // }
 
                 animationManager.registerAnimation("anim0", engine::scene::FramesSequence(textureManager, animFrames));
             }
@@ -1073,7 +1080,7 @@ namespace example {
             sceneWorldRoot = scene.createNode();
             scene.rootNode()->addChild(sceneWorldRoot);
 
-            for (size_t i = 0; i < 10; ++i) { // mesh hierarchy test
+            for (size_t i = 0u; i < 1u; ++i) { // mesh hierarchy test
                 vec3f minCorner{std::numeric_limits<float>::max()};
                 vec3f maxCorner{std::numeric_limits<float>::lowest()};
 
@@ -1156,12 +1163,12 @@ namespace example {
                 meshRoot->setBounds(engine::scene::Bounds::createSphere(center, radius));
                 // meshRoot->setBounds(engine::scene::Bounds::createCube(minCorner, maxCorner));
 
-                meshRoot->setScale(engine::common::random(0.9f, 1.1f));
-                meshRoot->setRotation(engine::vec3f(1.57f, 0.0f, engine::common::random(-3.14f, 3.14f)));
-                meshRoot->setPosition(engine::vec3f(-4.0f + i * 1.25f, 0.0f, 0.0f));
-                // meshRoot->setScale(0.002f);
-                // meshRoot->setRotation(engine::vec3f(1.57f, 0.0f, 0.0f));
-                // meshRoot->setPosition(engine::vec3f(0.0f, 0.0f, 0.0f));
+                // meshRoot->setScale(engine::common::random(0.9f, 1.1f));
+                // meshRoot->setRotation(engine::vec3f(1.57f, 0.0f, engine::common::random(-3.14f, 3.14f)));
+                // meshRoot->setPosition(engine::vec3f(-4.0f + i * 1.25f, 0.0f, 0.0f));
+                meshRoot->setScale(0.002f);
+                meshRoot->setRotation(engine::vec3f(1.57f, 0.0f, 0.0f));
+                meshRoot->setPosition(engine::vec3f(0.0f, 0.0f, 0.0f));
 
                 if (i == 5u) {
                     tmpSkeleton = skeleton;

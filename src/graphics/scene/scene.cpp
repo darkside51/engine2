@@ -51,15 +51,15 @@ namespace engine::scene {
 
     void attachObjectToNode(AttachmentObject & object, Node & node) noexcept {
         switch(object.typeIndex) {
-        case ctti::typeIndex<AttachmentObject, Dummy>(): [[fallthrough]];
-        case ctti::typeIndex<AttachmentObject, Skeleton>():
+        case ctti::typeIndex<AttachmentObject, Skeleton>(): [[fallthrough]];
+        case ctti::typeIndex<AttachmentObject, Dummy>():
             node.setAttachment(&object);
-            return;
-        case ctti::typeIndex<AttachmentObject, Sprite>():
-            static_cast<Sprite &>(object).attachToNode(&node);
             return;
         case ctti::typeIndex<AttachmentObject, Mesh>():
             static_cast<Mesh &>(object).attachToNode(&node);
+            return;
+        case ctti::typeIndex<AttachmentObject, Sprite>():
+            static_cast<Sprite &>(object).attachToNode(&node);
             return;
         }
     }
@@ -229,14 +229,14 @@ namespace engine::scene {
         }
 
         switch(a.typeIndex) {
-        case ctti::typeIndex<AttachmentObject, Dummy>():
-            return static_cast<const Dummy &>(a).cmp(static_cast<const Dummy &>(b));
-        case ctti::typeIndex<AttachmentObject, Sprite>():
-            return static_cast<const Sprite &>(a).cmp(static_cast<const Sprite &>(b));
-        case ctti::typeIndex<AttachmentObject, Mesh>():
-            return static_cast<const Mesh &>(a).cmp(static_cast<const Mesh &>(b));
         case ctti::typeIndex<AttachmentObject, Skeleton>():
             return static_cast<const Skeleton &>(a).cmp(static_cast<const Skeleton &>(b));
+        case ctti::typeIndex<AttachmentObject, Mesh>():
+            return static_cast<const Mesh &>(a).cmp(static_cast<const Mesh &>(b));
+        case ctti::typeIndex<AttachmentObject, Sprite>():
+            return static_cast<const Sprite &>(a).cmp(static_cast<const Sprite &>(b));
+        case ctti::typeIndex<AttachmentObject, Dummy>():
+            return static_cast<const Dummy &>(a).cmp(static_cast<const Dummy &>(b));
         }
 
         return false;
@@ -310,12 +310,8 @@ namespace engine::scene {
 
         for (auto const * object : objects) {
             switch (object->typeIndex) {
-            case ctti::typeIndex<AttachmentObject, Dummy>(): [[fallthrough]];
-            case ctti::typeIndex<AttachmentObject, Skeleton>():
-                break;
-            case ctti::typeIndex<AttachmentObject, Sprite>():
-                spritesVertexesCount += 4u;
-                spritesIndicesCount += 6u;
+            case ctti::typeIndex<AttachmentObject, Skeleton>(): [[fallthrough]];
+            case ctti::typeIndex<AttachmentObject, Dummy>():
                 break;
             case ctti::typeIndex<AttachmentObject, Mesh>():
             {
@@ -339,6 +335,10 @@ namespace engine::scene {
                 }
                 ++meshesDrawInFrame; // every draw mesh has offset (for get correct matrices from meshTransforms)
             }
+                break;
+            case ctti::typeIndex<AttachmentObject, Sprite>():
+                spritesVertexesCount += 4u;
+                spritesIndicesCount += 6u;
                 break;
             }
         }
@@ -452,9 +452,9 @@ namespace engine::scene {
         switch (typeIdx) {
         case ctti::typeIndex<AttachmentObject, Skeleton>(): // do not draw skeletons
             break;
-        case ctti::typeIndex<AttachmentObject, Dummy>():
+        case ctti::typeIndex<AttachmentObject, Mesh>():
         {
-            drawDummies(begin, end, cameraTransform, 0xff'00'00'ffu);
+            drawMeshes(commandList, frame, begin, end, cameraTransform);
         }
             break;
         case ctti::typeIndex<AttachmentObject, Sprite>():
@@ -462,9 +462,9 @@ namespace engine::scene {
             drawSprites(commandList, frame, begin, end, cameraTransform);
         }
             break;
-        case ctti::typeIndex<AttachmentObject, Mesh>():
+        case ctti::typeIndex<AttachmentObject, Dummy>():
         {
-            drawMeshes(commandList, frame, begin, end, cameraTransform);
+            drawDummies(begin, end, cameraTransform, 0xff'00'00'ffu);
         }
             break;
         }
@@ -642,59 +642,67 @@ namespace engine::scene {
         const auto & mesh = *static_cast<const Mesh*>(*it);
         auto pipeline = mesh.getPipeline();
         auto geometryDataIndex = mesh.geometryDataIndex();
+        bool skeletal = mesh.getSkeleton() != nullptr;
         const auto * meshData = &mesh.meshData();
-        ++it;
 
-        for (; it != end; ++it) {
+        uint32_t i = 0u;
+        auto * memory = _meshTransformIndices->memory2<uint16_t>() + _meshesDrawInFrame;
+        if (skeletal) {
+            *(memory + i) = _meshTransformIndicesMap[*it].skeletalTransformIndex;
+        } else {
+            *(memory + i) = _meshTransformIndicesMap[*it].transformIndex;
+        }
+        ++it;
+        ++i;
+
+        uint32_t count = 1u;
+        for (; it != end; ++it, ++i) {
             const auto & mesh2 = *static_cast<const Mesh*>(*it);
             const auto currentPipeline = mesh2.getPipeline();
             const auto * currentMeshData = &mesh2.meshData();
             const auto currentGeometryDataIndex = mesh2.geometryDataIndex();
+            const bool currentSkeletal = mesh2.getSkeleton() != nullptr;
+
+            if (currentSkeletal) {
+                *(memory + i) = _meshTransformIndicesMap[*it].skeletalTransformIndex;
+            } else {
+                *(memory + i) = _meshTransformIndicesMap[*it].transformIndex;
+            }
 
             const bool completePack = currentPipeline != pipeline || 
                                       currentGeometryDataIndex != geometryDataIndex ||
+                                      currentSkeletal != skeletal;
                                       meshData != currentMeshData;
 
             if (completePack) {
                 // draw
-                drawSameMeshes(commandList, frame, currentIt, it, cameraTransform);
+                drawSameMeshes(commandList, frame, currentIt, it, cameraTransform, count, skeletal);
                 // begin next pack
                 meshData = currentMeshData;
                 pipeline = currentPipeline;
                 geometryDataIndex = currentGeometryDataIndex;
+                skeletal = currentSkeletal;
                 currentIt = it;
+                count = 1u;
+            } else {
+                ++count;
             }
         }
 
-        drawSameMeshes(commandList, frame, currentIt, end, cameraTransform);
+        drawSameMeshes(commandList, frame, currentIt, end, cameraTransform, count, skeletal);
+
+        _meshTransformIndices->modify();
     }
 
     void Scene::drawSameMeshes(rhi::runtime::CommandListPtr & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end, 
-        const mat4f & cameraTransform) {
+        const mat4f & cameraTransform, uint32_t count, bool skeletal) {
+        assert(count < std::numeric_limits<uint16_t>::max()); // need to use 32bits _meshTransformIndices instead of 16bits
+
         const auto & mesh = *static_cast<const Mesh*>(*begin);
         const auto & pipeline = getPipeline(mesh.getPipeline());
         if (pipeline == nullptr) {
             return;
         }
-
-        const bool isSkeletalMesh = mesh.getSkeleton() != nullptr;
-
-        auto * memory = _meshTransformIndices->memory2<uint16_t>() + _meshesDrawInFrame;
-        uint32_t drawObjectsCount = 0u;
-        for (auto it = begin; it != end; ++it) {
-            if (isSkeletalMesh) {
-                *(memory + drawObjectsCount) = _meshTransformIndicesMap[*it].skeletalTransformIndex;
-            } else {
-                *(memory + drawObjectsCount) = _meshTransformIndicesMap[*it].transformIndex;
-            }
-            ++drawObjectsCount;
-        }
-        assert(drawObjectsCount < std::numeric_limits<uint16_t>::max()); // need to use 32bits _meshTransformIndices instead of 16bits
-        if (drawObjectsCount == 0u) {
-            return;
-        }
-
-        _meshTransformIndices->modify();
 
         struct Uniform {
             mat4f cameraTransform;
@@ -709,28 +717,27 @@ namespace engine::scene {
             commandList->bindVertexBuffer(binding_v++, mesh.getAttribute(mesh::Semantic::eNormal).buffer, 0u);
             commandList->bindVertexBuffer(binding_v++, mesh.getAttribute(mesh::Semantic::eUv0).buffer, 0u);
 
-            if (isSkeletalMesh) {
+            if (skeletal) { // skeletalMesh
                 // skinning in vertex shader impl (want to get skinning in compute too)
                 commandList->bindVertexBuffer(binding_v++, mesh.getAttribute(mesh::Semantic::eJoints).buffer, 0u);
                 commandList->bindVertexBuffer(binding_v++, mesh.getAttribute(mesh::Semantic::eWeights).buffer, 0u);
-                commandList->bindVertexBuffer(binding_v++, (*_meshTransformIndices)(frame), sizeof(uint16_t) * _meshesDrawInFrame);
                 commandList->bindBuffer(0u, (*_meshSkeletalTransforms)(frame), 0u, 0u);
             } else {
-                commandList->bindVertexBuffer(binding_v++, (*_meshTransformIndices)(frame), sizeof(uint16_t) * _meshesDrawInFrame);
                 commandList->bindBuffer(0u, (*_meshTransforms)(frame), 0u, 0u);
             }
 
+            commandList->bindVertexBuffer(binding_v++, (*_meshTransformIndices)(frame), sizeof(uint16_t) * _meshesDrawInFrame);
             commandList->bindIndexBuffer(mesh.getIndices().buffer, 0u, rhi::IndexType::eU32);
 
             commandList->pushConstants(rhi::shaders::Stages::eVertex, 0u, sizeof(Uniform), &uniform);
 
             const auto & geometry = mesh.geometry();
             for (const auto & p : geometry.primitives) {
-                commandList->drawIndexed(p.indexCount, drawObjectsCount, p.firstIndex);
+                commandList->drawIndexed(p.indexCount, count, p.firstIndex);
             }
         }
 
-        _meshesDrawInFrame += drawObjectsCount;
+        _meshesDrawInFrame += count;
     }
 
     void Scene::reduceUsedMemory(std::chrono::time_point<std::chrono::steady_clock> now) noexcept {

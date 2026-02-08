@@ -23,7 +23,7 @@
 
 namespace engine::scene {
 
-constexpr bool kDebugDrawBounds = false;
+constexpr bool kDebugDrawBounds = true;
 constexpr bool kDebugDrawGizmos = false;
 
 constexpr uint32_t kFillNodesReserveSize = 1024u;
@@ -137,7 +137,7 @@ private:
 
     void drawMeshes(rhi::runtime::CommandListPtr & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end, const mat4f & cameraTransform);
     void drawSameMeshes(rhi::runtime::CommandListPtr & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end, 
-        const mat4f & cameraTransform);   
+        const mat4f & cameraTransform, uint32_t count, bool skeletal);   
 
     using NodesAllocator = allocators::PoolAllocatorChain<sizeof(Node), alignof(Node), false, false>;
     NodesAllocator _nodeAllocator{512u, 64u};
@@ -217,7 +217,8 @@ void Scene::fillAttachmentsArray(const mat4f & cameraTransform, Node * root, Con
             }
         }
 
-        if (auto * object = n->getAttachment(); (object != nullptr) && condition(object)) {
+        auto * object = n->getAttachment();
+        if ((object != nullptr) && condition(object)) {
             objects.emplace_back(object);
         }
 
@@ -231,7 +232,23 @@ void Scene::fillAttachmentsArray(const mat4f & cameraTransform, Node * root, Con
                     _debugDraw->drawGizmo(0.1f, cameraTransform * wtr);
                 }
                 if constexpr (kDebugDrawBounds) {
-                    _debugDraw->drawBounds(bounds, 0xff00ffffu, cameraTransform * worldTransform);
+                    uint32_t color = 0xff'00'ff'ffu;
+                    if (object) {
+                        switch (object->typeIndex) {
+                        case ctti::typeIndex<AttachmentObject, Skeleton>():
+                            color = 0xff'44'44'44u;
+                            break;
+                        case ctti::typeIndex<AttachmentObject, Mesh>():
+                            color = 0xff'aa'aa'aau;
+                            break;
+                        case ctti::typeIndex<AttachmentObject, Sprite>():
+                            color = 0xff'ff'ff'ffu;
+                            break;
+                        default:
+                            break;
+                        }
+                    }
+                    _debugDraw->drawBounds(bounds, color, cameraTransform * worldTransform);
                 }
             }
         }
