@@ -33,6 +33,7 @@
 #include "graphics/scene/animation/texture/frame_sequence_animation.h"
 #include "graphics/scene/animation/mesh/skeletal_animation.h"
 #include "graphics/scene/animation_manager.h"
+#include "graphics/mesh/model_manager.h"
 
 // https://www.saschawillems.de/blog/2018/07/19/vulkan-input-attachments-and-sub-passes/
 // https://docs.vulkan.org/samples/latest/samples/api/timestamp_queries/README.html
@@ -61,6 +62,7 @@ namespace example {
 
     engine::debug::DebugDraw debugDraw;
     engine::graphics::TextureManager textureManager;
+    engine::graphics::ModelManager modelManager;
     engine::scene::AnimationManager animationManager;
 
     engine::scene::Camera camera;

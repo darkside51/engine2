@@ -27,7 +27,7 @@ namespace mesh {
 
     class Skeleton : public AttachmentObject {
     public:
-        Skeleton(const graphics::models::Mesh_Data & meshData);
+        explicit Skeleton(const graphics::models::Mesh_Data & meshData);
         ~Skeleton() /*override*/ = default;
 
         uint32_t nodesCount() const noexcept {

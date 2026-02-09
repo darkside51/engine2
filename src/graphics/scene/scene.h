@@ -21,8 +21,9 @@
 #include <utility>
 #include <vector>
 
-namespace engine::scene {
+namespace engine {
 
+namespace scene {
 constexpr bool kDebugDrawBounds = true;
 constexpr bool kDebugDrawGizmos = false;
 
@@ -260,4 +261,5 @@ void Scene::fillAttachmentsArray(const mat4f & cameraTransform, Node * root, Con
     });
 }
 
+}
 }

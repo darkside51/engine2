@@ -3,7 +3,6 @@
 #include "common/hash.h"
 #include "image_frame.h"
 
-#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <span>

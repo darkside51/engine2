@@ -70,12 +70,15 @@ namespace engine::graphics::models {
 	};
 
     struct Mesh_Data {
+		// explicit Mesh_Data(uint32_t id) : uniqueId(id) {}
+
         std::vector<uint16_t> sceneNodes;
 		std::vector<Mesh_Skin> skins;
 		std::vector<Mesh_Animation> animations;
 		std::vector<Mesh_Geometry> meshes;
         std::vector<Node> nodes;
 
+		// uint32_t uniqueId = 0u;
 		uint32_t skinMatricesCount = 0u;
 
 		void loadSkins(const Layout & layout);

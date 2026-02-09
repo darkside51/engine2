@@ -64,7 +64,9 @@ namespace engine::scene {
         }
     }
 
-    Scene::Scene(debug::DebugDraw * debugDraw) : _rootNode(createNode()), _debugDraw(debugDraw) {
+    Scene::Scene(debug::DebugDraw * debugDraw) : 
+        _rootNode(createNode()), 
+        _debugDraw(debugDraw) {
         registerTypes();
     }
 
@@ -672,7 +674,7 @@ namespace engine::scene {
             const bool completePack = currentPipeline != pipeline || 
                                       currentGeometryDataIndex != geometryDataIndex ||
                                       currentSkeletal != skeletal;
-                                      meshData != currentMeshData;
+                                      currentMeshData != meshData;
 
             if (completePack) {
                 // draw
