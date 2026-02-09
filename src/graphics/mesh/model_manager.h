@@ -1,9 +1,12 @@
 #pragma once
 
+#include "allocators/pool_allocator_chain.h"
 #include "common/hash.h"
 #include "gltf_loader.h"
 #include "mesh_data.h"
+#include "graphics/render/rhi/common/runtime.h"
 
+#include <array>
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
@@ -17,36 +20,58 @@
 
 namespace engine::graphics {
 
+constexpr auto kDefaultSemantics = std::array {
+    models::AttributeSemantic::ePosition, 
+    models::AttributeSemantic::eNormal, 
+    models::AttributeSemantic::eUv0,
+    models::AttributeSemantic::eJoints,
+    models::AttributeSemantic::eWeights
+};
+
 class ModelManager {
-    struct ModelInfo {
-        const models::Mesh_Data * data = nullptr;
-        uint32_t index = 0xff'ff'ff'ffu;
+
+    using Allocator = allocators::PoolAllocatorChain<sizeof(models::Mesh_Data), alignof(models::Mesh_Data), false, false>;
+    using ModelsMap = std::unordered_map<std::string, uint32_t, hash::String_hash, std::equal_to<>>;
+    using Models = std::vector<models::Mesh_Data*>;
+
+    struct ModelBuffers {
+        std::vector<rhi::runtime::BufferPtr> vertexBuffers;
+        rhi::runtime::BufferPtr indexBuffer = nullptr;
     };
-    using ModelsMap = std::unordered_map<std::string, ModelInfo, hash::String_hash, std::equal_to<>>;
-    using Models = std::vector<models::Mesh_Data>;
 
 public:
     ~ModelManager() { destroy(); }
     void destroy();
 
-    uint32_t addModel(std::string_view name, const models::Layout & layout);
+    uint32_t addModel(std::string_view name, const models::Layout & layout, 
+        std::span<const graphics::models::AttributeSemantic> attributes = kDefaultSemantics);
     bool removeModel(std::string_view name);
     
-    ModelInfo getModelData(std::string_view name) const noexcept {
+    uint32_t getModelDataIdx(std::string_view name) const noexcept {
         if (auto it = _modelsMap.find(name); it != _modelsMap.end()) {
             return it->second;
         }
-        return {};
+        return 0xff'ff'ff'ffu;
     }
 
     const models::Mesh_Data & getModelData(uint32_t idx) const noexcept { 
         assert(idx < _models.size());
-        return _models[idx];
+        return *_models[idx];
     }
 
+    const ModelBuffers & getModelBuffers(uint32_t idx) const noexcept {
+        assert(idx < _gpuData.size());
+        return _gpuData[idx];
+    }
+
+    void generateGpuBuffers(rhi::runtime::Rhi & api, rhi::runtime::Device & device, rhi::runtime::CommandListPtr & commandList);
+
 private:
+    Allocator _allocator{64u, 64u};
     ModelsMap _modelsMap;
     Models _models;
+    std::vector<ModelBuffers> _gpuData;
+    std::vector<std::pair<uint32_t, models::Mesh_Buffers_Data>> _tmpData;
 };
 
 }

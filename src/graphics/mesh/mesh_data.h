@@ -71,6 +71,13 @@ namespace engine::graphics::models {
 
     struct Mesh_Data {
 		// explicit Mesh_Data(uint32_t id) : uniqueId(id) {}
+		Mesh_Data() = default;
+		
+		Mesh_Data(const Mesh_Data &) = delete;
+		Mesh_Data(Mesh_Data &&) noexcept = default;
+
+		Mesh_Data & operator= (const Mesh_Data &&) = delete;
+		Mesh_Data & operator= (Mesh_Data &&) noexcept = default;
 
         std::vector<uint16_t> sceneNodes;
 		std::vector<Mesh_Skin> skins;

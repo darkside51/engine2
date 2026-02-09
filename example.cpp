@@ -227,6 +227,7 @@ namespace example {
         
         animationManager.destroy();
         textureManager.destroy();
+        modelManager.destroy();
 
         _pipelines.clear();
         _programs.clear();
@@ -550,8 +551,6 @@ namespace example {
         scene.registerPipeline(_api->createGraphicsPipeline(*_device, _renderPasses[kSceneRenderPass], _programs[kMeshInstancedProgram], info5, 0u));
     }
 
-    engine::graphics::models::Mesh_Data meshData;
-
     void Example::createDefaultResources() {
         using namespace engine::rhi;
         using namespace engine::graphics;
@@ -561,108 +560,20 @@ namespace example {
 
         tmpCommandList->begin(engine::rhi::CommandBufferUsageFlags::eOne_Time_Submit);
 
-        // gltf test
-        // auto const modelBytes = _fileManager.readFile("assets/models/model.glb");
-        // auto modelLayout = engine::graphics::models::loadModelLayout(modelBytes, _fileManager, "assets/models/");
-        auto const modelBytes = _fileManager.readFile("assets/models/1/scene.gltf");
-        auto modelLayout = engine::graphics::models::loadModelLayout(modelBytes, _fileManager, "assets/models/1");
-        // engine::graphics::models::Mesh_Data meshData;
-        meshData.loadSkins(modelLayout);
-        meshData.loadAnimations(modelLayout);
-
-        // const auto semanticsArray = std::array {engine::graphics::models::AttributeSemantic::ePosition, 
-        //                                         engine::graphics::models::AttributeSemantic::eNormal | 
-        //                                         engine::graphics::models::AttributeSemantic::eUv0};
-
-        const auto semanticsArray = std::array {engine::graphics::models::AttributeSemantic::ePosition, 
-                                                engine::graphics::models::AttributeSemantic::eNormal, 
-                                                engine::graphics::models::AttributeSemantic::eUv0,
-                                                engine::graphics::models::AttributeSemantic::eJoints,
-                                                engine::graphics::models::AttributeSemantic::eWeights};
-
-        auto  [meshVtx, meshIdx] = meshData.loadMeshes(modelLayout, semanticsArray);
-        meshData.optimizeBuffers(meshVtx, meshIdx, semanticsArray);
-        meshData.loadNodes(modelLayout);
-
-        // gpu buffers
-        BufferInfo meshVtxBufferInfo {
-            BufferUsageFlags::eVertex_Buffer | BufferUsageFlags::eTransfer_Dst,
-            MemoryPropertyFlags::eDeviceLocal
-        };
-
-        BufferInfo meshIdxBufferInfo {
-            BufferUsageFlags::eIndex_Buffer | BufferUsageFlags::eTransfer_Dst,
-            MemoryPropertyFlags::eDeviceLocal
-        };
-
-        _meshPositions = _api->createBuffer(*_device, meshVtxBufferInfo, meshVtx[0u].size());
-        _meshNormals = _api->createBuffer(*_device, meshVtxBufferInfo, meshVtx[1u].size());
-        _meshUvs = _api->createBuffer(*_device, meshVtxBufferInfo, meshVtx[2u].size());
-        _meshJoints = _api->createBuffer(*_device, meshVtxBufferInfo, meshVtx[3u].size());
-        _meshWeights = _api->createBuffer(*_device, meshVtxBufferInfo, meshVtx[4u].size());
-        _meshIndices = _api->createBuffer(*_device, meshIdxBufferInfo, sizeof(uint32_t) * meshIdx.size());
-
-        const auto meshVtxDataSize = meshVtx[0u].size();
-        const auto meshNormalsDataSize = meshVtx[1u].size();
-        const auto meshUvDataSize = meshVtx[2u].size();
-        const auto meshJointsDataSize = meshVtx[3u].size();
-        const auto meshWeightsDataSize = meshVtx[4u].size();
-        const auto meshIdxDataSize = sizeof(uint32_t) * meshIdx.size();
-
-        const auto stagingMeshSize = meshVtxDataSize + meshNormalsDataSize + meshUvDataSize + 
-            meshJointsDataSize + meshWeightsDataSize + meshIdxDataSize;
-
-        StagingBuffer stagingMesh{*_api, *_device, stagingMeshSize};
-        std::byte * memoryMeshStaging = stagingMesh.map();
-        const auto vtxOffsetMesh = stagingMesh.requestBytes(meshVtxDataSize);
-        const auto normalOffsetMesh = stagingMesh.requestBytes(meshNormalsDataSize);
-        const auto uvOffsetMesh = stagingMesh.requestBytes(meshUvDataSize);
-        const auto jointsOffsetMesh = stagingMesh.requestBytes(meshJointsDataSize);
-        const auto weightsOffsetMesh = stagingMesh.requestBytes(meshWeightsDataSize);
-        const auto idxOffsetMesh = stagingMesh.requestBytes(meshIdxDataSize);
-
-        auto * vtxDataMeshPositions = (memoryMeshStaging + vtxOffsetMesh);
-        auto * vtxDataMeshNormals = (memoryMeshStaging + normalOffsetMesh);
-        auto * vtxDataMeshUvs = (memoryMeshStaging + uvOffsetMesh);
-        auto * vtxDataMeshJoints = (memoryMeshStaging + jointsOffsetMesh);
-        auto * vtxDataMeshWeights = (memoryMeshStaging + weightsOffsetMesh);
-        auto * idxDataMesh = (memoryMeshStaging + idxOffsetMesh);
-
-        std::memcpy(vtxDataMeshPositions, meshVtx[0u].data(), meshVtxDataSize);
-        std::memcpy(vtxDataMeshNormals, meshVtx[1u].data(), meshNormalsDataSize);
-        std::memcpy(vtxDataMeshUvs, meshVtx[2u].data(), meshUvDataSize);
-        std::memcpy(vtxDataMeshJoints, meshVtx[3u].data(), meshJointsDataSize);
-        std::memcpy(vtxDataMeshWeights, meshVtx[4u].data(), meshWeightsDataSize);
-        std::memcpy(idxDataMesh, meshIdx.data(), meshIdxDataSize);
-
-        stagingMesh.flush();
-        stagingMesh.unmap();
-
-        if (const auto size = _meshPositions->sizeInBytes()) {
-            tmpCommandList->copyBuffer2Buffer(stagingMesh.getBuffer(), _meshPositions, 
-                {.srcOffset = vtxOffsetMesh, .dstOffset = 0u, .size = size});
-        }
-        if (const auto size = _meshNormals->sizeInBytes()) {
-            tmpCommandList->copyBuffer2Buffer(stagingMesh.getBuffer(), _meshNormals, 
-                {.srcOffset = normalOffsetMesh, .dstOffset = 0u, .size = size});
-        }
-        if (const auto size = _meshUvs->sizeInBytes()) {
-            tmpCommandList->copyBuffer2Buffer(stagingMesh.getBuffer(), _meshUvs, 
-                {.srcOffset = uvOffsetMesh, .dstOffset = 0u, .size = size});
-        }
-        if (const auto size = _meshJoints->sizeInBytes()) {
-            tmpCommandList->copyBuffer2Buffer(stagingMesh.getBuffer(), _meshJoints, 
-                {.srcOffset = jointsOffsetMesh, .dstOffset = 0u, .size = size});
-        }
-        if (const auto size = _meshWeights->sizeInBytes()) {
-            tmpCommandList->copyBuffer2Buffer(stagingMesh.getBuffer(), _meshWeights, 
-                {.srcOffset = weightsOffsetMesh, .dstOffset = 0u, .size = size});
+        // // gltf test
+        {
+            auto const modelBytes = _fileManager.readFile("assets/models/model.glb");
+            auto modelLayout = engine::graphics::models::loadModelLayout(modelBytes, _fileManager, "assets/models/");
+            auto const modelIdx = modelManager.addModel("model.glb", modelLayout);
         }
 
-        if (const auto size = _meshIndices->sizeInBytes()) {
-            tmpCommandList->copyBuffer2Buffer(stagingMesh.getBuffer(), _meshIndices, 
-                {.srcOffset = idxOffsetMesh, .dstOffset = 0u, .size = size});
+        {
+            auto const modelBytes = _fileManager.readFile("assets/models/1/scene.gltf");
+            auto modelLayout = engine::graphics::models::loadModelLayout(modelBytes, _fileManager, "assets/models/1/");
+            auto const modelIdx = modelManager.addModel("scene.gltf", modelLayout);
         }
+
+        modelManager.generateGpuBuffers(*_api, *_device, tmpCommandList);
 
         // constexpr uint32_t kMaxMemoryBytesToCopyCommand = 65536u;
         // tmpCommandList->updateBuffer(_meshPositions, 0u, meshVtx[0u].size(), meshVtx[0u].data());
@@ -1086,7 +997,8 @@ namespace example {
                 vec3f minCorner{std::numeric_limits<float>::max()};
                 vec3f maxCorner{std::numeric_limits<float>::lowest()};
 
-                auto loadNode = [&](const auto & self, const uint16_t nodeId, engine::scene::Node * parent, engine::scene::Skeleton * skeleton) -> engine::scene::Node* {
+                auto loadNode = [&](const auto & self, const uint16_t nodeId, engine::scene::Node * parent, 
+                    uint32_t dataIndex, engine::scene::Skeleton * skeleton) -> engine::scene::Node* {
                     auto * current = scene.createNode();
                     if (parent) {
                         parent->addChild(current);
@@ -1096,7 +1008,9 @@ namespace example {
                         skeleton->node(nodeId) = current;
                     }
 
-                    const auto & node = meshData.nodes[nodeId];
+                    const engine::graphics::models::Mesh_Data & mData = modelManager.getModelData(dataIndex);
+
+                    const auto & node = mData.nodes[nodeId];
                     current->setScale(vec3f{node.scale.x, node.scale.y, node.scale.z});
                     current->setRotation(quatf{node.rotation.w, node.rotation.x, node.rotation.y, node.rotation.z});
                     current->setPosition(vec3f{node.translation.x, node.translation.y, node.translation.z});
@@ -1107,22 +1021,23 @@ namespace example {
                     if (node.mesh != engine::graphics::models::kInvalidValue) {
                         bool const createSkeletalMesh = skeleton != nullptr && node.skin != engine::graphics::models::kInvalidValue;
                         const auto pipelineId = createSkeletalMesh ? 1u : 2u;
-                        auto * mesh = scene.createObject<engine::scene::Mesh>(meshData, node.mesh, node.skin, pipelineId);
+                        auto * mesh = scene.createObject<engine::scene::Mesh>(mData, node.mesh, node.skin, pipelineId);
                         
-                        mesh->setIndices({_meshIndices});
-                        mesh->setAttribute({_meshPositions}, engine::scene::mesh::Semantic::ePosition);
-                        mesh->setAttribute({_meshNormals}, engine::scene::mesh::Semantic::eNormal);
-                        mesh->setAttribute({_meshUvs}, engine::scene::mesh::Semantic::eUv0);
-                        
+                        const auto & gpuBuffers = modelManager.getModelBuffers(dataIndex);
+                        mesh->setIndices({gpuBuffers.indexBuffer});
+                        mesh->setAttribute({gpuBuffers.vertexBuffers[0u]}, engine::scene::mesh::Semantic::ePosition);
+                        mesh->setAttribute({gpuBuffers.vertexBuffers[1u]}, engine::scene::mesh::Semantic::eNormal);
+                        mesh->setAttribute({gpuBuffers.vertexBuffers[2u]}, engine::scene::mesh::Semantic::eUv0);
+
                         if (createSkeletalMesh) {
                             mesh->setSkeleton(skeleton);
-                            mesh->setAttribute({_meshJoints}, engine::scene::mesh::Semantic::eJoints);
-                            mesh->setAttribute({_meshWeights}, engine::scene::mesh::Semantic::eWeights);
+                            mesh->setAttribute({gpuBuffers.vertexBuffers[3u]}, engine::scene::mesh::Semantic::eJoints);
+                            mesh->setAttribute({gpuBuffers.vertexBuffers[4u]}, engine::scene::mesh::Semantic::eWeights);
                         }
 
                         engine::scene::attachObjectToNode(*mesh, *current);
 
-                        for (const auto & p : meshData.meshes[node.mesh].primitives) {
+                        for (const auto & p : mData.meshes[node.mesh].primitives) {
                             const vec3f corner1 = current->worldTransform * vec4f(p.minCorner, 1.0f);
 				            const vec3f corner2 = current->worldTransform * vec4f(p.maxCorner, 1.0f);
 
@@ -1137,16 +1052,18 @@ namespace example {
                     }
 
                     for (const uint16_t cNodeId : node.children) {
-                        self(self, cNodeId, current, skeleton);
+                        self(self, cNodeId, current, dataIndex, skeleton);
                     }
                     return current;
                 };
 
                 auto * meshRoot = scene.createNode();
-                engine::scene::Skeleton * skeleton = scene.createObject<engine::scene::Skeleton>(meshData);
+                uint32_t modelIndex = 1u;
+                const auto & mData = modelManager.getModelData(modelIndex);
+                engine::scene::Skeleton * skeleton = scene.createObject<engine::scene::Skeleton>(mData);
 
-                for (const uint16_t nodeId : meshData.sceneNodes) {
-				    auto * node = loadNode(loadNode, nodeId, meshRoot, skeleton);
+                for (const uint16_t nodeId : mData.sceneNodes) {
+				    auto * node = loadNode(loadNode, nodeId, meshRoot, modelIndex, skeleton);
 			    }
 
                 // engine::scene::hierarchyPass(meshRoot, [](engine::scene::Node * n) noexcept{ });
@@ -1174,7 +1091,7 @@ namespace example {
 
                 if (i == 5u) {
                     tmpSkeleton = skeleton;
-                    skeletalAnimation = new engine::scene::SkeletalAnimation(meshData.animations[0u]);
+                    skeletalAnimation = new engine::scene::SkeletalAnimation(mData.animations[0u]);
                     gSkeletalAnimator.enlarge2(skeleton->nodesCount());
                 }
                 
@@ -1582,12 +1499,12 @@ namespace example {
         // // sphere
 
         // mesh test
-        commandList->bindPipeline(_pipelines[kMeshTestPipeline]);
-        commandList->bindVertexBuffer(0u, _meshPositions);
-        commandList->bindVertexBuffer(1u, _meshNormals);
-        commandList->bindVertexBuffer(2u, _meshUvs);
-        commandList->bindIndexBuffer(_meshIndices, 0u, rhi::IndexType::eU32);
-        commandList->bindBuffer(0u, (*_uniformBufferI)(frameId), 0u, 0u, sizeof(UniformBuffer));
+        // commandList->bindPipeline(_pipelines[kMeshTestPipeline]);
+        // commandList->bindVertexBuffer(0u, _meshPositions);
+        // commandList->bindVertexBuffer(1u, _meshNormals);
+        // commandList->bindVertexBuffer(2u, _meshUvs);
+        // commandList->bindIndexBuffer(_meshIndices, 0u, rhi::IndexType::eU32);
+        // commandList->bindBuffer(0u, (*_uniformBufferI)(frameId), 0u, 0u, sizeof(UniformBuffer));
         // commandList->drawIndexed(_meshIndices->sizeInBytes() / sizeof(uint32_t), 4'000u);
         // commandList->drawIndexed(31890u, 4'000u, 0u);
         // commandList->drawIndexed(1017u, 4'000u, 31890u);

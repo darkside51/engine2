@@ -92,12 +92,6 @@ private:
     engine::rhi::runtime::BufferPtr _storageBuffer = nullptr;
     engine::rhi::runtime::BufferPtr _cpuStorageResult = nullptr;
 
-    engine::rhi::runtime::BufferPtr _meshPositions = nullptr;
-    engine::rhi::runtime::BufferPtr _meshUvs = nullptr;
-    engine::rhi::runtime::BufferPtr _meshNormals = nullptr;
-    engine::rhi::runtime::BufferPtr _meshJoints = nullptr;
-    engine::rhi::runtime::BufferPtr _meshWeights = nullptr;
-    engine::rhi::runtime::BufferPtr _meshIndices = nullptr;
     bool _canDraw = true;
 
     // sphere

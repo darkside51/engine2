@@ -693,7 +693,7 @@ namespace engine::scene {
 
         drawSameMeshes(commandList, frame, currentIt, end, cameraTransform, count, skeletal);
 
-        _meshTransformIndices->modify();
+        _meshTransformIndices->modify(sizeof(uint32_t) * i);
     }
 
     void Scene::drawSameMeshes(rhi::runtime::CommandListPtr & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end, 
