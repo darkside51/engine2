@@ -213,7 +213,7 @@ namespace engine::scene {
         );
 
         _meshTransformIndices = std::make_unique<graphics::InflightBuffer>(
-            api, device, verticesInfo, sizeof(uint16_t) * kInitialmeshTransformsInFrameMax
+            api, device, verticesInfo, sizeof(uint32_t) * kInitialmeshTransformsInFrameMax
         );
     }
 
@@ -378,7 +378,7 @@ namespace engine::scene {
         }
 
         {
-            const auto size = static_cast<uint32_t>(meshesDrawInFrame * sizeof(uint16_t));
+            const auto size = static_cast<uint32_t>(meshesDrawInFrame * sizeof(uint32_t));
             const auto currentSize = _meshTransformIndices->sizeInBytes();
             if (currentSize <= size) {
                 _meshTransformIndices->resize(std::max(currentSize * 2u, size));
@@ -648,7 +648,7 @@ namespace engine::scene {
         const auto * meshData = &mesh.meshData();
 
         uint32_t i = 0u;
-        auto * memory = _meshTransformIndices->memory2<uint16_t>() + _meshesDrawInFrame;
+        auto * memory = _meshTransformIndices->memory2<uint32_t>() + _meshesDrawInFrame;
         if (skeletal) {
             *(memory + i) = _meshTransformIndicesMap[*it].skeletalTransformIndex;
         } else {
@@ -698,8 +698,7 @@ namespace engine::scene {
 
     void Scene::drawSameMeshes(rhi::runtime::CommandListPtr & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end, 
         const mat4f & cameraTransform, uint32_t count, bool skeletal) {
-        assert(count < std::numeric_limits<uint16_t>::max()); // need to use 32bits _meshTransformIndices instead of 16bits
-
+            
         const auto & mesh = *static_cast<const Mesh*>(*begin);
         const auto & pipeline = getPipeline(mesh.getPipeline());
         if (pipeline == nullptr) {
@@ -728,7 +727,7 @@ namespace engine::scene {
                 commandList->bindBuffer(0u, (*_meshTransforms)(frame), 0u, 0u);
             }
 
-            commandList->bindVertexBuffer(binding_v++, (*_meshTransformIndices)(frame), sizeof(uint16_t) * _meshesDrawInFrame);
+            commandList->bindVertexBuffer(binding_v++, (*_meshTransformIndices)(frame), sizeof(uint32_t) * _meshesDrawInFrame);
             commandList->bindIndexBuffer(mesh.getIndices().buffer, 0u, rhi::IndexType::eU32);
 
             commandList->pushConstants(rhi::shaders::Stages::eVertex, 0u, sizeof(Uniform), &uniform);
@@ -785,7 +784,7 @@ namespace engine::scene {
             {
                 auto const minCount = std::max(_meshesDrawInFrame, kInitialmeshTransformsInFrameMax);
                 if (minCount * 2u < _lastFramesUsedMeshesDraw) {
-                    _meshTransformIndices->resize(minCount * sizeof(uint16_t));
+                    _meshTransformIndices->resize(minCount * sizeof(uint32_t));
                 }
                 _lastFramesUsedMeshesDraw = _meshesDrawInFrame;
             }

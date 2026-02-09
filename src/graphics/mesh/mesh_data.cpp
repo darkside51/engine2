@@ -278,7 +278,7 @@ namespace engine::graphics::models {
         // quantize attributes
         for (size_t i = 0u; i < allowedAttributes.size(); ++i) {
             if (allowedAttributes[i] == AttributeSemantic::ePosition) {
-                constexpr auto quantizePositionSemanticSize = 6u; // eR16G16B16_Sfloat
+                constexpr auto quantizePositionSemanticSize = 8u; // eR16G16B16A16_Sfloat // for 4 bytes align
                 constexpr auto defaultPositionSemanticSize = kDefaultSemanticsSizeBytes[0u];
                 std::vector<std::byte> vertices(vertexCount * quantizePositionSemanticSize);
                 auto & vb = vertexBuffersData[i];
@@ -293,12 +293,13 @@ namespace engine::graphics::models {
                     targetPosition[0u] = float_to_uint16(position[0u]);
                     targetPosition[1u] = float_to_uint16(position[1u]);
                     targetPosition[2u] = float_to_uint16(position[2u]);
+                    targetPosition[3u] = 0u;
                 }
                 std::swap(vertices, vb);
             }
 
             if (allowedAttributes[i] == AttributeSemantic::eNormal) {
-                constexpr auto quantizeNormalSemanticSize = 3u; // eR8G8B8_Snorm
+                constexpr auto quantizeNormalSemanticSize = 4u; // eR8G8B8A8_Snorm // for 4 bytes align
                 constexpr auto defaultNormalSemanticSize = kDefaultSemanticsSizeBytes[1u];
                 std::vector<std::byte> vertices(vertexCount * quantizeNormalSemanticSize);
                 auto & vb = vertexBuffersData[i];
@@ -312,6 +313,7 @@ namespace engine::graphics::models {
                     vertices[n * quantizeNormalSemanticSize + 0u] = static_cast<std::byte>(float_to_snorm(normal[0u], 8u));
                     vertices[n * quantizeNormalSemanticSize + 1u] = static_cast<std::byte>(float_to_snorm(normal[1u], 8u));
                     vertices[n * quantizeNormalSemanticSize + 2u] = static_cast<std::byte>(float_to_snorm(normal[2u], 8u));
+                    vertices[n * quantizeNormalSemanticSize + 3u] = std::byte{0u};
                 }
                 std::swap(vertices, vb);
             }

@@ -237,10 +237,10 @@ void Scene::fillAttachmentsArray(const mat4f & cameraTransform, Node * root, Con
                     if (object) {
                         switch (object->typeIndex) {
                         case ctti::typeIndex<AttachmentObject, Skeleton>():
-                            color = 0xff'44'44'44u;
+                            color = 0xff'77'22'aau;
                             break;
                         case ctti::typeIndex<AttachmentObject, Mesh>():
-                            color = 0xff'aa'aa'aau;
+                            color = 0xff'22'22'22u;
                             break;
                         case ctti::typeIndex<AttachmentObject, Sprite>():
                             color = 0xff'ff'ff'ffu;

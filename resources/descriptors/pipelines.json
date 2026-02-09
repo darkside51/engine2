@@ -136,12 +136,12 @@
 		"vertexInputState": {
 			"inputBindings": [
 				{
-					"stride" : 6,
+					"stride" : 8,
 					"binding" : 0,
 					"inputRate": "eVertex"
 				},
 				{
-					"stride" : 3,
+					"stride" : 4,
 					"binding" : 1,
 					"inputRate": "eVertex"
 				},
@@ -151,7 +151,7 @@
 					"inputRate": "eVertex"
 				},
 				{
-					"stride" : 2,
+					"stride" : 4,
 					"binding" : 3,
 					"inputRate": "eInstance"
 				}
@@ -178,7 +178,7 @@
 				{
 					"location": 3,
                     "binding": 3,
-                    "format": "eR16_Uint",
+                    "format": "eR32_Uint",
                     "offset": 0
 				}
 			]
@@ -203,12 +203,12 @@
 		"vertexInputState": {
 			"inputBindings": [
 				{
-					"stride" : 6,
+					"stride" : 8,
 					"binding" : 0,
 					"inputRate": "eVertex"
 				},
 				{
-					"stride" : 3,
+					"stride" : 4,
 					"binding" : 1,
 					"inputRate": "eVertex"
 				},
@@ -228,7 +228,7 @@
 					"inputRate": "eVertex"
 				},
 				{
-					"stride" : 2,
+					"stride" : 4,
 					"binding" : 5,
 					"inputRate": "eInstance"
 				}
@@ -267,7 +267,7 @@
 				{
 					"location": 5,
                     "binding": 5,
-                    "format": "eR16_Uint",
+                    "format": "eR32_Uint",
                     "offset": 0
 				}
 			]
