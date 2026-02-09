@@ -98,12 +98,17 @@ namespace engine::vulkan {
         
         auto & framePools = poolsForFrame(frameIdx);
         if (auto it = framePools.find(mask()); it != framePools.end()) { // strike!!!
-            if (auto * pool = findSuitablePool(it->second.list)) {
+            auto & list = it->second.list;
+            if (auto * pool = findSuitablePool(list)) {
                 return *pool;
             }
             
-            auto const maxSets = it->second.list.back().maxSets();
-            return it->second.list.emplace_back(_device, createNewPoolResources(), flags, maxSets);
+            if (!list.empty()) {
+                auto const maxSets = list.back().maxSets();
+                return list.emplace_back(_device, createNewPoolResources(), flags, maxSets);
+            } else {
+                return list.emplace_back(_device, createNewPoolResources(), flags);
+            }
         } else {
             // find compatible pools
             for (auto & [m, pools] : framePools) {
