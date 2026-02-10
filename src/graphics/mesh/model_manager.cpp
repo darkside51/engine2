@@ -5,6 +5,12 @@
 
 namespace engine::graphics {
 
+    ModelManager::ModelManager() {
+        _models.resize(1024u);
+        _gpuData.resize(1024u);
+        _tmpData.reserve(1024u);
+    }
+
     void ModelManager::destroy() {
         for (auto * data : _models) {
             _allocator.destroy(data);
@@ -21,12 +27,17 @@ namespace engine::graphics {
             return idx;
         }
 
-        const auto result = _models.size();
-        _modelsMap.emplace(name, result);
+        auto * meshData = _allocator.create<models::Mesh_Data>();
+        const auto result = _allocator.getObjectNumber(meshData);
 
-        _gpuData.emplace_back();
-        models::Mesh_Data * meshData = _models.emplace_back(_allocator.create<models::Mesh_Data>());
-        
+        _modelsMap.emplace(name, result);
+        if (result >= _models.size()) {
+            _models.resize(result * 2u);
+            _gpuData.resize(result * 2u);
+        }
+        _models[result] = meshData;
+        _gpuData[result] = {};
+
         meshData->loadSkins(layout);
         meshData->loadAnimations(layout);
 
@@ -39,7 +50,15 @@ namespace engine::graphics {
     }
 
     bool ModelManager::removeModel(std::string_view name) {
+        if (auto it = _modelsMap.find(name); it != _modelsMap.end()) {
+            const auto idx = it->second;
+            _allocator.destroy(_models[idx]);
+            _gpuData[idx] = {};
+            _models[idx] = nullptr;
+            std::erase_if(_tmpData, [idx](const auto & tmp) noexcept { return tmp.first == idx; });
 
+            _modelsMap.erase(it);
+        }
     }
 
     void ModelManager::generateGpuBuffers(rhi::runtime::Rhi & api, rhi::runtime::Device & device, rhi::runtime::CommandListPtr & commandList) {

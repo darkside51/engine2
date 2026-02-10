@@ -1,6 +1,6 @@
 #pragma once
 
-#include "allocators/pool_allocator_chain.h"
+#include "allocators/pool_allocator.h"
 #include "common/hash.h"
 #include "gltf_loader.h"
 #include "mesh_data.h"
@@ -30,7 +30,7 @@ constexpr auto kDefaultSemantics = std::array {
 
 class ModelManager {
 
-    using Allocator = allocators::PoolAllocatorChain<sizeof(models::Mesh_Data), alignof(models::Mesh_Data), false, false>;
+    using Allocator = allocators::PoolAllocator<sizeof(models::Mesh_Data), alignof(models::Mesh_Data), false>;
     using ModelsMap = std::unordered_map<std::string, uint32_t, hash::String_hash, std::equal_to<>>;
     using Models = std::vector<models::Mesh_Data*>;
 
@@ -40,6 +40,7 @@ class ModelManager {
     };
 
 public:
+    ModelManager();
     ~ModelManager() { destroy(); }
     void destroy();
 
@@ -67,7 +68,7 @@ public:
     void generateGpuBuffers(rhi::runtime::Rhi & api, rhi::runtime::Device & device, rhi::runtime::CommandListPtr & commandList);
 
 private:
-    Allocator _allocator{64u, 64u};
+    Allocator _allocator{1024u};
     ModelsMap _modelsMap;
     Models _models;
     std::vector<ModelBuffers> _gpuData;

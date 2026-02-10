@@ -645,7 +645,7 @@ namespace engine::scene {
         auto pipeline = mesh.getPipeline();
         auto geometryDataIndex = mesh.geometryDataIndex();
         bool skeletal = mesh.getSkeleton() != nullptr;
-        const auto * meshData = &mesh.meshData();
+        auto dataIndex = mesh.dataIndex();
 
         uint32_t i = 0u;
         auto * memory = _meshTransformIndices->memory2<uint32_t>() + _meshesDrawInFrame;
@@ -661,7 +661,7 @@ namespace engine::scene {
         for (; it != end; ++it, ++i) {
             const auto & mesh2 = *static_cast<const Mesh*>(*it);
             const auto currentPipeline = mesh2.getPipeline();
-            const auto * currentMeshData = &mesh2.meshData();
+            const auto currenDataIndex = mesh2.dataIndex();
             const auto currentGeometryDataIndex = mesh2.geometryDataIndex();
             const bool currentSkeletal = mesh2.getSkeleton() != nullptr;
 
@@ -674,13 +674,13 @@ namespace engine::scene {
             const bool completePack = currentPipeline != pipeline || 
                                       currentGeometryDataIndex != geometryDataIndex ||
                                       currentSkeletal != skeletal;
-                                      currentMeshData != meshData;
+                                      currenDataIndex != dataIndex;
 
             if (completePack) {
                 // draw
                 drawSameMeshes(commandList, frame, currentIt, it, cameraTransform, count, skeletal);
                 // begin next pack
-                meshData = currentMeshData;
+                dataIndex = currenDataIndex;
                 pipeline = currentPipeline;
                 geometryDataIndex = currentGeometryDataIndex;
                 skeletal = currentSkeletal;
@@ -734,6 +734,7 @@ namespace engine::scene {
 
             const auto & geometry = mesh.geometry();
             for (const auto & p : geometry.primitives) {
+                // p.material;
                 commandList->drawIndexed(p.indexCount, count, p.firstIndex);
             }
         }

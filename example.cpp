@@ -1021,7 +1021,7 @@ namespace example {
                     if (node.mesh != engine::graphics::models::kInvalidValue) {
                         bool const createSkeletalMesh = skeleton != nullptr && node.skin != engine::graphics::models::kInvalidValue;
                         const auto pipelineId = createSkeletalMesh ? 1u : 2u;
-                        auto * mesh = scene.createObject<engine::scene::Mesh>(mData, node.mesh, node.skin, pipelineId);
+                        auto * mesh = scene.createObject<engine::scene::Mesh>(mData.meshes[node.mesh], dataIndex, node.mesh, node.skin, pipelineId);
                         
                         const auto & gpuBuffers = modelManager.getModelBuffers(dataIndex);
                         mesh->setIndices({gpuBuffers.indexBuffer});

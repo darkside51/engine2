@@ -39,8 +39,8 @@ namespace engine::scene {
     }
 
     // mesh:
-    Mesh::Mesh(const graphics::models::Mesh_Data & meshData, uint16_t geometryDataIndex, uint16_t skin, uint32_t pipeline) :
-        AttachmentObject(ctti::typeIndex<AttachmentObject, Mesh>()), _meshData(meshData), _pipeline(pipeline), _geometryDataIndex(geometryDataIndex), _skin(skin) {
+    Mesh::Mesh(const graphics::models::Mesh_Geometry & geometry, uint32_t dataIndex, uint16_t geometryDataIndex, uint16_t skin, uint32_t pipeline) :
+        AttachmentObject(ctti::typeIndex<AttachmentObject, Mesh>()), _geometry(geometry), _pipeline(pipeline), _dataIndex(dataIndex), _geometryDataIndex(geometryDataIndex), _skin(skin) {
     }
 
     void Mesh::setPipeline(uint32_t pipeline) noexcept {
@@ -69,8 +69,7 @@ namespace engine::scene {
         }
 
         // attributes?????
-
-        return std::less<const graphics::models::Mesh_Data*>{}(&_meshData, &other._meshData);
+        return _dataIndex < other._dataIndex;
     }
 
     void Mesh::attachToNode(Node * node) noexcept {
@@ -78,7 +77,7 @@ namespace engine::scene {
             vec3f minCorner{std::numeric_limits<float>::max()};
             vec3f maxCorner{std::numeric_limits<float>::lowest()};
 
-            for (const auto & p : _meshData.meshes[_geometryDataIndex].primitives) {
+            for (const auto & p : _geometry.primitives) {
                 minCorner.x = std::min({minCorner.x, p.minCorner.x, p.maxCorner.x});
                 minCorner.y = std::min({minCorner.y, p.minCorner.y, p.maxCorner.y});
                 minCorner.z = std::min({minCorner.z, p.minCorner.z, p.maxCorner.z});

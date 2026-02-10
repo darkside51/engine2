@@ -167,7 +167,7 @@ namespace engine::graphics {
             if (auto it1 = _imagesSet.find(image); it1 != _imagesSet.end()) {
                 if (--const_cast<ImageHolder&>(*it1).count == 0u) {
                     _imagesSet.erase(it1);
-                    std::erase_if(_images, [image](const rhi::runtime::ImagePtr & img) {
+                    std::erase_if(_images, [image](const rhi::runtime::ImagePtr & img) noexcept {
                         return img.get() == image;
                     });
                 }

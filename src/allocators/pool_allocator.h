@@ -8,6 +8,7 @@
 #include <cstdint>
 //#include <cstdlib>
 #include <functional>
+#include <limits>
 //#include <tuple>
 
 namespace allocators {
@@ -178,6 +179,14 @@ namespace allocators {
             }
             return false;
         }
+
+        inline size_t getObjectNumber(void * value) const noexcept {
+            const auto id = (reinterpret_cast<memory_element_type *>(value) - &_memory[0u]);
+            if (id >= 0u && id < _capacity) {
+                return id;
+            }
+            return std::numeric_limits<size_t>::max();
+        }  
 
         inline const memory_element_type* memory() const noexcept { return _memory; }
 

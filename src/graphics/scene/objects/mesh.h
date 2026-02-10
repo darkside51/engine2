@@ -56,7 +56,7 @@ namespace mesh {
 
     class Mesh : public AttachmentObject {
     public:
-        Mesh(const graphics::models::Mesh_Data & meshData, uint16_t geometryDataIndex, uint16_t skin, uint32_t pipeline);
+        Mesh(const graphics::models::Mesh_Geometry & geometry, uint32_t dataIndex, uint16_t geometryDataIndex, uint16_t skin, uint32_t pipeline);
         ~Mesh() /*override*/ = default;
 
         void setPipeline(uint32_t pipeline) noexcept;
@@ -81,12 +81,12 @@ namespace mesh {
             return _attributes[std::to_underlying(semantic)];
         }
 
-        const graphics::models::Mesh_Data & meshData() const noexcept {
-            return _meshData;
+        const graphics::models::Mesh_Geometry & geometry() const noexcept {
+            return _geometry;
         }
 
-        const graphics::models::Mesh_Geometry geometry() const noexcept {
-            return _meshData.meshes[_geometryDataIndex];
+        uint32_t dataIndex() const noexcept {
+            return _dataIndex;
         }
 
         uint16_t geometryDataIndex() const noexcept {
@@ -98,15 +98,16 @@ namespace mesh {
         void setSkeleton(Skeleton * skeleton) noexcept { _skeleton = skeleton; }
 
     private:
-        const graphics::models::Mesh_Data & _meshData;
+        const graphics::models::Mesh_Geometry & _geometry;
+        Skeleton * _skeleton = nullptr;
+
+        uint32_t _pipeline = 0u;
+        uint32_t _dataIndex = 0xff'ff'ff'ffu;
+        uint16_t _geometryDataIndex = 0u;
+        uint16_t _skin = graphics::models::kInvalidValue;
 
         mesh::Attribute _indices;
         std::array<mesh::Attribute, static_cast<uint8_t>(mesh::Semantic::eSemanticsCount)> _attributes;
-        Skeleton * _skeleton = nullptr;
-        
-        uint32_t _pipeline = 0u;
-        uint16_t _geometryDataIndex = 0u;
-        uint16_t _skin = graphics::models::kInvalidValue;
     };
 
 }
