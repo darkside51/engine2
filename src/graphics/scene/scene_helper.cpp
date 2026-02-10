@@ -1,0 +1,111 @@
+#include "scene_helper.h"
+
+#include "graphics/mesh/model_manager.h"
+#include "math/math.h"
+#include "node.h"
+#include "objects/mesh.h"
+#include "scene.h"
+
+#include <limits>
+
+namespace engine::scene {
+
+void loadNodes(Scene & scene, const graphics::ModelManager::ModelBuffers & gpuBuffers, 
+    const graphics::models::Mesh_Data & meshData, uint32_t dataIndex, engine::scene::Node * parent, 
+    uint16_t nodeId, engine::scene::Skeleton * skeleton, vec3f & minCorner, vec3f & maxCorner) {
+
+    auto * current = scene.createNode();
+    if (parent) {
+        parent->addChild(current);
+    }
+
+    if (skeleton) {
+        skeleton->node(nodeId) = current;
+    }
+
+    const auto & node = meshData.nodes[nodeId];
+    current->setScale(vec3f{node.scale.x, node.scale.y, node.scale.z});
+    current->setRotation(quatf{node.rotation.w, node.rotation.x, node.rotation.y, node.rotation.z});
+    current->setPosition(vec3f{node.translation.x, node.translation.y, node.translation.z});
+
+    current->applyTransformations();
+    current->calculateWorldTransform(true);
+
+    if (node.mesh != engine::graphics::models::kInvalidValue) {
+        bool const createSkeletalMesh = skeleton != nullptr && node.skin != engine::graphics::models::kInvalidValue;
+        const auto pipelineId = createSkeletalMesh ? 1u : 2u; // todo: pipelines!
+        auto * mesh = scene.createObject<engine::scene::Mesh>(meshData.meshes[node.mesh], dataIndex, node.mesh, node.skin, pipelineId);
+        
+        mesh->setIndices({gpuBuffers.indexBuffer});
+        mesh->setAttribute({gpuBuffers.vertexBuffers[0u]}, engine::scene::mesh::Semantic::ePosition);
+        mesh->setAttribute({gpuBuffers.vertexBuffers[1u]}, engine::scene::mesh::Semantic::eNormal);
+        mesh->setAttribute({gpuBuffers.vertexBuffers[2u]}, engine::scene::mesh::Semantic::eUv0);
+
+        if (createSkeletalMesh) {
+            mesh->setSkeleton(skeleton);
+            mesh->setAttribute({gpuBuffers.vertexBuffers[3u]}, engine::scene::mesh::Semantic::eJoints);
+            mesh->setAttribute({gpuBuffers.vertexBuffers[4u]}, engine::scene::mesh::Semantic::eWeights);
+        }
+
+        engine::scene::attachObjectToNode(*mesh, *current);
+
+        for (const auto & p : meshData.meshes[node.mesh].primitives) {
+            const vec3f corner1 = current->worldTransform * vec4f(p.minCorner, 1.0f);
+            const vec3f corner2 = current->worldTransform * vec4f(p.maxCorner, 1.0f);
+
+            minCorner.x = std::min({minCorner.x, corner1.x, corner2.x});
+            minCorner.y = std::min({minCorner.y, corner1.y, corner2.y});
+            minCorner.z = std::min({minCorner.z, corner1.z, corner2.z});
+
+            maxCorner.x = std::max({maxCorner.x, corner1.x, corner2.x});
+            maxCorner.y = std::max({maxCorner.y, corner1.y, corner2.y});
+            maxCorner.z = std::max({maxCorner.z, corner1.z, corner2.z});
+        }
+    }
+
+    for (const uint16_t childNodeId : node.children) {
+        loadNodes(scene, gpuBuffers, meshData, dataIndex, current, childNodeId, skeleton, minCorner, maxCorner);
+    }
+};
+
+Node * createNodeWithSkeletalMesh(Scene & scene, const graphics::ModelManager & modelManager, uint32_t modelIndex, Bounds::Type boundsType) {
+    auto * meshRoot = scene.createNode();
+    const auto & meshData = modelManager.getModelData(modelIndex);
+    engine::scene::Skeleton * skeleton = scene.createObject<engine::scene::Skeleton>(meshData);
+
+    if (skeleton) {
+        engine::scene::attachObjectToNode(*skeleton, *meshRoot);
+    }
+
+    vec3f minCorner{std::numeric_limits<float>::max()};
+    vec3f maxCorner{std::numeric_limits<float>::lowest()};
+
+    for (const auto nodeId : meshData.sceneNodes) {
+        loadNodes(scene, modelManager.getModelBuffers(modelIndex), meshData, 
+            modelIndex, meshRoot, nodeId, skeleton, minCorner, maxCorner);
+    }
+
+    switch (boundsType) {
+    case Bounds::Type::eSphere:
+    {
+        auto const center = (minCorner + maxCorner) * 0.5f;
+        auto const radius = std::max({
+            std::abs(minCorner.x - center.x), std::abs(minCorner.y - center.y), std::abs(minCorner.z - center.z),
+            std::abs(maxCorner.x - center.x), std::abs(maxCorner.y - center.y), std::abs(maxCorner.z - center.z)
+        });
+        meshRoot->setBounds(engine::scene::Bounds::createSphere(center, radius));
+    }
+        break;
+    case Bounds::Type::eCube:
+    {
+        meshRoot->setBounds(engine::scene::Bounds::createCube(minCorner, maxCorner));
+    }
+        break;
+    default: 
+        break;
+    }
+
+    return meshRoot;
+}
+
+}

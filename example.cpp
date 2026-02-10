@@ -33,6 +33,7 @@
 #include "graphics/scene/animation/texture/frame_sequence_animation.h"
 #include "graphics/scene/animation/mesh/skeletal_animation.h"
 #include "graphics/scene/animation_manager.h"
+#include "graphics/scene/scene_helper.h"
 #include "graphics/mesh/model_manager.h"
 
 // https://www.saschawillems.de/blog/2018/07/19/vulkan-input-attachments-and-sub-passes/
@@ -993,111 +994,31 @@ namespace example {
             sceneWorldRoot = scene.createNode();
             scene.rootNode()->addChild(sceneWorldRoot);
 
-            for (size_t i = 0u; i < 1u; ++i) { // mesh hierarchy test
-                vec3f minCorner{std::numeric_limits<float>::max()};
-                vec3f maxCorner{std::numeric_limits<float>::lowest()};
-
-                auto loadNode = [&](const auto & self, const uint16_t nodeId, engine::scene::Node * parent, 
-                    uint32_t dataIndex, engine::scene::Skeleton * skeleton) -> engine::scene::Node* {
-                    auto * current = scene.createNode();
-                    if (parent) {
-                        parent->addChild(current);
-                    }
-
-                    if (skeleton) {
-                        skeleton->node(nodeId) = current;
-                    }
-
-                    const engine::graphics::models::Mesh_Data & mData = modelManager.getModelData(dataIndex);
-
-                    const auto & node = mData.nodes[nodeId];
-                    current->setScale(vec3f{node.scale.x, node.scale.y, node.scale.z});
-                    current->setRotation(quatf{node.rotation.w, node.rotation.x, node.rotation.y, node.rotation.z});
-                    current->setPosition(vec3f{node.translation.x, node.translation.y, node.translation.z});
-
-                    current->applyTransformations();
-                    current->calculateWorldTransform(true);
-
-                    if (node.mesh != engine::graphics::models::kInvalidValue) {
-                        bool const createSkeletalMesh = skeleton != nullptr && node.skin != engine::graphics::models::kInvalidValue;
-                        const auto pipelineId = createSkeletalMesh ? 1u : 2u;
-                        auto * mesh = scene.createObject<engine::scene::Mesh>(mData.meshes[node.mesh], dataIndex, node.mesh, node.skin, pipelineId);
-                        
-                        const auto & gpuBuffers = modelManager.getModelBuffers(dataIndex);
-                        mesh->setIndices({gpuBuffers.indexBuffer});
-                        mesh->setAttribute({gpuBuffers.vertexBuffers[0u]}, engine::scene::mesh::Semantic::ePosition);
-                        mesh->setAttribute({gpuBuffers.vertexBuffers[1u]}, engine::scene::mesh::Semantic::eNormal);
-                        mesh->setAttribute({gpuBuffers.vertexBuffers[2u]}, engine::scene::mesh::Semantic::eUv0);
-
-                        if (createSkeletalMesh) {
-                            mesh->setSkeleton(skeleton);
-                            mesh->setAttribute({gpuBuffers.vertexBuffers[3u]}, engine::scene::mesh::Semantic::eJoints);
-                            mesh->setAttribute({gpuBuffers.vertexBuffers[4u]}, engine::scene::mesh::Semantic::eWeights);
-                        }
-
-                        engine::scene::attachObjectToNode(*mesh, *current);
-
-                        for (const auto & p : mData.meshes[node.mesh].primitives) {
-                            const vec3f corner1 = current->worldTransform * vec4f(p.minCorner, 1.0f);
-				            const vec3f corner2 = current->worldTransform * vec4f(p.maxCorner, 1.0f);
-
-                            minCorner.x = std::min({minCorner.x, corner1.x, corner2.x});
-                            minCorner.y = std::min({minCorner.y, corner1.y, corner2.y});
-                            minCorner.z = std::min({minCorner.z, corner1.z, corner2.z});
-
-                            maxCorner.x = std::max({maxCorner.x, corner1.x, corner2.x});
-                            maxCorner.y = std::max({maxCorner.y, corner1.y, corner2.y});
-                            maxCorner.z = std::max({maxCorner.z, corner1.z, corner2.z});
-                        }
-                    }
-
-                    for (const uint16_t cNodeId : node.children) {
-                        self(self, cNodeId, current, dataIndex, skeleton);
-                    }
-                    return current;
-                };
-
-                auto * meshRoot = scene.createNode();
-                uint32_t modelIndex = 1u;
-                const auto & mData = modelManager.getModelData(modelIndex);
-                engine::scene::Skeleton * skeleton = scene.createObject<engine::scene::Skeleton>(mData);
-
-                for (const uint16_t nodeId : mData.sceneNodes) {
-				    auto * node = loadNode(loadNode, nodeId, meshRoot, modelIndex, skeleton);
-			    }
-
-                // engine::scene::hierarchyPass(meshRoot, [](engine::scene::Node * n) noexcept{ });
-                // engine::scene::recalculateHierarchy(meshRoot, [](engine::scene::Node * n) noexcept { 
-                //     return true;
-                // });
-                if (skeleton) {
-                    engine::scene::attachObjectToNode(*skeleton, *meshRoot);
-                }
-
-                auto const center = (minCorner + maxCorner) * 0.5f;
-                auto const radius = std::max({
-                    std::abs(minCorner.x - center.x), std::abs(minCorner.y - center.y), std::abs(minCorner.z - center.z),
-                    std::abs(maxCorner.x - center.x), std::abs(maxCorner.y - center.y), std::abs(maxCorner.z - center.z)
-                });
-                meshRoot->setBounds(engine::scene::Bounds::createSphere(center, radius));
-                // meshRoot->setBounds(engine::scene::Bounds::createCube(minCorner, maxCorner));
-
-                // meshRoot->setScale(engine::common::random(0.9f, 1.1f));
-                // meshRoot->setRotation(engine::vec3f(1.57f, 0.0f, engine::common::random(-3.14f, 3.14f)));
-                // meshRoot->setPosition(engine::vec3f(-4.0f + i * 1.25f, 0.0f, 0.0f));
-                meshRoot->setScale(0.002f);
-                meshRoot->setRotation(engine::vec3f(1.57f, 0.0f, 0.0f));
-                meshRoot->setPosition(engine::vec3f(0.0f, 0.0f, 0.0f));
-
+            for (size_t i = 0u; i < 10u; ++i) {
+                auto * meshRoot = engine::scene::createNodeWithSkeletalMesh(scene, modelManager, 0u, engine::scene::Bounds::Type::eSphere);
                 if (i == 5u) {
-                    tmpSkeleton = skeleton;
-                    skeletalAnimation = new engine::scene::SkeletalAnimation(mData.animations[0u]);
-                    gSkeletalAnimator.enlarge2(skeleton->nodesCount());
+                    if (auto * skeleton = static_cast<engine::scene::Skeleton *>(meshRoot->getAttachment())) {
+                        tmpSkeleton = skeleton;
+                        skeletalAnimation = new engine::scene::SkeletalAnimation(skeleton->meshData().animations[0u]);
+                        gSkeletalAnimator.enlarge2(skeleton->nodesCount());
+                    }
                 }
+
+                meshRoot->setScale(engine::common::random(0.2f, 0.25f));
+                meshRoot->setRotation(engine::vec3f(1.57f, 0.0f, engine::common::random(-3.14f, 3.14f)));
+                meshRoot->setPosition(engine::vec3f(-2.0f + i % 10 * 0.5f, i / 10 * -0.5f, 0.0f));
                 
                 sceneWorldRoot->addChild(meshRoot);
             }
-            
+
+            {
+                auto * meshRoot = engine::scene::createNodeWithSkeletalMesh(scene, modelManager, 1u, engine::scene::Bounds::Type::eCube);
+                meshRoot->setScale(0.002f);
+                meshRoot->setRotation(engine::vec3f(1.57f, 0.0f, 0.0f));
+                meshRoot->setPosition(engine::vec3f(0.0f, 4.5f, 0.0f));
+                sceneWorldRoot->addChild(meshRoot);
+            }
+
             auto m0 = engine::makeMatrix(0.5F);
             engine::rotateMatrix_z(m0, 1.57f);
             m0[3] = {1.0f, 0.0f, 0.0f, 1.0f};
@@ -1154,12 +1075,13 @@ namespace example {
             auto * node3 = scene.createNode();
             node3->setScale(engine::vec3f{0.01f});
             node3->setRotation(engine::vec3f{1.0f, 0.0f, 0.0f});
-            node3->setPosition(engine::vec3f(0.0f, 2.0f, 0.0f));
+            node3->setPosition(engine::vec3f(3.5f, 1.0f, 0.0f));
             // node3->setTransform(mt);
 
             auto m2 = engine::makeMatrix(0.01F);
             auto * sprite = scene.createObject<engine::scene::Sprite>(*textureManager.findFrame("hero_head"), 0u);
             engine::scene::attachObjectToNode(*sprite, *node3);
+            sprite->setOrder(1u);
 
             m2[1][1] *= -1.0f;
             m2[3] = {0.0f, -0.2f, 0.5f, 1.0f};
@@ -1197,7 +1119,7 @@ namespace example {
                         const auto * frame3 = textureManager.findFrame("explosion_33");
                         auto * sprite3 = scene.createObject<engine::scene::Sprite>(*frame3, 0u);
                         engine::scene::attachObjectToNode(*sprite3, *node5);
-                        sprite3->setOrder(-1);
+                        //sprite3->setOrder(-1);
                         auto * anim0 = scene.createAnimInfo<engine::scene::FramesSequence>(animId, engine::common::random(0.25f, 1.7f));
                         scene.destroyAnimInfo(sprite3->setAnimation(anim0));
                         

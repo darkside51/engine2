@@ -34,12 +34,12 @@ class ModelManager {
     using ModelsMap = std::unordered_map<std::string, uint32_t, hash::String_hash, std::equal_to<>>;
     using Models = std::vector<models::Mesh_Data*>;
 
+public:
     struct ModelBuffers {
         std::vector<rhi::runtime::BufferPtr> vertexBuffers;
         rhi::runtime::BufferPtr indexBuffer = nullptr;
     };
 
-public:
     ModelManager();
     ~ModelManager() { destroy(); }
     void destroy();
