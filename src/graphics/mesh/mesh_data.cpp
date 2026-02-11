@@ -216,6 +216,10 @@ namespace engine::graphics::models {
                 // }
                 // break;
             }
+
+            std::sort(mesh.primitives.begin(), mesh.primitives.end(), [](const auto & a, const auto & b) noexcept {
+                return a.material < b.material;
+            });
         }
 
         return result;

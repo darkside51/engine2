@@ -310,28 +310,52 @@ namespace engine::scene {
         auto skeletalTransformsInFrame = _skeletalTransformsInFrame;
         _tmpUniqueMeshes.reserve(kInitialmeshTransformsInFrameMax);
 
+        auto addSkeletonToMap = [&](const Skeleton* skeleton)-> uint16_t {
+            const uint16_t result = skeletalTransformsInFrame;
+            const auto [it, success] = _meshTransformIndicesMap.emplace(skeleton, 
+                        MeshTransformsIndices{
+                            .transformIndex = kUnknownTransformIndex,
+                            .skeletalTransformIndex = static_cast<uint16_t>(skeletalTransformsInFrame)
+                        });
+            assert(success);
+            skeletalTransformsInFrame += skeleton->skinMatricesCount();
+            return result;
+        };
+
         for (auto const * object : objects) {
             switch (object->typeIndex) {
-            case ctti::typeIndex<AttachmentObject, Skeleton>(): [[fallthrough]];
-            case ctti::typeIndex<AttachmentObject, Dummy>():
+            case ctti::typeIndex<AttachmentObject, Skeleton>():
+            {
+                if (!_meshTransformIndicesMap.contains(object)) { 
+                    addSkeletonToMap(static_cast<const Skeleton*>(object));
+                }
+            }
                 break;
             case ctti::typeIndex<AttachmentObject, Mesh>():
             {
                 if (!_meshTransformIndicesMap.contains(object)) {
                     const auto * skeleton = static_cast<const Mesh*>(object)->getSkeleton();
                     const bool isSkeletalMesh = skeleton != nullptr;
+
+                    uint16_t skeletalTransformIndex = kUnknownTransformIndex;
+                    if (isSkeletalMesh) { 
+                        if (auto it = _meshTransformIndicesMap.find(skeleton); it != _meshTransformIndicesMap.end()) {
+                            skeletalTransformIndex = it->second.skeletalTransformIndex;
+                        } else {
+                            skeletalTransformIndex = addSkeletonToMap(skeleton);
+                        }
+                    }
+                    
                     const auto [it, success] = _meshTransformIndicesMap.emplace(object, 
                         MeshTransformsIndices{
                             .transformIndex = static_cast<uint16_t>(isSkeletalMesh ? kUnknownTransformIndex : meshTransformsInFrame),
-                            .skeletalTransformIndex = static_cast<uint16_t>(isSkeletalMesh ? skeletalTransformsInFrame : kUnknownTransformIndex)
+                            .skeletalTransformIndex = skeletalTransformIndex
                         });
                     assert(success);
 
                     _tmpUniqueMeshes.emplace_back(it->first, it->second);
                 
-                    if (isSkeletalMesh) {
-                        skeletalTransformsInFrame += skeleton->skinMatricesCount();
-                    } else {
+                    if (!isSkeletalMesh) {
                         ++meshTransformsInFrame;
                     }
                 }
@@ -341,6 +365,8 @@ namespace engine::scene {
             case ctti::typeIndex<AttachmentObject, Sprite>():
                 spritesVertexesCount += 4u;
                 spritesIndicesCount += 6u;
+                break;
+            case ctti::typeIndex<AttachmentObject, Dummy>():
                 break;
             }
         }
@@ -733,7 +759,13 @@ namespace engine::scene {
             commandList->pushConstants(rhi::shaders::Stages::eVertex, 0u, sizeof(Uniform), &uniform);
 
             const auto & geometry = mesh.geometry();
+            auto material = geometry.primitives[0u].material;
+            // bind material
             for (const auto & p : geometry.primitives) {
+                if (p.material != material) {
+                    material = p.material;
+                    //bind material
+                }
                 // p.material;
                 commandList->drawIndexed(p.indexCount, count, p.firstIndex);
             }
