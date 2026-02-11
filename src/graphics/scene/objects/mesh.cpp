@@ -39,8 +39,14 @@ namespace engine::scene {
     }
 
     // mesh:
-    Mesh::Mesh(const graphics::models::Mesh_Geometry & geometry, uint32_t dataIndex, uint16_t geometryDataIndex, uint16_t skin, uint32_t pipeline) :
-        AttachmentObject(ctti::typeIndex<AttachmentObject, Mesh>()), _geometry(geometry), _pipeline(pipeline), _dataIndex(dataIndex), _geometryDataIndex(geometryDataIndex), _skin(skin) {
+    Mesh::Mesh(const graphics::models::Primitive & primitive, 
+        uint32_t dataIndex, uint16_t geometryDataIndex, uint16_t skin, uint32_t pipeline) :
+        AttachmentObject(ctti::typeIndex<AttachmentObject, Mesh>()), 
+        _geometry(primitive), 
+        _pipeline(pipeline), 
+        _dataIndex(dataIndex), 
+        _geometryDataIndex(geometryDataIndex), 
+        _skin(skin) {
     }
 
     void Mesh::setPipeline(uint32_t pipeline) noexcept {
@@ -54,6 +60,10 @@ namespace engine::scene {
     bool Mesh::cmp(const Mesh & other) const noexcept {
         if (_pipeline != other._pipeline) {
             return _pipeline < other._pipeline;
+        }
+
+        if (_geometry.material != other._geometry.material) {
+            return _geometry.material < other._geometry.material;
         }
 
         if (_geometryDataIndex != other._geometryDataIndex) {
@@ -77,15 +87,32 @@ namespace engine::scene {
             vec3f minCorner{std::numeric_limits<float>::max()};
             vec3f maxCorner{std::numeric_limits<float>::lowest()};
 
-            for (const auto & p : _geometry.primitives) {
-                minCorner.x = std::min({minCorner.x, p.minCorner.x, p.maxCorner.x});
-                minCorner.y = std::min({minCorner.y, p.minCorner.y, p.maxCorner.y});
-                minCorner.z = std::min({minCorner.z, p.minCorner.z, p.maxCorner.z});
-
-                maxCorner.x = std::max({maxCorner.x, p.minCorner.x, p.maxCorner.x});
-                maxCorner.y = std::max({maxCorner.y, p.minCorner.y, p.maxCorner.y});
-                maxCorner.z = std::max({maxCorner.z, p.minCorner.z, p.maxCorner.z});
+            switch(node->bounds.type) {
+            case Bounds::Type::eNone:
+            break;
+            case Bounds::Type::eCube:
+            {
+                const auto & cube = node->bounds.volume.cube;
+                minCorner = cube.corner0;
+                maxCorner = cube.corner1;
             }
+            break;
+            case Bounds::Type::eSphere:
+            {
+                const auto & sphere = node->bounds.volume.sphere;
+                minCorner = sphere.center - vec3f{sphere.radius};
+                maxCorner = sphere.center + vec3f{sphere.radius};
+            }
+            break;
+            }
+
+            minCorner.x = std::min({minCorner.x, _geometry.minCorner.x, _geometry.maxCorner.x});
+            minCorner.y = std::min({minCorner.y, _geometry.minCorner.y, _geometry.maxCorner.y});
+            minCorner.z = std::min({minCorner.z, _geometry.minCorner.z, _geometry.maxCorner.z});
+
+            maxCorner.x = std::max({maxCorner.x, _geometry.minCorner.x, _geometry.maxCorner.x});
+            maxCorner.y = std::max({maxCorner.y, _geometry.minCorner.y, _geometry.maxCorner.y});
+            maxCorner.z = std::max({maxCorner.z, _geometry.minCorner.z, _geometry.maxCorner.z});
 
             node->setAttachment(this);
             node->setBounds(engine::scene::Bounds::createCube(minCorner, maxCorner));

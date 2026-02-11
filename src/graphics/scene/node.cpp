@@ -106,8 +106,12 @@ namespace engine::scene {
     }
 
     void Node::setAttachment(AttachmentObject * object) noexcept {
-        attachment = object;
-        attachment->node = this;
+        auto ** targetAttachment = &attachment;
+        while (*targetAttachment) {
+            targetAttachment = &(*targetAttachment)->next;
+        }
+        *targetAttachment = object;
+        (*targetAttachment)->node = this;
     }
 
     AttachmentObject * Node::removeAttachment() noexcept {

@@ -12,7 +12,7 @@ namespace engine::scene {
 
 void loadNodes(Scene & scene, const graphics::ModelManager::ModelBuffers & gpuBuffers, 
     const graphics::models::Mesh_Data & meshData, uint32_t dataIndex, engine::scene::Node * parent, 
-    uint16_t nodeId, engine::scene::Skeleton * skeleton, vec3f & minCorner, vec3f & maxCorner) {
+    uint16_t nodeId, engine::scene::Skeleton * skeleton, MeshPipelines pipelines, vec3f & minCorner, vec3f & maxCorner) {
 
     auto * current = scene.createNode();
     if (parent) {
@@ -33,23 +33,26 @@ void loadNodes(Scene & scene, const graphics::ModelManager::ModelBuffers & gpuBu
 
     if (node.mesh != engine::graphics::models::kInvalidValue) {
         bool const createSkeletalMesh = skeleton != nullptr && node.skin != engine::graphics::models::kInvalidValue;
-        const auto pipelineId = createSkeletalMesh ? 1u : 2u; // todo: pipelines!
-        auto * mesh = scene.createObject<engine::scene::Mesh>(meshData.meshes[node.mesh], dataIndex, node.mesh, node.skin, pipelineId);
-        
-        mesh->setIndices({gpuBuffers.indexBuffer});
-        mesh->setAttribute({gpuBuffers.vertexBuffers[0u]}, engine::scene::mesh::Semantic::ePosition);
-        mesh->setAttribute({gpuBuffers.vertexBuffers[1u]}, engine::scene::mesh::Semantic::eNormal);
-        mesh->setAttribute({gpuBuffers.vertexBuffers[2u]}, engine::scene::mesh::Semantic::eUv0);
+        const auto pipelineId = createSkeletalMesh ? pipelines.skeletalPipeline : pipelines.commonPipeline;
 
-        if (createSkeletalMesh) {
-            mesh->setSkeleton(skeleton);
-            mesh->setAttribute({gpuBuffers.vertexBuffers[3u]}, engine::scene::mesh::Semantic::eJoints);
-            mesh->setAttribute({gpuBuffers.vertexBuffers[4u]}, engine::scene::mesh::Semantic::eWeights);
-        }
-
-        engine::scene::attachObjectToNode(*mesh, *current);
-
+        auto primitiveId = meshData.meshStartPrimitiveNumbers[node.mesh];
         for (const auto & p : meshData.meshes[node.mesh].primitives) {
+            auto * mesh = scene.createObject<engine::scene::Mesh>(p, dataIndex, primitiveId++, node.skin, pipelineId);
+                
+            mesh->setIndices({gpuBuffers.indexBuffer});
+            mesh->setAttribute({gpuBuffers.vertexBuffers[0u]}, engine::scene::mesh::Semantic::ePosition);
+            mesh->setAttribute({gpuBuffers.vertexBuffers[1u]}, engine::scene::mesh::Semantic::eNormal);
+            mesh->setAttribute({gpuBuffers.vertexBuffers[2u]}, engine::scene::mesh::Semantic::eUv0);
+
+            if (createSkeletalMesh) {
+                mesh->setSkeleton(skeleton);
+                mesh->setAttribute({gpuBuffers.vertexBuffers[3u]}, engine::scene::mesh::Semantic::eJoints);
+                mesh->setAttribute({gpuBuffers.vertexBuffers[4u]}, engine::scene::mesh::Semantic::eWeights);
+            }
+
+            engine::scene::attachObjectToNode(*mesh, *current);
+
+            // for calculate rootNode size
             const vec3f corner1 = current->worldTransform * vec4f(p.minCorner, 1.0f);
             const vec3f corner2 = current->worldTransform * vec4f(p.maxCorner, 1.0f);
 
@@ -64,11 +67,12 @@ void loadNodes(Scene & scene, const graphics::ModelManager::ModelBuffers & gpuBu
     }
 
     for (const uint16_t childNodeId : node.children) {
-        loadNodes(scene, gpuBuffers, meshData, dataIndex, current, childNodeId, skeleton, minCorner, maxCorner);
+        loadNodes(scene, gpuBuffers, meshData, dataIndex, current, childNodeId, skeleton, pipelines, minCorner, maxCorner);
     }
 };
 
-Node * createNodeWithSkeletalMesh(Scene & scene, const graphics::ModelManager & modelManager, uint32_t modelIndex, Bounds::Type boundsType) {
+Node * createNodeWithSkeletalMesh(Scene & scene, const graphics::ModelManager & modelManager, 
+    uint32_t modelIndex, Bounds::Type boundsType, MeshPipelines pipelines) {
     auto * meshRoot = scene.createNode();
     const auto & meshData = modelManager.getModelData(modelIndex);
     engine::scene::Skeleton * skeleton = scene.createObject<engine::scene::Skeleton>(meshData);
@@ -82,7 +86,7 @@ Node * createNodeWithSkeletalMesh(Scene & scene, const graphics::ModelManager & 
 
     for (const auto nodeId : meshData.sceneNodes) {
         loadNodes(scene, modelManager.getModelBuffers(modelIndex), meshData, 
-            modelIndex, meshRoot, nodeId, skeleton, minCorner, maxCorner);
+            modelIndex, meshRoot, nodeId, skeleton, pipelines, minCorner, maxCorner);
     }
 
     switch (boundsType) {

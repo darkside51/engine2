@@ -56,7 +56,8 @@ namespace mesh {
 
     class Mesh : public AttachmentObject {
     public:
-        Mesh(const graphics::models::Mesh_Geometry & geometry, uint32_t dataIndex, uint16_t geometryDataIndex, uint16_t skin, uint32_t pipeline);
+        Mesh(const graphics::models::Primitive & primitive,
+            uint32_t dataIndex, uint16_t geometryDataIndex, uint16_t skin, uint32_t pipeline);
         ~Mesh() /*override*/ = default;
 
         void setPipeline(uint32_t pipeline) noexcept;
@@ -81,7 +82,7 @@ namespace mesh {
             return _attributes[std::to_underlying(semantic)];
         }
 
-        const graphics::models::Mesh_Geometry & geometry() const noexcept {
+        const graphics::models::Primitive & geometry() const noexcept {
             return _geometry;
         }
 
@@ -98,7 +99,7 @@ namespace mesh {
         void setSkeleton(Skeleton * skeleton) noexcept { _skeleton = skeleton; }
 
     private:
-        const graphics::models::Mesh_Geometry & _geometry;
+        const graphics::models::Primitive & _geometry;
         Skeleton * _skeleton = nullptr;
 
         uint32_t _pipeline = 0u;

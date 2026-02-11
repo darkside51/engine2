@@ -14,6 +14,7 @@ namespace engine::scene {
     struct AttachmentObject /*: IntrusiveListNode<Object>*/ {
         Node * node = nullptr;
         AnimationInfoChain * animInfo = nullptr;
+        AttachmentObject * next = nullptr;
        
         uint16_t typeIndex = 0u;
         // uint16_t layer = 0u;

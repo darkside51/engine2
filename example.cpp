@@ -78,7 +78,7 @@ namespace example {
     engine::mat4f cameraTransform;
     float m = 0.0f;
 
-    engine::scene::Scene scene{&debugDraw};
+    engine::scene::Scene scene{debugDraw};
 
     struct UniformBuffer {
         engine::mat4f mvp;
@@ -994,8 +994,14 @@ namespace example {
             sceneWorldRoot = scene.createNode();
             scene.rootNode()->addChild(sceneWorldRoot);
 
+            engine::scene::MeshPipelines pipelines = {
+                .commonPipeline = 2u, 
+                .skeletalPipeline = 1u
+            };
+
             for (size_t i = 0u; i < 10u; ++i) {
-                auto * meshRoot = engine::scene::createNodeWithSkeletalMesh(scene, modelManager, 0u, engine::scene::Bounds::Type::eSphere);
+                auto * meshRoot = engine::scene::createNodeWithSkeletalMesh(scene, modelManager, 0u, 
+                    engine::scene::Bounds::Type::eSphere, pipelines);
                 if (i == 5u) {
                     if (auto * skeleton = static_cast<engine::scene::Skeleton *>(meshRoot->getAttachment())) {
                         tmpSkeleton = skeleton;
@@ -1012,7 +1018,8 @@ namespace example {
             }
 
             {
-                auto * meshRoot = engine::scene::createNodeWithSkeletalMesh(scene, modelManager, 1u, engine::scene::Bounds::Type::eCube);
+                auto * meshRoot = engine::scene::createNodeWithSkeletalMesh(scene, modelManager, 1u, 
+                    engine::scene::Bounds::Type::eCube, pipelines);
                 meshRoot->setScale(0.002f);
                 meshRoot->setRotation(engine::vec3f(1.57f, 0.0f, 0.0f));
                 meshRoot->setPosition(engine::vec3f(0.0f, 4.5f, 0.0f));

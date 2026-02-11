@@ -24,7 +24,7 @@
 namespace engine {
 
 namespace scene {
-constexpr bool kDebugDrawBounds = false;
+constexpr bool kDebugDrawBounds = true;
 constexpr bool kDebugDrawGizmos = false;
 
 constexpr uint32_t kFillNodesReserveSize = 1024u;
@@ -69,7 +69,7 @@ class Scene {
     using AttachmentsIterator = std::span<AttachmentObject*>::iterator;
     
 public:
-    Scene(debug::DebugDraw * debugDraw);
+    Scene(debug::DebugDraw & drawHelper);
     ~Scene();
 
     void destroy() noexcept;
@@ -162,7 +162,7 @@ private:
     std::vector<rhi::runtime::PipelinePtr> _pipelines;
     std::unique_ptr<graphics::InflightStagingBuffer> _staging = nullptr;
 
-    debug::DebugDraw * _debugDraw = nullptr;
+    debug::DebugDraw & _drawHelper;
     std::chrono::time_point<std::chrono::steady_clock> _tryReduceUsedMemoryTime;
 
     // sprites:
@@ -219,19 +219,10 @@ void Scene::fillAttachmentsArray(const mat4f & cameraTransform, Node * root, Con
         }
 
         auto * object = n->getAttachment();
-        if ((object != nullptr) && condition(object)) {
-            objects.emplace_back(object);
-        }
+        while (object) {
+            if (condition(object)) {
+                objects.emplace_back(object);
 
-        if constexpr (kDebugDrawBounds || kDebugDrawGizmos) {
-            if (_debugDraw) {
-                if constexpr (kDebugDrawGizmos) {
-                    auto wtr = worldTransform;
-                    wtr[0u] = glm::normalize(wtr[0u]);
-                    wtr[1u] = glm::normalize(wtr[1u]);
-                    wtr[2u] = glm::normalize(wtr[2u]);
-                    _debugDraw->drawGizmo(0.1f, cameraTransform * wtr);
-                }
                 if constexpr (kDebugDrawBounds) {
                     uint32_t color = 0xff'00'ff'ffu;
                     if (object) {
@@ -249,9 +240,19 @@ void Scene::fillAttachmentsArray(const mat4f & cameraTransform, Node * root, Con
                             break;
                         }
                     }
-                    _debugDraw->drawBounds(bounds, color, cameraTransform * worldTransform);
+                    _drawHelper.drawBounds(bounds, color, cameraTransform * worldTransform);
                 }
             }
+
+            object = object->next;
+        }
+
+        if constexpr (kDebugDrawGizmos) {
+            auto wtr = worldTransform;
+            wtr[0u] = glm::normalize(wtr[0u]);
+            wtr[1u] = glm::normalize(wtr[1u]);
+            wtr[2u] = glm::normalize(wtr[2u]);
+            _drawHelper.drawGizmo(0.1f, cameraTransform * wtr);
         }
         return true;
     });

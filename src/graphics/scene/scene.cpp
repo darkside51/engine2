@@ -64,9 +64,9 @@ namespace engine::scene {
         }
     }
 
-    Scene::Scene(debug::DebugDraw * debugDraw) : 
+    Scene::Scene(debug::DebugDraw & drawHelper) : 
         _rootNode(createNode()), 
-        _debugDraw(debugDraw) {
+        _drawHelper(drawHelper) {
         registerTypes();
     }
 
@@ -134,7 +134,13 @@ namespace engine::scene {
             object->animInfo = nullptr;
         }
 
-        return it->second->destroyObject(object);
+        bool result = true;
+        if (object->next) {
+            result = result && destroyObject(object->next);
+        }
+
+        result = result && it->second->destroyObject(object);
+        return result;
     }
 
     bool Scene::destroyAnimInfo(AnimationInfoChain * info) noexcept {
@@ -522,13 +528,9 @@ namespace engine::scene {
     }
 
     void Scene::drawDummies(AttachmentsIterator begin, AttachmentsIterator end, const mat4f & cameraTransform, uint32_t color) {
-        if (_debugDraw == nullptr) {
-            return;
-        }
-
         for (auto it = begin; it != end; ++it) {
             const auto & object = *it;
-            _debugDraw->drawSphere(vec3f{0.0f}, 0.1f, color, 32u, cameraTransform * object->node->getWorldTransform());
+            _drawHelper.drawSphere(vec3f{0.0f}, 0.1f, color, 32u, cameraTransform * object->node->getWorldTransform());
         }
     }
 
@@ -672,6 +674,7 @@ namespace engine::scene {
         auto geometryDataIndex = mesh.geometryDataIndex();
         bool skeletal = mesh.getSkeleton() != nullptr;
         auto dataIndex = mesh.dataIndex();
+        auto materialIndex = mesh.geometry().material;
 
         uint32_t i = 0u;
         auto * memory = _meshTransformIndices->memory2<uint32_t>() + _meshesDrawInFrame;
@@ -687,9 +690,10 @@ namespace engine::scene {
         for (; it != end; ++it, ++i) {
             const auto & mesh2 = *static_cast<const Mesh*>(*it);
             const auto currentPipeline = mesh2.getPipeline();
-            const auto currenDataIndex = mesh2.dataIndex();
             const auto currentGeometryDataIndex = mesh2.geometryDataIndex();
             const bool currentSkeletal = mesh2.getSkeleton() != nullptr;
+            const auto currenDataIndex = mesh2.dataIndex();
+            const auto currenMaterialIndex = mesh2.geometry().material;
 
             if (currentSkeletal) {
                 *(memory + i) = _meshTransformIndicesMap[*it].skeletalTransformIndex;
@@ -697,10 +701,12 @@ namespace engine::scene {
                 *(memory + i) = _meshTransformIndicesMap[*it].transformIndex;
             }
 
-            const bool completePack = currentPipeline != pipeline || 
+            const bool completePack = currentPipeline != pipeline ||
+                                      currenMaterialIndex != materialIndex ||
                                       currentGeometryDataIndex != geometryDataIndex ||
-                                      currentSkeletal != skeletal;
+                                      currentSkeletal != skeletal ||
                                       currenDataIndex != dataIndex;
+                                      
 
             if (completePack) {
                 // draw
@@ -710,6 +716,7 @@ namespace engine::scene {
                 pipeline = currentPipeline;
                 geometryDataIndex = currentGeometryDataIndex;
                 skeletal = currentSkeletal;
+                materialIndex = currenMaterialIndex;
                 currentIt = it;
                 count = 1u;
             } else {
@@ -739,6 +746,9 @@ namespace engine::scene {
             const Uniform uniform {.cameraTransform = cameraTransform};
             commandList->bindPipeline(pipeline);
 
+            const auto & geometry = mesh.geometry();
+            const auto material = geometry.material;
+
             uint32_t binding_v = 0u;
             commandList->bindVertexBuffer(binding_v++, mesh.getAttribute(mesh::Semantic::ePosition).buffer, 0u);
             commandList->bindVertexBuffer(binding_v++, mesh.getAttribute(mesh::Semantic::eNormal).buffer, 0u);
@@ -758,17 +768,20 @@ namespace engine::scene {
 
             commandList->pushConstants(rhi::shaders::Stages::eVertex, 0u, sizeof(Uniform), &uniform);
 
-            const auto & geometry = mesh.geometry();
-            auto material = geometry.primitives[0u].material;
+            commandList->drawIndexed(geometry.indexCount, count, geometry.firstIndex);
+
+            // const auto & geometry = mesh.geometry();
+            // auto material = geometry.primitives[0u].material;
+
             // bind material
-            for (const auto & p : geometry.primitives) {
-                if (p.material != material) {
-                    material = p.material;
-                    //bind material
-                }
-                // p.material;
-                commandList->drawIndexed(p.indexCount, count, p.firstIndex);
-            }
+            // for (const auto & p : geometry.primitives) {
+            //     if (p.material != material) {
+            //         material = p.material;
+            //         //bind material
+            //     }
+            //     // p.material;
+            //     commandList->drawIndexed(p.indexCount, count, p.firstIndex);
+            // }
         }
 
         _meshesDrawInFrame += count;

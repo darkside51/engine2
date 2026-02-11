@@ -115,10 +115,11 @@ namespace engine::rhi::runtime {
 
 /////////////////////// shared versions
     void CommandList::bindVertexBuffer(uint32_t binding, const BufferPtr & buffer, uint32_t offset) noexcept {
-        // todo: use _state to change only right buffers!
-        _resources.push_back(buffer);
-        _commands->create<BindVertexBufferCommand>(binding, buffer.get(), offset);
-        ++_commandsCount;
+        if (_state.bindVertexBuffer(binding, buffer.get(), offset)) {
+            _resources.push_back(buffer);
+            _commands->create<BindVertexBufferCommand>(binding, buffer.get(), offset);
+            ++_commandsCount;
+        }
     }
 
     void CommandList::bindIndexBuffer(const BufferPtr & buffer, uint32_t offset, IndexType type) noexcept {

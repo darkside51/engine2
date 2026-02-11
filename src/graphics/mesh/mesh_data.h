@@ -84,6 +84,7 @@ namespace engine::graphics::models {
 		std::vector<Mesh_Animation> animations;
 		std::vector<Mesh_Geometry> meshes;
         std::vector<Node> nodes;
+		std::vector<uint16_t> meshStartPrimitiveNumbers;
 
 		// uint32_t uniqueId = 0u;
 		uint32_t skinMatricesCount = 0u;

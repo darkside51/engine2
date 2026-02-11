@@ -5,6 +5,7 @@
 
 #include "allocators/stack_allocator.h"
 
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
@@ -94,6 +95,7 @@ namespace engine::rhi::runtime {
 
         struct State {
             inline constexpr static uint32_t kMaxViewports = 1u; // todo: maybe no 1u if the multiViewport feature is enabled and need to check PhysicalDeviceLimits::maxViewports
+            inline constexpr static uint32_t kMaxBindVertexBuffers = 16u; // vkGetPhysicalDeviceProperties limits.maxVertexInputBindings, 16u is guaranteed
 
             struct BindedBuffer {
                 const Buffer * buffer = nullptr;
@@ -105,6 +107,7 @@ namespace engine::rhi::runtime {
                 viewport = {};
                 scissor = {};
                 indexBuffer = {};
+                vertexBuffers = {};
             }
 
             bool setViewPort(const Viewport & v, uint32_t idx) noexcept {
@@ -132,11 +135,23 @@ namespace engine::rhi::runtime {
                 return false;
             }
 
+            bool bindVertexBuffer(uint32_t binding, const Buffer * buffer, uint32_t offset) noexcept {
+                assert(binding < kMaxBindVertexBuffers);
+                auto & vertexBuffer = vertexBuffers[binding];
+                if (buffer != vertexBuffer.buffer || offset != vertexBuffer.offset) {
+                    vertexBuffer.buffer = buffer;
+                    vertexBuffer.offset = offset;
+                    return true;
+                }
+                return false;
+            }
+
             const Pipeline * pipeline = nullptr;
 
             std::array<Viewport, kMaxViewports> viewport{};
             std::array<Rect2D, kMaxViewports> scissor{};
             BindedBuffer indexBuffer{};
+            std::array<BindedBuffer, kMaxBindVertexBuffers> vertexBuffers;
         } _state;
 
         std::vector<sh_ptr<PipeLineResource>> _resources;

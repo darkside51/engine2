@@ -17,7 +17,13 @@ namespace engine::graphics::models {
 
         vertexBuffersData.resize(allowedAttributes.size());
 
+        meshStartPrimitiveNumbers.reserve(layout.meshes.size());
+        uint16_t startPrimitiveNumber = 0u;
+
         for (const auto & srcMesh : layout.meshes) {
+            meshStartPrimitiveNumbers.emplace_back(startPrimitiveNumber);
+            startPrimitiveNumber += srcMesh.primitives.size();
+
             auto & mesh = meshes.emplace_back();
             mesh.primitives.reserve(srcMesh.primitives.size());
             //const auto firstIndex = static_cast<uint32_t>(indexBufferData.size());
