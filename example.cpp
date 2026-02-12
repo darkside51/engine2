@@ -997,7 +997,7 @@ namespace example {
             };
 
             auto const animId = animationManager.getAnimationIndex("skeletal_mesh_anim0");
-            for (size_t i = 0u; i < 20u; ++i) {
+            for (size_t i = 0u; i < 1000u; ++i) {
                 auto * meshRoot = engine::scene::createNodeWithSkeletalMesh(scene, modelManager, 0u, 
                     engine::scene::Bounds::Type::eSphere, pipelines);
                 
@@ -1014,7 +1014,7 @@ namespace example {
 
                 meshRoot->setScale(engine::common::random(0.2f, 0.25f));
                 meshRoot->setRotation(engine::vec3f(1.57f, 0.0f, engine::common::random(-3.14f, 3.14f)));
-                meshRoot->setPosition(engine::vec3f(-2.0f + i % 10 * 0.5f, i / 10 * -0.5f, 0.0f));
+                meshRoot->setPosition(engine::vec3f(-5.0f + i % 30 * 0.5f, i / 30 * -0.5f, 0.0f));
 
                 sceneWorldRoot->addChild(meshRoot);
             }

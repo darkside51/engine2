@@ -8,13 +8,14 @@
 #include "graphics/render/rhi/common/command_list.h"
 #include "graphics/utils/vertex_processing.h"
 
+#include "threads/thread_pool/thread_pool.h"
+
 #include <algorithm>
 #include <array>
 
 #include <unordered_map>
 
 namespace engine::scene {
-
     constexpr float kTryReduceUsedMemoryTimePeriodSeconds = 5.0f;
     constexpr uint32_t kInitialVerticesCountMax = 1024u;
     constexpr uint32_t kInitialIndicesCountMax = 1024u;
@@ -32,6 +33,13 @@ namespace engine::scene {
 
     FramesSequenceAnimator gSequenceAnimator{1.0f / 30.0f};
     SkeletalAnimator gSkeletalAnimator{};
+
+    constexpr uint8_t kSkeletalAnimationCountToEnableMultyThreading = 64u;
+    threads::ThreadPool gThreadPool{4u};
+    SkeletalAnimator gSkeletalAnimatorArr[4u];
+
+    threads::WaitSource w8[128u];
+    std::vector<threads::WaitSource*> w8Current;
 
     // struct ColoredVertex {
     //     std::array<float, 3u> coord;
@@ -259,6 +267,9 @@ namespace engine::scene {
 
         // static thread_local std::vector<animation::AnimatedObject> sequences; // todo: remove static
         
+        const auto skeletalAnimationsCountOnStart = _animations.skeletalAnimations.size();
+        const auto sequenceAnimationsCountOnStart = _animations.sequences.size();
+
         for (auto * object : objects) {
             const auto * animInfo = object->animInfo;
             while (animInfo) {
@@ -286,37 +297,82 @@ namespace engine::scene {
         const float nowTimeCount = nowDuration.count();
 
         if (!_animations.skeletalAnimations.empty()) { // skeletal animations
-            std::sort(_animations.skeletalAnimations.begin(), _animations.skeletalAnimations.end(), [](const auto & seq0, const auto & seq1) {
+            auto begin = _animations.skeletalAnimations.begin() + skeletalAnimationsCountOnStart;
+            std::sort(begin, _animations.skeletalAnimations.end(), [](const auto & seq0, const auto & seq1) {
                         return seq0.animInfo->animationId < seq1.animInfo->animationId;
                     });
 
-            auto animId = kUndefinedAnimId;
-            const SkeletalAnimation * currentAnim = nullptr;
-            
-            for (const auto & [animInfo, object] : _animations.skeletalAnimations) {
-                if (animInfo->animationId != animId) {
-                    animId = animInfo->animationId;
-                    currentAnim = animationManager.getAnimation<SkeletalAnimation>(animId);
-                }
+            auto animationsCount = static_cast<uint32_t>(_animations.skeletalAnimations.size() - skeletalAnimationsCountOnStart);
 
-                if (currentAnim) {
-                    auto * skeleton = static_cast<Skeleton*>(object);
-                    gSkeletalAnimator.enlarge2(skeleton->nodesCount());
-                    gSkeletalAnimator.update2(nowTimeCount - animInfo->startTime, *currentAnim);
-                    gSkeletalAnimator.apply2(*skeleton);
+            if (animationsCount > kSkeletalAnimationCountToEnableMultyThreading) {
+                const auto numWorkers = static_cast<uint32_t>(gThreadPool.numWorkers());
+                const auto taskPerThread = std::max(animationsCount / numWorkers, 1u);
+                
+                auto it = begin;
+                size_t i = 0u;
+                while (animationsCount > 0u) {
+                    const auto count = (i == numWorkers - 1u) ? animationsCount : taskPerThread;
+                    const auto animations = std::span{it, it + count};
+                    it += count;
+                    
+                    const auto w8Number = w8Current.size();
+                    w8Current.emplace_back(&w8[w8Number]);
+
+                    gThreadPool.execute([i, &animationManager, nowTimeCount, animations, w8Number]() {
+                        auto animId = kUndefinedAnimId;
+                        const SkeletalAnimation * currentAnim = nullptr;
+
+                        for (const auto & [animInfo, object] : animations) {
+                            if (animInfo->animationId != animId) {
+                                animId = animInfo->animationId;
+                                currentAnim = animationManager.getAnimation<SkeletalAnimation>(animId);
+                            }
+
+                            if (currentAnim) {
+                                auto * skeleton = static_cast<Skeleton*>(object);
+                                gSkeletalAnimatorArr[i].enlarge2(skeleton->nodesCount());
+                                gSkeletalAnimatorArr[i].update2(nowTimeCount - animInfo->startTime, *currentAnim);
+                                gSkeletalAnimatorArr[i].apply2(*skeleton);
+                            }
+                        }
+
+                        w8[w8Number].request_complete();
+                    });
+
+                    animationsCount -= count;
+                    ++i;
+                }
+            } else {
+                auto animId = kUndefinedAnimId;
+                const SkeletalAnimation * currentAnim = nullptr;
+
+                for (const auto & [animInfo, object] : _animations.skeletalAnimations) {
+                    if (animInfo->animationId != animId) {
+                        animId = animInfo->animationId;
+                        currentAnim = animationManager.getAnimation<SkeletalAnimation>(animId);
+                    }
+
+                    if (currentAnim) {
+                        auto * skeleton = static_cast<Skeleton*>(object);
+                        gSkeletalAnimator.enlarge2(skeleton->nodesCount());
+                        gSkeletalAnimator.update2(nowTimeCount - animInfo->startTime, *currentAnim);
+                        gSkeletalAnimator.apply2(*skeleton);
+                    }
                 }
             }
         }
 
         if (!_animations.sequences.empty()) { // sequences
-            std::sort(_animations.sequences.begin(), _animations.sequences.end(), [](const auto & seq0, const auto & seq1) {
+            auto begin = _animations.sequences.begin() + sequenceAnimationsCountOnStart;
+            std::sort(begin, _animations.sequences.end(), [](const auto & seq0, const auto & seq1) {
                         return seq0.animInfo->animationId < seq1.animInfo->animationId;
                     });
 
             auto animId = kUndefinedAnimId;
             const FramesSequence * currentAnim = nullptr;
             
-            for (const auto & [animInfo, object] : _animations.sequences) {
+            const auto animations = std::span{begin, _animations.sequences.end()};
+            for (const auto & [animInfo, object] : animations) {
                 if (animInfo->animationId != animId) {
                     animId = animInfo->animationId;
                     currentAnim = animationManager.getAnimation<FramesSequence>(animId);
@@ -328,7 +384,10 @@ namespace engine::scene {
             }
         }
 
-        _animations.clearAndReserve();
+        // for (size_t j = 0u; j < gThreadPool.numWorkers(); ++j) {
+        //     w8[j].request_wait();
+        // }
+        // _animations.clearAndReserve();
     }
 
     void Scene::prepareDrawData(std::span<AttachmentObject*> objects, uint8_t frame) noexcept {
@@ -341,12 +400,12 @@ namespace engine::scene {
         auto skeletalTransformsInFrame = _skeletalTransformsInFrame;
         _tmpUniqueMeshes.reserve(kInitialmeshTransformsInFrameMax);
 
-        auto addSkeletonToMap = [&](const Skeleton* skeleton)-> uint16_t {
-            const uint16_t result = skeletalTransformsInFrame;
+        auto addSkeletonToMap = [&](const Skeleton* skeleton)-> uint32_t {
+            const uint32_t result = skeletalTransformsInFrame;
             const auto [it, success] = _meshTransformIndicesMap.emplace(skeleton, 
                         MeshTransformsIndices{
                             .transformIndex = kUnknownTransformIndex,
-                            .skeletalTransformIndex = static_cast<uint16_t>(skeletalTransformsInFrame)
+                            .skeletalTransformIndex = skeletalTransformsInFrame
                         });
             assert(success);
             skeletalTransformsInFrame += skeleton->skinMatricesCount();
@@ -368,7 +427,7 @@ namespace engine::scene {
                     const auto * skeleton = static_cast<const Mesh*>(object)->getSkeleton();
                     const bool isSkeletalMesh = skeleton != nullptr;
 
-                    uint16_t skeletalTransformIndex = kUnknownTransformIndex;
+                    uint32_t skeletalTransformIndex = kUnknownTransformIndex;
                     if (isSkeletalMesh) { 
                         if (auto it = _meshTransformIndicesMap.find(skeleton); it != _meshTransformIndicesMap.end()) {
                             skeletalTransformIndex = it->second.skeletalTransformIndex;
@@ -379,7 +438,7 @@ namespace engine::scene {
                     
                     const auto [it, success] = _meshTransformIndicesMap.emplace(object, 
                         MeshTransformsIndices{
-                            .transformIndex = static_cast<uint16_t>(isSkeletalMesh ? kUnknownTransformIndex : meshTransformsInFrame),
+                            .transformIndex = static_cast<uint32_t>(isSkeletalMesh ? kUnknownTransformIndex : meshTransformsInFrame),
                             .skeletalTransformIndex = skeletalTransformIndex
                         });
                     assert(success);
@@ -884,6 +943,12 @@ namespace engine::scene {
         _meshTransformsInFrame = 0u;
         _meshesDrawInFrame = 0u;
         _skeletalTransformsInFrame = 0u;
+
+        for (auto * w8Ptr : w8Current) {
+            w8Ptr->request_wait();
+        }
+        w8Current.clear();
+        _animations.clearAndReserve();
     }
 
     void Scene::endFrame(rhi::runtime::CommandListPtr & commandList, rhi::runtime::CommandListPtr & transferCommandList, uint8_t frame) {

@@ -28,7 +28,7 @@ constexpr bool kDebugDrawBounds = false;
 constexpr bool kDebugDrawGizmos = false;
 
 constexpr uint32_t kFillNodesReserveSize = 1024u;
-constexpr uint16_t kUnknownTransformIndex = 0xff'ffu;
+constexpr uint32_t kUnknownTransformIndex = 0xff'ff'ff'ffu;
     
 class AnimationManager;
 
@@ -200,8 +200,8 @@ private:
         
     // meshes:
     struct MeshTransformsIndices {
-        uint16_t transformIndex = kUnknownTransformIndex;
-        uint16_t skeletalTransformIndex = kUnknownTransformIndex;
+        uint32_t transformIndex = kUnknownTransformIndex;
+        uint32_t skeletalTransformIndex = kUnknownTransformIndex;
     };
 
     std::unordered_map<const AttachmentObject*, MeshTransformsIndices> _meshTransformIndicesMap;
