@@ -31,6 +31,7 @@ namespace engine::scene {
     constexpr uint32_t kSsboSkeletalTransformSize = sizeof(SsboTransform) * kDefaultSkeletoneBonesCount;
 
     FramesSequenceAnimator gSequenceAnimator{1.0f / 30.0f};
+    SkeletalAnimator gSkeletalAnimator{};
 
     // struct ColoredVertex {
     //     std::array<float, 3u> coord;
@@ -81,7 +82,7 @@ namespace engine::scene {
         destroyNode(_rootNode);
         _rootNode = nullptr;
 
-        _sequences.clear();
+        _animations.clear();
 
         _spritesVertices = nullptr;
         _spritesIndices = nullptr;
@@ -265,12 +266,12 @@ namespace engine::scene {
                     switch (animInfo->info.animationType) {
                     case ctti::typeIndex<Animation, SkeletalAnimation>() : 
                     {
-  
+                        _animations.skeletalAnimations.emplace_back(&animInfo->info, object);
                     }
                         break;
                     case ctti::typeIndex<Animation, FramesSequence>() : 
                     {
-                        _sequences.emplace_back(&animInfo->info, object);
+                        _animations.sequences.emplace_back(&animInfo->info, object);
                     }
                         break;
                     default:
@@ -284,15 +285,38 @@ namespace engine::scene {
         const std::chrono::duration<float> nowDuration = now.time_since_epoch();
         const float nowTimeCount = nowDuration.count();
 
-        if (!_sequences.empty()) { // sequences
-            std::sort(_sequences.begin(), _sequences.end(), [](const auto & seq0, const auto & seq1) {
+        if (!_animations.skeletalAnimations.empty()) { // skeletal animations
+            std::sort(_animations.skeletalAnimations.begin(), _animations.skeletalAnimations.end(), [](const auto & seq0, const auto & seq1) {
+                        return seq0.animInfo->animationId < seq1.animInfo->animationId;
+                    });
+
+            auto animId = kUndefinedAnimId;
+            const SkeletalAnimation * currentAnim = nullptr;
+            
+            for (const auto & [animInfo, object] : _animations.skeletalAnimations) {
+                if (animInfo->animationId != animId) {
+                    animId = animInfo->animationId;
+                    currentAnim = animationManager.getAnimation<SkeletalAnimation>(animId);
+                }
+
+                if (currentAnim) {
+                    auto * skeleton = static_cast<Skeleton*>(object);
+                    gSkeletalAnimator.enlarge2(skeleton->nodesCount());
+                    gSkeletalAnimator.update2(nowTimeCount - animInfo->startTime, *currentAnim);
+                    gSkeletalAnimator.apply2(*skeleton);
+                }
+            }
+        }
+
+        if (!_animations.sequences.empty()) { // sequences
+            std::sort(_animations.sequences.begin(), _animations.sequences.end(), [](const auto & seq0, const auto & seq1) {
                         return seq0.animInfo->animationId < seq1.animInfo->animationId;
                     });
 
             auto animId = kUndefinedAnimId;
             const FramesSequence * currentAnim = nullptr;
             
-            for (const auto & [animInfo, object] : _sequences) {
+            for (const auto & [animInfo, object] : _animations.sequences) {
                 if (animInfo->animationId != animId) {
                     animId = animInfo->animationId;
                     currentAnim = animationManager.getAnimation<FramesSequence>(animId);
@@ -304,11 +328,7 @@ namespace engine::scene {
             }
         }
 
-        auto const seqSize = _sequences.size();
-        _sequences.clear();
-        _sequences.reserve(seqSize);
-
-        // todo: other types!
+        _animations.clearAndReserve();
     }
 
     void Scene::prepareDrawData(std::span<AttachmentObject*> objects, uint8_t frame) noexcept {

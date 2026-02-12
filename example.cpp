@@ -72,8 +72,6 @@ namespace example {
     engine::scene::Node * sceneNodePtr = nullptr;
     engine::scene::Skeleton * tmpSkeleton = nullptr;
 
-    engine::scene::SkeletalAnimator gSkeletalAnimator{};
-
     engine::mat4f cameraTransform;
     float m = 0.0f;
 
@@ -998,20 +996,26 @@ namespace example {
                 .skeletalPipeline = 1u
             };
 
-            for (size_t i = 0u; i < 10u; ++i) {
+            auto const animId = animationManager.getAnimationIndex("skeletal_mesh_anim0");
+            for (size_t i = 0u; i < 20u; ++i) {
                 auto * meshRoot = engine::scene::createNodeWithSkeletalMesh(scene, modelManager, 0u, 
                     engine::scene::Bounds::Type::eSphere, pipelines);
-                if (i == 5u) {
-                    if (auto * skeleton = static_cast<engine::scene::Skeleton *>(meshRoot->getAttachment())) {
+                
+                if (auto * skeleton = static_cast<engine::scene::Skeleton *>(meshRoot->getAttachment())) {
+                    if (i == 5u) {
                         tmpSkeleton = skeleton;
-                        gSkeletalAnimator.enlarge2(skeleton->nodesCount());
                     }
+
+                    // if (i % 10 == 0u) {
+                        auto * anim0 = scene.createAnimInfo<engine::scene::SkeletalAnimation>(animId, engine::common::random(0.25f, 1.7f));
+                        scene.destroyAnimInfo(skeleton->setAnimation(anim0));
+                    // }
                 }
 
                 meshRoot->setScale(engine::common::random(0.2f, 0.25f));
                 meshRoot->setRotation(engine::vec3f(1.57f, 0.0f, engine::common::random(-3.14f, 3.14f)));
                 meshRoot->setPosition(engine::vec3f(-2.0f + i % 10 * 0.5f, i / 10 * -0.5f, 0.0f));
-                
+
                 sceneWorldRoot->addChild(meshRoot);
             }
 
@@ -1279,15 +1283,6 @@ namespace example {
             }
             sceneNodePtr->setPosition(position);
             // sceneNodePtr->setTransform(tr);
-        }
-
-        const auto * skeletalAnimation = animationManager.getAnimation<engine::scene::SkeletalAnimation>(0u);
-        if (skeletalAnimation && tmpSkeleton) {
-            const std::chrono::duration<float> nowDuration = now.time_since_epoch();
-            const float nowTimeCount = nowDuration.count();
-
-            gSkeletalAnimator.update2(nowTimeCount, *skeletalAnimation);
-            gSkeletalAnimator.apply2(*tmpSkeleton);
         }
 
         std::vector<engine::scene::AttachmentObject*> objects(1024u);

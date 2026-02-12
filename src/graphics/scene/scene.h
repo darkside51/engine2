@@ -41,7 +41,7 @@ template<typename T>
 struct ObjectsHolder : ObjectsCollection {
     using Type = T;
     using ObjectsAllocator = allocators::PoolAllocatorChain<sizeof(T), alignof(T), false, false>;
-    ObjectsAllocator allocator{512u, 32u}; // 16'384 objects max
+    ObjectsAllocator allocator{512u, 256u}; // 131'072 objects max
 
     template <typename... Args>
     AttachmentObject * createObject(Args &&... args) noexcept {
@@ -141,10 +141,10 @@ private:
         const mat4f & cameraTransform, uint32_t count, bool skeletal);   
 
     using NodesAllocator = allocators::PoolAllocatorChain<sizeof(Node), alignof(Node), false, false>;
-    NodesAllocator _nodeAllocator{512u, 64u};
+    NodesAllocator _nodeAllocator{512u, 256u};
 
     using AnimationInfosAllocator = allocators::PoolAllocatorChain<sizeof(AnimationInfoChain), alignof(AnimationInfoChain), false, false>;
-    AnimationInfosAllocator _animationInfosAllocator{512u, 64u};
+    AnimationInfosAllocator _animationInfosAllocator{512u, 256u};
 
     Node * _rootNode = nullptr;
 
@@ -153,7 +153,31 @@ private:
     // animation
     // static thread_local std::vector<animation::AnimatedObject> _sequences; //
     // can use threads::unique_t<animation::AnimatedObject>::id() - if want to create AnimatedObjects on some threads!
-    std::vector<animation::AnimatedObject> _sequences;
+    struct AnimationCollection {
+        std::vector<animation::AnimatedObject> skeletalAnimations;
+        std::vector<animation::AnimatedObject> sequences;
+
+        void clear() noexcept {
+            skeletalAnimations.clear();
+            sequences.clear();
+        }
+
+        void clearAndReserve() noexcept {
+            {
+                auto const size = skeletalAnimations.size();
+                skeletalAnimations.clear();
+                skeletalAnimations.reserve(size);
+            }
+
+            {
+                auto const size = sequences.size();
+                sequences.clear();
+                sequences.reserve(size);
+            }
+        }
+
+    } _animations;
+    
 
     // render
     rhi::runtime::Rhi * _api = nullptr;
