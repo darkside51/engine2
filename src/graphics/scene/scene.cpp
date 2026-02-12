@@ -263,6 +263,11 @@ namespace engine::scene {
             while (animInfo) {
                 if (animInfo->info.weight > 0.0f) {
                     switch (animInfo->info.animationType) {
+                    case ctti::typeIndex<Animation, SkeletalAnimation>() : 
+                    {
+  
+                    }
+                        break;
                     case ctti::typeIndex<Animation, FramesSequence>() : 
                     {
                         _sequences.emplace_back(&animInfo->info, object);
@@ -769,19 +774,6 @@ namespace engine::scene {
             commandList->pushConstants(rhi::shaders::Stages::eVertex, 0u, sizeof(Uniform), &uniform);
 
             commandList->drawIndexed(geometry.indexCount, count, geometry.firstIndex);
-
-            // const auto & geometry = mesh.geometry();
-            // auto material = geometry.primitives[0u].material;
-
-            // bind material
-            // for (const auto & p : geometry.primitives) {
-            //     if (p.material != material) {
-            //         material = p.material;
-            //         //bind material
-            //     }
-            //     // p.material;
-            //     commandList->drawIndexed(p.indexCount, count, p.firstIndex);
-            // }
         }
 
         _meshesDrawInFrame += count;
