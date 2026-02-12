@@ -80,6 +80,16 @@ namespace engine {
         device->wheel(static_cast<float>(xoffset), static_cast<float>(yoffset));
 	}
 
+    void glfwOnDragAndDrop(GLFWwindow* window, int count, const char** paths) {
+        auto * device = static_cast<GLFWDevice*>(glfwGetWindowUserPointer(window));
+        static std::vector<std::string_view> views;
+        views.reserve(count);
+        for (int i = 0; i < count; ++i) {
+            views.emplace_back(paths[i]);
+        }
+        device->dragAndDrop(views);
+    }
+
     GLFWDevice::GLFWDevice(GLFWDevice&& d) noexcept {
         _window = d._window;
         _width = d._width;
@@ -121,6 +131,7 @@ namespace engine {
 		glfwSetScrollCallback(_window, &glfwOnScroll);
 		glfwSetKeyCallback(_window, &glfwOnKeyboard);
 		// glfwSetCharCallback(_window, &glfwOnChar);
+        glfwSetDropCallback(_window, glfwOnDragAndDrop);
     }
 
     GLFWDevice::~GLFWDevice() {
@@ -263,6 +274,12 @@ namespace engine {
                 default:
                     break;
             }
+        }
+    }
+
+    void GLFWDevice::dragAndDrop(std::span<std::string_view> paths) {
+        if (_onDragAndDrop) {
+            _onDragAndDrop(paths);
         }
     }
 

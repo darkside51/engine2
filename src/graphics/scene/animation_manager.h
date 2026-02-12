@@ -64,11 +64,12 @@ public:
     }
 
     void unregisterAnimation(std::string_view name) noexcept {
-        if (getAnimationIndex(name) == kUnknownAnimation) {
-            // animation with name "name" is no exists
+        if (auto it = _animationNames.find(name); it != _animationNames.end()) {
+            // todo
             return;
         }
-        // ...
+        // animation with name "name" is no exists
+        return;
     }
 
     uint16_t getAnimationIndex(std::string_view name) const noexcept {

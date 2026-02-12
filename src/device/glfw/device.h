@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <functional>
 #include <memory>
+#include <span>
 #include <string_view>
 #include <utility>
 #include <vector>
@@ -28,6 +29,7 @@ namespace rhi {
         void pointerEvent(int button, int action, float x, float y);
         void wheel(float x, float y);
         void keyEvent(int key, int action);
+        void dragAndDrop(std::span<std::string_view> paths);
 
         GLFWDevice(GLFWDevice&& d) noexcept;
         GLFWDevice& operator=(GLFWDevice&& d) noexcept;
@@ -62,6 +64,10 @@ namespace rhi {
             _onKeyEvent = std::move(callback);
         }
 
+        void setOnDragAndDrop(std::function<void(std::span<std::string_view> paths)> && callback) noexcept {
+            _onDragAndDrop = std::move(callback);
+        }
+
         void setVisible(bool visible) noexcept;
 
     private:
@@ -75,6 +81,7 @@ namespace rhi {
         std::function<void(PointerEvent && event)> _onPointerEvent{};
         std::function<void(float dx, float dy)> _onWheelEvent{};
         std::function<void(KeyEvent && evt, uint8_t mask)> _onKeyEvent{};
+        std::function<void(std::span<std::string_view> paths)> _onDragAndDrop{};
     };
 
     class GLFWModule {
