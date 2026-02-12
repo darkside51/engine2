@@ -71,7 +71,6 @@ namespace example {
     engine::scene::Node * sceneWorldRoot = nullptr;
     engine::scene::Node * sceneNodePtr = nullptr;
     engine::scene::Skeleton * tmpSkeleton = nullptr;
-    engine::scene::SkeletalAnimation * skeletalAnimation = nullptr;
 
     engine::scene::SkeletalAnimator gSkeletalAnimator{};
 
@@ -214,11 +213,6 @@ namespace example {
 
         _defaultImage = nullptr;
         _sphereImage = nullptr;
-
-        if (skeletalAnimation) {
-            delete skeletalAnimation;
-            skeletalAnimation = nullptr;
-        }
 
         scene.destroy();
 
@@ -566,6 +560,11 @@ namespace example {
             auto const modelBytes = _fileManager.readFile("assets/models/model.glb");
             auto modelLayout = engine::graphics::models::loadModelLayout(modelBytes, _fileManager, "assets/models/");
             auto const modelIdx = modelManager.addModel("model.glb", modelLayout);
+
+            const auto & modelData = modelManager.getModelData(modelIdx);
+            for (const auto & animation : modelData.animations) {
+                animationManager.registerAnimation("skeletal_mesh_anim0", engine::scene::SkeletalAnimation(animation));
+            }
         }
 
         {
@@ -1005,7 +1004,6 @@ namespace example {
                 if (i == 5u) {
                     if (auto * skeleton = static_cast<engine::scene::Skeleton *>(meshRoot->getAttachment())) {
                         tmpSkeleton = skeleton;
-                        skeletalAnimation = new engine::scene::SkeletalAnimation(skeleton->meshData().animations[0u]);
                         gSkeletalAnimator.enlarge2(skeleton->nodesCount());
                     }
                 }
@@ -1283,6 +1281,7 @@ namespace example {
             // sceneNodePtr->setTransform(tr);
         }
 
+        const auto * skeletalAnimation = animationManager.getAnimation<engine::scene::SkeletalAnimation>(0u);
         if (skeletalAnimation && tmpSkeleton) {
             const std::chrono::duration<float> nowDuration = now.time_since_epoch();
             const float nowTimeCount = nowDuration.count();

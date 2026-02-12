@@ -16,14 +16,14 @@ namespace engine::scene {
     class SkeletalAnimation : public Animation {
     public:
         ~SkeletalAnimation() = default;
-        SkeletalAnimation(const graphics::models::Mesh_Animation & animation) : _animation(animation) {}
+        SkeletalAnimation(const graphics::models::Mesh_Animation & animation) : _animation(&animation) {}
 
         const graphics::models::Mesh_Animation & getAnimation() const noexcept {
-            return _animation;
+            return *_animation;
         }
 
     private:
-        const graphics::models::Mesh_Animation & _animation;
+        const graphics::models::Mesh_Animation * _animation;
     };
 
     enum class TransformChangeFlags : uint8_t { 

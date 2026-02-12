@@ -21,6 +21,12 @@ class AnimationManager {
 public:
     static constexpr uint16_t kUnknownAnimation = 0xff'ffu;
 
+    struct AnimationRemap {
+        uint32_t type = 0xff'ff'ff'ffu;
+        uint16_t from = 0xff'ffu;
+        uint16_t to = 0xff'ffu;
+    };
+
     template <typename T>
     const T * getAnimation(uint16_t animationId) const noexcept {
         const Animation * result = nullptr;
@@ -63,13 +69,38 @@ public:
         }
     }
 
-    void unregisterAnimation(std::string_view name) noexcept {
+    [[nodiscard]] AnimationRemap unregisterAnimation(std::string_view name) noexcept {
         if (auto it = _animationNames.find(name); it != _animationNames.end()) {
-            // todo
-            return;
+            const auto [type, i] = it->second;
+            AnimationRemap result {
+                .type = type,
+                .from = 0xff'ffu,
+                .to = i
+            };
+
+            switch (type) {
+            case ctti::typeIndex<Animation, SkeletalAnimation>():
+            {
+                result.from = _skeletalAnimations.size() - 1u;
+                std::swap(_skeletalAnimations[i], _skeletalAnimations.back());
+                _skeletalAnimations.pop_back();
+                
+            }
+                break;
+            case ctti::typeIndex<Animation, FramesSequence>():
+            {
+                result.from = _sequences.size() - 1u;
+                std::swap(_sequences[i], _sequences.back());
+                _sequences.pop_back();
+            }
+                break;
+            }
+
+            return result;
         }
+
         // animation with name "name" is no exists
-        return;
+        return {};
     }
 
     uint16_t getAnimationIndex(std::string_view name) const noexcept {
