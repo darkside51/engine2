@@ -11,7 +11,6 @@
 #include "threads/thread_pool/thread_pool.h"
 
 #include <algorithm>
-#include <array>
 
 #include <unordered_map>
 
@@ -28,18 +27,17 @@ namespace engine::scene {
 
     using SsboTransform = mat3x4f; // to use 48bytes transposed matrices
     constexpr uint32_t kSsboTransformSize = sizeof(SsboTransform);
-    constexpr uint32_t kDefaultSkeletoneBonesCount = 128;
+    constexpr uint32_t kDefaultSkeletoneBonesCount = 128u;
     constexpr uint32_t kSsboSkeletalTransformSize = sizeof(SsboTransform) * kDefaultSkeletoneBonesCount;
 
     FramesSequenceAnimator gSequenceAnimator{1.0f / 30.0f};
     SkeletalAnimator gSkeletalAnimator{};
 
     constexpr uint8_t kSkeletalAnimationCountToEnableMultyThreading = 64u;
-    threads::ThreadPool gThreadPool{4u};
-    SkeletalAnimator gSkeletalAnimatorArr[4u];
+    constexpr uint8_t kAnimationCalculationPoolsCount = 4u;
 
-    threads::WaitSource w8[128u];
-    std::vector<threads::WaitSource*> w8Current;
+    threads::ThreadPool gThreadPool{kAnimationCalculationPoolsCount};
+    std::array<SkeletalAnimator, kAnimationCalculationPoolsCount> gSkeletalAnimatorsMT;
 
     // struct ColoredVertex {
     //     std::array<float, 3u> coord;
@@ -315,10 +313,10 @@ namespace engine::scene {
                     const auto animations = std::span{it, it + count};
                     it += count;
                     
-                    const auto w8Number = w8Current.size();
-                    w8Current.emplace_back(&w8[w8Number]);
+                    const auto w8Id = _calculationWaiterPtrs.size();
+                    auto * taskW8 = _calculationWaiterPtrs.emplace_back(&_calculationWaiters[w8Id]);
 
-                    gThreadPool.execute([i, &animationManager, nowTimeCount, animations, w8Number]() {
+                    gThreadPool.execute([animator = &gSkeletalAnimatorsMT[i], &animationManager, nowTimeCount, animations, taskW8]() {
                         auto animId = kUndefinedAnimId;
                         const SkeletalAnimation * currentAnim = nullptr;
 
@@ -330,13 +328,13 @@ namespace engine::scene {
 
                             if (currentAnim) {
                                 auto * skeleton = static_cast<Skeleton*>(object);
-                                gSkeletalAnimatorArr[i].enlarge2(skeleton->nodesCount());
-                                gSkeletalAnimatorArr[i].update2(nowTimeCount - animInfo->startTime, *currentAnim);
-                                gSkeletalAnimatorArr[i].apply2(*skeleton);
+                                animator->enlarge2(skeleton->nodesCount());
+                                animator->update2(nowTimeCount - animInfo->startTime, *currentAnim);
+                                animator->apply2(*skeleton);
                             }
                         }
 
-                        w8[w8Number].request_complete();
+                        taskW8->request_complete();
                     });
 
                     animationsCount -= count;
@@ -384,10 +382,7 @@ namespace engine::scene {
             }
         }
 
-        // for (size_t j = 0u; j < gThreadPool.numWorkers(); ++j) {
-        //     w8[j].request_wait();
-        // }
-        // _animations.clearAndReserve();
+        // _animations.clearAndReserve(); - moved to beginFrame(...)
     }
 
     void Scene::prepareDrawData(std::span<AttachmentObject*> objects, uint8_t frame) noexcept {
@@ -944,10 +939,10 @@ namespace engine::scene {
         _meshesDrawInFrame = 0u;
         _skeletalTransformsInFrame = 0u;
 
-        for (auto * w8Ptr : w8Current) {
-            w8Ptr->request_wait();
+        for (auto * taskW8 : _calculationWaiterPtrs) {
+            taskW8->request_wait();
         }
-        w8Current.clear();
+        _calculationWaiterPtrs.clear();
         _animations.clearAndReserve();
     }
 

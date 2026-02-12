@@ -11,7 +11,9 @@
 #include "node.h"
 #include "object.h"
 #include "register.h"
+#include "threads/threads.h"
 
+#include <array>
 #include <cassert>
 #include <chrono>
 #include <cstdint>
@@ -178,7 +180,6 @@ private:
 
     } _animations;
     
-
     // render
     rhi::runtime::Rhi * _api = nullptr;
     rhi::runtime::Device * _device = nullptr;
@@ -218,6 +219,11 @@ private:
     uint32_t _skeletalTransformsInFrame = 0u;
     uint32_t _lastFramesUsedSkeletalTransforms = 0u;
     std::unique_ptr<graphics::InflightBuffer> _meshSkeletalTransforms = nullptr;
+
+    // async animation calculation:
+    // need use stop sources?
+    std::array<threads::WaitSource, 128u> _calculationWaiters;
+    std::vector<threads::WaitSource*> _calculationWaiterPtrs;
 
     // samplers:
     rhi::SamplerValue _linearSampler;
