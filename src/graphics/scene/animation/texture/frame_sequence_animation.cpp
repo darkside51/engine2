@@ -14,9 +14,7 @@ namespace engine::scene {
         std::span<std::string const> frames) : Animation(ctti::typeIndex<Animation, FramesSequence>()) {
         _frames.reserve(frames.size());
         for (auto frameName : frames) {
-            if (auto * frame = textureManager.findFrame(frameName)) {
-                _frames.emplace_back(*frame);
-            }
+            _frames.emplace_back(textureManager.findFrame(frameName));
         }
     }
 

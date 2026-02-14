@@ -17,12 +17,12 @@ namespace engine::graphics::models {
 
         vertexBuffersData.resize(allowedAttributes.size());
 
-        meshStartPrimitiveNumbers.reserve(layout.meshes.size());
-        uint16_t startPrimitiveNumber = 0u;
+        primitiveBegins.reserve(layout.meshes.size());
+        uint16_t primitiveBegin = 0u;
 
         for (const auto & srcMesh : layout.meshes) {
-            meshStartPrimitiveNumbers.emplace_back(startPrimitiveNumber);
-            startPrimitiveNumber += srcMesh.primitives.size();
+            primitiveBegins.emplace_back(primitiveBegin);
+            primitiveBegin += srcMesh.primitives.size();
 
             auto & mesh = meshes.emplace_back();
             mesh.primitives.reserve(srcMesh.primitives.size());

@@ -1088,7 +1088,7 @@ namespace example {
             // node3->setTransform(mt);
 
             auto m2 = engine::makeMatrix(0.01F);
-            auto * sprite = scene.createObject<engine::scene::Sprite>(*textureManager.findFrame("hero_head"), 0u);
+            auto * sprite = scene.createObject<engine::scene::Sprite>(textureManager.findFrame("hero_head"), 0u);
             engine::scene::attachObjectToNode(*sprite, *node3);
             sprite->setOrder(1u);
 
@@ -1100,7 +1100,7 @@ namespace example {
             node4->setPosition(engine::vec3f(0.57f, 0.05f, -0.85f));
             //node4->setTransform(m2);
             
-            auto * sprite2 = scene.createObject<engine::scene::Sprite>(*textureManager.findFrame("hero_sword"), 0u);
+            auto * sprite2 = scene.createObject<engine::scene::Sprite>(textureManager.findFrame("hero_sword"), 0u);
             engine::scene::attachObjectToNode(*sprite2, *node4);
             sprite2->setOrder(1u);
 
@@ -1125,8 +1125,8 @@ namespace example {
                         node5->setScale(engine::vec3f{0.0025f});
                         node5->setPosition(engine::vec3f{-3.0f + static_cast<float>(i) * 0.75f, -1.0f - static_cast<float>(j) * 0.75f, 0.0f});
 
-                        const auto * frame3 = textureManager.findFrame("explosion_33");
-                        auto * sprite3 = scene.createObject<engine::scene::Sprite>(*frame3, 0u);
+                        const auto & frame3 = textureManager.findFrame("explosion_33");
+                        auto * sprite3 = scene.createObject<engine::scene::Sprite>(frame3, 0u);
                         engine::scene::attachObjectToNode(*sprite3, *node5);
                         //sprite3->setOrder(-1);
                         auto * anim0 = scene.createAnimInfo<engine::scene::FramesSequence>(animId, engine::common::random(0.25f, 1.7f));
@@ -1205,7 +1205,6 @@ namespace example {
     }
 
     void Example::update(threads::ExecutionTimePoint now, float delta) {
-
         if (_mainThread) {
             // _mainThread->emplaceTasks(stl::make_vector(threads::WorkerTask{[](){
             //     LOG_D("test main thread task");

@@ -35,7 +35,7 @@ void loadNodes(Scene & scene, const graphics::ModelManager::ModelBuffers & gpuBu
         bool const createSkeletalMesh = skeleton != nullptr && node.skin != engine::graphics::models::kInvalidValue;
         const auto pipelineId = createSkeletalMesh ? pipelines.skeletalPipeline : pipelines.commonPipeline;
 
-        auto primitiveId = meshData.meshStartPrimitiveNumbers[node.mesh];
+        auto primitiveId = meshData.primitiveBegins[node.mesh];
         for (const auto & p : meshData.meshes[node.mesh].primitives) {
             auto * mesh = scene.createObject<engine::scene::Mesh>(p, dataIndex, primitiveId++, node.skin, pipelineId);
                 

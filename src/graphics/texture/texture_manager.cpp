@@ -115,10 +115,10 @@ namespace engine::graphics {
         );
     }
 
-    bool TextureManager::addFrame(std::string_view name, const rhi::runtime::ImagePtr & image, const Frame2D & frame) {
+    const ImageFrame2D & TextureManager::addFrame(std::string_view name, const rhi::runtime::ImagePtr & image, const Frame2D & frame) {
         if (auto it = _frames2D.find(name); it != _frames2D.end()) {
             LOG_D("TextureManager: frame with name %s alredy exists!", name.data());
-            return false;
+            return it->second;
         }
 
         if (image) {
@@ -131,9 +131,9 @@ namespace engine::graphics {
             }
         }
 
-        _frames2D.emplace(name, ImageFrame2D{image, frame});
-
-        return true;
+        const auto & [imageFrame, success] = _frames2D.emplace(name, ImageFrame2D{image, frame});
+        assert(success);
+        return imageFrame->second;
     }
 
     void TextureManager::addFrames(std::span<std::pair<std::string, Frame2D>> frames, const rhi::runtime::ImagePtr & image) {
@@ -180,15 +180,17 @@ namespace engine::graphics {
     }
 
     const rhi::runtime::ImagePtr & TextureManager::getImage(uint32_t idx) const noexcept {
+        // so unsafe...
+        // do not use it!
         assert(idx < _images.size());
         return _images[idx];
     }
 
-    const ImageFrame2D * TextureManager::findFrame(std::string_view name) const noexcept {
+    const ImageFrame2D & TextureManager::findFrame(std::string_view name) const noexcept {
         if (auto it = _frames2D.find(name); it != _frames2D.end()) {
-            return &it->second;
+            return it->second;
         }
-        return &_defaultFrame;
+        return _defaultFrame;
     }
 
 }

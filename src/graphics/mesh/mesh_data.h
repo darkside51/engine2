@@ -2,10 +2,12 @@
 
 #include "types.h"
 #include "math/math.h"
+#include "graphics/render/rhi/common/types.h"
+#include "graphics/texture/image_frame.h"
 
+#include <array>
 #include <cstdint>
 #include <cstddef>
-
 #include <limits>
 #include <span>
 #include <string>
@@ -64,13 +66,31 @@ namespace engine::graphics::models {
 		uint16_t maxTargetNodeId = 0u;
     };
 
+	enum class Texture_Map : uint8_t {
+		eBaseColor = 0u,
+		eNormal = 1u,
+		eMetallicRoughness = 2u,
+		eOccolusion = 3u,
+		eEmissive = 4u
+	};
+
+	struct Mesh_Material {
+		std::array<ImageFrame2D, 5u> textures;
+		vec4f baseColorFactor = {1.0f, 1.0f, 1.0f, 1.0f};
+		vec3f emissiveFactor = {0.0f, 0.0f, 0.0f};
+		float metallicFactor = 1.0f;
+		float roughnessFactor = 1.0f;	
+		float alphaCutoff = 0.5f;
+		rhi::BlendMode blendMode = rhi::common_blend_modes::blend_none;
+		rhi::CullMode cullMode = rhi::CullMode::eBack;
+	};
+
 	struct Mesh_Buffers_Data {
 		std::vector<std::vector<std::byte>> vertexBuffersData;
 		std::vector<uint32_t> indexBufferData;
 	};
 
     struct Mesh_Data {
-		// explicit Mesh_Data(uint32_t id) : uniqueId(id) {}
 		Mesh_Data() = default;
 		
 		Mesh_Data(const Mesh_Data &) = delete;
@@ -84,15 +104,15 @@ namespace engine::graphics::models {
 		std::vector<Mesh_Animation> animations;
 		std::vector<Mesh_Geometry> meshes;
         std::vector<Node> nodes;
-		std::vector<uint16_t> meshStartPrimitiveNumbers;
+		std::vector<uint16_t> primitiveBegins;
 
-		// uint32_t uniqueId = 0u;
 		uint32_t skinMatricesCount = 0u;
 
 		void loadSkins(const Layout & layout);
 		void loadAnimations(const Layout & layout);
     	Mesh_Buffers_Data loadMeshes(const Layout & layout, std::span<const AttributeSemantic> allowedAttributes);
 		void loadNodes(const Layout & layout);
+		void loadMaterials();
 
 		void optimizeBuffers(std::span<std::vector<std::byte>> vertexBuffersData, std::vector<uint32_t> & indexBufferData, std::span<const AttributeSemantic> allowedAttributes);
 	};
