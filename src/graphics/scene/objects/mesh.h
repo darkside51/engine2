@@ -27,7 +27,7 @@ namespace mesh {
 
     class Skeleton : public AttachmentObject {
     public:
-        explicit Skeleton(const graphics::models::Mesh_Data & meshData);
+        explicit Skeleton(const graphics::models::MeshData & meshData);
         ~Skeleton() /*override*/ = default;
 
         uint32_t nodesCount() const noexcept {
@@ -41,7 +41,7 @@ namespace mesh {
             return _nodes[idx];
         }
 
-        const graphics::models::Mesh_Data & meshData() const noexcept {
+        const graphics::models::MeshData & meshData() const noexcept {
             return _meshData;
         }
 
@@ -50,13 +50,13 @@ namespace mesh {
         void fillSkinMatrices2(std::span<mat3x4f> target) const noexcept;
 
     private:
-        const graphics::models::Mesh_Data & _meshData;
+        const graphics::models::MeshData & _meshData;
         std::vector<Node *> _nodes;
     };
 
     class Mesh : public AttachmentObject {
     public:
-        Mesh(const graphics::models::Primitive & primitive,
+        Mesh(const graphics::models::Primitive & primitive, /*const graphics::models::MeshMaterial & material,*/
             uint32_t dataIndex, uint16_t geometryDataIndex, uint16_t skin, uint32_t pipeline);
         ~Mesh() /*override*/ = default;
 
@@ -100,6 +100,7 @@ namespace mesh {
 
     private:
         const graphics::models::Primitive & _geometry;
+        // const graphics::models::MeshMaterial & _material;
         Skeleton * _skeleton = nullptr;
 
         uint32_t _pipeline = 0u;

@@ -157,7 +157,7 @@ namespace engine::scene {
     }
 
     void SkeletalAnimator::mix(const SkeletalAnimator & animator0, const SkeletalAnimator & animator1, 
-        const graphics::models::Mesh_Data & meshData, float mix) noexcept {
+        const graphics::models::MeshData & meshData, float mix) noexcept {
         const SkeletalAnimator * minAnimator = &animator0;
         const SkeletalAnimator * maxAnimator = &animator1;
 

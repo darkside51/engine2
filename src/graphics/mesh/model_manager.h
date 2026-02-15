@@ -18,7 +18,13 @@
 #include <utility>
 #include <vector>
 
+namespace engine {
+    class FileManager;
+}
+
 namespace engine::graphics {
+
+class TextureManager;
 
 constexpr auto kDefaultSemantics = std::array {
     models::AttributeSemantic::ePosition, 
@@ -29,10 +35,9 @@ constexpr auto kDefaultSemantics = std::array {
 };
 
 class ModelManager {
-
-    using Allocator = allocators::PoolAllocator<sizeof(models::Mesh_Data), alignof(models::Mesh_Data), false>;
+    using Allocator = allocators::PoolAllocator<sizeof(models::MeshData), alignof(models::MeshData), false>;
     using ModelsMap = std::unordered_map<std::string, uint32_t, hash::String_hash, std::equal_to<>>;
-    using Models = std::vector<models::Mesh_Data*>;
+    using Models = std::vector<models::MeshData*>;
 
 public:
     struct ModelBuffers {
@@ -45,6 +50,7 @@ public:
     void destroy();
 
     uint32_t addModel(std::string_view name, const models::Layout & layout, 
+        TextureManager & textureManager, const FileManager & fileManager,
         std::span<const graphics::models::AttributeSemantic> attributes = kDefaultSemantics);
     bool removeModel(std::string_view name);
     
@@ -55,7 +61,7 @@ public:
         return 0xff'ff'ff'ffu;
     }
 
-    const models::Mesh_Data & getModelData(uint32_t idx) const noexcept { 
+    const models::MeshData & getModelData(uint32_t idx) const noexcept { 
         assert(idx < _models.size());
         return *_models[idx];
     }
@@ -72,7 +78,7 @@ private:
     ModelsMap _modelsMap;
     Models _models;
     std::vector<ModelBuffers> _gpuData;
-    std::vector<std::pair<uint32_t, models::Mesh_Buffers_Data>> _tmpData;
+    std::vector<std::pair<uint32_t, models::MeshBuffersData>> _tmpData;
 };
 
 }

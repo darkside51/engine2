@@ -71,8 +71,8 @@ namespace engine::scene {
         }
     }
 
-    Scene::Scene(debug::DebugDraw & drawHelper) : 
-        _rootNode(createNode()), 
+    Scene::Scene( debug::DebugDraw & drawHelper) : 
+        _rootNode(createNode()),
         _drawHelper(drawHelper) {
         registerTypes();
     }

@@ -16,14 +16,14 @@ namespace engine::scene {
     class SkeletalAnimation : public Animation {
     public:
         ~SkeletalAnimation() = default;
-        SkeletalAnimation(const graphics::models::Mesh_Animation & animation) : _animation(&animation) {}
+        SkeletalAnimation(const graphics::models::MeshAnimation & animation) : _animation(&animation) {}
 
-        const graphics::models::Mesh_Animation & getAnimation() const noexcept {
+        const graphics::models::MeshAnimation & getAnimation() const noexcept {
             return *_animation;
         }
 
     private:
-        const graphics::models::Mesh_Animation * _animation;
+        const graphics::models::MeshAnimation * _animation;
     };
 
     enum class TransformChangeFlags : uint8_t { 
@@ -59,7 +59,7 @@ namespace engine::scene {
 
         // mix values from 2 animators
         void mix(const SkeletalAnimator & animator0, const SkeletalAnimator & animator1,
-             const graphics::models::Mesh_Data & meshData, float mix) noexcept;
+             const graphics::models::MeshData & meshData, float mix) noexcept;
 
         void apply2(Skeleton & skeleton) const noexcept;
 

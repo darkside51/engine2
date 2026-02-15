@@ -28,6 +28,7 @@
 #include "graphics/scene/scene.h"
 #include "graphics/scene/transform.h"
 
+#include "graphics/common/graphics_service.h"
 #include "graphics/debug/debug_draw.h"
 #include "graphics/texture/atlas.h"
 #include "graphics/scene/animation/texture/frame_sequence_animation.h"
@@ -35,6 +36,8 @@
 #include "graphics/scene/animation_manager.h"
 #include "graphics/scene/scene_helper.h"
 #include "graphics/mesh/model_manager.h"
+
+#include <optional>
 
 // https://www.saschawillems.de/blog/2018/07/19/vulkan-input-attachments-and-sub-passes/
 // https://docs.vulkan.org/samples/latest/samples/api/timestamp_queries/README.html
@@ -65,6 +68,7 @@ namespace example {
     engine::graphics::TextureManager textureManager;
     engine::graphics::ModelManager modelManager;
     engine::scene::AnimationManager animationManager;
+    std::optional<engine::graphics::GraphicsService> graphicsService{};
 
     engine::scene::Camera camera;
     engine::scene::SphereCameraController controller{camera};
@@ -557,7 +561,7 @@ namespace example {
         {
             auto const modelBytes = _fileManager.readFile("assets/models/model.glb");
             auto modelLayout = engine::graphics::models::loadModelLayout(modelBytes, _fileManager, "assets/models/");
-            auto const modelIdx = modelManager.addModel("model.glb", modelLayout);
+            auto const modelIdx = modelManager.addModel("model.glb", modelLayout, textureManager, _fileManager);
 
             const auto & modelData = modelManager.getModelData(modelIdx);
             for (const auto & animation : modelData.animations) {
@@ -568,7 +572,7 @@ namespace example {
         {
             auto const modelBytes = _fileManager.readFile("assets/models/1/scene.gltf");
             auto modelLayout = engine::graphics::models::loadModelLayout(modelBytes, _fileManager, "assets/models/1/");
-            auto const modelIdx = modelManager.addModel("scene.gltf", modelLayout);
+            auto const modelIdx = modelManager.addModel("scene.gltf", modelLayout, textureManager, _fileManager);
         }
 
         modelManager.generateGpuBuffers(*_api, *_device, tmpCommandList);
@@ -997,7 +1001,7 @@ namespace example {
             };
 
             auto const animId = animationManager.getAnimationIndex("skeletal_mesh_anim0");
-            for (size_t i = 0u; i < 1000u; ++i) {
+            for (size_t i = 0u; i < 10u; ++i) {
                 auto * meshRoot = engine::scene::createNodeWithSkeletalMesh(scene, modelManager, 0u, 
                     engine::scene::Bounds::Type::eSphere, pipelines);
                 
@@ -1014,7 +1018,7 @@ namespace example {
 
                 meshRoot->setScale(engine::common::random(0.2f, 0.25f));
                 meshRoot->setRotation(engine::vec3f(1.57f, 0.0f, engine::common::random(-3.14f, 3.14f)));
-                meshRoot->setPosition(engine::vec3f(-5.0f + i % 30 * 0.5f, i / 30 * -0.5f, 0.0f));
+                meshRoot->setPosition(engine::vec3f(-2.0f + i % 30 * 0.5f, i / 30 * -0.5f, 0.0f));
 
                 sceneWorldRoot->addChild(meshRoot);
             }

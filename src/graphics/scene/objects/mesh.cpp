@@ -11,7 +11,7 @@
 namespace engine::scene {
 
     // skeleton:
-    Skeleton::Skeleton(const graphics::models::Mesh_Data & meshData) :
+    Skeleton::Skeleton(const graphics::models::MeshData & meshData) :
         AttachmentObject(ctti::typeIndex<AttachmentObject, Skeleton>()), _meshData(meshData), _nodes(meshData.nodes.size()) {
     }
 
@@ -20,7 +20,7 @@ namespace engine::scene {
     }
 
     bool Skeleton::cmp(const Skeleton & other) const noexcept {
-        return std::less<const graphics::models::Mesh_Data*>{}(&_meshData, &other._meshData);
+        return std::less<const graphics::models::MeshData*>{}(&_meshData, &other._meshData);
     }
 
     void Skeleton::fillSkinMatrices2(std::span<mat3x4f> target) const noexcept {
@@ -39,10 +39,11 @@ namespace engine::scene {
     }
 
     // mesh:
-    Mesh::Mesh(const graphics::models::Primitive & primitive, 
+    Mesh::Mesh(const graphics::models::Primitive & primitive, /*const graphics::models::MeshMaterial & material,*/
         uint32_t dataIndex, uint16_t geometryDataIndex, uint16_t skin, uint32_t pipeline) :
         AttachmentObject(ctti::typeIndex<AttachmentObject, Mesh>()), 
-        _geometry(primitive), 
+        _geometry(primitive),
+        //_material(material),
         _pipeline(pipeline), 
         _dataIndex(dataIndex), 
         _geometryDataIndex(geometryDataIndex), 
@@ -83,6 +84,10 @@ namespace engine::scene {
     }
 
     void Mesh::attachToNode(Node * node) noexcept {
+
+        // sizeof(Mesh);
+        // sizeof(std::span<graphics::models::MeshMaterial>);
+
         if (node) {
             vec3f minCorner{std::numeric_limits<float>::max()};
             vec3f maxCorner{std::numeric_limits<float>::lowest()};

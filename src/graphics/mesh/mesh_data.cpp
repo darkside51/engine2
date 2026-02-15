@@ -1,6 +1,9 @@
 #include "mesh_data.h"
 #include "gltf_loader.h"
+#include "graphics/texture/texture_data_loader.h"
+#include "graphics/texture/texture_manager.h"
 #include "graphics/utils/vertex_processing.h"
+#include "file/file_manager.h"
 
 #include "meshoptimizer.h"
 
@@ -8,10 +11,10 @@
 
 namespace engine::graphics::models {
     
-    Mesh_Buffers_Data Mesh_Data::loadMeshes(const Layout & layout, std::span<const AttributeSemantic> allowedAttributes) {
+    MeshBuffersData MeshData::loadMeshes(const Layout & layout, std::span<const AttributeSemantic> allowedAttributes) {
         meshes.reserve(layout.meshes.size());
 
-        Mesh_Buffers_Data result;
+        MeshBuffersData result;
         auto & vertexBuffersData = result.vertexBuffersData;
         auto & indexBufferData = result.indexBufferData;
 
@@ -231,7 +234,7 @@ namespace engine::graphics::models {
         return result;
     }
 
-    void Mesh_Data::optimizeBuffers(std::span<std::vector<std::byte>> vertexBuffersData, std::vector<uint32_t> & indexBufferData, std::span<const AttributeSemantic> allowedAttributes) {
+    void MeshData::optimizeBuffers(std::span<std::vector<std::byte>> vertexBuffersData, std::vector<uint32_t> & indexBufferData, std::span<const AttributeSemantic> allowedAttributes) {
         // mesh optimizer
         std::vector<meshopt_Stream> streams;
         streams.reserve(vertexBuffersData.size());
@@ -403,7 +406,7 @@ namespace engine::graphics::models {
         indexBufferData.shrink_to_fit();
     }
 
-	void Mesh_Data::loadNodes(const Layout & layout) {
+	void MeshData::loadNodes(const Layout & layout) {
 		sceneNodes = layout.scenes[layout.scene].nodes;
 		nodes = layout.nodes; // copy data
 
@@ -425,7 +428,7 @@ namespace engine::graphics::models {
 		// }
 	}
 
-    void Mesh_Data::loadSkins(const Layout & layout) {
+    void MeshData::loadSkins(const Layout & layout) {
         skins.reserve(layout.skins.size());
         skinMatricesCount = 0u;
         for (const auto & srcSkin : layout.skins) {
@@ -444,7 +447,7 @@ namespace engine::graphics::models {
         assert(skinMatricesCount <= 0xffu); // support 256 bones max if enabled uint8_t joints!
     }
 
-    void Mesh_Data::loadAnimations(const Layout & layout) {
+    void MeshData::loadAnimations(const Layout & layout) {
         animations.reserve(layout.animations.size());
 
         size_t samplerInputsCount = 0u;
@@ -544,5 +547,70 @@ namespace engine::graphics::models {
             }
         }
 	}
+
+    void MeshData::loadMaterials(const Layout & layout, const FileManager & fileManager, TextureManager & textureManager) {
+        auto const loadTexture = [&layout, &fileManager, &textureManager](uint16_t index) -> ImageFrame2D {
+            if (index == kInvalidValue) {
+                return {};
+            }
+
+            const auto & texture = layout.textures[index];
+            const auto & image = layout.images[texture.source];
+
+            if (image.bufferView != kInvalidValue) {
+                const auto & bufferView = layout.bufferViews[image.bufferView];
+                const auto & buffer = layout.buffers[bufferView.buffer];
+                const std::byte * begin = &buffer.data[bufferView.offset];
+                auto textureData = engine::graphics::parseTextureData({begin, begin + bufferView.length});
+                return {};
+            }
+            if (!image.uri.empty()) {
+                auto const imageBytes = fileManager.readFile(image.uri);
+                auto textureData = engine::graphics::parseTextureData(imageBytes);
+                return {};
+            }
+
+            return {};
+        };
+
+        materials.reserve(layout.materials.size());
+
+        for (const auto & srcMaterial : layout.materials) {
+            auto & material = materials.emplace_back();
+            material.baseColorFactor = {
+                srcMaterial.pbrMetallicRoughness.baseColorFactor.x,
+                srcMaterial.pbrMetallicRoughness.baseColorFactor.y,
+                srcMaterial.pbrMetallicRoughness.baseColorFactor.z,
+                srcMaterial.pbrMetallicRoughness.baseColorFactor.w
+            };
+            material.emissiveFactor = {
+                srcMaterial.emissiveFactor.x,
+                srcMaterial.emissiveFactor.y,
+                srcMaterial.emissiveFactor.z,
+            };
+            material.metallicFactor = srcMaterial.pbrMetallicRoughness.metallicFactor;
+            material.roughnessFactor = srcMaterial.pbrMetallicRoughness.roughnessFactor;
+            material.alphaCutoff = srcMaterial.alphaCutoff;
+            switch (srcMaterial.alphaMode) {
+            case AlphaMode::eOpaque:
+                material.blendMode = rhi::common_blend_modes::blend_none;
+                break;
+            case AlphaMode::eMask:
+                material.blendMode = rhi::common_blend_modes::blend_multiply; // ?
+                break;
+            case AlphaMode::eBlend:
+                material.blendMode = rhi::common_blend_modes::blend_alpha_pma; // ?
+                break;
+            }
+
+            material.cullMode = srcMaterial.doubleSided ? rhi::CullMode::eNone : rhi::CullMode::eBack;
+
+            material.textures[static_cast<uint8_t>(TextureId::eBaseColor)] = loadTexture(srcMaterial.pbrMetallicRoughness.baseColorTexture.index);
+            material.textures[static_cast<uint8_t>(TextureId::eNormal)] = loadTexture(srcMaterial.normalTexture.index);
+            material.textures[static_cast<uint8_t>(TextureId::eMetallicRoughness)] = loadTexture(srcMaterial.pbrMetallicRoughness.metallicRoughnessTexture.index);
+            material.textures[static_cast<uint8_t>(TextureId::eOccolusion)] = loadTexture(srcMaterial.occlusionTexture.index);
+            material.textures[static_cast<uint8_t>(TextureId::eEmissive)] = loadTexture(srcMaterial.emissiveTexture.index);
+        }
+    }
 
 }

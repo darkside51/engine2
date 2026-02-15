@@ -11,7 +11,7 @@
 namespace engine::scene {
 
 void loadNodes(Scene & scene, const graphics::ModelManager::ModelBuffers & gpuBuffers, 
-    const graphics::models::Mesh_Data & meshData, uint32_t dataIndex, engine::scene::Node * parent, 
+    const graphics::models::MeshData & meshData, uint32_t dataIndex, engine::scene::Node * parent, 
     uint16_t nodeId, engine::scene::Skeleton * skeleton, MeshPipelines pipelines, vec3f & minCorner, vec3f & maxCorner) {
 
     auto * current = scene.createNode();
@@ -37,7 +37,7 @@ void loadNodes(Scene & scene, const graphics::ModelManager::ModelBuffers & gpuBu
 
         auto primitiveId = meshData.primitiveBegins[node.mesh];
         for (const auto & p : meshData.meshes[node.mesh].primitives) {
-            auto * mesh = scene.createObject<engine::scene::Mesh>(p, dataIndex, primitiveId++, node.skin, pipelineId);
+            auto * mesh = scene.createObject<engine::scene::Mesh>(p, /*meshData.materials[p.material], */dataIndex, primitiveId++, node.skin, pipelineId);
                 
             mesh->setIndices({gpuBuffers.indexBuffer});
             mesh->setAttribute({gpuBuffers.vertexBuffers[0u]}, engine::scene::mesh::Semantic::ePosition);

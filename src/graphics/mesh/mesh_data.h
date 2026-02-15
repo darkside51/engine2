@@ -13,7 +13,13 @@
 #include <string>
 #include <vector>
 
-namespace engine::graphics::models {
+namespace engine {
+    class FileManager;
+
+namespace graphics {
+	class TextureManager;
+
+namespace models {
 
 	struct Layout;
 	struct Node;
@@ -27,19 +33,19 @@ namespace engine::graphics::models {
 		PrimitiveMode primitiveMode = PrimitiveMode::eTriangles;
 	};
 
-    struct Mesh_Geometry {
+    struct MeshGeometry {
 		std::vector<Primitive> primitives;
 		// uint16_t nodeIndex = kInvalidValue;
         // uint16_t skinIndex = kInvalidValue;
 	};
 
-    struct Mesh_Skin {
+    struct MeshSkin {
 		uint16_t skeletonRoot = kInvalidValue;
 		std::vector<mat4f> inverseBindMatrices;
 		std::vector<uint16_t> joints;
 	};
 
-    struct Mesh_Animation {
+    struct MeshAnimation {
 		std::string name;
 		// maybe move all animation data to special storges in animation manager for cache locallity?
         std::vector<float> samplerInputs;
@@ -66,7 +72,7 @@ namespace engine::graphics::models {
 		uint16_t maxTargetNodeId = 0u;
     };
 
-	enum class Texture_Map : uint8_t {
+	enum class TextureId : uint8_t {
 		eBaseColor = 0u,
 		eNormal = 1u,
 		eMetallicRoughness = 2u,
@@ -74,7 +80,7 @@ namespace engine::graphics::models {
 		eEmissive = 4u
 	};
 
-	struct Mesh_Material {
+	struct MeshMaterial {
 		std::array<ImageFrame2D, 5u> textures;
 		vec4f baseColorFactor = {1.0f, 1.0f, 1.0f, 1.0f};
 		vec3f emissiveFactor = {0.0f, 0.0f, 0.0f};
@@ -85,35 +91,39 @@ namespace engine::graphics::models {
 		rhi::CullMode cullMode = rhi::CullMode::eBack;
 	};
 
-	struct Mesh_Buffers_Data {
+	struct MeshBuffersData {
 		std::vector<std::vector<std::byte>> vertexBuffersData;
 		std::vector<uint32_t> indexBufferData;
 	};
 
-    struct Mesh_Data {
-		Mesh_Data() = default;
+    struct MeshData {
+		MeshData() = default;
 		
-		Mesh_Data(const Mesh_Data &) = delete;
-		Mesh_Data(Mesh_Data &&) noexcept = default;
+		MeshData(const MeshData &) = delete;
+		MeshData(MeshData &&) noexcept = default;
 
-		Mesh_Data & operator= (const Mesh_Data &&) = delete;
-		Mesh_Data & operator= (Mesh_Data &&) noexcept = default;
+		MeshData & operator= (const MeshData &&) = delete;
+		MeshData & operator= (MeshData &&) noexcept = default;
 
         std::vector<uint16_t> sceneNodes;
-		std::vector<Mesh_Skin> skins;
-		std::vector<Mesh_Animation> animations;
-		std::vector<Mesh_Geometry> meshes;
+		std::vector<MeshSkin> skins;
+		std::vector<MeshAnimation> animations;
+		std::vector<MeshGeometry> meshes;
         std::vector<Node> nodes;
+		std::vector<MeshMaterial> materials;
 		std::vector<uint16_t> primitiveBegins;
 
 		uint32_t skinMatricesCount = 0u;
 
 		void loadSkins(const Layout & layout);
 		void loadAnimations(const Layout & layout);
-    	Mesh_Buffers_Data loadMeshes(const Layout & layout, std::span<const AttributeSemantic> allowedAttributes);
+    	MeshBuffersData loadMeshes(const Layout & layout, std::span<const AttributeSemantic> allowedAttributes);
 		void loadNodes(const Layout & layout);
-		void loadMaterials();
+		void loadMaterials(const Layout & layout, const FileManager & fileManager, TextureManager & textureManager);
 
 		void optimizeBuffers(std::span<std::vector<std::byte>> vertexBuffersData, std::vector<uint32_t> & indexBufferData, std::span<const AttributeSemantic> allowedAttributes);
 	};
+}
+
+}
 }

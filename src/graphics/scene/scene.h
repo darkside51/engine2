@@ -25,6 +25,10 @@
 
 namespace engine {
 
+namespace graphics {
+    class GraphicsService;
+}
+
 namespace scene {
 constexpr bool kDebugDrawBounds = false;
 constexpr bool kDebugDrawGizmos = false;

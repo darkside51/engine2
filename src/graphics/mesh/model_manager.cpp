@@ -22,12 +22,18 @@ namespace engine::graphics {
         _tmpData.clear();
     }
 
-    uint32_t ModelManager::addModel(std::string_view name, const models::Layout & layout, std::span<const graphics::models::AttributeSemantic> attributes) {
+    uint32_t ModelManager::addModel(
+        std::string_view name, 
+        const models::Layout & layout, 
+        TextureManager & textureManager, 
+        const FileManager & fileManager, 
+        std::span<const graphics::models::AttributeSemantic> attributes
+    ) {
         if (const auto idx = getModelDataIdx(name); idx != 0xff'ff'ff'ffu) {
             return idx;
         }
 
-        auto * meshData = _allocator.create<models::Mesh_Data>();
+        auto * meshData = _allocator.create<models::MeshData>();
         const auto result = _allocator.getObjectNumber(meshData);
 
         _modelsMap.emplace(name, result);
@@ -40,6 +46,7 @@ namespace engine::graphics {
 
         meshData->loadSkins(layout);
         meshData->loadAnimations(layout);
+        meshData->loadMaterials(layout, fileManager, textureManager);
 
         auto buffers = meshData->loadMeshes(layout, attributes);
         meshData->optimizeBuffers(buffers.vertexBuffersData, buffers.indexBufferData, attributes);
