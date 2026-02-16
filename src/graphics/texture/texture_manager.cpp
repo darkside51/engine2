@@ -1,5 +1,6 @@
 #include "texture_manager.h"
 
+#include "graphics/render/rhi/common/runtime.h"
 #include "graphics/render/staging_buffer.h"
 #include "graphics/render/rhi/common/command_list.h"
 #include "log/log.h"
@@ -7,6 +8,8 @@
 #include <cassert>
 
 namespace engine::graphics {
+
+    TextureManager::TextureManager(rhi::runtime::Rhi & api, rhi::runtime::Device & device) : _api(api), _device(device) {}
 
     void TextureManager::destroy() {
         _imagesSet.clear();
@@ -115,6 +118,40 @@ namespace engine::graphics {
         );
     }
 
+    const ImageFrame2D & TextureManager::addFrame(std::string_view name, TextureCreateInfo && info, const Frame2D & frame) {
+        if (auto it = _frames2D.find(name); it != _frames2D.end()) {
+            LOG_D("TextureManager: frame with name %s alredy exists!", name.data());
+            return it->second;
+        }
+
+        if (info.metaInfo.format == rhi::Format::eUndefined) {
+            return _defaultFrame;
+        }
+
+        const auto imageInfo = rhi::ImageInfo {
+            rhi::ImageUsageFlags::eSampled | rhi::ImageUsageFlags::eTransfer_Dst,
+            info.metaInfo.format, {info.metaInfo.size.x, info.metaInfo.size.y, 1u}
+        };
+
+        const auto image = _api.createImage(_device, imageInfo);
+
+        if (image) {
+            auto it = _imagesSet.find(image.get());
+            if (it == _imagesSet.end()) {
+                _images.emplace_back(image);
+                _imagesSet.emplace(image.get(), 1u);
+            } else {
+                ++const_cast<ImageHolder&>(*it).count;
+            }
+        }
+
+        const auto & [imageFrame, success] = _frames2D.emplace(name, ImageFrame2D{image, frame});
+        assert(success);
+
+        _tmpTexturesData.emplace_back(image, std::move(info));
+        return imageFrame->second;
+    }
+
     const ImageFrame2D & TextureManager::addFrame(std::string_view name, const rhi::runtime::ImagePtr & image, const Frame2D & frame) {
         if (auto it = _frames2D.find(name); it != _frames2D.end()) {
             LOG_D("TextureManager: frame with name %s alredy exists!", name.data());
@@ -191,6 +228,45 @@ namespace engine::graphics {
             return it->second;
         }
         return _defaultFrame;
+    }
+
+    void TextureManager::generateGpuData(rhi::runtime::Rhi & api, rhi::runtime::Device & device, rhi::runtime::CommandListPtr & commandList) {
+        using namespace rhi;
+        if (_tmpTexturesData.empty()) {
+            return;
+        }
+
+        uint32_t allDataSize = 0u;
+        for (const auto & [_, info] : _tmpTexturesData) {
+            allDataSize += info.data.size();
+        }
+
+        StagingBuffer staging{api, device, allDataSize};
+        auto & stagingBuffer = staging.getBuffer();
+        std::byte * memory = staging.map();
+
+        for (auto & [image, info] : _tmpTexturesData) {
+            auto const sizeInBytes = info.data.size();
+            const auto bufferOffset = staging.requestBytes(sizeInBytes);
+            auto * data = (memory + bufferOffset);
+            std::memcpy(data, info.data.data(), sizeInBytes);
+
+            commandList->copyBuffer2Image(staging.getBuffer(), image, 
+                {
+                    .bufferOffset = bufferOffset,
+                    .bufferRowLength = 0u,
+                    .bufferImageHeight = 0u,
+                    .imageSubresource = {.aspectMask = engine::rhi::ImageAspectFlags::eColor},
+                    .imageOffset = {0u, 0u, 0u},
+                    .imageExtent = image->getExtent()
+                }
+            );
+        }
+
+        staging.flush();
+        staging.unmap();
+
+        _tmpTexturesData.clear();
     }
 
 }

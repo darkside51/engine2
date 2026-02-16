@@ -8,6 +8,8 @@
 #include "meshoptimizer.h"
 
 #include <cassert>
+#include <string>
+#include <string_view>
 
 namespace engine::graphics::models {
     
@@ -549,7 +551,7 @@ namespace engine::graphics::models {
 	}
 
     void MeshData::loadMaterials(const Layout & layout, const FileManager & fileManager, TextureManager & textureManager) {
-        auto const loadTexture = [&layout, &fileManager, &textureManager](uint16_t index) -> ImageFrame2D {
+        auto const loadTexture = [&layout, &fileManager, &textureManager](uint16_t index, std::string_view materialName) -> ImageFrame2D {
             if (index == kInvalidValue) {
                 return {};
             }
@@ -562,12 +564,22 @@ namespace engine::graphics::models {
                 const auto & buffer = layout.buffers[bufferView.buffer];
                 const std::byte * begin = &buffer.data[bufferView.offset];
                 auto textureData = engine::graphics::parseTextureData({begin, begin + bufferView.length});
-                return {};
+                engine::graphics::convertTextureDataFormat(engine::rhi::Format::eR8G8B8A8_Unorm, textureData); // ??
+                if (!image.name.empty()) {
+                    return textureManager.addFrame(image.name, std::move(textureData));
+                } else {
+                    return textureManager.addFrame(std::string{materialName} + std::to_string(index), std::move(textureData));
+                }
             }
             if (!image.uri.empty()) {
                 auto const imageBytes = fileManager.readFile(image.uri);
                 auto textureData = engine::graphics::parseTextureData(imageBytes);
-                return {};
+                engine::graphics::convertTextureDataFormat(engine::rhi::Format::eR8G8B8A8_Unorm, textureData); // ??
+                if (!image.name.empty()) {
+                    return textureManager.addFrame(image.name, std::move(textureData));
+                } else {
+                    return textureManager.addFrame(std::string{materialName} + std::to_string(index), std::move(textureData));
+                }
             }
 
             return {};
@@ -605,11 +617,11 @@ namespace engine::graphics::models {
 
             material.cullMode = srcMaterial.doubleSided ? rhi::CullMode::eNone : rhi::CullMode::eBack;
 
-            material.textures[static_cast<uint8_t>(TextureId::eBaseColor)] = loadTexture(srcMaterial.pbrMetallicRoughness.baseColorTexture.index);
-            material.textures[static_cast<uint8_t>(TextureId::eNormal)] = loadTexture(srcMaterial.normalTexture.index);
-            material.textures[static_cast<uint8_t>(TextureId::eMetallicRoughness)] = loadTexture(srcMaterial.pbrMetallicRoughness.metallicRoughnessTexture.index);
-            material.textures[static_cast<uint8_t>(TextureId::eOccolusion)] = loadTexture(srcMaterial.occlusionTexture.index);
-            material.textures[static_cast<uint8_t>(TextureId::eEmissive)] = loadTexture(srcMaterial.emissiveTexture.index);
+            material.textures[static_cast<uint8_t>(TextureId::eBaseColor)] = loadTexture(srcMaterial.pbrMetallicRoughness.baseColorTexture.index, srcMaterial.name);
+            material.textures[static_cast<uint8_t>(TextureId::eNormal)] = loadTexture(srcMaterial.normalTexture.index, srcMaterial.name);
+            material.textures[static_cast<uint8_t>(TextureId::eMetallicRoughness)] = loadTexture(srcMaterial.pbrMetallicRoughness.metallicRoughnessTexture.index, srcMaterial.name);
+            material.textures[static_cast<uint8_t>(TextureId::eOccolusion)] = loadTexture(srcMaterial.occlusionTexture.index, srcMaterial.name);
+            material.textures[static_cast<uint8_t>(TextureId::eEmissive)] = loadTexture(srcMaterial.emissiveTexture.index, srcMaterial.name);
         }
     }
 

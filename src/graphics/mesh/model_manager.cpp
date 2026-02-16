@@ -71,6 +71,10 @@ namespace engine::graphics {
     void ModelManager::generateGpuBuffers(rhi::runtime::Rhi & api, rhi::runtime::Device & device, rhi::runtime::CommandListPtr & commandList) {
         using namespace rhi;
         using namespace graphics;
+        
+        if (_tmpData.empty()) {
+            return;
+        }
 
         BufferInfo verticesBufferInfo {
             BufferUsageFlags::eVertex_Buffer | BufferUsageFlags::eTransfer_Dst,

@@ -2,6 +2,7 @@
 
 #include "common/hash.h"
 #include "image_frame.h"
+#include "texture_data_loader.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -12,6 +13,11 @@
 #include <unordered_set>
 #include <utility>
 #include <vector>
+
+namespace engine::rhi::runtime {
+    class Rhi;
+    class Device;
+}
 
 namespace engine::graphics {
 struct ImageHolder {
@@ -52,11 +58,13 @@ class TextureManager {
     using ImagesSet = std::unordered_set<ImageHolder, hash::ImageHolder_hash, graphics::ImageHolderEqualTo>;
 
 public:
+    TextureManager(rhi::runtime::Rhi & api, rhi::runtime::Device & device);
     ~TextureManager() { destroy(); }
     void createDefaultResources(rhi::runtime::Rhi & api, rhi::runtime::Device & device, 
         const rhi::runtime::CommandListPtr & commandList);
     void destroy();
 
+    const ImageFrame2D & addFrame(std::string_view name, TextureCreateInfo && info, const Frame2D & frame = {});
     const ImageFrame2D & addFrame(std::string_view name, const rhi::runtime::ImagePtr & image, const Frame2D & frame = {});
     void addFrames(std::span<std::pair<std::string, Frame2D>> frames, const rhi::runtime::ImagePtr & image);
     bool removeFrame(std::string_view name) noexcept;
@@ -69,7 +77,12 @@ public:
     const rhi::runtime::ImagePtr & getBlackImage() const noexcept { return _blackImage; }
     const rhi::runtime::ImagePtr & getTransparentImage() const noexcept { return _transparentImage; }
 
+    void generateGpuData(rhi::runtime::Rhi & api, rhi::runtime::Device & device, rhi::runtime::CommandListPtr & commandList);
+
 private:
+    rhi::runtime::Rhi & _api;
+    rhi::runtime::Device & _device;
+
     rhi::runtime::ImagePtr _defaultImage;
     rhi::runtime::ImagePtr _whiteImage;
     rhi::runtime::ImagePtr _blackImage;
@@ -80,6 +93,8 @@ private:
     Images _images;
     ImagesSet _imagesSet;
     ImageFramesMap _frames2D;
+
+    std::vector<std::pair<rhi::runtime::ImagePtr, TextureCreateInfo>> _tmpTexturesData;
 };
 
 }

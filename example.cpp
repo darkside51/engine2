@@ -36,6 +36,7 @@
 #include "graphics/scene/animation_manager.h"
 #include "graphics/scene/scene_helper.h"
 #include "graphics/mesh/model_manager.h"
+// #include "graphics/common/material.h"
 
 #include <optional>
 
@@ -65,9 +66,11 @@ namespace example {
     constexpr bool kUseTransferCommandListForPrepareImgui = true;
 
     engine::debug::DebugDraw debugDraw;
-    engine::graphics::TextureManager textureManager;
+    
     engine::graphics::ModelManager modelManager;
+    // engine::graphics::MaterialManager materialManager;
     engine::scene::AnimationManager animationManager;
+    std::optional<engine::graphics::TextureManager> textureManager;
     std::optional<engine::graphics::GraphicsService> graphicsService{};
     std::optional<engine::scene::Scene> scene{};
 
@@ -222,7 +225,7 @@ namespace example {
         debugDraw.destroy();
         
         animationManager.destroy();
-        textureManager.destroy();
+        textureManager->destroy();
         modelManager.destroy();
 
         _pipelines.clear();
@@ -511,7 +514,8 @@ namespace example {
         using namespace engine::rhi;
 
         //
-        graphicsService.emplace(*_api, *_device, textureManager, modelManager);
+        textureManager.emplace(*_api, *_device);
+        graphicsService.emplace(*_api, *_device, *textureManager, modelManager/*, materialManager*/);
         scene.emplace(*graphicsService, debugDraw);
         //
 
@@ -565,7 +569,7 @@ namespace example {
         {
             auto const modelBytes = _fileManager.readFile("assets/models/model.glb");
             auto modelLayout = engine::graphics::models::loadModelLayout(modelBytes, _fileManager, "assets/models/");
-            auto const modelIdx = modelManager.addModel("model.glb", modelLayout, textureManager, _fileManager);
+            auto const modelIdx = modelManager.addModel("model.glb", modelLayout, *textureManager, _fileManager);
 
             const auto & modelData = modelManager.getModelData(modelIdx);
             for (const auto & animation : modelData.animations) {
@@ -576,10 +580,12 @@ namespace example {
         {
             auto const modelBytes = _fileManager.readFile("assets/models/1/scene.gltf");
             auto modelLayout = engine::graphics::models::loadModelLayout(modelBytes, _fileManager, "assets/models/1/");
-            auto const modelIdx = modelManager.addModel("scene.gltf", modelLayout, textureManager, _fileManager);
+            auto const modelIdx = modelManager.addModel("scene.gltf", modelLayout, *textureManager, _fileManager);
         }
 
         modelManager.generateGpuBuffers(*_api, *_device, tmpCommandList);
+        textureManager->generateGpuData(*_api, *_device, tmpCommandList);
+        // materialManager.generateGpuData(*_api, *_device, tmpCommandList);
 
         // constexpr uint32_t kMaxMemoryBytesToCopyCommand = 65536u;
         // tmpCommandList->updateBuffer(_meshPositions, 0u, meshVtx[0u].size(), meshVtx[0u].data());
@@ -588,7 +594,7 @@ namespace example {
         // gltf test
 
         // textureManager resources
-        textureManager.createDefaultResources(*_api, *_device, tmpCommandList);
+        textureManager->createDefaultResources(*_api, *_device, tmpCommandList);
 
         {
             // atlas test
@@ -623,7 +629,7 @@ namespace example {
             auto const atlasBytes = _fileManager.readFile("assets/atlases/hero-pma.atlas");
             auto frames = engine::graphics::FramesParser::loadFramesSpine(atlasBytes, {0u, 0u}, "hero_");
 
-            textureManager.addFrames(frames, image);
+            textureManager->addFrames(frames, image);
         }
 
         if (1) {
@@ -659,7 +665,7 @@ namespace example {
 
             auto frames = engine::graphics::FramesParser::generateFrames({8u, 6u}, "explosion_");
             // auto frames = engine::graphics::FramesParser::generateFrames({6u, 6u}, "explosion_");
-            textureManager.addFrames(frames, image);
+            textureManager->addFrames(frames, image);
 
             {
                 std::vector<std::string> animFrames;
@@ -673,7 +679,7 @@ namespace example {
                 //     animFrames.emplace_back(engine::fmt_string("explosion_%d", i));
                 // }
 
-                animationManager.registerAnimation("anim0", engine::scene::FramesSequence(textureManager, animFrames));
+                animationManager.registerAnimation("anim0", engine::scene::FramesSequence(*textureManager, animFrames));
             }
         }
 
@@ -866,8 +872,8 @@ namespace example {
         _sphereImage = _api->createImage(*_device, sphereImageInfo);
 
         // TextureManager
-        textureManager.addFrame("sphere_texture", _sphereImage);
-        textureManager.addFrame("sphere_texture2", _sphereImage);
+        textureManager->addFrame("sphere_texture", _sphereImage);
+        textureManager->addFrame("sphere_texture2", _sphereImage);
 
         const auto stagingSize3 = textureData.data.size();
         StagingBuffer staging3{*_api, *_device, stagingSize3};
@@ -1005,7 +1011,7 @@ namespace example {
             };
 
             auto const animId = animationManager.getAnimationIndex("skeletal_mesh_anim0");
-            for (size_t i = 0u; i < 10u; ++i) {
+            for (size_t i = 0u; i < 1000u; ++i) {
                 auto * meshRoot = engine::scene::createNodeWithSkeletalMesh(*scene, modelManager, 0u, 
                     engine::scene::Bounds::Type::eSphere, pipelines);
                 
@@ -1022,7 +1028,7 @@ namespace example {
 
                 meshRoot->setScale(engine::common::random(0.2f, 0.25f));
                 meshRoot->setRotation(engine::vec3f(1.57f, 0.0f, engine::common::random(-3.14f, 3.14f)));
-                meshRoot->setPosition(engine::vec3f(-2.0f + i % 30 * 0.5f, i / 30 * -0.5f, 0.0f));
+                meshRoot->setPosition(engine::vec3f(-5.0f + i % 30 * 0.5f, i / 30 * -0.5f, 0.0f));
 
                 sceneWorldRoot->addChild(meshRoot);
             }
@@ -1096,7 +1102,7 @@ namespace example {
             // node3->setTransform(mt);
 
             auto m2 = engine::makeMatrix(0.01F);
-            auto * sprite = scene->createObject<engine::scene::Sprite>(textureManager.findFrame("hero_head"), 0u);
+            auto * sprite = scene->createObject<engine::scene::Sprite>(textureManager->findFrame("hero_head"), 0u);
             engine::scene::attachObjectToNode(*sprite, *node3);
             sprite->setOrder(1u);
 
@@ -1108,7 +1114,7 @@ namespace example {
             node4->setPosition(engine::vec3f(0.57f, 0.05f, -0.85f));
             //node4->setTransform(m2);
             
-            auto * sprite2 = scene->createObject<engine::scene::Sprite>(textureManager.findFrame("hero_sword"), 0u);
+            auto * sprite2 = scene->createObject<engine::scene::Sprite>(textureManager->findFrame("hero_sword"), 0u);
             engine::scene::attachObjectToNode(*sprite2, *node4);
             sprite2->setOrder(1u);
 
@@ -1133,7 +1139,7 @@ namespace example {
                         node5->setScale(engine::vec3f{0.0025f});
                         node5->setPosition(engine::vec3f{-3.0f + static_cast<float>(i) * 0.75f, -1.0f - static_cast<float>(j) * 0.75f, 0.0f});
 
-                        const auto & frame3 = textureManager.findFrame("explosion_33");
+                        const auto & frame3 = textureManager->findFrame("explosion_33");
                         auto * sprite3 = scene->createObject<engine::scene::Sprite>(frame3, 0u);
                         engine::scene::attachObjectToNode(*sprite3, *node5);
                         //sprite3->setOrder(-1);
