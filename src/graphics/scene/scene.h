@@ -75,7 +75,7 @@ class Scene {
     using AttachmentsIterator = std::span<AttachmentObject*>::iterator;
     
 public:
-    Scene(debug::DebugDraw & drawHelper);
+    Scene(const graphics::GraphicsService & graphicsService, debug::DebugDraw & drawHelper);
     ~Scene();
 
     void destroy() noexcept;
@@ -191,6 +191,7 @@ private:
     std::vector<rhi::runtime::PipelinePtr> _pipelines;
     std::unique_ptr<graphics::InflightStagingBuffer> _staging = nullptr;
 
+    const graphics::GraphicsService & _graphicsService;
     debug::DebugDraw & _drawHelper;
     std::chrono::time_point<std::chrono::steady_clock> _tryReduceUsedMemoryTime;
 

@@ -69,6 +69,7 @@ namespace example {
     engine::graphics::ModelManager modelManager;
     engine::scene::AnimationManager animationManager;
     std::optional<engine::graphics::GraphicsService> graphicsService{};
+    std::optional<engine::scene::Scene> scene{};
 
     engine::scene::Camera camera;
     engine::scene::SphereCameraController controller{camera};
@@ -78,8 +79,6 @@ namespace example {
 
     engine::mat4f cameraTransform;
     float m = 0.0f;
-
-    engine::scene::Scene scene{debugDraw};
 
     struct UniformBuffer {
         engine::mat4f mvp;
@@ -216,7 +215,7 @@ namespace example {
         _defaultImage = nullptr;
         _sphereImage = nullptr;
 
-        scene.destroy();
+        scene->destroy();
 
         _shaderModulesManager = nullptr;
         _imgui.destroy();
@@ -511,6 +510,11 @@ namespace example {
     void Example::createPipelines() {
         using namespace engine::rhi;
 
+        //
+        graphicsService.emplace(*_api, *_device, textureManager, modelManager);
+        scene.emplace(*graphicsService, debugDraw);
+        //
+
         loadShaders();
         _imgui.createPipeline(*_api, *_device, _programs[kImguiProgram], _renderPasses[kScreenRenderPass], 0u);
         debugDraw.createPipelines(*_api, *_device, _programs[kDebugProgram], _renderPasses[kSceneRenderPass], 0u);
@@ -537,15 +541,15 @@ namespace example {
 
         // scene pipelines
         const GraphicsPipelineStatesInfo info2 = engine::parseGraphicsPipelineInfo(json["sprite_common"]);
-        scene.registerPipeline(_api->createGraphicsPipeline(*_device, _renderPasses[kSceneRenderPass], _programs[kSpritesProgram], info2, 0u));
+        scene->registerPipeline(_api->createGraphicsPipeline(*_device, _renderPasses[kSceneRenderPass], _programs[kSpritesProgram], info2, 0u));
 
         // skeletal mesh
         const GraphicsPipelineStatesInfo info4 = engine::parseGraphicsPipelineInfo(json["mesh_skeletal"]);
-        scene.registerPipeline(_api->createGraphicsPipeline(*_device, _renderPasses[kSceneRenderPass], _programs[kMeshSkeletalInstancedProgram], info4, 0u));
+        scene->registerPipeline(_api->createGraphicsPipeline(*_device, _renderPasses[kSceneRenderPass], _programs[kMeshSkeletalInstancedProgram], info4, 0u));
         
         // mesh
         const GraphicsPipelineStatesInfo info5 = engine::parseGraphicsPipelineInfo(json["mesh"]);
-        scene.registerPipeline(_api->createGraphicsPipeline(*_device, _renderPasses[kSceneRenderPass], _programs[kMeshInstancedProgram], info5, 0u));
+        scene->registerPipeline(_api->createGraphicsPipeline(*_device, _renderPasses[kSceneRenderPass], _programs[kMeshInstancedProgram], info5, 0u));
     }
 
     void Example::createDefaultResources() {
@@ -992,8 +996,8 @@ namespace example {
 
         // scene
         if (true) {
-            sceneWorldRoot = scene.createNode();
-            scene.rootNode()->addChild(sceneWorldRoot);
+            sceneWorldRoot = scene->createNode();
+            scene->rootNode()->addChild(sceneWorldRoot);
 
             engine::scene::MeshPipelines pipelines = {
                 .commonPipeline = 2u, 
@@ -1002,7 +1006,7 @@ namespace example {
 
             auto const animId = animationManager.getAnimationIndex("skeletal_mesh_anim0");
             for (size_t i = 0u; i < 10u; ++i) {
-                auto * meshRoot = engine::scene::createNodeWithSkeletalMesh(scene, modelManager, 0u, 
+                auto * meshRoot = engine::scene::createNodeWithSkeletalMesh(*scene, modelManager, 0u, 
                     engine::scene::Bounds::Type::eSphere, pipelines);
                 
                 if (auto * skeleton = static_cast<engine::scene::Skeleton *>(meshRoot->getAttachment())) {
@@ -1011,8 +1015,8 @@ namespace example {
                     }
 
                     // if (i % 10 == 0u) {
-                        auto * anim0 = scene.createAnimInfo<engine::scene::SkeletalAnimation>(animId, engine::common::random(0.25f, 1.7f));
-                        scene.destroyAnimInfo(skeleton->setAnimation(anim0));
+                        auto * anim0 = scene->createAnimInfo<engine::scene::SkeletalAnimation>(animId, engine::common::random(0.25f, 1.7f));
+                        scene->destroyAnimInfo(skeleton->setAnimation(anim0));
                     // }
                 }
 
@@ -1024,7 +1028,7 @@ namespace example {
             }
 
             {
-                auto * meshRoot = engine::scene::createNodeWithSkeletalMesh(scene, modelManager, 1u, 
+                auto * meshRoot = engine::scene::createNodeWithSkeletalMesh(*scene, modelManager, 1u, 
                     engine::scene::Bounds::Type::eCube, pipelines);
                 meshRoot->setScale(0.002f);
                 meshRoot->setRotation(engine::vec3f(1.57f, 0.0f, 0.0f));
@@ -1039,7 +1043,7 @@ namespace example {
             auto m1 = engine::makeMatrix(0.75F);
             m1[3] = {1.5f, 0.0f, 0.0f, 1.0f};
 
-            auto * node0 = scene.createNode();
+            auto * node0 = scene->createNode();
             node0->setScale(0.5f);
             node0->setRotation(engine::vec3f{0.0f, 0.0f, 1.57f});
             node0->setPosition(engine::vec3f{1.0f, 0.0f, 0.0f});
@@ -1047,23 +1051,23 @@ namespace example {
             node0->setBounds(engine::scene::Bounds::createSphere(vec3f{0.0f}, 0.5f));
             sceneWorldRoot->addChild(node0);
 
-            auto * node1 = scene.createNode();
+            auto * node1 = scene->createNode();
             node1->setTransform(m1);
             node1->setBounds(engine::scene::Bounds::createSphere(vec3f{0.0f}, 0.5f));
             node0->addChild(node1);
 
             engine::rotateMatrix_y(m0, -0.76f);
             m0[3] = {-1.0f, 2.0f, 0.0f, 1.0f};
-            auto * node2 = scene.createNode();
+            auto * node2 = scene->createNode();
             node2->setTransform(m0);
             node2->setBounds(engine::scene::Bounds::createCube(vec3f{-0.75f}, vec3f{0.75f}));
             sceneWorldRoot->addChild(node2);
 
-            auto * object0 = scene.createObject<engine::scene::Dummy>();
-            auto * object1 = scene.createObject<engine::scene::Dummy>();
+            auto * object0 = scene->createObject<engine::scene::Dummy>();
+            auto * object1 = scene->createObject<engine::scene::Dummy>();
 
-            auto * finalNode0 = scene.createNode();
-            auto * finalNode1 = scene.createNode();
+            auto * finalNode0 = scene->createNode();
+            auto * finalNode1 = scene->createNode();
             engine::scene::attachObjectToNode(*object0, *finalNode0);
             engine::scene::attachObjectToNode(*object1, *finalNode1);
 
@@ -1075,8 +1079,8 @@ namespace example {
             // node2->setHidden(true);
             // object1->node->setHidden(true);
 
-            // if (scene.destroyObject(object1)) {
-                // scene.destroyNode(node2);
+            // if (scene->destroyObject(object1)) {
+                // scene->destroyNode(node2);
             // }
 
             // engine::scene::Transformation transform(0.01f);
@@ -1085,26 +1089,26 @@ namespace example {
             // auto mt = engine::mat4f{};
             // transform.apply(mt);
 
-            auto * node3 = scene.createNode();
+            auto * node3 = scene->createNode();
             node3->setScale(engine::vec3f{0.01f});
             node3->setRotation(engine::vec3f{1.0f, 0.0f, 0.0f});
             node3->setPosition(engine::vec3f(3.5f, 1.0f, 0.0f));
             // node3->setTransform(mt);
 
             auto m2 = engine::makeMatrix(0.01F);
-            auto * sprite = scene.createObject<engine::scene::Sprite>(textureManager.findFrame("hero_head"), 0u);
+            auto * sprite = scene->createObject<engine::scene::Sprite>(textureManager.findFrame("hero_head"), 0u);
             engine::scene::attachObjectToNode(*sprite, *node3);
             sprite->setOrder(1u);
 
             m2[1][1] *= -1.0f;
             m2[3] = {0.0f, -0.2f, 0.5f, 1.0f};
-            auto * node4 = scene.createNode();
+            auto * node4 = scene->createNode();
             node4->setRotation(engine::vec3f{1.57f, 0.2f, 3.0f});
             node4->setScale(0.015f);
             node4->setPosition(engine::vec3f(0.57f, 0.05f, -0.85f));
             //node4->setTransform(m2);
             
-            auto * sprite2 = scene.createObject<engine::scene::Sprite>(textureManager.findFrame("hero_sword"), 0u);
+            auto * sprite2 = scene->createObject<engine::scene::Sprite>(textureManager.findFrame("hero_sword"), 0u);
             engine::scene::attachObjectToNode(*sprite2, *node4);
             sprite2->setOrder(1u);
 
@@ -1125,16 +1129,16 @@ namespace example {
 
                 for (size_t i = 0u; i < 10u; ++i) {
                     for (size_t j = 0u; j < 10u; ++j) {
-                        auto * node5 = scene.createNode();
+                        auto * node5 = scene->createNode();
                         node5->setScale(engine::vec3f{0.0025f});
                         node5->setPosition(engine::vec3f{-3.0f + static_cast<float>(i) * 0.75f, -1.0f - static_cast<float>(j) * 0.75f, 0.0f});
 
                         const auto & frame3 = textureManager.findFrame("explosion_33");
-                        auto * sprite3 = scene.createObject<engine::scene::Sprite>(frame3, 0u);
+                        auto * sprite3 = scene->createObject<engine::scene::Sprite>(frame3, 0u);
                         engine::scene::attachObjectToNode(*sprite3, *node5);
                         //sprite3->setOrder(-1);
-                        auto * anim0 = scene.createAnimInfo<engine::scene::FramesSequence>(animId, engine::common::random(0.25f, 1.7f));
-                        scene.destroyAnimInfo(sprite3->setAnimation(anim0));
+                        auto * anim0 = scene->createAnimInfo<engine::scene::FramesSequence>(animId, engine::common::random(0.25f, 1.7f));
+                        scene->destroyAnimInfo(sprite3->setAnimation(anim0));
                         
                         sceneWorldRoot->addChild(node5);
                     }
@@ -1168,7 +1172,7 @@ namespace example {
         _imgui.createFontTexture(*_api, *_device);
         _imgui.createBuffers(*_api, *_device);
         debugDraw.createBuffers(*_api, *_device);
-        scene.initRenderData(*_api, *_device);
+        scene->initRenderData(*_api, *_device);
 
         // on render thread
         auto * commandPool = _device->acquireCommandPool(engine::rhi::queue_flags::graphics | engine::rhi::queue_flags::present);
@@ -1289,8 +1293,8 @@ namespace example {
         }
 
         std::vector<engine::scene::AttachmentObject*> objects(1024u);
-        scene.fillAttachmentsArray(cameraTransform, sceneWorldRoot, [](engine::scene::AttachmentObject*) { return true; }, objects);
-        scene.update(now, delta, objects, animationManager);
+        scene->fillAttachmentsArray(cameraTransform, sceneWorldRoot, [](engine::scene::AttachmentObject*) { return true; }, objects);
+        scene->update(now, delta, objects, animationManager);
     }
 
     void Example::prepareFrameDrawData(engine::rhi::runtime::CommandListPtr & commandList, uint8_t frame, float delta) {
@@ -1382,9 +1386,9 @@ namespace example {
         commandList->setScissor({{0, 0}, {width, height}});
 
 
-        scene.beginFrame(now);
+        scene->beginFrame(now);
         std::vector<engine::scene::AttachmentObject*> objects(1024u);
-        scene.fillAttachmentsArray(cameraTransform, sceneWorldRoot, [](engine::scene::AttachmentObject*) { return true; }, objects);
+        scene->fillAttachmentsArray(cameraTransform, sceneWorldRoot, [](engine::scene::AttachmentObject*) { return true; }, objects);
 
         // scene pass
         commandList->beginRenderPass(_renderPasses[kSceneRenderPass], _sceneFrameBuffers[imageIndex], sceneClearValues, {{0, 0}, {width, height}});
@@ -1437,7 +1441,7 @@ namespace example {
         // mesh test
 
     
-        scene.draw(commandList, transferCommandList, frameId, cameraTransform, objects);    
+        scene->draw(commandList, transferCommandList, frameId, cameraTransform, objects);    
 
         debugDraw.prepare(*transferCommandList, frameId);
         debugDraw.draw(*commandList, frameId, now);
@@ -1464,7 +1468,7 @@ namespace example {
 
         commandList->endRenderPass();
 
-        scene.endFrame(commandList, transferCommandList, frameId);
+        scene->endFrame(commandList, transferCommandList, frameId);
 
         commandList->writeTimestamp(_queryPool.get(), rhi::PipelineStageFlags::eBottom_Of_Pipe, frameId * 2u + 1u);
         commandList->end();

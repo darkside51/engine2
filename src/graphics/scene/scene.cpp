@@ -5,6 +5,7 @@
 #include "objects/sprite.h"
 #include "objects/mesh.h"
 
+#include "graphics/common/graphics_service.h"
 #include "graphics/render/rhi/common/command_list.h"
 #include "graphics/utils/vertex_processing.h"
 
@@ -71,8 +72,9 @@ namespace engine::scene {
         }
     }
 
-    Scene::Scene( debug::DebugDraw & drawHelper) : 
+    Scene::Scene(const graphics::GraphicsService & graphicsService, debug::DebugDraw & drawHelper) : 
         _rootNode(createNode()),
+        _graphicsService(graphicsService),
         _drawHelper(drawHelper) {
         registerTypes();
     }
