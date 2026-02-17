@@ -11,6 +11,7 @@ namespace engine::graphics {
         for (auto * data : _materials) {
             if (data) {
                 _allocator.destroy(data);
+                data = nullptr;
             }
         }
     }
@@ -50,7 +51,20 @@ namespace engine::graphics {
                     const auto & buffer = layout.buffers[bufferView.buffer];
                     const std::byte * begin = &buffer.data[bufferView.offset];
                     auto textureData = engine::graphics::parseTextureData({begin, begin + bufferView.length});
-                    engine::graphics::convertTextureDataFormat(engine::rhi::Format::eR8G8B8A8_Unorm, textureData); // ??
+
+                    const auto formatSupport = textureManager.getDevice().isFormatSupported(
+                        textureData.metaInfo.format, 
+                        engine::rhi::FormatFeatureFlags::eFormatFeature_Sampled_Image
+                    );
+
+                    const bool sampledSupport = formatSupport.checkBit(engine::rhi::FormatFeatureAccess::Bit::eOptimalTilingFeaturesBit);
+                                                // ||
+                                                //formatSupport.checkBit(engine::rhi::FormatFeatureAccess::Bit::eLinearTilingFeaturesBit);
+
+                    if (!sampledSupport) {
+                        engine::graphics::convertTextureDataFormat(engine::rhi::Format::eR8G8B8A8_Unorm, textureData); // ??
+                    }
+
                     if (!image.name.empty()) {
                         return textureManager.addFrame(image.name, std::move(textureData)).getImage();
                     } else {
@@ -60,7 +74,20 @@ namespace engine::graphics {
                 if (!image.uri.empty()) {
                     auto const imageBytes = fileManager.readFile(image.uri);
                     auto textureData = engine::graphics::parseTextureData(imageBytes);
-                    engine::graphics::convertTextureDataFormat(engine::rhi::Format::eR8G8B8A8_Unorm, textureData); // ??
+
+                    const auto formatSupport = textureManager.getDevice().isFormatSupported(
+                        textureData.metaInfo.format, 
+                        engine::rhi::FormatFeatureFlags::eFormatFeature_Sampled_Image
+                    );
+
+                    const bool sampledSupport = formatSupport.checkBit(engine::rhi::FormatFeatureAccess::Bit::eOptimalTilingFeaturesBit);
+                                                // ||
+                                                //formatSupport.checkBit(engine::rhi::FormatFeatureAccess::Bit::eLinearTilingFeaturesBit);
+
+                    if (!sampledSupport) {
+                        engine::graphics::convertTextureDataFormat(engine::rhi::Format::eR8G8B8A8_Unorm, textureData); // ??
+                    }
+
                     if (!image.name.empty()) {
                         return textureManager.addFrame(image.name, std::move(textureData)).getImage();
                     } else {

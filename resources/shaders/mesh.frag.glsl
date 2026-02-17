@@ -2,7 +2,7 @@
 
 layout (location = 0) in vec3 v_normal;
 layout (location = 1) in vec2 v_uv;
-layout (location = 2) in float v_color_mix;
+layout (location = 2) in vec4 v_albedo;
 
 layout(set = 0, binding = 1) uniform sampler2D u_texture;
 
@@ -15,5 +15,5 @@ void main() {
 	const float ambient = 0.25;
 	const float light = clamp(ambient + max(dot(v_normal, -lightDirection), 0.0), 0.0, 1.0);
 	//const float light2 = 0.25 * clamp(max(dot(v_normal, -reflect(lightDirection, upDirection)), 0.0), 0.0, 1.0);
-	out_color = texture(u_texture, v_uv) * light;// + vec4(0.1, 1.0, 0.1, 1.0) * light2;//mix(vec4(v_uv, 0.0, 1.0), vec4(v_normal, 1.0), v_color_mix);
+	out_color = texture(u_texture, v_uv) * v_albedo * light;
 }

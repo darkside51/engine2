@@ -79,6 +79,8 @@ public:
 
     void generateGpuData(rhi::runtime::CommandListPtr & commandList);
 
+    const rhi::runtime::Device & getDevice() const noexcept { return _device; }
+
 private:
     rhi::runtime::Rhi & _api;
     rhi::runtime::Device & _device;

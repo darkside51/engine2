@@ -417,7 +417,32 @@ namespace sail_format {
         
         std::span data{static_cast<std::byte*>(image.pixels()), image.pixels_size()}; 
 
+// if (image.is_indexed()) { // palleted
+//     const auto targetFormat = convert(rhi::Format::eR8G8B8A8_Unorm, false);
+//     if (image.can_convert(targetFormat)) {
+//             if (image.convert(targetFormat) == SAIL_OK) {
+
+//             std::span data{static_cast<std::byte*>(image.pixels()), image.pixels_size()};
+
+//         return {
+//             .metaInfo = {
+//                 .size = {image.width(), image.height()},
+//                 .bytesPerLine = static_cast<uint16_t>(image.bytes_per_line()),
+//                 .format = convert(image.pixel_format()),
+//                 .bpp = static_cast<uint8_t>(image.bits_per_pixel()),
+//                 .hasPalette = image.palette().is_valid(),
+//                 .parserType = TextureLoaderType::eSail
+//             },
+//             .data = {data.begin(), data.end()}
+//         };
+//             }
+//         }
+// }
+
 // void set_palette(sail::palette &&palette) noexcept;
+
+        auto & palette = image.palette();
+        palette.data();
 
         return {
             .metaInfo = {
@@ -425,7 +450,7 @@ namespace sail_format {
                 .bytesPerLine = static_cast<uint16_t>(image.bytes_per_line()),
                 .format = convert(image.pixel_format()),
                 .bpp = static_cast<uint8_t>(image.bits_per_pixel()),
-                .hasPalette = image.palette().is_valid(),
+                .hasPalette = image.is_indexed(), // image.palette().is_valid(),
                 .parserType = TextureLoaderType::eSail
             },
             .data = {data.begin(), data.end()}
@@ -451,6 +476,10 @@ namespace sail_format {
     }
 
     bool convertTextureDataFormat(rhi::Format format, TextureCreateInfo & info) {
+        if (info.metaInfo.format == format) {
+            return true;
+        }
+
         const auto targetFormat = convert(format, false);
         sail::image image(info.data.data(), convert(info.metaInfo.format, info.metaInfo.hasPalette), 
             info.metaInfo.size.x, info.metaInfo.size.y, info.metaInfo.bytesPerLine);
@@ -517,6 +546,48 @@ namespace sail_format {
     }
 
     bool convertTextureDataFormat(rhi::Format format, TextureCreateInfo & info) {
+
+        // if (info.metaInfo.format == rhi::Format::eR8G8B8_Unorm) {
+        //     ktxTextureCreateInfo createInfo = {0};
+        //     createInfo.baseWidth = info.metaInfo.size.x;
+        //     createInfo.baseHeight = info.metaInfo.size.y;
+        //     createInfo.baseDepth = 1; // 2D texture
+        //     createInfo.numDimensions = 2;
+        //     createInfo.numLevels = 1; // No mipmaps initially
+        //     createInfo.numLayers = 1;
+        //     createInfo.numFaces = 1;
+        //     createInfo.isArray = KTX_FALSE;
+        //     createInfo.generateMipmaps = KTX_FALSE;
+        //     createInfo.vkFormat = VK_FORMAT_R8G8B8_UNORM;
+            
+        //     // Set appropriate format based on 'channels'
+        //     // createInfo.vkFormat == VK_FORMAT_R8G8B8_UNORM;//convert(rhi::Format::eBC7_Unorm_Block);
+        //     // if (channels == 4) {
+        //     //     createInfo.vkFormat = VK_FORMAT_R8G8B8A8_UNORM;
+        //     // } else if (channels == 3) {
+        //     //     createInfo.vkFormat = VK_FORMAT_R8G8B8_UNORM;
+        //     // }
+        //     // ... set other fields
+
+        //     ktxTexture2* kTexture; // Use ktxTexture for v1
+        //     KTX_error_code result = ktxTexture2_Create(&createInfo, KTX_TEXTURE_CREATE_ALLOC_STORAGE, &kTexture);
+        //     if (result != KTX_SUCCESS) {
+        //         // Handle error
+        //     }
+
+        //     result = ktxTexture_SetImageFromMemory(
+        //         (ktxTexture*)kTexture, // Cast if using ktxTexture2 functions with generic pointer
+        //         0, // level
+        //         0, // layer
+        //         0, // faceSlice
+        //         reinterpret_cast<ktx_uint8_t*>(info.data.data()),
+        //         info.data.size() // size of the image data
+        //     );
+        //     if (result != KTX_SUCCESS) {
+        //         // Handle error
+        //     }
+        // }
+
         switch (info.metaInfo.parserType) {
             case TextureLoaderType::eSail: return sail_format::convertTextureDataFormat(format, info);
             case TextureLoaderType::eKtx: return false;

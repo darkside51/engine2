@@ -782,12 +782,27 @@ namespace engine::scene {
         ++it;
         ++i;
 
-        auto applyMaterial = [this, &commandList](uint16_t materialIndex) noexcept {
-            if (const auto & image = _graphicsService.getMaterialManager().getMaterial(materialIndex).textures[0u]) {
+        struct Uniform {
+            mat4f cameraTransform;
+            vec4f albedo;
+        };
+
+        Uniform uniform {
+            .cameraTransform = cameraTransform, 
+            .albedo = vec4f{1.0f}
+        };
+
+        auto applyMaterial = [this, &commandList, &uniform](uint16_t materialIndex) noexcept {
+            const auto & material = _graphicsService.getMaterialManager().getMaterial(materialIndex);
+            const auto & textures = material.textures;
+
+            if (const auto & image = textures[static_cast<uint8_t>(graphics::PbrTextureId::eBaseColor)]) {
                 commandList->bindImage(1u, image, _linearSampler);
             } else {
-                commandList->bindImage(1u, _graphicsService.getTextureManager().getDefaultImage(), _nearestSampler);
+                commandList->bindImage(1u, _graphicsService.getTextureManager().getWhiteImage(), _nearestSampler);
             }
+
+            uniform.albedo = material.baseColorFactor;
         };
 
         uint32_t count = 1u;
@@ -796,6 +811,9 @@ namespace engine::scene {
         assert(pipeline != nullptr);
         commandList->bindPipeline(pipeline);
         applyMaterial(materialIndex);
+
+        commandList->pushConstants(rhi::shaders::Stages::eVertex, 0u, sizeof(Uniform), &uniform);
+
 
         for (; it != end; ++it, ++i) {
             const auto & mesh2 = *static_cast<const Mesh*>(*it);
@@ -830,6 +848,7 @@ namespace engine::scene {
 
                 if (pipelineIdx != currentPipelineIdx || materialIndex != currenMaterialIndex) {
                     applyMaterial(currenMaterialIndex);
+                    commandList->pushConstants(rhi::shaders::Stages::eVertex, 0u, sizeof(Uniform), &uniform);
                 }
 
                 // begin next pack
@@ -853,13 +872,7 @@ namespace engine::scene {
     void Scene::drawSameMeshes(rhi::runtime::CommandListPtr & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end, 
         const mat4f & cameraTransform, uint32_t count, bool skeletal) {
             
-        struct Uniform {
-            mat4f cameraTransform;
-        };
-
         {
-            const Uniform uniform {.cameraTransform = cameraTransform};
-
             const auto & mesh = *static_cast<const Mesh*>(*begin);
 
             uint32_t binding_v = 0u;
@@ -878,8 +891,6 @@ namespace engine::scene {
 
             commandList->bindVertexBuffer(binding_v++, (*_meshTransformIndices)(frame), sizeof(uint32_t) * _meshesDrawInFrame);
             commandList->bindIndexBuffer(mesh.getIndices().buffer, 0u, rhi::IndexType::eU32);
-
-            commandList->pushConstants(rhi::shaders::Stages::eVertex, 0u, sizeof(Uniform), &uniform);
 
             const auto & geometry = mesh.geometry();
             commandList->drawIndexed(geometry.indexCount, count, geometry.firstIndex);

@@ -267,7 +267,7 @@ void Scene::fillAttachmentsArray(const mat4f & cameraTransform, Node * root, Con
                             color = 0xff'77'22'aau;
                             break;
                         case ctti::typeIndex<AttachmentObject, Mesh>():
-                            color = 0xff'22'22'22u;
+                            color = 0xff'77'77'77u;
                             break;
                         case ctti::typeIndex<AttachmentObject, Sprite>():
                             color = 0xff'ff'ff'ffu;

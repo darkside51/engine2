@@ -26,6 +26,11 @@ struct TextureMetaInfo {
     TextureLoaderType parserType; 
 };
 
+struct PaletteData {
+    std::vector<std::byte> data;
+    rhi::Format format;
+};
+
 struct TextureCreateInfo {
     TextureMetaInfo metaInfo;
     std::vector<std::byte> data;

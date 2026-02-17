@@ -1026,7 +1026,18 @@ namespace example {
                     scene->destroyAnimInfo(skeleton->setAnimation(anim0));
                 }
 
-                meshRoot->setScale(engine::common::random(0.2f, 0.25f));
+                constexpr float targetDimension = 0.234f;
+                float scale = 1.0f;
+                if (meshRoot->bounds.type == engine::scene::Bounds::Type::eSphere) {
+                    scale = targetDimension / meshRoot->bounds.volume.sphere.radius;
+                } else if (meshRoot->bounds.type == engine::scene::Bounds::Type::eCube) {
+                    const auto & cube = meshRoot->bounds.volume.cube;
+                    const auto size = cube.corner1 - cube.corner0;
+                    scale = std::min({targetDimension / std::abs(size.x), targetDimension / std::abs(size.x), targetDimension / std::abs(size.z)});
+                }
+
+                // meshRoot->setScale(engine::common::random(0.2f, 0.25f));
+                meshRoot->setScale(scale);
                 meshRoot->setRotation(engine::vec3f(1.57f, 0.0f, engine::common::random(-3.14f, 3.14f)));
                 meshRoot->setPosition(engine::vec3f(-2.0f + i % 33 * 0.5f, i / 33 * -0.5f, 0.0f));
 
@@ -1036,7 +1047,18 @@ namespace example {
             {
                 auto * meshRoot = engine::scene::createNodeWithSkeletalMesh(*scene, *modelManager, 1u, 
                     engine::scene::Bounds::Type::eCube, pipelines);
-                meshRoot->setScale(0.002f);
+
+                constexpr float targetDimension = 7.0f;
+                float scale = 1.0f;
+                if (meshRoot->bounds.type == engine::scene::Bounds::Type::eSphere) {
+                    scale = targetDimension / meshRoot->bounds.volume.sphere.radius;
+                } else if (meshRoot->bounds.type == engine::scene::Bounds::Type::eCube) {
+                    const auto & cube = meshRoot->bounds.volume.cube;
+                    const auto size = cube.corner1 - cube.corner0;
+                    scale = std::min({targetDimension / std::abs(size.x), targetDimension / std::abs(size.x), targetDimension / std::abs(size.z)});
+                }
+
+                meshRoot->setScale(scale);
                 meshRoot->setRotation(engine::vec3f(1.57f, 0.0f, 0.0f));
                 meshRoot->setPosition(engine::vec3f(0.0f, 4.5f, 0.0f));
                 sceneWorldRoot->addChild(meshRoot);
