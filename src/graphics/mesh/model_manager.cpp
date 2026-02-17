@@ -8,7 +8,7 @@
 
 namespace engine::graphics {
 
-    ModelManager::ModelManager() {
+    ModelManager::ModelManager(MaterialManager & materialManager) : _materialManager(materialManager) {
         _models.resize(1024u);
         _gpuData.resize(1024u);
         _tmpData.reserve(1024u);
@@ -56,7 +56,7 @@ namespace engine::graphics {
         meshData->loadNodes(layout);
         _tmpData.emplace_back(result, std::move(buffers));
 
-        auto remap = graphicsService.getMaterialManager().loadMaterials(name, layout, fileManager, graphicsService.getTextureManager());
+        auto remap = _materialManager.loadMaterials(name, layout, fileManager, graphicsService.getTextureManager());
         for (auto & mesh : meshData->meshes) {
             for (auto & p : mesh.primitives) {
                 p.material = remap[p.material];
@@ -66,9 +66,16 @@ namespace engine::graphics {
         return result;
     }
 
-    bool ModelManager::removeModel(std::string_view name) {
+    bool ModelManager::removeModel(std::string_view name) { // need to remove materials and textures!
         if (auto it = _modelsMap.find(name); it != _modelsMap.end()) {
             const auto idx = it->second;
+
+            for (const auto & mesh : _models[idx]->meshes) {
+                for (auto const & p : mesh.primitives) {
+                    _materialManager.removeMaterial(p.material);
+                }
+            }
+
             _allocator.destroy(_models[idx]);
             _gpuData[idx] = {};
             _models[idx] = nullptr;

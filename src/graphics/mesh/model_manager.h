@@ -24,6 +24,7 @@ namespace engine {
 
 namespace engine::graphics {
 
+class MaterialManager;
 class GraphicsService;
 
 constexpr auto kDefaultSemantics = std::array {
@@ -45,7 +46,7 @@ public:
         rhi::runtime::BufferPtr indexBuffer = nullptr;
     };
 
-    ModelManager();
+    ModelManager(MaterialManager & materialManager);
     ~ModelManager() { destroy(); }
     void destroy();
 
@@ -74,6 +75,7 @@ public:
     void generateGpuBuffers(rhi::runtime::Rhi & api, rhi::runtime::Device & device, rhi::runtime::CommandListPtr & commandList);
 
 private:
+    MaterialManager & _materialManager;
     Allocator _allocator{1024u};
     ModelsMap _modelsMap;
     Models _models;

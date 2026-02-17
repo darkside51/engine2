@@ -9,13 +9,17 @@ namespace engine::graphics {
 
     void MaterialManager::destroy() {
         for (auto * data : _materials) {
-            _allocator.destroy(data);
+            if (data) {
+                _allocator.destroy(data);
+            }
         }
     }
 
     void MaterialManager::removeMaterial(uint32_t idx) noexcept {
-        _allocator.destroy(_materials[idx]);
-        _materials[idx] = nullptr;
+        if (_materials[idx]) {
+            _allocator.destroy(_materials[idx]);
+            _materials[idx] = nullptr;
+        }
     }
 
     std::vector<uint32_t> MaterialManager::loadMaterials(

@@ -311,6 +311,9 @@ namespace ktx_format {
 namespace sail_format {
     rhi::Format convert(SailPixelFormat format) noexcept {
         switch (format) {
+        // Indexed formats.
+        case SailPixelFormat::SAIL_PIXEL_FORMAT_BPP8_INDEXED: return rhi::Format::eR8_Unorm;
+
         // Grayscale formats.
         case SailPixelFormat::SAIL_PIXEL_FORMAT_BPP8_GRAYSCALE: return rhi::Format::eR8_Unorm;
         case SailPixelFormat::SAIL_PIXEL_FORMAT_BPP16_GRAYSCALE: return rhi::Format::eR16_Unorm;
@@ -365,10 +368,12 @@ namespace sail_format {
         return rhi::Format::eUndefined;
     }
 
-    SailPixelFormat convert(rhi::Format format) noexcept {
+    SailPixelFormat convert(rhi::Format format, bool palette) noexcept {
         switch (format) {
         // Grayscale formats.
-        case rhi::Format::eR8_Unorm: return SailPixelFormat::SAIL_PIXEL_FORMAT_BPP8_GRAYSCALE;
+        case rhi::Format::eR8_Unorm: return palette ? 
+                                                    SailPixelFormat::SAIL_PIXEL_FORMAT_BPP8_INDEXED : 
+                                                    SailPixelFormat::SAIL_PIXEL_FORMAT_BPP8_GRAYSCALE;
         case rhi::Format::eR16_Unorm: return SailPixelFormat::SAIL_PIXEL_FORMAT_BPP16_GRAYSCALE;
 
         // Grayscale with alpha formats.
@@ -412,6 +417,8 @@ namespace sail_format {
         
         std::span data{static_cast<std::byte*>(image.pixels()), image.pixels_size()}; 
 
+// void set_palette(sail::palette &&palette) noexcept;
+
         return {
             .metaInfo = {
                 .size = {image.width(), image.height()},
@@ -444,8 +451,8 @@ namespace sail_format {
     }
 
     bool convertTextureDataFormat(rhi::Format format, TextureCreateInfo & info) {
-        const auto targetFormat = convert(format);
-        sail::image image(info.data.data(), convert(info.metaInfo.format), 
+        const auto targetFormat = convert(format, false);
+        sail::image image(info.data.data(), convert(info.metaInfo.format, info.metaInfo.hasPalette), 
             info.metaInfo.size.x, info.metaInfo.size.y, info.metaInfo.bytesPerLine);
 
         if (image.can_convert(targetFormat)) {

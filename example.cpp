@@ -67,9 +67,10 @@ namespace example {
 
     engine::debug::DebugDraw debugDraw;
     
-    engine::graphics::ModelManager modelManager;
+    
     engine::graphics::MaterialManager materialManager;
     engine::scene::AnimationManager animationManager;
+    std::optional<engine::graphics::ModelManager> modelManager;
     std::optional<engine::graphics::TextureManager> textureManager;
     std::optional<engine::graphics::GraphicsService> graphicsService{};
     std::optional<engine::scene::Scene> scene{};
@@ -225,10 +226,10 @@ namespace example {
         debugDraw.destroy();
         
         animationManager.destroy();
-        textureManager->destroy();
+        modelManager->destroy();
         materialManager.destroy();
-        modelManager.destroy();
-
+        textureManager->destroy();
+        
         _pipelines.clear();
         _programs.clear();
         _mainFrameBuffers.clear();
@@ -515,8 +516,9 @@ namespace example {
         using namespace engine::rhi;
 
         //
+        modelManager.emplace(materialManager);
         textureManager.emplace(*_api, *_device);
-        graphicsService.emplace(*_api, *_device, *textureManager, modelManager, materialManager);
+        graphicsService.emplace(*_api, *_device, *textureManager, *modelManager, materialManager);
         scene.emplace(*graphicsService, debugDraw);
         //
 
@@ -570,9 +572,9 @@ namespace example {
         {
             auto const modelBytes = _fileManager.readFile("assets/models/model.glb");
             auto modelLayout = engine::graphics::models::loadModelLayout(modelBytes, _fileManager, "assets/models/");
-            auto const modelIdx = modelManager.addModel("model.glb", modelLayout, *graphicsService, _fileManager);
+            auto const modelIdx = modelManager->addModel("model.glb", modelLayout, *graphicsService, _fileManager);
 
-            const auto & modelData = modelManager.getModelData(modelIdx);
+            const auto & modelData = modelManager->getModelData(modelIdx);
             for (const auto & animation : modelData.animations) {
                 animationManager.registerAnimation("skeletal_mesh_anim0", engine::scene::SkeletalAnimation(animation));
             }
@@ -581,10 +583,10 @@ namespace example {
         {
             auto const modelBytes = _fileManager.readFile("assets/models/1/scene.gltf");
             auto modelLayout = engine::graphics::models::loadModelLayout(modelBytes, _fileManager, "assets/models/1/");
-            auto const modelIdx = modelManager.addModel("scene.gltf", modelLayout, *graphicsService, _fileManager);
+            auto const modelIdx = modelManager->addModel("scene.gltf", modelLayout, *graphicsService, _fileManager);
         }
 
-        modelManager.generateGpuBuffers(*_api, *_device, tmpCommandList);
+        modelManager->generateGpuBuffers(*_api, *_device, tmpCommandList);
         textureManager->generateGpuData(tmpCommandList);
 
         // constexpr uint32_t kMaxMemoryBytesToCopyCommand = 65536u;
@@ -1012,7 +1014,7 @@ namespace example {
 
             auto const animId = animationManager.getAnimationIndex("skeletal_mesh_anim0");
             for (size_t i = 0u; i < 10u; ++i) {
-                auto * meshRoot = engine::scene::createNodeWithSkeletalMesh(*scene, modelManager, 0u, 
+                auto * meshRoot = engine::scene::createNodeWithSkeletalMesh(*scene, *modelManager, 0u, 
                     engine::scene::Bounds::Type::eSphere, pipelines);
                 
                 if (auto * skeleton = static_cast<engine::scene::Skeleton *>(meshRoot->getAttachment())) {
@@ -1032,7 +1034,7 @@ namespace example {
             }
 
             {
-                auto * meshRoot = engine::scene::createNodeWithSkeletalMesh(*scene, modelManager, 1u, 
+                auto * meshRoot = engine::scene::createNodeWithSkeletalMesh(*scene, *modelManager, 1u, 
                     engine::scene::Bounds::Type::eCube, pipelines);
                 meshRoot->setScale(0.002f);
                 meshRoot->setRotation(engine::vec3f(1.57f, 0.0f, 0.0f));
