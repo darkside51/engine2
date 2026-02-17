@@ -77,7 +77,7 @@ public:
     const rhi::runtime::ImagePtr & getBlackImage() const noexcept { return _blackImage; }
     const rhi::runtime::ImagePtr & getTransparentImage() const noexcept { return _transparentImage; }
 
-    void generateGpuData(rhi::runtime::Rhi & api, rhi::runtime::Device & device, rhi::runtime::CommandListPtr & commandList);
+    void generateGpuData(rhi::runtime::CommandListPtr & commandList);
 
 private:
     rhi::runtime::Rhi & _api;

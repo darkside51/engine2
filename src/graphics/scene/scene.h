@@ -231,6 +231,7 @@ private:
     std::vector<threads::WaitSource*> _calculationWaiterPtrs;
 
     // samplers:
+    rhi::SamplerValue _nearestSampler;
     rhi::SamplerValue _linearSampler;
 };
 

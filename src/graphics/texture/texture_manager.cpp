@@ -230,7 +230,7 @@ namespace engine::graphics {
         return _defaultFrame;
     }
 
-    void TextureManager::generateGpuData(rhi::runtime::Rhi & api, rhi::runtime::Device & device, rhi::runtime::CommandListPtr & commandList) {
+    void TextureManager::generateGpuData(rhi::runtime::CommandListPtr & commandList) {
         using namespace rhi;
         if (_tmpTexturesData.empty()) {
             return;
@@ -241,7 +241,7 @@ namespace engine::graphics {
             allDataSize += info.data.size();
         }
 
-        StagingBuffer staging{api, device, allDataSize};
+        StagingBuffer staging{_api, _device, allDataSize};
         auto & stagingBuffer = staging.getBuffer();
         std::byte * memory = staging.map();
 

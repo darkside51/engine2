@@ -36,7 +36,7 @@
 #include "graphics/scene/animation_manager.h"
 #include "graphics/scene/scene_helper.h"
 #include "graphics/mesh/model_manager.h"
-// #include "graphics/common/material.h"
+#include "graphics/common/material.h"
 
 #include <optional>
 
@@ -68,7 +68,7 @@ namespace example {
     engine::debug::DebugDraw debugDraw;
     
     engine::graphics::ModelManager modelManager;
-    // engine::graphics::MaterialManager materialManager;
+    engine::graphics::MaterialManager materialManager;
     engine::scene::AnimationManager animationManager;
     std::optional<engine::graphics::TextureManager> textureManager;
     std::optional<engine::graphics::GraphicsService> graphicsService{};
@@ -226,6 +226,7 @@ namespace example {
         
         animationManager.destroy();
         textureManager->destroy();
+        materialManager.destroy();
         modelManager.destroy();
 
         _pipelines.clear();
@@ -515,7 +516,7 @@ namespace example {
 
         //
         textureManager.emplace(*_api, *_device);
-        graphicsService.emplace(*_api, *_device, *textureManager, modelManager/*, materialManager*/);
+        graphicsService.emplace(*_api, *_device, *textureManager, modelManager, materialManager);
         scene.emplace(*graphicsService, debugDraw);
         //
 
@@ -569,7 +570,7 @@ namespace example {
         {
             auto const modelBytes = _fileManager.readFile("assets/models/model.glb");
             auto modelLayout = engine::graphics::models::loadModelLayout(modelBytes, _fileManager, "assets/models/");
-            auto const modelIdx = modelManager.addModel("model.glb", modelLayout, *textureManager, _fileManager);
+            auto const modelIdx = modelManager.addModel("model.glb", modelLayout, *graphicsService, _fileManager);
 
             const auto & modelData = modelManager.getModelData(modelIdx);
             for (const auto & animation : modelData.animations) {
@@ -580,12 +581,11 @@ namespace example {
         {
             auto const modelBytes = _fileManager.readFile("assets/models/1/scene.gltf");
             auto modelLayout = engine::graphics::models::loadModelLayout(modelBytes, _fileManager, "assets/models/1/");
-            auto const modelIdx = modelManager.addModel("scene.gltf", modelLayout, *textureManager, _fileManager);
+            auto const modelIdx = modelManager.addModel("scene.gltf", modelLayout, *graphicsService, _fileManager);
         }
 
         modelManager.generateGpuBuffers(*_api, *_device, tmpCommandList);
-        textureManager->generateGpuData(*_api, *_device, tmpCommandList);
-        // materialManager.generateGpuData(*_api, *_device, tmpCommandList);
+        textureManager->generateGpuData(tmpCommandList);
 
         // constexpr uint32_t kMaxMemoryBytesToCopyCommand = 65536u;
         // tmpCommandList->updateBuffer(_meshPositions, 0u, meshVtx[0u].size(), meshVtx[0u].data());
@@ -1011,7 +1011,7 @@ namespace example {
             };
 
             auto const animId = animationManager.getAnimationIndex("skeletal_mesh_anim0");
-            for (size_t i = 0u; i < 1000u; ++i) {
+            for (size_t i = 0u; i < 10u; ++i) {
                 auto * meshRoot = engine::scene::createNodeWithSkeletalMesh(*scene, modelManager, 0u, 
                     engine::scene::Bounds::Type::eSphere, pipelines);
                 
@@ -1020,15 +1020,13 @@ namespace example {
                         tmpSkeleton = skeleton;
                     }
 
-                    // if (i % 10 == 0u) {
-                        auto * anim0 = scene->createAnimInfo<engine::scene::SkeletalAnimation>(animId, engine::common::random(0.25f, 1.7f));
-                        scene->destroyAnimInfo(skeleton->setAnimation(anim0));
-                    // }
+                    auto * anim0 = scene->createAnimInfo<engine::scene::SkeletalAnimation>(animId, engine::common::random(0.25f, 1.7f));
+                    scene->destroyAnimInfo(skeleton->setAnimation(anim0));
                 }
 
                 meshRoot->setScale(engine::common::random(0.2f, 0.25f));
                 meshRoot->setRotation(engine::vec3f(1.57f, 0.0f, engine::common::random(-3.14f, 3.14f)));
-                meshRoot->setPosition(engine::vec3f(-5.0f + i % 30 * 0.5f, i / 30 * -0.5f, 0.0f));
+                meshRoot->setPosition(engine::vec3f(-2.0f + i % 33 * 0.5f, i / 33 * -0.5f, 0.0f));
 
                 sceneWorldRoot->addChild(meshRoot);
             }

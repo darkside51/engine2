@@ -11,6 +11,7 @@
 
 #include "threads/thread_pool/thread_pool.h"
 
+#include "graphics/common/material.h"
 #include "graphics/mesh/model_manager.h"
 #include "graphics/texture/texture_manager.h"
 
@@ -195,6 +196,14 @@ namespace engine::scene {
         _linearSampler.info.addressModeU = rhi::SamplerAddressMode::eRepeat;
         _linearSampler.info.addressModeV = rhi::SamplerAddressMode::eRepeat;
         _linearSampler.info.addressModeW = rhi::SamplerAddressMode::eRepeat;
+        
+        _nearestSampler.info.magFilter = rhi::FilterMode::eNearest;
+        _nearestSampler.info.minFilter = rhi::FilterMode::eNearest;
+        _nearestSampler.info.addressModeU = rhi::SamplerAddressMode::eRepeat;
+        _nearestSampler.info.addressModeV = rhi::SamplerAddressMode::eRepeat;
+        _nearestSampler.info.addressModeW = rhi::SamplerAddressMode::eRepeat;
+
+        device.evaluateSampler(_nearestSampler);
         device.evaluateSampler(_linearSampler);
 
         //create vertex and index buffers
@@ -761,7 +770,7 @@ namespace engine::scene {
         auto geometryDataIndex = mesh.geometryDataIndex();
         bool skeletal = mesh.getSkeleton() != nullptr;
         auto dataIndex = mesh.dataIndex();
-        auto materialIndex = mesh.geometry().material;
+        auto materialIndex = mesh.materialIndex();
 
         uint32_t i = 0u;
         auto * memory = _meshTransformIndices->memory2<uint32_t>() + _meshesDrawInFrame;
@@ -773,17 +782,20 @@ namespace engine::scene {
         ++it;
         ++i;
 
+        auto applyMaterial = [this, &commandList](uint16_t materialIndex) noexcept {
+            if (const auto & image = _graphicsService.getMaterialManager().getMaterial(materialIndex).textures[0u]) {
+                commandList->bindImage(1u, image, _linearSampler);
+            } else {
+                commandList->bindImage(1u, _graphicsService.getTextureManager().getDefaultImage(), _nearestSampler);
+            }
+        };
+
         uint32_t count = 1u;
 
         const auto & pipeline = getPipeline(pipelineIdx);
+        assert(pipeline != nullptr);
         commandList->bindPipeline(pipeline);
-
-        const auto & colorTexture = _graphicsService.getModelManager().getModelData(dataIndex).materials[materialIndex].textures[0u];
-        if (const auto & image = colorTexture.getImage()) {
-            commandList->bindImage(1u, colorTexture.getImage(), _linearSampler);
-        } else {
-            commandList->bindImage(1u, _graphicsService.getTextureManager().getWhiteImage(), _linearSampler);
-        }
+        applyMaterial(materialIndex);
 
         for (; it != end; ++it, ++i) {
             const auto & mesh2 = *static_cast<const Mesh*>(*it);
@@ -791,7 +803,7 @@ namespace engine::scene {
             const auto currentGeometryDataIndex = mesh2.geometryDataIndex();
             const bool currentSkeletal = mesh2.getSkeleton() != nullptr;
             const auto currenDataIndex = mesh2.dataIndex();
-            const auto currenMaterialIndex = mesh2.geometry().material;
+            const auto currenMaterialIndex = mesh2.materialIndex();
 
             if (currentSkeletal) {
                 *(memory + i) = _meshTransformIndicesMap[*it].skeletalTransformIndex;
@@ -812,16 +824,12 @@ namespace engine::scene {
 
                 if (pipelineIdx != currentPipelineIdx) {
                     const auto & pipeline = getPipeline(currentPipelineIdx);
+                    assert(pipeline != nullptr);
                     commandList->bindPipeline(pipeline);
                 }
 
-                if (pipelineIdx != currentPipelineIdx || materialIndex != currenMaterialIndex || currenDataIndex != dataIndex) {
-                    const auto & colorTexture = _graphicsService.getModelManager().getModelData(currenDataIndex).materials[currenMaterialIndex].textures[0u];
-                    if (const auto & image = colorTexture.getImage()) {
-                        commandList->bindImage(1u, colorTexture.getImage(), _linearSampler);
-                    } else {
-                        commandList->bindImage(1u, _graphicsService.getTextureManager().getWhiteImage(), _linearSampler);
-                    }
+                if (pipelineIdx != currentPipelineIdx || materialIndex != currenMaterialIndex) {
+                    applyMaterial(currenMaterialIndex);
                 }
 
                 // begin next pack
@@ -845,22 +853,14 @@ namespace engine::scene {
     void Scene::drawSameMeshes(rhi::runtime::CommandListPtr & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end, 
         const mat4f & cameraTransform, uint32_t count, bool skeletal) {
             
-        const auto & mesh = *static_cast<const Mesh*>(*begin);
-        // const auto & pipeline = getPipeline(mesh.getPipeline());
-        // if (pipeline == nullptr) {
-        //     return;
-        // }
-
         struct Uniform {
             mat4f cameraTransform;
         };
 
         {
             const Uniform uniform {.cameraTransform = cameraTransform};
-            // commandList->bindPipeline(pipeline);
 
-            const auto & geometry = mesh.geometry();
-            const auto material = geometry.material;
+            const auto & mesh = *static_cast<const Mesh*>(*begin);
 
             uint32_t binding_v = 0u;
             commandList->bindVertexBuffer(binding_v++, mesh.getAttribute(mesh::Semantic::ePosition).buffer, 0u);
@@ -881,6 +881,7 @@ namespace engine::scene {
 
             commandList->pushConstants(rhi::shaders::Stages::eVertex, 0u, sizeof(Uniform), &uniform);
 
+            const auto & geometry = mesh.geometry();
             commandList->drawIndexed(geometry.indexCount, count, geometry.firstIndex);
         }
 

@@ -3,6 +3,9 @@
 #include "graphics/render/rhi/common/command_list.h"
 #include "graphics/render/staging_buffer.h"
 
+#include "graphics/common/graphics_service.h"
+#include "graphics/common/material.h"
+
 namespace engine::graphics {
 
     ModelManager::ModelManager() {
@@ -25,7 +28,7 @@ namespace engine::graphics {
     uint32_t ModelManager::addModel(
         std::string_view name, 
         const models::Layout & layout, 
-        TextureManager & textureManager, 
+        GraphicsService & graphicsService, 
         const FileManager & fileManager, 
         std::span<const graphics::models::AttributeSemantic> attributes
     ) {
@@ -46,12 +49,19 @@ namespace engine::graphics {
 
         meshData->loadSkins(layout);
         meshData->loadAnimations(layout);
-        meshData->loadMaterials(layout, fileManager, textureManager);
+        //meshData->loadMaterials(layout, fileManager, graphicsService.getTextureManager(), name);
 
         auto buffers = meshData->loadMeshes(layout, attributes);
         meshData->optimizeBuffers(buffers.vertexBuffersData, buffers.indexBufferData, attributes);
         meshData->loadNodes(layout);
         _tmpData.emplace_back(result, std::move(buffers));
+
+        auto remap = graphicsService.getMaterialManager().loadMaterials(name, layout, fileManager, graphicsService.getTextureManager());
+        for (auto & mesh : meshData->meshes) {
+            for (auto & p : mesh.primitives) {
+                p.material = remap[p.material];
+            }
+        }
 
         return result;
     }

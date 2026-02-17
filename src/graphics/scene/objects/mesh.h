@@ -82,31 +82,29 @@ namespace mesh {
             return _attributes[std::to_underlying(semantic)];
         }
 
-        const graphics::models::Primitive & geometry() const noexcept {
-            return _geometry;
-        }
+        const graphics::models::Primitive & geometry() const noexcept { return _geometry; }
 
-        uint32_t dataIndex() const noexcept {
-            return _dataIndex;
-        }
+        uint32_t dataIndex() const noexcept { return _dataIndex; }
+        uint16_t geometryDataIndex() const noexcept { return _geometryDataIndex; }
 
-        uint16_t geometryDataIndex() const noexcept {
-            return _geometryDataIndex;
-        }
+        uint16_t materialIndex() const noexcept { return _material; }
+        void setMaterialIndex(uint16_t idx) noexcept { _material = idx; }
 
         // skeleton:
         const Skeleton * getSkeleton() const noexcept { return _skeleton; }
         void setSkeleton(Skeleton * skeleton) noexcept { _skeleton = skeleton; }
 
+        
+
     private:
         const graphics::models::Primitive & _geometry;
-        // const graphics::models::MeshMaterial & _material;
         Skeleton * _skeleton = nullptr;
 
         uint32_t _pipeline = 0u;
         uint32_t _dataIndex = 0xff'ff'ff'ffu;
         uint16_t _geometryDataIndex = 0u;
         uint16_t _skin = graphics::models::kInvalidValue;
+        uint16_t _material = 0u;
 
         mesh::Attribute _indices;
         std::array<mesh::Attribute, static_cast<uint8_t>(mesh::Semantic::eSemanticsCount)> _attributes;

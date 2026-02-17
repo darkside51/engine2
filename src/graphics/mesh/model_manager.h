@@ -24,7 +24,7 @@ namespace engine {
 
 namespace engine::graphics {
 
-class TextureManager;
+class GraphicsService;
 
 constexpr auto kDefaultSemantics = std::array {
     models::AttributeSemantic::ePosition, 
@@ -50,7 +50,7 @@ public:
     void destroy();
 
     uint32_t addModel(std::string_view name, const models::Layout & layout, 
-        TextureManager & textureManager, const FileManager & fileManager,
+        GraphicsService & graphicsService, const FileManager & fileManager,
         std::span<const graphics::models::AttributeSemantic> attributes = kDefaultSemantics);
     bool removeModel(std::string_view name);
     

@@ -72,24 +72,24 @@ namespace models {
 		uint16_t maxTargetNodeId = 0u;
     };
 
-	enum class TextureId : uint8_t {
-		eBaseColor = 0u,
-		eNormal = 1u,
-		eMetallicRoughness = 2u,
-		eOccolusion = 3u,
-		eEmissive = 4u
-	};
+	// enum class TextureId : uint8_t {
+	// 	eBaseColor = 0u,
+	// 	eNormal = 1u,
+	// 	eMetallicRoughness = 2u,
+	// 	eOccolusion = 3u,
+	// 	eEmissive = 4u
+	// };
 
-	struct MeshMaterial {
-		std::array<ImageFrame2D, 5u> textures;
-		vec4f baseColorFactor = {1.0f, 1.0f, 1.0f, 1.0f};
-		vec3f emissiveFactor = {0.0f, 0.0f, 0.0f};
-		float metallicFactor = 1.0f;
-		float roughnessFactor = 1.0f;	
-		float alphaCutoff = 0.5f;
-		rhi::BlendMode blendMode = rhi::common_blend_modes::blend_none;
-		rhi::CullMode cullMode = rhi::CullMode::eBack;
-	};
+	// struct MeshMaterial {
+	// 	std::array<ImageFrame2D, 5u> textures;
+	// 	vec4f baseColorFactor = {1.0f, 1.0f, 1.0f, 1.0f};
+	// 	vec3f emissiveFactor = {0.0f, 0.0f, 0.0f};
+	// 	float metallicFactor = 1.0f;
+	// 	float roughnessFactor = 1.0f;	
+	// 	float alphaCutoff = 0.5f;
+	// 	rhi::BlendMode blendMode = rhi::common_blend_modes::blend_none;
+	// 	rhi::CullMode cullMode = rhi::CullMode::eBack;
+	// };
 
 	struct MeshBuffersData {
 		std::vector<std::vector<std::byte>> vertexBuffersData;
@@ -110,7 +110,7 @@ namespace models {
 		std::vector<MeshAnimation> animations;
 		std::vector<MeshGeometry> meshes;
         std::vector<Node> nodes;
-		std::vector<MeshMaterial> materials;
+		// std::vector<MeshMaterial> materials;
 		std::vector<uint16_t> primitiveBegins;
 
 		uint32_t skinMatricesCount = 0u;
@@ -119,7 +119,7 @@ namespace models {
 		void loadAnimations(const Layout & layout);
     	MeshBuffersData loadMeshes(const Layout & layout, std::span<const AttributeSemantic> allowedAttributes);
 		void loadNodes(const Layout & layout);
-		void loadMaterials(const Layout & layout, const FileManager & fileManager, TextureManager & textureManager);
+		// void loadMaterials(const Layout & layout, const FileManager & fileManager, TextureManager & textureManager, std::string_view name);
 
 		void optimizeBuffers(std::span<std::vector<std::byte>> vertexBuffersData, std::vector<uint32_t> & indexBufferData, std::span<const AttributeSemantic> allowedAttributes);
 	};

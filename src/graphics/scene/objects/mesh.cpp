@@ -47,7 +47,8 @@ namespace engine::scene {
         _pipeline(pipeline), 
         _dataIndex(dataIndex), 
         _geometryDataIndex(geometryDataIndex), 
-        _skin(skin) {
+        _skin(skin),
+        _material(primitive.material) {
     }
 
     void Mesh::setPipeline(uint32_t pipeline) noexcept {
@@ -63,8 +64,8 @@ namespace engine::scene {
             return _pipeline < other._pipeline;
         }
 
-        if (_geometry.material != other._geometry.material) {
-            return _geometry.material < other._geometry.material;
+        if (_material != other._material) {
+            return _material < other._material;
         }
 
         if (_geometryDataIndex != other._geometryDataIndex) {
