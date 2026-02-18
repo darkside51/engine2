@@ -5,6 +5,8 @@
 #include "graphics/render/staging_buffer.h"
 #include "graphics/texture/texture_manager.h"
 
+#include <cassert>
+
 namespace engine::graphics {
 
     void MaterialManager::destroy() {
@@ -40,7 +42,7 @@ namespace engine::graphics {
 
             auto const getTexture = [&layout, &fileManager, &textureManager](uint16_t index, std::string_view name) -> rhi::runtime::ImagePtr {
                 if (index == models::kInvalidValue) {
-                    return nullptr;
+                    return textureManager.getWhiteImage();
                 }
 
                 const auto & texture = layout.textures[index];
@@ -95,7 +97,8 @@ namespace engine::graphics {
                     }
                 }
 
-                return nullptr;
+                assert(false);
+                return textureManager.getWhiteImage();
             };
 
             material.baseColorFactor = {

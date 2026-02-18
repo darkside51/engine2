@@ -568,6 +568,9 @@ namespace example {
 
         tmpCommandList->begin(engine::rhi::CommandBufferUsageFlags::eOne_Time_Submit);
 
+        // textureManager resources
+        textureManager->createDefaultResources(*_api, *_device, tmpCommandList);
+
         // // gltf test
         {
             auto const modelBytes = _fileManager.readFile("assets/models/model.glb");
@@ -594,9 +597,6 @@ namespace example {
         // tmpCommandList->updateBuffer(_meshIndices, 0u, meshIdx.size(), meshIdx.data());
 
         // gltf test
-
-        // textureManager resources
-        textureManager->createDefaultResources(*_api, *_device, tmpCommandList);
 
         {
             // atlas test
@@ -1013,7 +1013,7 @@ namespace example {
             };
 
             auto const animId = animationManager.getAnimationIndex("skeletal_mesh_anim0");
-            for (size_t i = 0u; i < 10u; ++i) {
+            for (size_t i = 0u; i < 1000u; ++i) {
                 auto * meshRoot = engine::scene::createNodeWithSkeletalMesh(*scene, *modelManager, 0u, 
                     engine::scene::Bounds::Type::eSphere, pipelines);
                 
@@ -1039,7 +1039,7 @@ namespace example {
                 // meshRoot->setScale(engine::common::random(0.2f, 0.25f));
                 meshRoot->setScale(scale);
                 meshRoot->setRotation(engine::vec3f(1.57f, 0.0f, engine::common::random(-3.14f, 3.14f)));
-                meshRoot->setPosition(engine::vec3f(-2.0f + i % 33 * 0.5f, i / 33 * -0.5f, 0.0f));
+                meshRoot->setPosition(engine::vec3f(-5.0f + i % 33 * 0.5f, i / 33 * -0.5f, 0.0f));
 
                 sceneWorldRoot->addChild(meshRoot);
             }

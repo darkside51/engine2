@@ -796,12 +796,11 @@ namespace engine::scene {
             const auto & material = _graphicsService.getMaterialManager().getMaterial(materialIndex);
             const auto & textures = material.textures;
 
-            if (const auto & image = textures[static_cast<uint8_t>(graphics::PbrTextureId::eBaseColor)]) {
-                commandList->bindImage(1u, image, _linearSampler);
-            } else {
-                commandList->bindImage(1u, _graphicsService.getTextureManager().getWhiteImage(), _nearestSampler);
-            }
+            const auto & image = textures[static_cast<uint8_t>(graphics::PbrTextureId::eBaseColor)];
+            assert(image != nullptr); // check textureManager default resources generated!
 
+            // textures change more often than storage buffers - setId #1u used
+            commandList->bindImage(0u, image, _linearSampler, 1u); 
             uniform.albedo = material.baseColorFactor;
         };
 
@@ -812,8 +811,13 @@ namespace engine::scene {
         commandList->bindPipeline(pipeline);
         applyMaterial(materialIndex);
 
-        commandList->pushConstants(rhi::shaders::Stages::eVertex, 0u, sizeof(Uniform), &uniform);
+        if (skeletal) {
+            commandList->bindBuffer(0u, (*_meshSkeletalTransforms)(frame), 0u, 0u);
+        } else {
+            commandList->bindBuffer(0u, (*_meshTransforms)(frame), 0u, 0u);
+        }
 
+        commandList->pushConstants(rhi::shaders::Stages::eVertex, 0u, sizeof(Uniform), &uniform);
 
         for (; it != end; ++it, ++i) {
             const auto & mesh2 = *static_cast<const Mesh*>(*it);
@@ -851,6 +855,14 @@ namespace engine::scene {
                     commandList->pushConstants(rhi::shaders::Stages::eVertex, 0u, sizeof(Uniform), &uniform);
                 }
 
+                if (currentSkeletal != skeletal) {
+                    if (currentSkeletal) {
+                        commandList->bindBuffer(0u, (*_meshSkeletalTransforms)(frame), 0u, 0u);
+                    } else {
+                        commandList->bindBuffer(0u, (*_meshTransforms)(frame), 0u, 0u);
+                    }
+                }
+
                 // begin next pack
                 dataIndex = currenDataIndex;
                 pipelineIdx = currentPipelineIdx;
@@ -884,9 +896,6 @@ namespace engine::scene {
                 // skinning in vertex shader impl (want to get skinning in compute too)
                 commandList->bindVertexBuffer(binding_v++, mesh.getAttribute(mesh::Semantic::eJoints).buffer, 0u);
                 commandList->bindVertexBuffer(binding_v++, mesh.getAttribute(mesh::Semantic::eWeights).buffer, 0u);
-                commandList->bindBuffer(0u, (*_meshSkeletalTransforms)(frame), 0u, 0u);
-            } else {
-                commandList->bindBuffer(0u, (*_meshTransforms)(frame), 0u, 0u);
             }
 
             commandList->bindVertexBuffer(binding_v++, (*_meshTransformIndices)(frame), sizeof(uint32_t) * _meshesDrawInFrame);
