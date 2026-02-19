@@ -833,24 +833,26 @@ namespace engine::scene {
                 *(memory + i) = _meshTransformIndicesMap[*it].transformIndex;
             }
 
-            const bool completePack = currentPipelineIdx != pipelineIdx ||
-                                      currenMaterialIndex != materialIndex ||
-                                      currentGeometryDataIndex != geometryDataIndex ||
-                                      currentSkeletal != skeletal ||
-                                      currenDataIndex != dataIndex;
-                                      
+            const bool pipelineChanged = pipelineIdx != currentPipelineIdx;
+            const bool materialChanged = materialIndex != currenMaterialIndex;
 
+            bool completePack = pipelineChanged ||
+                                materialChanged ||
+                                currentSkeletal != skeletal ||
+                                currenDataIndex != dataIndex ||
+                                currentGeometryDataIndex != geometryDataIndex;
+                 
             if (completePack) {
                 // draw
                 drawSameMeshes(commandList, frame, currentIt, it, cameraTransform, count, skeletal);
 
-                if (pipelineIdx != currentPipelineIdx) {
+                if (pipelineChanged) {
                     const auto & pipeline = getPipeline(currentPipelineIdx);
                     assert(pipeline != nullptr);
                     commandList->bindPipeline(pipeline);
                 }
 
-                if (pipelineIdx != currentPipelineIdx || materialIndex != currenMaterialIndex) {
+                if (pipelineChanged || materialChanged) {
                     applyMaterial(currenMaterialIndex);
                     commandList->pushConstants(rhi::shaders::Stages::eVertex, 0u, sizeof(Uniform), &uniform);
                 }
