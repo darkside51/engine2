@@ -13,6 +13,40 @@
 
 namespace engine::graphics::models {
     
+    constexpr static auto kOptimalSemanticsSizeBytes = std::array {
+        8u, // ePosition: R16G16B16A16
+        4u, // eNormal: R8G8B8A8
+        4u, // eTangent: R8G8B8A8
+        4u, // eColor0: R8G8B8A8
+        4u, // eColor1
+        4u, // eColor2
+        4u, // eColor3
+        4u, // eJoints: R8G8B8A8
+        8u, // eWeights: R16G16B16A16
+        4u, // eUv0: R16G16
+        4u, // eUv1
+        4u, // eUv2
+        4u, // eUv3
+        4u, // eUv4
+    };
+
+    constexpr static auto kOptimalComponentCount = std::array {
+        4u, // ePosition: R16G16B16A16
+        4u, // eNormal: R8G8B8A8
+        4u, // eTangent: R8G8B8A8
+        4u, // eColor0: R8G8B8A8
+        4u, // eColor1
+        4u, // eColor2
+        4u, // eColor3
+        4u, // eJoints: R8G8B8A8
+        4u, // eWeights: R16G16B16A16
+        2u, // eUv0: R16G16
+        4u, // eUv1
+        4u, // eUv2
+        4u, // eUv3
+        4u, // eUv4
+    };
+
     MeshBuffersData MeshData::loadMeshes(const Layout & layout, std::span<const AttributeSemantic> allowedAttributes) {
         meshes.reserve(layout.meshes.size());
 
@@ -50,7 +84,8 @@ namespace engine::graphics::models {
 
                     indexBufferData.resize(primitive.firstIndex + primitive.indexCount);
                     // indices.resize(primitive.indexCount);
-                    const auto vertexCount = vertexBuffersData[0u].size() / kDefaultSemanticsSizeBytes[0u];
+                    // const auto vertexCount = vertexBuffersData[0u].size() / kDefaultSemanticsSizeBytes[0u];
+                    const auto vertexCount = vertexBuffersData[0u].size() / kOptimalSemanticsSizeBytes[0u];
 
                     switch (accessor.componentType) {
 						case AccessorComponentType::eUnsigned_int:
@@ -109,7 +144,8 @@ namespace engine::graphics::models {
 
                         const auto count = accessor.count;
                         const auto semanticId = std::to_underlying(semantic);
-                        const auto semanticDimension = kDefaultSemanticsSizeBytes[semanticId];
+                        // const auto semanticDimension = kDefaultSemanticsSizeBytes[semanticId];
+                        const auto semanticDimension = kOptimalSemanticsSizeBytes[semanticId];
                         const auto targetDataSize = count * semanticDimension;
 
                         auto & vbData = vertexBuffersData[i];
@@ -127,38 +163,99 @@ namespace engine::graphics::models {
 
                         if (accessor.getElementSize() == semanticDimension) {
                             memcpy(&vbData[currentBufferOffset], &bufferViewData[0u], targetDataSize);
-                            // memcpy(vbData.data(), bufferViewData.data(), targetDataSize);
-                        } else { // attribute convertion
-                            // assert(false); // need impl
-                            switch (acessorType) {
-                            case AccessorType::eScalar: {
-                                assert(false); // need impl
-                            }
-                                break;
-                            case AccessorType::eVec2: {
-                                assert(false); // need impl
-                            }
-                                break;
-                            case AccessorType::eVec3: {
-                                assert(false); // need impl
-                            }
-                                break;
-                            case AccessorType::eVec4: {
-                                // for unsigned byte
-                                uint16_t * target = reinterpret_cast<uint16_t*>(&vbData[currentBufferOffset]);
-                                for (uint32_t i = 0u; i < accessor.count; ++i) {
-                                    const size_t offset = accessor.offset + view.offset + i * 4u;
-                                    target[i * 4u + 0u] = static_cast<uint16_t>(bufferViewData[i * 4u + 0u]);
-                                    target[i * 4u + 1u] = static_cast<uint16_t>(bufferViewData[i * 4u + 1u]);
-                                    target[i * 4u + 2u] = static_cast<uint16_t>(bufferViewData[i * 4u + 2u]);
-                                    target[i * 4u + 3u] = static_cast<uint16_t>(bufferViewData[i * 4u + 3u]);
+                        } else {
+                            const auto componentCount = accessor.componentsCount();
+                            const auto targetComponentCount = static_cast<uint8_t>(kOptimalComponentCount[semanticId]);
+                            const auto targetComponentDimension = semanticDimension / targetComponentCount;
+
+                            const auto * srcf = reinterpret_cast<const float*>(&bufferViewData[0u]);
+                            const auto * src8 = reinterpret_cast<const uint8_t*>(&bufferViewData[0u]);
+                            const auto * src16 = reinterpret_cast<const uint16_t*>(&bufferViewData[0u]);
+                            const auto * src32 = reinterpret_cast<const uint32_t*>(&bufferViewData[0u]);
+
+                            auto * dst8 = reinterpret_cast<uint8_t*>(&vbData[currentBufferOffset]);
+                            auto * dst16 = reinterpret_cast<uint16_t*>(&vbData[currentBufferOffset]);
+
+                            for (uint32_t i = 0u; i < accessor.count; ++i) {
+                                uint32_t sourceIndex = i * componentCount;
+                                uint32_t targetIndex = i * targetComponentCount;
+
+                                for (uint32_t j = 0u; j < std::min(componentCount, targetComponentCount); ++j) {
+                                    switch (targetComponentDimension) {
+                                    case 2u:
+                                    {
+                                        if (accessor.componentType == AccessorComponentType::eByte || accessor.componentType == AccessorComponentType::eUnsigned_Byte) {
+                                            dst16[targetIndex + j] = src8[sourceIndex + j];
+                                        } else if (accessor.componentType == AccessorComponentType::eShort || accessor.componentType == AccessorComponentType::eUnsigned_Short) {
+                                            dst16[targetIndex + j] = src16[sourceIndex + j];
+                                        } else if (accessor.componentType == AccessorComponentType::eUnsigned_int) {
+                                            dst16[targetIndex + j] = static_cast<uint16_t>(src32[sourceIndex + j]);
+                                        }  else if (accessor.componentType == AccessorComponentType::eFloat) {
+                                            dst16[targetIndex + j] = float_to_uint16(srcf[sourceIndex + j]);
+                                        }
+                                    }
+                                        break;
+                                    case 1u:
+                                    {
+                                        if (accessor.componentType == AccessorComponentType::eByte || accessor.componentType == AccessorComponentType::eUnsigned_Byte) {
+                                            dst8[targetIndex + j] = src8[sourceIndex + j];
+                                        } else if (accessor.componentType == AccessorComponentType::eShort || accessor.componentType == AccessorComponentType::eUnsigned_Short) {
+                                            dst8[targetIndex + j] = static_cast<uint8_t>(src16[sourceIndex + j]);
+                                        } else if (accessor.componentType == AccessorComponentType::eUnsigned_int) {
+                                            dst8[targetIndex + j] = static_cast<uint8_t>(src32[sourceIndex + j]);
+                                        }  else if (accessor.componentType == AccessorComponentType::eFloat) {
+                                            dst8[targetIndex + j] = float_to_snorm(srcf[sourceIndex + j], 8u);
+                                        }
+                                    }
+                                        break;
+                                    }
+                                }
+
+                                for (uint32_t j = componentCount; j < targetComponentCount; ++j) {
+                                    if (targetComponentDimension == 2) {
+                                        dst16[targetIndex + j] = 0u;
+                                    } else {
+                                        dst8[targetIndex + j] = 0u;
+                                    }
                                 }
                             }
-                                break;
+
+
+
+                        // if (accessor.getElementSize() == semanticDimension) {
+                        //     memcpy(&vbData[currentBufferOffset], &bufferViewData[0u], targetDataSize);
+                        //     // memcpy(vbData.data(), bufferViewData.data(), targetDataSize);
+                        // } else { // attribute convertion
+                        //     // assert(false); // need impl
+                        //     switch (acessorType) {
+                        //     case AccessorType::eScalar: {
+                        //         assert(false); // need impl
+                        //     }
+                        //         break;
+                        //     case AccessorType::eVec2: {
+                        //         assert(false); // need impl
+                        //     }
+                        //         break;
+                        //     case AccessorType::eVec3: {
+                        //         assert(false); // need impl
+                        //     }
+                        //         break;
+                        //     case AccessorType::eVec4: {
+                        //         // for unsigned byte
+                        //         uint16_t * target = reinterpret_cast<uint16_t*>(&vbData[currentBufferOffset]);
+                        //         for (uint32_t i = 0u; i < accessor.count; ++i) {
+                        //             const size_t offset = accessor.offset + view.offset + i * 4u;
+                        //             target[i * 4u + 0u] = static_cast<uint16_t>(bufferViewData[i * 4u + 0u]);
+                        //             target[i * 4u + 1u] = static_cast<uint16_t>(bufferViewData[i * 4u + 1u]);
+                        //             target[i * 4u + 2u] = static_cast<uint16_t>(bufferViewData[i * 4u + 2u]);
+                        //             target[i * 4u + 3u] = static_cast<uint16_t>(bufferViewData[i * 4u + 3u]);
+                        //         }
+                        //     }
+                        //         break;
                             
-                            default:
-                                break;
-                            }
+                        //     default:
+                        //         break;
+                        //     }
                         }
                     }
                     ++attributeId;
@@ -256,7 +353,8 @@ namespace engine::graphics::models {
                 continue;
             }
             const auto semanticId = std::to_underlying(allowedAttributes[j]);
-            const auto semanticDimension = kDefaultSemanticsSizeBytes[semanticId];
+            // const auto semanticDimension = kDefaultSemanticsSizeBytes[semanticId];
+            const auto semanticDimension = kOptimalSemanticsSizeBytes[semanticId];
             streams.emplace_back(vb.data(), semanticDimension, semanticDimension);
             ++j;
         }
@@ -298,116 +396,116 @@ namespace engine::graphics::models {
             ++j;
         }
       
-        // quantize attributes
-        for (size_t i = 0u; i < allowedAttributes.size(); ++i) {
-            if (allowedAttributes[i] == AttributeSemantic::ePosition) {
-                constexpr auto quantizePositionSemanticSize = 8u; // eR16G16B16A16_Sfloat // for 4 bytes align
-                constexpr auto defaultPositionSemanticSize = kDefaultSemanticsSizeBytes[0u];
-                std::vector<std::byte> vertices(vertexCount * quantizePositionSemanticSize);
-                auto & vb = vertexBuffersData[i];
-                if (vb.empty()) {
-                    continue;
-                }
+        // // quantize attributes
+        // for (size_t i = 0u; i < allowedAttributes.size(); ++i) {
+        //     if (allowedAttributes[i] == AttributeSemantic::ePosition) {
+        //         constexpr auto quantizePositionSemanticSize = 8u; // eR16G16B16A16_Sfloat // for 4 bytes align
+        //         constexpr auto defaultPositionSemanticSize = kDefaultSemanticsSizeBytes[0u];
+        //         std::vector<std::byte> vertices(vertexCount * quantizePositionSemanticSize);
+        //         auto & vb = vertexBuffersData[i];
+        //         if (vb.empty()) {
+        //             continue;
+        //         }
 
-                for (size_t n = 0u; n < vertexCount; ++n) {
-                    const float * position = reinterpret_cast<const float*>(&vb[n * defaultPositionSemanticSize]);
-                    uint16_t * targetPosition = reinterpret_cast<uint16_t*>(&vertices[n * quantizePositionSemanticSize]);
+        //         for (size_t n = 0u; n < vertexCount; ++n) {
+        //             const float * position = reinterpret_cast<const float*>(&vb[n * defaultPositionSemanticSize]);
+        //             uint16_t * targetPosition = reinterpret_cast<uint16_t*>(&vertices[n * quantizePositionSemanticSize]);
 
-                    targetPosition[0u] = float_to_uint16(position[0u]);
-                    targetPosition[1u] = float_to_uint16(position[1u]);
-                    targetPosition[2u] = float_to_uint16(position[2u]);
-                    targetPosition[3u] = 0u;
-                }
-                std::swap(vertices, vb);
-            }
+        //             targetPosition[0u] = float_to_uint16(position[0u]);
+        //             targetPosition[1u] = float_to_uint16(position[1u]);
+        //             targetPosition[2u] = float_to_uint16(position[2u]);
+        //             targetPosition[3u] = 0u;
+        //         }
+        //         std::swap(vertices, vb);
+        //     }
 
-            if (allowedAttributes[i] == AttributeSemantic::eNormal) {
-                constexpr auto quantizeNormalSemanticSize = 4u; // eR8G8B8A8_Snorm // for 4 bytes align
-                constexpr auto defaultNormalSemanticSize = kDefaultSemanticsSizeBytes[1u];
-                std::vector<std::byte> vertices(vertexCount * quantizeNormalSemanticSize);
-                auto & vb = vertexBuffersData[i];
-                if (vb.empty()) {
-                    continue;
-                }
+        //     if (allowedAttributes[i] == AttributeSemantic::eNormal) {
+        //         constexpr auto quantizeNormalSemanticSize = 4u; // eR8G8B8A8_Snorm // for 4 bytes align
+        //         constexpr auto defaultNormalSemanticSize = kDefaultSemanticsSizeBytes[1u];
+        //         std::vector<std::byte> vertices(vertexCount * quantizeNormalSemanticSize);
+        //         auto & vb = vertexBuffersData[i];
+        //         if (vb.empty()) {
+        //             continue;
+        //         }
 
-                for (size_t n = 0u; n < vertexCount; ++n) {
-                    const float * normal = reinterpret_cast<const float*>(&vb[n * defaultNormalSemanticSize]);
+        //         for (size_t n = 0u; n < vertexCount; ++n) {
+        //             const float * normal = reinterpret_cast<const float*>(&vb[n * defaultNormalSemanticSize]);
 
-                    vertices[n * quantizeNormalSemanticSize + 0u] = static_cast<std::byte>(float_to_snorm(normal[0u], 8u));
-                    vertices[n * quantizeNormalSemanticSize + 1u] = static_cast<std::byte>(float_to_snorm(normal[1u], 8u));
-                    vertices[n * quantizeNormalSemanticSize + 2u] = static_cast<std::byte>(float_to_snorm(normal[2u], 8u));
-                    vertices[n * quantizeNormalSemanticSize + 3u] = std::byte{0u};
-                }
-                std::swap(vertices, vb);
-            }
+        //             vertices[n * quantizeNormalSemanticSize + 0u] = static_cast<std::byte>(float_to_snorm(normal[0u], 8u));
+        //             vertices[n * quantizeNormalSemanticSize + 1u] = static_cast<std::byte>(float_to_snorm(normal[1u], 8u));
+        //             vertices[n * quantizeNormalSemanticSize + 2u] = static_cast<std::byte>(float_to_snorm(normal[2u], 8u));
+        //             vertices[n * quantizeNormalSemanticSize + 3u] = std::byte{0u};
+        //         }
+        //         std::swap(vertices, vb);
+        //     }
 
-            if (allowedAttributes[i] == AttributeSemantic::eUv0) {
-                constexpr auto quantizeUvSemanticSize = 4u; // eR16G16_Sfloat
-                constexpr auto defaultUvSemanticSize = kDefaultSemanticsSizeBytes[9u];
-                std::vector<std::byte> vertices(vertexCount * quantizeUvSemanticSize);
-                auto & vb = vertexBuffersData[i];
-                if (vb.empty()) {
-                    continue;
-                }
+        //     if (allowedAttributes[i] == AttributeSemantic::eUv0) {
+        //         constexpr auto quantizeUvSemanticSize = 4u; // eR16G16_Sfloat
+        //         constexpr auto defaultUvSemanticSize = kDefaultSemanticsSizeBytes[9u];
+        //         std::vector<std::byte> vertices(vertexCount * quantizeUvSemanticSize);
+        //         auto & vb = vertexBuffersData[i];
+        //         if (vb.empty()) {
+        //             continue;
+        //         }
 
-                for (size_t n = 0u; n < vertexCount; ++n) {
-                    const float * uv = reinterpret_cast<const float*>(&vb[n * defaultUvSemanticSize]);
-                    uint16_t * targetUv = reinterpret_cast<uint16_t*>(&vertices[n * quantizeUvSemanticSize]);
-                    targetUv[0u] = float_to_uint16(uv[0u]);
-                    targetUv[1u] = float_to_uint16(uv[1u]);
-                    // const uint16_t u = float_to_unorm(uv[0u], 16u);
-                    // const uint16_t v = float_to_unorm(uv[1u], 16u);
+        //         for (size_t n = 0u; n < vertexCount; ++n) {
+        //             const float * uv = reinterpret_cast<const float*>(&vb[n * defaultUvSemanticSize]);
+        //             uint16_t * targetUv = reinterpret_cast<uint16_t*>(&vertices[n * quantizeUvSemanticSize]);
+        //             targetUv[0u] = float_to_uint16(uv[0u]);
+        //             targetUv[1u] = float_to_uint16(uv[1u]);
+        //             // const uint16_t u = float_to_unorm(uv[0u], 16u);
+        //             // const uint16_t v = float_to_unorm(uv[1u], 16u);
 
-                    // vertices[n * quantizeUvSemanticSize + 0u] = static_cast<std::byte>(u);
-                    // vertices[n * quantizeUvSemanticSize + 1u] = static_cast<std::byte>(u >> 8u);
-                    // vertices[n * quantizeUvSemanticSize + 2u] = static_cast<std::byte>(v);
-                    // vertices[n * quantizeUvSemanticSize + 3u] = static_cast<std::byte>(v >> 8u);
-                }
-                std::swap(vertices, vb);
-            }
+        //             // vertices[n * quantizeUvSemanticSize + 0u] = static_cast<std::byte>(u);
+        //             // vertices[n * quantizeUvSemanticSize + 1u] = static_cast<std::byte>(u >> 8u);
+        //             // vertices[n * quantizeUvSemanticSize + 2u] = static_cast<std::byte>(v);
+        //             // vertices[n * quantizeUvSemanticSize + 3u] = static_cast<std::byte>(v >> 8u);
+        //         }
+        //         std::swap(vertices, vb);
+        //     }
 
-            if (allowedAttributes[i] == AttributeSemantic::eJoints) { // support 256 bones max if it enabled!
-                constexpr auto quantizeSemanticSize = 4u; // eR8G8B8A8_Uint
-                constexpr auto defaultSemanticSize = kDefaultSemanticsSizeBytes[7u];
-                 std::vector<std::byte> vertices(vertexCount * quantizeSemanticSize);
-                auto & vb = vertexBuffersData[i];
-                if (vb.empty()) {
-                    continue;
-                }
+        //     if (allowedAttributes[i] == AttributeSemantic::eJoints) { // support 256 bones max if it enabled!
+        //         constexpr auto quantizeSemanticSize = 4u; // eR8G8B8A8_Uint
+        //         constexpr auto defaultSemanticSize = kDefaultSemanticsSizeBytes[7u];
+        //          std::vector<std::byte> vertices(vertexCount * quantizeSemanticSize);
+        //         auto & vb = vertexBuffersData[i];
+        //         if (vb.empty()) {
+        //             continue;
+        //         }
 
-                for (size_t n = 0u; n < vertexCount; ++n) {
-                    const auto * value = reinterpret_cast<const uint16_t*>(&vb[n * defaultSemanticSize]);
-                    auto * targetValue = reinterpret_cast<uint8_t*>(&vertices[n * quantizeSemanticSize]);
+        //         for (size_t n = 0u; n < vertexCount; ++n) {
+        //             const auto * value = reinterpret_cast<const uint16_t*>(&vb[n * defaultSemanticSize]);
+        //             auto * targetValue = reinterpret_cast<uint8_t*>(&vertices[n * quantizeSemanticSize]);
 
-                    targetValue[0u] = static_cast<uint8_t>(value[0u]);
-                    targetValue[1u] = static_cast<uint8_t>(value[1u]);
-                    targetValue[2u] = static_cast<uint8_t>(value[2u]);
-                    targetValue[3u] = static_cast<uint8_t>(value[3u]);
-                }
-                std::swap(vertices, vb);
-            }
+        //             targetValue[0u] = static_cast<uint8_t>(value[0u]);
+        //             targetValue[1u] = static_cast<uint8_t>(value[1u]);
+        //             targetValue[2u] = static_cast<uint8_t>(value[2u]);
+        //             targetValue[3u] = static_cast<uint8_t>(value[3u]);
+        //         }
+        //         std::swap(vertices, vb);
+        //     }
 
-            if (allowedAttributes[i] == AttributeSemantic::eWeights) {
-                constexpr auto quantizeSemanticSize = 8u; // eR16G16B16A16_Sfloat
-                constexpr auto defaultSemanticSize = kDefaultSemanticsSizeBytes[8u];
-                 std::vector<std::byte> vertices(vertexCount * quantizeSemanticSize);
-                auto & vb = vertexBuffersData[i];
-                if (vb.empty()) {
-                    continue;
-                }
+        //     if (allowedAttributes[i] == AttributeSemantic::eWeights) {
+        //         constexpr auto quantizeSemanticSize = 8u; // eR16G16B16A16_Sfloat
+        //         constexpr auto defaultSemanticSize = kDefaultSemanticsSizeBytes[8u];
+        //          std::vector<std::byte> vertices(vertexCount * quantizeSemanticSize);
+        //         auto & vb = vertexBuffersData[i];
+        //         if (vb.empty()) {
+        //             continue;
+        //         }
 
-                for (size_t n = 0u; n < vertexCount; ++n) {
-                    const float * value = reinterpret_cast<const float*>(&vb[n * defaultSemanticSize]);
-                    uint16_t * targetValue = reinterpret_cast<uint16_t*>(&vertices[n * quantizeSemanticSize]);
+        //         for (size_t n = 0u; n < vertexCount; ++n) {
+        //             const float * value = reinterpret_cast<const float*>(&vb[n * defaultSemanticSize]);
+        //             uint16_t * targetValue = reinterpret_cast<uint16_t*>(&vertices[n * quantizeSemanticSize]);
 
-                    targetValue[0u] = float_to_uint16(value[0u]);
-                    targetValue[1u] = float_to_uint16(value[1u]);
-                    targetValue[2u] = float_to_uint16(value[2u]);
-                    targetValue[3u] = float_to_uint16(value[3u]);
-                }
-                std::swap(vertices, vb);
-            }
-        }
+        //             targetValue[0u] = float_to_uint16(value[0u]);
+        //             targetValue[1u] = float_to_uint16(value[1u]);
+        //             targetValue[2u] = float_to_uint16(value[2u]);
+        //             targetValue[3u] = float_to_uint16(value[3u]);
+        //         }
+        //         std::swap(vertices, vb);
+        //     }
+        // }
 
         ////
         for (auto & vertexBuffer : vertexBuffersData) {

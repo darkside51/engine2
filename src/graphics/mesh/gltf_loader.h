@@ -162,6 +162,10 @@ namespace graphics::models {
 		size_t getElementSize() const noexcept {
 			return getComponentsCount(type) * getTypeSize(componentType);
 		}
+
+		uint8_t componentsCount() const noexcept {
+			return getComponentsCount(type);
+		}
 	};
 
     struct Asset {

@@ -604,6 +604,19 @@ namespace example {
             }
         }
 
+        {
+            auto const modelBytes = _fileManager.readFile("assets/models/buster_drone.glb");
+            auto modelLayout = engine::graphics::models::loadModelLayout(modelBytes, _fileManager, "assets/models/");
+            auto const modelIdx = modelManager->addModel("buster_drone.glb", modelLayout, *graphicsService, _fileManager);
+
+            const auto & modelData = modelManager->getModelData(modelIdx);
+            uint8_t i = 0u;
+            for (const auto & animation : modelData.animations) {
+                animationManager.registerAnimation(engine::fmt_string("buster_anim%d", i), engine::scene::SkeletalAnimation(animation));
+                ++i;
+            }
+        }
+
         modelManager->generateGpuBuffers(*_api, *_device, tmpCommandList);
         textureManager->generateGpuData(tmpCommandList);
 
@@ -1027,40 +1040,42 @@ namespace example {
                 .skeletalPipeline = 1u
             };
 
-            auto const animId = animationManager.getAnimationIndex("skeletal_mesh_anim0");
-            for (size_t i = 0u; i < 1000u; ++i) {
-                auto * meshRoot = engine::scene::createNodeWithSkeletalMesh(*scene, *modelManager, 0u, 
-                    engine::scene::Bounds::Type::eSphere, pipelines);
-                
-                if (auto * skeleton = static_cast<engine::scene::Skeleton *>(meshRoot->getAttachment())) {
-                    if (i == 5u) {
-                        tmpSkeleton = skeleton;
-                        // meshRoot->childAt(0u)->getAttachment(1u)->setHidden(true);
+            if (1) {
+                auto const animId = animationManager.getAnimationIndex("skeletal_mesh_anim0");
+                for (size_t i = 0u; i < 1000u; ++i) {
+                    auto * meshRoot = engine::scene::createNodeWithSkeletalMesh(*scene, *modelManager, 0u, 
+                        engine::scene::Bounds::Type::eSphere, pipelines);
+                    
+                    if (auto * skeleton = static_cast<engine::scene::Skeleton *>(meshRoot->getAttachment())) {
+                        if (i == 5u) {
+                            tmpSkeleton = skeleton;
+                            // meshRoot->childAt(0u)->getAttachment(1u)->setHidden(true);
+                        }
+
+                        auto * anim0 = scene->createAnimInfo<engine::scene::SkeletalAnimation>(animId, engine::common::random(0.25f, 1.7f));
+                        scene->destroyAnimInfo(skeleton->setAnimation(anim0));
                     }
 
-                    auto * anim0 = scene->createAnimInfo<engine::scene::SkeletalAnimation>(animId, engine::common::random(0.25f, 1.7f));
-                    scene->destroyAnimInfo(skeleton->setAnimation(anim0));
+                    constexpr float targetDimension = 0.234f;
+                    float scale = 1.0f;
+                    if (meshRoot->bounds.type == engine::scene::Bounds::Type::eSphere) {
+                        scale = targetDimension / meshRoot->bounds.volume.sphere.radius;
+                    } else if (meshRoot->bounds.type == engine::scene::Bounds::Type::eCube) {
+                        const auto & cube = meshRoot->bounds.volume.cube;
+                        const auto size = cube.corner1 - cube.corner0;
+                        scale = std::min({targetDimension / std::abs(size.x), targetDimension / std::abs(size.x), targetDimension / std::abs(size.z)});
+                    }
+
+                    // meshRoot->setScale(engine::common::random(0.2f, 0.25f));
+                    meshRoot->setScale(scale);
+                    meshRoot->setRotation(engine::vec3f(1.57f, 0.0f, engine::common::random(-3.14f, 3.14f)));
+                    meshRoot->setPosition(engine::vec3f(-2.0f + i % 33 * 0.5f, i / 33 * -0.5f, 0.0f));
+
+                    sceneWorldRoot->addChild(meshRoot);
                 }
-
-                constexpr float targetDimension = 0.234f;
-                float scale = 1.0f;
-                if (meshRoot->bounds.type == engine::scene::Bounds::Type::eSphere) {
-                    scale = targetDimension / meshRoot->bounds.volume.sphere.radius;
-                } else if (meshRoot->bounds.type == engine::scene::Bounds::Type::eCube) {
-                    const auto & cube = meshRoot->bounds.volume.cube;
-                    const auto size = cube.corner1 - cube.corner0;
-                    scale = std::min({targetDimension / std::abs(size.x), targetDimension / std::abs(size.x), targetDimension / std::abs(size.z)});
-                }
-
-                // meshRoot->setScale(engine::common::random(0.2f, 0.25f));
-                meshRoot->setScale(scale);
-                meshRoot->setRotation(engine::vec3f(1.57f, 0.0f, engine::common::random(-3.14f, 3.14f)));
-                meshRoot->setPosition(engine::vec3f(-5.0f + i % 33 * 0.5f, i / 33 * -0.5f, 0.0f));
-
-                sceneWorldRoot->addChild(meshRoot);
             }
 
-            {
+            if (1) {
                 auto * meshRoot = engine::scene::createNodeWithSkeletalMesh(*scene, *modelManager, 1u, 
                     engine::scene::Bounds::Type::eCube, pipelines);
 
@@ -1080,12 +1095,12 @@ namespace example {
                 sceneWorldRoot->addChild(meshRoot);
             }
 
-            {
+            if (1) {
                 auto * meshRoot = engine::scene::createNodeWithSkeletalMesh(*scene, *modelManager, 2u, 
                     engine::scene::Bounds::Type::eCube, pipelines);
 
                 if (auto * skeleton = static_cast<engine::scene::Skeleton *>(meshRoot->getAttachment())) {
-                    auto const animId = animationManager.getAnimationIndex("wheel_anim1");
+                    auto const animId = animationManager.getAnimationIndex("wheel_anim0");
                     auto * anim = scene->createAnimInfo<engine::scene::SkeletalAnimation>(animId, engine::common::random(0.25f, 1.7f));
                     scene->destroyAnimInfo(skeleton->setAnimation(anim));
                 }
@@ -1104,6 +1119,34 @@ namespace example {
                 meshRoot->setRotation(engine::vec3f(1.57f, 0.0f, 1.5f));
                 meshRoot->setPosition(engine::vec3f(-3.0f, 2.0f, 0.0f));
                 sceneWorldRoot->addChild(meshRoot);
+            }
+
+            if (1) {
+                for (uint8_t i = 0; i < 10; ++i) {
+                    auto * meshRoot = engine::scene::createNodeWithSkeletalMesh(*scene, *modelManager, 3u, 
+                        engine::scene::Bounds::Type::eCube, pipelines);
+
+                    if (auto * skeleton = static_cast<engine::scene::Skeleton *>(meshRoot->getAttachment())) {
+                        auto const animId = animationManager.getAnimationIndex("buster_anim0");
+                        auto * anim = scene->createAnimInfo<engine::scene::SkeletalAnimation>(animId, engine::common::random(0.25f, 1.7f));
+                        scene->destroyAnimInfo(skeleton->setAnimation(anim));
+                    }
+
+                    constexpr float targetDimension = 1.5f;
+                    float scale = 1.0f;
+                    if (meshRoot->bounds.type == engine::scene::Bounds::Type::eSphere) {
+                        scale = targetDimension / meshRoot->bounds.volume.sphere.radius;
+                    } else if (meshRoot->bounds.type == engine::scene::Bounds::Type::eCube) {
+                        const auto & cube = meshRoot->bounds.volume.cube;
+                        const auto size = cube.corner1 - cube.corner0;
+                        scale = std::min({targetDimension / std::abs(size.x), targetDimension / std::abs(size.y), targetDimension / std::abs(size.z)});
+                    }
+
+                    meshRoot->setScale(scale);
+                    meshRoot->setRotation(engine::vec3f(1.57f, 0.0f, engine::common::random(-3.14f, 3.14f)));
+                    meshRoot->setPosition(engine::vec3f(-3.0f, 0.0f - i * 1.25f, 0.42f));
+                    sceneWorldRoot->addChild(meshRoot);
+                }
             }
 
             auto m0 = engine::makeMatrix(0.5F);
