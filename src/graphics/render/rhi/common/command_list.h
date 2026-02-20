@@ -20,6 +20,24 @@ namespace engine::rhi::runtime {
     }
 
     class CommandList {
+        struct Statistics {
+            void reset() noexcept {
+                drawCalls = 0u;
+                dispatchCalls = 0u;
+                binPipelines = 0u;
+                renderPasses = 0u;
+                updateBuffers = 0u;
+                copyCommands = 0u;
+            }
+
+            uint32_t drawCalls = 0u;
+            uint32_t dispatchCalls = 0u;
+            uint16_t binPipelines = 0u;
+            uint16_t renderPasses = 0u;
+            uint16_t updateBuffers = 0u;
+            uint16_t copyCommands = 0u;
+        };
+
     public:
         virtual ~CommandList() { clear(); };
 
@@ -71,6 +89,10 @@ namespace engine::rhi::runtime {
 
         virtual void record(uint8_t frameIdx) noexcept {}
         
+        const Statistics & getStats() const noexcept {
+            return _statistics;
+        }
+
     protected:
         inline static constexpr size_t kStackSize = 1024u * 1024u; // 1 Mb
         allocators::StackAllocator<kStackSize, false> _commands{};
@@ -79,19 +101,7 @@ namespace engine::rhi::runtime {
     private:
         void clear() noexcept;
 
-        struct Statistics {
-            void reset() noexcept {
-                drawCalls = 0u;
-                dispatchCalls = 0u;
-                binPipelines = 0u;
-                renderPasses = 0u;
-            }
-
-            uint32_t drawCalls = 0u;
-            uint32_t dispatchCalls = 0u;
-            uint16_t binPipelines = 0u;
-            uint16_t renderPasses = 0u;
-        };
+        Statistics _statistics;
 
         struct State {
             inline constexpr static uint32_t kMaxViewports = 1u; // todo: maybe no 1u if the multiViewport feature is enabled and need to check PhysicalDeviceLimits::maxViewports

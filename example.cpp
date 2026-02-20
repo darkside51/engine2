@@ -94,6 +94,7 @@ namespace example {
         float cpuFrameTime = 0.0f;
         float gpuFrameTime = 0.0f;
         uint8_t inFlightFramesCount = 1u;
+        uint16_t drawCalls = 0u;
     };
 
     Stats gStats;
@@ -1280,6 +1281,11 @@ namespace example {
             if (ImGui::MenuItem(str)) {
                 // todo: show graph
             }
+
+            str = engine::fmt_string("draw calls: %d\t", gStats.drawCalls);
+            if (ImGui::MenuItem(str)) {
+                // todo: show graph
+            }
             
             ImGui::EndMainMenuBar();
         }
@@ -1513,11 +1519,15 @@ namespace example {
         _queryPool->getResults(frameId * 2u, 2u, results, 2 * sizeof(uint64_t), 
             rhi::QueryResultFlags::e64 | rhi::QueryResultFlags::eWith_Availability);
 
-        if (_queryResults[frameId][3] != 0) {
+        if (_queryResults[frameId][3u] != 0) {
             const float gpuFrameTime = _gpu->timestampToMilliseconds(_queryResults[frameId][2] - _queryResults[frameId][0]);
             gStats.cpuFrameTime = delta * 1'000.0f;
             gStats.gpuFrameTime = gpuFrameTime;
         }
+
+        gStats.drawCalls = 0u;
+        gStats.drawCalls += commandList->getStats().drawCalls;
+        gStats.drawCalls += transferCommandList->getStats().drawCalls;
 
         // submit
         // const auto waitSemaphores = std::array{_swapchain->imageAvailableSemaphore(frameId)};

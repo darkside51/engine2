@@ -2,6 +2,8 @@
 
 namespace engine::rhi::runtime {
 
+    constexpr bool kStatisticsEnable = true;
+
     void CommandList::clear() noexcept {
         auto commandsCount = _commandsCount;
         std::byte * memory = _commands.memory().data();
@@ -16,6 +18,10 @@ namespace engine::rhi::runtime {
 
         _resources.clear();
         _resources.reserve(1024u);
+
+        if constexpr (kStatisticsEnable) {
+            _statistics.reset();
+        }
     }
 
     void CommandList::begin(CommandBufferUsageFlags flags) noexcept {
@@ -50,6 +56,10 @@ namespace engine::rhi::runtime {
     void CommandList::endRenderPass() noexcept {
         _commands->create<EndRenderPassCommand>();
         ++_commandsCount;
+
+        if constexpr (kStatisticsEnable) {
+            ++_statistics.renderPasses;
+        }
     }
 
     void CommandList::nextSubpass(SubpassContents contents,
@@ -57,6 +67,10 @@ namespace engine::rhi::runtime {
         std::span<BufferTransitionInfo> bufferTransitionInfo) noexcept {
         _commands->create<NextSubpassCommand>(contents, imageTransitionInfo, bufferTransitionInfo);
         ++_commandsCount;
+
+        if constexpr (kStatisticsEnable) {
+            ++_statistics.renderPasses;
+        }
     }
 
     void CommandList::executeCommands(std::span<const CommandList*> secondaryCommandLists) noexcept {
@@ -92,6 +106,10 @@ namespace engine::rhi::runtime {
             _commands->create<BindPipelineCommand>(pipeline);
             _state.pipeline = pipeline.get();
             ++_commandsCount;
+
+            if constexpr (kStatisticsEnable) {
+            ++_statistics.binPipelines;
+        }
         }
     }
 
@@ -167,18 +185,30 @@ namespace engine::rhi::runtime {
     void CommandList::draw(uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance) noexcept {
         _commands->create<DrawCommand>(vertexCount, instanceCount, firstVertex, firstInstance);
         ++_commandsCount;
+
+        if constexpr (kStatisticsEnable) {
+            ++_statistics.drawCalls;
+        }
     }
 
     void CommandList::drawIndexed(uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t vertexOffset, 
         uint32_t firstInstance) noexcept {
         _commands->create<DrawIndexedCommand>(indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
         ++_commandsCount;
+
+        if constexpr (kStatisticsEnable) {
+            ++_statistics.drawCalls;
+        }
     }
 
     // compute
     void CommandList::dispatch(uint16_t groupCountX, uint16_t groupCountY, uint16_t groupCountZ) noexcept {
         _commands->create<DispatchCommand>(groupCountX, groupCountY, groupCountZ);
         ++_commandsCount;
+
+        if constexpr (kStatisticsEnable) {
+            ++_statistics.dispatchCalls;
+        }
     }
 
     // query pool
@@ -197,6 +227,10 @@ namespace engine::rhi::runtime {
         _resources.push_back(dst);
         _commands->create<UpdateBufferCommand>(dst.get(), dstOffset, dataSize, pData, autoBarriers);
         ++_commandsCount;
+
+        if constexpr (kStatisticsEnable) {
+            ++_statistics.updateBuffers;
+        }
     }
 
     // copy commands
@@ -205,6 +239,10 @@ namespace engine::rhi::runtime {
         _resources.push_back(dst);
         _commands->create<CopyBuffer2BufferCommand>(src.get(), dst.get(), copyInfo, autoBarriers);
         ++_commandsCount;
+
+        if constexpr (kStatisticsEnable) {
+            ++_statistics.copyCommands;
+        }
     }
 
     void CommandList::copyBuffer2Image(const BufferPtr & src, ImagePtr & dst, const CopyBufferImageInfo & copyInfos, bool autoBarriers) noexcept {
@@ -212,6 +250,10 @@ namespace engine::rhi::runtime {
         _resources.push_back(dst);
         _commands->create<CopyBuffer2ImageCommand>(src.get(), dst.get(), copyInfos, autoBarriers);
         ++_commandsCount;
+
+        if constexpr (kStatisticsEnable) {
+            ++_statistics.copyCommands;
+        }
     }
 
     // manual barriers

@@ -34,6 +34,9 @@ namespace engine::graphics {
         std::vector<uint32_t> materialsRemap;
         materialsRemap.reserve(layout.materials.size());
 
+        // todo store only unique materials!
+        // std::find(_materials.begin(), _materials.end(), material);
+
         for (const auto & srcMaterial : layout.materials) {
             auto & material = *_allocator.create<Material>();
             const auto materialId = _allocator.getObjectNumber(&material);
