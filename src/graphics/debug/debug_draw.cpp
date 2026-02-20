@@ -34,7 +34,9 @@ namespace engine::debug {
     void DebugDraw::createPipelines(rhi::runtime::Rhi & api,
         rhi::runtime::Device & device, 
         const rhi::runtime::GpuProgramPtr & program, rhi::runtime::RenderPass renderPass, 
-        uint32_t subpass) {
+        uint32_t subpass, bool reverseDepth) {
+
+        const auto depthCompareOp = reverseDepth ? rhi::CompareOp::eGreater : rhi::CompareOp::eLess;
 
         if (_api == nullptr) {
             _api = &api;
@@ -51,7 +53,7 @@ namespace engine::debug {
             {
                 .depthTestEnable = true,
                 .depthWriteEnable = true,
-                .depthCompareOp = rhi::CompareOp::eLess
+                .depthCompareOp = depthCompareOp
             }, 
             {}
         };
@@ -89,7 +91,7 @@ namespace engine::debug {
             {
                 .depthTestEnable = true,
                 .depthWriteEnable = false,
-                .depthCompareOp = rhi::CompareOp::eLess
+                .depthCompareOp = depthCompareOp
             }, 
             {}
         };

@@ -47,7 +47,7 @@
 			"depth": {
 				"depthTestEnable": true,
 				"depthWriteEnable": true,
-				"depthCompareOp": "eLess"
+				"depthCompareOp": "eGreater"
 			}
 		},
 		"inputAssemblyState": {
@@ -87,7 +87,7 @@
 			"depth": {
 				"depthTestEnable": true,
 				"depthWriteEnable": false,
-				"depthCompareOp": "eLess"
+				"depthCompareOp": "eGreater"
 			}
 		},
 		"inputAssemblyState": {
@@ -127,7 +127,7 @@
 			"depth": {
 				"depthTestEnable": true,
 				"depthWriteEnable": true,
-				"depthCompareOp": "eLess"
+				"depthCompareOp": "eGreater"
 			}
 		},
 		"inputAssemblyState": {
@@ -194,7 +194,7 @@
 			"depth": {
 				"depthTestEnable": true,
 				"depthWriteEnable": true,
-				"depthCompareOp": "eLess"
+				"depthCompareOp": "eGreater"
 			}
 		},
 		"inputAssemblyState": {

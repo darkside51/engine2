@@ -192,7 +192,8 @@ namespace example {
         controller.setDistance(5.0f);
         controller.setMinMaxDistance(0.01f, 8.0f);
 
-        camera.makePerspective(std::numbers::pi_v<float> / 3.0f, 1024.0f / 768.0f, 0.001f, 100.0f);
+        // camera.makePerspective(std::numbers::pi_v<float> / 3.0f, 1024.0f / 768.0f, 0.001f, 100.0f);
+        camera.makePerspective(std::numbers::pi_v<float> / 3.0f, 1024.0f / 768.0f, 100.0f, 0.001f); // reverse depth;
     }
 
     Example::~Example() = default;
@@ -525,7 +526,7 @@ namespace example {
 
         loadShaders();
         _imgui.createPipeline(*_api, *_device, _programs[kImguiProgram], _renderPasses[kScreenRenderPass], 0u);
-        debugDraw.createPipelines(*_api, *_device, _programs[kDebugProgram], _renderPasses[kSceneRenderPass], 0u);
+        debugDraw.createPipelines(*_api, *_device, _programs[kDebugProgram], _renderPasses[kSceneRenderPass], 0u, true);
 
         const auto bytes = _fileManager.readFile("descriptors/pipelines.json");
         std::string_view input(reinterpret_cast<const char*>(bytes.data()), bytes.size());
@@ -1410,7 +1411,7 @@ namespace example {
         // render
         constexpr auto sceneClearValues = std::array{
             rhi::ClearValue{0x77'77'77'ffu},
-            rhi::ClearValue{1.0f}
+            rhi::ClearValue{0.0f}
         };
 
         constexpr auto clearValues = std::array{
@@ -1419,7 +1420,6 @@ namespace example {
 
         commandList->setViewport(0.0f, 0.0f, width, height);
         commandList->setScissor({{0, 0}, {width, height}});
-
 
         scene->beginFrame(now);
         std::vector<engine::scene::AttachmentObject*> objects(1024u);
