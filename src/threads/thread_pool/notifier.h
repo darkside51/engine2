@@ -403,5 +403,6 @@ namespace threads {
         void operator= (const NonblockingNotifierV2 &) = delete;
     };
 
+    // using Notifier = NotifierV2;
     using Notifier = NonblockingNotifierV2;
 }

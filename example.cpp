@@ -1367,9 +1367,9 @@ namespace example {
             // sceneNodePtr->setTransform(tr);
         }
 
-        std::vector<engine::scene::AttachmentObject*> objects(1024u);
-        scene->fillAttachmentsArray(cameraTransform, sceneWorldRoot, [](engine::scene::AttachmentObject*) { return true; }, objects);
-        scene->update(now, delta, objects, animationManager);
+        // std::vector<engine::scene::AttachmentObject*> objects(1024u);
+        // scene->fillAttachmentsArray(cameraTransform, sceneWorldRoot, [](engine::scene::AttachmentObject*) { return true; }, objects);
+        // scene->update(now, delta, objects, animationManager);
     }
 
     void Example::prepareFrameDrawData(engine::rhi::runtime::CommandListPtr & commandList, uint8_t frame, float delta) {
@@ -1463,6 +1463,7 @@ namespace example {
         scene->beginFrame(now);
         std::vector<engine::scene::AttachmentObject*> objects(1024u);
         scene->fillAttachmentsArray(cameraTransform, sceneWorldRoot, [](engine::scene::AttachmentObject*) { return true; }, objects);
+        scene->animate(now, delta, objects, animationManager); // after fillAttachmentsArrays and after beginFrame for correct
 
         // scene pass
         commandList->beginRenderPass(_renderPasses[kSceneRenderPass], _sceneFrameBuffers[imageIndex], sceneClearValues, {{0, 0}, {width, height}});
@@ -1516,7 +1517,7 @@ namespace example {
 
     
         scene->draw(commandList, transferCommandList, frameId, cameraTransform, objects);    
-
+        
         debugDraw.prepare(*transferCommandList, frameId);
         debugDraw.draw(*commandList, frameId, now);
 

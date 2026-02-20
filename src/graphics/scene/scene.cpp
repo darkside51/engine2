@@ -101,6 +101,7 @@ namespace engine::scene {
     }
 
     Scene::~Scene() {
+        gThreadPool.cancelTasks();
         destroy();
 
         // for (auto & [_, objects] : _objectCollections) {
@@ -291,7 +292,7 @@ namespace engine::scene {
         return false;
     }
 
-    void Scene::update(std::chrono::time_point<std::chrono::steady_clock> now, float delta, std::span<AttachmentObject*> objects, 
+    void Scene::animate(std::chrono::time_point<std::chrono::steady_clock> now, float delta, std::span<AttachmentObject*> objects, 
         const AnimationManager & animationManager) {
         if (objects.empty()) {
             return;
@@ -419,8 +420,6 @@ namespace engine::scene {
                 }
             }
         }
-
-        // _animations.clearAndReserve(); - moved to beginFrame(...)
     }
 
     void Scene::prepareDrawData(std::span<AttachmentObject*> objects, uint8_t frame) noexcept {
@@ -1005,6 +1004,15 @@ namespace engine::scene {
         }
     }
 
+    void Scene::completeAnimations() noexcept {
+        for (auto * taskW8 : _calculationWaiterPtrs) {
+            taskW8->request_wait_and_reset();
+        }
+        _calculationWaiterPtrs.clear();
+        _calculationWaiterPtrs.reserve(128u);
+        _animations.clearAndReserve();
+    }
+
     void Scene::beginFrame(std::chrono::time_point<std::chrono::steady_clock> now) noexcept {
         reduceUsedMemory(now);
         _meshTransformIndicesMap.clear();
@@ -1017,12 +1025,7 @@ namespace engine::scene {
         _meshesDrawInFrame = 0u;
         _skeletalTransformsInFrame = 0u;
 
-        for (auto * taskW8 : _calculationWaiterPtrs) {
-            taskW8->request_wait_and_reset();
-        }
-        _calculationWaiterPtrs.clear();
-        _calculationWaiterPtrs.reserve(128u);
-        _animations.clearAndReserve();
+        completeAnimations();
     }
 
     void Scene::endFrame(rhi::runtime::CommandListPtr & commandList, rhi::runtime::CommandListPtr & transferCommandList, uint8_t frame) {

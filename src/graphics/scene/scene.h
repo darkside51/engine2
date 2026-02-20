@@ -120,7 +120,7 @@ public:
     template <typename Condition>
     void fillAttachmentsArray(const mat4f & cameraTransform, Node * root, Condition && condition, std::vector<AttachmentObject*> & objects);
 
-    void update(std::chrono::time_point<std::chrono::steady_clock> now, float delta, std::span<AttachmentObject*> objects, 
+    void animate(std::chrono::time_point<std::chrono::steady_clock> now, float delta, std::span<AttachmentObject*> objects, 
         const AnimationManager & animationManager);
     void draw(rhi::runtime::CommandListPtr & commandList, rhi::runtime::CommandListPtr & transferCommandList, uint8_t frame, 
         const mat4f & cameraTransform, std::span<AttachmentObject*> objects);
@@ -183,6 +183,8 @@ private:
         }
 
     } _animations;
+
+    void completeAnimations() noexcept;
     
     // render
     rhi::runtime::Rhi * _api = nullptr;
