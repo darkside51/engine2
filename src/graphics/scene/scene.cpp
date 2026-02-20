@@ -19,6 +19,22 @@
 
 #include <unordered_map>
 
+namespace {
+    consteval void _() noexcept {
+        using namespace engine::scene;
+
+        static_assert(sizeof(AnimationInfo) == 16u);
+        static_assert(sizeof(AnimationInfoChain) == 32u);
+
+        static_assert(sizeof(AttachmentObject) == 32u);
+        static_assert(sizeof(Dummy) == 32u);
+        static_assert(sizeof(Mesh) == 184u);
+        static_assert(sizeof(Sprite) == 64u);
+
+        static_assert(sizeof(Node) == 232u);
+    }
+}
+
 namespace engine::scene {
     constexpr float kTryReduceUsedMemoryTimePeriodSeconds = 5.0f;
     constexpr uint32_t kInitialVerticesCountMax = 1024u;
@@ -29,6 +45,7 @@ namespace engine::scene {
     constexpr uint32_t kStaginBufferEnlargeSizeMult = 2u;
 
     constexpr uint16_t kUndefinedAnimId = 0xff'ffu;
+    constexpr float kAnimUpdateMaxTime = 1.0f / 60.0f;
 
     using SsboTransform = mat3x4f; // to use 48bytes transposed matrices
     constexpr uint32_t kSsboTransformSize = sizeof(SsboTransform);
@@ -39,7 +56,7 @@ namespace engine::scene {
     SkeletalAnimator gSkeletalAnimator{};
 
     constexpr uint8_t kSkeletalAnimationCountToEnableMultyThreading = 64u;
-    constexpr uint8_t kAnimationCalculationPoolsCount = 2u;
+    constexpr uint8_t kAnimationCalculationPoolsCount = 4u;
 
     threads::ThreadPool gThreadPool{kAnimationCalculationPoolsCount};
     std::array<SkeletalAnimator, kAnimationCalculationPoolsCount> gSkeletalAnimatorsMT;
@@ -286,9 +303,11 @@ namespace engine::scene {
         const auto sequenceAnimationsCountOnStart = _animations.sequences.size();
 
         for (auto * object : objects) {
-            const auto * animInfo = object->animInfo;
+            auto * animInfo = object->animInfo;
             while (animInfo) {
-                if (animInfo->info.weight > 0.0f) {
+                const auto time = (animInfo->info.sleepTime - delta / (1u + object->lod));
+                if (animInfo->info.weight > 0.0f && time <= 0.0f) {
+                    animInfo->info.sleepTime = std::min(delta, kAnimUpdateMaxTime);
                     switch (animInfo->info.animationType) {
                     case ctti::typeIndex<Animation, SkeletalAnimation>() : 
                     {
@@ -303,6 +322,8 @@ namespace engine::scene {
                     default:
                         break;
                     }
+                } else {
+                    animInfo->info.sleepTime = time;
                 }
                 animInfo = animInfo->next;
             }
@@ -997,9 +1018,10 @@ namespace engine::scene {
         _skeletalTransformsInFrame = 0u;
 
         for (auto * taskW8 : _calculationWaiterPtrs) {
-            taskW8->request_wait();
+            taskW8->request_wait_and_reset();
         }
         _calculationWaiterPtrs.clear();
+        _calculationWaiterPtrs.reserve(128u);
         _animations.clearAndReserve();
     }
 

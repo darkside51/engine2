@@ -38,6 +38,7 @@ namespace engine::scene {
         int16_t order = 0u; 
 
         Flags flags{};
+        uint8_t lod = 0u;
 
         AttachmentObject(uint16_t typeIndex) : typeIndex(typeIndex) {}
         /*virtual*/ ~AttachmentObject() = default; // call typed, virtual not need

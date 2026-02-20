@@ -162,6 +162,7 @@ namespace threads {
 
         void request_complete() noexcept {
             _flag.test_and_set(std::memory_order_relaxed);
+            // _flag.notify_one();
         }
 
     private:
@@ -178,10 +179,21 @@ namespace threads {
             while (!_flag.test(std::memory_order_relaxed)) {
                 std::this_thread::yield();
             }
+            // _flag.wait(false, std::memory_order_relaxed);
         }
 
         void request_complete() noexcept {
             _flag.test_and_set(std::memory_order_relaxed);
+            // _flag.notify_one();
+        }
+
+        void reset() noexcept {
+            _flag.clear(std::memory_order_relaxed);
+        }
+
+        void request_wait_and_reset() noexcept {
+            request_wait();
+            reset();
         }
 
     private:
