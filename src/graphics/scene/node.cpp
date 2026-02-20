@@ -40,16 +40,26 @@ namespace engine::scene {
         return nullptr;
     }
 
-    Node * Node::findChild(uint16_t nodeId) const noexcept {
+    Node * Node::findChildInHierarchy(uint16_t nodeId) const noexcept {
         auto * result = getChild(nodeId);
         if (result == nullptr) {
             Node * n = firstChild;
             while (n) {
-                result = n->findChild(nodeId);
+                result = n->findChildInHierarchy(nodeId);
                 if (result) {
                     break;
                 }
             }
+        }
+        return result;
+    }
+
+    Node * Node::childAt(uint16_t index) const noexcept {
+        auto * result = firstChild;
+        uint16_t current = 0u;
+        while (result && current < index) {
+            result = result->next;
+            ++current;
         }
         return result;
     }
@@ -123,6 +133,16 @@ namespace engine::scene {
 
     AttachmentObject * Node::getAttachment() const noexcept {
         return attachment;
+    }
+
+    AttachmentObject * Node::getAttachment(uint8_t idx) const noexcept {
+        auto * result = attachment;
+        uint8_t current = 0u;
+        while (result && current < idx) {
+            result = result->next;
+            ++current;
+        }
+        return result;
     }
 
     void Node::setBounds(const Bounds & newBounds) noexcept {

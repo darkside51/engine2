@@ -256,7 +256,7 @@ void Scene::fillAttachmentsArray(const mat4f & cameraTransform, Node * root, Con
 
         auto * object = n->getAttachment();
         while (object) {
-            if (condition(object)) {
+            if (!object->isHidden() && condition(object)) {
                 objects.emplace_back(object);
 
                 if constexpr (kDebugDrawBounds) {

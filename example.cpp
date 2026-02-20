@@ -1013,13 +1013,14 @@ namespace example {
             };
 
             auto const animId = animationManager.getAnimationIndex("skeletal_mesh_anim0");
-            for (size_t i = 0u; i < 1000u; ++i) {
+            for (size_t i = 0u; i < 10u; ++i) {
                 auto * meshRoot = engine::scene::createNodeWithSkeletalMesh(*scene, *modelManager, 0u, 
                     engine::scene::Bounds::Type::eSphere, pipelines);
                 
                 if (auto * skeleton = static_cast<engine::scene::Skeleton *>(meshRoot->getAttachment())) {
                     if (i == 5u) {
                         tmpSkeleton = skeleton;
+                        // meshRoot->childAt(0u)->getAttachment(1u)->setHidden(true);
                     }
 
                     auto * anim0 = scene->createAnimInfo<engine::scene::SkeletalAnimation>(animId, engine::common::random(0.25f, 1.7f));
@@ -1039,7 +1040,7 @@ namespace example {
                 // meshRoot->setScale(engine::common::random(0.2f, 0.25f));
                 meshRoot->setScale(scale);
                 meshRoot->setRotation(engine::vec3f(1.57f, 0.0f, engine::common::random(-3.14f, 3.14f)));
-                meshRoot->setPosition(engine::vec3f(-5.0f + i % 33 * 0.5f, i / 33 * -0.5f, 0.0f));
+                meshRoot->setPosition(engine::vec3f(-2.0f + i % 33 * 0.5f, i / 33 * -0.5f, 0.0f));
 
                 sceneWorldRoot->addChild(meshRoot);
             }

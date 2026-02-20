@@ -97,6 +97,7 @@ struct Node {
     void setAttachment(AttachmentObject * object) noexcept;
     AttachmentObject * removeAttachment() noexcept;
     AttachmentObject * getAttachment() const noexcept;
+    AttachmentObject * getAttachment(uint8_t idx) const noexcept;
 
     // state
     inline bool isCulled() const noexcept {
@@ -149,7 +150,8 @@ struct Node {
     bool removeFromParent() noexcept;
 
     Node * getChild(uint16_t nodeId) const noexcept;
-    Node * findChild(uint16_t nodeId) const noexcept;
+    Node * findChildInHierarchy(uint16_t nodeId) const noexcept;
+    Node * childAt(uint16_t index) const noexcept;
 
     // transformation
     quatf getRotation() const noexcept { return transformation.getRotation(); }
