@@ -39,7 +39,7 @@ namespace engine::scene {
     SkeletalAnimator gSkeletalAnimator{};
 
     constexpr uint8_t kSkeletalAnimationCountToEnableMultyThreading = 64u;
-    constexpr uint8_t kAnimationCalculationPoolsCount = 4u;
+    constexpr uint8_t kAnimationCalculationPoolsCount = 2u;
 
     threads::ThreadPool gThreadPool{kAnimationCalculationPoolsCount};
     std::array<SkeletalAnimator, kAnimationCalculationPoolsCount> gSkeletalAnimatorsMT;

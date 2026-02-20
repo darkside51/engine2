@@ -591,6 +591,19 @@ namespace example {
             auto const modelIdx = modelManager->addModel("scene.gltf", modelLayout, *graphicsService, _fileManager);
         }
 
+        {
+            auto const modelBytes = _fileManager.readFile("assets/models/Minsk_wheel.glb");
+            auto modelLayout = engine::graphics::models::loadModelLayout(modelBytes, _fileManager, "assets/models/");
+            auto const modelIdx = modelManager->addModel("wheel.glb", modelLayout, *graphicsService, _fileManager);
+
+            const auto & modelData = modelManager->getModelData(modelIdx);
+            uint8_t i = 0u;
+            for (const auto & animation : modelData.animations) {
+                animationManager.registerAnimation(engine::fmt_string("wheel_anim%d", i), engine::scene::SkeletalAnimation(animation));
+                ++i;
+            }
+        }
+
         modelManager->generateGpuBuffers(*_api, *_device, tmpCommandList);
         textureManager->generateGpuData(tmpCommandList);
 
@@ -1015,7 +1028,7 @@ namespace example {
             };
 
             auto const animId = animationManager.getAnimationIndex("skeletal_mesh_anim0");
-            for (size_t i = 0u; i < 10u; ++i) {
+            for (size_t i = 0u; i < 1000u; ++i) {
                 auto * meshRoot = engine::scene::createNodeWithSkeletalMesh(*scene, *modelManager, 0u, 
                     engine::scene::Bounds::Type::eSphere, pipelines);
                 
@@ -1042,7 +1055,7 @@ namespace example {
                 // meshRoot->setScale(engine::common::random(0.2f, 0.25f));
                 meshRoot->setScale(scale);
                 meshRoot->setRotation(engine::vec3f(1.57f, 0.0f, engine::common::random(-3.14f, 3.14f)));
-                meshRoot->setPosition(engine::vec3f(-2.0f + i % 33 * 0.5f, i / 33 * -0.5f, 0.0f));
+                meshRoot->setPosition(engine::vec3f(-5.0f + i % 33 * 0.5f, i / 33 * -0.5f, 0.0f));
 
                 sceneWorldRoot->addChild(meshRoot);
             }
@@ -1064,6 +1077,32 @@ namespace example {
                 meshRoot->setScale(scale);
                 meshRoot->setRotation(engine::vec3f(1.57f, 0.0f, 0.0f));
                 meshRoot->setPosition(engine::vec3f(0.0f, 4.0f, 0.0f));
+                sceneWorldRoot->addChild(meshRoot);
+            }
+
+            {
+                auto * meshRoot = engine::scene::createNodeWithSkeletalMesh(*scene, *modelManager, 2u, 
+                    engine::scene::Bounds::Type::eCube, pipelines);
+
+                if (auto * skeleton = static_cast<engine::scene::Skeleton *>(meshRoot->getAttachment())) {
+                    auto const animId = animationManager.getAnimationIndex("wheel_anim1");
+                    auto * anim = scene->createAnimInfo<engine::scene::SkeletalAnimation>(animId, engine::common::random(0.25f, 1.7f));
+                    scene->destroyAnimInfo(skeleton->setAnimation(anim));
+                }
+
+                constexpr float targetDimension = 3.5f;
+                float scale = 1.0f;
+                if (meshRoot->bounds.type == engine::scene::Bounds::Type::eSphere) {
+                    scale = targetDimension / meshRoot->bounds.volume.sphere.radius;
+                } else if (meshRoot->bounds.type == engine::scene::Bounds::Type::eCube) {
+                    const auto & cube = meshRoot->bounds.volume.cube;
+                    const auto size = cube.corner1 - cube.corner0;
+                    scale = std::min({targetDimension / std::abs(size.x), targetDimension / std::abs(size.y), targetDimension / std::abs(size.z)});
+                }
+
+                meshRoot->setScale(scale);
+                meshRoot->setRotation(engine::vec3f(1.57f, 0.0f, 1.5f));
+                meshRoot->setPosition(engine::vec3f(-3.0f, 2.0f, 0.0f));
                 sceneWorldRoot->addChild(meshRoot);
             }
 

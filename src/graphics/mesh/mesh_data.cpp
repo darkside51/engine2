@@ -129,22 +129,30 @@ namespace engine::graphics::models {
                             memcpy(&vbData[currentBufferOffset], &bufferViewData[0u], targetDataSize);
                             // memcpy(vbData.data(), bufferViewData.data(), targetDataSize);
                         } else { // attribute convertion
-                            assert(false); // need impl
+                            // assert(false); // need impl
                             switch (acessorType) {
                             case AccessorType::eScalar: {
-
+                                assert(false); // need impl
                             }
                                 break;
                             case AccessorType::eVec2: {
-
+                                assert(false); // need impl
                             }
                                 break;
                             case AccessorType::eVec3: {
-
+                                assert(false); // need impl
                             }
                                 break;
                             case AccessorType::eVec4: {
-
+                                // for unsigned byte
+                                uint16_t * target = reinterpret_cast<uint16_t*>(&vbData[currentBufferOffset]);
+                                for (uint32_t i = 0u; i < accessor.count; ++i) {
+                                    const size_t offset = accessor.offset + view.offset + i * 4u;
+                                    target[i * 4u + 0u] = static_cast<uint16_t>(bufferViewData[i * 4u + 0u]);
+                                    target[i * 4u + 1u] = static_cast<uint16_t>(bufferViewData[i * 4u + 1u]);
+                                    target[i * 4u + 2u] = static_cast<uint16_t>(bufferViewData[i * 4u + 2u]);
+                                    target[i * 4u + 3u] = static_cast<uint16_t>(bufferViewData[i * 4u + 3u]);
+                                }
                             }
                                 break;
                             
@@ -547,6 +555,7 @@ namespace engine::graphics::models {
 				if (channel.target_node < anim.minTargetNodeId) { anim.minTargetNodeId = channel.target_node; }
 				if (channel.target_node > anim.maxTargetNodeId) { anim.maxTargetNodeId = channel.target_node; }
             }
+            ++i;
         }
 	}
 
