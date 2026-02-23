@@ -35,7 +35,7 @@ public:
     bool setScale(const vec3f & s) noexcept {
         if (compare(_scale, s, 1e-7f)) {
             _scale = s;
-            return true;;
+            return true;
         }
         return false;
     }
@@ -44,7 +44,7 @@ public:
         const vec3f s{scale};
         if (compare(_scale, s, 1e-7f)) {
             _scale = s;
-            return true;;
+            return true;
         }
         return false;
     }

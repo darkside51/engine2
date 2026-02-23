@@ -3,7 +3,7 @@
 #include "allocators/pool_allocator_chain.h"
 #include "common/type_id.h"
 #include "graphics/render/rhi/common/runtime.h"
-#include "graphics/debug/debug_draw.h"
+#include "graphics/common/draw_helper.h"
 #include "math/math.h"
 #include "animation.h"
 #include "bounds.h"
@@ -75,7 +75,7 @@ class Scene {
     using AttachmentsIterator = std::span<AttachmentObject*>::iterator;
     
 public:
-    Scene(const graphics::GraphicsService & graphicsService, debug::DebugDraw & drawHelper);
+    Scene(const graphics::GraphicsService & graphicsService, graphics::DrawHelper & drawHelper);
     ~Scene();
 
     void destroy() noexcept;
@@ -194,7 +194,7 @@ private:
     std::unique_ptr<graphics::InflightStagingBuffer> _staging = nullptr;
 
     const graphics::GraphicsService & _graphicsService;
-    debug::DebugDraw & _drawHelper;
+    graphics::DrawHelper & _drawHelper;
     std::chrono::time_point<std::chrono::steady_clock> _tryReduceUsedMemoryTime;
 
     // sprites:
@@ -266,13 +266,13 @@ void Scene::fillAttachmentsArray(const mat4f & cameraTransform, Node * root, Con
                     if (object) {
                         switch (object->typeIndex) {
                         case ctti::typeIndex<AttachmentObject, Skeleton>():
-                            color = 0xff'77'22'aau;
+                            color = 0xff'ff'77'ffu;
                             break;
                         case ctti::typeIndex<AttachmentObject, Mesh>():
-                            color = 0xff'aa'aa'aau;
+                            color = 0xff'77'ff'77u;
                             break;
                         case ctti::typeIndex<AttachmentObject, Sprite>():
-                            color = 0xff'ff'ff'ffu;
+                            color = 0xff'ff'77'77u;
                             break;
                         default:
                             break;

@@ -32,30 +32,19 @@ namespace engine::graphics {
         const FileManager & fileManager, 
         std::span<const graphics::models::AttributeSemantic> attributes
     ) {
-        if (const auto idx = getModelDataIdx(name); idx != 0xff'ff'ff'ffu) {
+        if (const auto idx = getModelDataIdx(name); idx != kUnknownDataIndex) {
             return idx;
         }
 
         auto * meshData = _allocator.create<models::MeshData>();
-        const auto result = _allocator.getObjectNumber(meshData);
-
-        _modelsMap.emplace(name, result);
-        if (result >= _models.size()) {
-            _models.resize(result * 2u);
-            _gpuData.resize(result * 2u);
-        }
-        _models[result] = meshData;
-        _gpuData[result] = {};
-
+        
         meshData->loadSkins(layout);
         meshData->loadAnimations(layout);
-        //meshData->loadMaterials(layout, fileManager, graphicsService.getTextureManager(), name);
 
         auto buffers = meshData->loadMeshes(layout, attributes);
         meshData->optimizeBuffers(buffers.vertexBuffersData, buffers.indexBufferData, attributes);
         meshData->loadNodes(layout);
-        _tmpData.emplace_back(result, std::move(buffers));
-
+        
         auto remap = _materialManager.loadMaterials(name, layout, fileManager, graphicsService.getTextureManager());
         for (auto & mesh : meshData->meshes) {
             for (auto & p : mesh.primitives) {
@@ -63,6 +52,17 @@ namespace engine::graphics {
             }
         }
 
+        const auto result = _allocator.getObjectNumber(meshData);
+
+        _modelsMap.emplace(name, result);
+        if (result >= _models.size()) {
+            _models.resize(result * 2u);
+            _gpuData.resize(result * 2u);
+        }
+        
+        _gpuData[result] = {};
+        _models[result] = meshData;
+        _tmpData.emplace_back(result, std::move(buffers));
         return result;
     }
 

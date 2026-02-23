@@ -1,4 +1,4 @@
-#include "debug_draw.h"
+#include "draw_helper.h"
 
 #include "graphics/render/rhi/common/command_list.h"
 #include "graphics/render/rhi/common/pipeline.h"
@@ -7,7 +7,7 @@
 
 #include <array>
 
-namespace engine::debug {
+namespace engine::graphics {
     
     constexpr float kTryReduceUsedMemoryTimePeriodSeconds = 5.0f;
     constexpr uint32_t kInitialVerticesCountMax = 1024u;
@@ -22,7 +22,7 @@ namespace engine::debug {
     
     constexpr uint32_t kVertexSize = sizeof(Vertex);
 
-    void DebugDraw::destroy() noexcept {
+    void DrawHelper::destroy() noexcept {
         _linePipeline = nullptr;
         _fillPipeline = nullptr;
         _vertices = nullptr;
@@ -31,7 +31,7 @@ namespace engine::debug {
         _staging = nullptr;
     }
 
-    void DebugDraw::createPipelines(rhi::runtime::Rhi & api,
+    void DrawHelper::createPipelines(rhi::runtime::Rhi & api,
         rhi::runtime::Device & device, 
         const rhi::runtime::GpuProgramPtr & program, rhi::runtime::RenderPass renderPass, 
         uint32_t subpass, bool reverseDepth) {
@@ -99,7 +99,7 @@ namespace engine::debug {
         _fillPipeline = api.createGraphicsPipeline(device, renderPass, program, info, subpass);
     }
 
-    void DebugDraw::createBuffers(rhi::runtime::Rhi & api,
+    void DrawHelper::createBuffers(rhi::runtime::Rhi & api,
         rhi::runtime::Device & device) {
         if (_api == nullptr) {
             _api = &api;
@@ -132,7 +132,7 @@ namespace engine::debug {
         );
     }
 
-    void DebugDraw::prepare(rhi::runtime::CommandList & commandList, uint8_t frame) {
+    void DrawHelper::prepare(rhi::runtime::CommandList & commandList, uint8_t frame) {
         if (auto const stagingTargetSize = calculateTargetStagingSize(); stagingTargetSize > 0u) { 
             if (_staging == nullptr || stagingTargetSize >= _staging->sizeInBytes()) {
                 _staging = std::make_unique<graphics::InflightStagingBuffer>(*_api, *_device, 
@@ -158,7 +158,7 @@ namespace engine::debug {
         // }
     }
 
-    uint32_t DebugDraw::calculateTargetStagingSize() const noexcept {
+    uint32_t DrawHelper::calculateTargetStagingSize() const noexcept {
         const bool useStagingBuffer = !_vertices->isHostVisible() || !_fillIndices->isHostVisible() ||
                                       !_linesIndices->isHostVisible();
         if (useStagingBuffer) {
@@ -167,7 +167,7 @@ namespace engine::debug {
         return 0u;
     }
 
-    void DebugDraw::reduceUsedMemory(std::chrono::time_point<std::chrono::steady_clock> now) noexcept {
+    void DrawHelper::reduceUsedMemory(std::chrono::time_point<std::chrono::steady_clock> now) noexcept {
         const std::chrono::duration<float> duration = now - _tryReduceUsedMemoryTime; // as default in seconds
 		const auto elapsed = duration.count();
 
@@ -217,7 +217,7 @@ namespace engine::debug {
         }
     }
 
-    void DebugDraw::draw(rhi::runtime::CommandList & commandList, uint8_t frame, std::chrono::time_point<std::chrono::steady_clock> now) noexcept {
+    void DrawHelper::draw(rhi::runtime::CommandList & commandList, uint8_t frame, std::chrono::time_point<std::chrono::steady_clock> now) noexcept {
         if (_lineIndicesCount) { // draw lines
             commandList.bindPipeline(_linePipeline);
 
@@ -243,7 +243,7 @@ namespace engine::debug {
         _verticesCount = 0u;
     }
 
-    void DebugDraw::drawLines(std::span<const vec3f> linesVtxs, uint32_t color, const mat4f & transform) {
+    void DrawHelper::drawLines(std::span<const vec3f> linesVtxs, uint32_t color, const mat4f & transform) {
         const auto vSize = static_cast<uint32_t>((_verticesCount + linesVtxs.size()) * kVertexSize);
         if (_vertices->sizeInBytes() <= vSize) {
             _vertices->resize(std::max(_vertices->sizeInBytes() * 2u, vSize));
@@ -282,7 +282,7 @@ namespace engine::debug {
         _linesIndices->modify();
     }
 
-    void DebugDraw::drawSquare(vec2f corner0, vec2f corner1, uint32_t color, const mat4f & transform, Type t) {
+    void DrawHelper::drawSquare(vec2f corner0, vec2f corner1, uint32_t color, const mat4f & transform, Type t) {
         const auto vSize = static_cast<uint32_t>((_verticesCount + 4u) * kVertexSize);
         if (_vertices->sizeInBytes() <= vSize) {
             _vertices->resize(std::max(_vertices->sizeInBytes() * 2u, vSize));
@@ -357,7 +357,7 @@ namespace engine::debug {
         _vertices->modify();
     }
 
-    void DebugDraw::drawCircle(vec2f center, float r, uint32_t color, uint8_t segments, const mat4f & transform, Type t) {
+    void DrawHelper::drawCircle(vec2f center, float r, uint32_t color, uint8_t segments, const mat4f & transform, Type t) {
         const auto vSize = static_cast<uint32_t>((_verticesCount + segments) * kVertexSize);
         if (_vertices->sizeInBytes() <= vSize) {
             _vertices->resize(std::max(_vertices->sizeInBytes() * 2u, vSize));
@@ -428,7 +428,7 @@ namespace engine::debug {
         _vertices->modify();
     }
 
-    void DebugDraw::drawSphere(vec3f center, float r, uint32_t color, uint8_t segments, const mat4f & transform, Type t) {
+    void DrawHelper::drawSphere(vec3f center, float r, uint32_t color, uint8_t segments, const mat4f & transform, Type t) {
         const auto vSize = static_cast<uint32_t>((_verticesCount + segments * segments) * kVertexSize);
         if (_vertices->sizeInBytes() <= vSize) {
             _vertices->resize(std::max(_vertices->sizeInBytes() * 2u, vSize));
@@ -499,7 +499,7 @@ namespace engine::debug {
         _vertices->modify();
     }
 
-    void DebugDraw::drawCube(vec3f corner0, vec3f corner1, uint32_t color, const mat4f & transform, Type t) {
+    void DrawHelper::drawCube(vec3f corner0, vec3f corner1, uint32_t color, const mat4f & transform, Type t) {
         const auto vSize = static_cast<uint32_t>((_verticesCount + 8u) * kVertexSize);
         if (_vertices->sizeInBytes() <= vSize) {
             _vertices->resize(std::max(_vertices->sizeInBytes() * 2u, vSize));
@@ -592,7 +592,7 @@ namespace engine::debug {
         _vertices->modify();
     }
 
-    void DebugDraw::drawBounds(const scene::Bounds & bounds, uint32_t color, const mat4f & transform) {
+    void DrawHelper::drawBounds(const scene::Bounds & bounds, uint32_t color, const mat4f & transform) {
         constexpr uint8_t kBoundsSphereSegments = 7u;
         switch (bounds.type) {
         case scene::Bounds::Type::eCube :
@@ -606,7 +606,7 @@ namespace engine::debug {
         }
     }
 
-    void DebugDraw::drawGizmo(float size, const mat4f & transform) {
+    void DrawHelper::drawGizmo(float size, const mat4f & transform) {
         drawLines(std::array{engine::vec3f{0.0f, 0.0f, 0.0f}, engine::vec3f{size, 0.0f, 0.0f}}, 0xff0000ffu, transform);
         drawLines(std::array{engine::vec3f{0.0f, 0.0f, 0.0f}, engine::vec3f{0.0f, size, 0.0f}}, 0xff00ff00u, transform);
         drawLines(std::array{engine::vec3f{0.0f, 0.0f, 0.0f}, engine::vec3f{0.0f, 0.0f, size}}, 0xffff0000u, transform);

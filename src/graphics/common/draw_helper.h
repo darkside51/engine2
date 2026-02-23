@@ -13,9 +13,9 @@ namespace engine::scene {
     struct Bounds;
 }
 
-namespace engine::debug {
+namespace engine::graphics {
 
-class DebugDraw {
+class DrawHelper {
 public:
     enum class Type : uint8_t {
         eLines = 1u,

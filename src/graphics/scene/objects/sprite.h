@@ -9,6 +9,11 @@
 
 namespace engine::scene {
 
+    enum class SpriteTextureFilter: uint8_t {
+        eNearest = 0u,
+        eLinear = 1u
+    };
+
     class Sprite : public AttachmentObject {
     public:
         Sprite(const graphics::ImageFrame2D & frame, uint32_t pipeline);
@@ -26,9 +31,13 @@ namespace engine::scene {
 
         void attachToNode(Node * node) noexcept;
 
+        void setFilter(SpriteTextureFilter f) noexcept { _filter = f; }
+        SpriteTextureFilter getFilter() const noexcept { return _filter; }
+
     private:
         graphics::ImageFrame2D _frame;
         uint32_t _pipeline = 0u;
+        SpriteTextureFilter _filter = SpriteTextureFilter::eLinear;
     };
 
 }

@@ -51,23 +51,6 @@ namespace engine::graphics::models {
     //     return static_cast<AttributeSemantic>(std::to_underlying(a) & std::to_underlying(b));
     // }
 
-    inline constexpr static auto kDefaultSemanticsSizeBytes = std::array{
-        12u, // ePosition: vec3 (3 floats of 4 bytes)
-        12u, // eNormal
-        12u, // eTangent
-        4u, // eColor0: as uint32_t
-        4u, // eColor1
-        4u, // eColor2
-        4u, // eColor3
-        8u, // eJoints: 4 uint16_t
-        16u, // eWeights: 4 floats
-        8u, // eUv0: 2 floats
-        8u, // eUv1
-        8u, // eUv2
-        8u, // eUv3
-        8u, // eUv4
-    };
-
     enum class BufferTarget : uint8_t {
 		eArray_Buffer = 0u,
 		eElement_Array_Buffer = 1u,

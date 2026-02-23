@@ -40,6 +40,8 @@ class ModelManager {
     using ModelsMap = std::unordered_map<std::string, uint32_t, hash::String_hash, std::equal_to<>>;
     using Models = std::vector<models::MeshData*>;
 
+    inline static constexpr uint32_t kUnknownDataIndex = 0xff'ff'ff'ffu;
+
 public:
     struct ModelBuffers {
         std::vector<rhi::runtime::BufferPtr> vertexBuffers;
@@ -59,7 +61,7 @@ public:
         if (auto it = _modelsMap.find(name); it != _modelsMap.end()) {
             return it->second;
         }
-        return 0xff'ff'ff'ffu;
+        return kUnknownDataIndex;
     }
 
     const models::MeshData & getModelData(uint32_t idx) const noexcept { 
@@ -73,6 +75,14 @@ public:
     }
 
     void generateGpuBuffers(rhi::runtime::Rhi & api, rhi::runtime::Device & device, rhi::runtime::CommandListPtr & commandList);
+
+    bool isDataReady(uint32_t idx) const noexcept {
+        if (_models[idx] != nullptr) {
+            return std::find_if(_tmpData.begin(), _tmpData.end(), [idx](const auto & p) { return p.first == idx; }) == _tmpData.end();
+        }
+
+        return false;
+    }
 
 private:
     MaterialManager & _materialManager;

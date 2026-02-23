@@ -29,7 +29,7 @@
 #include "graphics/scene/transform.h"
 
 #include "graphics/common/graphics_service.h"
-#include "graphics/debug/debug_draw.h"
+#include "graphics/common/draw_helper.h"
 #include "graphics/texture/atlas.h"
 #include "graphics/scene/animation/texture/frame_sequence_animation.h"
 #include "graphics/scene/animation/mesh/skeletal_animation.h"
@@ -65,7 +65,7 @@ namespace example {
 
     constexpr bool kUseTransferCommandListForPrepareImgui = true;
 
-    engine::debug::DebugDraw debugDraw;
+    engine::graphics::DrawHelper drawHelper;
     
     
     engine::graphics::MaterialManager materialManager;
@@ -225,7 +225,7 @@ namespace example {
 
         _shaderModulesManager = nullptr;
         _imgui.destroy();
-        debugDraw.destroy();
+        drawHelper.destroy();
         
         animationManager.destroy();
         modelManager->destroy();
@@ -521,12 +521,12 @@ namespace example {
         modelManager.emplace(materialManager);
         textureManager.emplace(*_api, *_device);
         graphicsService.emplace(*_api, *_device, *textureManager, *modelManager, materialManager);
-        scene.emplace(*graphicsService, debugDraw);
+        scene.emplace(*graphicsService, drawHelper);
         //
 
         loadShaders();
         _imgui.createPipeline(*_api, *_device, _programs[kImguiProgram], _renderPasses[kScreenRenderPass], 0u);
-        debugDraw.createPipelines(*_api, *_device, _programs[kDebugProgram], _renderPasses[kSceneRenderPass], 0u, true);
+        drawHelper.createPipelines(*_api, *_device, _programs[kDebugProgram], _renderPasses[kSceneRenderPass], 0u, true);
 
         const auto bytes = _fileManager.readFile("descriptors/pipelines.json");
         std::string_view input(reinterpret_cast<const char*>(bytes.data()), bytes.size());
@@ -1042,7 +1042,7 @@ namespace example {
 
             if (1) {
                 auto const animId = animationManager.getAnimationIndex("skeletal_mesh_anim0");
-                for (size_t i = 0u; i < 1000u; ++i) {
+                for (size_t i = 0u; i < 100u; ++i) {
                     auto * meshRoot = engine::scene::createNodeWithSkeletalMesh(*scene, *modelManager, 0u, 
                         engine::scene::Bounds::Type::eSphere, pipelines);
                     
@@ -1069,7 +1069,7 @@ namespace example {
                     // meshRoot->setScale(engine::common::random(0.2f, 0.25f));
                     meshRoot->setScale(scale);
                     meshRoot->setRotation(engine::vec3f(1.57f, 0.0f, engine::common::random(-3.14f, 3.14f)));
-                    meshRoot->setPosition(engine::vec3f(-2.0f + i % 33 * 0.5f, i / 33 * -0.5f, 0.0f));
+                    meshRoot->setPosition(engine::vec3f(-2.0f + i % 10 * 0.5f, i / 10 * -0.5f, 0.0f));
 
                     sceneWorldRoot->addChild(meshRoot);
                 }
@@ -1116,7 +1116,7 @@ namespace example {
                 }
 
                 meshRoot->setScale(scale);
-                meshRoot->setRotation(engine::vec3f(1.57f, 0.0f, 1.5f));
+                meshRoot->setRotation(engine::vec3f(1.57f, 0.0f, 1.57f));
                 meshRoot->setPosition(engine::vec3f(-3.0f, 2.0f, 0.0f));
                 sceneWorldRoot->addChild(meshRoot);
             }
@@ -1258,6 +1258,23 @@ namespace example {
                 }
             }
             
+            { // floor
+                auto * node = scene->createNode();
+                node->setPosition(engine::vec3f{-10.0f, -10.0f, 0.0f});
+
+                const auto frame = engine::graphics::ImageFrame2D{
+                    textureManager->getDefaultImage(), 
+                    engine::graphics::Frame2D{.uvMin = {0.0f, 0.0f}, .uvMax = {10.0f, 10.0f}}
+                };
+
+                auto * sprite = scene->createObject<engine::scene::Sprite>(frame, 0u);
+                engine::scene::attachObjectToNode(*sprite, *node);
+                sprite->setFilter(engine::scene::SpriteTextureFilter::eNearest);
+                sprite->setOrder(0);
+
+                sceneWorldRoot->addChild(node);
+            }
+
             sceneNodePtr = node0;
             sizeof(engine::scene::Bounds);
             sizeof(engine::scene::Node);
@@ -1284,7 +1301,7 @@ namespace example {
 
         _imgui.createFontTexture(*_api, *_device);
         _imgui.createBuffers(*_api, *_device);
-        debugDraw.createBuffers(*_api, *_device);
+        drawHelper.createBuffers(*_api, *_device);
         scene->initRenderData(*_api, *_device);
 
         // on render thread
@@ -1375,20 +1392,20 @@ namespace example {
 
         _imgui.endFrame();
 
-        // debugDraw.drawLines(std::array{engine::vec3f{-2.0f, 0.0f, 0.0f}, engine::vec3f{2.0f, 0.0f, 0.0f}}, 0xff0000ffu, cameraTransform);
-        // debugDraw.drawLines(std::array{engine::vec3f{0.0f, -2.0f, 0.0f}, engine::vec3f{0.0f, 2.0f, 0.0f}}, 0xff00ff00u, cameraTransform);
-        // debugDraw.drawLines(std::array{engine::vec3f{0.0f, 0.0f, -2.0f}, engine::vec3f{0.0f, 0.0f, 2.0f}}, 0xffff0000u, cameraTransform);
+        // drawHelper.drawLines(std::array{engine::vec3f{-2.0f, 0.0f, 0.0f}, engine::vec3f{2.0f, 0.0f, 0.0f}}, 0xff0000ffu, cameraTransform);
+        // drawHelper.drawLines(std::array{engine::vec3f{0.0f, -2.0f, 0.0f}, engine::vec3f{0.0f, 2.0f, 0.0f}}, 0xff00ff00u, cameraTransform);
+        // drawHelper.drawLines(std::array{engine::vec3f{0.0f, 0.0f, -2.0f}, engine::vec3f{0.0f, 0.0f, 2.0f}}, 0xffff0000u, cameraTransform);
 
-        // debugDraw.drawLines(std::array{engine::vec3f{-0.5f, -0.4f, 0.0f}, engine::vec3f{0.5f, -0.4f, 0.0f}}, 0xff000000u);
-        // // debugDraw.drawLines(std::array{engine::vec3f{-0.25f, -0.2f, 0.0f}, engine::vec3f{0.25f, -0.2f, 0.0f}, engine::vec3f{0.25f, -0.75f, 0.0f}, engine::vec3f{-0.25f, -0.75f, 0.0f}}, 0xff00ff00u);
-        // debugDraw.drawSquare(engine::vec2f{-0.25f, -0.2f}, engine::vec2f{0.25f, -0.9f}, 0x5500ff00u, {1.0f}, engine::debug::DebugDraw::Type::eLines);
-        // debugDraw.drawSquare(engine::vec2f{-0.1f, -0.3f}, engine::vec2f{0.1f, -0.5f}, 0x55ff0000u, {1.0f}, engine::debug::DebugDraw::Type::eFill);
-        // debugDraw.drawSquare(engine::vec2f{-1.1f, -1.6f}, engine::vec2f{1.1f, -1.8f}, 0x55ff0000u, cameraTransform, engine::debug::DebugDraw::Type::eFull);
+        // drawHelper.drawLines(std::array{engine::vec3f{-0.5f, -0.4f, 0.0f}, engine::vec3f{0.5f, -0.4f, 0.0f}}, 0xff000000u);
+        // // drawHelper.drawLines(std::array{engine::vec3f{-0.25f, -0.2f, 0.0f}, engine::vec3f{0.25f, -0.2f, 0.0f}, engine::vec3f{0.25f, -0.75f, 0.0f}, engine::vec3f{-0.25f, -0.75f, 0.0f}}, 0xff00ff00u);
+        // drawHelper.drawSquare(engine::vec2f{-0.25f, -0.2f}, engine::vec2f{0.25f, -0.9f}, 0x5500ff00u, {1.0f}, engine::debug::DrawHelper::Type::eLines);
+        // drawHelper.drawSquare(engine::vec2f{-0.1f, -0.3f}, engine::vec2f{0.1f, -0.5f}, 0x55ff0000u, {1.0f}, engine::debug::DrawHelper::Type::eFill);
+        // drawHelper.drawSquare(engine::vec2f{-1.1f, -1.6f}, engine::vec2f{1.1f, -1.8f}, 0x55ff0000u, cameraTransform, engine::debug::DrawHelper::Type::eFull);
 
-        // debugDraw.drawCircle(engine::vec2f{0.0f, 0.0f}, 2.2f, 0x22ffffffu, 16u, cameraTransform, engine::debug::DebugDraw::Type::eFull);
-        // debugDraw.drawSphere(engine::vec3f{1.0f, 1.0f, 1.2f}, 0.4f, 0x2222ffffu, 32u, cameraTransform, engine::debug::DebugDraw::Type::eFull);
+        // drawHelper.drawCircle(engine::vec2f{0.0f, 0.0f}, 2.2f, 0x22ffffffu, 16u, cameraTransform, engine::debug::DrawHelper::Type::eFull);
+        // drawHelper.drawSphere(engine::vec3f{1.0f, 1.0f, 1.2f}, 0.4f, 0x2222ffffu, 32u, cameraTransform, engine::debug::DrawHelper::Type::eFull);
 
-        // debugDraw.drawCube(engine::vec3f{1.5f, -0.5f, -0.5f}, engine::vec3f{2.5f, 0.5f, 0.5f}, 0x22ff22ffu, cameraTransform, engine::debug::DebugDraw::Type::eFull);
+        // drawHelper.drawCube(engine::vec3f{1.5f, -0.5f, -0.5f}, engine::vec3f{2.5f, 0.5f, 0.5f}, 0x22ff22ffu, cameraTransform, engine::debug::DrawHelper::Type::eFull);
     
         if (sceneNodePtr) {
             static bool n = false;
@@ -1561,8 +1578,8 @@ namespace example {
     
         scene->draw(commandList, transferCommandList, frameId, cameraTransform, objects);    
         
-        debugDraw.prepare(*transferCommandList, frameId);
-        debugDraw.draw(*commandList, frameId, now);
+        drawHelper.prepare(*transferCommandList, frameId);
+        drawHelper.draw(*commandList, frameId, now);
 
         //commandList->nextSubpass(rhi::SubpassContents::ePrimaryBufferInline);
         commandList->endRenderPass();

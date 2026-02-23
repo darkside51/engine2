@@ -32,6 +32,8 @@ namespace {
         static_assert(sizeof(Sprite) == 64u);
 
         static_assert(sizeof(Node) == 232u);
+        static_assert(sizeof(Bounds) == 28u);
+        static_assert(sizeof(Transformation) == 40u);
     }
 }
 
@@ -93,7 +95,7 @@ namespace engine::scene {
         }
     }
 
-    Scene::Scene(const graphics::GraphicsService & graphicsService, debug::DebugDraw & drawHelper) : 
+    Scene::Scene(const graphics::GraphicsService & graphicsService, graphics::DrawHelper & drawHelper) : 
         _rootNode(createNode()),
         _graphicsService(graphicsService),
         _drawHelper(drawHelper) {
@@ -657,6 +659,7 @@ namespace engine::scene {
         const auto & sprite = *static_cast<const Sprite*>(*it);
         uint32_t pipeline = sprite.getPipeline();
         auto image = sprite.getFrame().getImage();
+        auto filter = sprite.getFilter();
         ++it;
 
         uint32_t batchVertexesCount = 4u;
@@ -665,8 +668,10 @@ namespace engine::scene {
             const auto & sprite = *static_cast<const Sprite*>(*it);
             const auto & currentImage = sprite.getFrame().getImage();
             const uint32_t currentPipeline = sprite.getPipeline();
+            const auto currentFilter = sprite.getFilter();
 
             const bool completeBatch = currentPipeline != pipeline ||
+                                       currentFilter != filter ||
                                        currentImage.get() != image.get();
 
             if (completeBatch) {
@@ -675,6 +680,7 @@ namespace engine::scene {
                 // begin next batch
                 image = currentImage;
                 pipeline = currentPipeline;
+                filter = currentFilter;
                 batchVertexesCount = 4u;
                 batchIndicesCount = 6u;
                 currentIt = it;
@@ -773,7 +779,7 @@ namespace engine::scene {
             commandList->bindPipeline(pipeline);
             commandList->bindVertexBuffer(0u, vertexBuffer, 0u);
             commandList->bindIndexBuffer(indexBuffer, 0u, rhi::IndexType::eU32);
-            commandList->bindImage(0u, image, _linearSampler);
+            commandList->bindImage(0u, image, sprite.getFilter() == SpriteTextureFilter::eLinear ? _linearSampler : _nearestSampler);
             commandList->pushConstants(rhi::shaders::Stages::eVertex, 0u, sizeof(mat4f), &cameraTransform);
 
             commandList->drawIndexed(batchIndicesCount, 1u, _spritesIndicesCount);
