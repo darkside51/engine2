@@ -1592,7 +1592,7 @@ namespace example {
         commandList->end();
         transferCommandList->end();
 
-        transferCommandList->record(frameId);
+        transferCommandList->record(frameId, commandList.get());
         commandList->record(frameId);
         // render frame
 

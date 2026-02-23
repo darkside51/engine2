@@ -38,7 +38,7 @@ namespace engine::vulkan::runtime {
         _postBarriers.reset();
     }
 
-    void CommandList::record(uint8_t frameIdx) noexcept {
+    void CommandList::record(uint8_t frameIdx, rhi::runtime::CommandList * nextList) noexcept {
         using namespace rhi::runtime;
 
         std::byte * memory = _commands.memory().data();
@@ -52,8 +52,8 @@ namespace engine::vulkan::runtime {
         uint8_t changeDynamicBufferSets = 0u;
         std::array<VkDescriptorSet, command_limits::kMaxDescriptorsSets> descriptorSets;
 
-        _postBarriersBuffers.clear();
-        _postBarriersImages.clear();
+        // _postBarriersBuffers.clear();
+        // _postBarriersImages.clear();
 
         const auto applyPostBarriers = [&]() noexcept {
             // buffers barriers
@@ -197,7 +197,17 @@ namespace engine::vulkan::runtime {
             case CommandType::eEnd:
             {
                 //_barriers.flush(_commandbuffer());
-                applyPostBarriers();
+                if (nextList == nullptr) {
+                    applyPostBarriers();
+                } else {
+                    auto * vkList = static_cast<CommandList*>(nextList);
+                    std::move(_postBarriersBuffers.begin(), _postBarriersBuffers.end(), std::back_inserter(vkList->_postBarriersBuffers));
+                    std::move(_postBarriersImages.begin(), _postBarriersImages.end(), std::back_inserter(vkList->_postBarriersImages));
+
+                    _postBarriersBuffers.clear();
+                    _postBarriersImages.clear();
+                }
+
                 _commandbuffer.end();
             }
                 break;
@@ -651,5 +661,8 @@ namespace engine::vulkan::runtime {
     
             memory += cmd->size;
         }
+
+        _postBarriersBuffers.clear();
+        _postBarriersImages.clear();
     }
 }
