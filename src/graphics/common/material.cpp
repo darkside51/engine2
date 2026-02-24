@@ -137,6 +137,10 @@ namespace engine::graphics {
             material.textures[static_cast<uint8_t>(PbrTextureId::eMetallicRoughness)] = getTexture(srcMaterial.pbrMetallicRoughness.metallicRoughnessTexture.index, name);
             material.textures[static_cast<uint8_t>(PbrTextureId::eOccolusion)] = getTexture(srcMaterial.occlusionTexture.index, name);
             material.textures[static_cast<uint8_t>(PbrTextureId::eEmissive)] = getTexture(srcMaterial.emissiveTexture.index, name);
+
+            if (material.textures[static_cast<uint8_t>(PbrTextureId::eBaseColor)].get() != textureManager.getWhiteImage().get()) {
+                material.baseColorFactor = {1.0f, 1.0f, 1.0f, 1.0f};
+            }
         }
 
         return materialsRemap;

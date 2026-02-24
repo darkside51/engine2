@@ -692,6 +692,24 @@ namespace example {
             }}));
         }
 
+        {
+            bgWorker.emplaceTasks(stl::make_vector(threads::WorkerTask{[this]() mutable {
+               auto const modelBytes = _fileManager.readFile("assets/models/chaman/scene.gltf");
+                auto modelLayout = engine::graphics::models::loadModelLayout(modelBytes, _fileManager, "assets/models/chaman/");
+
+                _renderThread->emplaceTasks(stl::make_vector(threads::WorkerTask{[this, modelLayout = std::move(modelLayout)]() mutable {
+                auto const modelIdx = modelManager->addModel("chaman.gltf", std::move(modelLayout), *graphicsService, _fileManager);
+
+                const auto & modelData = modelManager->getModelData(modelIdx);
+                uint8_t i = 0u;
+                for (const auto & animation : modelData.animations) {
+                    animationManager.registerAnimation(engine::fmt_string("chaman_anim%d", i), engine::scene::SkeletalAnimation(animation));
+                    ++i;
+                }
+                }}));
+            }}));
+        }
+
         // modelManager->generateGpuBuffers(*_api, *_device, tmpCommandList);
         textureManager->generateGpuData(tmpCommandList);
 
@@ -1572,7 +1590,7 @@ namespace example {
                 };
 
                 auto const animId = animationManager.getAnimationIndex("skeletal_mesh_anim0");
-                for (size_t i = 0u; i < 100u; ++i) {
+                for (size_t i = 0u; i < 250u; ++i) {
                     auto * meshRoot = engine::scene::createNodeWithSkeletalMesh(*scene, *modelManager, modelIndex, 
                         engine::scene::Bounds::Type::eSphere, pipelines);
                     
@@ -1588,10 +1606,10 @@ namespace example {
                         scene->destroyAnimInfo(skeleton->setAnimation(anim0));
                     }
 
-                    constexpr float targetDimension = 0.234f;
+                    constexpr float targetDimension = 0.47f;
                     float scale = 1.0f;
                     if (meshRoot->bounds.type == engine::scene::Bounds::Type::eSphere) {
-                        scale = targetDimension / meshRoot->bounds.volume.sphere.radius;
+                        scale = 0.5f * targetDimension / meshRoot->bounds.volume.sphere.radius;
                     } else if (meshRoot->bounds.type == engine::scene::Bounds::Type::eCube) {
                         const auto & cube = meshRoot->bounds.volume.cube;
                         const auto size = cube.corner1 - cube.corner0;
@@ -1623,7 +1641,7 @@ namespace example {
                 constexpr float targetDimension = 6.5f;
                 float scale = 1.0f;
                 if (meshRoot->bounds.type == engine::scene::Bounds::Type::eSphere) {
-                    scale = targetDimension / meshRoot->bounds.volume.sphere.radius;
+                    scale = 0.5f * targetDimension / meshRoot->bounds.volume.sphere.radius;
                 } else if (meshRoot->bounds.type == engine::scene::Bounds::Type::eCube) {
                     const auto & cube = meshRoot->bounds.volume.cube;
                     const auto size = cube.corner1 - cube.corner0;
@@ -1658,7 +1676,7 @@ namespace example {
                 constexpr float targetDimension = 3.5f;
                 float scale = 1.0f;
                 if (meshRoot->bounds.type == engine::scene::Bounds::Type::eSphere) {
-                    scale = targetDimension / meshRoot->bounds.volume.sphere.radius;
+                    scale = 0.5f * targetDimension / meshRoot->bounds.volume.sphere.radius;
                 } else if (meshRoot->bounds.type == engine::scene::Bounds::Type::eCube) {
                     const auto & cube = meshRoot->bounds.volume.cube;
                     const auto size = cube.corner1 - cube.corner0;
@@ -1681,12 +1699,12 @@ namespace example {
                     .commonPipeline = 2u, 
                     .skeletalPipeline = 1u
                 };
+                auto const animId = animationManager.getAnimationIndex("buster_anim0");
                 for (uint8_t i = 0u; i < 10u; ++i) {
                     auto * meshRoot = engine::scene::createNodeWithSkeletalMesh(*scene, *modelManager, modelIndex, 
                         engine::scene::Bounds::Type::eCube, pipelines);
 
                     if (auto * skeleton = static_cast<engine::scene::Skeleton *>(meshRoot->getAttachment())) {
-                        auto const animId = animationManager.getAnimationIndex("buster_anim0");
                         auto * anim = scene->createAnimInfo<engine::scene::SkeletalAnimation>(animId, engine::common::random(0.25f, 1.7f));
                         scene->destroyAnimInfo(skeleton->setAnimation(anim));
                     }
@@ -1694,7 +1712,7 @@ namespace example {
                     constexpr float targetDimension = 1.5f;
                     float scale = 1.0f;
                     if (meshRoot->bounds.type == engine::scene::Bounds::Type::eSphere) {
-                        scale = targetDimension / meshRoot->bounds.volume.sphere.radius;
+                        scale = 0.5f * targetDimension / meshRoot->bounds.volume.sphere.radius;
                     } else if (meshRoot->bounds.type == engine::scene::Bounds::Type::eCube) {
                         const auto & cube = meshRoot->bounds.volume.cube;
                         const auto size = cube.corner1 - cube.corner0;
@@ -1709,6 +1727,42 @@ namespace example {
             }
         }
 
+        static bool meshLoaded5 = false;
+        if (!meshLoaded5) {
+            const auto modelIndex = modelManager->getModelDataIdx("chaman.gltf");
+            if (modelManager->isDataReady(modelIndex)) {
+                meshLoaded5 = true;
+                engine::scene::MeshPipelines pipelines = {
+                    .commonPipeline = 2u, 
+                    .skeletalPipeline = 1u
+                };
+                auto const animId = animationManager.getAnimationIndex("chaman_anim1");
+                for (uint16_t i = 0u; i < 250u; ++i) {
+                    auto * meshRoot = engine::scene::createNodeWithSkeletalMesh(*scene, *modelManager, modelIndex, 
+                        engine::scene::Bounds::Type::eSphere, pipelines);
+
+                    if (auto * skeleton = static_cast<engine::scene::Skeleton *>(meshRoot->getAttachment())) {
+                        auto * anim = scene->createAnimInfo<engine::scene::SkeletalAnimation>(animId, engine::common::random(0.25f, 1.7f));
+                        scene->destroyAnimInfo(skeleton->setAnimation(anim));
+                    }
+
+                    constexpr float targetDimension = 0.47f;
+                    float scale = 1.0f;
+                    if (meshRoot->bounds.type == engine::scene::Bounds::Type::eSphere) {
+                        scale = 0.5f * targetDimension / meshRoot->bounds.volume.sphere.radius;
+                    } else if (meshRoot->bounds.type == engine::scene::Bounds::Type::eCube) {
+                        const auto & cube = meshRoot->bounds.volume.cube;
+                        const auto size = cube.corner1 - cube.corner0;
+                        scale = std::min({targetDimension / std::abs(size.x), targetDimension / std::abs(size.y), targetDimension / std::abs(size.z)});
+                    }
+
+                    meshRoot->setScale(scale);
+                    meshRoot->setRotation(engine::vec3f(1.57f, 0.0f, engine::common::random(-3.14f, 3.14f)));
+                    meshRoot->setPosition(engine::vec3f(3.0f + i % 10 * 0.5f, i / 10 * -0.5f, 0.0f));
+                    sceneWorldRoot->addChild(meshRoot);
+                }
+            }
+        }
 
         commandList->begin(rhi::CommandBufferUsageFlags::eOne_Time_Submit);
 
