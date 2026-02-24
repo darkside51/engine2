@@ -102,6 +102,7 @@ namespace engine::scene {
         while (n->next) {
             if (n->next == child) {
                 n->next = child->next;
+                child->next = nullptr;
                 return true;
             }
             n = n->next;

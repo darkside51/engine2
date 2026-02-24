@@ -27,7 +27,7 @@ namespace engine::graphics {
 
     uint32_t ModelManager::addModel(
         std::string_view name, 
-        const models::Layout & layout, 
+        models::Layout && layout, 
         GraphicsService & graphicsService, 
         const FileManager & fileManager, 
         std::span<const graphics::models::AttributeSemantic> attributes

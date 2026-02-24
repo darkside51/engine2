@@ -52,7 +52,7 @@ public:
     ~ModelManager() { destroy(); }
     void destroy();
 
-    uint32_t addModel(std::string_view name, const models::Layout & layout, 
+    uint32_t addModel(std::string_view name, models::Layout && layout, 
         GraphicsService & graphicsService, const FileManager & fileManager,
         std::span<const graphics::models::AttributeSemantic> attributes = kDefaultSemantics);
     bool removeModel(std::string_view name);
@@ -77,6 +77,10 @@ public:
     void generateGpuBuffers(rhi::runtime::Rhi & api, rhi::runtime::Device & device, rhi::runtime::CommandListPtr & commandList);
 
     bool isDataReady(uint32_t idx) const noexcept {
+        if (idx >= _models.size()) {
+            return false;
+        }
+        
         if (_models[idx] != nullptr) {
             return std::find_if(_tmpData.begin(), _tmpData.end(), [idx](const auto & p) { return p.first == idx; }) == _tmpData.end();
         }

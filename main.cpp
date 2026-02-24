@@ -38,6 +38,8 @@ int main() {
                 example.draw(now, delta);
             }, redrawTime);
 
+            example.setRenderThread(&renderThread);
+
             renderThread.emplaceTasks(stl::make_vector(threads::WorkerTask{[&](){
                 example.prepare();
             }}));
@@ -45,7 +47,6 @@ int main() {
             threads::ExecutionContext mainThreadContext;
             mainThreadContext.identifyThreadId();
 
-            example.setRenderThread(&renderThread);
             example.setMainThread(&mainThreadContext);
 
             renderThread.run();

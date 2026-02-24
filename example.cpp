@@ -1,6 +1,7 @@
 #include "example.h"
 
 #include "threads/executor.h"
+#include "threads/worker.h"
 #include "file/common_file_system.h"
 #include "common/random.h"
 #include "graphics/render/rhi/vulkan/runtime.h"
@@ -80,6 +81,9 @@ namespace example {
     engine::scene::Node * sceneWorldRoot = nullptr;
     engine::scene::Node * sceneNodePtr = nullptr;
     engine::scene::Skeleton * tmpSkeleton = nullptr;
+    engine::scene::Node * swordNode = nullptr;
+
+    threads::Worker bgWorker;
 
     engine::mat4f cameraTransform;
     float m = 0.0f;
@@ -194,11 +198,15 @@ namespace example {
 
         // camera.makePerspective(std::numbers::pi_v<float> / 3.0f, 1024.0f / 768.0f, 0.001f, 100.0f);
         camera.makePerspective(std::numbers::pi_v<float> / 3.0f, 1024.0f / 768.0f, 100.0f, 0.001f); // reverse depth;
+
+        bgWorker.run();
     }
 
     Example::~Example() = default;
 
     void Example::destroy() {
+        bgWorker.stop();
+
         if (_renderQueue) {
             _renderQueue->waitIdle();
         }
@@ -575,49 +583,116 @@ namespace example {
 
         // // gltf test
         {
-            auto const modelBytes = _fileManager.readFile("assets/models/model.glb");
-            auto modelLayout = engine::graphics::models::loadModelLayout(modelBytes, _fileManager, "assets/models/");
-            auto const modelIdx = modelManager->addModel("model.glb", modelLayout, *graphicsService, _fileManager);
 
-            const auto & modelData = modelManager->getModelData(modelIdx);
-            for (const auto & animation : modelData.animations) {
-                animationManager.registerAnimation("skeletal_mesh_anim0", engine::scene::SkeletalAnimation(animation));
-            }
+            bgWorker.emplaceTasks(stl::make_vector(threads::WorkerTask{[this]() mutable {
+                auto const modelBytes = _fileManager.readFile("assets/models/model.glb");
+                auto modelLayout = engine::graphics::models::loadModelLayout(modelBytes, _fileManager, "assets/models/");
+
+                _renderThread->emplaceTasks(stl::make_vector(threads::WorkerTask{[this, modelLayout = std::move(modelLayout)]() mutable {
+                auto const modelIdx = modelManager->addModel("model.glb", std::move(modelLayout), *graphicsService, _fileManager);
+
+                const auto & modelData = modelManager->getModelData(modelIdx);
+                for (const auto & animation : modelData.animations) {
+                    animationManager.registerAnimation("skeletal_mesh_anim0", engine::scene::SkeletalAnimation(animation));
+                }
+                }}));
+            }}));
+
+            // auto const modelBytes = _fileManager.readFile("assets/models/model.glb");
+            // auto modelLayout = engine::graphics::models::loadModelLayout(modelBytes, _fileManager, "assets/models/");
+
+            // _renderThread->emplaceTasks(stl::make_vector(threads::WorkerTask{[this, modelLayout = std::move(modelLayout)]() mutable {
+            //     auto const modelIdx = modelManager->addModel("model.glb", std::move(modelLayout), *graphicsService, _fileManager);
+
+            //     const auto & modelData = modelManager->getModelData(modelIdx);
+            //     for (const auto & animation : modelData.animations) {
+            //         animationManager.registerAnimation("skeletal_mesh_anim0", engine::scene::SkeletalAnimation(animation));
+            //     }
+            // }}));
+            
+            // auto const modelIdx = modelManager->addModel("model.glb", std::move(modelLayout), *graphicsService, _fileManager);
+
+            // const auto & modelData = modelManager->getModelData(modelIdx);
+            // for (const auto & animation : modelData.animations) {
+            //     animationManager.registerAnimation("skeletal_mesh_anim0", engine::scene::SkeletalAnimation(animation));
+            // }
         }
 
         {
-            auto const modelBytes = _fileManager.readFile("assets/models/1/scene.gltf");
-            auto modelLayout = engine::graphics::models::loadModelLayout(modelBytes, _fileManager, "assets/models/1/");
-            auto const modelIdx = modelManager->addModel("scene.gltf", modelLayout, *graphicsService, _fileManager);
+            // auto const modelBytes = _fileManager.readFile("assets/models/1/scene.gltf");
+            // auto modelLayout = engine::graphics::models::loadModelLayout(modelBytes, _fileManager, "assets/models/1/");
+            // auto const modelIdx = modelManager->addModel("scene.gltf", std::move(modelLayout), *graphicsService, _fileManager);
+
+             bgWorker.emplaceTasks(stl::make_vector(threads::WorkerTask{[this]() mutable {
+                auto const modelBytes = _fileManager.readFile("assets/models/1/scene.gltf");
+                auto modelLayout = engine::graphics::models::loadModelLayout(modelBytes, _fileManager, "assets/models/1/");
+
+                _renderThread->emplaceTasks(stl::make_vector(threads::WorkerTask{[this, modelLayout = std::move(modelLayout)]() mutable {
+                    auto const modelIdx = modelManager->addModel("scene.gltf", std::move(modelLayout), *graphicsService, _fileManager);
+                }}));
+            }}));
         }
 
         {
-            auto const modelBytes = _fileManager.readFile("assets/models/Minsk_wheel.glb");
-            auto modelLayout = engine::graphics::models::loadModelLayout(modelBytes, _fileManager, "assets/models/");
-            auto const modelIdx = modelManager->addModel("wheel.glb", modelLayout, *graphicsService, _fileManager);
 
-            const auto & modelData = modelManager->getModelData(modelIdx);
-            uint8_t i = 0u;
-            for (const auto & animation : modelData.animations) {
-                animationManager.registerAnimation(engine::fmt_string("wheel_anim%d", i), engine::scene::SkeletalAnimation(animation));
-                ++i;
-            }
+            bgWorker.emplaceTasks(stl::make_vector(threads::WorkerTask{[this]() mutable {
+               auto const modelBytes = _fileManager.readFile("assets/models/Minsk_wheel.glb");
+                auto modelLayout = engine::graphics::models::loadModelLayout(modelBytes, _fileManager, "assets/models/");
+
+                _renderThread->emplaceTasks(stl::make_vector(threads::WorkerTask{[this, modelLayout = std::move(modelLayout)]() mutable {
+                auto const modelIdx = modelManager->addModel("wheel.glb", std::move(modelLayout), *graphicsService, _fileManager);
+
+                const auto & modelData = modelManager->getModelData(modelIdx);
+                uint8_t i = 0u;
+                for (const auto & animation : modelData.animations) {
+                    animationManager.registerAnimation(engine::fmt_string("wheel_anim%d", i), engine::scene::SkeletalAnimation(animation));
+                    ++i;
+                }
+                }}));
+            }}));
+
+            // auto const modelBytes = _fileManager.readFile("assets/models/Minsk_wheel.glb");
+            // auto modelLayout = engine::graphics::models::loadModelLayout(modelBytes, _fileManager, "assets/models/");
+            // auto const modelIdx = modelManager->addModel("wheel.glb", std::move(modelLayout), *graphicsService, _fileManager);
+
+            // const auto & modelData = modelManager->getModelData(modelIdx);
+            // uint8_t i = 0u;
+            // for (const auto & animation : modelData.animations) {
+            //     animationManager.registerAnimation(engine::fmt_string("wheel_anim%d", i), engine::scene::SkeletalAnimation(animation));
+            //     ++i;
+            // }
         }
 
         {
-            auto const modelBytes = _fileManager.readFile("assets/models/buster_drone.glb");
-            auto modelLayout = engine::graphics::models::loadModelLayout(modelBytes, _fileManager, "assets/models/");
-            auto const modelIdx = modelManager->addModel("buster_drone.glb", modelLayout, *graphicsService, _fileManager);
+            // auto const modelBytes = _fileManager.readFile("assets/models/buster_drone.glb");
+            // auto modelLayout = engine::graphics::models::loadModelLayout(modelBytes, _fileManager, "assets/models/");
+            // auto const modelIdx = modelManager->addModel("buster_drone.glb", std::move(modelLayout), *graphicsService, _fileManager);
 
-            const auto & modelData = modelManager->getModelData(modelIdx);
-            uint8_t i = 0u;
-            for (const auto & animation : modelData.animations) {
-                animationManager.registerAnimation(engine::fmt_string("buster_anim%d", i), engine::scene::SkeletalAnimation(animation));
-                ++i;
-            }
+            // const auto & modelData = modelManager->getModelData(modelIdx);
+            // uint8_t i = 0u;
+            // for (const auto & animation : modelData.animations) {
+            //     animationManager.registerAnimation(engine::fmt_string("buster_anim%d", i), engine::scene::SkeletalAnimation(animation));
+            //     ++i;
+            // }
+
+            bgWorker.emplaceTasks(stl::make_vector(threads::WorkerTask{[this]() mutable {
+               auto const modelBytes = _fileManager.readFile("assets/models/buster_drone.glb");
+                auto modelLayout = engine::graphics::models::loadModelLayout(modelBytes, _fileManager, "assets/models/");
+
+                _renderThread->emplaceTasks(stl::make_vector(threads::WorkerTask{[this, modelLayout = std::move(modelLayout)]() mutable {
+                auto const modelIdx = modelManager->addModel("buster_drone.glb", std::move(modelLayout), *graphicsService, _fileManager);
+
+                const auto & modelData = modelManager->getModelData(modelIdx);
+                uint8_t i = 0u;
+                for (const auto & animation : modelData.animations) {
+                    animationManager.registerAnimation(engine::fmt_string("buster_anim%d", i), engine::scene::SkeletalAnimation(animation));
+                    ++i;
+                }
+                }}));
+            }}));
         }
 
-        modelManager->generateGpuBuffers(*_api, *_device, tmpCommandList);
+        // modelManager->generateGpuBuffers(*_api, *_device, tmpCommandList);
         textureManager->generateGpuData(tmpCommandList);
 
         // constexpr uint32_t kMaxMemoryBytesToCopyCommand = 65536u;
@@ -1040,113 +1115,113 @@ namespace example {
                 .skeletalPipeline = 1u
             };
 
-            if (1) {
-                auto const animId = animationManager.getAnimationIndex("skeletal_mesh_anim0");
-                for (size_t i = 0u; i < 100u; ++i) {
-                    auto * meshRoot = engine::scene::createNodeWithSkeletalMesh(*scene, *modelManager, 0u, 
-                        engine::scene::Bounds::Type::eSphere, pipelines);
+            // if (1) {
+            //     auto const animId = animationManager.getAnimationIndex("skeletal_mesh_anim0");
+            //     for (size_t i = 0u; i < 100u; ++i) {
+            //         auto * meshRoot = engine::scene::createNodeWithSkeletalMesh(*scene, *modelManager, 0u, 
+            //             engine::scene::Bounds::Type::eSphere, pipelines);
                     
-                    if (auto * skeleton = static_cast<engine::scene::Skeleton *>(meshRoot->getAttachment())) {
-                        if (i == 5u) {
-                            tmpSkeleton = skeleton;
-                            // meshRoot->childAt(0u)->getAttachment(1u)->setHidden(true);
-                        }
+            //         if (auto * skeleton = static_cast<engine::scene::Skeleton *>(meshRoot->getAttachment())) {
+            //             if (i == 5u) {
+            //                 tmpSkeleton = skeleton;
+            //                 // meshRoot->childAt(0u)->getAttachment(1u)->setHidden(true);
+            //             }
 
-                        auto * anim0 = scene->createAnimInfo<engine::scene::SkeletalAnimation>(animId, engine::common::random(0.25f, 1.7f));
-                        scene->destroyAnimInfo(skeleton->setAnimation(anim0));
-                    }
+            //             auto * anim0 = scene->createAnimInfo<engine::scene::SkeletalAnimation>(animId, engine::common::random(0.25f, 1.7f));
+            //             scene->destroyAnimInfo(skeleton->setAnimation(anim0));
+            //         }
 
-                    constexpr float targetDimension = 0.234f;
-                    float scale = 1.0f;
-                    if (meshRoot->bounds.type == engine::scene::Bounds::Type::eSphere) {
-                        scale = targetDimension / meshRoot->bounds.volume.sphere.radius;
-                    } else if (meshRoot->bounds.type == engine::scene::Bounds::Type::eCube) {
-                        const auto & cube = meshRoot->bounds.volume.cube;
-                        const auto size = cube.corner1 - cube.corner0;
-                        scale = std::min({targetDimension / std::abs(size.x), targetDimension / std::abs(size.x), targetDimension / std::abs(size.z)});
-                    }
+            //         constexpr float targetDimension = 0.234f;
+            //         float scale = 1.0f;
+            //         if (meshRoot->bounds.type == engine::scene::Bounds::Type::eSphere) {
+            //             scale = targetDimension / meshRoot->bounds.volume.sphere.radius;
+            //         } else if (meshRoot->bounds.type == engine::scene::Bounds::Type::eCube) {
+            //             const auto & cube = meshRoot->bounds.volume.cube;
+            //             const auto size = cube.corner1 - cube.corner0;
+            //             scale = std::min({targetDimension / std::abs(size.x), targetDimension / std::abs(size.x), targetDimension / std::abs(size.z)});
+            //         }
 
-                    // meshRoot->setScale(engine::common::random(0.2f, 0.25f));
-                    meshRoot->setScale(scale);
-                    meshRoot->setRotation(engine::vec3f(1.57f, 0.0f, engine::common::random(-3.14f, 3.14f)));
-                    meshRoot->setPosition(engine::vec3f(-2.0f + i % 10 * 0.5f, i / 10 * -0.5f, 0.0f));
+            //         // meshRoot->setScale(engine::common::random(0.2f, 0.25f));
+            //         meshRoot->setScale(scale);
+            //         meshRoot->setRotation(engine::vec3f(1.57f, 0.0f, engine::common::random(-3.14f, 3.14f)));
+            //         meshRoot->setPosition(engine::vec3f(-2.0f + i % 10 * 0.5f, i / 10 * -0.5f, 0.0f));
 
-                    sceneWorldRoot->addChild(meshRoot);
-                }
+            //         sceneWorldRoot->addChild(meshRoot);
+            //     }
+            // }
+
+            if (1) {
+                // auto * meshRoot = engine::scene::createNodeWithSkeletalMesh(*scene, *modelManager, 0u, 
+                //     engine::scene::Bounds::Type::eCube, pipelines);
+
+                // constexpr float targetDimension = 6.5f;
+                // float scale = 1.0f;
+                // if (meshRoot->bounds.type == engine::scene::Bounds::Type::eSphere) {
+                //     scale = targetDimension / meshRoot->bounds.volume.sphere.radius;
+                // } else if (meshRoot->bounds.type == engine::scene::Bounds::Type::eCube) {
+                //     const auto & cube = meshRoot->bounds.volume.cube;
+                //     const auto size = cube.corner1 - cube.corner0;
+                //     scale = std::min({targetDimension / std::abs(size.x), targetDimension / std::abs(size.y), targetDimension / std::abs(size.z)});
+                // }
+
+                // meshRoot->setScale(scale);
+                // meshRoot->setRotation(engine::vec3f(1.57f, 0.0f, 0.0f));
+                // meshRoot->setPosition(engine::vec3f(0.0f, 4.0f, 0.0f));
+                // sceneWorldRoot->addChild(meshRoot);
             }
 
             if (1) {
-                auto * meshRoot = engine::scene::createNodeWithSkeletalMesh(*scene, *modelManager, 1u, 
-                    engine::scene::Bounds::Type::eCube, pipelines);
+                // auto * meshRoot = engine::scene::createNodeWithSkeletalMesh(*scene, *modelManager, 0u, 
+                //     engine::scene::Bounds::Type::eCube, pipelines);
 
-                constexpr float targetDimension = 6.5f;
-                float scale = 1.0f;
-                if (meshRoot->bounds.type == engine::scene::Bounds::Type::eSphere) {
-                    scale = targetDimension / meshRoot->bounds.volume.sphere.radius;
-                } else if (meshRoot->bounds.type == engine::scene::Bounds::Type::eCube) {
-                    const auto & cube = meshRoot->bounds.volume.cube;
-                    const auto size = cube.corner1 - cube.corner0;
-                    scale = std::min({targetDimension / std::abs(size.x), targetDimension / std::abs(size.y), targetDimension / std::abs(size.z)});
-                }
+                // if (auto * skeleton = static_cast<engine::scene::Skeleton *>(meshRoot->getAttachment())) {
+                //     auto const animId = animationManager.getAnimationIndex("wheel_anim0");
+                //     auto * anim = scene->createAnimInfo<engine::scene::SkeletalAnimation>(animId, engine::common::random(0.25f, 1.7f));
+                //     scene->destroyAnimInfo(skeleton->setAnimation(anim));
+                // }
 
-                meshRoot->setScale(scale);
-                meshRoot->setRotation(engine::vec3f(1.57f, 0.0f, 0.0f));
-                meshRoot->setPosition(engine::vec3f(0.0f, 4.0f, 0.0f));
-                sceneWorldRoot->addChild(meshRoot);
+                // constexpr float targetDimension = 3.5f;
+                // float scale = 1.0f;
+                // if (meshRoot->bounds.type == engine::scene::Bounds::Type::eSphere) {
+                //     scale = targetDimension / meshRoot->bounds.volume.sphere.radius;
+                // } else if (meshRoot->bounds.type == engine::scene::Bounds::Type::eCube) {
+                //     const auto & cube = meshRoot->bounds.volume.cube;
+                //     const auto size = cube.corner1 - cube.corner0;
+                //     scale = std::min({targetDimension / std::abs(size.x), targetDimension / std::abs(size.y), targetDimension / std::abs(size.z)});
+                // }
+
+                // meshRoot->setScale(scale);
+                // meshRoot->setRotation(engine::vec3f(1.57f, 0.0f, 1.57f));
+                // meshRoot->setPosition(engine::vec3f(-3.0f, 2.0f, 0.0f));
+                // sceneWorldRoot->addChild(meshRoot);
             }
 
             if (1) {
-                auto * meshRoot = engine::scene::createNodeWithSkeletalMesh(*scene, *modelManager, 2u, 
-                    engine::scene::Bounds::Type::eCube, pipelines);
+                // for (uint8_t i = 0; i < 10; ++i) {
+                //     auto * meshRoot = engine::scene::createNodeWithSkeletalMesh(*scene, *modelManager, 0u, 
+                //         engine::scene::Bounds::Type::eCube, pipelines);
 
-                if (auto * skeleton = static_cast<engine::scene::Skeleton *>(meshRoot->getAttachment())) {
-                    auto const animId = animationManager.getAnimationIndex("wheel_anim0");
-                    auto * anim = scene->createAnimInfo<engine::scene::SkeletalAnimation>(animId, engine::common::random(0.25f, 1.7f));
-                    scene->destroyAnimInfo(skeleton->setAnimation(anim));
-                }
+                //     if (auto * skeleton = static_cast<engine::scene::Skeleton *>(meshRoot->getAttachment())) {
+                //         auto const animId = animationManager.getAnimationIndex("buster_anim0");
+                //         auto * anim = scene->createAnimInfo<engine::scene::SkeletalAnimation>(animId, engine::common::random(0.25f, 1.7f));
+                //         scene->destroyAnimInfo(skeleton->setAnimation(anim));
+                //     }
 
-                constexpr float targetDimension = 3.5f;
-                float scale = 1.0f;
-                if (meshRoot->bounds.type == engine::scene::Bounds::Type::eSphere) {
-                    scale = targetDimension / meshRoot->bounds.volume.sphere.radius;
-                } else if (meshRoot->bounds.type == engine::scene::Bounds::Type::eCube) {
-                    const auto & cube = meshRoot->bounds.volume.cube;
-                    const auto size = cube.corner1 - cube.corner0;
-                    scale = std::min({targetDimension / std::abs(size.x), targetDimension / std::abs(size.y), targetDimension / std::abs(size.z)});
-                }
+                //     constexpr float targetDimension = 1.5f;
+                //     float scale = 1.0f;
+                //     if (meshRoot->bounds.type == engine::scene::Bounds::Type::eSphere) {
+                //         scale = targetDimension / meshRoot->bounds.volume.sphere.radius;
+                //     } else if (meshRoot->bounds.type == engine::scene::Bounds::Type::eCube) {
+                //         const auto & cube = meshRoot->bounds.volume.cube;
+                //         const auto size = cube.corner1 - cube.corner0;
+                //         scale = std::min({targetDimension / std::abs(size.x), targetDimension / std::abs(size.y), targetDimension / std::abs(size.z)});
+                //     }
 
-                meshRoot->setScale(scale);
-                meshRoot->setRotation(engine::vec3f(1.57f, 0.0f, 1.57f));
-                meshRoot->setPosition(engine::vec3f(-3.0f, 2.0f, 0.0f));
-                sceneWorldRoot->addChild(meshRoot);
-            }
-
-            if (1) {
-                for (uint8_t i = 0; i < 10; ++i) {
-                    auto * meshRoot = engine::scene::createNodeWithSkeletalMesh(*scene, *modelManager, 3u, 
-                        engine::scene::Bounds::Type::eCube, pipelines);
-
-                    if (auto * skeleton = static_cast<engine::scene::Skeleton *>(meshRoot->getAttachment())) {
-                        auto const animId = animationManager.getAnimationIndex("buster_anim0");
-                        auto * anim = scene->createAnimInfo<engine::scene::SkeletalAnimation>(animId, engine::common::random(0.25f, 1.7f));
-                        scene->destroyAnimInfo(skeleton->setAnimation(anim));
-                    }
-
-                    constexpr float targetDimension = 1.5f;
-                    float scale = 1.0f;
-                    if (meshRoot->bounds.type == engine::scene::Bounds::Type::eSphere) {
-                        scale = targetDimension / meshRoot->bounds.volume.sphere.radius;
-                    } else if (meshRoot->bounds.type == engine::scene::Bounds::Type::eCube) {
-                        const auto & cube = meshRoot->bounds.volume.cube;
-                        const auto size = cube.corner1 - cube.corner0;
-                        scale = std::min({targetDimension / std::abs(size.x), targetDimension / std::abs(size.y), targetDimension / std::abs(size.z)});
-                    }
-
-                    meshRoot->setScale(scale);
-                    meshRoot->setRotation(engine::vec3f(1.57f, 0.0f, engine::common::random(-3.14f, 3.14f)));
-                    meshRoot->setPosition(engine::vec3f(-3.0f, 0.0f - i * 1.25f, 0.42f));
-                    sceneWorldRoot->addChild(meshRoot);
-                }
+                //     meshRoot->setScale(scale);
+                //     meshRoot->setRotation(engine::vec3f(1.57f, 0.0f, engine::common::random(-3.14f, 3.14f)));
+                //     meshRoot->setPosition(engine::vec3f(-3.0f, 0.0f - i * 1.25f, 0.42f));
+                //     sceneWorldRoot->addChild(meshRoot);
+                // }
             }
 
             auto m0 = engine::makeMatrix(0.5F);
@@ -1227,12 +1302,14 @@ namespace example {
 
             sceneWorldRoot->addChild(node3);
 
-            auto * handBone = tmpSkeleton ? tmpSkeleton->node(15u) : nullptr;
-            if (handBone) {
-                handBone->addChild(node4);
-            } else {
+            swordNode = node4;
+
+            // auto * handBone = tmpSkeleton ? tmpSkeleton->node(15u) : nullptr;
+            // if (handBone) {
+            //     handBone->addChild(node4);
+            // } else {
                 sceneWorldRoot->addChild(node4);
-            }
+            // }
 
             {
                 m2[0][0] *= 0.25f;
@@ -1466,6 +1543,8 @@ namespace example {
 
         const auto [imageIndex, success] = _swapchain->acquireNextImage(frameId); // https://vulkan-tutorial.com/Drawing_a_triangle/Swap_chain_recreation
 
+        // printf("frame: %d, imageIndex: %d\n", frameId, imageIndex);
+
         if (!success) {
             _canDraw = false;
             return;
@@ -1478,6 +1557,158 @@ namespace example {
         auto & transferCommandList = _transferCommandLists[frameId];
         auto & commandList = _commandLists[frameId];
         transferCommandList->begin(rhi::CommandBufferUsageFlags::eOne_Time_Submit);
+
+        modelManager->generateGpuBuffers(*_api, *_device, transferCommandList);
+        textureManager->generateGpuData(transferCommandList);
+
+        static bool meshLoaded = false;
+        if (!meshLoaded) {
+            const auto modelIndex = modelManager->getModelDataIdx("model.glb");
+            if (modelManager->isDataReady(modelIndex)) {
+                meshLoaded = true;
+                engine::scene::MeshPipelines pipelines = {
+                    .commonPipeline = 2u, 
+                    .skeletalPipeline = 1u
+                };
+
+                auto const animId = animationManager.getAnimationIndex("skeletal_mesh_anim0");
+                for (size_t i = 0u; i < 100u; ++i) {
+                    auto * meshRoot = engine::scene::createNodeWithSkeletalMesh(*scene, *modelManager, modelIndex, 
+                        engine::scene::Bounds::Type::eSphere, pipelines);
+                    
+                    if (auto * skeleton = static_cast<engine::scene::Skeleton *>(meshRoot->getAttachment())) {
+                        if (i == 5u) {
+                            auto * handBone = skeleton->node(15u);
+                            swordNode->removeFromParent();
+                            handBone->addChild(swordNode);
+                            // meshRoot->childAt(0u)->getAttachment(1u)->setHidden(true);
+                        }
+
+                        auto * anim0 = scene->createAnimInfo<engine::scene::SkeletalAnimation>(animId, engine::common::random(0.25f, 1.7f));
+                        scene->destroyAnimInfo(skeleton->setAnimation(anim0));
+                    }
+
+                    constexpr float targetDimension = 0.234f;
+                    float scale = 1.0f;
+                    if (meshRoot->bounds.type == engine::scene::Bounds::Type::eSphere) {
+                        scale = targetDimension / meshRoot->bounds.volume.sphere.radius;
+                    } else if (meshRoot->bounds.type == engine::scene::Bounds::Type::eCube) {
+                        const auto & cube = meshRoot->bounds.volume.cube;
+                        const auto size = cube.corner1 - cube.corner0;
+                        scale = std::min({targetDimension / std::abs(size.x), targetDimension / std::abs(size.y), targetDimension / std::abs(size.z)});
+                    }
+
+                    meshRoot->setScale(scale);
+                    meshRoot->setRotation(engine::vec3f(1.57f, 0.0f, engine::common::random(-3.14f, 3.14f)));
+                    meshRoot->setPosition(engine::vec3f(-2.0f + i % 10 * 0.5f, i / 10 * -0.5f, 0.0f));
+
+                    sceneWorldRoot->addChild(meshRoot);
+                }
+            }
+        }
+
+        static bool meshLoaded2 = false;
+        if (!meshLoaded2) {
+            const auto modelIndex = modelManager->getModelDataIdx("scene.gltf");
+            if (modelManager->isDataReady(modelIndex)) {
+                meshLoaded2 = true;
+                engine::scene::MeshPipelines pipelines = {
+                    .commonPipeline = 2u, 
+                    .skeletalPipeline = 1u
+                };
+
+                auto * meshRoot = engine::scene::createNodeWithSkeletalMesh(*scene, *modelManager, modelIndex, 
+                        engine::scene::Bounds::Type::eCube, pipelines);
+
+                constexpr float targetDimension = 6.5f;
+                float scale = 1.0f;
+                if (meshRoot->bounds.type == engine::scene::Bounds::Type::eSphere) {
+                    scale = targetDimension / meshRoot->bounds.volume.sphere.radius;
+                } else if (meshRoot->bounds.type == engine::scene::Bounds::Type::eCube) {
+                    const auto & cube = meshRoot->bounds.volume.cube;
+                    const auto size = cube.corner1 - cube.corner0;
+                    scale = std::min({targetDimension / std::abs(size.x), targetDimension / std::abs(size.y), targetDimension / std::abs(size.z)});
+                }
+
+                meshRoot->setScale(scale);
+                meshRoot->setRotation(engine::vec3f(1.57f, 0.0f, 0.0f));
+                meshRoot->setPosition(engine::vec3f(0.0f, 4.0f, 0.0f));
+                sceneWorldRoot->addChild(meshRoot);
+            }
+        }
+
+        static bool meshLoaded3 = false;
+        if (!meshLoaded3) {
+            const auto modelIndex = modelManager->getModelDataIdx("wheel.glb");
+            if (modelManager->isDataReady(modelIndex)) {
+                meshLoaded3 = true;
+                engine::scene::MeshPipelines pipelines = {
+                    .commonPipeline = 2u, 
+                    .skeletalPipeline = 1u
+                };
+                auto * meshRoot = engine::scene::createNodeWithSkeletalMesh(*scene, *modelManager, modelIndex, 
+                    engine::scene::Bounds::Type::eCube, pipelines);
+
+                if (auto * skeleton = static_cast<engine::scene::Skeleton *>(meshRoot->getAttachment())) {
+                    auto const animId = animationManager.getAnimationIndex("wheel_anim0");
+                    auto * anim = scene->createAnimInfo<engine::scene::SkeletalAnimation>(animId, engine::common::random(0.25f, 1.7f));
+                    scene->destroyAnimInfo(skeleton->setAnimation(anim));
+                }
+
+                constexpr float targetDimension = 3.5f;
+                float scale = 1.0f;
+                if (meshRoot->bounds.type == engine::scene::Bounds::Type::eSphere) {
+                    scale = targetDimension / meshRoot->bounds.volume.sphere.radius;
+                } else if (meshRoot->bounds.type == engine::scene::Bounds::Type::eCube) {
+                    const auto & cube = meshRoot->bounds.volume.cube;
+                    const auto size = cube.corner1 - cube.corner0;
+                    scale = std::min({targetDimension / std::abs(size.x), targetDimension / std::abs(size.y), targetDimension / std::abs(size.z)});
+                }
+
+                meshRoot->setScale(scale);
+                meshRoot->setRotation(engine::vec3f(1.57f, 0.0f, 1.57f));
+                meshRoot->setPosition(engine::vec3f(-3.0f, 2.0f, 0.0f));
+                sceneWorldRoot->addChild(meshRoot);
+            }
+        }
+
+        static bool meshLoaded4 = false;
+        if (!meshLoaded4) {
+            const auto modelIndex = modelManager->getModelDataIdx("buster_drone.glb");
+            if (modelManager->isDataReady(modelIndex)) {
+                meshLoaded4 = true;
+                engine::scene::MeshPipelines pipelines = {
+                    .commonPipeline = 2u, 
+                    .skeletalPipeline = 1u
+                };
+                for (uint8_t i = 0u; i < 10u; ++i) {
+                    auto * meshRoot = engine::scene::createNodeWithSkeletalMesh(*scene, *modelManager, modelIndex, 
+                        engine::scene::Bounds::Type::eCube, pipelines);
+
+                    if (auto * skeleton = static_cast<engine::scene::Skeleton *>(meshRoot->getAttachment())) {
+                        auto const animId = animationManager.getAnimationIndex("buster_anim0");
+                        auto * anim = scene->createAnimInfo<engine::scene::SkeletalAnimation>(animId, engine::common::random(0.25f, 1.7f));
+                        scene->destroyAnimInfo(skeleton->setAnimation(anim));
+                    }
+
+                    constexpr float targetDimension = 1.5f;
+                    float scale = 1.0f;
+                    if (meshRoot->bounds.type == engine::scene::Bounds::Type::eSphere) {
+                        scale = targetDimension / meshRoot->bounds.volume.sphere.radius;
+                    } else if (meshRoot->bounds.type == engine::scene::Bounds::Type::eCube) {
+                        const auto & cube = meshRoot->bounds.volume.cube;
+                        const auto size = cube.corner1 - cube.corner0;
+                        scale = std::min({targetDimension / std::abs(size.x), targetDimension / std::abs(size.y), targetDimension / std::abs(size.z)});
+                    }
+
+                    meshRoot->setScale(scale);
+                    meshRoot->setRotation(engine::vec3f(1.57f, 0.0f, engine::common::random(-3.14f, 3.14f)));
+                    meshRoot->setPosition(engine::vec3f(-3.0f, 0.0f - i * 1.25f, 0.42f));
+                    sceneWorldRoot->addChild(meshRoot);
+                }
+            }
+        }
+
 
         commandList->begin(rhi::CommandBufferUsageFlags::eOne_Time_Submit);
 
@@ -1684,7 +1915,7 @@ namespace example {
                 .signalSemaphores = {},
                 .lists = transferLists
             },
-            engine::rhi::runtime::Queue::SubmitInfo {
+            engine::rhi::runtime::Queue::SubmitInfo { 
                 .w8Semaphores = waitSemaphores,
                 .w8DstStages = waitStages,
                 .signalSemaphores = signalSemaphores,
