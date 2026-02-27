@@ -58,6 +58,8 @@ namespace example {
     constexpr uint8_t kMeshProgram = 6u;
     constexpr uint8_t  kMeshSkeletalInstancedProgram = 7u;
     constexpr uint8_t  kMeshInstancedProgram = 8u;
+    constexpr uint8_t kComputeProgram2 = 9u;
+    constexpr uint8_t kMeshAfterComputeProgram = 10u;
 
     constexpr uint8_t kPostEffectPipeline = 0u;
     constexpr uint8_t kSceneTestPipeline = 1u;
@@ -467,11 +469,13 @@ namespace example {
 
             _programs.emplace_back(_api->createProgram(*_device, std::array{vsModule.getView(), fsModule.getView()}, {.dynamicDescriptorsMask = 0u}));
         }
+
         { // kComputeProgram
             auto const cBytes = _fileManager.readFile("shaders/compute_test.comp.spv");
             const auto & compModule = _shaderModulesManager->registerModule("compute_test.comp", *_device, engine::rhi::shaders::Stages::eCompute, cBytes);
             _programs.emplace_back(_api->createProgram(*_device, std::array{compModule.getView()}));
         }
+
         { // kDebugProgram
             auto const vBytes = _fileManager.readFile("shaders/debug.vert.spv");
             auto const fBytes = _fileManager.readFile("shaders/debug.frag.spv");
@@ -516,6 +520,22 @@ namespace example {
             auto const fBytes = _fileManager.readFile("shaders/mesh.frag.spv");
 
             const auto & vsModule = _shaderModulesManager->registerModule("mesh_instanced.vert", *_device, engine::rhi::shaders::Stages::eVertex, vBytes);
+            const auto & fsModule = _shaderModulesManager->registerModule("mesh.frag", *_device, engine::rhi::shaders::Stages::eFragment, fBytes);
+
+            _programs.emplace_back(_api->createProgram(*_device, std::array{vsModule.getView(), fsModule.getView()}));
+        }
+
+        { // kComputeProgram2
+            auto const cBytes = _fileManager.readFile("shaders/mesh_skin_compute.comp.spv");
+            const auto & compModule = _shaderModulesManager->registerModule("mesh_skin_compute.comp", *_device, engine::rhi::shaders::Stages::eCompute, cBytes);
+            _programs.emplace_back(_api->createProgram(*_device, std::array{compModule.getView()}));
+        }
+
+        { // kMeshAfterComputeProgram
+            auto const vBytes = _fileManager.readFile("shaders/mesh_after_compute.vert.spv");
+            auto const fBytes = _fileManager.readFile("shaders/mesh.frag.spv");
+
+            const auto & vsModule = _shaderModulesManager->registerModule("mesh_skeletal_instanced.vert", *_device, engine::rhi::shaders::Stages::eVertex, vBytes);
             const auto & fsModule = _shaderModulesManager->registerModule("mesh.frag", *_device, engine::rhi::shaders::Stages::eFragment, fBytes);
 
             _programs.emplace_back(_api->createProgram(*_device, std::array{vsModule.getView(), fsModule.getView()}));
@@ -567,6 +587,12 @@ namespace example {
         // mesh
         const GraphicsPipelineStatesInfo info5 = engine::parseGraphicsPipelineInfo(json["mesh"]);
         scene->registerGraphicsPipeline(_api->createGraphicsPipeline(*_device, _renderPasses[kSceneRenderPass], _programs[kMeshInstancedProgram], info5, 0u));
+
+        // compute
+        scene->registerComputePipeline(_api->createComputePipeline(*_device, _programs[kComputeProgram2]));
+
+        const GraphicsPipelineStatesInfo info6 = engine::parseGraphicsPipelineInfo(json["mesh_skeletal_computed"]);
+        scene->registerGraphicsPipeline(_api->createGraphicsPipeline(*_device, _renderPasses[kSceneRenderPass], _programs[kMeshAfterComputeProgram], info6, 0u));
     }
 
     void Example::createDefaultResources() {
@@ -1600,6 +1626,7 @@ namespace example {
                             swordNode->removeFromParent();
                             handBone->addChild(swordNode);
                             // meshRoot->childAt(0u)->getAttachment(1u)->setHidden(true);
+                            //static_cast<engine::scene::Mesh*>(meshRoot->childAt(0u)->getAttachment(0u))->setSkinProcessType(engine::scene::MeshSkinProcessType::eSkinComputeShader);
                         }
 
                         auto * anim0 = scene->createAnimInfo<engine::scene::SkeletalAnimation>(animId, engine::common::random(0.25f, 1.7f));
@@ -1810,6 +1837,8 @@ namespace example {
         scene->fillAttachmentsArray(cameraTransform, sceneWorldRoot, [](engine::scene::AttachmentObject*) { return true; }, objects);
         scene->animate(now, delta, objects, animationManager); // after fillAttachmentsArrays and after beginFrame for correct
         const auto offsets = scene->prepareDrawData(objects, frameId);
+
+        scene->dispatch(commandList, frameId, objects, offsets);
 
         // scene pass
         commandList->beginRenderPass(_renderPasses[kSceneRenderPass], _sceneFrameBuffers[imageIndex], sceneClearValues, {{0, 0}, {width, height}});

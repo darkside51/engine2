@@ -45,6 +45,7 @@ namespace engine::rhi::runtime {
         eDispatch = 25u,
         eUpdateBuffer = 26u,
         ePushConstants = 27u,
+        eBindTexelBuffer = 28u,
     };
 
     class CommandList;
@@ -220,6 +221,24 @@ namespace engine::rhi::runtime {
             }
     };
 
+    struct BindTexelBufferCommand : Command {
+        Buffer * buffer = nullptr;
+        uint32_t offset = 0u;
+        uint32_t range = kWholeSize32;
+        uint16_t binding = 0u;
+        uint8_t setId = 0u;
+        Format format = Format::eUndefined;
+        
+        BindTexelBufferCommand(uint16_t binding, Buffer * buffer, Format format, uint8_t setId = 0u, uint32_t offset = 0u, uint32_t range = kWholeSize32) : 
+            Command(CommandType::eBindTexelBuffer, sizeof(BindBufferCommand)), 
+            buffer(buffer),
+            offset(offset),
+            range(range),
+            binding(binding),
+            setId(setId), 
+            format(format) {}
+    };
+
     struct PushConstantsCommand : Command {
         uint32_t offset = 0u;
         uint32_t size = 0u;
@@ -380,7 +399,8 @@ namespace engine::rhi::runtime {
             case CommandType::eCopyQueryPoolResults: [[fallthrough]];
             case CommandType::eDispatch: [[fallthrough]];
             case CommandType::eUpdateBuffer: [[fallthrough]];
-            case CommandType::ePushConstants:
+            case CommandType::ePushConstants: [[fallthrough]];
+            case CommandType::eBindTexelBuffer:
                 return;
             case CommandType::eBeginRenderPass: {
                 static_cast<const BeginRenderPassCommand*>(this)->~BeginRenderPassCommand();

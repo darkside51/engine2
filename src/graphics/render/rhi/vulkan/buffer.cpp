@@ -47,7 +47,7 @@ namespace engine::vulkan {
         }
     }
 
-    VkBufferView Buffer::recieveView(rhi::Format format) noexcept {
+    VkBufferView Buffer::recieveView(rhi::Format format, uint32_t offset, uint32_t range) noexcept {
         // todo: use composite key format + offset + range
         if (auto it = _bufferViews.find(format); it != _bufferViews.end()) {
             return it->second;
@@ -59,8 +59,8 @@ namespace engine::vulkan {
             .flags = 0u,
             .buffer = _buffer,
             .format = utils::convert2vk(format),
-            .offset = 0u,
-            .range = VK_WHOLE_SIZE
+            .offset = offset,
+            .range = range == rhi::kWholeSize32 ? VK_WHOLE_SIZE : range
         };
 
         VkBufferView bufferView = VK_NULL_HANDLE;

@@ -249,9 +249,9 @@ namespace engine::vulkan {
         return false;
     }
 
-    void DescriptorSetUpdater::updatetexelBuffer(Buffer* buffer, rhi::Format format, uint32_t binding) noexcept {
+    bool DescriptorSetUpdater::updateTexelBuffer(Buffer* buffer, rhi::Format format, uint32_t binding, uint32_t offset, uint32_t range) noexcept {
         if (!isValid()) { 
-            return; 
+            return false; 
         }
 
         const auto view = _texelBuffersInfo.view();
@@ -260,13 +260,18 @@ namespace engine::vulkan {
         });
 
         if (it != view.end()) {
-            auto const vkBufferView = buffer->recieveView(format);
+            auto const vkBufferView = buffer->recieveView(format, offset, range);
             auto & bufferView = it->info;
+
+            // const auto finalRange = (range == rhi::kWholeSize32) ? static_cast<VkDeviceSize>(buffer->sizeInBytes()) : static_cast<VkDeviceSize>(range);
+
             if (bufferView != vkBufferView) {
                 bufferView = vkBufferView;
                 _texelBufferDirty = true;
+                return true;
             }
         }
+        return false;
     }
 
     void DescriptorSetUpdater::fillDynamicOffsets(dynamic_array<uint32_t, 4u * kDescriptorsOnStackLimit> & dynamicOffsets) noexcept {

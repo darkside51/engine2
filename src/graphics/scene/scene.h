@@ -134,6 +134,7 @@ public:
         const AnimationManager & animationManager);
     void draw(rhi::runtime::CommandListPtr & commandList, rhi::runtime::CommandListPtr & transferCommandList, uint8_t frame, 
         const mat4f & cameraTransform, std::span<AttachmentObject*> objects, const DrawDataOffsets & offsets);
+    void dispatch(rhi::runtime::CommandListPtr & commandList, uint8_t frame, std::span<AttachmentObject*> objects, const DrawDataOffsets & offsets);
 
 private:
     static bool compareAttachmentsForDraw(const AttachmentObject & a, const AttachmentObject & b) noexcept;
@@ -141,6 +142,9 @@ private:
     uint32_t calculateTargetStagingSize() const noexcept;
     void performCommits(rhi::runtime::CommandListPtr & commandList, uint8_t frame);
     void reduceUsedMemory(std::chrono::time_point<std::chrono::steady_clock> now) noexcept;
+
+    void dispatchObjects(rhi::runtime::CommandListPtr & commandList, uint8_t frame, 
+        AttachmentsIterator begin, AttachmentsIterator end, uint16_t typeIdx, const DrawDataOffsets & offsets);
 
     // draw
     void drawObjects(rhi::runtime::CommandListPtr & commandList, uint8_t frame, 

@@ -60,7 +60,7 @@ namespace engine::scene {
     constexpr uint8_t kAnimationCalculationPoolsCount = 4u;
 
     // compute skinning
-    constexpr bool kComputeSkinningAvailable = false;
+    constexpr bool kComputeSkinningAvailable = true;
 
     // global objects:
     FramesSequenceAnimator gSequenceAnimator{1.0f / 30.0f};
@@ -293,18 +293,18 @@ namespace engine::scene {
             api, device, verticesInfo, sizeof(uint32_t) * kInitialmeshTransformsInFrameMax
         );
 
-        // compute:
-        const rhi::BufferInfo computeVerticesInfo {
-            rhi::BufferUsageFlags::eVertex_Buffer | rhi::BufferUsageFlags::eStorage_Buffer | rhi::BufferUsageFlags::eTransfer_Dst,
-            rhi::MemoryPropertyFlags::eDeviceLocal
-        };
-
-        const rhi::BufferInfo computeIndicesInfo { // is eStorage_Buffer need?
-            rhi::BufferUsageFlags::eIndex_Buffer | rhi::BufferUsageFlags::eStorage_Buffer | rhi::BufferUsageFlags::eTransfer_Dst,
-            rhi::MemoryPropertyFlags::eDeviceLocal
-        };
-
         if constexpr (kComputeSkinningAvailable) {
+            // compute:
+            const rhi::BufferInfo computeVerticesInfo {
+                rhi::BufferUsageFlags::eVertex_Buffer | rhi::BufferUsageFlags::eStorage_Buffer | rhi::BufferUsageFlags::eTransfer_Dst,
+                rhi::MemoryPropertyFlags::eDeviceLocal
+            };
+
+            const rhi::BufferInfo computeIndicesInfo { // is eStorage_Buffer need?
+                rhi::BufferUsageFlags::eIndex_Buffer | rhi::BufferUsageFlags::eTransfer_Dst,
+                rhi::MemoryPropertyFlags::eDeviceLocal
+            };
+        
             _computedVertices = api.createBuffer(device, computeVerticesInfo, 10u * 1024u * 1024u); // 10Mb
             _computedIndices = api.createBuffer(device, computeIndicesInfo, 10u * 1024u * 1024u); // 10Mb
         }
@@ -648,6 +648,88 @@ namespace engine::scene {
         };
     }
 
+    void Scene::dispatchObjects(rhi::runtime::CommandListPtr & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end, 
+        uint16_t typeIdx, const DrawDataOffsets & offsets) {
+
+        switch (typeIdx) {
+        case ctti::typeIndex<AttachmentObject, Skeleton>(): // do not draw skeletons
+            break;
+        case ctti::typeIndex<AttachmentObject, Mesh>():
+        {
+
+        struct Uniform {
+            uint32_t objectsCount;
+	        uint32_t vertexPerObjexts;
+            uint32_t transformOffset;
+        };
+
+        auto offset = offsets.meshesDrawOffset;
+        for (auto it = begin; it != end; ++it) {
+            const auto & mesh = *static_cast<const Mesh*>(*it);
+            if (mesh.getSkinProcessType() == MeshSkinProcessType::eSkinComputeShader) {
+                const auto vertexCount = mesh.getAttribute(mesh::Semantic::ePosition).buffer->sizeInBytes() / 8u;
+                Uniform uniform {
+                    .objectsCount = 1u,
+                    .vertexPerObjexts = vertexCount,
+                    .transformOffset = offset
+                };
+
+                const auto & pipeline = getComputePipeline(0u);
+                assert(pipeline != nullptr);
+                commandList->bindPipeline(pipeline);
+
+                commandList->pushConstants(rhi::shaders::Stages::eCompute, 0u, sizeof(Uniform), &uniform);
+
+                commandList->bindBuffer(0u, _computedVertices, 0u, 0u);
+                commandList->bindBuffer(0u, (*_meshSkeletalTransforms)(frame), 1u, 0u);
+                //commandList->bindBuffer(1u, (*_meshTransformIndices)(frame), 1u, sizeof(uint32_t) * offset);
+
+                commandList->bindTexelBuffer(0u, mesh.getAttribute(mesh::Semantic::ePosition).buffer, rhi::Format::eR16G16B16A16_Sfloat, 2u);
+                commandList->bindTexelBuffer(1u, mesh.getAttribute(mesh::Semantic::eNormal).buffer, rhi::Format::eR8G8B8A8_Unorm, 2u);
+                commandList->bindTexelBuffer(2u, mesh.getAttribute(mesh::Semantic::eJoints).buffer, rhi::Format::eR8G8B8A8_Uint, 2u);
+                commandList->bindTexelBuffer(3u, mesh.getAttribute(mesh::Semantic::eWeights).buffer, rhi::Format::eR16G16B16A16_Sfloat, 2u);
+                
+                commandList->dispatch(std::ceil(static_cast<float>(vertexCount) / 64u), 1u, 1u);
+
+                break;
+            } else {
+                ++offset;
+            }
+        }
+            ///
+        }
+            break;
+        case ctti::typeIndex<AttachmentObject, Sprite>():
+            break;
+        case ctti::typeIndex<AttachmentObject, Dummy>():
+            break;
+        }
+    }
+
+    void Scene::dispatch(rhi::runtime::CommandListPtr & commandList, uint8_t frame, std::span<AttachmentObject*> objects, const DrawDataOffsets & offsets) {
+        if constexpr (!kComputeSkinningAvailable) {
+            return;
+        }
+
+        if (objects.empty()) {
+            return;
+        }
+
+        auto currentIt = objects.begin();
+        uint16_t typeIdx = (*currentIt)->typeIndex;
+        for (auto it = currentIt + 1u; it != objects.end(); ++it) {
+            const auto currenTypeIndex = (*it)->typeIndex;
+            if (currenTypeIndex != typeIdx) {
+                dispatchObjects(commandList, frame, currentIt, it, typeIdx, offsets);
+
+                currentIt = it;
+                typeIdx = currenTypeIndex;
+            }
+        }
+
+        dispatchObjects(commandList, frame, currentIt, objects.end(), typeIdx, offsets);
+    }
+
     void Scene::drawObjects(rhi::runtime::CommandListPtr & commandList, uint8_t frame, 
         const mat4f & cameraTransform, AttachmentsIterator begin, AttachmentsIterator end, 
         uint16_t typeIdx, const DrawDataOffsets & offsets) {
@@ -837,7 +919,8 @@ namespace engine::scene {
         bool skeletal = mesh.getSkeleton() != nullptr;
         auto dataIndex = mesh.dataIndex();
         auto materialIndex = mesh.materialIndex();
-
+        auto skinProcessType = mesh.getSkinProcessType();
+                
         uint32_t i = 0u;
         auto * memory = _meshTransformIndices->memory2<uint32_t>() + offset;
         if (skeletal) {
@@ -892,6 +975,7 @@ namespace engine::scene {
             const bool currentSkeletal = mesh2.getSkeleton() != nullptr;
             const auto currenDataIndex = mesh2.dataIndex();
             const auto currenMaterialIndex = mesh2.materialIndex();
+            const auto currentSkinProcessType = mesh2.getSkinProcessType();
 
             if (currentSkeletal) {
                 *(memory + i) = _meshTransformIndicesMap[*it].skeletalTransformIndex;
@@ -906,7 +990,8 @@ namespace engine::scene {
                                 materialChanged ||
                                 currentSkeletal != skeletal ||
                                 currenDataIndex != dataIndex ||
-                                currentGeometryDataIndex != geometryDataIndex;
+                                currentGeometryDataIndex != geometryDataIndex ||
+                                currentSkinProcessType != skinProcessType;
                  
             if (completePack) {
                 // draw
@@ -938,6 +1023,7 @@ namespace engine::scene {
                 geometryDataIndex = currentGeometryDataIndex;
                 skeletal = currentSkeletal;
                 materialIndex = currenMaterialIndex;
+                skinProcessType = currentSkinProcessType;
                 currentIt = it;
                 count = 1u;
             } else {
@@ -954,6 +1040,33 @@ namespace engine::scene {
     void Scene::drawSameMeshes(rhi::runtime::CommandListPtr & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end, 
         const mat4f & cameraTransform, uint32_t count, bool skeletal, uint32_t startTransformIndex) {
         const auto & mesh = *static_cast<const Mesh*>(*begin);
+
+        if (mesh.getSkinProcessType() == MeshSkinProcessType::eSkinComputeShader) {
+            const auto & pipeline = getGraphicsPipeline(3u);
+            assert(pipeline != nullptr);
+            commandList->bindPipeline(pipeline);
+
+            struct Uniform {
+                mat4f cameraTransform;
+                vec4f albedo;
+            };
+
+             Uniform uniform {
+                .cameraTransform = cameraTransform, 
+                .albedo = vec4f{1.0f}
+            };
+
+            commandList->pushConstants(rhi::shaders::Stages::eVertex, 0u, sizeof(Uniform), &uniform);
+            commandList->bindImage(0u, _graphicsService.getTextureManager().getDefaultImage(), _nearestSampler, 1u);
+            commandList->bindVertexBuffer(0u, _computedVertices, 0u);
+            commandList->bindIndexBuffer(mesh.getIndices().buffer, 0u, rhi::IndexType::eU32);
+
+            const auto & geometry = mesh.geometry();
+            commandList->drawIndexed(geometry.indexCount, count, geometry.firstIndex);
+
+            commandList->bindPipeline(getGraphicsPipeline(mesh.getPipeline()));
+            return;
+        }
 
         uint32_t binding_v = 0u;
         commandList->bindVertexBuffer(binding_v++, mesh.getAttribute(mesh::Semantic::ePosition).buffer, 0u);

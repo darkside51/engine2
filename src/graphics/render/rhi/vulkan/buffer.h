@@ -64,7 +64,7 @@ namespace engine::vulkan {
         void setName(std::string_view name) noexcept;
         std::string_view getName() const noexcept;
 
-        VkBufferView recieveView(rhi::Format format) noexcept;
+        VkBufferView recieveView(rhi::Format format, uint32_t offset = 0u, uint32_t range = rhi::kWholeSize32) noexcept;
         VkBufferView getView(rhi::Format format) const noexcept { 
             if (auto it = _bufferViews.find(format); it != _bufferViews.end()) {
                 return it->second;

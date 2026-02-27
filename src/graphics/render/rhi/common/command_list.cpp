@@ -162,6 +162,12 @@ namespace engine::rhi::runtime {
         ++_commandsCount;
     }
 
+    void CommandList::bindTexelBuffer(uint16_t binding, const BufferPtr & buffer, Format format, uint8_t setId, uint32_t offset, uint32_t range) noexcept {
+        _resources.push_back(buffer);
+        _commands->create<BindTexelBufferCommand>(binding, buffer.get(), format, setId, offset, range);
+        ++_commandsCount;
+    }
+
     void CommandList::bindImage(uint16_t binding, const ImagePtr & image, std::optional<rhi::SamplerValue> sampler, uint8_t setId) noexcept {
         // no check it with state, correct check into record function!
         _resources.push_back(image);

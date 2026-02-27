@@ -272,5 +272,39 @@
 				}
 			]
 		}
+	},
+	"mesh_skeletal_computed": {
+		"blendModes": ["blend_none"],
+		"rasterisationState": {
+			"polygonMode": "eFill",
+			"cullmode": "eBack"
+		},
+		"depthStencilState": {
+			"depth": {
+				"depthTestEnable": true,
+				"depthWriteEnable": true,
+				"depthCompareOp": "eGreater"
+			}
+		},
+		"inputAssemblyState": {
+			"topology" : "eTriangles"
+		},
+		"vertexInputState": {
+			"inputBindings": [
+				{
+					"stride" : 16,
+					"binding" : 0,
+					"inputRate": "eVertex"
+				}
+			],
+			"attributes":[
+				{
+					"location": 0,
+                    "binding": 0,
+                    "format": "eR32G32B32A32_Sfloat",
+                    "offset": 0
+				}
+			]
+		}
 	}
 }

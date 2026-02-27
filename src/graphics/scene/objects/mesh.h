@@ -100,6 +100,10 @@ namespace mesh {
         const Skeleton * getSkeleton() const noexcept { return _skeleton; }
         void setSkeleton(Skeleton * skeleton) noexcept { _skeleton = skeleton; }
 
+        // skin process type
+        MeshSkinProcessType getSkinProcessType() const noexcept { return _skinProcessType; }
+        void setSkinProcessType(MeshSkinProcessType type) noexcept { _skinProcessType = type; }
+
     private:
         const graphics::models::Primitive & _geometry;
         Skeleton * _skeleton = nullptr;

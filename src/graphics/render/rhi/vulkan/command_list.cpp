@@ -489,6 +489,28 @@ namespace engine::vulkan::runtime {
                 }
             }
                 break;
+            case CommandType::eBindTexelBuffer: 
+            {
+                const auto * command = static_cast<BindTexelBufferCommand*>(cmd);
+                const auto setId = command->setId;
+                assert(setId < command_limits::kMaxDescriptorsSets);
+
+                if (!descriptorSetUpdaters[setId]) {
+                    const auto * setLayout = currentPipeline->getLayout(setId);
+                    assert(setLayout != nullptr); // we must use all sets in shader for correct working
+                    descriptorSetUpdaters[setId] = DescriptorSetUpdater{device, *setLayout};
+                }
+
+                if (descriptorSetUpdaters[setId]) {
+                    const auto changed = descriptorSetUpdaters[setId].updateTexelBuffer(static_cast<Buffer*>(command->buffer), command->format, 
+                        command->binding, command->offset, command->range);
+
+                    if (changed) {
+                        changedSets |= 1u << setId;
+                    }
+                }
+            }
+                break;
             case CommandType::ePushConstants:
             {
                 const auto * command = static_cast<PushConstantsCommand*>(cmd);
