@@ -74,6 +74,12 @@ void attachObjectToNode(AttachmentObject & object, Node & node) noexcept;
 class Scene {
     using AttachmentsIterator = std::span<AttachmentObject*>::iterator;
     
+    struct DrawDataOffsets {
+        uint32_t meshesDrawOffset = 0u;
+        uint32_t spriteVerticesOffset = 0u;
+        uint32_t spriteIndicesOffset = 0u;
+    };
+
 public:
     Scene(const graphics::GraphicsService & graphicsService, graphics::DrawHelper & drawHelper);
     ~Scene();
@@ -109,9 +115,12 @@ public:
     }
     bool destroyAnimInfo(AnimationInfoChain * info) noexcept;
 
-    // render
-    uint32_t registerPipeline(rhi::runtime::PipelinePtr && pipeline);
-    const rhi::runtime::PipelinePtr & getPipeline(uint32_t pipelineId) const noexcept;
+    // render & compute
+    uint32_t registerGraphicsPipeline(rhi::runtime::PipelinePtr && pipeline);
+    const rhi::runtime::PipelinePtr & getGraphicsPipeline(uint32_t pipelineId) const noexcept;
+
+    uint32_t registerComputePipeline(rhi::runtime::PipelinePtr && pipeline);
+    const rhi::runtime::PipelinePtr & getComputePipeline(uint32_t pipelineId) const noexcept;
 
     void initRenderData(rhi::runtime::Rhi & api, rhi::runtime::Device & device);
     void beginFrame(std::chrono::time_point<std::chrono::steady_clock> now) noexcept;
@@ -119,32 +128,35 @@ public:
 
     template <typename Condition>
     void fillAttachmentsArray(const mat4f & cameraTransform, Node * root, Condition && condition, std::vector<AttachmentObject*> & objects);
+    DrawDataOffsets prepareDrawData(std::span<AttachmentObject*> objects, uint8_t frame) noexcept;
 
     void animate(std::chrono::time_point<std::chrono::steady_clock> now, float delta, std::span<AttachmentObject*> objects, 
         const AnimationManager & animationManager);
     void draw(rhi::runtime::CommandListPtr & commandList, rhi::runtime::CommandListPtr & transferCommandList, uint8_t frame, 
-        const mat4f & cameraTransform, std::span<AttachmentObject*> objects);
+        const mat4f & cameraTransform, std::span<AttachmentObject*> objects, const DrawDataOffsets & offsets);
 
 private:
     static bool compareAttachmentsForDraw(const AttachmentObject & a, const AttachmentObject & b) noexcept;
-    void prepareDrawData(std::span<AttachmentObject*> objects, uint8_t frame) noexcept;
-
+    
     uint32_t calculateTargetStagingSize() const noexcept;
     void performCommits(rhi::runtime::CommandListPtr & commandList, uint8_t frame);
     void reduceUsedMemory(std::chrono::time_point<std::chrono::steady_clock> now) noexcept;
 
     // draw
     void drawObjects(rhi::runtime::CommandListPtr & commandList, uint8_t frame, 
-        const mat4f & cameraTransform, AttachmentsIterator begin, AttachmentsIterator end, uint16_t typeIdx);
+        const mat4f & cameraTransform, AttachmentsIterator begin, AttachmentsIterator end, 
+        uint16_t typeIdx, const DrawDataOffsets & offsets);
 
     void drawDummies(AttachmentsIterator begin, AttachmentsIterator end, const mat4f & cameraTransform, uint32_t color);
-    void drawSprites(rhi::runtime::CommandListPtr & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end, const mat4f & cameraTransform);
+    void drawSprites(rhi::runtime::CommandListPtr & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end,
+        const mat4f & cameraTransform, uint32_t vtxOffset, uint32_t idxOffset);
     void drawSpritesBatch(rhi::runtime::CommandListPtr & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end, 
-        const mat4f & cameraTransform, uint32_t batchVertexesCount, uint32_t batchIndicesCount);
+        const mat4f & cameraTransform, uint32_t batchVertexesCount, uint32_t batchIndicesCount, uint32_t vtxOffset, uint32_t idxOffset);
 
-    void drawMeshes(rhi::runtime::CommandListPtr & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end, const mat4f & cameraTransform);
+    void drawMeshes(rhi::runtime::CommandListPtr & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end,
+        const mat4f & cameraTransform, uint32_t offset);
     void drawSameMeshes(rhi::runtime::CommandListPtr & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end, 
-        const mat4f & cameraTransform, uint32_t count, bool skeletal);   
+        const mat4f & cameraTransform, uint32_t count, bool skeletal, uint32_t startTransformIndex);   
 
     using NodesAllocator = allocators::PoolAllocatorChain<sizeof(Node), alignof(Node), false, false>;
     NodesAllocator _nodeAllocator{512u, 256u};
@@ -190,7 +202,8 @@ private:
     rhi::runtime::Rhi * _api = nullptr;
     rhi::runtime::Device * _device = nullptr;
 
-    std::vector<rhi::runtime::PipelinePtr> _pipelines;
+    std::vector<rhi::runtime::PipelinePtr> _graphicsPipelines;
+    std::vector<rhi::runtime::PipelinePtr> _computesPipelines;
     std::unique_ptr<graphics::InflightStagingBuffer> _staging = nullptr;
 
     const graphics::GraphicsService & _graphicsService;
@@ -226,6 +239,15 @@ private:
     uint32_t _skeletalTransformsInFrame = 0u;
     uint32_t _lastFramesUsedSkeletalTransforms = 0u;
     std::unique_ptr<graphics::InflightBuffer> _meshSkeletalTransforms = nullptr;
+
+    // compute mesh buffers
+    uint32_t _computedVerticesSizeInFrame = 0u;
+    uint32_t _lastFramesComputedVerticesSize = 0u;
+    rhi::runtime::BufferPtr _computedVertices = nullptr;
+
+    uint32_t _computedIndicesSizeInFrame = 0u;
+    uint32_t _lastFramesComputedIndicesSize = 0u;
+    rhi::runtime::BufferPtr _computedIndices = nullptr;
 
     // async animation calculation:
     // need use stop sources?

@@ -39,11 +39,10 @@ namespace engine::scene {
     }
 
     // mesh:
-    Mesh::Mesh(const graphics::models::Primitive & primitive, /*const graphics::models::MeshMaterial & material,*/
+    Mesh::Mesh(const graphics::models::Primitive & primitive,
         uint32_t dataIndex, uint16_t geometryDataIndex, uint16_t skin, uint32_t pipeline) :
         AttachmentObject(ctti::typeIndex<AttachmentObject, Mesh>()), 
         _geometry(primitive),
-        //_material(material),
         _pipeline(pipeline), 
         _dataIndex(dataIndex), 
         _geometryDataIndex(geometryDataIndex), 
@@ -78,6 +77,10 @@ namespace engine::scene {
 
         if (_skeleton != other._skeleton) {
             return std::less<const Skeleton *>{}(_skeleton, other._skeleton);
+        }
+
+        if (_skinProcessType != other._skinProcessType) {
+            return std::to_underlying(_skinProcessType) < std::to_underlying(other._skinProcessType);
         }
 
         // attributes?????

@@ -25,6 +25,12 @@ namespace mesh {
     };
 }
 
+    enum class MeshSkinProcessType : uint8_t {
+        eSkinVertexShader = 0u,
+        eSkinComputeShader = 1u,
+        eSkinCpu = 2u
+    };
+
     class Skeleton : public AttachmentObject {
     public:
         explicit Skeleton(const graphics::models::MeshData & meshData);
@@ -56,8 +62,8 @@ namespace mesh {
 
     class Mesh : public AttachmentObject {
     public:
-        Mesh(const graphics::models::Primitive & primitive, /*const graphics::models::MeshMaterial & material,*/
-            uint32_t dataIndex, uint16_t geometryDataIndex, uint16_t skin, uint32_t pipeline);
+        Mesh(const graphics::models::Primitive & primitive, uint32_t dataIndex, uint16_t geometryDataIndex, 
+            uint16_t skin, uint32_t pipeline);
         ~Mesh() /*override*/ = default;
 
         void setPipeline(uint32_t pipeline) noexcept;
@@ -94,20 +100,19 @@ namespace mesh {
         const Skeleton * getSkeleton() const noexcept { return _skeleton; }
         void setSkeleton(Skeleton * skeleton) noexcept { _skeleton = skeleton; }
 
-        
-
     private:
         const graphics::models::Primitive & _geometry;
         Skeleton * _skeleton = nullptr;
+
+        mesh::Attribute _indices;
+        std::array<mesh::Attribute, static_cast<uint8_t>(mesh::Semantic::eSemanticsCount)> _attributes;
 
         uint32_t _pipeline = 0u;
         uint32_t _dataIndex = 0xff'ff'ff'ffu;
         uint16_t _geometryDataIndex = 0u;
         uint16_t _skin = graphics::models::kInvalidValue;
-        uint16_t _material = 0u;
-
-        mesh::Attribute _indices;
-        std::array<mesh::Attribute, static_cast<uint8_t>(mesh::Semantic::eSemanticsCount)> _attributes;
+        uint16_t _material = 0u;     
+        MeshSkinProcessType _skinProcessType = MeshSkinProcessType::eSkinVertexShader;
     };
 
 }

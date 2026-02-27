@@ -34,6 +34,8 @@ namespace {
         static_assert(sizeof(Node) == 232u);
         static_assert(sizeof(Bounds) == 28u);
         static_assert(sizeof(Transformation) == 40u);
+
+        static_assert(sizeof(mesh::Attribute) == 8u);
     }
 }
 
@@ -54,11 +56,15 @@ namespace engine::scene {
     constexpr uint32_t kDefaultSkeletoneBonesCount = 128u;
     constexpr uint32_t kSsboSkeletalTransformSize = sizeof(SsboTransform) * kDefaultSkeletoneBonesCount;
 
-    FramesSequenceAnimator gSequenceAnimator{1.0f / 30.0f};
-    SkeletalAnimator gSkeletalAnimator{};
-
     constexpr uint8_t kSkeletalAnimationCountToEnableMultyThreading = 64u;
     constexpr uint8_t kAnimationCalculationPoolsCount = 4u;
+
+    // compute skinning
+    constexpr bool kComputeSkinningAvailable = false;
+
+    // global objects:
+    FramesSequenceAnimator gSequenceAnimator{1.0f / 30.0f};
+    SkeletalAnimator gSkeletalAnimator{};
 
     threads::ThreadPool gThreadPool{kAnimationCalculationPoolsCount};
     std::array<SkeletalAnimator, kAnimationCalculationPoolsCount> gSkeletalAnimatorsMT;
@@ -122,9 +128,13 @@ namespace engine::scene {
         _meshTransformIndices = nullptr;
         _meshTransforms = nullptr;
         _meshSkeletalTransforms = nullptr;
+
+        _computedVertices = nullptr;
+        _computedIndices = nullptr;
         
         _staging = nullptr;
-        _pipelines.clear();
+        _graphicsPipelines.clear();
+        _computesPipelines.clear();
     }
 
     Node * Scene::createNode() noexcept {
@@ -186,21 +196,38 @@ namespace engine::scene {
         return result;
     }
 
-    uint32_t Scene::registerPipeline(rhi::runtime::PipelinePtr && pipeline) {
+    uint32_t Scene::registerGraphicsPipeline(rhi::runtime::PipelinePtr && pipeline) {
         if (pipeline) {
-            _pipelines.push_back(std::move(pipeline));
-            return _pipelines.size() - 1u;
+            _graphicsPipelines.push_back(std::move(pipeline));
+            return _graphicsPipelines.size() - 1u;
         }
 
         return 0xff'ff'ff'ffu;
     }
 
-    const rhi::runtime::PipelinePtr & Scene::getPipeline(uint32_t pipelineId) const noexcept {
-        if (pipelineId >= _pipelines.size()) {
+    const rhi::runtime::PipelinePtr & Scene::getGraphicsPipeline(uint32_t pipelineId) const noexcept {
+        if (pipelineId >= _graphicsPipelines.size()) {
             static constexpr rhi::runtime::PipelinePtr kNullPipeline = nullptr;
             return kNullPipeline;
         }
-        return _pipelines[pipelineId];
+        return _graphicsPipelines[pipelineId];
+    }
+
+    uint32_t Scene::registerComputePipeline(rhi::runtime::PipelinePtr && pipeline) {
+        if (pipeline) {
+            _computesPipelines.push_back(std::move(pipeline));
+            return _computesPipelines.size() - 1u;
+        }
+
+        return 0xff'ff'ff'ffu;
+    }
+
+    const rhi::runtime::PipelinePtr & Scene::getComputePipeline(uint32_t pipelineId) const noexcept {
+        if (pipelineId >= _computesPipelines.size()) {
+            static constexpr rhi::runtime::PipelinePtr kNullPipeline = nullptr;
+            return kNullPipeline;
+        }
+        return _computesPipelines[pipelineId];
     }
 
     void Scene::initRenderData(rhi::runtime::Rhi & api, rhi::runtime::Device & device) {
@@ -265,6 +292,22 @@ namespace engine::scene {
         _meshTransformIndices = std::make_unique<graphics::InflightBuffer>(
             api, device, verticesInfo, sizeof(uint32_t) * kInitialmeshTransformsInFrameMax
         );
+
+        // compute:
+        const rhi::BufferInfo computeVerticesInfo {
+            rhi::BufferUsageFlags::eVertex_Buffer | rhi::BufferUsageFlags::eStorage_Buffer | rhi::BufferUsageFlags::eTransfer_Dst,
+            rhi::MemoryPropertyFlags::eDeviceLocal
+        };
+
+        const rhi::BufferInfo computeIndicesInfo { // is eStorage_Buffer need?
+            rhi::BufferUsageFlags::eIndex_Buffer | rhi::BufferUsageFlags::eStorage_Buffer | rhi::BufferUsageFlags::eTransfer_Dst,
+            rhi::MemoryPropertyFlags::eDeviceLocal
+        };
+
+        if constexpr (kComputeSkinningAvailable) {
+            _computedVertices = api.createBuffer(device, computeVerticesInfo, 10u * 1024u * 1024u); // 10Mb
+            _computedIndices = api.createBuffer(device, computeIndicesInfo, 10u * 1024u * 1024u); // 10Mb
+        }
     }
 
     bool Scene::compareAttachmentsForDraw(const AttachmentObject & a, const AttachmentObject & b) noexcept {
@@ -424,13 +467,13 @@ namespace engine::scene {
         }
     }
 
-    void Scene::prepareDrawData(std::span<AttachmentObject*> objects, uint8_t frame) noexcept {
+    Scene::DrawDataOffsets Scene::prepareDrawData(std::span<AttachmentObject*> objects, uint8_t frame) noexcept {
         // resize buffers
-        auto spritesVertexesCount = _spritesVertexesCount;
-        auto spritesIndicesCount = _spritesIndicesCount;
+        const auto spritesVertexesCount = _spritesVertexesCount;
+        const auto spritesIndicesCount = _spritesIndicesCount;
 
+        const auto meshesDrawInFrame = _meshesDrawInFrame;
         auto meshTransformsInFrame = _meshTransformsInFrame;
-        auto meshesDrawInFrame = _meshesDrawInFrame;
         auto skeletalTransformsInFrame = _skeletalTransformsInFrame;
         _tmpUniqueMeshes.reserve(kInitialmeshTransformsInFrameMax);
 
@@ -483,12 +526,12 @@ namespace engine::scene {
                         ++meshTransformsInFrame;
                     }
                 }
-                ++meshesDrawInFrame; // every draw mesh has offset (for get correct matrices from meshTransforms)
+                ++_meshesDrawInFrame; // every draw mesh has offset (for get correct matrices from meshTransforms)
             }
                 break;
             case ctti::typeIndex<AttachmentObject, Sprite>():
-                spritesVertexesCount += 4u;
-                spritesIndicesCount += 6u;
+                _spritesVertexesCount += 4u;
+                _spritesIndicesCount += 6u;
                 break;
             case ctti::typeIndex<AttachmentObject, Dummy>():
                 break;
@@ -496,7 +539,7 @@ namespace engine::scene {
         }
 
         {
-            const auto size = static_cast<uint32_t>(spritesVertexesCount * kSpriteVertexSize);
+            const auto size = static_cast<uint32_t>(_spritesVertexesCount * kSpriteVertexSize);
             const auto currentSize = _spritesVertices->sizeInBytes();
             if (currentSize <= size) {
                 _spritesVertices->resize(std::max(currentSize * 2u, size));
@@ -504,7 +547,7 @@ namespace engine::scene {
         }
 
         {
-            const auto size = static_cast<uint32_t>(spritesIndicesCount * sizeof(uint32_t));
+            const auto size = static_cast<uint32_t>(_spritesIndicesCount * sizeof(uint32_t));
             const auto currentSize = _spritesIndices->sizeInBytes();
             if (currentSize <= size) {
                 _spritesIndices->resize(std::max(currentSize * 2u, size));
@@ -528,7 +571,7 @@ namespace engine::scene {
         }
 
         {
-            const auto size = static_cast<uint32_t>(meshesDrawInFrame * sizeof(uint32_t));
+            const auto size = static_cast<uint32_t>(_meshesDrawInFrame * sizeof(uint32_t));
             const auto currentSize = _meshTransformIndices->sizeInBytes();
             if (currentSize <= size) {
                 _meshTransformIndices->resize(std::max(currentSize * 2u, size));
@@ -597,21 +640,28 @@ namespace engine::scene {
 
             _tmpUniqueMeshes.clear();
         }
+
+        return {
+            .meshesDrawOffset = meshesDrawInFrame,
+            .spriteVerticesOffset = spritesVertexesCount,
+            .spriteIndicesOffset = spritesIndicesCount
+        };
     }
 
     void Scene::drawObjects(rhi::runtime::CommandListPtr & commandList, uint8_t frame, 
-        const mat4f & cameraTransform, AttachmentsIterator begin, AttachmentsIterator end, uint16_t typeIdx) {
+        const mat4f & cameraTransform, AttachmentsIterator begin, AttachmentsIterator end, 
+        uint16_t typeIdx, const DrawDataOffsets & offsets) {
         switch (typeIdx) {
         case ctti::typeIndex<AttachmentObject, Skeleton>(): // do not draw skeletons
             break;
         case ctti::typeIndex<AttachmentObject, Mesh>():
         {
-            drawMeshes(commandList, frame, begin, end, cameraTransform);
+            drawMeshes(commandList, frame, begin, end, cameraTransform, offsets.meshesDrawOffset);
         }
             break;
         case ctti::typeIndex<AttachmentObject, Sprite>():
         {
-            drawSprites(commandList, frame, begin, end, cameraTransform);
+            drawSprites(commandList, frame, begin, end, cameraTransform, offsets.spriteVerticesOffset, offsets.spriteIndicesOffset);
         }
             break;
         case ctti::typeIndex<AttachmentObject, Dummy>():
@@ -623,26 +673,24 @@ namespace engine::scene {
     }
 
     void Scene::draw(rhi::runtime::CommandListPtr & commandList, rhi::runtime::CommandListPtr & transferCommandList, uint8_t frame, 
-        const mat4f & cameraTransform, std::span<AttachmentObject*> objects) {
+        const mat4f & cameraTransform, std::span<AttachmentObject*> objects, const DrawDataOffsets & offsets) {
         if (objects.empty()) {
             return;
         }
-
-        prepareDrawData(objects, frame);
 
         auto currentIt = objects.begin();
         uint16_t typeIdx = (*currentIt)->typeIndex;
         for (auto it = currentIt + 1u; it != objects.end(); ++it) {
             const auto currenTypeIndex = (*it)->typeIndex;
             if (currenTypeIndex != typeIdx) {
-                drawObjects(commandList, frame, cameraTransform, currentIt, it, typeIdx);
+                drawObjects(commandList, frame, cameraTransform, currentIt, it, typeIdx, offsets);
 
                 currentIt = it;
                 typeIdx = currenTypeIndex;
             }
         }
 
-        drawObjects(commandList, frame, cameraTransform, currentIt, objects.end(), typeIdx);
+        drawObjects(commandList, frame, cameraTransform, currentIt, objects.end(), typeIdx, offsets);
     }
 
     void Scene::drawDummies(AttachmentsIterator begin, AttachmentsIterator end, const mat4f & cameraTransform, uint32_t color) {
@@ -653,7 +701,7 @@ namespace engine::scene {
     }
 
     void Scene::drawSprites(rhi::runtime::CommandListPtr & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end, 
-        const mat4f & cameraTransform) {
+        const mat4f & cameraTransform, uint32_t vtxOffset, uint32_t idxOffset) {
         auto currentIt = begin;
         auto it = currentIt;
         const auto & sprite = *static_cast<const Sprite*>(*it);
@@ -676,7 +724,10 @@ namespace engine::scene {
 
             if (completeBatch) {
                 // draw
-                drawSpritesBatch(commandList, frame, currentIt, it, cameraTransform, batchVertexesCount, batchIndicesCount);
+                drawSpritesBatch(commandList, frame, currentIt, it, cameraTransform, batchVertexesCount, batchIndicesCount, vtxOffset, idxOffset);
+                vtxOffset += batchVertexesCount;
+                idxOffset += batchIndicesCount;
+
                 // begin next batch
                 image = currentImage;
                 pipeline = currentPipeline;
@@ -690,14 +741,16 @@ namespace engine::scene {
             }
         }
 
-        drawSpritesBatch(commandList, frame, currentIt, end, cameraTransform, batchVertexesCount, batchIndicesCount);
+        drawSpritesBatch(commandList, frame, currentIt, end, cameraTransform, batchVertexesCount, batchIndicesCount, vtxOffset, idxOffset);
+        // vtxOffset += batchVertexesCount;
+        // idxOffset += batchIndicesCount;
     }
 
     void Scene::drawSpritesBatch(rhi::runtime::CommandListPtr & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end, 
-        const mat4f & cameraTransform, uint32_t batchVertexesCount, uint32_t batchIndicesCount) {
+        const mat4f & cameraTransform, uint32_t batchVertexesCount, uint32_t batchIndicesCount, uint32_t vtxOffset, uint32_t idxOffset) {
 
         const auto & sprite = *static_cast<const Sprite*>(*begin);
-        const auto & pipeline = getPipeline(sprite.getPipeline());
+        const auto & pipeline = getGraphicsPipeline(sprite.getPipeline());
         if (pipeline == nullptr) {
             return;
         }
@@ -705,20 +758,8 @@ namespace engine::scene {
         const auto & imageExtent = image->getExtent();
         vec2f imageSize = {imageExtent.width, imageExtent.height};
 
-        // const auto vSize = static_cast<uint32_t>((_spritesVertexesCount + batchVertexesCount) * kSpriteVertexSize);
-        // const auto currentVSize = _spritesVertices->sizeInBytes();
-        // if (currentVSize <= vSize) {
-        //     _spritesVertices->resize(std::max(currentVSize * 2u, vSize));
-        // }
-
-        // const auto iSize = static_cast<uint32_t>((_spritesIndicesCount + batchIndicesCount) * sizeof(uint32_t));
-        // const auto currentISize = _spritesIndices->sizeInBytes();
-        // if (currentISize <= iSize) {
-        //     _spritesIndices->resize(std::max(currentISize * 2u, iSize));
-        // }
-
-        auto * vMem = _spritesVertices->memory2<SpriteVertex>() + _spritesVertexesCount;
-        auto * iMem = _spritesIndices->memory2<uint32_t>() + _spritesIndicesCount;
+        auto * vMem = _spritesVertices->memory2<SpriteVertex>() + vtxOffset;
+        auto * iMem = _spritesIndices->memory2<uint32_t>() + idxOffset;
 
         uint32_t i = 0u, j = 0u;
         for (auto it = begin; it != end; ++it) {
@@ -759,13 +800,13 @@ namespace engine::scene {
             };
             
             // indices
-            *(iMem + j + 0u) = _spritesVertexesCount + i + 0u;
-            *(iMem + j + 1u) = _spritesVertexesCount + i + 1u;
-            *(iMem + j + 2u) = _spritesVertexesCount + i + 2u;
+            *(iMem + j + 0u) = vtxOffset + i + 0u;
+            *(iMem + j + 1u) = vtxOffset + i + 1u;
+            *(iMem + j + 2u) = vtxOffset + i + 2u;
 
-            *(iMem + j + 3u) = _spritesVertexesCount + i + 2u;
-            *(iMem + j + 4u) = _spritesVertexesCount + i + 1u;
-            *(iMem + j + 5u) = _spritesVertexesCount + i + 3u;
+            *(iMem + j + 3u) = vtxOffset + i + 2u;
+            *(iMem + j + 4u) = vtxOffset + i + 1u;
+            *(iMem + j + 5u) = vtxOffset + i + 3u;
 
             i += 4u;
             j += 6u;
@@ -782,13 +823,12 @@ namespace engine::scene {
             commandList->bindImage(0u, image, sprite.getFilter() == SpriteTextureFilter::eLinear ? _linearSampler : _nearestSampler);
             commandList->pushConstants(rhi::shaders::Stages::eVertex, 0u, sizeof(mat4f), &cameraTransform);
 
-            commandList->drawIndexed(batchIndicesCount, 1u, _spritesIndicesCount);
+            commandList->drawIndexed(batchIndicesCount, 1u, idxOffset);
         }
-        _spritesVertexesCount += batchVertexesCount;
-        _spritesIndicesCount += batchIndicesCount;
     }
 
-    void Scene::drawMeshes(rhi::runtime::CommandListPtr & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end, const mat4f & cameraTransform) {
+    void Scene::drawMeshes(rhi::runtime::CommandListPtr & commandList, uint8_t frame, 
+        AttachmentsIterator begin, AttachmentsIterator end, const mat4f & cameraTransform, uint32_t offset) {
         auto currentIt = begin;
         auto it = currentIt;
         const auto & mesh = *static_cast<const Mesh*>(*it);
@@ -799,7 +839,7 @@ namespace engine::scene {
         auto materialIndex = mesh.materialIndex();
 
         uint32_t i = 0u;
-        auto * memory = _meshTransformIndices->memory2<uint32_t>() + _meshesDrawInFrame;
+        auto * memory = _meshTransformIndices->memory2<uint32_t>() + offset;
         if (skeletal) {
             *(memory + i) = _meshTransformIndicesMap[*it].skeletalTransformIndex;
         } else {
@@ -832,7 +872,7 @@ namespace engine::scene {
 
         uint32_t count = 1u;
 
-        const auto & pipeline = getPipeline(pipelineIdx);
+        const auto & pipeline = getGraphicsPipeline(pipelineIdx);
         assert(pipeline != nullptr);
         commandList->bindPipeline(pipeline);
         applyMaterial(materialIndex);
@@ -870,10 +910,11 @@ namespace engine::scene {
                  
             if (completePack) {
                 // draw
-                drawSameMeshes(commandList, frame, currentIt, it, cameraTransform, count, skeletal);
+                drawSameMeshes(commandList, frame, currentIt, it, cameraTransform, count, skeletal, offset);
+                offset += count;
 
                 if (pipelineChanged) {
-                    const auto & pipeline = getPipeline(currentPipelineIdx);
+                    const auto & pipeline = getGraphicsPipeline(currentPipelineIdx);
                     assert(pipeline != nullptr);
                     commandList->bindPipeline(pipeline);
                 }
@@ -904,36 +945,32 @@ namespace engine::scene {
             }
         }
 
-        drawSameMeshes(commandList, frame, currentIt, end, cameraTransform, count, skeletal);
+        drawSameMeshes(commandList, frame, currentIt, end, cameraTransform, count, skeletal, offset);
+        // offset += count;
 
         _meshTransformIndices->modify(sizeof(uint32_t) * i);
     }
 
     void Scene::drawSameMeshes(rhi::runtime::CommandListPtr & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end, 
-        const mat4f & cameraTransform, uint32_t count, bool skeletal) {
-            
-        {
-            const auto & mesh = *static_cast<const Mesh*>(*begin);
+        const mat4f & cameraTransform, uint32_t count, bool skeletal, uint32_t startTransformIndex) {
+        const auto & mesh = *static_cast<const Mesh*>(*begin);
 
-            uint32_t binding_v = 0u;
-            commandList->bindVertexBuffer(binding_v++, mesh.getAttribute(mesh::Semantic::ePosition).buffer, 0u);
-            commandList->bindVertexBuffer(binding_v++, mesh.getAttribute(mesh::Semantic::eNormal).buffer, 0u);
-            commandList->bindVertexBuffer(binding_v++, mesh.getAttribute(mesh::Semantic::eUv0).buffer, 0u);
+        uint32_t binding_v = 0u;
+        commandList->bindVertexBuffer(binding_v++, mesh.getAttribute(mesh::Semantic::ePosition).buffer, 0u);
+        commandList->bindVertexBuffer(binding_v++, mesh.getAttribute(mesh::Semantic::eNormal).buffer, 0u);
+        commandList->bindVertexBuffer(binding_v++, mesh.getAttribute(mesh::Semantic::eUv0).buffer, 0u);
 
-            if (skeletal) { // skeletalMesh
-                // skinning in vertex shader impl (want to get skinning in compute too)
-                commandList->bindVertexBuffer(binding_v++, mesh.getAttribute(mesh::Semantic::eJoints).buffer, 0u);
-                commandList->bindVertexBuffer(binding_v++, mesh.getAttribute(mesh::Semantic::eWeights).buffer, 0u);
-            }
-
-            commandList->bindVertexBuffer(binding_v++, (*_meshTransformIndices)(frame), sizeof(uint32_t) * _meshesDrawInFrame);
-            commandList->bindIndexBuffer(mesh.getIndices().buffer, 0u, rhi::IndexType::eU32);
-
-            const auto & geometry = mesh.geometry();
-            commandList->drawIndexed(geometry.indexCount, count, geometry.firstIndex);
+        if (skeletal) { // skeletalMesh
+            // skinning in vertex shader impl (want to get skinning in compute too)
+            commandList->bindVertexBuffer(binding_v++, mesh.getAttribute(mesh::Semantic::eJoints).buffer, 0u);
+            commandList->bindVertexBuffer(binding_v++, mesh.getAttribute(mesh::Semantic::eWeights).buffer, 0u);
         }
 
-        _meshesDrawInFrame += count;
+        commandList->bindVertexBuffer(binding_v++, (*_meshTransformIndices)(frame), sizeof(uint32_t) * startTransformIndex);
+        commandList->bindIndexBuffer(mesh.getIndices().buffer, 0u, rhi::IndexType::eU32);
+
+        const auto & geometry = mesh.geometry();
+        commandList->drawIndexed(geometry.indexCount, count, geometry.firstIndex);
     }
 
     void Scene::reduceUsedMemory(std::chrono::time_point<std::chrono::steady_clock> now) noexcept {
