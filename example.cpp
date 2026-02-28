@@ -533,10 +533,10 @@ namespace example {
 
         { // kMeshAfterComputeProgram
             auto const vBytes = _fileManager.readFile("shaders/mesh_after_compute.vert.spv");
-            auto const fBytes = _fileManager.readFile("shaders/mesh.frag.spv");
+            auto const fBytes = _fileManager.readFile("shaders/mesh2.frag.spv");
 
-            const auto & vsModule = _shaderModulesManager->registerModule("mesh_skeletal_instanced.vert", *_device, engine::rhi::shaders::Stages::eVertex, vBytes);
-            const auto & fsModule = _shaderModulesManager->registerModule("mesh.frag", *_device, engine::rhi::shaders::Stages::eFragment, fBytes);
+            const auto & vsModule = _shaderModulesManager->registerModule("mesh_after_compute.vert", *_device, engine::rhi::shaders::Stages::eVertex, vBytes);
+            const auto & fsModule = _shaderModulesManager->registerModule("mesh2.frag", *_device, engine::rhi::shaders::Stages::eFragment, fBytes);
 
             _programs.emplace_back(_api->createProgram(*_device, std::array{vsModule.getView(), fsModule.getView()}));
         }
@@ -1626,7 +1626,7 @@ namespace example {
                             swordNode->removeFromParent();
                             handBone->addChild(swordNode);
                             // meshRoot->childAt(0u)->getAttachment(1u)->setHidden(true);
-                            //static_cast<engine::scene::Mesh*>(meshRoot->childAt(0u)->getAttachment(0u))->setSkinProcessType(engine::scene::MeshSkinProcessType::eSkinComputeShader);
+                            static_cast<engine::scene::Mesh*>(meshRoot->childAt(0u)->getAttachment(0u))->setSkinProcessType(engine::scene::MeshSkinProcessType::eSkinComputeShader);
                         }
 
                         auto * anim0 = scene->createAnimInfo<engine::scene::SkeletalAnimation>(animId, engine::common::random(0.25f, 1.7f));

@@ -93,8 +93,9 @@ namespace engine::graphics {
             return;
         }
 
+        //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         BufferInfo verticesBufferInfo {
-            BufferUsageFlags::eVertex_Buffer | rhi::BufferUsageFlags::eStorage_Texel_Buffer | BufferUsageFlags::eTransfer_Dst,
+            BufferUsageFlags::eVertex_Buffer | rhi::BufferUsageFlags::eUniform_Texel_Buffer | BufferUsageFlags::eTransfer_Dst,
             MemoryPropertyFlags::eDeviceLocal
         };
 

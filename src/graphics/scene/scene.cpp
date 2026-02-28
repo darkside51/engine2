@@ -661,6 +661,7 @@ namespace engine::scene {
             uint32_t objectsCount;
 	        uint32_t vertexPerObjexts;
             uint32_t transformOffset;
+            uint32_t resultOffset;
         };
 
         auto offset = offsets.meshesDrawOffset;
@@ -668,10 +669,14 @@ namespace engine::scene {
             const auto & mesh = *static_cast<const Mesh*>(*it);
             if (mesh.getSkinProcessType() == MeshSkinProcessType::eSkinComputeShader) {
                 const auto vertexCount = mesh.getAttribute(mesh::Semantic::ePosition).buffer->sizeInBytes() / 8u;
+
+                const auto transformOffset = _meshTransformIndicesMap[*it].skeletalTransformIndex;
+
                 Uniform uniform {
                     .objectsCount = 1u,
                     .vertexPerObjexts = vertexCount,
-                    .transformOffset = offset
+                    .transformOffset = transformOffset,
+                    .resultOffset = 0u
                 };
 
                 const auto & pipeline = getComputePipeline(0u);
@@ -686,7 +691,7 @@ namespace engine::scene {
 
                 commandList->bindTexelBuffer(0u, mesh.getAttribute(mesh::Semantic::ePosition).buffer, rhi::Format::eR16G16B16A16_Sfloat, 2u);
                 commandList->bindTexelBuffer(1u, mesh.getAttribute(mesh::Semantic::eNormal).buffer, rhi::Format::eR8G8B8A8_Unorm, 2u);
-                commandList->bindTexelBuffer(2u, mesh.getAttribute(mesh::Semantic::eJoints).buffer, rhi::Format::eR8G8B8A8_Uint, 2u);
+                commandList->bindTexelBuffer(2u, mesh.getAttribute(mesh::Semantic::eJoints).buffer, rhi::Format::eR8G8B8A8_Unorm, 2u);
                 commandList->bindTexelBuffer(3u, mesh.getAttribute(mesh::Semantic::eWeights).buffer, rhi::Format::eR16G16B16A16_Sfloat, 2u);
                 
                 commandList->dispatch(std::ceil(static_cast<float>(vertexCount) / 64u), 1u, 1u);
@@ -1057,7 +1062,6 @@ namespace engine::scene {
             };
 
             commandList->pushConstants(rhi::shaders::Stages::eVertex, 0u, sizeof(Uniform), &uniform);
-            commandList->bindImage(0u, _graphicsService.getTextureManager().getDefaultImage(), _nearestSampler, 1u);
             commandList->bindVertexBuffer(0u, _computedVertices, 0u);
             commandList->bindIndexBuffer(mesh.getIndices().buffer, 0u, rhi::IndexType::eU32);
 
