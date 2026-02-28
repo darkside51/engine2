@@ -263,8 +263,6 @@ namespace engine::vulkan {
             auto const vkBufferView = buffer->recieveView(format, offset, range);
             auto & bufferView = it->info;
 
-            // const auto finalRange = (range == rhi::kWholeSize32) ? static_cast<VkDeviceSize>(buffer->sizeInBytes()) : static_cast<VkDeviceSize>(range);
-
             if (bufferView != vkBufferView) {
                 bufferView = vkBufferView;
                 _texelBufferDirty = true;

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "common/hash.h"
 #include "graphics/render/rhi/common/types.h"
 #include "graphics/render/rhi/common/runtime.h"
 #include "memory_allocator.h"
@@ -16,6 +17,19 @@ namespace engine::vulkan {
     class PipelineBarriers;
 
     class Buffer final : public rhi::runtime::Buffer {
+        struct BufferViewKey {
+            rhi::Format format = rhi::Format::eUndefined;
+            uint32_t offset = 0u;
+            uint32_t range = rhi::kWholeSize32;
+
+            inline size_t hash() const noexcept {
+                return hash::hash_combine(format, offset, range);
+            }
+            inline bool operator == (const BufferViewKey & other) const noexcept = default;
+        };
+
+        using BufferViewsMap = std::unordered_map<BufferViewKey, VkBufferView, hash::Hasher<BufferViewKey>, std::equal_to<>>;
+
     public:
         Buffer() = default;
         Buffer(Device & device, const rhi::BufferInfo & info, size_t sizeInBytes);
@@ -65,8 +79,8 @@ namespace engine::vulkan {
         std::string_view getName() const noexcept;
 
         VkBufferView recieveView(rhi::Format format, uint32_t offset = 0u, uint32_t range = rhi::kWholeSize32) noexcept;
-        VkBufferView getView(rhi::Format format) const noexcept { 
-            if (auto it = _bufferViews.find(format); it != _bufferViews.end()) {
+        VkBufferView getView(rhi::Format format, uint32_t offset = 0u, uint32_t range = rhi::kWholeSize32) const noexcept { 
+            if (auto it = _bufferViews.find({format, offset, range}); it != _bufferViews.end()) {
                 return it->second;
             }
             return VK_NULL_HANDLE;
@@ -79,12 +93,13 @@ namespace engine::vulkan {
         void transition(PipelineBarriers & barriers, VkPipelineStageFlags stage, VkAccessFlags dstAccessFlags, 
             size_t offset = 0u, size_t size = VK_WHOLE_SIZE, uint32_t queueFamily = VK_QUEUE_FAMILY_IGNORED) noexcept;
 
-
     private:
         Device * _device = nullptr;
         VkBuffer _buffer = VK_NULL_HANDLE;
         MemoryAllocation _allocation{};
-        std::unordered_map<rhi::Format, VkBufferView> _bufferViews;
+        // std::unordered_map<rhi::Format, VkBufferView> _bufferViews;
+        BufferViewsMap _bufferViews;
+
         uint32_t _queueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
         rhi::BufferUsageFlags _usage = rhi::BufferUsageFlags::eNone;
 
