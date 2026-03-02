@@ -687,7 +687,7 @@ namespace engine::scene {
 
                 commandList->bindBuffer(0u, _computedVertices, 0u, 0u);
                 commandList->bindBuffer(0u, (*_meshSkeletalTransforms)(frame), 1u, 0u);
-                //commandList->bindBuffer(1u, (*_meshTransformIndices)(frame), 1u, sizeof(uint32_t) * offset);
+                commandList->bindBuffer(1u, (*_meshTransformIndices)(frame), 1u, sizeof(uint32_t) * offset);
 
                 commandList->bindTexelBuffer(0u, mesh.getAttribute(mesh::Semantic::ePosition).buffer, rhi::Format::eR16G16B16A16_Sfloat, 2u);
                 commandList->bindTexelBuffer(1u, mesh.getAttribute(mesh::Semantic::eNormal).buffer, rhi::Format::eR8G8B8A8_Unorm, 2u);
@@ -1054,21 +1054,45 @@ namespace engine::scene {
             struct Uniform {
                 mat4f cameraTransform;
                 vec4f albedo;
+                uint32_t vertexCount;
             };
+
+            const auto vertexCount = mesh.getAttribute(mesh::Semantic::ePosition).buffer->sizeInBytes() / 8u;
 
              Uniform uniform {
                 .cameraTransform = cameraTransform, 
-                .albedo = vec4f{1.0f}
+                .albedo = vec4f{1.0f},
+                .vertexCount = vertexCount
             };
 
+            auto applyMaterial = [this, &commandList, &uniform](uint16_t materialIndex) noexcept {
+                const auto & material = _graphicsService.getMaterialManager().getMaterial(materialIndex);
+                const auto & textures = material.textures;
+
+                const auto & image = textures[static_cast<uint8_t>(graphics::PbrTextureId::eBaseColor)];
+                assert(image != nullptr); // check textureManager default resources generated!
+
+                // textures change more often than storage buffers - setId #1u used
+                commandList->bindImage(0u, image, _linearSampler, 1u); 
+                uniform.albedo = material.baseColorFactor;
+            };
+
+            applyMaterial(mesh.materialIndex());
+
             commandList->pushConstants(rhi::shaders::Stages::eVertex, 0u, sizeof(Uniform), &uniform);
-            commandList->bindVertexBuffer(0u, _computedVertices, 0u);
+            // commandList->bindVertexBuffer(0u, _computedVertices, 0u);
+            commandList->bindBuffer(0u, _computedVertices, 0u, 0u);
+            // commandList->bindBuffer(1u, _computedNormals, 0u, 0u);
+
+            uint32_t binding_v = 0u;
+            commandList->bindVertexBuffer(binding_v++, mesh.getAttribute(mesh::Semantic::eUv0).buffer, 0u);
             commandList->bindIndexBuffer(mesh.getIndices().buffer, 0u, rhi::IndexType::eU32);
 
             const auto & geometry = mesh.geometry();
             commandList->drawIndexed(geometry.indexCount, count, geometry.firstIndex);
 
             commandList->bindPipeline(getGraphicsPipeline(mesh.getPipeline()));
+            commandList->bindBuffer(0u, (*_meshSkeletalTransforms)(frame), 0u, 0u);
             return;
         }
 

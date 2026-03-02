@@ -16,6 +16,10 @@ layout (set = 1, binding = 0) readonly buffer SkinTransformations {
    mat3x4 transforms[];
 } sbo_skin;
 
+layout (set = 1, binding = 1) readonly buffer SkinTransformOffsets {
+   uint data[];
+} skin_offsets;
+
 // uniform texel buffers
 layout(set = 2, binding = 0) uniform textureBuffer u_positions;
 layout(set = 2, binding = 1) uniform textureBuffer u_normals;
@@ -37,7 +41,7 @@ void main() {
 		return;
 	}
 
-	objectId += push.transformOffset;
+	objectId += skin_offsets.data[objectId];//push.transformOffset;
 	const int vertexId = int(invocationId % push.vertexPerObjects);
 
 	const vec4 a_weights = texelFetch(u_weights, vertexId);
