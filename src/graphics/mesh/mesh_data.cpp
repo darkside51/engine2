@@ -357,7 +357,7 @@ namespace engine::graphics::models {
 
         for (auto & mesh : meshes) {
             for (auto & primitive : mesh.primitives) {
-                std::span<uint32_t> indices = {&indexBufferData[primitive.firstIndex], primitive.indexCount};
+                const std::span<uint32_t> indices = {&indexBufferData[primitive.firstIndex], primitive.indexCount};
                 for (auto const idx : indices) {
                     primitive.minIndex = std::min(primitive.minIndex, idx);
                     primitive.maxIndex = std::max(primitive.maxIndex, idx);
@@ -423,11 +423,11 @@ namespace engine::graphics::models {
             ++j;
         }
       
-        for (auto & mesh : meshes) {
-            for (auto & primitive : mesh.primitives) {
-                primitive.firstIndex = remap[primitive.firstIndex];
-            }
-        }
+        // for (auto & mesh : meshes) {
+        //     for (auto & primitive : mesh.primitives) {
+                //primitive.firstIndex = remap[primitive.firstIndex];
+        //     }
+        // }
 
         // // quantize attributes
         // for (size_t i = 0u; i < allowedAttributes.size(); ++i) {

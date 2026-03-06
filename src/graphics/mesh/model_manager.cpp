@@ -47,7 +47,7 @@ namespace engine::graphics {
         // after optimize
         for (auto & mesh : meshData->meshes) {
             for (auto & primitive : mesh.primitives) {
-                std::span<uint32_t> indices = {&buffers.indexBufferData[primitive.firstIndex], primitive.indexCount};
+                const std::span<uint32_t> indices = {&buffers.indexBufferData[primitive.firstIndex], primitive.indexCount};
                 primitive.minIndex = 0xff'ff'ff'ffu;
                 primitive.maxIndex = 0u;
                 for (auto const idx : indices) {
