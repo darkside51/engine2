@@ -355,16 +355,6 @@ namespace engine::graphics::models {
             });
         }
 
-        for (auto & mesh : meshes) {
-            for (auto & primitive : mesh.primitives) {
-                const std::span<uint32_t> indices = {&indexBufferData[primitive.firstIndex], primitive.indexCount};
-                for (auto const idx : indices) {
-                    primitive.minIndex = std::min(primitive.minIndex, idx);
-                    primitive.maxIndex = std::max(primitive.maxIndex, idx);
-                }
-            }
-        }
-
         return result;
     }
 

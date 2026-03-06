@@ -76,12 +76,20 @@ namespace mesh {
             _indices = std::move(attribute);
         }
 
+        void setUniqueIndices(mesh::Attribute attribute) noexcept {
+            _uniqueIndices = std::move(attribute);
+        }
+
         void setAttribute(mesh::Attribute attribute, mesh::Semantic semantic) noexcept {
             _attributes[std::to_underlying(semantic)] = std::move(attribute);
         }
 
         const mesh::Attribute & getIndices() const noexcept {
             return _indices;
+        }
+
+        const mesh::Attribute & getUniqueIndices() const noexcept {
+            return _uniqueIndices;
         }
 
         const mesh::Attribute & getAttribute(mesh::Semantic semantic) const noexcept {
@@ -100,15 +108,12 @@ namespace mesh {
         const Skeleton * getSkeleton() const noexcept { return _skeleton; }
         void setSkeleton(Skeleton * skeleton) noexcept { _skeleton = skeleton; }
 
-        // skin process type
-        MeshSkinProcessType getSkinProcessType() const noexcept { return _skinProcessType; }
-        void setSkinProcessType(MeshSkinProcessType type) noexcept { _skinProcessType = type; }
-
     private:
         const graphics::models::Primitive & _geometry;
         Skeleton * _skeleton = nullptr;
 
         mesh::Attribute _indices;
+        mesh::Attribute _uniqueIndices;
         std::array<mesh::Attribute, static_cast<uint8_t>(mesh::Semantic::eSemanticsCount)> _attributes;
 
         uint32_t _pipeline = 0u;
@@ -116,7 +121,6 @@ namespace mesh {
         uint16_t _geometryDataIndex = 0u;
         uint16_t _skin = graphics::models::kInvalidValue;
         uint16_t _material = 0u;     
-        MeshSkinProcessType _skinProcessType = MeshSkinProcessType::eSkinVertexShader;
     };
 
 }

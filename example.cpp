@@ -1616,11 +1616,11 @@ namespace example {
                 };
 
                 auto const animId = animationManager.getAnimationIndex("skeletal_mesh_anim0");
-                for (size_t i = 0u; i < 1000u; ++i) {
+                for (size_t i = 0u; i < 300u; ++i) {
                     auto * meshRoot = engine::scene::createNodeWithSkeletalMesh(*scene, *modelManager, modelIndex, 
                         engine::scene::Bounds::Type::eSphere, pipelines);
                     
-                    meshRoot->childAt(0u)->getAttachment(1u)->setHidden(true);
+                    // meshRoot->childAt(0u)->getAttachment(1u)->setHidden(true);
 
                     if (auto * skeleton = static_cast<engine::scene::Skeleton *>(meshRoot->getAttachment())) {
                         if (i == 5u) {
@@ -1628,7 +1628,6 @@ namespace example {
                             swordNode->removeFromParent();
                             handBone->addChild(swordNode);
                             // meshRoot->childAt(0u)->getAttachment(1u)->setHidden(true);
-                            static_cast<engine::scene::Mesh*>(meshRoot->childAt(0u)->getAttachment(0u))->setSkinProcessType(engine::scene::MeshSkinProcessType::eSkinComputeShader);
                         }
 
                         auto * anim0 = scene->createAnimInfo<engine::scene::SkeletalAnimation>(animId, engine::common::random(0.25f, 1.7f));
@@ -1647,7 +1646,7 @@ namespace example {
 
                     meshRoot->setScale(scale);
                     meshRoot->setRotation(engine::vec3f(1.57f, 0.0f, engine::common::random(-3.14f, 3.14f)));
-                    meshRoot->setPosition(engine::vec3f(-5.0f + i % 30 * 0.5f, 2.0f + i / 30 * -0.5f, 0.0f));
+                    meshRoot->setPosition(engine::vec3f(-2.0f + i % 10 * 0.5f, 0.0f + i / 10 * -0.5f, 0.0f));
 
                     sceneWorldRoot->addChild(meshRoot);
                 }
@@ -1655,7 +1654,7 @@ namespace example {
         }
 
         static bool meshLoaded2 = false;
-        if (!meshLoaded2) {
+        if (false && !meshLoaded2) {
             const auto modelIndex = modelManager->getModelDataIdx("scene.gltf");
             if (modelManager->isDataReady(modelIndex)) {
                 meshLoaded2 = true;
@@ -1685,7 +1684,7 @@ namespace example {
         }
 
         static bool meshLoaded3 = false;
-        if (false && !meshLoaded3) {
+        if (!meshLoaded3) {
             const auto modelIndex = modelManager->getModelDataIdx("wheel.glb");
             if (modelManager->isDataReady(modelIndex)) {
                 meshLoaded3 = true;
@@ -1757,7 +1756,7 @@ namespace example {
         }
 
         static bool meshLoaded5 = false;
-        if (false && !meshLoaded5) {
+        if (!meshLoaded5) {
             const auto modelIndex = modelManager->getModelDataIdx("chaman.gltf");
             if (modelManager->isDataReady(modelIndex)) {
                 meshLoaded5 = true;
@@ -1766,7 +1765,7 @@ namespace example {
                     .skeletalPipeline = 1u
                 };
                 auto const animId = animationManager.getAnimationIndex("chaman_anim1");
-                for (uint16_t i = 0u; i < 250u; ++i) {
+                for (uint16_t i = 0u; i < 300u; ++i) {
                     auto * meshRoot = engine::scene::createNodeWithSkeletalMesh(*scene, *modelManager, modelIndex, 
                         engine::scene::Bounds::Type::eCube, pipelines);
 
@@ -1787,7 +1786,7 @@ namespace example {
 
                     meshRoot->setScale(scale);
                     meshRoot->setRotation(engine::vec3f(1.57f, 0.0f, engine::common::random(-3.14f, 3.14f)));
-                    meshRoot->setPosition(engine::vec3f(3.0f + i % 10 * 0.5f, i / 10 * -0.5f, 0.0f));
+                    meshRoot->setPosition(engine::vec3f(3.0f + i % 10 * 0.5f, 0.0f + i / 10 * -0.5f, 0.0f));
                     sceneWorldRoot->addChild(meshRoot);
                 }
             }

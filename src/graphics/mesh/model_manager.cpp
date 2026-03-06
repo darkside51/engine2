@@ -45,15 +45,19 @@ namespace engine::graphics {
         meshData->optimizeBuffers(buffers.vertexBuffersData, buffers.indexBufferData, attributes);
 
         // after optimize
+        uint32_t uniqueOffset = 0u;
         for (auto & mesh : meshData->meshes) {
             for (auto & primitive : mesh.primitives) {
                 const std::span<uint32_t> indices = {&buffers.indexBufferData[primitive.firstIndex], primitive.indexCount};
-                primitive.minIndex = 0xff'ff'ff'ffu;
-                primitive.maxIndex = 0u;
-                for (auto const idx : indices) {
-                    primitive.minIndex = std::min(primitive.minIndex, idx);
-                    primitive.maxIndex = std::max(primitive.maxIndex, idx);
-                }
+                
+                std::vector<uint32_t> uIdxs = {indices.begin(), indices.end()};
+                std::sort(uIdxs.begin(), uIdxs.end());
+                auto last = std::unique(uIdxs.begin(), uIdxs.end());
+                const auto size = last - uIdxs.begin();
+                std::move(uIdxs.begin(), last, std::back_inserter(buffers.uniqueIndexBufferData));
+                primitive.uniqueIndexOffset = uniqueOffset;
+                primitive.uniqueIndeiceCount = size;
+                uniqueOffset += size;
             }
         }
 
@@ -108,23 +112,32 @@ namespace engine::graphics {
         }
 
         //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        BufferInfo verticesBufferInfo {
+        const BufferInfo verticesBufferInfo {
             BufferUsageFlags::eVertex_Buffer | rhi::BufferUsageFlags::eUniform_Texel_Buffer | BufferUsageFlags::eTransfer_Dst,
             MemoryPropertyFlags::eDeviceLocal
         };
 
-        BufferInfo indicesBufferInfo {
-            BufferUsageFlags::eIndex_Buffer /*| rhi::BufferUsageFlags::eUniform_Texel_Buffer*/ | BufferUsageFlags::eTransfer_Dst,
+        const BufferInfo indicesBufferInfo {
+            BufferUsageFlags::eIndex_Buffer | BufferUsageFlags::eTransfer_Dst,
+            MemoryPropertyFlags::eDeviceLocal
+        };
+
+        const BufferInfo uniqueIndicesBufferInfo {
+            rhi::BufferUsageFlags::eStorage_Buffer | BufferUsageFlags::eTransfer_Dst,
             MemoryPropertyFlags::eDeviceLocal
         };
 
         uint32_t allDataSize = 0u;
 
         for (const auto & [index, data] : _tmpData) {
-            const auto & [vertices, indices] = data;
+            const auto & [vertices, indices, uIndices] = data;
             auto & gpuData = _gpuData[index];
             gpuData.indexBuffer = api.createBuffer(device, indicesBufferInfo, sizeof(uint32_t) * indices.size());
             allDataSize += sizeof(uint32_t) * indices.size();
+
+            gpuData.uniqueIndicesBuffer = api.createBuffer(device, uniqueIndicesBufferInfo, sizeof(uint32_t) * uIndices.size());
+            allDataSize += sizeof(uint32_t) * uIndices.size();
+
             gpuData.vertexBuffers.reserve(vertices.size());
 
             for (const auto & vb : vertices) {
@@ -140,7 +153,7 @@ namespace engine::graphics {
         std::byte * memory = staging.map();
 
         for (const auto & [index, data] : _tmpData) {
-            const auto & [vertices, indices] = data;
+            const auto & [vertices, indices, uIndices] = data;
             auto & gpuData = _gpuData[index];
 
             auto const sizeInBytes = gpuData.indexBuffer->sizeInBytes();
@@ -150,6 +163,16 @@ namespace engine::graphics {
 
             commandList->copyBuffer2Buffer(stagingBuffer, gpuData.indexBuffer, 
                 {.srcOffset = indexBufferOffset, .dstOffset = 0u, .size = sizeInBytes});
+
+            // uIndices
+            auto const sizeInBytes2 = gpuData.uniqueIndicesBuffer->sizeInBytes();
+            const auto indexBufferOffset2 = staging.requestBytes(sizeInBytes2);
+            auto * idxData2 = (memory + indexBufferOffset2);
+            std::memcpy(idxData2, uIndices.data(), sizeInBytes2);
+
+            commandList->copyBuffer2Buffer(stagingBuffer, gpuData.uniqueIndicesBuffer, 
+                {.srcOffset = indexBufferOffset2, .dstOffset = 0u, .size = sizeInBytes2});
+            //
 
             size_t i = 0u;
             for (auto & vb : gpuData.vertexBuffers) {

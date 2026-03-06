@@ -79,10 +79,6 @@ namespace engine::scene {
             return std::less<const Skeleton *>{}(_skeleton, other._skeleton);
         }
 
-        if (_skinProcessType != other._skinProcessType) {
-            return std::to_underlying(_skinProcessType) < std::to_underlying(other._skinProcessType);
-        }
-
         // attributes?????
         return _dataIndex < other._dataIndex;
     }

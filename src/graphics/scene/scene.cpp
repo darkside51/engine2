@@ -28,7 +28,7 @@ namespace {
 
         static_assert(sizeof(AttachmentObject) == 32u);
         static_assert(sizeof(Dummy) == 32u);
-        static_assert(sizeof(Mesh) == 184u);
+        static_assert(sizeof(Mesh) == 192u);
         static_assert(sizeof(Sprite) == 64u);
 
         static_assert(sizeof(Node) == 232u);
@@ -674,57 +674,56 @@ namespace engine::scene {
         bool skeletal = mesh.getSkeleton() != nullptr;
         auto dataIndex = mesh.dataIndex();
         auto materialIndex = mesh.materialIndex();
-        // auto skinProcessType = mesh.getSkinProcessType(); // 
                 
         uint32_t i = 0u;
-        // auto * memory = _meshTransformIndices->memory2<uint32_t>() + offset;
-        // if (skeletal) {
-        //     *(memory + i) = _meshTransformIndicesMap[*it].skeletalTransformIndex;
-        // } else {
-        //     *(memory + i) = _meshTransformIndicesMap[*it].transformIndex;
-        // }
+        auto * memory = _meshTransformIndices->memory2<uint32_t>() + offset;
+        if (skeletal) {
+            *(memory + i) = _meshTransformIndicesMap[*it].skeletalTransformIndex;
+        } else {
+            *(memory + i) = _meshTransformIndicesMap[*it].transformIndex;
+        }
         ++it;
         ++i;
-        // ++offset; // ?
-
-        struct Uniform {
-            uint32_t objectsCount;
-	        uint32_t vertexPerObjects;
-            uint32_t vtxOffset;
-            uint32_t resultOffset;
-        };
 
         uint32_t count = 1u;
 
-        const auto & pipeline = getComputePipeline(0u);
+        const auto & pipeline = getComputePipeline(0u); // todo: store mesh skin compute pipeline
         assert(pipeline != nullptr);
+
         commandList->bindPipeline(pipeline);
         commandList->bindBuffer(0u, _computedVertices, 0u, 0u);
         commandList->bindBuffer(0u, (*_meshSkeletalTransforms)(frame), 1u, 0u);
 
-        for (; it != end; ++it) {
+        for (; it != end; ++it, ++i) {
             const auto & mesh2 = *static_cast<const Mesh*>(*it);
             const auto currentGeometryDataIndex = mesh2.geometryDataIndex();
             const bool currentSkeletal = mesh2.getSkeleton() != nullptr;
             const auto currenDataIndex = mesh2.dataIndex();
             const auto currenMaterialIndex = mesh2.materialIndex();
-            // const auto currentSkinProcessType = mesh2.getSkinProcessType(); // ?
 
-            // if (currentSkeletal) {
-            //     *(memory + i) = _meshTransformIndicesMap[*it].skeletalTransformIndex;
-            // } else {
-            //     *(memory + i) = _meshTransformIndicesMap[*it].transformIndex;
-            // }
+            if (currentSkeletal) {
+                *(memory + i) = _meshTransformIndicesMap[*it].skeletalTransformIndex;
+            } else {
+                *(memory + i) = _meshTransformIndicesMap[*it].transformIndex;
+            }
 
             bool completePack = currentSkeletal != skeletal ||
                                 currenDataIndex != dataIndex ||
                                 currentGeometryDataIndex != geometryDataIndex;
-                                //  ||
-                                // currentSkinProcessType != skinProcessType; // ?
                  
             if (completePack) {
                 if (skeletal) { // dispatch
-                    dispatchSameMeshes(commandList, frame, currentIt, it, count, offset);
+                    if (dataIndex >= _computedVerticesOffsets.size()) {
+                        _computedVerticesOffsets.resize(dataIndex * 2u);
+                    }
+
+                    auto & computeOffset = _computedVerticesOffsets[dataIndex];
+                    if (computeOffset == 0xff'ff'ff'ffu) {
+                        computeOffset = _computedVerticesOffset;
+                        _computedVerticesOffset = dispatchSameMeshes(commandList, frame, currentIt, it, count, offset, _computedVerticesOffset);
+                    } else {
+                        _computedVerticesOffset = std::max(dispatchSameMeshes(commandList, frame, currentIt, it, count, offset, computeOffset), _computedVerticesOffset);
+                    }
                 }
                 offset += count;
 
@@ -733,93 +732,68 @@ namespace engine::scene {
                 geometryDataIndex = currentGeometryDataIndex;
                 skeletal = currentSkeletal;
                 materialIndex = currenMaterialIndex;
-                // skinProcessType = currentSkinProcessType; // ?
                 currentIt = it;
                 count = 1u;
             } else {
                 ++count;
             }
-
-            // if (mesh2.getSkinProcessType() == MeshSkinProcessType::eSkinComputeShader) {
-            //     const auto & g = mesh2.geometry();
-            //     // const auto vertexCount1 = mesh2.getAttribute(mesh::Semantic::ePosition).buffer->sizeInBytes() / 8u;
-            //     const auto vertexCount = g.maxIndex - g.minIndex;//mesh2.getAttribute(mesh::Semantic::ePosition).buffer->sizeInBytes() / 8u;
-            //     const auto objectsCount = 1u;
-
-            //     Uniform uniform {
-            //         .objectsCount = objectsCount,
-            //         .vertexPerObjects = vertexCount,
-            //         .vtxOffset = g.minIndex,
-            //         .resultOffset = 0u
-            //     };
-
-            //     const auto & pipeline = getComputePipeline(0u);
-            //     assert(pipeline != nullptr);
-            //     commandList->bindPipeline(pipeline);
-
-            //     commandList->pushConstants(rhi::shaders::Stages::eCompute, 0u, sizeof(Uniform), &uniform);
-
-            //     commandList->bindBuffer(0u, _computedVertices, 0u, 0u);
-            //     commandList->bindBuffer(0u, (*_meshSkeletalTransforms)(frame), 1u, 0u);
-            //     commandList->bindBuffer(1u, (*_meshTransformIndices)(frame), 1u, sizeof(uint32_t) * offset);
-
-            //     commandList->bindTexelBuffer(0u, mesh.getAttribute(mesh::Semantic::ePosition).buffer, rhi::Format::eR16G16B16A16_Sfloat, 2u);
-            //     commandList->bindTexelBuffer(1u, mesh.getAttribute(mesh::Semantic::eNormal).buffer, rhi::Format::eR8G8B8A8_Unorm, 2u);
-            //     commandList->bindTexelBuffer(2u, mesh.getAttribute(mesh::Semantic::eJoints).buffer, rhi::Format::eR8G8B8A8_Unorm, 2u);
-            //     commandList->bindTexelBuffer(3u, mesh.getAttribute(mesh::Semantic::eWeights).buffer, rhi::Format::eR16G16B16A16_Sfloat, 2u);
-                
-            //     const auto multyVertexCount = objectsCount * vertexCount;
-            //     const auto executeCount = (multyVertexCount % 64 == 0u) ? multyVertexCount / 64u : multyVertexCount / 64u + 1u;
-
-            //     commandList->dispatch(executeCount, 1u, 1u);
-
-            //     break;
-            // } else {
-            //     ++offset;
-            // }
         }
 
         if (skeletal) { // dispatch
-            dispatchSameMeshes(commandList, frame, currentIt, it, count, offset);
+            if (dataIndex >= _computedVerticesOffsets.size()) {
+                _computedVerticesOffsets.resize(dataIndex * 2u);
+            }
+
+            auto & computeOffset = _computedVerticesOffsets[dataIndex];
+            if (computeOffset == 0xff'ff'ff'ffu) {
+                computeOffset = _computedVerticesOffset;
+                _computedVerticesOffset = dispatchSameMeshes(commandList, frame, currentIt, end, count, offset, _computedVerticesOffset);
+            } else {
+                _computedVerticesOffset = std::max(dispatchSameMeshes(commandList, frame, currentIt, end, count, offset, computeOffset), _computedVerticesOffset);
+            }
         }
         offset += count;
 
-        // _meshTransformIndices->modify(sizeof(uint32_t) * i);
+        _meshTransformIndices->modify(sizeof(uint32_t) * i);
     }
 
-    void Scene::dispatchSameMeshes(rhi::runtime::CommandListPtr & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end, 
-        uint32_t count, uint32_t startTransformIndex) {
+    uint32_t Scene::dispatchSameMeshes(rhi::runtime::CommandListPtr & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end, 
+        uint32_t count, uint32_t startTransformIndex, uint32_t resultOffset) {
 
-        constexpr auto kMaxExecutionCount = 0xff'ffu;
+        constexpr auto kMaxExecutionCount = 0xff'ffu; // 65535u
 
         struct Uniform {
             uint32_t firstObject;
             uint32_t objectsCount;
-	        uint32_t vertexPerObjects;
-            uint32_t vtxOffset;
+	        uint32_t invocationsPerObject;
+            uint32_t indicesOffset;
+            uint32_t elementsCount;
             uint32_t resultOffset;
         };
 
         const auto & mesh = *static_cast<const Mesh*>(*begin);
         const auto & g = mesh.geometry();
-        const auto vertexCount = g.maxIndex - g.minIndex + 1u;
+        const auto vertexCount = mesh.getAttribute(mesh::Semantic::ePosition).buffer->sizeInBytes() / 8u;
+        const auto vertexToCompute = g.uniqueIndeiceCount;
 
-        const auto threadsPerObject = (vertexCount % 64u == 0u) ? vertexCount / 64u : vertexCount / 64u + 1u;
+        const auto threadsPerObject = (vertexToCompute % 64u == 0u) ? vertexToCompute / 64u : vertexToCompute / 64u + 1u;
         
         Uniform uniform {
             .firstObject = 0u,
             .objectsCount = 0u,
-            .vertexPerObjects = vertexCount,
-            .vtxOffset = g.minIndex,
-            .resultOffset = 0u
+            .invocationsPerObject = vertexToCompute,
+            .indicesOffset = g.uniqueIndexOffset,
+            .elementsCount = vertexCount,
+            .resultOffset = resultOffset
         };
 
         commandList->bindBuffer(1u, (*_meshTransformIndices)(frame), 1u, sizeof(uint32_t) * startTransformIndex);
 
-        commandList->bindTexelBuffer(0u, mesh.getAttribute(mesh::Semantic::ePosition).buffer, rhi::Format::eR16G16B16A16_Sfloat, 2u);
-        commandList->bindTexelBuffer(1u, mesh.getAttribute(mesh::Semantic::eNormal).buffer, rhi::Format::eR8G8B8A8_Unorm, 2u);
-        commandList->bindTexelBuffer(2u, mesh.getAttribute(mesh::Semantic::eJoints).buffer, rhi::Format::eR8G8B8A8_Unorm, 2u);
-        commandList->bindTexelBuffer(3u, mesh.getAttribute(mesh::Semantic::eWeights).buffer, rhi::Format::eR16G16B16A16_Sfloat, 2u);
+        commandList->bindBuffer(0u, mesh.getUniqueIndices().buffer, 2u, 0u);
+        commandList->bindTexelBuffer(1u, mesh.getAttribute(mesh::Semantic::ePosition).buffer, rhi::Format::eR16G16B16A16_Sfloat, 2u);
+        commandList->bindTexelBuffer(2u, mesh.getAttribute(mesh::Semantic::eNormal).buffer, rhi::Format::eR8G8B8A8_Unorm, 2u);
+        commandList->bindTexelBuffer(3u, mesh.getAttribute(mesh::Semantic::eJoints).buffer, rhi::Format::eR8G8B8A8_Unorm, 2u);
+        commandList->bindTexelBuffer(4u, mesh.getAttribute(mesh::Semantic::eWeights).buffer, rhi::Format::eR16G16B16A16_Sfloat, 2u);
 
         while (count > 0u) {
             auto const maxCount = std::min(kMaxExecutionCount / threadsPerObject, count);
@@ -834,6 +808,8 @@ namespace engine::scene {
             uniform.firstObject += maxCount;
             uniform.resultOffset += vertexCount * maxCount;
         }
+
+        return uniform.resultOffset + vertexCount; // ??? why + vertexCount
     }
 
     void Scene::dispatch(rhi::runtime::CommandListPtr & commandList, uint8_t frame, std::span<AttachmentObject*> objects, const DrawDataOffsets & offsets) {
@@ -1050,21 +1026,20 @@ namespace engine::scene {
         auto dataIndex = mesh.dataIndex();
         auto materialIndex = mesh.materialIndex();
 
-        if (skeletal) {
+        if (kComputeSkinningAvailable && skeletal) {
             pipelineIdx = 3u;
         }
-        // auto skinProcessType = mesh.getSkinProcessType();
-                
+
         uint32_t i = 0u;
-        // uint32_t * memory = nullptr;
-        // if constexpr (!kComputeSkinningAvailable) {
-            auto * memory = _meshTransformIndices->memory2<uint32_t>() + offset;
+        uint32_t * memory = nullptr;
+        if constexpr (!kComputeSkinningAvailable) {
+            /*auto **/ memory = _meshTransformIndices->memory2<uint32_t>() + offset;
             if (skeletal) {
                 *(memory + i) = _meshTransformIndicesMap[*it].skeletalTransformIndex;
             } else {
                 *(memory + i) = _meshTransformIndicesMap[*it].transformIndex;
             }
-        // }
+        }
         ++it;
         ++i;
 
@@ -1116,18 +1091,17 @@ namespace engine::scene {
             
             const auto currentGeometryDataIndex = mesh2.geometryDataIndex();
             const bool currentSkeletal = mesh2.getSkeleton() != nullptr;
-            const auto currentPipelineIdx = currentSkeletal ? 3u : mesh2.getPipeline();
+            const auto currentPipelineIdx = (kComputeSkinningAvailable && currentSkeletal) ? 3u : mesh2.getPipeline();
             const auto currenDataIndex = mesh2.dataIndex();
             const auto currenMaterialIndex = mesh2.materialIndex();
-            // const auto currentSkinProcessType = mesh2.getSkinProcessType();
 
-            // if constexpr (!kComputeSkinningAvailable) {
+            if constexpr (!kComputeSkinningAvailable) {
                 if (currentSkeletal) {
                     *(memory + i) = _meshTransformIndicesMap[*it].skeletalTransformIndex;
                 } else {
                     *(memory + i) = _meshTransformIndicesMap[*it].transformIndex;
                 }
-            // }
+            }
 
             const bool pipelineChanged = pipelineIdx != currentPipelineIdx;
             const bool materialChanged = materialIndex != currenMaterialIndex;
@@ -1137,8 +1111,6 @@ namespace engine::scene {
                                 currentSkeletal != skeletal ||
                                 currenDataIndex != dataIndex ||
                                 currentGeometryDataIndex != geometryDataIndex;
-                                //  ||
-                                // currentSkinProcessType != skinProcessType;
                  
             if (completePack) {
                 // draw
@@ -1176,7 +1148,6 @@ namespace engine::scene {
                 geometryDataIndex = currentGeometryDataIndex;
                 skeletal = currentSkeletal;
                 materialIndex = currenMaterialIndex;
-                // skinProcessType = currentSkinProcessType;
                 currentIt = it;
                 count = 1u;
             } else {
@@ -1187,40 +1158,35 @@ namespace engine::scene {
         drawSameMeshes(commandList, frame, currentIt, end, cameraTransform, count, skeletal, offset);
         // offset += count;
 
-        // if constexpr (!kComputeSkinningAvailable) {
+        if constexpr (!kComputeSkinningAvailable) {
             _meshTransformIndices->modify(sizeof(uint32_t) * i);
-        // }
+        }
     }
 
     void Scene::drawSameMeshes(rhi::runtime::CommandListPtr & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end, 
         const mat4f & cameraTransform, uint32_t count, bool skeletal, uint32_t startTransformIndex) {
         const auto & mesh = *static_cast<const Mesh*>(*begin);
 
-        // if (mesh.getSkinProcessType() == MeshSkinProcessType::eSkinComputeShader) {
         if constexpr (kComputeSkinningAvailable) {
             if (!skeletal) {
                 return;
             }
-            // const auto & pipeline = getGraphicsPipeline(3u);
-            // assert(pipeline != nullptr);
-            // commandList->bindPipeline(pipeline);
 
             struct Uniform {
                 mat4f cameraTransform;
                 vec4f albedo;
                 uint32_t vertexCount;
-                uint32_t vtxOffset;
+                uint32_t vertexDataOffset;
             };
 
             const auto & g = mesh.geometry();
-            const auto vertexCount = g.maxIndex - g.minIndex + 1u;
-            // const auto vertexCount = mesh.getAttribute(mesh::Semantic::ePosition).buffer->sizeInBytes() / 8u;
+            const auto vertexCount = mesh.getAttribute(mesh::Semantic::ePosition).buffer->sizeInBytes() / 8u;
 
              Uniform uniform {
                 .cameraTransform = cameraTransform, 
                 .albedo = vec4f{1.0f},
                 .vertexCount = vertexCount,
-                .vtxOffset = g.minIndex
+                .vertexDataOffset = _computedVerticesOffsets[mesh.dataIndex()]
             };
 
             auto applyMaterial = [this, &commandList, &uniform](uint16_t materialIndex) noexcept {
@@ -1366,6 +1332,12 @@ namespace engine::scene {
         _meshesDrawInFrame = 0u;
         _skeletalTransformsInFrame = 0u;
 
+        _computedVerticesOffset = 0u;
+        if (_computedVerticesOffsets.empty()) {
+            _computedVerticesOffsets.resize(1024u);
+        }
+        std::memset(_computedVerticesOffsets.data(), 0xffu, sizeof(uint32_t) * _computedVerticesOffsets.size());
+        
         completeAnimations();
     }
 

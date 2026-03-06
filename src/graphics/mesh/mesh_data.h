@@ -27,8 +27,9 @@ namespace models {
 	struct Primitive {
 		uint32_t firstIndex = 0u;
 		uint32_t indexCount = 0u;
-		uint32_t minIndex = 0xff'ff'ff'ffu;
-		uint32_t maxIndex = 0u;
+		uint32_t uniqueIndexOffset = 0u;
+		uint32_t uniqueIndeiceCount = 0u;
+
 		vec3f minCorner{};
 		vec3f maxCorner{};
 		uint16_t material = kInvalidValue;
@@ -96,6 +97,7 @@ namespace models {
 	struct MeshBuffersData {
 		std::vector<std::vector<std::byte>> vertexBuffersData;
 		std::vector<uint32_t> indexBufferData;
+		std::vector<uint32_t> uniqueIndexBufferData;
 	};
 
     struct MeshData {

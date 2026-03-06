@@ -148,8 +148,8 @@ private:
 
     void dispatchMeshes(rhi::runtime::CommandListPtr & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end, 
         uint32_t offset);
-    void dispatchSameMeshes(rhi::runtime::CommandListPtr & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end, 
-        uint32_t count, uint32_t startTransformIndex);
+    uint32_t dispatchSameMeshes(rhi::runtime::CommandListPtr & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end, 
+        uint32_t count, uint32_t startTransformIndex, uint32_t resultOffset);
 
     // draw
     void drawObjects(rhi::runtime::CommandListPtr & commandList, uint8_t frame, 
@@ -249,7 +249,10 @@ private:
     uint32_t _lastFramesUsedSkeletalTransforms = 0u;
     std::unique_ptr<graphics::InflightBuffer> _meshSkeletalTransforms = nullptr;
 
-    // compute mesh buffers
+    // compute mesh:
+    uint32_t _computedVerticesOffset = 0u;
+    std::vector<uint32_t> _computedVerticesOffsets;
+
     uint32_t _computedVerticesSizeInFrame = 0u;
     uint32_t _lastFramesComputedVerticesSize = 0u;
     rhi::runtime::BufferPtr _computedVertices = nullptr;

@@ -39,6 +39,7 @@ void loadNodes(Scene & scene, const graphics::ModelManager::ModelBuffers & gpuBu
         for (const auto & p : meshData.meshes[node.mesh].primitives) {
             auto * mesh = scene.createObject<engine::scene::Mesh>(p, /*meshData.materials[p.material], */dataIndex, primitiveId++, node.skin, pipelineId);
                 
+            mesh->setUniqueIndices({gpuBuffers.uniqueIndicesBuffer});
             mesh->setIndices({gpuBuffers.indexBuffer});
             mesh->setAttribute({gpuBuffers.vertexBuffers[0u]}, engine::scene::mesh::Semantic::ePosition);
             mesh->setAttribute({gpuBuffers.vertexBuffers[1u]}, engine::scene::mesh::Semantic::eNormal);

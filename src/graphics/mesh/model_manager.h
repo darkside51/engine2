@@ -46,6 +46,7 @@ public:
     struct ModelBuffers {
         std::vector<rhi::runtime::BufferPtr> vertexBuffers;
         rhi::runtime::BufferPtr indexBuffer = nullptr;
+        rhi::runtime::BufferPtr uniqueIndicesBuffer = nullptr;
     };
 
     ModelManager(MaterialManager & materialManager);

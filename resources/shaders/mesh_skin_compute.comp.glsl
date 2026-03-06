@@ -20,17 +20,22 @@ layout (set = 1, binding = 1) readonly buffer SkinTransformOffsets {
    uint data[];
 } skin_offsets;
 
+layout (set = 2, binding = 0) readonly buffer UniqueIndices {
+   uint data[];
+} u_indices;
+
 // uniform texel buffers
-layout(set = 2, binding = 0) uniform textureBuffer u_positions;
-layout(set = 2, binding = 1) uniform textureBuffer u_normals;
-layout(set = 2, binding = 2) uniform textureBuffer u_joints;
-layout(set = 2, binding = 3) uniform textureBuffer u_weights;
+layout(set = 2, binding = 1) uniform textureBuffer u_positions;
+layout(set = 2, binding = 2) uniform textureBuffer u_normals;
+layout(set = 2, binding = 3) uniform textureBuffer u_joints;
+layout(set = 2, binding = 4) uniform textureBuffer u_weights;
 
 layout(push_constant) uniform Data {
 	uint firstObject;
 	uint objectsCount;
-	uint vertexPerObjects;
-	uint vtxOffset;
+	uint invocationsPerObject;
+	uint indicesOffset;
+	uint elementsCount;
 	uint resultOffset;
 } push;
 
@@ -40,44 +45,46 @@ void main() {
 	//const uint invocationId = gl_GlobalInvocationID.x + (gl_GlobalInvocationID.y * gl_NumWorkGroups.x * gl_WorkGroupSize.x) + (gl_GlobalInvocationID.z * 
 	//	gl_NumWorkGroups.x * gl_WorkGroupSize.x * gl_NumWorkGroups.y * gl_WorkGroupSize.y);
 
-	uint objectId = invocationId / push.vertexPerObjects;
+	const uint objectId = invocationId / push.invocationsPerObject;
 
 	if (objectId > push.objectsCount) {
 		return;
 	}
 
-	objectId = skin_offsets.data[objectId + push.firstObject];
-	const int vertexId = int(invocationId % push.vertexPerObjects) + int(push.vtxOffset);
+	const uint transfromIdx = skin_offsets.data[objectId + push.firstObject];
+	const int vertexId = int(u_indices.data[invocationId % push.invocationsPerObject + push.indicesOffset]);
+	//const int vertexId = int(invocationId % push.invocationsPerObject) + int(push.indicesOffset);
 
 	const vec4 a_weights = texelFetch(u_weights, vertexId);
 	const uvec4 a_joints = uvec4(texelFetch(u_joints, vertexId) * 255.0);
 
 	const mat4 skin = mat4(
-		sbo_skin.transforms[objectId + a_joints.x][0],
-		sbo_skin.transforms[objectId + a_joints.x][1],
-		sbo_skin.transforms[objectId + a_joints.x][2],
+		sbo_skin.transforms[transfromIdx + a_joints.x][0],
+		sbo_skin.transforms[transfromIdx + a_joints.x][1],
+		sbo_skin.transforms[transfromIdx + a_joints.x][2],
 		vec4(0.0, 0.0, 0.0, 1.0)
 	) * a_weights.x +
 	mat4(
-		sbo_skin.transforms[objectId + a_joints.y][0],
-		sbo_skin.transforms[objectId + a_joints.y][1],
-		sbo_skin.transforms[objectId + a_joints.y][2],
+		sbo_skin.transforms[transfromIdx + a_joints.y][0],
+		sbo_skin.transforms[transfromIdx + a_joints.y][1],
+		sbo_skin.transforms[transfromIdx + a_joints.y][2],
 		vec4(0.0, 0.0, 0.0, 1.0)
 	) * a_weights.y +
 	mat4(
-		sbo_skin.transforms[objectId + a_joints.z][0],
-		sbo_skin.transforms[objectId + a_joints.z][1],
-		sbo_skin.transforms[objectId + a_joints.z][2],
+		sbo_skin.transforms[transfromIdx + a_joints.z][0],
+		sbo_skin.transforms[transfromIdx + a_joints.z][1],
+		sbo_skin.transforms[transfromIdx + a_joints.z][2],
 		vec4(0.0, 0.0, 0.0, 1.0)
 	) * a_weights.z +
 	mat4(
-		sbo_skin.transforms[objectId + a_joints.w][0],
-		sbo_skin.transforms[objectId + a_joints.w][1],
-		sbo_skin.transforms[objectId + a_joints.w][2],
+		sbo_skin.transforms[transfromIdx + a_joints.w][0],
+		sbo_skin.transforms[transfromIdx + a_joints.w][1],
+		sbo_skin.transforms[transfromIdx + a_joints.w][2],
 		vec4(0.0, 0.0, 0.0, 1.0)
 	) * a_weights.w;
 
-	const uint resultOffset = invocationId + push.resultOffset;
+	//const uint resultOffset = invocationId + push.resultOffset;
+	const uint resultOffset = vertexId + objectId * push.elementsCount + push.resultOffset;
 	out_positions.data[resultOffset] = vec4(texelFetch(u_positions, vertexId).xyz, 1.0) * skin;
 	//out_normals.data[resultOffset] = normalize((texelFetch(u_normals, vertexId) * skin));
 }
