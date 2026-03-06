@@ -1616,10 +1616,12 @@ namespace example {
                 };
 
                 auto const animId = animationManager.getAnimationIndex("skeletal_mesh_anim0");
-                for (size_t i = 0u; i < 250u; ++i) {
+                for (size_t i = 0u; i < 1000u; ++i) {
                     auto * meshRoot = engine::scene::createNodeWithSkeletalMesh(*scene, *modelManager, modelIndex, 
                         engine::scene::Bounds::Type::eSphere, pipelines);
                     
+                    meshRoot->childAt(0u)->getAttachment(1u)->setHidden(true);
+
                     if (auto * skeleton = static_cast<engine::scene::Skeleton *>(meshRoot->getAttachment())) {
                         if (i == 5u) {
                             auto * handBone = skeleton->node(15u);
@@ -1645,7 +1647,7 @@ namespace example {
 
                     meshRoot->setScale(scale);
                     meshRoot->setRotation(engine::vec3f(1.57f, 0.0f, engine::common::random(-3.14f, 3.14f)));
-                    meshRoot->setPosition(engine::vec3f(-2.0f + i % 10 * 0.5f, i / 10 * -0.5f, 0.0f));
+                    meshRoot->setPosition(engine::vec3f(-5.0f + i % 30 * 0.5f, 2.0f + i / 30 * -0.5f, 0.0f));
 
                     sceneWorldRoot->addChild(meshRoot);
                 }
@@ -1683,7 +1685,7 @@ namespace example {
         }
 
         static bool meshLoaded3 = false;
-        if (!meshLoaded3) {
+        if (false && !meshLoaded3) {
             const auto modelIndex = modelManager->getModelDataIdx("wheel.glb");
             if (modelManager->isDataReady(modelIndex)) {
                 meshLoaded3 = true;
@@ -1718,7 +1720,7 @@ namespace example {
         }
 
         static bool meshLoaded4 = false;
-        if (!meshLoaded4) {
+        if (false && !meshLoaded4) {
             const auto modelIndex = modelManager->getModelDataIdx("buster_drone.glb");
             if (modelManager->isDataReady(modelIndex)) {
                 meshLoaded4 = true;
@@ -1755,7 +1757,7 @@ namespace example {
         }
 
         static bool meshLoaded5 = false;
-        if (!meshLoaded5) {
+        if (false && !meshLoaded5) {
             const auto modelIndex = modelManager->getModelDataIdx("chaman.gltf");
             if (modelManager->isDataReady(modelIndex)) {
                 meshLoaded5 = true;
@@ -1924,7 +1926,8 @@ namespace example {
         commandList->end();
         transferCommandList->end();
 
-        transferCommandList->record(frameId, commandList.get());
+        // transferCommandList->record(frameId, commandList.get());
+        transferCommandList->record(frameId);
         commandList->record(frameId);
         // render frame
 

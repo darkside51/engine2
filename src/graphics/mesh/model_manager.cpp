@@ -43,6 +43,20 @@ namespace engine::graphics {
 
         auto buffers = meshData->loadMeshes(layout, attributes);
         meshData->optimizeBuffers(buffers.vertexBuffersData, buffers.indexBufferData, attributes);
+
+        // after optimize
+        for (auto & mesh : meshData->meshes) {
+            for (auto & primitive : mesh.primitives) {
+                std::span<uint32_t> indices = {&buffers.indexBufferData[primitive.firstIndex], primitive.indexCount};
+                primitive.minIndex = 0xff'ff'ff'ffu;
+                primitive.maxIndex = 0u;
+                for (auto const idx : indices) {
+                    primitive.minIndex = std::min(primitive.minIndex, idx);
+                    primitive.maxIndex = std::max(primitive.maxIndex, idx);
+                }
+            }
+        }
+
         meshData->loadNodes(layout);
         
         auto remap = _materialManager.loadMaterials(name, layout, fileManager, graphicsService.getTextureManager());
@@ -100,7 +114,7 @@ namespace engine::graphics {
         };
 
         BufferInfo indicesBufferInfo {
-            BufferUsageFlags::eIndex_Buffer | BufferUsageFlags::eTransfer_Dst,
+            BufferUsageFlags::eIndex_Buffer /*| rhi::BufferUsageFlags::eUniform_Texel_Buffer*/ | BufferUsageFlags::eTransfer_Dst,
             MemoryPropertyFlags::eDeviceLocal
         };
 

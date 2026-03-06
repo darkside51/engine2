@@ -146,6 +146,11 @@ private:
     void dispatchObjects(rhi::runtime::CommandListPtr & commandList, uint8_t frame, 
         AttachmentsIterator begin, AttachmentsIterator end, uint16_t typeIdx, const DrawDataOffsets & offsets);
 
+    void dispatchMeshes(rhi::runtime::CommandListPtr & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end, 
+        uint32_t offset);
+    void dispatchSameMeshes(rhi::runtime::CommandListPtr & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end, 
+        uint32_t count, uint32_t startTransformIndex);
+
     // draw
     void drawObjects(rhi::runtime::CommandListPtr & commandList, uint8_t frame, 
         const mat4f & cameraTransform, AttachmentsIterator begin, AttachmentsIterator end, 

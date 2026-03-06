@@ -27,22 +27,27 @@ layout(set = 2, binding = 2) uniform textureBuffer u_joints;
 layout(set = 2, binding = 3) uniform textureBuffer u_weights;
 
 layout(push_constant) uniform Data {
+	uint firstObject;
 	uint objectsCount;
 	uint vertexPerObjects;
-	uint transformOffset;
+	uint vtxOffset;
 	uint resultOffset;
 } push;
 
 void main() {
 	const uint invocationId = gl_GlobalInvocationID.x;
+
+	//const uint invocationId = gl_GlobalInvocationID.x + (gl_GlobalInvocationID.y * gl_NumWorkGroups.x * gl_WorkGroupSize.x) + (gl_GlobalInvocationID.z * 
+	//	gl_NumWorkGroups.x * gl_WorkGroupSize.x * gl_NumWorkGroups.y * gl_WorkGroupSize.y);
+
 	uint objectId = invocationId / push.vertexPerObjects;
 
 	if (objectId > push.objectsCount) {
 		return;
 	}
 
-	objectId += skin_offsets.data[objectId];//push.transformOffset;
-	const int vertexId = int(invocationId % push.vertexPerObjects);
+	objectId = skin_offsets.data[objectId + push.firstObject];
+	const int vertexId = int(invocationId % push.vertexPerObjects) + int(push.vtxOffset);
 
 	const vec4 a_weights = texelFetch(u_weights, vertexId);
 	const uvec4 a_joints = uvec4(texelFetch(u_joints, vertexId) * 255.0);

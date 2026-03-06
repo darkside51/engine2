@@ -27,6 +27,8 @@ namespace models {
 	struct Primitive {
 		uint32_t firstIndex = 0u;
 		uint32_t indexCount = 0u;
+		uint32_t minIndex = 0xff'ff'ff'ffu;
+		uint32_t maxIndex = 0u;
 		vec3f minCorner{};
 		vec3f maxCorner{};
 		uint16_t material = kInvalidValue;
