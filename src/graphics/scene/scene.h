@@ -258,7 +258,7 @@ private:
     uint32_t _computedVerticesOffset = 0u;
     std::vector<uint32_t> _computedVerticesOffsets;
 
-    uint32_t _computedVerticesSizeInFrame = 0u;
+    uint32_t _computedVerticesSizeInFrame = 0u; // need resize buffers functional!
     uint32_t _lastFramesComputedVerticesSize = 0u;
     rhi::runtime::BufferPtr _computedVertices = nullptr;
     rhi::runtime::BufferPtr _computedNormals = nullptr;

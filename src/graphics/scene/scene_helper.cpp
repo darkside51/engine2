@@ -12,7 +12,8 @@ namespace engine::scene {
 
 void loadNodes(Scene & scene, const graphics::ModelManager::ModelBuffers & gpuBuffers, 
     const graphics::models::MeshData & meshData, uint32_t dataIndex, engine::scene::Node * parent, 
-    uint16_t nodeId, engine::scene::Skeleton * skeleton, MeshPipelines pipelines, vec3f & minCorner, vec3f & maxCorner) {
+    uint16_t nodeId, engine::scene::Skeleton * skeleton, MeshPipelines pipelines, 
+    vec3f & minCorner, vec3f & maxCorner, int16_t order) {
 
     auto * current = scene.createNode();
     if (parent) {
@@ -51,6 +52,8 @@ void loadNodes(Scene & scene, const graphics::ModelManager::ModelBuffers & gpuBu
                 mesh->setAttribute({gpuBuffers.vertexBuffers[4u]}, engine::scene::mesh::Semantic::eWeights);
             }
 
+            mesh->setOrder(order);
+
             engine::scene::attachObjectToNode(*mesh, *current);
 
             // for calculate rootNode size
@@ -68,12 +71,12 @@ void loadNodes(Scene & scene, const graphics::ModelManager::ModelBuffers & gpuBu
     }
 
     for (const uint16_t childNodeId : node.children) {
-        loadNodes(scene, gpuBuffers, meshData, dataIndex, current, childNodeId, skeleton, pipelines, minCorner, maxCorner);
+        loadNodes(scene, gpuBuffers, meshData, dataIndex, current, childNodeId, skeleton, pipelines, minCorner, maxCorner, order);
     }
 };
 
 Node * createNodeWithSkeletalMesh(Scene & scene, const graphics::ModelManager & modelManager, 
-    uint32_t modelIndex, Bounds::Type boundsType, MeshPipelines pipelines) {
+    uint32_t modelIndex, Bounds::Type boundsType, MeshPipelines pipelines, int16_t order) {
     auto * meshRoot = scene.createNode();
     const auto & meshData = modelManager.getModelData(modelIndex);
     engine::scene::Skeleton * skeleton = scene.createObject<engine::scene::Skeleton>(meshData);
@@ -87,7 +90,7 @@ Node * createNodeWithSkeletalMesh(Scene & scene, const graphics::ModelManager & 
 
     for (const auto nodeId : meshData.sceneNodes) {
         loadNodes(scene, modelManager.getModelBuffers(modelIndex), meshData, 
-            modelIndex, meshRoot, nodeId, skeleton, pipelines, minCorner, maxCorner);
+            modelIndex, meshRoot, nodeId, skeleton, pipelines, minCorner, maxCorner, order);
     }
 
     switch (boundsType) {

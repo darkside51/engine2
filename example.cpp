@@ -1618,7 +1618,7 @@ namespace example {
                 auto const animId = animationManager.getAnimationIndex("skeletal_mesh_anim0");
                 for (size_t i = 0u; i < 300u; ++i) {
                     auto * meshRoot = engine::scene::createNodeWithSkeletalMesh(*scene, *modelManager, modelIndex, 
-                        engine::scene::Bounds::Type::eSphere, pipelines);
+                        engine::scene::Bounds::Type::eSphere, pipelines, 0u);
                     
                     // meshRoot->childAt(0u)->getAttachment(1u)->setHidden(true);
 
@@ -1627,7 +1627,7 @@ namespace example {
                             auto * handBone = skeleton->node(15u);
                             swordNode->removeFromParent();
                             handBone->addChild(swordNode);
-                            // meshRoot->childAt(0u)->getAttachment(1u)->setHidden(true);
+                            //meshRoot->childAt(0u)->getAttachment(1u)->setHidden(true); // todo: fix it for compute skinning methos
                         }
 
                         auto * anim0 = scene->createAnimInfo<engine::scene::SkeletalAnimation>(animId, engine::common::random(0.25f, 1.7f));

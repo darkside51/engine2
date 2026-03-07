@@ -17,7 +17,8 @@ namespace scene {
         uint32_t commonPipeline = 0u;
         uint32_t skeletalPipeline = 0u;
     };
-    Node * createNodeWithSkeletalMesh(Scene & scene, const graphics::ModelManager & modelManager, uint32_t modelIndex, Bounds::Type boundsType, MeshPipelines pipelines);
+    Node * createNodeWithSkeletalMesh(Scene & scene, const graphics::ModelManager & modelManager, uint32_t modelIndex, Bounds::Type boundsType, 
+        MeshPipelines pipelines, int16_t order = 0);
 }
 
 }
