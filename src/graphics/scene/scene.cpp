@@ -130,7 +130,7 @@ namespace engine::scene {
         _meshSkeletalTransforms = nullptr;
 
         _computedVertices = nullptr;
-        _computedIndices = nullptr;
+        _computedNormals = nullptr;
         
         _staging = nullptr;
         _graphicsPipelines.clear();
@@ -304,13 +304,8 @@ namespace engine::scene {
                 rhi::MemoryPropertyFlags::eDeviceLocal
             };
 
-            const rhi::BufferInfo computeIndicesInfo { // is eStorage_Buffer need?
-                rhi::BufferUsageFlags::eIndex_Buffer | rhi::BufferUsageFlags::eTransfer_Dst,
-                rhi::MemoryPropertyFlags::eDeviceLocal
-            };
-        
             _computedVertices = api.createBuffer(device, computeVerticesInfo, 128u * 1024u * 1024u); // 128Mb
-            _computedIndices = api.createBuffer(device, computeIndicesInfo, 10u * 1024u * 1024u); // 10Mb
+            _computedNormals = api.createBuffer(device, computeVerticesInfo, 128u * 1024u * 1024u); // 128Mb
         }
     }
 
@@ -678,7 +673,7 @@ namespace engine::scene {
         bool skeletal = mesh.getSkeleton() != nullptr;
         auto dataIndex = mesh.dataIndex();
         auto materialIndex = mesh.materialIndex();
-                
+          
         uint32_t i = 0u;
         auto * memory = _meshTransformIndices->memory2<uint32_t>() + offset;
         if (skeletal) {
@@ -696,7 +691,17 @@ namespace engine::scene {
 
         commandList->bindPipeline(pipeline);
         commandList->bindBuffer(0u, _computedVertices, 0u, 0u);
+        commandList->bindBuffer(1u, _computedNormals, 0u, 0u);
         commandList->bindBuffer(0u, (*_meshSkeletalTransforms)(frame), 1u, 0u);
+
+        auto computesDataIndex = dataIndex;
+        if (skeletal) {
+            commandList->bindBuffer(0u, mesh.getUniqueIndices().buffer, 2u, 0u);
+            commandList->bindTexelBuffer(1u, mesh.getAttribute(mesh::Semantic::ePosition).buffer, rhi::Format::eR16G16B16A16_Sfloat, 2u);
+            commandList->bindTexelBuffer(2u, mesh.getAttribute(mesh::Semantic::eNormal).buffer, rhi::Format::eR8G8B8A8_Snorm, 2u);
+            commandList->bindTexelBuffer(3u, mesh.getAttribute(mesh::Semantic::eJoints).buffer, rhi::Format::eR8G8B8A8_Unorm, 2u);
+            commandList->bindTexelBuffer(4u, mesh.getAttribute(mesh::Semantic::eWeights).buffer, rhi::Format::eR16G16B16A16_Sfloat, 2u);
+        }
 
         for (; it != end; ++it, ++i) {
             const auto & mesh2 = *static_cast<const Mesh*>(*it);
@@ -738,6 +743,16 @@ namespace engine::scene {
                 materialIndex = currenMaterialIndex;
                 currentIt = it;
                 count = 1u;
+
+                if (skeletal && computesDataIndex != dataIndex) {
+                    computesDataIndex = dataIndex;
+                    commandList->bindBuffer(0u, mesh2.getUniqueIndices().buffer, 2u, 0u);
+                    commandList->bindTexelBuffer(1u, mesh2.getAttribute(mesh::Semantic::ePosition).buffer, rhi::Format::eR16G16B16A16_Sfloat, 2u);
+                    commandList->bindTexelBuffer(2u, mesh2.getAttribute(mesh::Semantic::eNormal).buffer, rhi::Format::eR8G8B8A8_Snorm, 2u);
+                    commandList->bindTexelBuffer(3u, mesh2.getAttribute(mesh::Semantic::eJoints).buffer, rhi::Format::eR8G8B8A8_Unorm, 2u);
+                    commandList->bindTexelBuffer(4u, mesh2.getAttribute(mesh::Semantic::eWeights).buffer, rhi::Format::eR16G16B16A16_Sfloat, 2u);
+                }
+
             } else {
                 ++count;
             }
@@ -792,12 +807,6 @@ namespace engine::scene {
         };
 
         commandList->bindBuffer(1u, (*_meshTransformIndices)(frame), 1u, sizeof(uint32_t) * startTransformIndex);
-
-        commandList->bindBuffer(0u, mesh.getUniqueIndices().buffer, 2u, 0u);
-        commandList->bindTexelBuffer(1u, mesh.getAttribute(mesh::Semantic::ePosition).buffer, rhi::Format::eR16G16B16A16_Sfloat, 2u);
-        commandList->bindTexelBuffer(2u, mesh.getAttribute(mesh::Semantic::eNormal).buffer, rhi::Format::eR8G8B8A8_Unorm, 2u);
-        commandList->bindTexelBuffer(3u, mesh.getAttribute(mesh::Semantic::eJoints).buffer, rhi::Format::eR8G8B8A8_Unorm, 2u);
-        commandList->bindTexelBuffer(4u, mesh.getAttribute(mesh::Semantic::eWeights).buffer, rhi::Format::eR16G16B16A16_Sfloat, 2u);
 
         while (count > 0u) {
             auto const maxCount = std::min(kMaxExecutionCount / threadsPerObject, count);
@@ -1077,6 +1086,7 @@ namespace engine::scene {
 
         if (skeletal) {
             commandList->bindBuffer(0u, _computedVertices, 0u, 0u);
+            commandList->bindBuffer(1u, _computedNormals, 0u, 0u);
             commandList->pushConstants(rhi::shaders::Stages::eVertex, sizeof(Uniform), sizeof(Uniform2), &uniform2);
         } else {
             commandList->bindBuffer(0u, (*_meshTransforms)(frame), 0u, 0u);
@@ -1130,6 +1140,7 @@ namespace engine::scene {
                 if (currentSkeletal != skeletal) {
                     if (currentSkeletal) {
                         commandList->bindBuffer(0u, _computedVertices, 0u, 0u);
+                        commandList->bindBuffer(1u, _computedNormals, 0u, 0u);
                     } else {
                         commandList->bindBuffer(0u, (*_meshTransforms)(frame), 0u, 0u);
                     }
@@ -1283,14 +1294,11 @@ namespace engine::scene {
 
         if constexpr (kComputeSkinningAvailable) {
             if (skeletal) { // skinning with compute shader
-                const auto & g = mesh.geometry();
-                commandList->bindBuffer(0u, _computedVertices, 0u, 0u);
-                // commandList->bindBuffer(1u, _computedNormals, 0u, 0u);
-
                 uint32_t binding_v = 0u;
                 commandList->bindVertexBuffer(binding_v++, mesh.getAttribute(mesh::Semantic::eUv0).buffer, 0u);
                 commandList->bindIndexBuffer(mesh.getIndices().buffer, 0u, rhi::IndexType::eU32);
 
+                const auto & g = mesh.geometry();
                 commandList->drawIndexed(g.indexCount, count, g.firstIndex);
                 return;
             }

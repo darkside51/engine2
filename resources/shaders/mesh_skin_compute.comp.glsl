@@ -7,9 +7,9 @@ layout (set = 0, binding = 0) buffer OutPositions {
    vec4 data[];
 } out_positions;
 
-/*layout (set = 0, binding = 1) buffer OutNormals {
+layout (set = 0, binding = 1) buffer OutNormals {
    vec4 data[];
-} out_normals;*/ 
+} out_normals;
 
 // storage buffers
 layout (set = 1, binding = 0) readonly buffer SkinTransformations {
@@ -84,5 +84,5 @@ void main() {
 
 	const uint resultOffset = vertexId + objectId * push.elementsCount + push.resultOffset;
 	out_positions.data[resultOffset] = vec4(texelFetch(u_positions, vertexId).xyz, 1.0) * skin;
-	//out_normals.data[resultOffset] = normalize((texelFetch(u_normals, vertexId) * skin));
+	out_normals.data[resultOffset] = normalize((texelFetch(u_normals, vertexId) * skin));
 }

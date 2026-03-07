@@ -261,10 +261,7 @@ private:
     uint32_t _computedVerticesSizeInFrame = 0u;
     uint32_t _lastFramesComputedVerticesSize = 0u;
     rhi::runtime::BufferPtr _computedVertices = nullptr;
-
-    uint32_t _computedIndicesSizeInFrame = 0u;
-    uint32_t _lastFramesComputedIndicesSize = 0u;
-    rhi::runtime::BufferPtr _computedIndices = nullptr;
+    rhi::runtime::BufferPtr _computedNormals = nullptr;
 
     // async animation calculation:
     // need use stop sources?
