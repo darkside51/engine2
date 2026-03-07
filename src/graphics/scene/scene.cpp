@@ -230,6 +230,10 @@ namespace engine::scene {
         return _computesPipelines[pipelineId];
     }
 
+    bool Scene::isComputeSkinningEnabled() const noexcept {
+        return kComputeSkinningAvailable;
+    }
+
     void Scene::initRenderData(rhi::runtime::Rhi & api, rhi::runtime::Device & device) {
         _api = &api;
         _device = &device;
@@ -844,7 +848,11 @@ namespace engine::scene {
             break;
         case ctti::typeIndex<AttachmentObject, Mesh>():
         {
-            drawMeshes(commandList, frame, begin, end, cameraTransform, offsets.meshesDrawOffset);
+            if constexpr (kComputeSkinningAvailable) {
+                drawMeshes2(commandList, frame, begin, end, cameraTransform, offsets.meshesDrawOffset);
+            } else {
+                drawMeshes(commandList, frame, begin, end, cameraTransform, offsets.meshesDrawOffset);
+            }
         }
             break;
         case ctti::typeIndex<AttachmentObject, Sprite>():
@@ -1015,6 +1023,135 @@ namespace engine::scene {
         }
     }
 
+    void Scene::drawMeshes2(rhi::runtime::CommandListPtr & commandList, uint8_t frame, 
+        AttachmentsIterator begin, AttachmentsIterator end, const mat4f & cameraTransform, uint32_t offset) {
+        auto currentIt = begin;
+        const auto & mesh = *static_cast<const Mesh*>(*currentIt);
+        auto pipelineIdx = mesh.getPipeline();
+        auto geometryDataIndex = mesh.geometryDataIndex();
+        bool skeletal = mesh.getSkeleton() != nullptr;
+        auto dataIndex = mesh.dataIndex();
+        auto materialIndex = mesh.materialIndex();
+        const auto vertexCount = mesh.getAttribute(mesh::Semantic::ePosition).buffer->sizeInBytes() / 8u;
+
+        struct Uniform {
+            mat4f cameraTransform;
+            vec4f albedo;
+        };
+
+        struct Uniform2 {
+            uint32_t vertexCount;
+            uint32_t vertexDataOffset;
+        };
+
+        Uniform uniform {
+            .cameraTransform = cameraTransform, 
+            .albedo = vec4f{1.0f}
+        };
+
+        Uniform2 uniform2 {
+            .vertexCount = vertexCount,
+            .vertexDataOffset = _computedVerticesOffsets[dataIndex]
+        };
+
+        auto applyMaterial = [this, &commandList, &uniform](uint16_t materialIndex) noexcept {
+            const auto & material = _graphicsService.getMaterialManager().getMaterial(materialIndex);
+            const auto & textures = material.textures;
+
+            const auto & image = textures[static_cast<uint8_t>(graphics::PbrTextureId::eBaseColor)];
+            assert(image != nullptr); // check textureManager default resources generated!
+
+            // textures change more often than storage buffers - setId #1u used
+            commandList->bindImage(0u, image, _linearSampler, 1u); 
+            uniform.albedo = material.baseColorFactor;
+        };
+
+        uint32_t count = 1u;
+
+        const auto & pipeline = getGraphicsPipeline(pipelineIdx);
+        assert(pipeline != nullptr);
+        commandList->bindPipeline(pipeline);
+        applyMaterial(materialIndex);
+
+        commandList->pushConstants(rhi::shaders::Stages::eVertex, 0u, sizeof(Uniform), &uniform);
+
+        if (skeletal) {
+            commandList->bindBuffer(0u, _computedVertices, 0u, 0u);
+            commandList->pushConstants(rhi::shaders::Stages::eVertex, sizeof(Uniform), sizeof(Uniform2), &uniform2);
+        } else {
+            commandList->bindBuffer(0u, (*_meshTransforms)(frame), 0u, 0u);
+        }
+
+        for (auto it = currentIt + 1u; it != end; ++it) {
+            const auto & mesh2 = *static_cast<const Mesh*>(*it);
+            
+            const auto currentGeometryDataIndex = mesh2.geometryDataIndex();
+            const bool currentSkeletal = mesh2.getSkeleton() != nullptr;
+            const auto currentPipelineIdx = mesh2.getPipeline();
+            const auto currenDataIndex = mesh2.dataIndex();
+            const auto currenMaterialIndex = mesh2.materialIndex();
+
+            const bool pipelineChanged = pipelineIdx != currentPipelineIdx;
+            const bool materialChanged = materialIndex != currenMaterialIndex;
+
+            bool completePack = pipelineChanged ||
+                                materialChanged ||
+                                currentSkeletal != skeletal ||
+                                currenDataIndex != dataIndex ||
+                                currentGeometryDataIndex != geometryDataIndex;
+                 
+            if (completePack) {
+                // draw
+                drawSameMeshes(commandList, frame, currentIt, it, cameraTransform, count, skeletal, offset);
+                offset += count;
+
+                if (dataIndex != currenDataIndex) {
+                    const auto vertexCount = mesh2.getAttribute(mesh::Semantic::ePosition).buffer->sizeInBytes() / 8u;
+                    uniform2.vertexCount = vertexCount;
+                    uniform2.vertexDataOffset = _computedVerticesOffsets[currenDataIndex];
+                }
+
+                if (pipelineChanged) {
+                    const auto & pipeline = getGraphicsPipeline(currentPipelineIdx);
+                    assert(pipeline != nullptr);
+                    commandList->bindPipeline(pipeline);
+                    if (currentSkeletal) {
+                        commandList->pushConstants(rhi::shaders::Stages::eVertex, sizeof(Uniform), sizeof(Uniform2), &uniform2);
+                    }
+                } else if (dataIndex != currenDataIndex) {
+                    commandList->pushConstants(rhi::shaders::Stages::eVertex, sizeof(Uniform), sizeof(Uniform2), &uniform2);
+                }
+
+                if (pipelineChanged || materialChanged) {
+                    applyMaterial(currenMaterialIndex);
+                    commandList->pushConstants(rhi::shaders::Stages::eVertex, 0u, sizeof(Uniform), &uniform);
+                }
+
+                if (currentSkeletal != skeletal) {
+                    if (currentSkeletal) {
+                        commandList->bindBuffer(0u, _computedVertices, 0u, 0u);
+                    } else {
+                        commandList->bindBuffer(0u, (*_meshTransforms)(frame), 0u, 0u);
+                    }
+                }
+
+                // begin next pack
+                dataIndex = currenDataIndex;
+                pipelineIdx = currentPipelineIdx;
+                geometryDataIndex = currentGeometryDataIndex;
+                skeletal = currentSkeletal;
+                materialIndex = currenMaterialIndex;
+                currentIt = it;
+                count = 1u;
+            } else {
+                ++count;
+            }
+        }
+
+        drawSameMeshes(commandList, frame, currentIt, end, cameraTransform, count, skeletal, offset);
+        // offset += count;
+    }
+
     void Scene::drawMeshes(rhi::runtime::CommandListPtr & commandList, uint8_t frame, 
         AttachmentsIterator begin, AttachmentsIterator end, const mat4f & cameraTransform, uint32_t offset) {
         auto currentIt = begin;
@@ -1026,19 +1163,12 @@ namespace engine::scene {
         auto dataIndex = mesh.dataIndex();
         auto materialIndex = mesh.materialIndex();
 
-        if (kComputeSkinningAvailable && skeletal) {
-            pipelineIdx = 3u;
-        }
-
         uint32_t i = 0u;
-        uint32_t * memory = nullptr;
-        if constexpr (!kComputeSkinningAvailable) {
-            /*auto **/ memory = _meshTransformIndices->memory2<uint32_t>() + offset;
-            if (skeletal) {
-                *(memory + i) = _meshTransformIndicesMap[*it].skeletalTransformIndex;
-            } else {
-                *(memory + i) = _meshTransformIndicesMap[*it].transformIndex;
-            }
+        auto * memory = _meshTransformIndices->memory2<uint32_t>() + offset;
+        if (skeletal) {
+            *(memory + i) = _meshTransformIndicesMap[*it].skeletalTransformIndex;
+        } else {
+            *(memory + i) = _meshTransformIndicesMap[*it].transformIndex;
         }
         ++it;
         ++i;
@@ -1072,16 +1202,10 @@ namespace engine::scene {
         commandList->bindPipeline(pipeline);
         applyMaterial(materialIndex);
 
-        if constexpr (kComputeSkinningAvailable) {
-            if (!skeletal) {
-                commandList->bindBuffer(0u, (*_meshTransforms)(frame), 0u, 0u);
-            }
+        if (skeletal) {
+            commandList->bindBuffer(0u, (*_meshSkeletalTransforms)(frame), 0u, 0u);
         } else {
-            if (skeletal) {
-                commandList->bindBuffer(0u, (*_meshSkeletalTransforms)(frame), 0u, 0u);
-            } else {
-                commandList->bindBuffer(0u, (*_meshTransforms)(frame), 0u, 0u);
-            }
+            commandList->bindBuffer(0u, (*_meshTransforms)(frame), 0u, 0u);
         }
         
         commandList->pushConstants(rhi::shaders::Stages::eVertex, 0u, sizeof(Uniform), &uniform);
@@ -1091,16 +1215,14 @@ namespace engine::scene {
             
             const auto currentGeometryDataIndex = mesh2.geometryDataIndex();
             const bool currentSkeletal = mesh2.getSkeleton() != nullptr;
-            const auto currentPipelineIdx = (kComputeSkinningAvailable && currentSkeletal) ? 3u : mesh2.getPipeline();
+            const auto currentPipelineIdx = mesh2.getPipeline();
             const auto currenDataIndex = mesh2.dataIndex();
             const auto currenMaterialIndex = mesh2.materialIndex();
 
-            if constexpr (!kComputeSkinningAvailable) {
-                if (currentSkeletal) {
-                    *(memory + i) = _meshTransformIndicesMap[*it].skeletalTransformIndex;
-                } else {
-                    *(memory + i) = _meshTransformIndicesMap[*it].transformIndex;
-                }
+            if (currentSkeletal) {
+                *(memory + i) = _meshTransformIndicesMap[*it].skeletalTransformIndex;
+            } else {
+                *(memory + i) = _meshTransformIndicesMap[*it].transformIndex;
             }
 
             const bool pipelineChanged = pipelineIdx != currentPipelineIdx;
@@ -1128,17 +1250,11 @@ namespace engine::scene {
                     commandList->pushConstants(rhi::shaders::Stages::eVertex, 0u, sizeof(Uniform), &uniform);
                 }
 
-                if constexpr (kComputeSkinningAvailable) {
-                    if (!currentSkeletal) {
+                if (currentSkeletal != skeletal) {
+                    if (currentSkeletal) {
+                        commandList->bindBuffer(0u, (*_meshSkeletalTransforms)(frame), 0u, 0u);
+                    } else {
                         commandList->bindBuffer(0u, (*_meshTransforms)(frame), 0u, 0u);
-                    }
-                } else {
-                    if (currentSkeletal != skeletal) {
-                        if (currentSkeletal) {
-                            commandList->bindBuffer(0u, (*_meshSkeletalTransforms)(frame), 0u, 0u);
-                        } else {
-                            commandList->bindBuffer(0u, (*_meshTransforms)(frame), 0u, 0u);
-                        }
                     }
                 }
 
@@ -1158,9 +1274,7 @@ namespace engine::scene {
         drawSameMeshes(commandList, frame, currentIt, end, cameraTransform, count, skeletal, offset);
         // offset += count;
 
-        if constexpr (!kComputeSkinningAvailable) {
-            _meshTransformIndices->modify(sizeof(uint32_t) * i);
-        }
+        _meshTransformIndices->modify(sizeof(uint32_t) * i);
     }
 
     void Scene::drawSameMeshes(rhi::runtime::CommandListPtr & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end, 
@@ -1168,55 +1282,18 @@ namespace engine::scene {
         const auto & mesh = *static_cast<const Mesh*>(*begin);
 
         if constexpr (kComputeSkinningAvailable) {
-            if (!skeletal) {
+            if (skeletal) { // skinning with compute shader
+                const auto & g = mesh.geometry();
+                commandList->bindBuffer(0u, _computedVertices, 0u, 0u);
+                // commandList->bindBuffer(1u, _computedNormals, 0u, 0u);
+
+                uint32_t binding_v = 0u;
+                commandList->bindVertexBuffer(binding_v++, mesh.getAttribute(mesh::Semantic::eUv0).buffer, 0u);
+                commandList->bindIndexBuffer(mesh.getIndices().buffer, 0u, rhi::IndexType::eU32);
+
+                commandList->drawIndexed(g.indexCount, count, g.firstIndex);
                 return;
             }
-
-            struct Uniform {
-                mat4f cameraTransform;
-                vec4f albedo;
-                uint32_t vertexCount;
-                uint32_t vertexDataOffset;
-            };
-
-            const auto & g = mesh.geometry();
-            const auto vertexCount = mesh.getAttribute(mesh::Semantic::ePosition).buffer->sizeInBytes() / 8u;
-
-             Uniform uniform {
-                .cameraTransform = cameraTransform, 
-                .albedo = vec4f{1.0f},
-                .vertexCount = vertexCount,
-                .vertexDataOffset = _computedVerticesOffsets[mesh.dataIndex()]
-            };
-
-            auto applyMaterial = [this, &commandList, &uniform](uint16_t materialIndex) noexcept {
-                const auto & material = _graphicsService.getMaterialManager().getMaterial(materialIndex);
-                const auto & textures = material.textures;
-
-                const auto & image = textures[static_cast<uint8_t>(graphics::PbrTextureId::eBaseColor)];
-                assert(image != nullptr); // check textureManager default resources generated!
-
-                // textures change more often than storage buffers - setId #1u used
-                commandList->bindImage(0u, image, _linearSampler, 1u); 
-                uniform.albedo = material.baseColorFactor;
-            };
-
-            applyMaterial(mesh.materialIndex());
-
-            commandList->pushConstants(rhi::shaders::Stages::eVertex, 0u, sizeof(Uniform), &uniform);
-            // commandList->bindVertexBuffer(0u, _computedVertices, 0u);
-            commandList->bindBuffer(0u, _computedVertices, 0u, 0u);
-            // commandList->bindBuffer(1u, _computedNormals, 0u, 0u);
-
-            uint32_t binding_v = 0u;
-            commandList->bindVertexBuffer(binding_v++, mesh.getAttribute(mesh::Semantic::eUv0).buffer, 0u);
-            commandList->bindIndexBuffer(mesh.getIndices().buffer, 0u, rhi::IndexType::eU32);
-
-            commandList->drawIndexed(g.indexCount, count, g.firstIndex);
-
-            // commandList->bindPipeline(getGraphicsPipeline(mesh.getPipeline()));
-            // commandList->bindBuffer(0u, (*_meshSkeletalTransforms)(frame), 0u, 0u);
-            return;
         }
 
         uint32_t binding_v = 0u;
@@ -1225,7 +1302,7 @@ namespace engine::scene {
         commandList->bindVertexBuffer(binding_v++, mesh.getAttribute(mesh::Semantic::eUv0).buffer, 0u);
 
         if (skeletal) { // skeletalMesh
-            // skinning in vertex shader impl (want to get skinning in compute too)
+            // skinning in vertex shader impl
             commandList->bindVertexBuffer(binding_v++, mesh.getAttribute(mesh::Semantic::eJoints).buffer, 0u);
             commandList->bindVertexBuffer(binding_v++, mesh.getAttribute(mesh::Semantic::eWeights).buffer, 0u);
         }

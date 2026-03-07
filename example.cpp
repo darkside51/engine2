@@ -1612,7 +1612,7 @@ namespace example {
                 meshLoaded = true;
                 engine::scene::MeshPipelines pipelines = {
                     .commonPipeline = 2u, 
-                    .skeletalPipeline = 1u
+                    .skeletalPipeline = scene->isComputeSkinningEnabled() ? 3u : 1u
                 };
 
                 auto const animId = animationManager.getAnimationIndex("skeletal_mesh_anim0");
@@ -1654,13 +1654,13 @@ namespace example {
         }
 
         static bool meshLoaded2 = false;
-        if (false && !meshLoaded2) {
+        if (!meshLoaded2) {
             const auto modelIndex = modelManager->getModelDataIdx("scene.gltf");
             if (modelManager->isDataReady(modelIndex)) {
                 meshLoaded2 = true;
                 engine::scene::MeshPipelines pipelines = {
                     .commonPipeline = 2u, 
-                    .skeletalPipeline = 1u
+                    .skeletalPipeline = scene->isComputeSkinningEnabled() ? 3u : 1u
                 };
 
                 auto * meshRoot = engine::scene::createNodeWithSkeletalMesh(*scene, *modelManager, modelIndex, 
@@ -1690,7 +1690,7 @@ namespace example {
                 meshLoaded3 = true;
                 engine::scene::MeshPipelines pipelines = {
                     .commonPipeline = 2u, 
-                    .skeletalPipeline = 1u
+                    .skeletalPipeline = scene->isComputeSkinningEnabled() ? 3u : 1u
                 };
                 auto * meshRoot = engine::scene::createNodeWithSkeletalMesh(*scene, *modelManager, modelIndex, 
                     engine::scene::Bounds::Type::eCube, pipelines);
@@ -1719,13 +1719,13 @@ namespace example {
         }
 
         static bool meshLoaded4 = false;
-        if (false && !meshLoaded4) {
+        if (!meshLoaded4) {
             const auto modelIndex = modelManager->getModelDataIdx("buster_drone.glb");
             if (modelManager->isDataReady(modelIndex)) {
                 meshLoaded4 = true;
                 engine::scene::MeshPipelines pipelines = {
                     .commonPipeline = 2u, 
-                    .skeletalPipeline = 1u
+                    .skeletalPipeline = scene->isComputeSkinningEnabled() ? 3u : 1u
                 };
                 auto const animId = animationManager.getAnimationIndex("buster_anim0");
                 for (uint8_t i = 0u; i < 10u; ++i) {
@@ -1762,7 +1762,7 @@ namespace example {
                 meshLoaded5 = true;
                 engine::scene::MeshPipelines pipelines = {
                     .commonPipeline = 2u, 
-                    .skeletalPipeline = 1u
+                    .skeletalPipeline = scene->isComputeSkinningEnabled() ? 3u : 1u
                 };
                 auto const animId = animationManager.getAnimationIndex("chaman_anim1");
                 for (uint16_t i = 0u; i < 300u; ++i) {

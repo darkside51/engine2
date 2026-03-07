@@ -136,6 +136,9 @@ public:
         const mat4f & cameraTransform, std::span<AttachmentObject*> objects, const DrawDataOffsets & offsets);
     void dispatch(rhi::runtime::CommandListPtr & commandList, uint8_t frame, std::span<AttachmentObject*> objects, const DrawDataOffsets & offsets);
 
+    // getters
+    bool isComputeSkinningEnabled() const noexcept;
+
 private:
     static bool compareAttachmentsForDraw(const AttachmentObject & a, const AttachmentObject & b) noexcept;
     
@@ -163,6 +166,8 @@ private:
         const mat4f & cameraTransform, uint32_t batchVertexesCount, uint32_t batchIndicesCount, uint32_t vtxOffset, uint32_t idxOffset);
 
     void drawMeshes(rhi::runtime::CommandListPtr & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end,
+        const mat4f & cameraTransform, uint32_t offset);
+    void drawMeshes2(rhi::runtime::CommandListPtr & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end,
         const mat4f & cameraTransform, uint32_t offset);
     void drawSameMeshes(rhi::runtime::CommandListPtr & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end, 
         const mat4f & cameraTransform, uint32_t count, bool skeletal, uint32_t startTransformIndex);   
