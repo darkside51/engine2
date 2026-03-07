@@ -47,13 +47,12 @@ void main() {
 
 	const uint objectId = invocationId / push.invocationsPerObject;
 
-	if (objectId > push.objectsCount) {
+	if (objectId >= push.objectsCount) {
 		return;
 	}
 
 	const uint transfromIdx = skin_offsets.data[objectId + push.firstObject];
 	const int vertexId = int(u_indices.data[invocationId % push.invocationsPerObject + push.indicesOffset]);
-	//const int vertexId = int(invocationId % push.invocationsPerObject) + int(push.indicesOffset);
 
 	const vec4 a_weights = texelFetch(u_weights, vertexId);
 	const uvec4 a_joints = uvec4(texelFetch(u_joints, vertexId) * 255.0);
@@ -83,7 +82,6 @@ void main() {
 		vec4(0.0, 0.0, 0.0, 1.0)
 	) * a_weights.w;
 
-	//const uint resultOffset = invocationId + push.resultOffset;
 	const uint resultOffset = vertexId + objectId * push.elementsCount + push.resultOffset;
 	out_positions.data[resultOffset] = vec4(texelFetch(u_positions, vertexId).xyz, 1.0) * skin;
 	//out_normals.data[resultOffset] = normalize((texelFetch(u_normals, vertexId) * skin));

@@ -809,7 +809,7 @@ namespace engine::scene {
             uniform.resultOffset += vertexCount * maxCount;
         }
 
-        return uniform.resultOffset + vertexCount; // ??? why + vertexCount
+        return uniform.resultOffset;
     }
 
     void Scene::dispatch(rhi::runtime::CommandListPtr & commandList, uint8_t frame, std::span<AttachmentObject*> objects, const DrawDataOffsets & offsets) {
