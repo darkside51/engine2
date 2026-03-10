@@ -20,6 +20,10 @@ layout (set = 1, binding = 1) readonly buffer SkinTransformOffsets {
    uint data[];
 } skin_offsets;
 
+layout (set = 1, binding = 2) readonly buffer SkeletonIds {
+   uint data[];
+} skeleton_ids;
+
 layout (set = 2, binding = 0) readonly buffer UniqueIndices {
    uint data[];
 } u_indices;
@@ -82,7 +86,8 @@ void main() {
 		vec4(0.0, 0.0, 0.0, 1.0)
 	) * a_weights.w;
 
-	const uint resultOffset = vertexId + objectId * push.elementsCount + push.resultOffset;
+	//const uint resultOffset = vertexId + objectId * push.elementsCount + push.resultOffset;
+	const uint resultOffset = vertexId + skeleton_ids.data[objectId + push.firstObject] * 10000;
 	out_positions.data[resultOffset] = vec4(texelFetch(u_positions, vertexId).xyz, 1.0) * skin;
 	out_normals.data[resultOffset] = normalize((texelFetch(u_normals, vertexId) * skin));
 }

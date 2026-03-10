@@ -1618,7 +1618,7 @@ namespace example {
                 auto const animId = animationManager.getAnimationIndex("skeletal_mesh_anim0");
                 for (size_t i = 0u; i < 300u; ++i) {
                     auto * meshRoot = engine::scene::createNodeWithSkeletalMesh(*scene, *modelManager, modelIndex, 
-                        engine::scene::Bounds::Type::eSphere, pipelines, 0u);
+                        engine::scene::Bounds::Type::eSphere, pipelines, i == 5u ? -1u : 0u);
                     
                     // meshRoot->childAt(0u)->getAttachment(1u)->setHidden(true);
 
@@ -1684,7 +1684,7 @@ namespace example {
         }
 
         static bool meshLoaded3 = false;
-        if (!meshLoaded3) {
+        if (false && !meshLoaded3) {
             const auto modelIndex = modelManager->getModelDataIdx("wheel.glb");
             if (modelManager->isDataReady(modelIndex)) {
                 meshLoaded3 = true;

@@ -78,6 +78,7 @@ class Scene {
         uint32_t meshesDrawOffset = 0u;
         uint32_t spriteVerticesOffset = 0u;
         uint32_t spriteIndicesOffset = 0u;
+        uint32_t skeletonOffset = 0u;
     };
 
 public:
@@ -147,28 +148,28 @@ private:
     void reduceUsedMemory(std::chrono::time_point<std::chrono::steady_clock> now) noexcept;
 
     void dispatchObjects(rhi::runtime::CommandListPtr & commandList, uint8_t frame, 
-        AttachmentsIterator begin, AttachmentsIterator end, uint16_t typeIdx, const DrawDataOffsets & offsets);
+        AttachmentsIterator begin, AttachmentsIterator end, uint16_t typeIdx, DrawDataOffsets & offsets);
 
     void dispatchMeshes(rhi::runtime::CommandListPtr & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end, 
-        uint32_t offset);
+        uint32_t & offset, uint32_t & skeletonOffset);
     uint32_t dispatchSameMeshes(rhi::runtime::CommandListPtr & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end, 
-        uint32_t count, uint32_t startTransformIndex, uint32_t resultOffset);
+        uint32_t count, uint32_t startTransformIndex, uint32_t skeletonsOffset, uint32_t resultOffset);
 
     // draw
     void drawObjects(rhi::runtime::CommandListPtr & commandList, uint8_t frame, 
         const mat4f & cameraTransform, AttachmentsIterator begin, AttachmentsIterator end, 
-        uint16_t typeIdx, const DrawDataOffsets & offsets);
+        uint16_t typeIdx, DrawDataOffsets & offsets);
 
     void drawDummies(AttachmentsIterator begin, AttachmentsIterator end, const mat4f & cameraTransform, uint32_t color);
     void drawSprites(rhi::runtime::CommandListPtr & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end,
-        const mat4f & cameraTransform, uint32_t vtxOffset, uint32_t idxOffset);
+        const mat4f & cameraTransform, uint32_t & vtxOffset, uint32_t & idxOffset);
     void drawSpritesBatch(rhi::runtime::CommandListPtr & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end, 
         const mat4f & cameraTransform, uint32_t batchVertexesCount, uint32_t batchIndicesCount, uint32_t vtxOffset, uint32_t idxOffset);
 
     void drawMeshes(rhi::runtime::CommandListPtr & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end,
-        const mat4f & cameraTransform, uint32_t offset);
+        const mat4f & cameraTransform, uint32_t & offset);
     void drawMeshes2(rhi::runtime::CommandListPtr & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end,
-        const mat4f & cameraTransform, uint32_t offset);
+        const mat4f & cameraTransform, uint32_t & offset, uint32_t & skeletonsOffset);
     void drawSameMeshes(rhi::runtime::CommandListPtr & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end, 
         const mat4f & cameraTransform, uint32_t count, bool skeletal, uint32_t startTransformIndex);   
 
@@ -237,6 +238,7 @@ private:
     struct MeshTransformsIndices {
         uint32_t transformIndex = kUnknownTransformIndex;
         uint32_t skeletalTransformIndex = kUnknownTransformIndex;
+        uint32_t skeletonId = kUnknownTransformIndex;
     };
 
     std::unordered_map<const AttachmentObject*, MeshTransformsIndices> _meshTransformIndicesMap;
@@ -255,6 +257,11 @@ private:
     std::unique_ptr<graphics::InflightBuffer> _meshSkeletalTransforms = nullptr;
 
     // compute mesh:
+    uint32_t _skeletonsInFrame = 0u;
+    uint32_t _uniqueSkeletons = 0u;
+    uint32_t _lastFramesUsedSkeletonsInFrame = 0u;
+    std::unique_ptr<graphics::InflightBuffer> _skeletonIds = nullptr;
+
     uint32_t _computedVerticesOffset = 0u;
     std::vector<uint32_t> _computedVerticesOffsets;
 

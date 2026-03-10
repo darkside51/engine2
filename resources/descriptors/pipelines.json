@@ -295,6 +295,11 @@
 					"stride" : 4,
 					"binding" : 0,
 					"inputRate": "eVertex"
+				},
+				{
+					"stride" : 4,
+					"binding" : 1,
+					"inputRate": "eInstance"
 				}
 			],
 			"attributes":[
@@ -302,6 +307,12 @@
 					"location": 0,
                     "binding": 0,
                     "format": "eR16G16_Sfloat",
+                    "offset": 0
+				},
+				{
+					"location": 1,
+                    "binding": 1,
+                    "format": "eR32_Uint",
                     "offset": 0
 				}
 			]
