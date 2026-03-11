@@ -706,16 +706,26 @@ namespace engine::scene {
         auto dataIndex = mesh.dataIndex();
         auto materialIndex = mesh.materialIndex();
           
+        // const uint32_t vertexCount = 30'000u;
+        std::array<uint32_t, 1024u> vertexCounts{};
+        //std::memset(vertexCounts.data(), 0u, vertexCounts.size() * sizeof(uint32_t));
+
         const auto startOffset = offset;
         const auto startSkeletonOffset = skeletonOffset;
         uint32_t i = 0u;
-        uint32_t n = 0u;
+        uint32_t j = 0u;
         auto * memory = _meshTransformIndices->memory2<uint32_t>() + offset;
         auto * memory2 = _skeletonIds->memory2<uint32_t>() + skeletonOffset;
         if (skeletal) {
-            *(memory + i) = _meshTransformIndicesMap[*it].skeletalTransformIndex;
-            *(memory2 + n) = _meshTransformIndicesMap[*it].skeletonId;
-            ++n;
+            // auto & skeletonData = _meshTransformIndicesMap[*it].skeletonId;
+            // const auto vertexCount = mesh.geometry().uniqueIndeiceCount + (skeletonData >> 16u) & 0xffffu;
+            // skeletonData = (skeletonData & 0xffffu) | (vertexCount << 16u);
+            const auto & ti = _meshTransformIndicesMap[*it];
+            vertexCounts[ti.skeletonId] = mesh.getAttribute(mesh::Semantic::ePosition).buffer->sizeInBytes() / 8u;
+
+            *(memory + i) = ti.skeletalTransformIndex;
+            *(memory2 + j) = ti.skeletonId;// | (vertexCount << 16u);
+            ++j;
         } else {
             *(memory + i) = _meshTransformIndicesMap[*it].transformIndex;
         }
@@ -749,9 +759,15 @@ namespace engine::scene {
             const auto currenMaterialIndex = mesh2.materialIndex();
 
             if (currentSkeletal) {
-                *(memory + i) = _meshTransformIndicesMap[*it].skeletalTransformIndex;
-                *(memory2 + n) = _meshTransformIndicesMap[*it].skeletonId;
-                ++n;
+                // auto & skeletonData = _meshTransformIndicesMap[*it].skeletonId;
+                // const auto vertexCount = mesh2.geometry().uniqueIndeiceCount + (skeletonData >> 16u) & 0xffffu;
+                // skeletonData = (skeletonData & 0xffffu) | (vertexCount << 16u);
+                const auto & ti = _meshTransformIndicesMap[*it];
+                 vertexCounts[ti.skeletonId] = mesh2.getAttribute(mesh::Semantic::ePosition).buffer->sizeInBytes() / 8u;
+                
+                *(memory + i) = ti.skeletalTransformIndex;
+                *(memory2 + j) = ti.skeletonId;// | (vertexCount << 16u);
+                ++j;
             } else {
                 *(memory + i) = _meshTransformIndicesMap[*it].transformIndex;
             }
@@ -815,8 +831,24 @@ namespace engine::scene {
         }
         offset += count;
 
+        
+        static uint32_t offset2 = 0u;
+        if (startOffset == 0) {
+            offset2 = 0u;
+        }
+        
+        for (uint32_t n = 0u; n < 1024; ++n) {
+            const auto vertexCount = vertexCounts[n];
+            vertexCounts[n] = offset2;
+            offset2 += vertexCount;
+        }
+
+        for (uint32_t n = 0u; n < j; ++n) {
+            *(memory2 + n) = vertexCounts[*(memory2 + n)];
+        }
+
         _meshTransformIndices->modify(sizeof(uint32_t) * (startOffset + i));
-        _skeletonIds->modify(sizeof(uint32_t) * (startSkeletonOffset + n));
+        _skeletonIds->modify(sizeof(uint32_t) * (startSkeletonOffset + j));
     }
 
     uint32_t Scene::dispatchSameMeshes(rhi::runtime::CommandListPtr & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end, 
@@ -1210,7 +1242,6 @@ namespace engine::scene {
             }
         }
 
-        // drawSameMeshes(commandList, frame, currentIt, end, cameraTransform, count, skeletal, offset);
         if (skeletal) {
             drawSameMeshes(commandList, frame, currentIt, end, cameraTransform, count, skeletal, skeletonsOffset);
             skeletonsOffset += count;

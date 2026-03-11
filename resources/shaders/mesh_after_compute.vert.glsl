@@ -23,7 +23,12 @@ layout(push_constant) uniform Params {
 
 void main() {
 	//uint vertexId = push.vertexDataOffset + gl_VertexIndex + gl_InstanceIndex * push.vertexPerObjects;
-	const uint vertexId = gl_VertexIndex + a_skeleton_ids * 10000;
+
+	//const uint skeletonId = a_skeleton_ids & 0xffffu;
+	//const uint vertexCount = (a_skeleton_ids >> 16u) & 0xffffu;
+	//const uint vertexId = gl_VertexIndex + skeletonId * vertexCount;
+
+	const uint vertexId = gl_VertexIndex + a_skeleton_ids;
 	gl_Position = push.viewProjection * in_positions.data[vertexId];
 	v_normal = in_normals.data[vertexId].xyz;
 	v_uv = a_uv;

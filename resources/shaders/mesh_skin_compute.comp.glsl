@@ -87,7 +87,13 @@ void main() {
 	) * a_weights.w;
 
 	//const uint resultOffset = vertexId + objectId * push.elementsCount + push.resultOffset;
-	const uint resultOffset = vertexId + skeleton_ids.data[objectId + push.firstObject] * 10000;
+
+	//const uint skeletonData = skeleton_ids.data[objectId + push.firstObject];
+	//const uint skeletonId = skeletonData & 0xffffu;
+	//const uint vertexCount = (skeletonData >> 16u) & 0xffffu;
+	//const uint resultOffset = vertexId + skeletonId * vertexCount;
+
+	const uint resultOffset = vertexId + skeleton_ids.data[objectId + push.firstObject];
 	out_positions.data[resultOffset] = vec4(texelFetch(u_positions, vertexId).xyz, 1.0) * skin;
 	out_normals.data[resultOffset] = normalize((texelFetch(u_normals, vertexId) * skin));
 }
