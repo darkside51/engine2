@@ -62,6 +62,7 @@ namespace engine::scene {
 
     // compute skinning
     constexpr bool kComputeSkinningAvailable = true;
+    constexpr uint32_t kMeshComputeVerticesBufferBytesCount = 128u * 1024u * 1024u; // 128Mb
     constexpr uint32_t kMaxSkeletonsDispatchPack = 2048u;
 
     // global objects:
@@ -272,7 +273,8 @@ namespace engine::scene {
         };
 
         const rhi::BufferInfo verticesInfo2 {
-            rhi::BufferUsageFlags::eVertex_Buffer |  rhi::BufferUsageFlags::eStorage_Buffer | rhi::BufferUsageFlags::eTransfer_Dst,
+            rhi::BufferUsageFlags::eVertex_Buffer | rhi::BufferUsageFlags::eUniform_Buffer | 
+            rhi::BufferUsageFlags::eStorage_Buffer | rhi::BufferUsageFlags::eTransfer_Dst,
             rhi::MemoryPropertyFlags::eDeviceLocal
         };
 
@@ -312,12 +314,14 @@ namespace engine::scene {
         if constexpr (kComputeSkinningAvailable) {
             // compute:
             const rhi::BufferInfo computeVerticesInfo {
-                rhi::BufferUsageFlags::eVertex_Buffer | rhi::BufferUsageFlags::eStorage_Buffer | rhi::BufferUsageFlags::eTransfer_Dst,
+                rhi::BufferUsageFlags::eVertex_Buffer | rhi::BufferUsageFlags::eStorage_Buffer,
                 rhi::MemoryPropertyFlags::eDeviceLocal
             };
 
-            _computedVertices = api.createBuffer(device, computeVerticesInfo, 128u * 1024u * 1024u); // 128Mb
-            _computedNormals = api.createBuffer(device, computeVerticesInfo, 128u * 1024u * 1024u); // 128Mb
+            // reserve 2u * kMeshComputeVerticesBufferBytesCount mb gpu memory for calculate skinnig all vertices of all meshes 
+            // maybe calculate and change this size dynamically is better way
+            _computedVertices = api.createBuffer(device, computeVerticesInfo, kMeshComputeVerticesBufferBytesCount);
+            _computedNormals = api.createBuffer(device, computeVerticesInfo, kMeshComputeVerticesBufferBytesCount);
         }
     }
 

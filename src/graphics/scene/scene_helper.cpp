@@ -76,7 +76,7 @@ void loadNodes(Scene & scene, const graphics::ModelManager::ModelBuffers & gpuBu
 };
 
 Node * createNodeWithSkeletalMesh(Scene & scene, const graphics::ModelManager & modelManager, 
-    uint32_t modelIndex, Bounds::Type boundsType, MeshPipelines pipelines, int16_t order) {
+    uint32_t modelIndex, Bounds::Type boundsType, MeshPipelines pipelines, ObjectSizeLayout layout, int16_t order) {
     auto * meshRoot = scene.createNode();
     const auto & meshData = modelManager.getModelData(modelIndex);
     engine::scene::Skeleton * skeleton = scene.createObject<engine::scene::Skeleton>(meshData);
@@ -111,6 +111,20 @@ Node * createNodeWithSkeletalMesh(Scene & scene, const graphics::ModelManager & 
         break;
     default: 
         break;
+    }
+
+    if (layout.type != ObjectSizeLayout::Type::eNone) {
+        // todo: check types!
+        float scale = 1.0f;
+        if (meshRoot->bounds.type == engine::scene::Bounds::Type::eSphere) {
+            scale = 0.5f * std::min({layout.size[0u], layout.size[1u], layout.size[2u]}) / meshRoot->bounds.volume.sphere.radius;
+        } else if (meshRoot->bounds.type == engine::scene::Bounds::Type::eCube) {
+            const auto & cube = meshRoot->bounds.volume.cube;
+            const auto size = cube.corner1 - cube.corner0;
+            scale = std::min({layout.size[0u] / std::abs(size.x), layout.size[1u] / std::abs(size.y), layout.size[2u] / std::abs(size.z)});
+        }
+
+        meshRoot->setScale(scale);
     }
 
     return meshRoot;
