@@ -108,6 +108,10 @@ namespace mesh {
         const Skeleton * getSkeleton() const noexcept { return _skeleton; }
         void setSkeleton(Skeleton * skeleton) noexcept { _skeleton = skeleton; }
 
+        uint32_t getVertexCount() const noexcept {
+            return getAttribute(mesh::Semantic::ePosition).buffer->sizeInBytes() / 8u;
+        }
+
     private:
         const graphics::models::Primitive & _geometry;
         Skeleton * _skeleton = nullptr;

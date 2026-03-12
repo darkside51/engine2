@@ -39,8 +39,6 @@ layout(push_constant) uniform Data {
 	uint objectsCount;
 	uint invocationsPerObject;
 	uint indicesOffset;
-	uint elementsCount;
-	uint resultOffset;
 } push;
 
 void main() {
@@ -85,8 +83,6 @@ void main() {
 		sbo_skin.transforms[transfromIdx + a_joints.w][2],
 		vec4(0.0, 0.0, 0.0, 1.0)
 	) * a_weights.w;
-
-	//const uint resultOffset = vertexId + objectId * push.elementsCount + push.resultOffset;
 
 	//const uint skeletonData = skeleton_ids.data[objectId + push.firstObject];
 	//const uint skeletonId = skeletonData & 0xffffu;

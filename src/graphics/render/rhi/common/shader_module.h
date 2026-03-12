@@ -17,6 +17,9 @@ class ShaderModulesManager final : public runtime::ShaderModulesManager {
 public:
     const Api::ShaderModule & registerModule(std::string key, const runtime::Device & device, 
         rhi::shaders::Stages stage, std::span<const std::byte> code) override {
+        if (const auto * shaderModule = getModule(key)) {
+            return *shaderModule;
+        }
         return registerModule(std::move(key), typename Api::ShaderModule{static_cast<const Api::Device &>(device), stage, code});
     }
 

@@ -533,10 +533,9 @@ namespace example {
 
         { // kMeshAfterComputeProgram
             auto const vBytes = _fileManager.readFile("shaders/mesh_after_compute.vert.spv");
-            auto const fBytes = _fileManager.readFile("shaders/mesh2.frag.spv");
 
             const auto & vsModule = _shaderModulesManager->registerModule("mesh_after_compute.vert", *_device, engine::rhi::shaders::Stages::eVertex, vBytes);
-            const auto & fsModule = _shaderModulesManager->registerModule("mesh2.frag", *_device, engine::rhi::shaders::Stages::eFragment, fBytes);
+            const auto & fsModule = _shaderModulesManager->registerModule("mesh.frag", *_device, engine::rhi::shaders::Stages::eFragment, {});
 
             _programs.emplace_back(_api->createProgram(*_device, std::array{vsModule.getView(), fsModule.getView()}));
         }
@@ -1627,7 +1626,7 @@ namespace example {
                             auto * handBone = skeleton->node(15u);
                             swordNode->removeFromParent();
                             handBone->addChild(swordNode);
-                            //meshRoot->childAt(0u)->getAttachment(1u)->setHidden(true); // todo: fix it for compute skinning method
+                            // meshRoot->childAt(0u)->getAttachment(1u)->setHidden(true); // todo: fix it for compute skinning method
                         }
 
                         auto * anim0 = scene->createAnimInfo<engine::scene::SkeletalAnimation>(animId, engine::common::random(0.25f, 1.7f));
@@ -1728,7 +1727,7 @@ namespace example {
                     .skeletalPipeline = scene->isComputeSkinningEnabled() ? 3u : 1u
                 };
                 auto const animId = animationManager.getAnimationIndex("buster_anim0");
-                for (uint8_t i = 0u; i < 10u; ++i) {
+                for (uint8_t i = 0u; i < 20u; ++i) {
                     auto * meshRoot = engine::scene::createNodeWithSkeletalMesh(*scene, *modelManager, modelIndex, 
                         engine::scene::Bounds::Type::eCube, pipelines);
 

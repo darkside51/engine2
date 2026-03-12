@@ -28,7 +28,7 @@ namespace models {
 		uint32_t firstIndex = 0u;
 		uint32_t indexCount = 0u;
 		uint32_t uniqueIndexOffset = 0u;
-		uint32_t uniqueIndeiceCount = 0u;
+		uint32_t uniqueIndicesCount = 0u;
 
 		vec3f minCorner{};
 		vec3f maxCorner{};

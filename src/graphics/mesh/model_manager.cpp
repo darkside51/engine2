@@ -56,7 +56,7 @@ namespace engine::graphics {
                 const auto size = last - uIdxs.begin();
                 std::move(uIdxs.begin(), last, std::back_inserter(buffers.uniqueIndexBufferData));
                 primitive.uniqueIndexOffset = uniqueOffset;
-                primitive.uniqueIndeiceCount = size;
+                primitive.uniqueIndicesCount = size;
                 uniqueOffset += size;
             }
         }

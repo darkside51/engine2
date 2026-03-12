@@ -17,8 +17,6 @@ layout (location = 1) out vec2 v_uv;
 layout(push_constant) uniform Params {
 	mat4 viewProjection;
 	vec4 albedo;
-	uint vertexPerObjects;
-	uint vertexDataOffset;
 } push;
 
 void main() {

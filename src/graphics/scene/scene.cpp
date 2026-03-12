@@ -16,6 +16,7 @@
 #include "graphics/texture/texture_manager.h"
 
 #include <algorithm>
+#include <cassert>
 
 #include <unordered_map>
 
@@ -26,10 +27,10 @@ namespace {
         static_assert(sizeof(AnimationInfo) == 16u);
         static_assert(sizeof(AnimationInfoChain) == 32u);
 
-        static_assert(sizeof(AttachmentObject) == 32u);
-        static_assert(sizeof(Dummy) == 32u);
-        static_assert(sizeof(Mesh) == 192u);
-        static_assert(sizeof(Sprite) == 64u);
+        static_assert(sizeof(AttachmentObject) == 40u);
+        static_assert(sizeof(Dummy) == 40u);
+        static_assert(sizeof(Mesh) == 200u);
+        static_assert(sizeof(Sprite) == 72u);
 
         static_assert(sizeof(Node) == 232u);
         static_assert(sizeof(Bounds) == 28u);
@@ -61,6 +62,7 @@ namespace engine::scene {
 
     // compute skinning
     constexpr bool kComputeSkinningAvailable = true;
+    constexpr uint32_t kMaxSkeletonsDispatchPack = 2048u;
 
     // global objects:
     FramesSequenceAnimator gSequenceAnimator{1.0f / 30.0f};
@@ -360,9 +362,13 @@ namespace engine::scene {
         for (auto * object : objects) {
             auto * animInfo = object->animInfo;
             while (animInfo) {
-                const auto time = (animInfo->info.sleepTime - delta / (1u + object->lod));
-                if (animInfo->info.weight > 0.0f && time <= 0.0f) {
-                    animInfo->info.sleepTime = std::min(delta, kAnimUpdateMaxTime);
+                //const auto time = (animInfo->info.sleepTime - delta / (1u + object->lod));
+                // const bool animateObject = (object->id + _frameNumber) % (1u + object->lod); // use object lods!
+                const bool animateObject = delta < kAnimUpdateMaxTime ? (object->id + _frameNumber) % 2u : true;
+                const auto time = (animInfo->info.sleepTime - delta);
+                if (animateObject && animInfo->info.weight > 0.0f && time <= 0.0f) {
+                    animInfo->info.sleepTime = kAnimUpdateMaxTime;
+                    // animInfo->info.sleepTime = std::min(delta, kAnimUpdateMaxTime);
                     switch (animInfo->info.animationType) {
                     case ctti::typeIndex<Animation, SkeletalAnimation>() : 
                     {
@@ -683,10 +689,20 @@ namespace engine::scene {
         uint16_t typeIdx, DrawDataOffsets & offsets) {
 
         switch (typeIdx) {
-        case ctti::typeIndex<AttachmentObject, Skeleton>(): // do not draw skeletons
+        case ctti::typeIndex<AttachmentObject, Skeleton>():
             break;
         case ctti::typeIndex<AttachmentObject, Mesh>():
-            dispatchMeshes(commandList, frame, begin, end, offsets.meshesDrawOffset, offsets.skeletonOffset);
+        {
+            // uint32_t count = end - begin;
+            // while (count > 0u) {
+            //     const auto c = std::min(kMaxSkeletonsDispatchPack, count);
+            //     dispatchMeshes(commandList, frame, begin, begin + c, offsets);
+            //     begin += c;
+            //     count -= c;
+            // }
+
+            dispatchMeshes(commandList, frame, begin, end, offsets);
+        }
             break;
         case ctti::typeIndex<AttachmentObject, Sprite>():
             break;
@@ -696,7 +712,7 @@ namespace engine::scene {
     }
 
     void Scene::dispatchMeshes(rhi::runtime::CommandListPtr & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end, 
-        uint32_t & offset, uint32_t & skeletonOffset) {
+        DrawDataOffsets & offsets) {
             
         auto currentIt = begin;
         auto it = currentIt;
@@ -706,28 +722,35 @@ namespace engine::scene {
         auto dataIndex = mesh.dataIndex();
         auto materialIndex = mesh.materialIndex();
           
-        // const uint32_t vertexCount = 30'000u;
-        std::array<uint32_t, 1024u> vertexCounts{};
-        //std::memset(vertexCounts.data(), 0u, vertexCounts.size() * sizeof(uint32_t));
+        std::array<uint32_t, kMaxSkeletonsDispatchPack> skeletonMeshesVerticesCounts{};
 
-        const auto startOffset = offset;
-        const auto startSkeletonOffset = skeletonOffset;
+        const auto startOffset = offsets.meshesDrawOffset;
+        const auto startSkeletonOffset = offsets.skeletonOffset;
         uint32_t i = 0u;
         uint32_t j = 0u;
-        auto * memory = _meshTransformIndices->memory2<uint32_t>() + offset;
-        auto * memory2 = _skeletonIds->memory2<uint32_t>() + skeletonOffset;
+        auto * memory = _meshTransformIndices->memory2<uint32_t>() + startOffset;
+        auto * memory2 = _skeletonIds->memory2<uint32_t>() + startSkeletonOffset;
+        const auto & ti = _meshTransformIndicesMap.find(*it)->second;
+
+        uint32_t minId = 0xff'ff'ff'ffu;
+        uint32_t maxId = 0u;
+
         if (skeletal) {
             // auto & skeletonData = _meshTransformIndicesMap[*it].skeletonId;
-            // const auto vertexCount = mesh.geometry().uniqueIndeiceCount + (skeletonData >> 16u) & 0xffffu;
+            // const auto vertexCount = mesh.geometry().uniqueIndicesCount + (skeletonData >> 16u) & 0xffffu;
             // skeletonData = (skeletonData & 0xffffu) | (vertexCount << 16u);
-            const auto & ti = _meshTransformIndicesMap[*it];
-            vertexCounts[ti.skeletonId] = mesh.getAttribute(mesh::Semantic::ePosition).buffer->sizeInBytes() / 8u;
+            const auto skeletonId = ti.skeletonId;
+            assert(skeletonId < kMaxSkeletonsDispatchPack);
 
+            skeletonMeshesVerticesCounts[skeletonId] = mesh.getVertexCount();
             *(memory + i) = ti.skeletalTransformIndex;
-            *(memory2 + j) = ti.skeletonId;// | (vertexCount << 16u);
+            *(memory2 + j) = skeletonId;// | (vertexCount << 16u);
+            minId = std::min(minId, skeletonId);
+            maxId = std::max(maxId, skeletonId);
+
             ++j;
         } else {
-            *(memory + i) = _meshTransformIndicesMap[*it].transformIndex;
+            *(memory + i) = ti.transformIndex;
         }
         ++it;
         ++i;
@@ -758,40 +781,35 @@ namespace engine::scene {
             const auto currenDataIndex = mesh2.dataIndex();
             const auto currenMaterialIndex = mesh2.materialIndex();
 
+            const auto & ti = _meshTransformIndicesMap.find(*it)->second;
             if (currentSkeletal) {
                 // auto & skeletonData = _meshTransformIndicesMap[*it].skeletonId;
-                // const auto vertexCount = mesh2.geometry().uniqueIndeiceCount + (skeletonData >> 16u) & 0xffffu;
+                // const auto vertexCount = mesh2.geometry().uniqueIndicesCount + (skeletonData >> 16u) & 0xffffu;
                 // skeletonData = (skeletonData & 0xffffu) | (vertexCount << 16u);
-                const auto & ti = _meshTransformIndicesMap[*it];
-                 vertexCounts[ti.skeletonId] = mesh2.getAttribute(mesh::Semantic::ePosition).buffer->sizeInBytes() / 8u;
-                
+                const auto skeletonId = ti.skeletonId;
+                assert(skeletonId < kMaxSkeletonsDispatchPack);
+
+                skeletonMeshesVerticesCounts[skeletonId] = mesh2.getVertexCount();
                 *(memory + i) = ti.skeletalTransformIndex;
-                *(memory2 + j) = ti.skeletonId;// | (vertexCount << 16u);
+                *(memory2 + j) = skeletonId;// | (vertexCount << 16u);
+                minId = std::min(minId, skeletonId);
+                maxId = std::max(maxId, skeletonId);
+
                 ++j;
             } else {
-                *(memory + i) = _meshTransformIndicesMap[*it].transformIndex;
+                *(memory + i) = ti.transformIndex;
             }
 
-            bool completePack = currentSkeletal != skeletal ||
+            const bool completePack = currentSkeletal != skeletal ||
                                 currenDataIndex != dataIndex ||
                                 currentGeometryDataIndex != geometryDataIndex;
                  
             if (completePack) {
                 if (skeletal) { // dispatch
-                    if (dataIndex >= _computedVerticesOffsets.size()) {
-                        _computedVerticesOffsets.resize(dataIndex * 2u);
-                    }
-
-                    auto & computeOffset = _computedVerticesOffsets[dataIndex];
-                    if (computeOffset == 0xff'ff'ff'ffu) {
-                        computeOffset = _computedVerticesOffset;
-                        _computedVerticesOffset = dispatchSameMeshes(commandList, frame, currentIt, it, count, offset, skeletonOffset, _computedVerticesOffset);
-                    } else {
-                        _computedVerticesOffset = std::max(dispatchSameMeshes(commandList, frame, currentIt, it, count, offset, skeletonOffset, computeOffset), _computedVerticesOffset);
-                    }
-                    skeletonOffset += count;
+                    dispatchSameMeshes(commandList, frame, currentIt, it, count, offsets.meshesDrawOffset, offsets.skeletonOffset);
+                    offsets.skeletonOffset += count;
                 }
-                offset += count;
+                offsets.meshesDrawOffset += count;
 
                 // begin next pack
                 dataIndex = currenDataIndex;
@@ -809,50 +827,33 @@ namespace engine::scene {
                     commandList->bindTexelBuffer(3u, mesh2.getAttribute(mesh::Semantic::eJoints).buffer, rhi::Format::eR8G8B8A8_Unorm, 2u);
                     commandList->bindTexelBuffer(4u, mesh2.getAttribute(mesh::Semantic::eWeights).buffer, rhi::Format::eR16G16B16A16_Sfloat, 2u);
                 }
-
             } else {
                 ++count;
             }
         }
 
         if (skeletal) { // dispatch
-            if (dataIndex >= _computedVerticesOffsets.size()) {
-                _computedVerticesOffsets.resize(dataIndex * 2u);
-            }
-
-            auto & computeOffset = _computedVerticesOffsets[dataIndex];
-            if (computeOffset == 0xff'ff'ff'ffu) {
-                computeOffset = _computedVerticesOffset;
-                _computedVerticesOffset = dispatchSameMeshes(commandList, frame, currentIt, end, count, offset, skeletonOffset, _computedVerticesOffset);
-            } else {
-                _computedVerticesOffset = std::max(dispatchSameMeshes(commandList, frame, currentIt, end, count, offset, skeletonOffset, computeOffset), _computedVerticesOffset);
-            }
-            skeletonOffset += count;
+            dispatchSameMeshes(commandList, frame, currentIt, end, count, offsets.meshesDrawOffset, offsets.skeletonOffset);
+            offsets.skeletonOffset += count;
         }
-        offset += count;
+        offsets.meshesDrawOffset += count;
 
-        
-        static uint32_t offset2 = 0u;
-        if (startOffset == 0) {
-            offset2 = 0u;
-        }
-        
-        for (uint32_t n = 0u; n < 1024; ++n) {
-            const auto vertexCount = vertexCounts[n];
-            vertexCounts[n] = offset2;
-            offset2 += vertexCount;
+        for (uint32_t n = minId; n <= maxId; ++n) {
+            const auto vertexCount = skeletonMeshesVerticesCounts[n];
+            skeletonMeshesVerticesCounts[n] = offsets.computeSkinVerticesOffset;
+            offsets.computeSkinVerticesOffset += vertexCount;
         }
 
         for (uint32_t n = 0u; n < j; ++n) {
-            *(memory2 + n) = vertexCounts[*(memory2 + n)];
+            *(memory2 + n) = skeletonMeshesVerticesCounts[*(memory2 + n)];
         }
 
         _meshTransformIndices->modify(sizeof(uint32_t) * (startOffset + i));
         _skeletonIds->modify(sizeof(uint32_t) * (startSkeletonOffset + j));
     }
 
-    uint32_t Scene::dispatchSameMeshes(rhi::runtime::CommandListPtr & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end, 
-        uint32_t count, uint32_t startTransformIndex, uint32_t skeletonsOffset, uint32_t resultOffset) {
+    void Scene::dispatchSameMeshes(rhi::runtime::CommandListPtr & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end, 
+        uint32_t count, uint32_t transformIndex, uint32_t skeletonsOffset) {
 
         constexpr auto kMaxExecutionCount = 0xff'ffu; // 65535u
 
@@ -861,14 +862,11 @@ namespace engine::scene {
             uint32_t objectsCount;
 	        uint32_t invocationsPerObject;
             uint32_t indicesOffset;
-            uint32_t elementsCount;
-            uint32_t resultOffset;
         };
 
         const auto & mesh = *static_cast<const Mesh*>(*begin);
         const auto & g = mesh.geometry();
-        const auto vertexCount = mesh.getAttribute(mesh::Semantic::ePosition).buffer->sizeInBytes() / 8u;
-        const auto vertexToCompute = g.uniqueIndeiceCount;
+        const auto vertexToCompute = g.uniqueIndicesCount;
 
         const auto threadsPerObject = (vertexToCompute % 64u == 0u) ? vertexToCompute / 64u : vertexToCompute / 64u + 1u;
         
@@ -877,11 +875,9 @@ namespace engine::scene {
             .objectsCount = 0u,
             .invocationsPerObject = vertexToCompute,
             .indicesOffset = g.uniqueIndexOffset,
-            .elementsCount = vertexCount,
-            .resultOffset = resultOffset
         };
 
-        commandList->bindBuffer(1u, (*_meshTransformIndices)(frame), 1u, sizeof(uint32_t) * startTransformIndex);
+        commandList->bindBuffer(1u, (*_meshTransformIndices)(frame), 1u, sizeof(uint32_t) * transformIndex);
         commandList->bindBuffer(2u, (*_skeletonIds)(frame), 1u, sizeof(uint32_t) * skeletonsOffset);
 
         while (count > 0u) {
@@ -895,10 +891,7 @@ namespace engine::scene {
 
             count -= maxCount;
             uniform.firstObject += maxCount;
-            uniform.resultOffset += vertexCount * maxCount;
         }
-
-        return uniform.resultOffset;
     }
 
     void Scene::dispatch(rhi::runtime::CommandListPtr & commandList, uint8_t frame, std::span<AttachmentObject*> objects, const DrawDataOffsets & offsets) {
@@ -1119,26 +1112,15 @@ namespace engine::scene {
         bool skeletal = mesh.getSkeleton() != nullptr;
         auto dataIndex = mesh.dataIndex();
         auto materialIndex = mesh.materialIndex();
-        const auto vertexCount = mesh.getAttribute(mesh::Semantic::ePosition).buffer->sizeInBytes() / 8u;
 
         struct Uniform {
             mat4f cameraTransform;
             vec4f albedo;
         };
 
-        struct Uniform2 {
-            uint32_t vertexCount;
-            uint32_t vertexDataOffset;
-        };
-
         Uniform uniform {
             .cameraTransform = cameraTransform, 
             .albedo = vec4f{1.0f}
-        };
-
-        Uniform2 uniform2 {
-            .vertexCount = vertexCount,
-            .vertexDataOffset = _computedVerticesOffsets[dataIndex]
         };
 
         auto applyMaterial = [this, &commandList, &uniform](uint16_t materialIndex) noexcept {
@@ -1165,7 +1147,6 @@ namespace engine::scene {
         if (skeletal) {
             commandList->bindBuffer(0u, _computedVertices, 0u, 0u);
             commandList->bindBuffer(1u, _computedNormals, 0u, 0u);
-            commandList->pushConstants(rhi::shaders::Stages::eVertex, sizeof(Uniform), sizeof(Uniform2), &uniform2);
         } else {
             commandList->bindBuffer(0u, (*_meshTransforms)(frame), 0u, 0u);
         }
@@ -1182,7 +1163,7 @@ namespace engine::scene {
             const bool pipelineChanged = pipelineIdx != currentPipelineIdx;
             const bool materialChanged = materialIndex != currenMaterialIndex;
 
-            bool completePack = pipelineChanged ||
+            const bool completePack = pipelineChanged ||
                                 materialChanged ||
                                 currentSkeletal != skeletal ||
                                 currenDataIndex != dataIndex ||
@@ -1198,21 +1179,10 @@ namespace engine::scene {
                 }
                 offset += count;
 
-                if (dataIndex != currenDataIndex) {
-                    const auto vertexCount = mesh2.getAttribute(mesh::Semantic::ePosition).buffer->sizeInBytes() / 8u;
-                    uniform2.vertexCount = vertexCount;
-                    uniform2.vertexDataOffset = _computedVerticesOffsets[currenDataIndex];
-                }
-
                 if (pipelineChanged) {
                     const auto & pipeline = getGraphicsPipeline(currentPipelineIdx);
                     assert(pipeline != nullptr);
                     commandList->bindPipeline(pipeline);
-                    if (currentSkeletal) {
-                        commandList->pushConstants(rhi::shaders::Stages::eVertex, sizeof(Uniform), sizeof(Uniform2), &uniform2);
-                    }
-                } else if (dataIndex != currenDataIndex) {
-                    commandList->pushConstants(rhi::shaders::Stages::eVertex, sizeof(Uniform), sizeof(Uniform2), &uniform2);
                 }
 
                 if (pipelineChanged || materialChanged) {
@@ -1328,7 +1298,7 @@ namespace engine::scene {
             const bool pipelineChanged = pipelineIdx != currentPipelineIdx;
             const bool materialChanged = materialIndex != currenMaterialIndex;
 
-            bool completePack = pipelineChanged ||
+            const bool completePack = pipelineChanged ||
                                 materialChanged ||
                                 currentSkeletal != skeletal ||
                                 currenDataIndex != dataIndex ||
@@ -1517,13 +1487,9 @@ namespace engine::scene {
         _skeletonsInFrame = 0u;
         _uniqueSkeletons = 0u;
 
-        _computedVerticesOffset = 0u;
-        if (_computedVerticesOffsets.empty()) {
-            _computedVerticesOffsets.resize(1024u);
-        }
-        std::memset(_computedVerticesOffsets.data(), 0xffu, sizeof(uint32_t) * _computedVerticesOffsets.size());
-        
         completeAnimations();
+
+        ++_frameNumber;
     }
 
     void Scene::endFrame(rhi::runtime::CommandListPtr & commandList, rhi::runtime::CommandListPtr & transferCommandList, uint8_t frame) {
