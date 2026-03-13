@@ -62,6 +62,7 @@ namespace engine::scene {
 
     // compute skinning
     constexpr bool kComputeSkinningAvailable = true;
+    constexpr uint16_t kComputeSkinningLocalGroupSize = 64u;
     constexpr uint32_t kMeshComputeVerticesBufferBytesCount = 128u * 1024u * 1024u; // 128Mb
     constexpr uint32_t kMaxSkeletonsDispatchPack = 2048u;
 
@@ -852,8 +853,8 @@ namespace engine::scene {
             *(memory2 + n) = skeletonMeshesVerticesCounts[*(memory2 + n)];
         }
 
-        _meshTransformIndices->modify(sizeof(uint32_t) * (startOffset + i));
-        _skeletonIds->modify(sizeof(uint32_t) * (startSkeletonOffset + j));
+        _meshTransformIndices->modify(sizeof(uint32_t) * i, sizeof(uint32_t) * startOffset);
+        _skeletonIds->modify(sizeof(uint32_t) * j, sizeof(uint32_t) * startSkeletonOffset);
     }
 
     void Scene::dispatchSameMeshes(rhi::runtime::CommandListPtr & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end, 
@@ -872,7 +873,9 @@ namespace engine::scene {
         const auto & g = mesh.geometry();
         const auto vertexToCompute = g.uniqueIndicesCount;
 
-        const auto threadsPerObject = (vertexToCompute % 64u == 0u) ? vertexToCompute / 64u : vertexToCompute / 64u + 1u;
+        const auto threadsPerObject = (vertexToCompute % kComputeSkinningLocalGroupSize == 0u) ?
+                                       vertexToCompute / kComputeSkinningLocalGroupSize :
+                                       vertexToCompute / kComputeSkinningLocalGroupSize + 1u;
         
         Uniform uniform {
             .firstObject = 0u,
@@ -1348,7 +1351,7 @@ namespace engine::scene {
         drawSameMeshes(commandList, frame, currentIt, end, cameraTransform, count, skeletal, offset);
         offset += count;
 
-        _meshTransformIndices->modify(sizeof(uint32_t) * (startOffset + i));
+        _meshTransformIndices->modify(sizeof(uint32_t) * i, sizeof(uint32_t) * startOffset);
     }
 
     void Scene::drawSameMeshes(rhi::runtime::CommandListPtr & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end, 

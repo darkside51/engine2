@@ -23,10 +23,11 @@ void main() {
 
 	{ // with 48 bytes transforms
 		// common 
+		const mat3x4 transform = sbo.transforms[a_sbo_offset];
 		const mat4 model = mat4(
-			sbo.transforms[a_sbo_offset][0],
-			sbo.transforms[a_sbo_offset][1],
-			sbo.transforms[a_sbo_offset][2],
+			transform[0],
+			transform[1],
+			transform[2],
 			vec4(0.0, 0.0, 0.0, 1.0)
 		);
 

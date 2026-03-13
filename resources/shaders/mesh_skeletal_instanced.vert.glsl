@@ -25,28 +25,35 @@ void main() {
 
 	{ // with 48 bytes transforms
 		// skinned
+		const mat3x4 transforms[] = mat3x4[](
+			sbo_skin.transforms[a_sbo_offset + a_joints.x],
+			sbo_skin.transforms[a_sbo_offset + a_joints.y],
+			sbo_skin.transforms[a_sbo_offset + a_joints.z],
+			sbo_skin.transforms[a_sbo_offset + a_joints.w]
+		);
+
 		const mat4 skin = mat4(
-			sbo_skin.transforms[a_sbo_offset + a_joints.x][0],
-			sbo_skin.transforms[a_sbo_offset + a_joints.x][1],
-			sbo_skin.transforms[a_sbo_offset + a_joints.x][2],
+			transforms[0][0],
+			transforms[0][1],
+			transforms[0][2],
 			vec4(0.0, 0.0, 0.0, 1.0)
 		) * a_weights.x +
 		mat4(
-			sbo_skin.transforms[a_sbo_offset + a_joints.y][0],
-			sbo_skin.transforms[a_sbo_offset + a_joints.y][1],
-			sbo_skin.transforms[a_sbo_offset + a_joints.y][2],
+			transforms[1][0],
+			transforms[1][1],
+			transforms[1][2],
 			vec4(0.0, 0.0, 0.0, 1.0)
 		) * a_weights.y +
 		mat4(
-			sbo_skin.transforms[a_sbo_offset + a_joints.z][0],
-			sbo_skin.transforms[a_sbo_offset + a_joints.z][1],
-			sbo_skin.transforms[a_sbo_offset + a_joints.z][2],
+			transforms[2][0],
+			transforms[2][1],
+			transforms[2][2],
 			vec4(0.0, 0.0, 0.0, 1.0)
 		) * a_weights.z +
 		mat4(
-			sbo_skin.transforms[a_sbo_offset + a_joints.w][0],
-			sbo_skin.transforms[a_sbo_offset + a_joints.w][1],
-			sbo_skin.transforms[a_sbo_offset + a_joints.w][2],
+			transforms[3][0],
+			transforms[3][1],
+			transforms[3][2],
 			vec4(0.0, 0.0, 0.0, 1.0)
 		) * a_weights.w;
 

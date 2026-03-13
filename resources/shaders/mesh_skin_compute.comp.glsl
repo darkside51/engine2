@@ -3,11 +3,11 @@
 layout (local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
 
 // out data
-layout (set = 0, binding = 0) buffer OutPositions {
+layout (set = 0, binding = 0) writeonly buffer OutPositions {
    vec4 data[];
 } out_positions;
 
-layout (set = 0, binding = 1) buffer OutNormals {
+layout (set = 0, binding = 1) writeonly buffer OutNormals {
    vec4 data[];
 } out_normals;
 
@@ -59,28 +59,35 @@ void main() {
 	const vec4 a_weights = texelFetch(u_weights, vertexId);
 	const uvec4 a_joints = uvec4(texelFetch(u_joints, vertexId) * 255.0);
 
+	const mat3x4 transforms[] = mat3x4[](
+		sbo_skin.transforms[transfromIdx + a_joints.x],
+		sbo_skin.transforms[transfromIdx + a_joints.y],
+		sbo_skin.transforms[transfromIdx + a_joints.z],
+		sbo_skin.transforms[transfromIdx + a_joints.w]
+	);
+
 	const mat4 skin = mat4(
-		sbo_skin.transforms[transfromIdx + a_joints.x][0],
-		sbo_skin.transforms[transfromIdx + a_joints.x][1],
-		sbo_skin.transforms[transfromIdx + a_joints.x][2],
+		transforms[0][0],
+		transforms[0][1],
+		transforms[0][2],
 		vec4(0.0, 0.0, 0.0, 1.0)
 	) * a_weights.x +
 	mat4(
-		sbo_skin.transforms[transfromIdx + a_joints.y][0],
-		sbo_skin.transforms[transfromIdx + a_joints.y][1],
-		sbo_skin.transforms[transfromIdx + a_joints.y][2],
+		transforms[1][0],
+		transforms[1][1],
+		transforms[1][2],
 		vec4(0.0, 0.0, 0.0, 1.0)
 	) * a_weights.y +
 	mat4(
-		sbo_skin.transforms[transfromIdx + a_joints.z][0],
-		sbo_skin.transforms[transfromIdx + a_joints.z][1],
-		sbo_skin.transforms[transfromIdx + a_joints.z][2],
+		transforms[2][0],
+		transforms[2][1],
+		transforms[2][2],
 		vec4(0.0, 0.0, 0.0, 1.0)
 	) * a_weights.z +
 	mat4(
-		sbo_skin.transforms[transfromIdx + a_joints.w][0],
-		sbo_skin.transforms[transfromIdx + a_joints.w][1],
-		sbo_skin.transforms[transfromIdx + a_joints.w][2],
+		transforms[3][0],
+		transforms[3][1],
+		transforms[3][2],
 		vec4(0.0, 0.0, 0.0, 1.0)
 	) * a_weights.w;
 

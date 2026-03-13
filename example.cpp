@@ -149,7 +149,7 @@ namespace example {
         bool onInputWheelEvent(float /*dx*/, float dy) override {
             // {
                 const auto d = controller.getDistance();
-                controller.setDistance(d - (dy / std::pow(2.0f, (8.0f - d))));
+                controller.setDistance(d - (dy / std::max(std::pow(2.0f, (8.0f - d)), 1.0f)));
 
             //     const float lerpBegin = 2.0f;
             //     const float lerpEnd = 1.0f;
@@ -196,7 +196,7 @@ namespace example {
         addInputObserver(&sceneEventHandler);
 
         controller.setDistance(5.0f);
-        controller.setMinMaxDistance(0.01f, 8.0f);
+        controller.setMinMaxDistance(0.01f, 22.0f);
 
         // camera.makePerspective(std::numbers::pi_v<float> / 3.0f, 1024.0f / 768.0f, 0.001f, 100.0f);
         camera.makePerspective(std::numbers::pi_v<float> / 3.0f, 1024.0f / 768.0f, 100.0f, 0.001f); // reverse depth;
