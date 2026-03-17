@@ -37,6 +37,19 @@ namespace engine::rhi::runtime {
     void CommandList::end() noexcept {
         _commands->create<EndCommand>();
         ++_commandsCount;
+
+        const auto passes = _passes.view();
+        for (auto & pass : passes) {
+            auto buffers = pass.buffers.view();
+            std::sort(buffers.begin(), buffers.end(), [](const BufferUsage & u0, const BufferUsage & u1) {
+                return std::to_underlying(u0.flags) < std::to_underlying(u1.flags);
+            });
+
+            auto images = pass.images.view();
+            std::sort(images.begin(), images.end(), [](const ImageUsage & u0, const ImageUsage & u1) {
+                return std::to_underlying(u0.flags) < std::to_underlying(u1.flags);
+            });
+        }
     }
 
     void CommandList::reset(CommandBufferResetFlags flags) noexcept {
@@ -312,22 +325,5 @@ namespace engine::rhi::runtime {
         // todo!
         _commands->create<PipelineBarriersCommand>();
         ++_commandsCount;
-    }
-
-    void CommandList::record(uint8_t frameIdx, CommandList * nextList) noexcept {
-        const auto passes = _passes.view();
-        for (auto & pass : passes) {
-            auto buffers = pass.buffers.view();
-            std::sort(buffers.begin(), buffers.end(), [](const BufferUsage & u0, const BufferUsage & u1) {
-                return std::to_underlying(u0.flags) < std::to_underlying(u1.flags);
-            });
-
-            auto images = pass.images.view();
-            std::sort(images.begin(), images.end(), [](const ImageUsage & u0, const ImageUsage & u1) {
-                return std::to_underlying(u0.flags) < std::to_underlying(u1.flags);
-            });
-        }
-
-        record_impl(frameIdx, nextList);
     }
 }

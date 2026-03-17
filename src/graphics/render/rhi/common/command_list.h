@@ -115,14 +115,13 @@ namespace engine::rhi::runtime {
 
         void insertBarriers() noexcept;
 
-        void record(uint8_t frameIdx, CommandList * nextList = nullptr) noexcept;
+        virtual void record(uint8_t frameIdx, CommandList * nextList = nullptr) noexcept {}
         
         const Statistics & getStats() const noexcept {
             return _statistics;
         }
 
     protected:
-        virtual void record_impl(uint8_t frameIdx, CommandList * nextList = nullptr) noexcept {}
         inline static constexpr size_t kStackSize = 1024u * 1024u; // 1 Mb
         allocators::StackAllocator<kStackSize, false> _commands{};
         uint32_t _commandsCount = 0u;

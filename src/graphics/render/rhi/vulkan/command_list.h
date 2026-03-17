@@ -7,7 +7,7 @@
 
 namespace engine::vulkan::runtime {
 
-    class CommandList : public rhi::runtime::CommandList {
+    class CommandList final : public rhi::runtime::CommandList {
         struct PostBufferBarrierInfo {
             Buffer * buffer;
             size_t offset;
@@ -23,7 +23,7 @@ namespace engine::vulkan::runtime {
             rhi::CommandBufferLevel level = rhi::CommandBufferLevel::ePrimary);
         ~CommandList() = default;
 
-        void record_impl(uint8_t frameIdx, rhi::runtime::CommandList * nextList = nullptr) noexcept override;
+        void record(uint8_t frameIdx, rhi::runtime::CommandList * nextList = nullptr) noexcept override;
 
         const CommandBuffer & commandBuffer() const noexcept { return _commandbuffer; }
 
