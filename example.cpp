@@ -1804,7 +1804,8 @@ namespace example {
 
         // scene pass
         commandList->beginRenderPass(_renderPasses[kSceneRenderPass], _sceneFrameBuffers[imageIndex], sceneClearValues, {{0, 0}, {width, height}});
-
+        // scene->dispatch(commandList, frameId, objects, offsets);
+        
         // // sphere
         // commandList->bindPipeline(_pipelines[kSceneTestPipeline]);
         // commandList->bindVertexBuffer(0u, _sphereVtx);

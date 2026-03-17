@@ -16,6 +16,9 @@ namespace engine::rhi::runtime {
         _commands->clear();
         _commandsCount = 0u;
 
+        _passes.clear();
+        _currentPass = nullptr;
+
         _resources.clear();
         _resources.reserve(1024u);
 
@@ -51,6 +54,8 @@ namespace engine::rhi::runtime {
         _commands->create<BeginRenderPassCommand>(renderPass, framebuffer, clearValues, area, 
             imageTransitionInfo, bufferTransitionInfo);
         ++_commandsCount;
+
+        _currentPass = &_passes.emplace_back(Pass::Type::eRender);
     }
 
     void CommandList::endRenderPass() noexcept {
@@ -60,6 +65,8 @@ namespace engine::rhi::runtime {
         if constexpr (kStatisticsEnable) {
             ++_statistics.renderPasses;
         }
+
+        _currentPass = nullptr;
     }
 
     void CommandList::nextSubpass(SubpassContents contents,
@@ -71,6 +78,8 @@ namespace engine::rhi::runtime {
         if constexpr (kStatisticsEnable) {
             ++_statistics.renderPasses;
         }
+
+        _currentPass = &_passes.emplace_back(Pass::Type::eRender);
     }
 
     void CommandList::executeCommands(std::span<const CommandList*> secondaryCommandLists) noexcept {
@@ -137,6 +146,8 @@ namespace engine::rhi::runtime {
             _resources.push_back(buffer);
             _commands->create<BindVertexBufferCommand>(binding, buffer.get(), offset);
             ++_commandsCount;
+
+            _currentPass->buffers.emplace_back(buffer.get(), BufferUsageFlags::eVertex_Buffer);
         }
     }
 
@@ -145,6 +156,8 @@ namespace engine::rhi::runtime {
             _resources.push_back(buffer);
             _commands->create<BindIndexBufferCommand>(buffer.get(), offset, type);
             ++_commandsCount;
+
+            _currentPass->buffers.emplace_back(buffer.get(), BufferUsageFlags::eIndex_Buffer);
         }
     }
 
@@ -153,6 +166,8 @@ namespace engine::rhi::runtime {
         _resources.push_back(buffer);
         _commands->create<BindBufferCommand>(binding, buffer.get(), setId, offset, range, false);
         ++_commandsCount;
+
+        _currentPass->buffers.emplace_back(buffer.get(), BufferUsageFlags::eUniform_Buffer); // not only uniform, correct usage check into implementation of commandlist
     }
 
     void CommandList::bindBufferDynamic(uint16_t binding, const BufferPtr & buffer, uint8_t setId, uint32_t offset, uint32_t range) noexcept {
@@ -160,12 +175,16 @@ namespace engine::rhi::runtime {
         _resources.push_back(buffer);
         _commands->create<BindBufferCommand>(binding, buffer.get(), setId, offset, range, true);
         ++_commandsCount;
+
+        _currentPass->buffers.emplace_back(buffer.get(), BufferUsageFlags::eUniform_Buffer); // not only uniform, correct usage check into implementation of commandlist
     }
 
     void CommandList::bindTexelBuffer(uint16_t binding, const BufferPtr & buffer, Format format, uint8_t setId, uint32_t offset, uint32_t range) noexcept {
         _resources.push_back(buffer);
         _commands->create<BindTexelBufferCommand>(binding, buffer.get(), format, setId, offset, range);
         ++_commandsCount;
+
+        _currentPass->buffers.emplace_back(buffer.get(), BufferUsageFlags::eUniform_Texel_Buffer); // ...
     }
 
     void CommandList::bindImage(uint16_t binding, const ImagePtr & image, std::optional<rhi::SamplerValue> sampler, uint8_t setId) noexcept {
@@ -173,6 +192,8 @@ namespace engine::rhi::runtime {
         _resources.push_back(image);
         _commands->create<BindImageSamplerCommand>(binding, image.get(), sampler, setId);
         ++_commandsCount;
+
+        _currentPass->images.emplace_back(image.get(), ImageUsageFlags::eSampled);  // ...
     }
 
     void CommandList::bindSampler(uint16_t binding, const rhi::SamplerValue & sampler, uint8_t setId) noexcept {
@@ -215,6 +236,10 @@ namespace engine::rhi::runtime {
         if constexpr (kStatisticsEnable) {
             ++_statistics.dispatchCalls;
         }
+
+        if (_currentPass == nullptr) {
+            _currentPass = &_passes.emplace_back(Pass::Type::eComputeAndTransfer);
+        }
     }
 
     // query pool
@@ -237,6 +262,12 @@ namespace engine::rhi::runtime {
         if constexpr (kStatisticsEnable) {
             ++_statistics.updateBuffers;
         }
+
+        if (_currentPass == nullptr) {
+            _currentPass = &_passes.emplace_back(Pass::Type::eComputeAndTransfer);
+        }
+
+        _currentPass->buffers.emplace_back(dst.get(), BufferUsageFlags::eTransfer_Dst); // ...
     }
 
     // copy commands
@@ -249,6 +280,13 @@ namespace engine::rhi::runtime {
         if constexpr (kStatisticsEnable) {
             ++_statistics.copyCommands;
         }
+
+        if (_currentPass == nullptr) {
+            _currentPass = &_passes.emplace_back(Pass::Type::eComputeAndTransfer);
+        }
+
+        _currentPass->buffers.emplace_back(src.get(), BufferUsageFlags::eTransfer_Src); // ...
+        _currentPass->buffers.emplace_back(dst.get(), BufferUsageFlags::eTransfer_Dst); // ...
     }
 
     void CommandList::copyBuffer2Image(const BufferPtr & src, ImagePtr & dst, const CopyBufferImageInfo & copyInfos, bool autoBarriers) noexcept {
@@ -260,6 +298,13 @@ namespace engine::rhi::runtime {
         if constexpr (kStatisticsEnable) {
             ++_statistics.copyCommands;
         }
+
+        if (_currentPass == nullptr) {
+            _currentPass = &_passes.emplace_back(Pass::Type::eComputeAndTransfer);
+        }
+
+        _currentPass->buffers.emplace_back(src.get(), BufferUsageFlags::eTransfer_Src); // ...
+        _currentPass->images.emplace_back(dst.get(), ImageUsageFlags::eTransfer_Dst); // ...
     }
 
     // manual barriers
@@ -267,5 +312,22 @@ namespace engine::rhi::runtime {
         // todo!
         _commands->create<PipelineBarriersCommand>();
         ++_commandsCount;
+    }
+
+    void CommandList::record(uint8_t frameIdx, CommandList * nextList) noexcept {
+        const auto passes = _passes.view();
+        for (auto & pass : passes) {
+            auto buffers = pass.buffers.view();
+            std::sort(buffers.begin(), buffers.end(), [](const BufferUsage & u0, const BufferUsage & u1) {
+                return std::to_underlying(u0.flags) < std::to_underlying(u1.flags);
+            });
+
+            auto images = pass.images.view();
+            std::sort(images.begin(), images.end(), [](const ImageUsage & u0, const ImageUsage & u1) {
+                return std::to_underlying(u0.flags) < std::to_underlying(u1.flags);
+            });
+        }
+
+        record_impl(frameIdx, nextList);
     }
 }

@@ -23,7 +23,7 @@ namespace engine::vulkan::runtime {
             rhi::CommandBufferLevel level = rhi::CommandBufferLevel::ePrimary);
         ~CommandList() = default;
 
-        void record(uint8_t frameIdx, rhi::runtime::CommandList * nextList = nullptr) noexcept override;
+        void record_impl(uint8_t frameIdx, rhi::runtime::CommandList * nextList = nullptr) noexcept override;
 
         const CommandBuffer & commandBuffer() const noexcept { return _commandbuffer; }
 

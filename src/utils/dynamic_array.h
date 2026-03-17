@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <initializer_list>
 #include <span>
+#include <type_traits>
 #include <variant>
 #include <vector>
 
@@ -94,16 +95,38 @@ struct dynamic_array {
     }
 
     template <typename U>
-    void emplace_back(U && v) {
+    T& emplace_back(U && v) {
         if (auto * arr = std::get_if<std::array<T, Max>>(&value)) { [[likely]];
             if (capacity < Max - 1) {
-                (*arr)[capacity++] = std::forward<U>(v);
+                auto & result = (*arr)[capacity++];
+                if constexpr(std::is_convertible_v<T, U>) {
+                    result = std::forward<U>(v);
+                } else {
+                    new(&result) T(std::forward<U>(v));
+                }
+                return result;
             } else {
                 assert(false); // todo!
             }
         } else {
-            std::get<std::vector<T>>(value).emplace_back(v);
             ++capacity;
+            return std::get<std::vector<T>>(value).emplace_back(v);
+        }
+    }
+
+    template <typename ...Args>
+    T& emplace_back(Args && ... args) {
+        if (auto * arr = std::get_if<std::array<T, Max>>(&value)) { [[likely]];
+            if (capacity < Max - 1) {
+                auto & result = (*arr)[capacity++];
+                new(&result) T{std::forward<Args>(args)...};
+                return result;
+            } else {
+                assert(false); // todo!
+            }
+        } else {
+            ++capacity;
+            return std::get<std::vector<T>>(value).emplace_back(std::forward<Args>(args)...);
         }
     }
 

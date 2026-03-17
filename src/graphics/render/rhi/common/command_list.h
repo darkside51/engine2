@@ -4,6 +4,7 @@
 #include "runtime.h"
 
 #include "allocators/stack_allocator.h"
+#include "utils/dynamic_array.h"
 
 #include <array>
 #include <cstddef>
@@ -18,6 +19,32 @@ namespace engine::rhi::runtime {
         constexpr uint8_t kMaxDescriptorsSets = 4u;
         constexpr uint32_t kMaxMemoryBytesToCopyCommand = 65536u;
     }
+
+    struct BufferUsage {
+        Buffer* buffer = nullptr;
+        BufferUsageFlags flags = BufferUsageFlags::eNone;
+    };
+
+    struct ImageUsage {
+        Image* image = nullptr;
+        ImageUsageFlags flags = ImageUsageFlags::eNone;
+    };
+
+    struct Pass {
+        static constexpr uint16_t kDefaultBuffersInArray = 2048u;
+        static constexpr uint16_t kDefaultImagesInArray = 256u;
+        enum class Type : uint8_t {
+            eComputeAndTransfer = 0u,
+            eRender = 1u
+        };
+
+        Pass() = default;
+        explicit Pass(Type t) : type(t) {}
+
+        dynamic_array<BufferUsage, kDefaultBuffersInArray> buffers = {};
+        dynamic_array<ImageUsage, kDefaultImagesInArray> images = {};
+        Type type = Type::eComputeAndTransfer;
+    };
 
     class CommandList {
         struct Statistics {
@@ -88,16 +115,20 @@ namespace engine::rhi::runtime {
 
         void insertBarriers() noexcept;
 
-        virtual void record(uint8_t frameIdx, CommandList * nextList = nullptr) noexcept {}
+        void record(uint8_t frameIdx, CommandList * nextList = nullptr) noexcept;
         
         const Statistics & getStats() const noexcept {
             return _statistics;
         }
 
     protected:
+        virtual void record_impl(uint8_t frameIdx, CommandList * nextList = nullptr) noexcept {}
         inline static constexpr size_t kStackSize = 1024u * 1024u; // 1 Mb
         allocators::StackAllocator<kStackSize, false> _commands{};
         uint32_t _commandsCount = 0u;
+        
+        dynamic_array<Pass, 8u> _passes = {};
+        Pass * _currentPass = nullptr;
 
     private:
         void clear() noexcept;

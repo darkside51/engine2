@@ -38,7 +38,7 @@ namespace engine::vulkan::runtime {
         _postBarriers.reset();
     }
 
-    void CommandList::record(uint8_t frameIdx, rhi::runtime::CommandList * nextList) noexcept {
+    void CommandList::record_impl(uint8_t frameIdx, rhi::runtime::CommandList * nextList) noexcept {
         using namespace rhi::runtime;
 
         std::byte * memory = _commands.memory().data();
