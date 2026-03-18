@@ -113,8 +113,9 @@ namespace engine::vulkan {
 
     void CommandBuffer::bindPipeline(Pipeline const & pipeline) noexcept {
         if (_pipeline.pipeline != pipeline.pipeline) {
-            vkCmdBindPipeline(_commandBuffer, pipeline.bindPoint, pipeline.pipeline);
-            _pipeline = { pipeline.pipeline, pipeline.layout, pipeline.bindPoint };
+            const auto vkBindPoint = utils::convert2vk(pipeline.bindPoint);
+            vkCmdBindPipeline(_commandBuffer, vkBindPoint, pipeline.pipeline);
+            _pipeline = { pipeline.pipeline, pipeline.layout, vkBindPoint };
         }
     }
 

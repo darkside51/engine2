@@ -182,6 +182,9 @@ public:
 class Pipeline {
 public:
     virtual ~Pipeline() = default;
+    explicit Pipeline(PipelineBindPoint p) : bindPoint(p) {}
+    
+    PipelineBindPoint bindPoint = PipelineBindPoint::eCompute;
 };
 
 class PipelinesManager {

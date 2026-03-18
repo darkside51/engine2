@@ -23,27 +23,22 @@ namespace engine::rhi::runtime {
     struct BufferUsage {
         Buffer* buffer = nullptr;
         BufferUsageFlags flags = BufferUsageFlags::eNone;
+        PipelineBindPoint pipelineType = PipelineBindPoint::eCompute;
     };
 
     struct ImageUsage {
         Image* image = nullptr;
         ImageUsageFlags flags = ImageUsageFlags::eNone;
+        PipelineBindPoint pipelineType = PipelineBindPoint::eCompute;
     };
 
     struct Pass {
         static constexpr uint16_t kDefaultBuffersInArray = 2048u;
         static constexpr uint16_t kDefaultImagesInArray = 256u;
-        enum class Type : uint8_t {
-            eComputeAndTransfer = 0u,
-            eRender = 1u
-        };
-
         Pass() = default;
-        explicit Pass(Type t) : type(t) {}
 
         dynamic_array<BufferUsage, kDefaultBuffersInArray> buffers = {};
         dynamic_array<ImageUsage, kDefaultImagesInArray> images = {};
-        Type type = Type::eComputeAndTransfer;
     };
 
     class CommandList {
@@ -128,6 +123,7 @@ namespace engine::rhi::runtime {
         
         dynamic_array<Pass, 8u> _passes = {};
         Pass * _currentPass = nullptr;
+        PipelineBindPoint _pipelineType = PipelineBindPoint::eCompute;
 
     private:
         void clear() noexcept;
