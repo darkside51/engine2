@@ -54,7 +54,9 @@ struct dynamic_array {
         if (size <= Max) { [[likely]];
             //value = std::array<T, Max>{}; // already array as default
         } else {
-            value = std::vector<T>(size);
+            std::vector<T> v;
+            v.reserve(size);
+            value = std::move(v);
         }
         capacity = size;
     }
@@ -106,11 +108,17 @@ struct dynamic_array {
                 }
                 return result;
             } else {
-                assert(false); // todo!
+                std::vector<T> newValue;
+                newValue.reserve(capacity * 2u);
+                std::move((*arr).begin(), (*arr).end(), std::back_inserter(newValue));
+                value = std::move(newValue);
+
+                ++capacity;
+                return std::get<std::vector<T>>(value).emplace_back(std::forward<U>(v));
             }
         } else {
             ++capacity;
-            return std::get<std::vector<T>>(value).emplace_back(v);
+            return std::get<std::vector<T>>(value).emplace_back(std::forward<U>(v));
         }
     }
 
@@ -122,7 +130,13 @@ struct dynamic_array {
                 new(&result) T{std::forward<Args>(args)...};
                 return result;
             } else {
-                assert(false); // todo!
+                std::vector<T> newValue;
+                newValue.reserve(capacity * 2u);
+                std::move((*arr).begin(), (*arr).end(), std::back_inserter(newValue));
+                value = std::move(newValue);
+
+                ++capacity;
+                return std::get<std::vector<T>>(value).emplace_back(std::forward<Args>(args)...);
             }
         } else {
             ++capacity;

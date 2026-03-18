@@ -70,7 +70,7 @@ namespace engine::rhi::runtime {
             imageTransitionInfo, bufferTransitionInfo);
         ++_commandsCount;
 
-        _currentPass = &_passes.emplace_back();
+        _currentPass = &_passes.emplace_back(Pass::Type::eRender);
     }
 
     void CommandList::endRenderPass() noexcept {
@@ -94,7 +94,7 @@ namespace engine::rhi::runtime {
             ++_statistics.renderPasses;
         }
 
-        _currentPass = &_passes.emplace_back();
+        _currentPass = &_passes.emplace_back(Pass::Type::eRender);
     }
 
     void CommandList::executeCommands(std::span<const CommandList*> secondaryCommandLists) noexcept {
@@ -255,7 +255,7 @@ namespace engine::rhi::runtime {
         }
 
         if (_currentPass == nullptr) {
-            _currentPass = &_passes.emplace_back();
+            _currentPass = &_passes.emplace_back(Pass::Type::eOther);
         }
     }
 
@@ -281,7 +281,7 @@ namespace engine::rhi::runtime {
         }
 
         if (_currentPass == nullptr) {
-            _currentPass = &_passes.emplace_back();
+            _currentPass = &_passes.emplace_back(Pass::Type::eOther);
         }
 
         _currentPass->buffers.emplace_back(dst.get(), BufferUsageFlags::eTransfer_Dst, _pipelineType); // ...
@@ -299,7 +299,7 @@ namespace engine::rhi::runtime {
         }
 
         if (_currentPass == nullptr) {
-            _currentPass = &_passes.emplace_back();
+            _currentPass = &_passes.emplace_back(Pass::Type::eOther);
         }
 
         _currentPass->buffers.emplace_back(src.get(), BufferUsageFlags::eTransfer_Src, _pipelineType); // ...
@@ -317,7 +317,7 @@ namespace engine::rhi::runtime {
         }
 
         if (_currentPass == nullptr) {
-            _currentPass = &_passes.emplace_back();
+            _currentPass = &_passes.emplace_back(Pass::Type::eOther);
         }
 
         _currentPass->buffers.emplace_back(src.get(), BufferUsageFlags::eTransfer_Src, _pipelineType); // ...

@@ -33,12 +33,20 @@ namespace engine::rhi::runtime {
     };
 
     struct Pass {
-        static constexpr uint16_t kDefaultBuffersInArray = 2048u;
+        static constexpr uint16_t kDefaultBuffersInArray = 1024u;
         static constexpr uint16_t kDefaultImagesInArray = 256u;
+        
+        enum class Type : uint8_t {
+            eOther = 0u, // compute/transfer
+            eRender = 1u
+        };
+        
         Pass() = default;
+        explicit Pass(Type t) : type(t) {}
 
         dynamic_array<BufferUsage, kDefaultBuffersInArray> buffers = {};
         dynamic_array<ImageUsage, kDefaultImagesInArray> images = {};
+        Type type = Type::eOther;
     };
 
     class CommandList {
