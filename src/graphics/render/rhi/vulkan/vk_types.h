@@ -1608,7 +1608,7 @@ inline auto convert2vk(const std::array<rhi::VertexInputBinding, N> & array) noe
 }
 
 inline auto convert2vk(std::span<const rhi::VertexInputBinding> array) {
-    dynamic_array<VkVertexInputBindingDescription, 4u> result;
+    dynamic_array<VkVertexInputBindingDescription, 8u> result;
     result.reserve(array.size());
     auto view = result.view();
     for (size_t i = 0u; i < array.size(); ++i) {

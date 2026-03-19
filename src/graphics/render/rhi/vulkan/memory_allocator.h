@@ -4,7 +4,7 @@
 #include "log/log.h"
 
 #ifdef DEBUG
-#define VMA_DEBUG_LOG_FORMAT(format, ...) LOG_I((format), __VA_ARGS__);
+//#define VMA_DEBUG_LOG_FORMAT(format, ...) LOG_I((format), __VA_ARGS__);
 #endif
 
 #include <vk_mem_alloc.h>

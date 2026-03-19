@@ -26,20 +26,70 @@ namespace engine::vulkan::runtime {
     CommandList::CommandList(rhi::runtime::CommandPool * commandPool, rhi::CommandBufferLevel level) :
         _pool(static_cast<vulkan::CommandPool*>(commandPool)),
         _commandbuffer{*_pool, level} {
-        constexpr size_t kPostBarriersBuffersInitSize = 8u;
-        constexpr size_t kPostBarriersImagesInitSize = 8u;
+        // constexpr size_t kPostBarriersBuffersInitSize = 8u;
+        // constexpr size_t kPostBarriersImagesInitSize = 8u;
 
-        _postBarriersBuffers.reserve(kPostBarriersBuffersInitSize);
-        _postBarriersImages.reserve(kPostBarriersImagesInitSize);
+        // _postBarriersBuffers.reserve(kPostBarriersBuffersInitSize);
+        // _postBarriersImages.reserve(kPostBarriersImagesInitSize);
     }
 
     void CommandList::resetState() noexcept {
         _barriers.reset();
-        _postBarriers.reset();
+        //_postBarriers.reset();
     }
 
     void CommandList::applyBarriers(uint32_t passId, RenderPass* renderPass, std::span<rhi::FrameBufferAttachment> attachments) {
-        return;
+        //return;
+        { // attachments barriers
+            uint8_t attachmentIdx = 0u;
+            for (const auto & attachment : attachments) {
+                auto * image = static_cast<Image*>(attachment.image);
+                const auto usage = attachment.image->usage();
+
+                // need check layers and levels count?
+                if ((usage & rhi::ImageUsageFlags::eDepth_Stencil_Attachment) != rhi::ImageUsageFlags::eNone) {
+                    auto const dstStage = VkPipelineStageFlagBits::VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+
+                    const auto aspectFlags = attachment.aspect;
+
+                    VkImageLayout dstLayout = VkImageLayout::VK_IMAGE_LAYOUT_UNDEFINED;
+                    if ((aspectFlags & rhi::ImageAspectFlags::eDepthStencil) != rhi::ImageAspectFlags::eNone) {
+                        dstLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+                    } else if ((aspectFlags & rhi::ImageAspectFlags::eDepth) != rhi::ImageAspectFlags::eNone) {
+                        dstLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
+                    } else if ((aspectFlags & rhi::ImageAspectFlags::eStencil) != rhi::ImageAspectFlags::eNone) {
+                        dstLayout = VK_IMAGE_LAYOUT_STENCIL_ATTACHMENT_OPTIMAL;
+                    }
+
+                    image->transition(
+                        _barriers, 
+                        dstLayout, 
+                        dstStage, 
+                        VkAccessFlagBits::VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT, 
+                        0u, 0u, 
+                        0u, 0u
+                    );  
+                }
+
+                if ((usage & rhi::ImageUsageFlags::eColor_Attachment) != rhi::ImageUsageFlags::eNone) {
+                    auto const dstStage = VkPipelineStageFlagBits::VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+
+                    image->transition(
+                        _barriers, 
+                        VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, 
+                        dstStage, 
+                        VkAccessFlagBits::VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, 
+                        0u, 0u, 
+                        0u, 0u
+                    );  
+                }
+
+                // need to get finalLayout for attachment from command->renderPass
+                image->assignLayout(renderPass->attachments[attachmentIdx].finalLayout, 0u, 0u, 0u, 0u);
+                ++attachmentIdx;
+            }
+        }
+
         { // pass barriers
             const auto & pass = _passes/*.view()*/[passId];
 
@@ -118,18 +168,33 @@ namespace engine::vulkan::runtime {
                 auto * vkImage = static_cast<vulkan::Image*>(image.image);
                 auto const usage = vkImage->usage();
 
-                if ((usage & rhi::ImageUsageFlags::eSampled) != rhi::ImageUsageFlags::eNone) {
-                    auto const dstStage = VkPipelineStageFlagBits::VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | 
-                                        VkPipelineStageFlagBits::VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-
+            if ((image.flags & rhi::ImageUsageFlags::eTransfer_Dst) != rhi::ImageUsageFlags::eNone) {
                     vkImage->transition(
-                        _barriers, 
-                        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 
-                        dstStage, 
-                        VkAccessFlagBits::VK_ACCESS_SHADER_READ_BIT, 
+                        _barriers,
+                        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 
+                        VK_PIPELINE_STAGE_TRANSFER_BIT,
+                        VK_ACCESS_TRANSFER_WRITE_BIT,
                         0u, 0u, 
                         0u, 0u
-                    );  
+                        // command->info.imageSubresource.baseArrayLayer,
+                        // command->info.imageSubresource.mipLevel,
+                        // command->info.imageSubresource.layerCount,
+                        // 1u
+                    );
+                } else {
+                    if ((usage & rhi::ImageUsageFlags::eSampled) != rhi::ImageUsageFlags::eNone) {
+                        auto const dstStage = VkPipelineStageFlagBits::VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | 
+                                            VkPipelineStageFlagBits::VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+
+                        vkImage->transition(
+                            _barriers, 
+                            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 
+                            dstStage, 
+                            VkAccessFlagBits::VK_ACCESS_SHADER_READ_BIT, 
+                            0u, 0u, 
+                            0u, 0u
+                        );  
+                    }
                 }
 
                 if ((usage & rhi::ImageUsageFlags::eStorage) != rhi::ImageUsageFlags::eNone) {
@@ -146,76 +211,6 @@ namespace engine::vulkan::runtime {
                         0u, 0u
                     );  
                 }
-
-                 if ((image.flags & rhi::ImageUsageFlags::eTransfer_Dst) != rhi::ImageUsageFlags::eNone) {
-                    // vkImage->transition(_barriers,
-                    //     VkPipelineStageFlagBits::VK_PIPELINE_STAGE_TRANSFER_BIT,
-                    //     VkAccessFlagBits::VK_ACCESS_TRANSFER_WRITE_BIT,
-                    //     buffer.offset, buffer.size
-                    // );
-                    vkImage->transition(
-                        _barriers,
-                        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 
-                        VK_PIPELINE_STAGE_TRANSFER_BIT,
-                        VK_ACCESS_TRANSFER_WRITE_BIT,
-                        0u, 0u, 
-                        0u, 0u
-                        // command->info.imageSubresource.baseArrayLayer,
-                        // command->info.imageSubresource.mipLevel,
-                        // command->info.imageSubresource.layerCount,
-                        // 1u
-                    );
-                }
-            }
-        }
-
-        { // attachments barriers
-            uint8_t attachmentIdx = 0u;
-            for (const auto & attachment : attachments) {
-                auto * image = static_cast<Image*>(attachment.image);
-                const auto usage = attachment.image->usage();
-
-                // need check layers and levels count?
-                if ((usage & rhi::ImageUsageFlags::eDepth_Stencil_Attachment) != rhi::ImageUsageFlags::eNone) {
-                    auto const dstStage = VkPipelineStageFlagBits::VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
-
-                    const auto aspectFlags = attachment.aspect;
-
-                    VkImageLayout dstLayout = VkImageLayout::VK_IMAGE_LAYOUT_UNDEFINED;
-                    if ((aspectFlags & rhi::ImageAspectFlags::eDepthStencil) != rhi::ImageAspectFlags::eNone) {
-                        dstLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-                    } else if ((aspectFlags & rhi::ImageAspectFlags::eDepth) != rhi::ImageAspectFlags::eNone) {
-                        dstLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
-                    } else if ((aspectFlags & rhi::ImageAspectFlags::eStencil) != rhi::ImageAspectFlags::eNone) {
-                        dstLayout = VK_IMAGE_LAYOUT_STENCIL_ATTACHMENT_OPTIMAL;
-                    }
-
-                    image->transition(
-                        _barriers, 
-                        dstLayout, 
-                        dstStage, 
-                        VkAccessFlagBits::VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT, 
-                        0u, 0u, 
-                        0u, 0u
-                    );  
-                }
-
-                if ((usage & rhi::ImageUsageFlags::eColor_Attachment) != rhi::ImageUsageFlags::eNone) {
-                    auto const dstStage = VkPipelineStageFlagBits::VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-
-                    image->transition(
-                        _barriers, 
-                        VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, 
-                        dstStage, 
-                        VkAccessFlagBits::VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, 
-                        0u, 0u, 
-                        0u, 0u
-                    );  
-                }
-
-                // need to get finalLayout for attachment from command->renderPass
-                image->assignLayout(renderPass->attachments[attachmentIdx].finalLayout, 0u, 0u, 0u, 0u);
-                ++attachmentIdx;
             }
         }
 
@@ -239,83 +234,83 @@ namespace engine::vulkan::runtime {
         // _postBarriersBuffers.clear();
         // _postBarriersImages.clear();
 
-        const auto applyPostBarriers = [&]() noexcept {
-            // buffers barriers
-            for (auto & [buffer, offset, size] : _postBarriersBuffers) {
-                auto const usage = buffer->usage();
-                if ((usage & rhi::BufferUsageFlags::eVertex_Buffer) != rhi::BufferUsageFlags::eNone) {
-                    auto const dstStage = VkPipelineStageFlagBits::VK_PIPELINE_STAGE_VERTEX_INPUT_BIT;
+        // const auto applyPostBarriers = [&]() noexcept {
+        //     // buffers barriers
+        //     for (auto & [buffer, offset, size] : _postBarriersBuffers) {
+        //         auto const usage = buffer->usage();
+        //         if ((usage & rhi::BufferUsageFlags::eVertex_Buffer) != rhi::BufferUsageFlags::eNone) {
+        //             auto const dstStage = VkPipelineStageFlagBits::VK_PIPELINE_STAGE_VERTEX_INPUT_BIT;
 
-                    buffer->transition(_postBarriers,
-                        dstStage,
-                        VkAccessFlagBits::VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT, 
-                        offset, size
-                    );
-                }
+        //             buffer->transition(_postBarriers,
+        //                 dstStage,
+        //                 VkAccessFlagBits::VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT, 
+        //                 offset, size
+        //             );
+        //         }
 
-                if ((usage & rhi::BufferUsageFlags::eIndex_Buffer) != rhi::BufferUsageFlags::eNone) {
-                    auto const dstStage = VkPipelineStageFlagBits::VK_PIPELINE_STAGE_VERTEX_INPUT_BIT;
+        //         if ((usage & rhi::BufferUsageFlags::eIndex_Buffer) != rhi::BufferUsageFlags::eNone) {
+        //             auto const dstStage = VkPipelineStageFlagBits::VK_PIPELINE_STAGE_VERTEX_INPUT_BIT;
 
-                    buffer->transition(_postBarriers,
-                        dstStage,
-                        VkAccessFlagBits::VK_ACCESS_INDEX_READ_BIT, 
-                        offset, size
-                    );
-                }
+        //             buffer->transition(_postBarriers,
+        //                 dstStage,
+        //                 VkAccessFlagBits::VK_ACCESS_INDEX_READ_BIT, 
+        //                 offset, size
+        //             );
+        //         }
 
-                if ((usage & (rhi::BufferUsageFlags::eUniform_Buffer | 
-                              rhi::BufferUsageFlags::eUniform_Texel_Buffer)) != rhi::BufferUsageFlags::eNone) {
-                    auto const dstStage = VkPipelineStageFlagBits::VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | 
-                                          VkPipelineStageFlagBits::VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+        //         if ((usage & (rhi::BufferUsageFlags::eUniform_Buffer | 
+        //                       rhi::BufferUsageFlags::eUniform_Texel_Buffer)) != rhi::BufferUsageFlags::eNone) {
+        //             auto const dstStage = VkPipelineStageFlagBits::VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | 
+        //                                   VkPipelineStageFlagBits::VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
 
-                    buffer->transition(_postBarriers,
-                        dstStage,
-                        VkAccessFlagBits::VK_ACCESS_UNIFORM_READ_BIT | VkAccessFlagBits::VK_ACCESS_SHADER_READ_BIT, // correct?
-                        offset, size
-                    );
-                }    
+        //             buffer->transition(_postBarriers,
+        //                 dstStage,
+        //                 VkAccessFlagBits::VK_ACCESS_UNIFORM_READ_BIT | VkAccessFlagBits::VK_ACCESS_SHADER_READ_BIT, // correct?
+        //                 offset, size
+        //             );
+        //         }    
 
-                if ((usage & (rhi::BufferUsageFlags::eStorage_Buffer | 
-                              rhi::BufferUsageFlags::eStorage_Texel_Buffer)) != rhi::BufferUsageFlags::eNone) {
-                    auto const dstStage = VkPipelineStageFlagBits::VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | 
-                                          VkPipelineStageFlagBits::VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+        //         if ((usage & (rhi::BufferUsageFlags::eStorage_Buffer | 
+        //                       rhi::BufferUsageFlags::eStorage_Texel_Buffer)) != rhi::BufferUsageFlags::eNone) {
+        //             auto const dstStage = VkPipelineStageFlagBits::VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | 
+        //                                   VkPipelineStageFlagBits::VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
 
-                    buffer->transition(_postBarriers,
-                        dstStage,
-                        VkAccessFlagBits::VK_ACCESS_SHADER_READ_BIT | VkAccessFlagBits::VK_ACCESS_SHADER_WRITE_BIT, // need to specify read or write?
-                        offset, size
-                    );
-                }
+        //             buffer->transition(_postBarriers,
+        //                 dstStage,
+        //                 VkAccessFlagBits::VK_ACCESS_SHADER_READ_BIT | VkAccessFlagBits::VK_ACCESS_SHADER_WRITE_BIT, // need to specify read or write?
+        //                 offset, size
+        //             );
+        //         }
 
-                // rhi::BufferUsageFlags::eIndirect_Buffer
-            }
-            _postBarriersBuffers.clear();
+        //         // rhi::BufferUsageFlags::eIndirect_Buffer
+        //     }
+        //     _postBarriersBuffers.clear();
 
-            // images barriers
-            for (auto & [image] : _postBarriersImages) {
-                auto const usage = image->usage();
-                //const auto & info = image.getInfo();
+        //     // images barriers
+        //     for (auto & [image] : _postBarriersImages) {
+        //         auto const usage = image->usage();
+        //         //const auto & info = image.getInfo();
 
-                if ((usage & (rhi::ImageUsageFlags::eStorage | 
-                    rhi::ImageUsageFlags::eSampled)) != rhi::ImageUsageFlags::eNone) {
-                    auto const dstStage = VkPipelineStageFlagBits::VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | 
-                                        VkPipelineStageFlagBits::VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT |
-                                        VkPipelineStageFlagBits::VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+        //         if ((usage & (rhi::ImageUsageFlags::eStorage | 
+        //             rhi::ImageUsageFlags::eSampled)) != rhi::ImageUsageFlags::eNone) {
+        //             auto const dstStage = VkPipelineStageFlagBits::VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | 
+        //                                 VkPipelineStageFlagBits::VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT |
+        //                                 VkPipelineStageFlagBits::VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
 
-                    image->transition(
-                        _postBarriers, 
-                        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 
-                        dstStage, 
-                        VkAccessFlagBits::VK_ACCESS_SHADER_READ_BIT, 
-                        0u, 0u, 
-                        0u, 0u
-                    );  
-                }
-            }
-            _postBarriersImages.clear();
+        //             image->transition(
+        //                 _postBarriers, 
+        //                 VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 
+        //                 dstStage, 
+        //                 VkAccessFlagBits::VK_ACCESS_SHADER_READ_BIT, 
+        //                 0u, 0u, 
+        //                 0u, 0u
+        //             );  
+        //         }
+        //     }
+        //     _postBarriersImages.clear();
 
-            _postBarriers.flush(_commandbuffer());
-        };
+        //     _postBarriers.flush(_commandbuffer());
+        // };
 
         const auto applyDescriptorSets = [&]() noexcept {
             uint8_t firstSet = 0xffu;
@@ -389,16 +384,16 @@ namespace engine::vulkan::runtime {
             case CommandType::eEnd:
             {
                 //_barriers.flush(_commandbuffer());
-                if (nextList == nullptr) {
-                    applyPostBarriers();
-                } else {
-                    auto * vkList = static_cast<CommandList*>(nextList);
-                    std::move(_postBarriersBuffers.begin(), _postBarriersBuffers.end(), std::back_inserter(vkList->_postBarriersBuffers));
-                    std::move(_postBarriersImages.begin(), _postBarriersImages.end(), std::back_inserter(vkList->_postBarriersImages));
+                // if (nextList == nullptr) {
+                //     applyPostBarriers();
+                // } else {
+                //     auto * vkList = static_cast<CommandList*>(nextList);
+                //     std::move(_postBarriersBuffers.begin(), _postBarriersBuffers.end(), std::back_inserter(vkList->_postBarriersBuffers));
+                //     std::move(_postBarriersImages.begin(), _postBarriersImages.end(), std::back_inserter(vkList->_postBarriersImages));
 
-                    _postBarriersBuffers.clear();
-                    _postBarriersImages.clear();
-                }
+                //     _postBarriersBuffers.clear();
+                //     _postBarriersImages.clear();
+                // }
 
                 _commandbuffer.end();
             }
@@ -415,7 +410,7 @@ namespace engine::vulkan::runtime {
                 break;
             case CommandType::eBeginRenderPass:
             {
-                applyPostBarriers();
+                // applyPostBarriers();
 
                 const auto * command = static_cast<BeginRenderPassCommand*>(cmd);
 
@@ -425,79 +420,79 @@ namespace engine::vulkan::runtime {
                 applyBarriers(passId, renderPass, framebuffer.attachments());
                 ++passId;
 
-                // todo: move set barriers to function
-                for (const auto & buffer : command->bufferTransitionInfo) {
-                    auto * buff = static_cast<Buffer*>(buffer.buff);
-                    buff->transition(
-                        _barriers,
-                        utils::convert2vk(buffer.stage),
-                        utils::convert2vk(buffer.access),
-                        buffer.offset,
-                        buffer.size
-                    );
-                }
+                // // todo: move set barriers to function
+                // for (const auto & buffer : command->bufferTransitionInfo) {
+                //     auto * buff = static_cast<Buffer*>(buffer.buff);
+                //     buff->transition(
+                //         _barriers,
+                //         utils::convert2vk(buffer.stage),
+                //         utils::convert2vk(buffer.access),
+                //         buffer.offset,
+                //         buffer.size
+                //     );
+                // }
 
-                for (const auto & image : command->imageTransitionInfo) { // to use some images in shaders after rtt
-                    auto * img = static_cast<Image*>(image.img);
-                    img->transition(
-                        _barriers, 
-                        utils::convert2vk(image.layout), 
-                        utils::convert2vk(image.stage), 
-                        utils::convert2vk(image.access), 
-                        image.baseLayer, image.baseLevel, 
-                        image.layersCount, image.levelsCount
-                    );
-                }
+                // for (const auto & image : command->imageTransitionInfo) { // to use some images in shaders after rtt
+                //     auto * img = static_cast<Image*>(image.img);
+                //     img->transition(
+                //         _barriers, 
+                //         utils::convert2vk(image.layout), 
+                //         utils::convert2vk(image.stage), 
+                //         utils::convert2vk(image.access), 
+                //         image.baseLayer, image.baseLevel, 
+                //         image.layersCount, image.levelsCount
+                //     );
+                // }
 
-                uint8_t attachmentIdx = 0u;
-                for (const auto & attachment : framebuffer.attachments()) {
-                    auto * image = static_cast<Image*>(attachment.image);
-                    const auto usage = attachment.image->usage();
+                // uint8_t attachmentIdx = 0u;
+                // for (const auto & attachment : framebuffer.attachments()) {
+                //     auto * image = static_cast<Image*>(attachment.image);
+                //     const auto usage = attachment.image->usage();
 
-                    // need check layers and levels count?
-                    if ((usage & rhi::ImageUsageFlags::eDepth_Stencil_Attachment) != rhi::ImageUsageFlags::eNone) {
-                        auto const dstStage = VkPipelineStageFlagBits::VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+                //     // need check layers and levels count?
+                //     if ((usage & rhi::ImageUsageFlags::eDepth_Stencil_Attachment) != rhi::ImageUsageFlags::eNone) {
+                //         auto const dstStage = VkPipelineStageFlagBits::VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
 
-                        const auto aspectFlags = attachment.aspect;
+                //         const auto aspectFlags = attachment.aspect;
 
-                        VkImageLayout dstLayout = VkImageLayout::VK_IMAGE_LAYOUT_UNDEFINED;
-                        if ((aspectFlags & rhi::ImageAspectFlags::eDepthStencil) != rhi::ImageAspectFlags::eNone) {
-                            dstLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-                        } else if ((aspectFlags & rhi::ImageAspectFlags::eDepth) != rhi::ImageAspectFlags::eNone) {
-                            dstLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
-                        } else if ((aspectFlags & rhi::ImageAspectFlags::eStencil) != rhi::ImageAspectFlags::eNone) {
-                            dstLayout = VK_IMAGE_LAYOUT_STENCIL_ATTACHMENT_OPTIMAL;
-                        }
+                //         VkImageLayout dstLayout = VkImageLayout::VK_IMAGE_LAYOUT_UNDEFINED;
+                //         if ((aspectFlags & rhi::ImageAspectFlags::eDepthStencil) != rhi::ImageAspectFlags::eNone) {
+                //             dstLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+                //         } else if ((aspectFlags & rhi::ImageAspectFlags::eDepth) != rhi::ImageAspectFlags::eNone) {
+                //             dstLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
+                //         } else if ((aspectFlags & rhi::ImageAspectFlags::eStencil) != rhi::ImageAspectFlags::eNone) {
+                //             dstLayout = VK_IMAGE_LAYOUT_STENCIL_ATTACHMENT_OPTIMAL;
+                //         }
 
-                        image->transition(
-                            _barriers, 
-                            dstLayout, 
-                            dstStage, 
-                            VkAccessFlagBits::VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT, 
-                            0u, 0u, 
-                            0u, 0u
-                        );  
-                    }
+                //         image->transition(
+                //             _barriers, 
+                //             dstLayout, 
+                //             dstStage, 
+                //             VkAccessFlagBits::VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT, 
+                //             0u, 0u, 
+                //             0u, 0u
+                //         );  
+                //     }
 
-                    if ((usage & rhi::ImageUsageFlags::eColor_Attachment) != rhi::ImageUsageFlags::eNone) {
-                        auto const dstStage = VkPipelineStageFlagBits::VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+                //     if ((usage & rhi::ImageUsageFlags::eColor_Attachment) != rhi::ImageUsageFlags::eNone) {
+                //         auto const dstStage = VkPipelineStageFlagBits::VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 
-                        image->transition(
-                            _barriers, 
-                            VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, 
-                            dstStage, 
-                            VkAccessFlagBits::VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, 
-                            0u, 0u, 
-                            0u, 0u
-                        );  
-                    }
+                //         image->transition(
+                //             _barriers, 
+                //             VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, 
+                //             dstStage, 
+                //             VkAccessFlagBits::VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, 
+                //             0u, 0u, 
+                //             0u, 0u
+                //         );  
+                //     }
 
-                    // need to get finalLayout for attachment from command->renderPass
-                    image->assignLayout(renderPass->attachments[attachmentIdx].finalLayout, 0u, 0u, 0u, 0u);
-                    ++attachmentIdx;
-                }
+                //     // need to get finalLayout for attachment from command->renderPass
+                //     image->assignLayout(renderPass->attachments[attachmentIdx].finalLayout, 0u, 0u, 0u, 0u);
+                //     ++attachmentIdx;
+                // }
 
-                _barriers.flush(_commandbuffer());
+                // _barriers.flush(_commandbuffer());
 
                 dynamic_array<VkClearValue, 4u> clearValues;
                 clearValues.reserve(command->clearValues.size());
@@ -533,37 +528,37 @@ namespace engine::vulkan::runtime {
                 applyBarriers(passId, nullptr, {});
                 ++passId;
 
-                // todo: move set barriers to function
-                for (const auto & buffer : command->bufferTransitionInfo) {
-                    auto * buff = static_cast<Buffer*>(buffer.buff);
-                    buff->transition(
-                        _barriers,
-                        utils::convert2vk(buffer.stage),
-                        utils::convert2vk(buffer.access),
-                        buffer.offset,
-                        buffer.size
-                    );
-                }
+                // // todo: move set barriers to function
+                // for (const auto & buffer : command->bufferTransitionInfo) {
+                //     auto * buff = static_cast<Buffer*>(buffer.buff);
+                //     buff->transition(
+                //         _barriers,
+                //         utils::convert2vk(buffer.stage),
+                //         utils::convert2vk(buffer.access),
+                //         buffer.offset,
+                //         buffer.size
+                //     );
+                // }
 
-                for (const auto & image : command->imageTransitionInfo) { // to use some images in shaders after rtt
-                    auto * img = static_cast<Image*>(image.img);
-                    img->transition(
-                        _barriers, 
-                        utils::convert2vk(image.layout), 
-                        utils::convert2vk(image.stage), 
-                        utils::convert2vk(image.access), 
-                        image.baseLayer, image.baseLevel, 
-                        image.layersCount, image.levelsCount
-                    );
-                }
-                _barriers.flush(_commandbuffer());
+                // for (const auto & image : command->imageTransitionInfo) { // to use some images in shaders after rtt
+                //     auto * img = static_cast<Image*>(image.img);
+                //     img->transition(
+                //         _barriers, 
+                //         utils::convert2vk(image.layout), 
+                //         utils::convert2vk(image.stage), 
+                //         utils::convert2vk(image.access), 
+                //         image.baseLayer, image.baseLevel, 
+                //         image.layersCount, image.levelsCount
+                //     );
+                // }
+                // _barriers.flush(_commandbuffer());
 
                 _commandbuffer.nextSubpass(command->contents);
             }
                 break;
             case CommandType::eExecuteCommands:
             {
-                applyPostBarriers();
+                // applyPostBarriers();
                 const auto * command = static_cast<ExecuteCommandsCommand*>(cmd);
                 // _commandbuffer.executeCommands();// todo!
             }
@@ -771,20 +766,20 @@ namespace engine::vulkan::runtime {
                 
                 auto & vkDstBuffer = *static_cast<Buffer*>(command->dst);
 
-                if (command->autoBarriers) {
-                    vkDstBuffer.transition(_barriers,
-                        VkPipelineStageFlagBits::VK_PIPELINE_STAGE_TRANSFER_BIT,
-                        VkAccessFlagBits::VK_ACCESS_TRANSFER_WRITE_BIT, 
-                        command->dstOffset, command->dataSize
-                    );
+                // if (command->autoBarriers) {
+                //     vkDstBuffer.transition(_barriers,
+                //         VkPipelineStageFlagBits::VK_PIPELINE_STAGE_TRANSFER_BIT,
+                //         VkAccessFlagBits::VK_ACCESS_TRANSFER_WRITE_BIT, 
+                //         command->dstOffset, command->dataSize
+                //     );
 
-                    _barriers.flush(_commandbuffer());
+                //     _barriers.flush(_commandbuffer());
 
-                    if (vkDstBuffer.usage() != rhi::BufferUsageFlags::eTransfer_Dst &&
-                        vkDstBuffer.usage() != (rhi::BufferUsageFlags::eTransfer_Src | rhi::BufferUsageFlags::eTransfer_Dst)) {
-                        _postBarriersBuffers.emplace_back(&vkDstBuffer, command->dstOffset, command->dataSize); // dstBuffer
-                    }
-                }
+                //     if (vkDstBuffer.usage() != rhi::BufferUsageFlags::eTransfer_Dst &&
+                //         vkDstBuffer.usage() != (rhi::BufferUsageFlags::eTransfer_Src | rhi::BufferUsageFlags::eTransfer_Dst)) {
+                //         _postBarriersBuffers.emplace_back(&vkDstBuffer, command->dstOffset, command->dataSize); // dstBuffer
+                //     }
+                // }
 
                 _commandbuffer.updateBuffer(vkDstBuffer, command->dstOffset, command->dataSize, command->pData);
             }
@@ -797,30 +792,30 @@ namespace engine::vulkan::runtime {
                 auto & vkSrcBuffer = *static_cast<Buffer*>(command->src);
                 auto & vkDstBuffer = *static_cast<Buffer*>(command->dst);
 
-                if (command->autoBarriers) {
-                    vkSrcBuffer.transition(_barriers, 
-                        VkPipelineStageFlagBits::VK_PIPELINE_STAGE_TRANSFER_BIT, 
-                        VkAccessFlagBits::VK_ACCESS_TRANSFER_READ_BIT, 
-                        command->info.srcOffset, command->info.size);
+                // if (command->autoBarriers) {
+                //     vkSrcBuffer.transition(_barriers, 
+                //         VkPipelineStageFlagBits::VK_PIPELINE_STAGE_TRANSFER_BIT, 
+                //         VkAccessFlagBits::VK_ACCESS_TRANSFER_READ_BIT, 
+                //         command->info.srcOffset, command->info.size);
 
-                    vkDstBuffer.transition(_barriers,
-                        VkPipelineStageFlagBits::VK_PIPELINE_STAGE_TRANSFER_BIT,
-                        VkAccessFlagBits::VK_ACCESS_TRANSFER_WRITE_BIT, 
-                        command->info.dstOffset, command->info.size
-                    );
+                //     vkDstBuffer.transition(_barriers,
+                //         VkPipelineStageFlagBits::VK_PIPELINE_STAGE_TRANSFER_BIT,
+                //         VkAccessFlagBits::VK_ACCESS_TRANSFER_WRITE_BIT, 
+                //         command->info.dstOffset, command->info.size
+                //     );
 
-                    _barriers.flush(_commandbuffer());
+                //     _barriers.flush(_commandbuffer());
 
-                    if (vkSrcBuffer.usage() != rhi::BufferUsageFlags::eTransfer_Src &&
-                        vkSrcBuffer.usage() != (rhi::BufferUsageFlags::eTransfer_Src | rhi::BufferUsageFlags::eTransfer_Dst)) {
-                        _postBarriersBuffers.emplace_back(&vkSrcBuffer, command->info.srcOffset, command->info.size); // srcBuffer
-                    }
+                //     if (vkSrcBuffer.usage() != rhi::BufferUsageFlags::eTransfer_Src &&
+                //         vkSrcBuffer.usage() != (rhi::BufferUsageFlags::eTransfer_Src | rhi::BufferUsageFlags::eTransfer_Dst)) {
+                //         _postBarriersBuffers.emplace_back(&vkSrcBuffer, command->info.srcOffset, command->info.size); // srcBuffer
+                //     }
 
-                    if (vkDstBuffer.usage() != rhi::BufferUsageFlags::eTransfer_Dst &&
-                        vkDstBuffer.usage() != (rhi::BufferUsageFlags::eTransfer_Src | rhi::BufferUsageFlags::eTransfer_Dst)) {
-                        _postBarriersBuffers.emplace_back(&vkDstBuffer, command->info.dstOffset, command->info.size); // dstBuffer
-                    }
-                }
+                //     if (vkDstBuffer.usage() != rhi::BufferUsageFlags::eTransfer_Dst &&
+                //         vkDstBuffer.usage() != (rhi::BufferUsageFlags::eTransfer_Src | rhi::BufferUsageFlags::eTransfer_Dst)) {
+                //         _postBarriersBuffers.emplace_back(&vkDstBuffer, command->info.dstOffset, command->info.size); // dstBuffer
+                //     }
+                // }
 
                 _commandbuffer.copyBuffer2Buffer(vkSrcBuffer, vkDstBuffer, copyInfos);
             }
@@ -834,35 +829,35 @@ namespace engine::vulkan::runtime {
                 auto & vkSrcBuffer = *static_cast<Buffer*>(command->src);
                 auto & vkDstImage = *static_cast<Image*>(command->dst);
 
-                if (command->autoBarriers) {
-                    vkSrcBuffer.transition(_barriers, 
-                        VkPipelineStageFlagBits::VK_PIPELINE_STAGE_TRANSFER_BIT, 
-                        VkAccessFlagBits::VK_ACCESS_TRANSFER_READ_BIT, 
-                        command->info.bufferOffset, VK_WHOLE_SIZE);
+                // if (command->autoBarriers) {
+                //     vkSrcBuffer.transition(_barriers, 
+                //         VkPipelineStageFlagBits::VK_PIPELINE_STAGE_TRANSFER_BIT, 
+                //         VkAccessFlagBits::VK_ACCESS_TRANSFER_READ_BIT, 
+                //         command->info.bufferOffset, VK_WHOLE_SIZE);
 
-                    vkDstImage.transition(
-                        _barriers,
-                        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 
-                        VK_PIPELINE_STAGE_TRANSFER_BIT,
-                        VK_ACCESS_TRANSFER_WRITE_BIT,
-                        command->info.imageSubresource.baseArrayLayer,
-                        command->info.imageSubresource.mipLevel,
-                        command->info.imageSubresource.layerCount,
-                        1u
-                    );
+                //     vkDstImage.transition(
+                //         _barriers,
+                //         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 
+                //         VK_PIPELINE_STAGE_TRANSFER_BIT,
+                //         VK_ACCESS_TRANSFER_WRITE_BIT,
+                //         command->info.imageSubresource.baseArrayLayer,
+                //         command->info.imageSubresource.mipLevel,
+                //         command->info.imageSubresource.layerCount,
+                //         1u
+                //     );
 
-                    _barriers.flush(_commandbuffer());
+                //     _barriers.flush(_commandbuffer());
 
-                    if (vkSrcBuffer.usage() != rhi::BufferUsageFlags::eTransfer_Src &&
-                        vkSrcBuffer.usage() != (rhi::BufferUsageFlags::eTransfer_Src | rhi::BufferUsageFlags::eTransfer_Dst)) {
-                        _postBarriersBuffers.emplace_back(&vkSrcBuffer, command->info.bufferOffset, VK_WHOLE_SIZE); // srcBuffer
-                    }
+                //     if (vkSrcBuffer.usage() != rhi::BufferUsageFlags::eTransfer_Src &&
+                //         vkSrcBuffer.usage() != (rhi::BufferUsageFlags::eTransfer_Src | rhi::BufferUsageFlags::eTransfer_Dst)) {
+                //         _postBarriersBuffers.emplace_back(&vkSrcBuffer, command->info.bufferOffset, VK_WHOLE_SIZE); // srcBuffer
+                //     }
 
-                    if (vkDstImage.usage() != rhi::ImageUsageFlags::eTransfer_Dst &&
-                        vkDstImage.usage() != (rhi::ImageUsageFlags::eTransfer_Src | rhi::ImageUsageFlags::eTransfer_Dst)) {
-                        _postBarriersImages.emplace_back(&vkDstImage); // dstImage
-                    }
-                }
+                //     if (vkDstImage.usage() != rhi::ImageUsageFlags::eTransfer_Dst &&
+                //         vkDstImage.usage() != (rhi::ImageUsageFlags::eTransfer_Src | rhi::ImageUsageFlags::eTransfer_Dst)) {
+                //         _postBarriersImages.emplace_back(&vkDstImage); // dstImage
+                //     }
+                // }
 
                 _commandbuffer.copyBuffer2Image(vkSrcBuffer, vkDstImage, copyInfos);
             }   
@@ -886,7 +881,7 @@ namespace engine::vulkan::runtime {
             memory += cmd->size;
         }
 
-        _postBarriersBuffers.clear();
-        _postBarriersImages.clear();
+        // _postBarriersBuffers.clear();
+        // _postBarriersImages.clear();
     }
 }

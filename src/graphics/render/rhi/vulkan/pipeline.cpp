@@ -282,7 +282,7 @@ namespace engine::vulkan {
             std::span<const rhi::VertexInputBinding> inputBindings,
             std::span<const rhi::VertexInputAttribute> attributes
             ) noexcept {
-            _vertexBindings = utils::convert2vk(inputBindings);
+            _vertexBindings = utils::convert2vk(inputBindings); // check 4u dynamic_array!
             _vertexAttributes = utils::convert2vk(attributes);
             _vertexInputState = vulkan::pipelineVertexInputStateInfo(_vertexBindings.view(), _vertexAttributes.view());
             return *this;

@@ -56,8 +56,8 @@ namespace example {
     constexpr uint8_t kDebugProgram = 4u;
     constexpr uint8_t kSpritesProgram = 5u;
     constexpr uint8_t kMeshProgram = 6u;
-    constexpr uint8_t  kMeshSkeletalInstancedProgram = 7u;
-    constexpr uint8_t  kMeshInstancedProgram = 8u;
+    constexpr uint8_t kMeshSkeletalInstancedProgram = 7u;
+    constexpr uint8_t kMeshInstancedProgram = 8u;
     constexpr uint8_t kComputeProgram2 = 9u;
     constexpr uint8_t kMeshAfterComputeProgram = 10u;
 

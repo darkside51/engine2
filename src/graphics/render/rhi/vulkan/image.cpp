@@ -173,7 +173,6 @@ void Image::transition(PipelineBarriers & barriers, VkImageLayout dstLayout,
 
     if (_imageStatesIdentical) {
         auto & subState = _imageSubStates[0u];
-
         if (subState.layout != dstLayout || subState.queueFamilyIndex != queueFamily) {
             barrier.oldLayout = subState.layout;
             barrier.srcAccessMask = subState.accessFlags;
@@ -187,7 +186,7 @@ void Image::transition(PipelineBarriers & barriers, VkImageLayout dstLayout,
             barriers.insertImageBarrier(
                 subState.usedStage, 
                 dstStage, 
-                0, //VkDependencyFlagBits::VK_DEPENDENCY_BY_REGION_BIT, // ? 
+                VkDependencyFlagBits::VK_DEPENDENCY_BY_REGION_BIT, // ? 
                 barrier
             );
 
@@ -287,7 +286,7 @@ void Image::transition(PipelineBarriers & barriers, VkImageLayout dstLayout,
                 barriers.insertImageBarrier(
                     subState.usedStage, 
                     dstStage, 
-                    0, // VkDependencyFlagBits::VK_DEPENDENCY_BY_REGION_BIT, // ? 
+                    VkDependencyFlagBits::VK_DEPENDENCY_BY_REGION_BIT, // ? 
                     barrier
                 );
             }
