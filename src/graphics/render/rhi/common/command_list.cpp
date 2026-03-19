@@ -17,13 +17,15 @@ namespace engine::rhi::runtime {
         _commandsCount = 0u;
 
         _pipelineType = PipelineBindPoint::eCompute;
-        for (auto & pass : _passes/*.view()*/) {
+        for (auto & pass : _passes) {
+        // for (auto & pass : _passes.view()) {
             pass.buffers.clear();
             pass.images.clear();
         }
         _passes.clear();
-        _passes.reserve(8u);
+        // _passes.reserve(8u);
 
+        // _passId = 0u;
         _currentPass = nullptr;
 
         _resources.clear();
@@ -67,6 +69,8 @@ namespace engine::rhi::runtime {
         }
 
         _currentPass = &_passes.emplace_back(Pass::Type::eRender);
+        // _currentPass = &_passes[_passId++];
+        // _currentPass->type = Pass::Type::eRender;
     }
 
     void CommandList::endRenderPass() noexcept {
@@ -87,6 +91,8 @@ namespace engine::rhi::runtime {
         }
 
         _currentPass = &_passes.emplace_back(Pass::Type::eRender);
+        // _currentPass = &_passes[_passId++];
+        // _currentPass->type = Pass::Type::eRender;
     }
 
     void CommandList::executeCommands(std::span<const CommandList*> secondaryCommandLists) noexcept {
@@ -250,6 +256,8 @@ namespace engine::rhi::runtime {
 
         if (_currentPass == nullptr) {
             _currentPass = &_passes.emplace_back(Pass::Type::eOther);
+            // _currentPass = &_passes[_passId++];
+            // _currentPass->type = Pass::Type::eOther;
         }
     }
 
@@ -276,6 +284,8 @@ namespace engine::rhi::runtime {
 
         if (_currentPass == nullptr) {
             _currentPass = &_passes.emplace_back(Pass::Type::eOther);
+            // _currentPass = &_passes[_passId++];
+            // _currentPass->type = Pass::Type::eOther;
         }
 
         _currentPass->buffers.emplace_back(dst.get(), BufferUsageFlags::eTransfer_Dst, _pipelineType); // ...
@@ -294,6 +304,8 @@ namespace engine::rhi::runtime {
 
         if (_currentPass == nullptr) {
             _currentPass = &_passes.emplace_back(Pass::Type::eOther);
+            // _currentPass = &_passes[_passId++];
+            // _currentPass->type = Pass::Type::eOther;
         }
 
         _currentPass->buffers.emplace_back(src.get(), BufferUsageFlags::eTransfer_Src, _pipelineType); // ...
@@ -312,6 +324,8 @@ namespace engine::rhi::runtime {
 
         if (_currentPass == nullptr) {
             _currentPass = &_passes.emplace_back(Pass::Type::eOther);
+            // _currentPass = &_passes[_passId++];
+            // _currentPass->type = Pass::Type::eOther;
         }
 
         _currentPass->buffers.emplace_back(src.get(), BufferUsageFlags::eTransfer_Src, _pipelineType); // ...

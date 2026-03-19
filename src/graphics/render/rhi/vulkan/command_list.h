@@ -12,16 +12,6 @@ namespace engine::vulkan {
 namespace engine::vulkan::runtime {
 
     class CommandList final : public rhi::runtime::CommandList {
-        struct PostBufferBarrierInfo {
-            Buffer * buffer;
-            size_t offset;
-            size_t size;
-        };
-
-        struct PostImageBarrierInfo {
-            Image * image;
-        };
-
     public:
         CommandList(rhi::runtime::CommandPool * commandPool, 
             rhi::CommandBufferLevel level = rhi::CommandBufferLevel::ePrimary);
@@ -39,9 +29,5 @@ namespace engine::vulkan::runtime {
         CommandBuffer _commandbuffer;
 
         PipelineBarriers _barriers;
-        PipelineBarriers _postBarriers;
-
-        std::vector<PostBufferBarrierInfo> _postBarriersBuffers;
-        std::vector<PostImageBarrierInfo> _postBarriersImages;
     };
 }

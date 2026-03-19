@@ -266,7 +266,7 @@ namespace engine::vulkan {
 
         GraphicsPipelineInfo & GraphicsPipelineInfo::colorBlendStateCreateInfo(
             std::span<const rhi::EncodedBlendMode> blendModes) noexcept {
-                _blendAttachmentState.reserve(blendModes.size());
+                _blendAttachmentState.resize(blendModes.size());
                 auto view = _blendAttachmentState.view();
                 size_t i = 0u;
                 for (const auto blendValue : blendModes) {
@@ -282,8 +282,8 @@ namespace engine::vulkan {
             std::span<const rhi::VertexInputBinding> inputBindings,
             std::span<const rhi::VertexInputAttribute> attributes
             ) noexcept {
-            _vertexBindings = utils::convert2vk(inputBindings); // check 4u dynamic_array!
-            _vertexAttributes = utils::convert2vk(attributes);
+            _vertexBindings = utils::convert2vk<_vertexBindings.maxArrayCount()>(inputBindings);
+            _vertexAttributes = utils::convert2vk<_vertexAttributes.maxArrayCount()>(attributes);
             _vertexInputState = vulkan::pipelineVertexInputStateInfo(_vertexBindings.view(), _vertexAttributes.view());
             return *this;
         }

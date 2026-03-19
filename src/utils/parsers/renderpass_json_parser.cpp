@@ -294,7 +294,7 @@ namespace engine {
 
             if (js.contains("reserveAttachments")) {
                 const auto & reserveAttachmentsArray = js["reserveAttachments"].get_array();
-                subpass.reserveAttachments.reserve(reserveAttachmentsArray.size());
+                subpass.reserveAttachments.resize(reserveAttachmentsArray.size());
                 for (const auto & ra : reserveAttachmentsArray) {
                     subpass.reserveAttachments.emplace_back(ra.as<uint32_t>());
                 }
@@ -302,19 +302,19 @@ namespace engine {
             
             if (js.contains("inputAttachments")) {
                 const auto & inputAttachmentsArray = js["inputAttachments"].get_array();
-                subpass.inputAttachments.reserve(inputAttachmentsArray.size());
+                subpass.inputAttachments.resize(inputAttachmentsArray.size());
                 parseSubpassAttachments(inputAttachmentsArray, subpass.inputAttachments.view());
             }
 
             if (js.contains("resolveAttachments")) {
                 const auto & resolveAttachmentsArray = js["resolveAttachments"].get_array();
-                subpass.resolveAttachments.reserve(resolveAttachmentsArray.size());
+                subpass.resolveAttachments.resize(resolveAttachmentsArray.size());
                 parseSubpassAttachments(resolveAttachmentsArray, subpass.resolveAttachments.view());
             }
 
             if (js.contains("colorAttachments")) {
                 const auto & colorAttachmentsArray = js["colorAttachments"].get_array();
-                subpass.colorAttachments.reserve(colorAttachmentsArray.size());
+                subpass.colorAttachments.resize(colorAttachmentsArray.size());
                 parseSubpassAttachments(colorAttachmentsArray, subpass.colorAttachments.view());
             }
 

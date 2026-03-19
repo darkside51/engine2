@@ -115,28 +115,28 @@ namespace engine::vulkan {
         };
 
         dynamic_array<SubmitTmpData, 4u> submitDatas;
-        submitDatas.reserve(submitInfos.size());
+        submitDatas.resize(submitInfos.size());
 
         dynamic_array<VkSubmitInfo, 4u> vkSubmitInfos;
-        vkSubmitInfos.reserve(submitInfos.size());
+        vkSubmitInfos.resize(submitInfos.size());
 
-        size_t n = 0;
+        size_t n = 0u;
         for (const auto & info : submitInfos) {
             SubmitTmpData & tmp = submitDatas.view()[n];
 
-            tmp.commandBuffers.reserve(info.lists.size());
+            tmp.commandBuffers.resize(info.lists.size());
             auto cmdBuffersView = tmp.commandBuffers.view();
-            size_t i = 0;
+            size_t i = 0u;
             for (const auto * list : info.lists) {
                 const auto * vkList = static_cast<const runtime::CommandList*>(list);
                 cmdBuffersView[i++] = vkList->commandBuffer()();
             }
 
             
-            tmp.pipelineStageFlags.reserve(info.w8Semaphores.size());
+            tmp.pipelineStageFlags.resize(info.w8Semaphores.size());
             auto pipelineStageFlagsView = tmp.pipelineStageFlags.view();
 
-            i = 0;
+            i = 0u;
             for (const auto & stageFlags : info.w8DstStages) {
                 pipelineStageFlagsView[i++] = utils::convert2vk(stageFlags);
             }

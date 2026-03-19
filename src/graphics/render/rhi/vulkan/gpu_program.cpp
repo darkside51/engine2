@@ -108,7 +108,7 @@ namespace engine::vulkan {
 
         for (const auto & set : reflectSets) {
             engine::dynamic_array<rhi::shaders::BindingLayout, rhi::shaders::BindingSetLayout::kMaxBindingsInSetOnStack> layouts;
-            layouts.reserve(set->binding_count);
+            layouts.resize(set->binding_count);
             const auto view = layouts.view();
 
             for (uint32_t i = 0u; i < set->binding_count; ++i) {

@@ -150,7 +150,7 @@ namespace engine::vulkan {
 
     private:
         std::pair<std::array<VkDynamicState, rhi::kDynamicStatesCount>, uint8_t> _statesArray{};
-        dynamic_array<VkVertexInputBindingDescription, 8u> _vertexBindings; // old value 4u
+        dynamic_array<VkVertexInputBindingDescription, 8u> _vertexBindings;
         dynamic_array<VkVertexInputAttributeDescription, 8u> _vertexAttributes;
         dynamic_array<VkPipelineColorBlendAttachmentState, 4u> _blendAttachmentState;
 

@@ -45,9 +45,9 @@ namespace engine::vulkan {
             }
         }
 
-        _buffersInfo.reserve(buffersCount);
-        _imagesInfo.reserve(imagesCount);
-        _texelBuffersInfo.reserve(textelBuffersCount);
+        _buffersInfo.resize(buffersCount);
+        _imagesInfo.resize(imagesCount);
+        _texelBuffersInfo.resize(textelBuffersCount);
 
         uint8_t updateBufferIndex = 0u;
         uint8_t updateImageIndex = 0u;
@@ -333,7 +333,7 @@ namespace engine::vulkan {
         _set = targetSet;
 
         engine::dynamic_array<VkWriteDescriptorSet, kWritesOnStackLimit> writes;
-        writes.reserve(_buffersInfo.size() + _imagesInfo.size() + _texelBuffersInfo.size());
+        writes.resize(_buffersInfo.size() + _imagesInfo.size() + _texelBuffersInfo.size());
         const auto writeViews = writes.view();
         
         // structures VkWriteDescriptorSetInlineUniformBlock, VkWriteDescriptorSetAccelerationStructureKHR 

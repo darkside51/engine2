@@ -14,6 +14,8 @@ namespace engine {
 
 template <typename T, size_t Max>
 struct dynamic_array {
+    inline static consteval size_t maxArrayCount() noexcept { return Max; }
+
     std::variant<std::array<T, Max>, std::vector<T>> value;
     uint32_t capacity = 0u;
 
@@ -49,8 +51,24 @@ struct dynamic_array {
         }
     }
 
-    void reserve(uint32_t size) {
+    dynamic_array(const dynamic_array & other) = default;
+    dynamic_array(dynamic_array && other) noexcept = default;
+    dynamic_array & operator= (const dynamic_array & other) = default;
+    dynamic_array & operator= (dynamic_array && other) noexcept = default;
+
+    void resize(uint32_t size) {
         if (capacity != 0u) { return; }
+        if (size <= Max) { [[likely]];
+            //value = std::array<T, Max>{}; // already array as default
+        } else {
+            std::vector<T> v;
+            v.resize(size);
+            value = std::move(v);
+        }
+        capacity = size;
+    }
+
+    void reserve(uint32_t size) {
         if (size <= Max) { [[likely]];
             //value = std::array<T, Max>{}; // already array as default
         } else {
@@ -58,7 +76,6 @@ struct dynamic_array {
             v.reserve(size);
             value = std::move(v);
         }
-        capacity = size;
     }
 
     template <size_t Max2>

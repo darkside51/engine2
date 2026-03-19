@@ -134,6 +134,8 @@ namespace engine::rhi::runtime {
         
         // dynamic_array<Pass, 8u> _passes = {};
         std::vector<Pass> _passes = {};
+        // std::array<Pass, 8u> _passes = {};
+        // uint8_t _passId = 0u;
         Pass * _currentPass = nullptr;
         PipelineBindPoint _pipelineType = PipelineBindPoint::eCompute;
 
