@@ -770,6 +770,9 @@ namespace engine::scene {
         commandList->bindBuffer(1u, _computedNormals, 0u, 0u);
         commandList->bindBuffer(0u, (*_meshSkeletalTransforms)(frame), 1u, 0u);
 
+        commandList->bindBuffer(1u, (*_meshTransformIndices)(frame), 1u, 0u/*sizeof(uint32_t) * transformIndex*/);
+        commandList->bindBuffer(2u, (*_skeletonIds)(frame), 1u, 0u /*sizeof(uint32_t) * skeletonsOffset*/);
+
         auto computesDataIndex = dataIndex;
         if (skeletal) {
             commandList->bindBuffer(0u, mesh.getUniqueIndices().buffer, 2u, 0u);
@@ -867,6 +870,8 @@ namespace engine::scene {
             uint32_t objectsCount;
 	        uint32_t invocationsPerObject;
             uint32_t indicesOffset;
+            uint32_t transformsOffset;
+            uint32_t skeletonsOffset;
         };
 
         const auto & mesh = *static_cast<const Mesh*>(*begin);
@@ -882,10 +887,12 @@ namespace engine::scene {
             .objectsCount = 0u,
             .invocationsPerObject = vertexToCompute,
             .indicesOffset = g.uniqueIndexOffset,
+            .transformsOffset = transformIndex,
+            .skeletonsOffset = skeletonsOffset
         };
 
-        commandList->bindBuffer(1u, (*_meshTransformIndices)(frame), 1u, sizeof(uint32_t) * transformIndex);
-        commandList->bindBuffer(2u, (*_skeletonIds)(frame), 1u, sizeof(uint32_t) * skeletonsOffset);
+        // commandList->bindBuffer(1u, (*_meshTransformIndices)(frame), 1u, 0u/*sizeof(uint32_t) * transformIndex*/);
+        // commandList->bindBuffer(2u, (*_skeletonIds)(frame), 1u, 0u /*sizeof(uint32_t) * skeletonsOffset*/);
 
         while (count > 0u) {
             auto const maxCount = std::min(kMaxExecutionCount / threadsPerObject, count);

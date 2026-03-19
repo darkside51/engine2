@@ -9,6 +9,7 @@ layout (location = 5) in uint a_sbo_offset; // per instance value
 
 layout (location = 0) out vec3 v_normal;
 layout (location = 1) out vec2 v_uv;
+layout (location = 2) out vec4 v_albedo;
 
 // storage buffer
 layout (set = 0, binding = 0) readonly buffer SkinTransformations {
@@ -22,6 +23,7 @@ layout(push_constant) uniform Camera {
 
 void main() {
 	v_uv = a_uv;
+	v_albedo = push.albedo;
 
 	{ // with 48 bytes transforms
 		// skinned

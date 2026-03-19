@@ -39,6 +39,9 @@ layout(push_constant) uniform Data {
 	uint objectsCount;
 	uint invocationsPerObject;
 	uint indicesOffset;
+
+	uint transformsOffset;
+	uint skeletonsOffset;
 } push;
 
 void main() {
@@ -53,7 +56,7 @@ void main() {
 		return;
 	}
 
-	const uint transfromIdx = skin_offsets.data[objectId + push.firstObject];
+	const uint transfromIdx = skin_offsets.data[objectId + push.firstObject + push.transformsOffset];
 	const int vertexId = int(u_indices.data[invocationId % push.invocationsPerObject + push.indicesOffset]);
 
 	const vec4 a_weights = texelFetch(u_weights, vertexId);
@@ -96,7 +99,7 @@ void main() {
 	//const uint vertexCount = (skeletonData >> 16u) & 0xffffu;
 	//const uint resultOffset = vertexId + skeletonId * vertexCount;
 
-	const uint resultOffset = vertexId + skeleton_ids.data[objectId + push.firstObject];
+	const uint resultOffset = vertexId + skeleton_ids.data[objectId + push.firstObject + push.skeletonsOffset];
 	out_positions.data[resultOffset] = vec4(texelFetch(u_positions, vertexId).xyz, 1.0) * skin;
 	out_normals.data[resultOffset] = normalize((texelFetch(u_normals, vertexId) * skin));
 }

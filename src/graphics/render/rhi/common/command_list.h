@@ -24,6 +24,8 @@ namespace engine::rhi::runtime {
         Buffer* buffer = nullptr;
         BufferUsageFlags flags = BufferUsageFlags::eNone;
         PipelineBindPoint pipelineType = PipelineBindPoint::eCompute;
+        size_t offset = 0u;
+        size_t size = kWholeSize;
     };
 
     struct ImageUsage {
@@ -43,6 +45,7 @@ namespace engine::rhi::runtime {
         
         Pass() = default;
         explicit Pass(Type t) : type(t) {}
+        ~Pass() = default;
 
         dynamic_array<BufferUsage, kDefaultBuffersInArray> buffers = {};
         dynamic_array<ImageUsage, kDefaultImagesInArray> images = {};
@@ -129,7 +132,8 @@ namespace engine::rhi::runtime {
         allocators::StackAllocator<kStackSize, false> _commands{};
         uint32_t _commandsCount = 0u;
         
-        dynamic_array<Pass, 8u> _passes = {};
+        // dynamic_array<Pass, 8u> _passes = {};
+        std::vector<Pass> _passes = {};
         Pass * _currentPass = nullptr;
         PipelineBindPoint _pipelineType = PipelineBindPoint::eCompute;
 

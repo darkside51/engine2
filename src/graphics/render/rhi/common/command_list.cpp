@@ -17,7 +17,13 @@ namespace engine::rhi::runtime {
         _commandsCount = 0u;
 
         _pipelineType = PipelineBindPoint::eCompute;
+        for (auto & pass : _passes/*.view()*/) {
+            pass.buffers.clear();
+            pass.images.clear();
+        }
         _passes.clear();
+        _passes.reserve(8u);
+
         _currentPass = nullptr;
 
         _resources.clear();
@@ -38,20 +44,6 @@ namespace engine::rhi::runtime {
     void CommandList::end() noexcept {
         _commands->create<EndCommand>();
         ++_commandsCount;
-
-        // sort complete barriers info will be best idea
-        // const auto passes = _passes.view();
-        // for (auto & pass : passes) {
-        //     auto buffers = pass.buffers.view();
-        //     std::sort(buffers.begin(), buffers.end(), [](const BufferUsage & u0, const BufferUsage & u1) {
-        //         return std::to_underlying(u0.flags) < std::to_underlying(u1.flags);
-        //     });
-
-        //     auto images = pass.images.view();
-        //     std::sort(images.begin(), images.end(), [](const ImageUsage & u0, const ImageUsage & u1) {
-        //         return std::to_underlying(u0.flags) < std::to_underlying(u1.flags);
-        //     });
-        // }
     }
 
     void CommandList::reset(CommandBufferResetFlags flags) noexcept {
@@ -70,16 +62,16 @@ namespace engine::rhi::runtime {
             imageTransitionInfo, bufferTransitionInfo);
         ++_commandsCount;
 
+        if constexpr (kStatisticsEnable) {
+            ++_statistics.renderPasses;
+        }
+
         _currentPass = &_passes.emplace_back(Pass::Type::eRender);
     }
 
     void CommandList::endRenderPass() noexcept {
         _commands->create<EndRenderPassCommand>();
         ++_commandsCount;
-
-        if constexpr (kStatisticsEnable) {
-            ++_statistics.renderPasses;
-        }
 
         _currentPass = nullptr;
     }
@@ -164,7 +156,7 @@ namespace engine::rhi::runtime {
             _commands->create<BindVertexBufferCommand>(binding, buffer.get(), offset);
             ++_commandsCount;
 
-            _currentPass->buffers.emplace_back(buffer.get(), BufferUsageFlags::eVertex_Buffer, _pipelineType);
+            _currentPass->buffers.emplace_back(buffer.get(), BufferUsageFlags::eVertex_Buffer, _pipelineType, offset);
         }
     }
 
@@ -174,7 +166,7 @@ namespace engine::rhi::runtime {
             _commands->create<BindIndexBufferCommand>(buffer.get(), offset, type);
             ++_commandsCount;
 
-            _currentPass->buffers.emplace_back(buffer.get(), BufferUsageFlags::eIndex_Buffer, _pipelineType);
+            _currentPass->buffers.emplace_back(buffer.get(), BufferUsageFlags::eIndex_Buffer, _pipelineType, offset);
         }
     }
 
@@ -184,7 +176,7 @@ namespace engine::rhi::runtime {
         _commands->create<BindBufferCommand>(binding, buffer.get(), setId, offset, range, false);
         ++_commandsCount;
 
-        _currentPass->buffers.emplace_back(buffer.get(), BufferUsageFlags::eUniform_Buffer, _pipelineType); // not only uniform, correct usage check into implementation of commandlist
+        _currentPass->buffers.emplace_back(buffer.get(), BufferUsageFlags::eUniform_Buffer, _pipelineType, offset, range); // not only uniform, correct usage check into implementation of commandlist
     }
 
     void CommandList::bindBufferDynamic(uint16_t binding, const BufferPtr & buffer, uint8_t setId, uint32_t offset, uint32_t range) noexcept {
@@ -193,7 +185,7 @@ namespace engine::rhi::runtime {
         _commands->create<BindBufferCommand>(binding, buffer.get(), setId, offset, range, true);
         ++_commandsCount;
 
-        _currentPass->buffers.emplace_back(buffer.get(), BufferUsageFlags::eUniform_Buffer, _pipelineType); // not only uniform, correct usage check into implementation of commandlist
+        _currentPass->buffers.emplace_back(buffer.get(), BufferUsageFlags::eUniform_Buffer, _pipelineType, offset, range); // not only uniform, correct usage check into implementation of commandlist
     }
 
     void CommandList::bindTexelBuffer(uint16_t binding, const BufferPtr & buffer, Format format, uint8_t setId, uint32_t offset, uint32_t range) noexcept {
@@ -201,7 +193,7 @@ namespace engine::rhi::runtime {
         _commands->create<BindTexelBufferCommand>(binding, buffer.get(), format, setId, offset, range);
         ++_commandsCount;
 
-        _currentPass->buffers.emplace_back(buffer.get(), BufferUsageFlags::eUniform_Texel_Buffer, _pipelineType); // ...
+        _currentPass->buffers.emplace_back(buffer.get(), BufferUsageFlags::eUniform_Texel_Buffer, _pipelineType, offset, range); // ...
     }
 
     void CommandList::bindImage(uint16_t binding, const ImagePtr & image, std::optional<rhi::SamplerValue> sampler, uint8_t setId) noexcept {

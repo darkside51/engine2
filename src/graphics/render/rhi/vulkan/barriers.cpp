@@ -2,8 +2,8 @@
 
 namespace engine::vulkan {
 
-    constexpr uint8_t kBufferBarriersReserveCapacity = 8u;
-    constexpr uint8_t kImageBarriersReserveCapacity = 8u;
+    constexpr uint8_t kBufferBarriersReserveCapacity = 128u;
+    constexpr uint8_t kImageBarriersReserveCapacity = 128u;
 
     void PipelineBarriers::insertBufferBarrier(VkPipelineStageFlags srcStage, 
         VkPipelineStageFlags dstStage, 
@@ -37,7 +37,7 @@ namespace engine::vulkan {
                 vkCmdPipelineBarrier(
                     commandBuffer, 
                     stage.srcStageMask, stage.dstStageMask, stage.dependencyFlags, 
-                    0u, nullptr, // need to use mamory barriers?
+                    0u, nullptr, // need to use memory barriers?
                     barriers.bufferBarriers.size(), barriers.bufferBarriers.data(), 
                     barriers.imageBarriers.size(), barriers.imageBarriers.data()
                 );

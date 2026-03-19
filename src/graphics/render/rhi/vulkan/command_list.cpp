@@ -38,6 +38,190 @@ namespace engine::vulkan::runtime {
         _postBarriers.reset();
     }
 
+    void CommandList::applyBarriers(uint32_t passId, RenderPass* renderPass, std::span<rhi::FrameBufferAttachment> attachments) {
+        return;
+        { // pass barriers
+            const auto & pass = _passes/*.view()*/[passId];
+
+            // buffers
+            const auto & buffers = pass.buffers.view();
+            for (const auto & buffer : buffers) {
+                auto * vkBuffer = static_cast<vulkan::Buffer*>(buffer.buffer);
+                if ((buffer.flags & (rhi::BufferUsageFlags::eTransfer_Src)) != rhi::BufferUsageFlags::eNone) {
+                    vkBuffer->transition(_barriers, 
+                        VkPipelineStageFlagBits::VK_PIPELINE_STAGE_TRANSFER_BIT, 
+                        VkAccessFlagBits::VK_ACCESS_TRANSFER_READ_BIT,
+                        buffer.offset, buffer.size
+                    );
+                }
+                
+                if ((buffer.flags & (rhi::BufferUsageFlags::eTransfer_Dst)) != rhi::BufferUsageFlags::eNone) {
+                    vkBuffer->transition(_barriers,
+                        VkPipelineStageFlagBits::VK_PIPELINE_STAGE_TRANSFER_BIT,
+                        VkAccessFlagBits::VK_ACCESS_TRANSFER_WRITE_BIT,
+                        buffer.offset, buffer.size
+                    );
+                }
+
+                if ((buffer.flags & rhi::BufferUsageFlags::eVertex_Buffer) != rhi::BufferUsageFlags::eNone) {
+                    auto const dstStage = VkPipelineStageFlagBits::VK_PIPELINE_STAGE_VERTEX_INPUT_BIT;
+                    vkBuffer->transition(_barriers,
+                        dstStage,
+                        VkAccessFlagBits::VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT,
+                        buffer.offset, buffer.size
+                    );
+                }
+
+                if ((buffer.flags & rhi::BufferUsageFlags::eIndex_Buffer) != rhi::BufferUsageFlags::eNone) {
+                    auto const dstStage = VkPipelineStageFlagBits::VK_PIPELINE_STAGE_VERTEX_INPUT_BIT;
+                    vkBuffer->transition(_barriers,
+                        dstStage,
+                        VkAccessFlagBits::VK_ACCESS_INDEX_READ_BIT,
+                        buffer.offset, buffer.size
+                    );
+                }
+
+                if ((buffer.flags & (rhi::BufferUsageFlags::eUniform_Buffer | 
+                                rhi::BufferUsageFlags::eUniform_Texel_Buffer)) != rhi::BufferUsageFlags::eNone) {
+                    auto const usage = vkBuffer->usage();
+                    if ((usage & (rhi::BufferUsageFlags::eUniform_Buffer | 
+                                rhi::BufferUsageFlags::eUniform_Texel_Buffer)) != rhi::BufferUsageFlags::eNone) {
+                        auto const dstStage = pass.type == rhi::runtime::Pass::Type::eRender ? VkPipelineStageFlagBits::VK_PIPELINE_STAGE_VERTEX_SHADER_BIT : 
+                                            VkPipelineStageFlagBits::VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+
+                        vkBuffer->transition(_barriers,
+                            dstStage,
+                            VkAccessFlagBits::VK_ACCESS_UNIFORM_READ_BIT | VkAccessFlagBits::VK_ACCESS_SHADER_READ_BIT, // correct?
+                            buffer.offset, buffer.size
+                        );
+                    }    
+
+                    if ((usage & (rhi::BufferUsageFlags::eStorage_Buffer | 
+                                rhi::BufferUsageFlags::eStorage_Texel_Buffer)) != rhi::BufferUsageFlags::eNone) {
+                        auto const dstStage = pass.type == rhi::runtime::Pass::Type::eRender ? VkPipelineStageFlagBits::VK_PIPELINE_STAGE_VERTEX_SHADER_BIT : 
+                                            VkPipelineStageFlagBits::VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+
+                        vkBuffer->transition(_barriers,
+                            dstStage,
+                            VkAccessFlagBits::VK_ACCESS_SHADER_READ_BIT | VkAccessFlagBits::VK_ACCESS_SHADER_WRITE_BIT, // need to specify read or write?
+                            buffer.offset, buffer.size
+                        );
+                    }
+
+                    // rhi::BufferUsageFlags::eIndirect_Buffer
+                }
+            }
+
+            // images
+            const auto & images = pass.images.view();
+            for (const auto & image : images) {
+                auto * vkImage = static_cast<vulkan::Image*>(image.image);
+                auto const usage = vkImage->usage();
+
+                if ((usage & rhi::ImageUsageFlags::eSampled) != rhi::ImageUsageFlags::eNone) {
+                    auto const dstStage = VkPipelineStageFlagBits::VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | 
+                                        VkPipelineStageFlagBits::VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+
+                    vkImage->transition(
+                        _barriers, 
+                        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 
+                        dstStage, 
+                        VkAccessFlagBits::VK_ACCESS_SHADER_READ_BIT, 
+                        0u, 0u, 
+                        0u, 0u
+                    );  
+                }
+
+                if ((usage & rhi::ImageUsageFlags::eStorage) != rhi::ImageUsageFlags::eNone) {
+                    auto const dstStage = pass.type == rhi::runtime::Pass::Type::eRender ? VkPipelineStageFlagBits::VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | 
+                                                                                        VkPipelineStageFlagBits::VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT :
+                                                                                        VkPipelineStageFlagBits::VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+
+                    vkImage->transition(
+                        _barriers, 
+                        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 
+                        dstStage, 
+                        VkAccessFlagBits::VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT, 
+                        0u, 0u, 
+                        0u, 0u
+                    );  
+                }
+
+                 if ((image.flags & rhi::ImageUsageFlags::eTransfer_Dst) != rhi::ImageUsageFlags::eNone) {
+                    // vkImage->transition(_barriers,
+                    //     VkPipelineStageFlagBits::VK_PIPELINE_STAGE_TRANSFER_BIT,
+                    //     VkAccessFlagBits::VK_ACCESS_TRANSFER_WRITE_BIT,
+                    //     buffer.offset, buffer.size
+                    // );
+                    vkImage->transition(
+                        _barriers,
+                        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 
+                        VK_PIPELINE_STAGE_TRANSFER_BIT,
+                        VK_ACCESS_TRANSFER_WRITE_BIT,
+                        0u, 0u, 
+                        0u, 0u
+                        // command->info.imageSubresource.baseArrayLayer,
+                        // command->info.imageSubresource.mipLevel,
+                        // command->info.imageSubresource.layerCount,
+                        // 1u
+                    );
+                }
+            }
+        }
+
+        { // attachments barriers
+            uint8_t attachmentIdx = 0u;
+            for (const auto & attachment : attachments) {
+                auto * image = static_cast<Image*>(attachment.image);
+                const auto usage = attachment.image->usage();
+
+                // need check layers and levels count?
+                if ((usage & rhi::ImageUsageFlags::eDepth_Stencil_Attachment) != rhi::ImageUsageFlags::eNone) {
+                    auto const dstStage = VkPipelineStageFlagBits::VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+
+                    const auto aspectFlags = attachment.aspect;
+
+                    VkImageLayout dstLayout = VkImageLayout::VK_IMAGE_LAYOUT_UNDEFINED;
+                    if ((aspectFlags & rhi::ImageAspectFlags::eDepthStencil) != rhi::ImageAspectFlags::eNone) {
+                        dstLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+                    } else if ((aspectFlags & rhi::ImageAspectFlags::eDepth) != rhi::ImageAspectFlags::eNone) {
+                        dstLayout = VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
+                    } else if ((aspectFlags & rhi::ImageAspectFlags::eStencil) != rhi::ImageAspectFlags::eNone) {
+                        dstLayout = VK_IMAGE_LAYOUT_STENCIL_ATTACHMENT_OPTIMAL;
+                    }
+
+                    image->transition(
+                        _barriers, 
+                        dstLayout, 
+                        dstStage, 
+                        VkAccessFlagBits::VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT, 
+                        0u, 0u, 
+                        0u, 0u
+                    );  
+                }
+
+                if ((usage & rhi::ImageUsageFlags::eColor_Attachment) != rhi::ImageUsageFlags::eNone) {
+                    auto const dstStage = VkPipelineStageFlagBits::VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+
+                    image->transition(
+                        _barriers, 
+                        VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, 
+                        dstStage, 
+                        VkAccessFlagBits::VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, 
+                        0u, 0u, 
+                        0u, 0u
+                    );  
+                }
+
+                // need to get finalLayout for attachment from command->renderPass
+                image->assignLayout(renderPass->attachments[attachmentIdx].finalLayout, 0u, 0u, 0u, 0u);
+                ++attachmentIdx;
+            }
+        }
+
+        _barriers.flush(_commandbuffer());
+    }
+
     void CommandList::record(uint8_t frameIdx, rhi::runtime::CommandList * nextList) noexcept {
         using namespace rhi::runtime;
 
@@ -179,8 +363,10 @@ namespace engine::vulkan::runtime {
             changeDynamicBufferSets = 0u;
         };
 
-        auto commandsCount = _commandsCount;
-
+        uint32_t passId = 0u;
+        auto &passes = _passes;//.view();
+        
+        auto commandsCount = _commandsCount;        
         while ((commandsCount--) > 0u) {
             Command * cmd = reinterpret_cast<Command*>(memory);
             switch (cmd->cmdType) {
@@ -192,6 +378,12 @@ namespace engine::vulkan::runtime {
                 changedSets = 0u;
                 changeDynamicBufferSets = 0u;
                 resetState();
+
+                auto & pass = passes[passId];
+                if (pass.type == Pass::Type::eOther) {
+                    applyBarriers(passId, nullptr, {});
+                    ++passId;
+                }
             }
                 break;
             case CommandType::eEnd:
@@ -229,6 +421,9 @@ namespace engine::vulkan::runtime {
 
                 auto & framebuffer = static_cast<vulkan::FrameBuffer &>(*command->framebuffer);
                 auto * renderPass = static_cast<RenderPass*>(command->renderPass);
+
+                applyBarriers(passId, renderPass, framebuffer.attachments());
+                ++passId;
 
                 // todo: move set barriers to function
                 for (const auto & buffer : command->bufferTransitionInfo) {
@@ -325,11 +520,18 @@ namespace engine::vulkan::runtime {
             case CommandType::eEndRenderPass:
             {
                 _commandbuffer.endRenderPass();
+
+                if (passId < passes.size() && passes[passId].type == Pass::Type::eOther) {
+                    applyBarriers(passId, nullptr, {});
+                    ++passId;
+                }
             }
                 break;
             case CommandType::eNextSubpass:
             {
                 const auto * command = static_cast<NextSubpassCommand*>(cmd);
+                applyBarriers(passId, nullptr, {});
+                ++passId;
 
                 // todo: move set barriers to function
                 for (const auto & buffer : command->bufferTransitionInfo) {

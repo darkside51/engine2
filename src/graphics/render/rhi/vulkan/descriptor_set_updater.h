@@ -75,6 +75,10 @@ namespace engine::vulkan {
         bool _imagesDirty = false;
         bool _texelBufferDirty = false;
         VkDescriptorSet _set = VK_NULL_HANDLE;
+
+        VkDeviceSize _minUniformBufferOffsetAlignment;
+        VkDeviceSize _minTexelBufferOffsetAlignment;
+        VkDeviceSize _minStorageBufferOffsetAlignment;
     };
     
 }

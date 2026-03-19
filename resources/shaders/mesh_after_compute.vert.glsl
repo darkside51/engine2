@@ -13,6 +13,7 @@ layout (set = 0, binding = 1) buffer Normals {
 
 layout (location = 0) out vec3 v_normal;
 layout (location = 1) out vec2 v_uv;
+layout (location = 2) out vec4 v_albedo;
 
 layout(push_constant) uniform Params {
 	mat4 viewProjection;
@@ -30,4 +31,5 @@ void main() {
 	gl_Position = push.viewProjection * in_positions.data[vertexId];
 	v_normal = in_normals.data[vertexId].xyz;
 	v_uv = a_uv;
+	v_albedo = push.albedo;
 }
