@@ -561,6 +561,10 @@ namespace engine::vulkan::runtime {
                     command->query);
             } 
                 break;
+            // case CommandType::eBeginQuery {
+
+            // }
+            //     break;
             case CommandType::eUpdateBuffer: {
                 const auto * command = static_cast<UpdateBufferCommand*>(cmd);
                 assert(command->dataSize < command_limits::kMaxMemoryBytesToCopyCommand);

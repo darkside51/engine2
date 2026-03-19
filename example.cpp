@@ -603,6 +603,12 @@ namespace example {
 
         tmpCommandList->begin(engine::rhi::CommandBufferUsageFlags::eOne_Time_Submit);
 
+        // first reset _queryPool, before use it
+        const auto inflightFrames = _device->inFlightFramesCount();
+        for (size_t i = 0u; i < inflightFrames; ++i) {
+            tmpCommandList->resetQueryPool(_queryPool.get(), i * 2u, 2u);
+        }
+
         // textureManager resources
         textureManager->createDefaultResources(*_api, *_device, tmpCommandList);
 
@@ -1437,6 +1443,7 @@ namespace example {
         }
 
         // queryPool
+        // need to reset _queryPool, before use it (see on createDefaultResources())
         _queryPool = _api->createQueryPool(*_device, {
             .queryType = engine::rhi::QueryType::eTimestamp,
             .queryCount = inflightFrames * 2u
@@ -1755,7 +1762,7 @@ namespace example {
 
         commandList->begin(rhi::CommandBufferUsageFlags::eOne_Time_Submit);
 
-        commandList->resetQueryPool(_queryPool.get(), frameId * 2u, 2u);
+        commandList->resetQueryPool(_queryPool.get(), frameId * 2u, 2u); // must be resetbafter use and after create too!
         commandList->writeTimestamp(_queryPool.get(), rhi::PipelineStageFlags::eTop_Of_Pipe, frameId * 2u);
 
         // prepare frame draw data (update uniforms and copy buffers memory)

@@ -3,11 +3,11 @@
 layout (location = 0) in vec2 a_uv;
 layout (location = 1) in uint a_skeleton_ids; // per instance value
 
-layout (set = 0, binding = 0) buffer Positions {
+layout (set = 0, binding = 0) readonly buffer Positions {
    vec4 data[];
 } in_positions;
 
-layout (set = 0, binding = 1) buffer Normals {
+layout (set = 0, binding = 1) readonly buffer Normals {
    vec4 data[];
 } in_normals;
 
