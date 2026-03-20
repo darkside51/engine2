@@ -313,7 +313,8 @@ namespace engine::vulkan::runtime {
                 auto & framebuffer = static_cast<vulkan::FrameBuffer &>(*command->framebuffer);
                 auto * renderPass = static_cast<RenderPass*>(command->renderPass);
 
-                applyBarriers(passId, renderPass, framebuffer.attachments());
+                // no check _passes[passId].commandNumber == commandsNumber, result true alltimes for CommandType::eBeginRenderPass
+                applyBarriers(passId, renderPass, framebuffer.attachments()); 
                 ++passId;
 
                 dynamic_array<VkClearValue, 4u> clearValues;
@@ -342,6 +343,8 @@ namespace engine::vulkan::runtime {
             case CommandType::eNextSubpass:
             {
                 const auto * command = static_cast<NextSubpassCommand*>(cmd);
+                
+                // no check _passes[passId].commandNumber == commandsNumber, result true alltimes for CommandType::eBeginRenderPass
                 applyBarriers(passId, nullptr, {});
                 ++passId;
 
