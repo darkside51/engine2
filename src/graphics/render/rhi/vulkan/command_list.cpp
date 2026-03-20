@@ -212,7 +212,7 @@ namespace engine::vulkan::runtime {
         _barriers.flush(_commandbuffer());
     }
 
-    void CommandList::record(uint8_t frameIdx, rhi::runtime::CommandList * nextList) noexcept {
+    void CommandList::record(uint8_t frameIdx) noexcept {
         using namespace rhi::runtime;
 
         std::byte * memory = _commands.memory().data();

@@ -100,7 +100,10 @@ namespace engine::graphics {
             std::erase_if(_tmpData, [idx](const auto & tmp) noexcept { return tmp.first == idx; });
 
             _modelsMap.erase(it);
+            return true;
         }
+
+        return false;
     }
 
     void ModelManager::generateGpuBuffers(rhi::runtime::Rhi & api, rhi::runtime::Device & device, rhi::runtime::CommandListPtr & commandList) {

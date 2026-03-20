@@ -121,7 +121,7 @@ namespace engine::rhi::runtime {
 
         void insertBarriers() noexcept;
 
-        virtual void record(uint8_t frameIdx, CommandList * nextList = nullptr) noexcept {}
+        virtual void record(uint8_t frameIdx) noexcept {}
         
         const Statistics & getStats() const noexcept {
             return _statistics;
