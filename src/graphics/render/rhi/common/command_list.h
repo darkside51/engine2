@@ -39,17 +39,19 @@ namespace engine::rhi::runtime {
         static constexpr uint16_t kDefaultImagesInArray = 256u;
         
         enum class Type : uint8_t {
-            eOther = 0u, // compute/transfer
-            eRender = 1u
+            eTransfer = 0u,
+            eCompute = 1u,
+            eRender = 2u
         };
         
         Pass() = default;
-        explicit Pass(Type t) : type(t) {}
+        Pass(Type t, uint32_t number) : type(t), commandNumber(number) {}
         ~Pass() = default;
 
         dynamic_array<BufferUsage, kDefaultBuffersInArray> buffers = {};
         dynamic_array<ImageUsage, kDefaultImagesInArray> images = {};
-        Type type = Type::eOther;
+        Type type = Type::eTransfer;
+        uint32_t commandNumber = 0u;
     };
 
     class CommandList {

@@ -86,7 +86,6 @@ namespace engine::vulkan::runtime {
 
         { // pass barriers
             const auto & pass = _passes[passId];
-            // const auto & pass = _passes.view()[passId];
 
             // buffers
             const auto & buffers = pass.buffers.view();
@@ -273,11 +272,8 @@ namespace engine::vulkan::runtime {
         };
 
         uint32_t passId = 0u;
-        auto & passes = _passes;
-        // auto passes = _passes.view();
-        
-        auto commandsCount = _commandsCount;        
-        while ((commandsCount--) > 0u) {
+       
+        for (uint32_t commandsNumber = 0u; commandsNumber < _commandsCount; ++commandsNumber) {
             Command * cmd = reinterpret_cast<Command*>(memory);
             switch (cmd->cmdType) {
             case CommandType::eBegin:
@@ -289,8 +285,7 @@ namespace engine::vulkan::runtime {
                 changeDynamicBufferSets = 0u;
                 resetState();
 
-                auto & pass = passes[passId];
-                if (pass.type == Pass::Type::eOther) {
+                if (_passes[passId].commandNumber == commandsNumber && _passes[passId].type == Pass::Type::eTransfer) {
                     applyBarriers(passId, nullptr, {});
                     ++passId;
                 }
@@ -342,11 +337,6 @@ namespace engine::vulkan::runtime {
             case CommandType::eEndRenderPass:
             {
                 _commandbuffer.endRenderPass();
-
-                if (passId < passes.size() && passes[passId].type == Pass::Type::eOther) {
-                    applyBarriers(passId, nullptr, {});
-                    ++passId;
-                }
             }
                 break;
             case CommandType::eNextSubpass:
@@ -382,7 +372,14 @@ namespace engine::vulkan::runtime {
                 const auto * command = static_cast<BindPipelineCommand*>(cmd);
                 const auto * pipeline = static_cast<const Pipeline *>(command->pipeline);
                 _commandbuffer.bindPipeline(*pipeline);
-                
+
+                if (_passes[passId].commandNumber == commandsNumber && 
+                    pipeline->bindPoint == rhi::PipelineBindPoint::eCompute && 
+                    _passes[passId].type == Pass::Type::eCompute) {
+                    applyBarriers(passId, nullptr, {});
+                    ++passId;
+                }
+
                 if (currentPipeline == nullptr || currentPipeline->getProgram() != pipeline->getProgram()) {
                     for (auto & descriptorSetUpdater : descriptorSetUpdaters) {
                         descriptorSetUpdater.invalidate();
@@ -566,6 +563,12 @@ namespace engine::vulkan::runtime {
             // }
             //     break;
             case CommandType::eUpdateBuffer: {
+
+                if (_passes[passId].commandNumber == commandsNumber && _passes[passId].type == Pass::Type::eTransfer) {
+                    applyBarriers(passId, nullptr, {});
+                    ++passId;
+                }
+
                 const auto * command = static_cast<UpdateBufferCommand*>(cmd);
                 assert(command->dataSize < command_limits::kMaxMemoryBytesToCopyCommand);
                 
@@ -575,6 +578,11 @@ namespace engine::vulkan::runtime {
                 break;
             case CommandType::eCopyBuffer2Buffer:
             {
+                if (_passes[passId].commandNumber == commandsNumber && _passes[passId].type == Pass::Type::eTransfer) {
+                    applyBarriers(passId, nullptr, {});
+                    ++passId;
+                }
+
                 const auto * command = static_cast<CopyBuffer2BufferCommand*>(cmd);
                 std::array copyInfos{utils::convert2vk(command->info)};
 
@@ -586,6 +594,11 @@ namespace engine::vulkan::runtime {
 
             case CommandType::eCopyBuffer2Image:
             {
+                if (_passes[passId].commandNumber == commandsNumber && _passes[passId].type == Pass::Type::eTransfer) {
+                    applyBarriers(passId, nullptr, {});
+                    ++passId;
+                }
+
                 const auto * command = static_cast<CopyBuffer2ImageCommand*>(cmd);
                 std::array copyInfos{utils::convert2vk(command->info)};
 
