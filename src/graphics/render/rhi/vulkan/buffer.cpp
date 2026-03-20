@@ -47,7 +47,7 @@ namespace engine::vulkan {
         }
     }
 
-    VkBufferView Buffer::recieveView(rhi::Format format, uint32_t offset, uint32_t range) noexcept {
+    VkBufferView Buffer::recieveView(rhi::Format format, uint64_t offset, uint64_t range) noexcept {
         if (auto it = _bufferViews.find({format, offset, range}); it != _bufferViews.end()) {
             return it->second;
         }
@@ -59,7 +59,7 @@ namespace engine::vulkan {
             .buffer = _buffer,
             .format = utils::convert2vk(format),
             .offset = offset,
-            .range = (range == rhi::kWholeSize32) ? static_cast<VkDeviceSize>(sizeInBytes()) : static_cast<VkDeviceSize>(range)
+            .range = static_cast<VkDeviceSize>(range)
         };
 
         VkBufferView bufferView = VK_NULL_HANDLE;

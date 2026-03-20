@@ -44,9 +44,9 @@ namespace engine::vulkan {
         void updatetexelBuffers(std::span<const std::tuple<Buffer*, rhi::Format, uint32_t>> texelBufferBindings) noexcept;
 
         BufferUpdateResult updateBuffer(const Buffer* buffer, uint32_t binding, 
-            uint32_t offset = 0u, uint32_t range = rhi::kWholeSize32, bool dynamic = false) noexcept;
+            uint64_t offset = 0u, uint64_t range = rhi::kWholeSize64, bool dynamic = false) noexcept;
         bool updateImage(std::tuple<VkSampler, VkImageView, VkImageLayout> image, uint32_t binding) noexcept;
-        bool updateTexelBuffer(Buffer* buffer, rhi::Format format, uint32_t binding, uint32_t offset, uint32_t range) noexcept;
+        bool updateTexelBuffer(Buffer* buffer, rhi::Format format, uint32_t binding, uint64_t offset, uint64_t range) noexcept;
 
         void flush(const DescriptorSet & set) noexcept;
 

@@ -174,7 +174,7 @@ namespace engine::vulkan {
     }
 
     DescriptorSetUpdater::BufferUpdateResult DescriptorSetUpdater::updateBuffer(const Buffer* buffer, 
-        uint32_t binding, uint32_t offset, uint32_t range, bool dynamic) noexcept {
+        uint32_t binding, uint64_t offset, uint64_t range, bool dynamic) noexcept {
         if (!isValid()) { 
             return BufferUpdateResult::eNone; 
         }
@@ -188,28 +188,23 @@ namespace engine::vulkan {
             const auto vkBuffer = buffer->operator()();
             auto & info = it->info;
 
-            // // offset must be aligned :
-            // uint32_t offset2 = 0u;
-            // const auto type = _layout->findLayout(binding)->type;
-            // switch (type) {
-            // case rhi::shaders::DescriptorType::eUniform_Buffer:
-            // case rhi::shaders::DescriptorType::eUniform_Buffer_Dynamic:
-            //     offset2 = align_value(offset, _minUniformBufferOffsetAlignment);
-            //     break;
-            // case rhi::shaders::DescriptorType::eStorage_Buffer:
-            // case rhi::shaders::DescriptorType::eStorage_Buffer_Dynamic:
-            //     offset2 = align_value(offset, _minStorageBufferOffsetAlignment);
-            //     break;
-            // default:
-            //     break;
-            // }
-
-            // if (offset != offset2) {
-            //     offset = offset2;
-            // }
-
             #ifdef DEBUG
             const auto type = _layout->findLayout(binding)->type;
+
+            // offset must be aligned :
+            switch (type) {
+            case rhi::shaders::DescriptorType::eUniform_Buffer:
+            case rhi::shaders::DescriptorType::eUniform_Buffer_Dynamic:
+                assert(offset == align_value(offset, _minUniformBufferOffsetAlignment));
+                break;
+            case rhi::shaders::DescriptorType::eStorage_Buffer:
+            case rhi::shaders::DescriptorType::eStorage_Buffer_Dynamic:
+                assert(offset == align_value(offset, _minStorageBufferOffsetAlignment));
+                break;
+            default:
+                break;
+            }
+
             const bool isDynamic = type == rhi::shaders::DescriptorType::eUniform_Buffer_Dynamic || 
                                    type == rhi::shaders::DescriptorType::eStorage_Buffer_Dynamic;
             assert(dynamic == isDynamic);
@@ -226,11 +221,10 @@ namespace engine::vulkan {
                 offset = 0u;
             }
 
-            const auto finalRange = (range == rhi::kWholeSize32) ? static_cast<VkDeviceSize>(buffer->sizeInBytes()) - offset : static_cast<VkDeviceSize>(range) - offset;
-            if (info.vkInfo.buffer != vkBuffer || info.vkInfo.offset != offset || info.vkInfo.range != finalRange) {
+            if (info.vkInfo.buffer != vkBuffer || info.vkInfo.offset != offset || info.vkInfo.range != range) {
                 info.vkInfo.buffer = vkBuffer;
                 info.vkInfo.offset = offset;
-                info.vkInfo.range = finalRange;
+                info.vkInfo.range = range;
                 _buffersDirty = true;
                 return dynamic ? BufferUpdateResult::eChangeBufferAndDynamicOffset : BufferUpdateResult::eChangeBufferOrOffset;
             }
@@ -265,7 +259,7 @@ namespace engine::vulkan {
         return false;
     }
 
-    bool DescriptorSetUpdater::updateTexelBuffer(Buffer* buffer, rhi::Format format, uint32_t binding, uint32_t offset, uint32_t range) noexcept {
+    bool DescriptorSetUpdater::updateTexelBuffer(Buffer* buffer, rhi::Format format, uint32_t binding, uint64_t offset, uint64_t range) noexcept {
         if (!isValid()) { 
             return false; 
         }
@@ -277,23 +271,21 @@ namespace engine::vulkan {
 
         if (it != view.end()) {
 
-            // // offset must be aligned :
-            // uint32_t offset2 = 0u;
-            // const auto type = _layout->findLayout(binding)->type;
-            // switch (type) {
-            // case rhi::shaders::DescriptorType::eUniform_Texel_Buffer:
-            //     offset2 = align_value(offset, _minTexelBufferOffsetAlignment);
-            //     break;
-            // case rhi::shaders::DescriptorType::eStorage_Texel_Buffer:
-            //     offset2 = align_value(offset, _minTexelBufferOffsetAlignment);
-            //     break;
-            // default:
-            //     break;
-            // }
+            #ifdef DEBUG
+            // offset must be aligned :
+            const auto type = _layout->findLayout(binding)->type;
+            switch (type) {
+            case rhi::shaders::DescriptorType::eUniform_Texel_Buffer:
+                assert(offset == align_value(offset, _minTexelBufferOffsetAlignment));
+                break;
+            case rhi::shaders::DescriptorType::eStorage_Texel_Buffer:
+                assert(offset == align_value(offset, _minTexelBufferOffsetAlignment));
+                break;
+            default:
+                break;
+            }
 
-            // if (offset != offset2) {
-            //     offset = offset2;
-            // }
+            #endif
 
             auto const vkBufferView = buffer->recieveView(format, offset, range);
             auto & bufferView = it->info;

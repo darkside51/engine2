@@ -24,8 +24,8 @@ namespace engine::rhi::runtime {
         Buffer* buffer = nullptr;
         BufferUsageFlags flags = BufferUsageFlags::eNone;
         PipelineBindPoint pipelineType = PipelineBindPoint::eCompute;
-        size_t offset = 0u;
-        size_t size = kWholeSize;
+        uint64_t offset = 0u;
+        uint64_t size = kWholeSize64;
     };
 
     struct ImageUsage {
@@ -95,15 +95,15 @@ namespace engine::rhi::runtime {
         void bindPipeline(const PipelinePtr & pipeline) noexcept;
         // void bindVertexBuffer(uint32_t binding, Buffer * buffer, uint32_t offset = 0u);
         // void bindIndexBuffer(const Buffer * buffer, uint32_t offset = 0u, IndexType type = rhi::IndexType::eU32);
-        // void bindBuffer(uint16_t binding, const Buffer * buffer, uint8_t setId = 0u, uint32_t offset = 0u, uint32_t range = kWholeSize32);
+        // void bindBuffer(uint16_t binding, const Buffer * buffer, uint8_t setId = 0u, uint64_t offset = 0u, uint64_t range = kWholeSize64);
 
         void bindVertexBuffer(uint32_t binding, const BufferPtr & buffer, uint32_t offset = 0u) noexcept;
         void bindIndexBuffer(const BufferPtr & buffer, uint32_t offset = 0u, IndexType type = rhi::IndexType::eU32) noexcept;
-        void bindBuffer(uint16_t binding, const BufferPtr & buffer, uint8_t setId = 0u, uint32_t offset = 0u, uint32_t range = kWholeSize32) noexcept;
-        void bindBufferDynamic(uint16_t binding, const BufferPtr & buffer, uint8_t setId = 0u, uint32_t offset = 0u, uint32_t range = kWholeSize32) noexcept;
+        void bindBuffer(uint16_t binding, const BufferPtr & buffer, uint8_t setId = 0u, uint64_t offset = 0u, uint64_t range = kWholeSize64) noexcept;
+        void bindBufferDynamic(uint16_t binding, const BufferPtr & buffer, uint8_t setId = 0u, uint64_t offset = 0u, uint64_t range = kWholeSize64) noexcept;
         void bindImage(uint16_t binding, const ImagePtr & image, std::optional<rhi::SamplerValue> sampler, uint8_t setId = 0u) noexcept;
         void bindSampler(uint16_t binding, const rhi::SamplerValue & sampler, uint8_t setId = 0u) noexcept;
-        void bindTexelBuffer(uint16_t binding, const BufferPtr & buffer, Format format, uint8_t setId = 0u, uint32_t offset = 0u, uint32_t range = kWholeSize32) noexcept;
+        void bindTexelBuffer(uint16_t binding, const BufferPtr & buffer, Format format, uint8_t setId = 0u, uint64_t offset = 0u, uint64_t range = kWholeSize64) noexcept;
         void pushConstants(shaders::Stages stages, uint32_t offset, uint32_t size, const void * bytes) noexcept;
 
         void draw(uint32_t vertexCount, uint32_t instanceCount = 1u, uint32_t firstVertex = 0u, uint32_t firstInstance = 0u) noexcept;

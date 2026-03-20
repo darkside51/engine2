@@ -19,8 +19,8 @@ namespace engine::vulkan {
     class Buffer final : public rhi::runtime::Buffer {
         struct BufferViewKey {
             rhi::Format format = rhi::Format::eUndefined;
-            uint32_t offset = 0u;
-            uint32_t range = rhi::kWholeSize32;
+            uint64_t offset = 0u;
+            uint64_t range = rhi::kWholeSize64;
 
             inline size_t hash() const noexcept {
                 return hash::hash_combine(format, offset, range);
@@ -78,8 +78,8 @@ namespace engine::vulkan {
         void setName(std::string_view name) noexcept;
         std::string_view getName() const noexcept;
 
-        VkBufferView recieveView(rhi::Format format, uint32_t offset = 0u, uint32_t range = rhi::kWholeSize32) noexcept;
-        VkBufferView getView(rhi::Format format, uint32_t offset = 0u, uint32_t range = rhi::kWholeSize32) const noexcept { 
+        VkBufferView recieveView(rhi::Format format, uint64_t offset = 0u, uint64_t range = rhi::kWholeSize64) noexcept;
+        VkBufferView getView(rhi::Format format, uint64_t offset = 0u, uint64_t range = rhi::kWholeSize64) const noexcept { 
             if (auto it = _bufferViews.find({format, offset, range}); it != _bufferViews.end()) {
                 return it->second;
             }

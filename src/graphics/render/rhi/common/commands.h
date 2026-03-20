@@ -181,13 +181,13 @@ namespace engine::rhi::runtime {
 
     struct BindBufferCommand : Command {
         const Buffer * buffer = nullptr;
-        uint32_t offset = 0u;
-        uint32_t range = kWholeSize32;
+        uint64_t offset = 0u;
+        uint64_t range = kWholeSize64;
         uint16_t binding = 0u;
         uint8_t setId = 0u;
         bool dynamic = false;
         
-        BindBufferCommand(uint16_t binding, const Buffer * buffer, uint8_t setId = 0u, uint32_t offset = 0u, uint32_t range = kWholeSize32, bool dynamic = false) : 
+        BindBufferCommand(uint16_t binding, const Buffer * buffer, uint8_t setId = 0u, uint64_t offset = 0u, uint64_t range = kWholeSize64, bool dynamic = false) : 
             Command(CommandType::eBindBuffer, sizeof(BindBufferCommand)), 
             buffer(buffer),
             binding(binding),
@@ -223,13 +223,13 @@ namespace engine::rhi::runtime {
 
     struct BindTexelBufferCommand : Command {
         Buffer * buffer = nullptr;
-        uint32_t offset = 0u;
-        uint32_t range = kWholeSize32;
+        uint64_t offset = 0u;
+        uint64_t range = kWholeSize64;
         uint16_t binding = 0u;
         uint8_t setId = 0u;
         Format format = Format::eUndefined;
         
-        BindTexelBufferCommand(uint16_t binding, Buffer * buffer, Format format, uint8_t setId = 0u, uint32_t offset = 0u, uint32_t range = kWholeSize32) : 
+        BindTexelBufferCommand(uint16_t binding, Buffer * buffer, Format format, uint8_t setId = 0u, uint64_t offset = 0u, uint64_t range = kWholeSize64) : 
             Command(CommandType::eBindTexelBuffer, sizeof(BindBufferCommand)), 
             buffer(buffer),
             offset(offset),

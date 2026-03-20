@@ -176,32 +176,29 @@ namespace engine::rhi::runtime {
         }
     }
 
-    void CommandList::bindBuffer(uint16_t binding, const BufferPtr & buffer, uint8_t setId, uint32_t offset, uint32_t range) noexcept {
+    void CommandList::bindBuffer(uint16_t binding, const BufferPtr & buffer, uint8_t setId, uint64_t offset, uint64_t range) noexcept {
         // no check it with state, correct check into record function!
         _resources.push_back(buffer);
         _commands->create<BindBufferCommand>(binding, buffer.get(), setId, offset, range, false);
         ++_commandsCount;
-        auto const size = std::min(buffer->sizeInBytes() - offset, range - offset);
-        _currentPass->buffers.emplace_back(buffer.get(), BufferUsageFlags::eUniform_Buffer, _pipelineType, offset, size); // not only uniform, correct usage check into implementation of commandlist
+        _currentPass->buffers.emplace_back(buffer.get(), BufferUsageFlags::eUniform_Buffer, _pipelineType, offset, range); // not only uniform, correct usage check into implementation of commandlist
     }
 
-    void CommandList::bindBufferDynamic(uint16_t binding, const BufferPtr & buffer, uint8_t setId, uint32_t offset, uint32_t range) noexcept {
+    void CommandList::bindBufferDynamic(uint16_t binding, const BufferPtr & buffer, uint8_t setId, uint64_t offset, uint64_t range) noexcept {
         // no check it with state, correct check into record function!
         _resources.push_back(buffer);
-        auto const size = std::min(buffer->sizeInBytes() - offset, range - offset);
-        _commands->create<BindBufferCommand>(binding, buffer.get(), setId, offset, size, true);
+        _commands->create<BindBufferCommand>(binding, buffer.get(), setId, offset, range, true);
         ++_commandsCount;
 
         _currentPass->buffers.emplace_back(buffer.get(), BufferUsageFlags::eUniform_Buffer, _pipelineType, offset, range); // not only uniform, correct usage check into implementation of commandlist
     }
 
-    void CommandList::bindTexelBuffer(uint16_t binding, const BufferPtr & buffer, Format format, uint8_t setId, uint32_t offset, uint32_t range) noexcept {
+    void CommandList::bindTexelBuffer(uint16_t binding, const BufferPtr & buffer, Format format, uint8_t setId, uint64_t offset, uint64_t range) noexcept {
         _resources.push_back(buffer);
         _commands->create<BindTexelBufferCommand>(binding, buffer.get(), format, setId, offset, range);
         ++_commandsCount;
 
-        auto const size = std::min(buffer->sizeInBytes() - offset, range - offset);
-        _currentPass->buffers.emplace_back(buffer.get(), BufferUsageFlags::eUniform_Texel_Buffer, _pipelineType, offset, size); // ...
+        _currentPass->buffers.emplace_back(buffer.get(), BufferUsageFlags::eUniform_Texel_Buffer, _pipelineType, offset, range); // ...
     }
 
     void CommandList::bindImage(uint16_t binding, const ImagePtr & image, std::optional<rhi::SamplerValue> sampler, uint8_t setId) noexcept {
