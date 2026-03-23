@@ -287,38 +287,32 @@ namespace engine::rhi::runtime {
         uint32_t dstOffset;
         uint32_t dataSize;
         const void* pData;
-        bool autoBarriers = true;
 
-        UpdateBufferCommand(Buffer * dst, uint32_t dstOffset, uint32_t dataSize, const void* pData, bool autoBarriers) : 
+        UpdateBufferCommand(Buffer * dst, uint32_t dstOffset, uint32_t dataSize, const void* pData) : 
             Command(CommandType::eUpdateBuffer, sizeof(UpdateBufferCommand)),
-            dst(dst), dstOffset(dstOffset), dataSize(dataSize), pData(pData),
-            autoBarriers(autoBarriers) {}
+            dst(dst), dstOffset(dstOffset), dataSize(dataSize), pData(pData) {}
     };
 
     struct CopyBuffer2BufferCommand : Command {
         CopyBufferInfo info{}; // todo: support array of CopyBufferInfo
         Buffer * src = nullptr;
         Buffer * dst = nullptr;
-        bool autoBarriers = true;
-        CopyBuffer2BufferCommand(Buffer * src, Buffer * dst, const CopyBufferInfo & info, bool autoBarriers) : 
+        CopyBuffer2BufferCommand(Buffer * src, Buffer * dst, const CopyBufferInfo & info) : 
             Command(CommandType::eCopyBuffer2Buffer, sizeof(CopyBuffer2BufferCommand)),
             info(info),
             src(src), 
-            dst(dst),
-            autoBarriers(autoBarriers) {}
+            dst(dst) {}
     };
 
     struct CopyBuffer2ImageCommand : Command {
         CopyBufferImageInfo info{}; // todo: support array of CopyBufferImageInfo
         Buffer * src = nullptr;
         Image * dst = nullptr;
-        bool autoBarriers = true;
-        CopyBuffer2ImageCommand(Buffer * src, Image * dst, const CopyBufferImageInfo & info, bool autoBarriers = true) : 
+        CopyBuffer2ImageCommand(Buffer * src, Image * dst, const CopyBufferImageInfo & info) : 
             Command(CommandType::eCopyBuffer2Image, sizeof(CopyBuffer2ImageCommand)),
             info(info),
             src(src), 
-            dst(dst),
-            autoBarriers(autoBarriers) {}
+            dst(dst) {}
     };
 
     struct PipelineBarriersCommand : Command { // todo!

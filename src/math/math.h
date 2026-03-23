@@ -8,6 +8,8 @@
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #define GLM_FORCE_XYZW_ONLY
 
+#define SIMD_MATH // has positive effect on scenes with a large number of objects
+
 #ifdef SIMD_MATH
 // glm options for enable vectorisation
 #define GLM_FORCE_INTRINSICS

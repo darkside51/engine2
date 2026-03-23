@@ -32,10 +32,16 @@ namespace {
         static_assert(sizeof(Mesh) == 200u);
         static_assert(sizeof(Sprite) == 72u);
 
+        #ifdef SIMD_MATH
+        static_assert(sizeof(Node) == 272u);
+        static_assert(sizeof(Bounds) == 48u);
+        static_assert(sizeof(Transformation) == 48u);
+        #else
         static_assert(sizeof(Node) == 232u);
         static_assert(sizeof(Bounds) == 28u);
         static_assert(sizeof(Transformation) == 40u);
-
+        #endif
+        
         static_assert(sizeof(mesh::Attribute) == 8u);
     }
 }
@@ -355,6 +361,7 @@ namespace engine::scene {
 
     void Scene::animate(std::chrono::time_point<std::chrono::steady_clock> now, float delta, std::span<AttachmentObject*> objects, 
         const AnimationManager & animationManager) {
+        //return;
         if (objects.empty()) {
             return;
         }

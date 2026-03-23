@@ -1,6 +1,8 @@
 #include "descriptor_pool_manager.h"
 #include "device.h"
 
+#include "common/align.h"
+
 #include <cassert>
 #include <vector>
 
@@ -90,6 +92,7 @@ namespace engine::vulkan {
             for (size_t i = 0u; i < std::to_underlying(rhi::shaders::ResourceType::eCount); ++i) {
                 if (resources[i] > 0u) {
                     setResources.emplace_back(static_cast<rhi::shaders::ResourceType>(i), resources[i] * kDefaultMaxSets);
+                    // setResources.emplace_back(static_cast<rhi::shaders::ResourceType>(i), align_value(resources[i] * 2u, kDefaultMaxSets));
                 }
             }
             setResources.shrink_to_fit();

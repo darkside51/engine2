@@ -92,7 +92,6 @@ namespace engine::vulkan {
 
     class DescriptorPoolManager {
         inline static constexpr uint32_t kDefaultMaxSets = 64u;
-        inline static constexpr uint32_t kDefaultResourcesInSet = 64u;
         inline static constexpr uint8_t kGlobalPoolsIndex = 0xffu;
 
     public:

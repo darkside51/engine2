@@ -1624,7 +1624,7 @@ namespace example {
                 auto const animId = animationManager.getAnimationIndex("skeletal_mesh_anim0");
                 for (size_t i = 0u; i < 400u; ++i) {
                     auto * meshRoot = engine::scene::createNodeWithSkeletalMesh(*scene, *modelManager, modelIndex, 
-                        engine::scene::Bounds::Type::eSphere, pipelines, 
+                        engine::scene::Bounds::Type::eCube, pipelines, 
                         {.size = {0.47f, 0.47f, 0.47f}, .type = engine::scene::ObjectSizeLayout::Type::eMin},
                         i == 5u ? -1 : 0u);
                     
@@ -1642,17 +1642,6 @@ namespace example {
                         scene->destroyAnimInfo(skeleton->setAnimation(anim0));
                     }
 
-                    constexpr float targetDimension = 0.47f;
-                    float scale = 1.0f;
-                    if (meshRoot->bounds.type == engine::scene::Bounds::Type::eSphere) {
-                        scale = 0.5f * targetDimension / meshRoot->bounds.volume.sphere.radius;
-                    } else if (meshRoot->bounds.type == engine::scene::Bounds::Type::eCube) {
-                        const auto & cube = meshRoot->bounds.volume.cube;
-                        const auto size = cube.corner1 - cube.corner0;
-                        scale = std::min({targetDimension / std::abs(size.x), targetDimension / std::abs(size.y), targetDimension / std::abs(size.z)});
-                    }
-
-                    meshRoot->setScale(scale);
                     meshRoot->setRotation(engine::vec3f(1.57f, 0.0f, engine::common::random(-3.14f, 3.14f)));
                     meshRoot->setPosition(engine::vec3f(-2.0f + i % 10 * 0.5f, 0.0f + i / 10 * -0.5f, 0.0f));
 
@@ -1803,7 +1792,9 @@ namespace example {
 
         scene->beginFrame(now);
         std::vector<engine::scene::AttachmentObject*> objects(1024u);
-        scene->fillAttachmentsArray(cameraTransform, sceneWorldRoot, [](engine::scene::AttachmentObject*) { return true; }, objects);
+        scene->fillAttachmentsArray(cameraTransform, sceneWorldRoot, [](engine::scene::AttachmentObject*) { 
+            return true; 
+        }, objects);
         scene->animate(now, delta, objects, animationManager); // after fillAttachmentsArrays and after beginFrame for correct
         const auto offsets = scene->prepareDrawData(objects, frameId);
 

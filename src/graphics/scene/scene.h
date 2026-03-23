@@ -304,23 +304,29 @@ void Scene::fillAttachmentsArray(const mat4f & cameraTransform, Node * root, Con
                 objects.emplace_back(object);
 
                 if constexpr (kDebugDrawBounds) {
-                    uint32_t color = 0xff'00'ff'ffu;
+                    bool showBorders = false;
+                    uint32_t color = 0xff'00'ff'00u;
                     if (object) {
                         switch (object->typeIndex) {
                         case ctti::typeIndex<AttachmentObject, Skeleton>():
-                            color = 0xff'ff'77'ffu;
+                            showBorders = true;
+                            color = 0xff'ff'77'00u;
                             break;
                         case ctti::typeIndex<AttachmentObject, Mesh>():
-                            color = 0xff'77'ff'77u;
+                            color = 0xff'77'ff'00u;
                             break;
                         case ctti::typeIndex<AttachmentObject, Sprite>():
-                            color = 0xff'ff'77'77u;
+                            color = 0xff'ff'77'00u;
                             break;
                         default:
                             break;
                         }
+                        //color |= (object->lod) * 255u;
                     }
-                    _drawHelper.drawBounds(bounds, color, cameraTransform * worldTransform);
+
+                    if (showBorders) {
+                        _drawHelper.drawBounds(bounds, color, cameraTransform * worldTransform);
+                    }
                 }
             }
 

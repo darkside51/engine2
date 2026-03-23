@@ -117,9 +117,9 @@ namespace engine::rhi::runtime {
         void resetQueryPool(QueryPool *pool, uint16_t firstQuery, uint16_t queryCount) noexcept;
         void writeTimestamp(QueryPool *pool, PipelineStageFlags stage, uint16_t query) noexcept;
 
-        void copyBuffer2Buffer(const BufferPtr & src, BufferPtr & dst, const CopyBufferInfo & copyInfos, bool autoBarriers = true) noexcept;
-        void copyBuffer2Image(const BufferPtr & src, ImagePtr & dst, const CopyBufferImageInfo & copyInfos, bool autoBarriers = true) noexcept;
-        void updateBuffer(BufferPtr & dst, uint32_t dstOffset, uint32_t dataSize, const void* pData, bool autoBarriers = true) noexcept;
+        void copyBuffer2Buffer(const BufferPtr & src, BufferPtr & dst, const CopyBufferInfo & copyInfos) noexcept;
+        void copyBuffer2Image(const BufferPtr & src, ImagePtr & dst, const CopyBufferImageInfo & copyInfos) noexcept;
+        void updateBuffer(BufferPtr & dst, uint32_t dstOffset, uint32_t dataSize, const void* pData) noexcept;
 
         void insertBarriers() noexcept;
 

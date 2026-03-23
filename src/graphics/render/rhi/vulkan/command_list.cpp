@@ -320,11 +320,11 @@ namespace engine::vulkan::runtime {
                 dynamic_array<VkClearValue, 4u> clearValues;
                 clearValues.resize(command->clearValues.size());
                 auto clearValuesView = clearValues.view();
-                auto comandClearValuesView = command->clearValues.view();
+                auto commandClearValuesView = command->clearValues.view();
 
                 uint8_t i = 0u;
                 for (auto & value : clearValuesView) {
-                    value = utils::convert2vk(comandClearValuesView[i++]);
+                    value = utils::convert2vk(commandClearValuesView[i++]);
                 }
 
                 _commandbuffer.beginRenderPass(
@@ -343,7 +343,7 @@ namespace engine::vulkan::runtime {
             case CommandType::eNextSubpass:
             {
                 const auto * command = static_cast<NextSubpassCommand*>(cmd);
-                
+
                 // no check _passes[passId].commandNumber == commandsNumber, result true alltimes for CommandType::eBeginRenderPass
                 applyBarriers(passId, nullptr, {});
                 ++passId;

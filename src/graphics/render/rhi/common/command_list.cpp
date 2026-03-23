@@ -264,9 +264,9 @@ namespace engine::rhi::runtime {
     }
 
     // update data
-    void CommandList::updateBuffer(BufferPtr & dst, uint32_t dstOffset, uint32_t dataSize, const void* pData, bool autoBarriers) noexcept {
+    void CommandList::updateBuffer(BufferPtr & dst, uint32_t dstOffset, uint32_t dataSize, const void* pData) noexcept {
         _resources.push_back(dst);
-        _commands->create<UpdateBufferCommand>(dst.get(), dstOffset, dataSize, pData, autoBarriers);
+        _commands->create<UpdateBufferCommand>(dst.get(), dstOffset, dataSize, pData);
   
         if constexpr (kStatisticsEnable) {
             ++_statistics.updateBuffers;
@@ -281,10 +281,10 @@ namespace engine::rhi::runtime {
     }
 
     // copy commands
-    void CommandList::copyBuffer2Buffer(const BufferPtr & src, BufferPtr & dst, const CopyBufferInfo & copyInfo, bool autoBarriers) noexcept {
+    void CommandList::copyBuffer2Buffer(const BufferPtr & src, BufferPtr & dst, const CopyBufferInfo & copyInfo) noexcept {
         _resources.push_back(src);
         _resources.push_back(dst);
-        _commands->create<CopyBuffer2BufferCommand>(src.get(), dst.get(), copyInfo, autoBarriers);
+        _commands->create<CopyBuffer2BufferCommand>(src.get(), dst.get(), copyInfo);
 
         if constexpr (kStatisticsEnable) {
             ++_statistics.copyCommands;
@@ -299,10 +299,10 @@ namespace engine::rhi::runtime {
         ++_commandsCount;
     }
 
-    void CommandList::copyBuffer2Image(const BufferPtr & src, ImagePtr & dst, const CopyBufferImageInfo & copyInfos, bool autoBarriers) noexcept {
+    void CommandList::copyBuffer2Image(const BufferPtr & src, ImagePtr & dst, const CopyBufferImageInfo & copyInfos) noexcept {
         _resources.push_back(src);
         _resources.push_back(dst);
-        _commands->create<CopyBuffer2ImageCommand>(src.get(), dst.get(), copyInfos, autoBarriers);
+        _commands->create<CopyBuffer2ImageCommand>(src.get(), dst.get(), copyInfos);
 
         if constexpr (kStatisticsEnable) {
             ++_statistics.copyCommands;

@@ -155,8 +155,8 @@ namespace engine::graphics::models {
                         const Accessor & accessor = layout.accessors[accessorId];
 
                         if (semantic == AttributeSemantic::ePosition) { // position is vec3, alltimes is true?
-                            primitive.minCorner = vec3f(accessor.min[0], accessor.min[1], accessor.min[2]);
-                            primitive.maxCorner = vec3f(accessor.max[0], accessor.max[1], accessor.max[2]);
+                            primitive.minCorner = vec3f(accessor.min[0u], accessor.min[1u], accessor.min[2u]);
+                            primitive.maxCorner = vec3f(accessor.max[0u], accessor.max[1u], accessor.max[2u]);
                         }
 
                         const auto count = accessor.count;
