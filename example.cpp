@@ -1804,7 +1804,10 @@ namespace example {
 
         scene->beginFrame(now);
         std::vector<engine::scene::AttachmentObject*> objects(1024u);
-        scene->fillAttachmentsArray(cameraTransform, sceneWorldRoot, [](engine::scene::AttachmentObject*) { 
+        scene->fillAttachmentsArray(cameraTransform, sceneWorldRoot, [](engine::scene::AttachmentObject* object) {
+            const auto position = engine::vec3f(object->node->getWorldTransform()[3u]); 
+            const auto length2 = glm::length(position) * 0.75f;
+            object->lod = static_cast<uint8_t>(std::clamp(length2, 0.0f, 8.0f));
             return true; 
         }, objects);
         scene->animate(now, delta, objects, animationManager); // after fillAttachmentsArrays and after beginFrame for correct

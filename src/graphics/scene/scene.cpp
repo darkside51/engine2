@@ -56,7 +56,7 @@ namespace engine::scene {
     constexpr uint32_t kStaginBufferEnlargeSizeMult = 2u;
 
     constexpr uint16_t kUndefinedAnimId = 0xff'ffu;
-    constexpr float kAnimUpdateFrequency = 1.0f / 60.0f;
+    constexpr float kAnimUpdateFrequency = 1.0f / 120.0f;
 
     using SsboTransform = mat3x4f; // to use 48bytes transposed matrices
     constexpr uint32_t kSsboTransformSize = sizeof(SsboTransform);
@@ -376,7 +376,8 @@ namespace engine::scene {
             while (animInfo) {
                 //const auto time = (animInfo->info.sleepTime - delta / (1u + object->lod));
                 // const bool animateObject = (object->id + _frameNumber) % (1u + object->lod); // use object lods!
-                const uint32_t executionFramesCharacter = std::max(static_cast<uint32_t>(std::roundf(kAnimUpdateFrequency / delta)), 1u);
+                // const uint32_t executionFramesCharacter = std::max(static_cast<uint32_t>(std::roundf(kAnimUpdateFrequency / delta)), 1u);
+                const uint32_t executionFramesCharacter = std::max(static_cast<uint32_t>(std::roundf(kAnimUpdateFrequency * (1u + object->lod) / delta)), 1u);
                 const bool isTargetFrame = ((object->id + _frameNumber) % executionFramesCharacter) == 0u;
 
                 if (isTargetFrame && animInfo->info.weight > 0.0f) {

@@ -30,7 +30,7 @@ namespace graphics {
 }
 
 namespace scene {
-constexpr bool kDebugDrawBounds = false;
+constexpr bool kDebugDrawBounds = true;
 constexpr bool kDebugDrawGizmos = false;
 
 constexpr uint32_t kFillNodesReserveSize = 1024u;
@@ -321,7 +321,7 @@ void Scene::fillAttachmentsArray(const mat4f & cameraTransform, Node * root, Con
                         default:
                             break;
                         }
-                        //color |= (object->lod) * 255u;
+                        color |= std::min(std::clamp(object->lod, uint8_t{0u}, uint8_t{8u}) * 32u, 0xffu);
                     }
 
                     if (showBorders) {
