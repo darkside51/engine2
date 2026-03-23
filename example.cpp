@@ -101,6 +101,7 @@ namespace example {
         float gpuFrameTime = 0.0f;
         uint8_t inFlightFramesCount = 1u;
         uint16_t drawCalls = 0u;
+        uint16_t fps = 0u;
     };
 
     Stats gStats;
@@ -1386,11 +1387,11 @@ namespace example {
             
             { // floor
                 auto * node = scene->createNode();
-                node->setPosition(engine::vec3f{-10.0f, -10.0f, 0.0f});
+                node->setPosition(engine::vec3f{-24.0f, -24.0f, 0.0f});
 
                 const auto frame = engine::graphics::ImageFrame2D{
                     textureManager->getDefaultImage(), 
-                    engine::graphics::Frame2D{.uvMin = {0.0f, 0.0f}, .uvMax = {10.0f, 10.0f}}
+                    engine::graphics::Frame2D{.uvMin = {0.0f, 0.0f}, .uvMax = {24.0f, 24.0f}}
                 };
 
                 auto * sprite = scene->createObject<engine::scene::Sprite>(frame, 0u);
@@ -1496,9 +1497,20 @@ namespace example {
             }
 
             ImGui::Text("frames inflight: %d\t", gStats.inFlightFramesCount);
-            auto str = engine::fmt_string("fps: %.1f\t", 1'000.0f / gStats.cpuFrameTime);
+            static float gDelta = 0.0f;
+            static uint16_t gFps = 0u;
+            gDelta += delta;
+            ++gFps;
+            // auto str = engine::fmt_string("fps: %.1f\t", 1'000.0f / gStats.cpuFrameTime);
+            auto str = engine::fmt_string("fps: %.1f\t", static_cast<float>(gStats.fps));
             if (ImGui::MenuItem(str)) {
                 // todo: show graph
+            }
+
+            if (gDelta >= 1.0f) {
+                gStats.fps = gFps;
+                gDelta = 0.0f;
+                gFps = 0u;
             }
             str = engine::fmt_string("cpu time: %.3f ms\t", gStats.cpuFrameTime);
             if (ImGui::MenuItem(str)) {
@@ -1751,7 +1763,7 @@ namespace example {
 
         commandList->begin(rhi::CommandBufferUsageFlags::eOne_Time_Submit);
 
-        commandList->resetQueryPool(_queryPool.get(), frameId * 2u, 2u); // must be resetbafter use and after create too!
+        commandList->resetQueryPool(_queryPool.get(), frameId * 2u, 2u); // must be reset after use and after create too!
         commandList->writeTimestamp(_queryPool.get(), rhi::PipelineStageFlags::eTop_Of_Pipe, frameId * 2u);
 
         // prepare frame draw data (update uniforms and copy buffers memory)
@@ -1892,14 +1904,20 @@ namespace example {
         // query pool results
         auto results = std::span{reinterpret_cast<std::byte*>(_queryResults[frameId].data()), 
             _queryResults[frameId].size() * sizeof(uint64_t)};
-        _queryPool->getResults(frameId * 2u, 2u, results, 2 * sizeof(uint64_t), 
+
+        _queryPool->getResults(frameId * 2u, 2u, results, 2u * sizeof(uint64_t), 
             rhi::QueryResultFlags::e64 | rhi::QueryResultFlags::eWith_Availability);
 
-        if (_queryResults[frameId][3u] != 0) {
-            const float gpuFrameTime = _gpu->timestampToMilliseconds(_queryResults[frameId][2] - _queryResults[frameId][0]);
-            gStats.cpuFrameTime = delta * 1'000.0f;
+        if (_queryResults[frameId][3u] != 0u) {
+            const float gpuFrameTime = _gpu->timestampToMilliseconds(_queryResults[frameId][2u] - _queryResults[frameId][0u]);    
             gStats.gpuFrameTime = gpuFrameTime;
+            //printf("_queryResults[2] %llu\n", _queryResults[frameId][2]);
+            //printf("_queryResults[0] %llu\n", _queryResults[frameId][0]);
+        } else {
+            printf("_queryResults no available!\n");
         }
+
+        gStats.cpuFrameTime = delta * 1'000.0f;
 
         gStats.drawCalls = 0u;
         gStats.drawCalls += commandList->getStats().drawCalls;

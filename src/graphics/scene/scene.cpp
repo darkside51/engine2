@@ -24,7 +24,7 @@ namespace {
     consteval void _() noexcept {
         using namespace engine::scene;
 
-        static_assert(sizeof(AnimationInfo) == 16u);
+        static_assert(sizeof(AnimationInfo) == 12u);
         static_assert(sizeof(AnimationInfoChain) == 32u);
 
         static_assert(sizeof(AttachmentObject) == 40u);
@@ -56,7 +56,7 @@ namespace engine::scene {
     constexpr uint32_t kStaginBufferEnlargeSizeMult = 2u;
 
     constexpr uint16_t kUndefinedAnimId = 0xff'ffu;
-    constexpr float kAnimUpdateMaxTime = 1.0f / 60.0f;
+    constexpr float kAnimUpdateFrequency = 1.0f / 60.0f;
 
     using SsboTransform = mat3x4f; // to use 48bytes transposed matrices
     constexpr uint32_t kSsboTransformSize = sizeof(SsboTransform);
@@ -376,11 +376,10 @@ namespace engine::scene {
             while (animInfo) {
                 //const auto time = (animInfo->info.sleepTime - delta / (1u + object->lod));
                 // const bool animateObject = (object->id + _frameNumber) % (1u + object->lod); // use object lods!
-                const bool animateObject = delta < kAnimUpdateMaxTime ? (object->id + _frameNumber) % 2u : true;
-                const auto time = (animInfo->info.sleepTime - delta);
-                if (animateObject && animInfo->info.weight > 0.0f && time <= 0.0f) {
-                    animInfo->info.sleepTime = kAnimUpdateMaxTime;
-                    // animInfo->info.sleepTime = std::min(delta, kAnimUpdateMaxTime);
+                const uint32_t executionFramesCharacter = std::max(static_cast<uint32_t>(std::roundf(kAnimUpdateFrequency / delta)), 1u);
+                const bool isTargetFrame = ((object->id + _frameNumber) % executionFramesCharacter) == 0u;
+
+                if (isTargetFrame && animInfo->info.weight > 0.0f) {
                     switch (animInfo->info.animationType) {
                     case ctti::typeIndex<Animation, SkeletalAnimation>() : 
                     {
@@ -395,9 +394,8 @@ namespace engine::scene {
                     default:
                         break;
                     }
-                } else {
-                    animInfo->info.sleepTime = time;
-                }
+                } 
+
                 animInfo = animInfo->next;
             }
         }

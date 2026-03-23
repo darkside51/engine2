@@ -47,7 +47,7 @@ public:
     ~PhysicalDevice() = default;
     virtual bool checkSurfaceSupport(const Surface & surface) noexcept = 0;
     virtual std::pair<uint32_t, const QueueFamily*> getQueueFamily(queue_flags::flags flags, uint32_t start = 0u) const noexcept = 0;
-    virtual float timestampToMilliseconds(float time) const noexcept = 0;
+    virtual float timestampToMilliseconds(double time) const noexcept = 0;
 };
 
 class Device {
