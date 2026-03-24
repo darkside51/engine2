@@ -1414,7 +1414,8 @@ namespace example {
         const auto inflightFrames = _device->inFlightFramesCount();
         _renderQueue = _api->getQueue(*_device, engine::rhi::queue_flags::graphics | engine::rhi::queue_flags::present, 0u, inflightFrames);
 
-        _readyToPresentSemaphores.resize(inflightFrames);
+        const uint32_t swapchainImagesCount = _swapchain->getImagesCount();
+        _readyToPresentSemaphores.resize(swapchainImagesCount);
         for (auto & semaphore : _readyToPresentSemaphores) {
             semaphore = _api->createSemaphore(*_device);
         }
@@ -1968,7 +1969,7 @@ namespace example {
         // });
 
         const auto waitSemaphores = std::array{_swapchain->imageAvailableSemaphore(frameId)};
-        const auto signalSemaphores = std::array{_readyToPresentSemaphores[frameId]};
+        const auto signalSemaphores = std::array{_readyToPresentSemaphores[imageIndex]};
         const auto waitStages = std::array{engine::rhi::PipelineStageFlags::eColor_Attachment_Output};
 
         auto transferLists = std::array{transferCommandList.get()};

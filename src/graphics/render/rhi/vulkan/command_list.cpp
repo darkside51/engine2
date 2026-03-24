@@ -376,11 +376,14 @@ namespace engine::vulkan::runtime {
                 const auto * pipeline = static_cast<const Pipeline *>(command->pipeline);
                 _commandbuffer.bindPipeline(*pipeline);
 
-                if (_passes[passId].commandNumber == commandsNumber && 
-                    pipeline->bindPoint == rhi::PipelineBindPoint::eCompute && 
-                    _passes[passId].type == Pass::Type::eCompute) {
-                    applyBarriers(passId, nullptr, {});
-                    ++passId;
+                if (passId < _passes.size()) {
+                    const auto & pass = _passes[passId];
+                    if (pass.commandNumber == commandsNumber && 
+                        pipeline->bindPoint == rhi::PipelineBindPoint::eCompute && 
+                        pass.type == Pass::Type::eCompute) {
+                        applyBarriers(passId, nullptr, {});
+                        ++passId;
+                    }
                 }
 
                 if (currentPipeline == nullptr || currentPipeline->getProgram() != pipeline->getProgram()) {
@@ -567,9 +570,12 @@ namespace engine::vulkan::runtime {
             //     break;
             case CommandType::eUpdateBuffer: {
 
-                if (_passes[passId].commandNumber == commandsNumber && _passes[passId].type == Pass::Type::eTransfer) {
-                    applyBarriers(passId, nullptr, {});
-                    ++passId;
+                if (passId < _passes.size()) {
+                    const auto & pass = _passes[passId];
+                    if (pass.commandNumber == commandsNumber && pass.type == Pass::Type::eTransfer) {
+                        applyBarriers(passId, nullptr, {});
+                        ++passId;
+                    }
                 }
 
                 const auto * command = static_cast<UpdateBufferCommand*>(cmd);
@@ -581,9 +587,12 @@ namespace engine::vulkan::runtime {
                 break;
             case CommandType::eCopyBuffer2Buffer:
             {
-                if (_passes[passId].commandNumber == commandsNumber && _passes[passId].type == Pass::Type::eTransfer) {
-                    applyBarriers(passId, nullptr, {});
-                    ++passId;
+                if (passId < _passes.size()) {
+                    const auto & pass = _passes[passId];
+                    if (pass.commandNumber == commandsNumber && pass.type == Pass::Type::eTransfer) {
+                        applyBarriers(passId, nullptr, {});
+                        ++passId;
+                    }
                 }
 
                 const auto * command = static_cast<CopyBuffer2BufferCommand*>(cmd);
@@ -597,9 +606,12 @@ namespace engine::vulkan::runtime {
 
             case CommandType::eCopyBuffer2Image:
             {
-                if (_passes[passId].commandNumber == commandsNumber && _passes[passId].type == Pass::Type::eTransfer) {
-                    applyBarriers(passId, nullptr, {});
-                    ++passId;
+                if (passId < _passes.size()) {
+                    const auto & pass = _passes[passId];
+                    if (pass.commandNumber == commandsNumber && pass.type == Pass::Type::eTransfer) {
+                        applyBarriers(passId, nullptr, {});
+                        ++passId;
+                    }
                 }
 
                 const auto * command = static_cast<CopyBuffer2ImageCommand*>(cmd);
