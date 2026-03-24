@@ -87,9 +87,8 @@ namespace example {
 
     threads::Worker bgWorker;
 
-    engine::mat4f cameraTransform;
-    engine::mat4f cameraView;
-    engine::vec3f cameraPosition;
+    engine::scene::ViewParams viewParams;
+
     float m = 0.0f;
 
     struct UniformBuffer {
@@ -1473,9 +1472,9 @@ namespace example {
                 view = camera.getView(), 
                 cameraPos = controller.cameraPosition()
             ](){
-                cameraTransform = transform;
-                cameraView = view;
-                cameraPosition = cameraPos; 
+                viewParams.cameraView = view;
+                viewParams.cameraTransform = transform;
+                viewParams.cameraPosition = cameraPos; 
             }}));
         }
     }
@@ -1587,7 +1586,7 @@ namespace example {
             auto * map = _uniformBufferI->memory2<UniformBuffer>();
             //rotateMatrix_z(*map, -delta);
 
-            map->mvp = cameraTransform;
+            map->mvp = viewParams.cameraTransform;
             map->m = m;
             map->time += delta * 0.01f;
 
@@ -1814,10 +1813,7 @@ namespace example {
 
         scene->beginFrame(now);
         std::vector<engine::scene::AttachmentObject*> objects(1024u);
-        scene->fillAttachmentsArray(cameraTransform, sceneWorldRoot, [](engine::scene::AttachmentObject* object) {
-            const auto position = engine::vec3f{object->node->getWorldTransform()[3u]}; 
-            const auto length2 = glm::length(position - cameraPosition) * 0.75f;
-            object->lod = static_cast<uint8_t>(std::clamp(length2, 0.0f, 8.0f));
+        scene->fillAttachmentsArray(viewParams, sceneWorldRoot, [](engine::scene::AttachmentObject* object) {
             return true; 
         }, objects);
         scene->animate(now, delta, objects, animationManager); // after fillAttachmentsArrays and after beginFrame for correct
@@ -1877,7 +1873,7 @@ namespace example {
         // mesh test
 
     
-        scene->draw(commandList, transferCommandList, frameId, cameraTransform, objects, offsets);    
+        scene->draw(commandList, transferCommandList, frameId, viewParams.cameraTransform, objects, offsets);    
         
         drawHelper.prepare(*transferCommandList, frameId);
         drawHelper.draw(*commandList, frameId, now);

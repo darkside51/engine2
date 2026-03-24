@@ -79,6 +79,9 @@ namespace engine::scene {
     threads::ThreadPool gThreadPool{kAnimationCalculationPoolsCount};
     std::array<SkeletalAnimator, kAnimationCalculationPoolsCount> gSkeletalAnimatorsMT;
 
+    // quality
+    constexpr std::array kDefaultQualityLevels = {2.0f, 4.0f, 16.0f, 36.0f, 64.0f, 100.0f, 144.0f};
+
     // struct ColoredVertex {
     //     std::array<float, 3u> coord;
     //     uint32_t color;
@@ -359,6 +362,18 @@ namespace engine::scene {
         return false;
     }
 
+    void Scene::calculateQualityFactors(engine::scene::AttachmentObject* object, const ViewParams & viewParams) noexcept {
+        const auto position = engine::vec3f{object->node->getWorldTransform()[3u]}; 
+        const auto length2 = glm::length2(position - viewParams.cameraPosition);
+        object->animationQualityFactor = 0u;
+        for (const auto l2 : kDefaultQualityLevels) { // use _qualityLevels!
+            if (l2 > length2) {
+                break;
+            }
+            ++object->animationQualityFactor;
+        }
+    }
+
     void Scene::animate(std::chrono::time_point<std::chrono::steady_clock> now, float delta, std::span<AttachmentObject*> objects, 
         const AnimationManager & animationManager) {
         //return;
@@ -374,10 +389,9 @@ namespace engine::scene {
         for (auto * object : objects) {
             auto * animInfo = object->animInfo;
             while (animInfo) {
-                //const auto time = (animInfo->info.sleepTime - delta / (1u + object->lod));
-                // const bool animateObject = (object->id + _frameNumber) % (1u + object->lod); // use object lods!
-                // const uint32_t executionFramesCharacter = std::max(static_cast<uint32_t>(std::roundf(kAnimUpdateFrequency / delta)), 1u);
-                const uint32_t executionFramesCharacter = std::max(static_cast<uint32_t>(std::roundf(kAnimUpdateFrequency * (1u + object->lod) / delta)), 1u);
+                const uint32_t executionFramesCharacter = std::max(
+                    static_cast<uint32_t>(std::roundf(kAnimUpdateFrequency * (1u + object->animationQualityFactor) / delta)), 
+                    1u);
                 const bool isTargetFrame = ((object->id + _frameNumber) % executionFramesCharacter) == 0u;
 
                 if (isTargetFrame && animInfo->info.weight > 0.0f) {

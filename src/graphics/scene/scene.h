@@ -71,6 +71,12 @@ struct AnimatedObject {
 // global
 void attachObjectToNode(AttachmentObject & object, Node & node) noexcept;
 
+struct ViewParams {
+    mat4f cameraView;
+    mat4f cameraTransform;
+    vec3f cameraPosition;
+};
+
 class Scene {
     using AttachmentsIterator = std::span<AttachmentObject*>::iterator;
     
@@ -129,7 +135,7 @@ public:
     void endFrame(rhi::runtime::CommandListPtr & commandList, rhi::runtime::CommandListPtr & transferCommandList, uint8_t frame);
 
     template <typename Condition>
-    void fillAttachmentsArray(const mat4f & cameraTransform, Node * root, Condition && condition, std::vector<AttachmentObject*> & objects);
+    void fillAttachmentsArray(const ViewParams & viewParams, Node * root, Condition && condition, std::vector<AttachmentObject*> & objects);
     DrawDataOffsets prepareDrawData(std::span<AttachmentObject*> objects, uint8_t frame) noexcept;
 
     void animate(std::chrono::time_point<std::chrono::steady_clock> now, float delta, std::span<AttachmentObject*> objects, 
@@ -142,7 +148,9 @@ public:
     bool isComputeSkinningEnabled() const noexcept;
 
 private:
+    // attachments
     static bool compareAttachmentsForDraw(const AttachmentObject & a, const AttachmentObject & b) noexcept;
+    void calculateQualityFactors(engine::scene::AttachmentObject* object, const ViewParams & viewParams) noexcept;
     
     uint32_t calculateTargetStagingSize() const noexcept;
     void performCommits(rhi::runtime::CommandListPtr & commandList, uint8_t frame);
@@ -214,6 +222,7 @@ private:
     } _animations;
 
     void completeAnimations() noexcept;
+    std::vector<std::vector<float>> _qualityLevels;
     
     // render
     rhi::runtime::Rhi * _api = nullptr;
@@ -280,12 +289,12 @@ private:
 };
 
 template <typename Condition>
-void Scene::fillAttachmentsArray(const mat4f & cameraTransform, Node * root, Condition && condition, std::vector<AttachmentObject*> & objects) {
-    const Frustum frustum(cameraTransform);
+void Scene::fillAttachmentsArray(const ViewParams & viewParams, Node * root, Condition && condition, std::vector<AttachmentObject*> & objects) {
+    const Frustum frustum(viewParams.cameraTransform);
     objects.clear();
     objects.reserve(kFillNodesReserveSize);
 
-    recalculateHierarchy(root, [this, &frustum, &cameraTransform, &objects, &condition](Node * n) noexcept { 
+    recalculateHierarchy(root, [this, &frustum, &viewParams, &objects, &condition](Node * n) noexcept { 
         if (n->isHidden()) {
             return false;
         }
@@ -302,6 +311,7 @@ void Scene::fillAttachmentsArray(const mat4f & cameraTransform, Node * root, Con
         while (object) {
             if (!object->isHidden() && condition(object)) {
                 objects.emplace_back(object);
+                calculateQualityFactors(object, viewParams);
 
                 if constexpr (kDebugDrawBounds) {
                     bool showBorders = false;
@@ -321,11 +331,11 @@ void Scene::fillAttachmentsArray(const mat4f & cameraTransform, Node * root, Con
                         default:
                             break;
                         }
-                        color |= std::min(std::clamp(object->lod, uint8_t{0u}, uint8_t{8u}) * 32u, 0xffu);
+                        color |= std::min(std::clamp(object->animationQualityFactor, uint8_t{0u}, uint8_t{8u}) * 32u, 0xffu);
                     }
 
                     if (showBorders) {
-                        _drawHelper.drawBounds(bounds, color, cameraTransform * worldTransform);
+                        _drawHelper.drawBounds(bounds, color, viewParams.cameraTransform * worldTransform);
                     }
                 }
             }
@@ -338,7 +348,7 @@ void Scene::fillAttachmentsArray(const mat4f & cameraTransform, Node * root, Con
             wtr[0u] = glm::normalize(wtr[0u]);
             wtr[1u] = glm::normalize(wtr[1u]);
             wtr[2u] = glm::normalize(wtr[2u]);
-            _drawHelper.drawGizmo(0.1f, cameraTransform * wtr);
+            _drawHelper.drawGizmo(0.1f, viewParams.cameraTransform * wtr);
         }
         return true;
     });
