@@ -197,7 +197,7 @@ namespace example {
         addInputObserver(&sceneEventHandler);
 
         controller.setDistance(5.0f);
-        controller.setMinMaxDistance(0.01f, 22.0f);
+        controller.setMinMaxDistance(0.01f, 30.0f);
 
         // camera.makePerspective(std::numbers::pi_v<float> / 3.0f, 1024.0f / 768.0f, 0.001f, 100.0f);
         camera.makePerspective(std::numbers::pi_v<float> / 3.0f, 1024.0f / 768.0f, 100.0f, 0.001f); // reverse depth;
@@ -1387,11 +1387,11 @@ namespace example {
             
             { // floor
                 auto * node = scene->createNode();
-                node->setPosition(engine::vec3f{-24.0f, -24.0f, 0.0f});
+                node->setPosition(engine::vec3f{-30.0f, -30.0f, 0.0f});
 
                 const auto frame = engine::graphics::ImageFrame2D{
                     textureManager->getDefaultImage(), 
-                    engine::graphics::Frame2D{.uvMin = {0.0f, 0.0f}, .uvMax = {24.0f, 24.0f}}
+                    engine::graphics::Frame2D{.uvMin = {0.0f, 0.0f}, .uvMax = {30.0f, 30.0f}}
                 };
 
                 auto * sprite = scene->createObject<engine::scene::Sprite>(frame, 0u);
@@ -1635,7 +1635,7 @@ namespace example {
                 };
 
                 auto const animId = animationManager.getAnimationIndex("skeletal_mesh_anim0");
-                for (size_t i = 0u; i < 400u; ++i) {
+                for (size_t i = 0u; i < 500u; ++i) {
                     auto * meshRoot = engine::scene::createNodeWithSkeletalMesh(*scene, *modelManager, modelIndex, 
                         engine::scene::Bounds::Type::eCube, pipelines, 
                         {.size = {0.47f, 0.47f, 0.47f}, .type = engine::scene::ObjectSizeLayout::Type::eMin},
@@ -1745,7 +1745,7 @@ namespace example {
                     .skeletalPipeline = scene->isComputeSkinningEnabled() ? 3u : 1u
                 };
                 auto const animId = animationManager.getAnimationIndex("chaman_anim1");
-                for (uint16_t i = 0u; i < 400u; ++i) {
+                for (uint16_t i = 0u; i < 500u; ++i) {
                     auto * meshRoot = engine::scene::createNodeWithSkeletalMesh(*scene, *modelManager, modelIndex, 
                         engine::scene::Bounds::Type::eCube, pipelines,
                         {.size = {0.47f, 0.47f, 0.47f}, .type = engine::scene::ObjectSizeLayout::Type::eMin});
