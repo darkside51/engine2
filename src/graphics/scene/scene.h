@@ -30,7 +30,7 @@ namespace graphics {
 }
 
 namespace scene {
-constexpr bool kDebugDrawBounds = true;
+constexpr bool kDebugDrawBounds = false;
 constexpr bool kDebugDrawGizmos = false;
 
 constexpr uint32_t kFillNodesReserveSize = 1024u;

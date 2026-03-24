@@ -2,6 +2,7 @@
 
 #include "camera.h"
 #include <limits>
+#include <cmath>
 
 namespace engine::scene {
 
@@ -13,7 +14,7 @@ public:
 	const vec3f & getRotation() const noexcept { return _rotation; }
 	const vec3f & getPosition() const noexcept { return _position; }
 
-    void setRotationOrder(const RotationsOrder ro) noexcept {
+    void setRotationOrder(RotationsOrder ro) noexcept {
         if (_rotationOrder != ro) {
             _rotationOrder = ro;
             _dirty = true;
@@ -127,24 +128,24 @@ public:
 
         const float rx = _rotation.x;
         const float rz = _rotation.z;
-        vec3f position = _position;
+        _cameraPosition = _position;
 
         if (std::abs(_distance) > kEps) {
             // use spherical coordinates
-            const float crx = cosf(rx);
-            const float crz = cosf(rz);
-            const float srx = sinf(rx);
-            const float srz = sinf(rz);
+            const float crx = std::cos(rx);
+            const float crz = std::cos(rz);
+            const float srx = std::sin(rx);
+            const float srz = std::sin(rz);
 
             const float x = _distance * srx * srz;
             const float y = _distance * srx * crz;
             const float z = _distance * crx;
 
-            position += vec3f{ x, y, z };
+            _cameraPosition += vec3f{ x, y, z };
         }
 
-        if (position != emptyVec3) {
-			translateMatrix(view, -position);
+        if (_cameraPosition != emptyVec3) {
+			translateMatrix(view, -_cameraPosition);
 		}
 
         _camera.setView(view);
@@ -152,10 +153,13 @@ public:
         return _camera.calculateTransform();
     }
 
+    const vec3f & cameraPosition() const noexcept { return _cameraPosition; }
+
 protected:
     float _distance = 0.0f;
     float _minDistance = 0.0f;
     float _maxDistance = std::numeric_limits<float>::max(); 
+    vec3f _cameraPosition = {};
 };
 
 }

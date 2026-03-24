@@ -88,6 +88,8 @@ namespace example {
     threads::Worker bgWorker;
 
     engine::mat4f cameraTransform;
+    engine::mat4f cameraView;
+    engine::vec3f cameraPosition;
     float m = 0.0f;
 
     struct UniformBuffer {
@@ -1465,8 +1467,15 @@ namespace example {
 
     void Example::deviceProcess() {
         if (controller.calculateTransform() && _renderThread) {
-            _renderThread->emplaceTasks(stl::make_vector(threads::WorkerTask{[transform = camera.getTransform()](){
+            auto cameraPos = controller.cameraPosition();
+            _renderThread->emplaceTasks(stl::make_vector(threads::WorkerTask{[
+                transform = camera.getTransform(), 
+                view = camera.getView(), 
+                cameraPos = controller.cameraPosition()
+            ](){
                 cameraTransform = transform;
+                cameraView = view;
+                cameraPosition = cameraPos; 
             }}));
         }
     }
@@ -1806,8 +1815,8 @@ namespace example {
         scene->beginFrame(now);
         std::vector<engine::scene::AttachmentObject*> objects(1024u);
         scene->fillAttachmentsArray(cameraTransform, sceneWorldRoot, [](engine::scene::AttachmentObject* object) {
-            const auto position = engine::vec3f(object->node->getWorldTransform()[3u]); 
-            const auto length2 = glm::length(position) * 0.75f;
+            const auto position = engine::vec3f{object->node->getWorldTransform()[3u]}; 
+            const auto length2 = glm::length(position - cameraPosition) * 0.75f;
             object->lod = static_cast<uint8_t>(std::clamp(length2, 0.0f, 8.0f));
             return true; 
         }, objects);
