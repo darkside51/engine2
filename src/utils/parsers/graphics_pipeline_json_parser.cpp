@@ -325,6 +325,8 @@ namespace engine {
         if (topology == "eTriangle_Strip_With_Adjacency") { return rhi::PrimitiveTopology::eTriangle_Strip_With_Adjacency; }
         if (topology == "eTriangles") { return rhi::PrimitiveTopology::eTriangles; }
         if (topology == "eTriangles_With_Adjacency") { return rhi::PrimitiveTopology::eTriangles_With_Adjacency; }
+        assert(false);
+        return rhi::PrimitiveTopology::eTriangles;
     }
 
     rhi::CompareOp parseCompareOp(std::string_view op) noexcept {
@@ -336,6 +338,8 @@ namespace engine {
         if (op == "eLess") { return rhi::CompareOp::eLess; }
         if (op == "eNever") { return rhi::CompareOp::eNever; }
         if (op == "eNot_Equal") { return rhi::CompareOp::eNot_Equal; }
+        assert(false);
+        return rhi::CompareOp::eAlways;
     }
 
     rhi::StencilOp parseStencilOp(std::string_view op) noexcept {
@@ -347,6 +351,8 @@ namespace engine {
         if (op == "eDec_And_Wrap") { return rhi::StencilOp::eDec_And_Wrap; }
         if (op == "eInc_And_Clamp") { return rhi::StencilOp::eInc_And_Clamp; }
         if (op == "eInc_And_Wrap") { return rhi::StencilOp::eInc_And_Wrap; }
+        assert(false);
+        return rhi::StencilOp::eKeep;
     }
     
     rhi::StencilOpState parseStencilOpState(const engine::json::Json & json) noexcept {

@@ -32,8 +32,7 @@ namespace engine::vulkan::runtime {
         _barriers.reset();
     }
 
-    void CommandList::applyBarriers(uint32_t passId, RenderPass* renderPass, std::span<rhi::FrameBufferAttachment> attachments) {
-        //return;
+    void CommandList::applyBarriers(const rhi::runtime::Pass & pass, RenderPass* renderPass, std::span<rhi::FrameBufferAttachment> attachments) {
         { // attachments barriers
             uint8_t attachmentIdx = 0u;
             for (const auto & attachment : attachments) {
@@ -85,8 +84,6 @@ namespace engine::vulkan::runtime {
         }
 
         { // pass barriers
-            const auto & pass = _passes[passId];
-
             // buffers
             const auto & buffers = pass.buffers.view();
             for (const auto & buffer : buffers) {
@@ -285,8 +282,9 @@ namespace engine::vulkan::runtime {
                 changeDynamicBufferSets = 0u;
                 resetState();
 
-                if (_passes[passId].commandNumber == commandsNumber && _passes[passId].type == Pass::Type::eTransfer) {
-                    applyBarriers(passId, nullptr, {});
+                auto const & pass = _passes[passId];
+                if (pass.commandNumber == commandsNumber && pass.type == Pass::Type::eTransfer) {
+                    applyBarriers(pass, nullptr, {});
                     ++passId;
                 }
             }
@@ -314,7 +312,8 @@ namespace engine::vulkan::runtime {
                 auto * renderPass = static_cast<RenderPass*>(command->renderPass);
 
                 // no check _passes[passId].commandNumber == commandsNumber, result true alltimes for CommandType::eBeginRenderPass
-                applyBarriers(passId, renderPass, framebuffer.attachments()); 
+                auto const & pass = _passes[passId];
+                applyBarriers(pass, renderPass, framebuffer.attachments()); 
                 ++passId;
 
                 dynamic_array<VkClearValue, 4u> clearValues;
@@ -345,7 +344,8 @@ namespace engine::vulkan::runtime {
                 const auto * command = static_cast<NextSubpassCommand*>(cmd);
 
                 // no check _passes[passId].commandNumber == commandsNumber, result true alltimes for CommandType::eBeginRenderPass
-                applyBarriers(passId, nullptr, {});
+                auto const & pass = _passes[passId];
+                applyBarriers(pass, nullptr, {});
                 ++passId;
 
                 _commandbuffer.nextSubpass(command->contents);
@@ -381,7 +381,7 @@ namespace engine::vulkan::runtime {
                     if (pass.commandNumber == commandsNumber && 
                         pipeline->bindPoint == rhi::PipelineBindPoint::eCompute && 
                         pass.type == Pass::Type::eCompute) {
-                        applyBarriers(passId, nullptr, {});
+                        applyBarriers(pass, nullptr, {});
                         ++passId;
                     }
                 }
@@ -573,7 +573,7 @@ namespace engine::vulkan::runtime {
                 if (passId < _passes.size()) {
                     const auto & pass = _passes[passId];
                     if (pass.commandNumber == commandsNumber && pass.type == Pass::Type::eTransfer) {
-                        applyBarriers(passId, nullptr, {});
+                        applyBarriers(pass, nullptr, {});
                         ++passId;
                     }
                 }
@@ -590,7 +590,7 @@ namespace engine::vulkan::runtime {
                 if (passId < _passes.size()) {
                     const auto & pass = _passes[passId];
                     if (pass.commandNumber == commandsNumber && pass.type == Pass::Type::eTransfer) {
-                        applyBarriers(passId, nullptr, {});
+                        applyBarriers(pass, nullptr, {});
                         ++passId;
                     }
                 }
@@ -609,7 +609,7 @@ namespace engine::vulkan::runtime {
                 if (passId < _passes.size()) {
                     const auto & pass = _passes[passId];
                     if (pass.commandNumber == commandsNumber && pass.type == Pass::Type::eTransfer) {
-                        applyBarriers(passId, nullptr, {});
+                        applyBarriers(pass, nullptr, {});
                         ++passId;
                     }
                 }

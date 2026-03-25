@@ -1133,9 +1133,7 @@ inline VkQueryType convert2vk(rhi::QueryType type) noexcept {
         case rhi::QueryType::eOcclusion: return VkQueryType::VK_QUERY_TYPE_OCCLUSION;
         case rhi::QueryType::ePipeline_Statistics: return VkQueryType::VK_QUERY_TYPE_PIPELINE_STATISTICS;
         case rhi::QueryType::eTimestamp: return VkQueryType::VK_QUERY_TYPE_TIMESTAMP;
-        #ifdef VK_ENABLE_BETA_EXTENSIONS
         case rhi::QueryType::eResult_Status_Only: return VkQueryType::VK_QUERY_TYPE_RESULT_STATUS_ONLY_KHR;
-        #endif
         case rhi::QueryType::eTransform_Feedback_Stream: return VkQueryType::VK_QUERY_TYPE_TRANSFORM_FEEDBACK_STREAM_EXT;
         case rhi::QueryType::ePerfomance_Query: return VkQueryType::VK_QUERY_TYPE_PERFORMANCE_QUERY_KHR;
         case rhi::QueryType::eAcceleration_Structure_Compacted_Size: return VkQueryType::VK_QUERY_TYPE_ACCELERATION_STRUCTURE_COMPACTED_SIZE_KHR;
