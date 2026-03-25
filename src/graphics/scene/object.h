@@ -41,6 +41,7 @@ namespace engine::scene {
 
         Flags flags{};
         uint8_t animationQualityFactor = 0u;
+        uint8_t qualityLevelsId = 0xffu;
 
         AttachmentObject(uint16_t typeIndex) : id(gUID++), typeIndex(typeIndex) {}
         /*virtual*/ ~AttachmentObject() = default; // call typed, virtual not need

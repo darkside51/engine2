@@ -123,6 +123,13 @@ public:
     }
     bool destroyAnimInfo(AnimationInfoChain * info) noexcept;
 
+    // quality levels
+    void insertQualityLevels(std::vector<float> && levels) {
+        _qualityLevels.emplace_back(std::move(levels));
+    }
+
+    std::span<const float> getQualityLevels(uint16_t idx) const noexcept;
+
     // render & compute
     uint32_t registerGraphicsPipeline(rhi::runtime::PipelinePtr && pipeline);
     const rhi::runtime::PipelinePtr & getGraphicsPipeline(uint32_t pipelineId) const noexcept;

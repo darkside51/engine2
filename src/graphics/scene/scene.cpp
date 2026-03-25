@@ -362,11 +362,20 @@ namespace engine::scene {
         return false;
     }
 
+    std::span<const float> Scene::getQualityLevels(uint16_t idx) const noexcept {
+        if (idx < _qualityLevels.size()) {
+            return _qualityLevels[idx];
+        }
+
+        return kDefaultQualityLevels;
+    }
+
     void Scene::calculateQualityFactors(engine::scene::AttachmentObject* object, const ViewParams & viewParams) noexcept {
         const auto position = engine::vec3f{object->node->getWorldTransform()[3u]}; 
         const auto length2 = glm::length2(position - viewParams.cameraPosition);
         object->animationQualityFactor = 0u;
-        for (const auto l2 : kDefaultQualityLevels) { // use _qualityLevels!
+        auto const levels = getQualityLevels(object->qualityLevelsId);
+        for (const auto l2 : kDefaultQualityLevels) {
             if (l2 > length2) {
                 break;
             }
