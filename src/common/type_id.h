@@ -6,10 +6,11 @@
 
 namespace engine {
     namespace run_time_type_id {
+        inline static std::atomic_size_t gStaticId = 0u;
+
         template<typename T>
         inline size_t typeIndex() noexcept {
-            static std::atomic_size_t staticId = 0u;
-            const size_t newId = staticId.fetch_add(1u, std::memory_order_relaxed);
+            static const size_t newId = gStaticId.fetch_add(1u, std::memory_order_relaxed);
             return newId;
         }
 

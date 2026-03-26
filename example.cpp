@@ -11,6 +11,7 @@
 #include "graphics/render/staging_buffer.h"
 
 #include "math/math.h"
+#include "math/geometry.h"
 
 #include "graphics/scene/camera_controller.h"
 
@@ -114,27 +115,53 @@ namespace example {
         bool onInputPointerEvent(const engine::PointerEvent & event) override {
             static float x0 = 0.0f;
             static float y0 = 0.0f;
-            static bool pressed = false;
+            static bool pressedLeft = false;
+            static bool pressedRight = false;
 
             switch (event.state) {
             case engine::InputEventState::ePress:
             {
-                pressed = true;
+                switch(event.button) {
+                case engine::PointerButton::eButton0:
+                {
+                    pressedLeft = true;
+                }
+                    break;
+                case engine::PointerButton::eButton1:
+                    pressedRight = true;
+                    break;
+                }
             }
                 break;
             case engine::InputEventState::eRelease:
             {
-                pressed = false;
+                switch(event.button) {
+                case engine::PointerButton::eButton0:
+                    pressedLeft = false;
+                    break;
+                case engine::PointerButton::eButton1:
+                    pressedRight = false;
+                    break;
+                }
             }
                 break;
             case engine::InputEventState::eNone:
             {
-                if (pressed) {
-                    
-                    v1 += engine::vec3f(0.01f * (y0 - event.y), 0.0f, 0.01f * (event.x - x0));
+                if (pressedRight) {
+                    constexpr float kRotationSpeed = 0.005f;
+                    v1 += engine::vec3f(kRotationSpeed * (y0 - event.y), 0.0f, kRotationSpeed * (event.x - x0));
                     controller.setRotation(
                         v0 + v1
                     );
+                }
+
+                if (pressedLeft) {
+                    const auto kPlaneXOY = engine::vec4f(0.0f, 0.0f, 1.0f, 0.0f);
+                    const auto ray0 = camera.screenToWorld({x0, y0});
+                    const auto ray1 = camera.screenToWorld({event.x, event.y});
+                    const auto worldPoint0 = engine::intersectionLinePlane(ray0.begin, ray0.end, kPlaneXOY);
+                    const auto worldPoint1 = engine::intersectionLinePlane(ray1.begin, ray1.end, kPlaneXOY);
+                    controller.setPosition(controller.getPosition() + worldPoint0 - worldPoint1);
                 }
 
                 x0 = event.x;
