@@ -109,12 +109,11 @@ namespace example {
     Stats gStats;
 
     class SceneEventHandler final : public engine::InputObserver {
-        engine::vec3f v0{0.0f};
-        engine::vec3f v1{0.0f};
+        inline static const auto kPlaneXOY = engine::vec4f(0.0f, 0.0f, 1.0f, 0.0f);
+        float x0 = 0.0f;
+        float y0 = 0.0f;
     public:
         bool onInputPointerEvent(const engine::PointerEvent & event) override {
-            static float x0 = 0.0f;
-            static float y0 = 0.0f;
             static bool pressedLeft = false;
             static bool pressedRight = false;
 
@@ -149,18 +148,18 @@ namespace example {
             {
                 if (pressedRight) {
                     constexpr float kRotationSpeed = 0.005f;
-                    v1 += engine::vec3f(kRotationSpeed * (y0 - event.y), 0.0f, kRotationSpeed * (event.x - x0));
+                    const auto rotation = engine::vec3f(kRotationSpeed * (y0 - event.y), 0.0f, kRotationSpeed * (event.x - x0));
                     controller.setRotation(
-                        v0 + v1
+                        controller.getRotation() + rotation
                     );
                 }
 
                 if (pressedLeft) {
-                    const auto kPlaneXOY = engine::vec4f(0.0f, 0.0f, 1.0f, 0.0f);
                     const auto ray0 = camera.screenToWorld({x0, y0});
                     const auto ray1 = camera.screenToWorld({event.x, event.y});
                     const auto worldPoint0 = engine::intersectionLinePlane(ray0.begin, ray0.end, kPlaneXOY);
                     const auto worldPoint1 = engine::intersectionLinePlane(ray1.begin, ray1.end, kPlaneXOY);
+                    
                     controller.setPosition(controller.getPosition() + worldPoint0 - worldPoint1);
                 }
 
@@ -177,20 +176,20 @@ namespace example {
 
         bool onInputWheelEvent(float /*dx*/, float dy) override {
             // {
+                //
+                controller.calculateTransform();
+                const auto ray0 = camera.screenToWorld({x0, y0});
+                const auto worldPoint0 = engine::intersectionLinePlane(ray0.begin, ray0.end, kPlaneXOY);
+
                 const auto d = controller.getDistance();
                 controller.setDistance(d - (dy / std::max(std::pow(2.0f, (8.0f - d)), 1.0f)));
 
-            //     const float lerpBegin = 2.0f;
-            //     const float lerpEnd = 1.0f;
-            //     const float lerpDisatnce = (lerpBegin - lerpEnd);
-            //     const float mix = std::clamp(lerpBegin - d, 0.0f, lerpDisatnce) / lerpDisatnce;
-            //     m = std::lerp(0.0f, 1.0f, mix);
+                //
+                controller.calculateTransform();
+                const auto ray1 = camera.screenToWorld({x0, y0});
+                const auto worldPoint1 = engine::intersectionLinePlane(ray1.begin, ray1.end, kPlaneXOY);
 
-            //     v0 = engine::vec3f(1.57f * m, 0.0f, 0.0f);
-
-            //     controller.setRotation(
-            //         v0 + v1
-            //     );
+                controller.setPosition(controller.getPosition() + worldPoint0 - worldPoint1);
             // }
 
             m = std::clamp(m + dy * 0.01f, 0.0f, 1.0f);
