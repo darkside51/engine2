@@ -8,7 +8,7 @@
 
 namespace engine::scene {
 
-    Sprite::Sprite(const graphics::ImageFrame2D & frame, uint32_t pipeline) : 
+    Sprite::Sprite(const graphics::ImageFrame2D2 & frame, uint32_t pipeline) : 
         AttachmentObject(ctti::typeIndex<AttachmentObject, Sprite>()), _frame(frame), _pipeline(pipeline) {
     }
 
@@ -20,7 +20,7 @@ namespace engine::scene {
         return _pipeline;
     }
 
-    void Sprite::setFrame(const graphics::ImageFrame2D & frame) noexcept {
+    void Sprite::setFrame(const graphics::ImageFrame2D2 & frame) noexcept {
         _frame = frame;
         if (node) {
             const auto spriteSize = calculateSize();
@@ -28,14 +28,19 @@ namespace engine::scene {
         }
     }
 
-    const graphics::ImageFrame2D & Sprite::getFrame() const noexcept {
+    const graphics::ImageFrame2D2 & Sprite::getFrame() const noexcept {
         return _frame;
     }
 
     vec2f Sprite::calculateSize() const noexcept {
-        const auto & extent = _frame.getImage()->getExtent();
-        const auto & frame = _frame.getFrame();
-        return vec2f{frame.uvMax[0u] - frame.uvMin[0u], frame.uvMax[1u] - frame.uvMin[1u]} * vec2f{extent.width, extent.height};
+        if (_size.x != std::numeric_limits<float>::max() || _size.y != std::numeric_limits<float>::max()) {
+            return _size;
+        }
+        return _frame.getSize();
+    }
+
+    vec2f Sprite::getSize() const noexcept {
+        return calculateSize();
     }
 
     bool Sprite::cmp(const Sprite & other) const noexcept {

@@ -30,7 +30,7 @@ namespace {
         static_assert(sizeof(AttachmentObject) == 40u);
         static_assert(sizeof(Dummy) == 40u);
         static_assert(sizeof(Mesh) == 200u);
-        static_assert(sizeof(Sprite) == 72u);
+        static_assert(sizeof(Sprite) == 88u);
 
         #ifdef SIMD_MATH
         static_assert(sizeof(Node) == 272u);
@@ -510,7 +510,7 @@ namespace engine::scene {
                 }
 
                 if (currentAnim) {
-                    static_cast<Sprite*>(object)->setFrame(gSequenceAnimator.update2(nowTimeCount - animInfo->startTime, *currentAnim));
+                    //static_cast<Sprite*>(object)->setFrame(gSequenceAnimator.update2(nowTimeCount - animInfo->startTime, *currentAnim));
                 }
             }
         }
@@ -1074,8 +1074,8 @@ namespace engine::scene {
             return;
         }
         auto image = sprite.getFrame().getImage();
-        const auto & imageExtent = image->getExtent();
-        vec2f imageSize = {imageExtent.width, imageExtent.height};
+        // const auto & imageExtent = image->getExtent();
+        // vec2f imageSize = {imageExtent.width, imageExtent.height};
 
         auto * vMem = _spritesVertices->memory2<SpriteVertex>() + vtxOffset;
         auto * iMem = _spritesIndices->memory2<uint32_t>() + idxOffset;
@@ -1087,8 +1087,9 @@ namespace engine::scene {
             const auto & model = sprite.node->getWorldTransform();
 
             const vec2f corner0 = {0.0f, 0.0f};
-            const vec2f corner1 = {(frame2D.uvMax[0u] - frame2D.uvMin[0u]) * imageSize.x, 
-                                   (frame2D.uvMax[1u] - frame2D.uvMin[1u]) * imageSize.y};
+            const vec2f corner1 = sprite.getSize();
+            // const vec2f corner1 = {(frame2D.uvMax[0u] - frame2D.uvMin[0u]) * imageSize.x, 
+            //                        (frame2D.uvMax[1u] - frame2D.uvMin[1u]) * imageSize.y};
 
             // fill vertexes and indices
             // vertexes

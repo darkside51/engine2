@@ -127,7 +127,7 @@ namespace engine::vulkan::runtime {
             std::span{apiModules.begin(), apiModules.begin() + moduleViews.size()}, std::move(specializationInfo));
     }
 
-    std::unique_ptr<engine::rhi::runtime::Pipeline> Rhi::createComputePipeline(
+    engine::rhi::runtime::PipelinePtr Rhi::createComputePipeline(
         rhi::runtime::Device & device,
         const rhi::runtime::GpuProgramPtr & program) const {
 

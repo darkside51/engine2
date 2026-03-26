@@ -1361,9 +1361,9 @@ namespace example {
             // node3->setTransform(mt);
 
             auto m2 = engine::makeMatrix(0.01F);
-            auto * sprite = scene->createObject<engine::scene::Sprite>(textureManager->findFrame("hero_head"), 0u);
-            engine::scene::attachObjectToNode(*sprite, *node3);
-            sprite->setOrder(1u);
+            // auto * sprite = scene->createObject<engine::scene::Sprite>(textureManager->findFrame("hero_head"), 0u);
+            // engine::scene::attachObjectToNode(*sprite, *node3);
+            // sprite->setOrder(1u);
 
             m2[1][1] *= -1.0f;
             m2[3] = {0.0f, -0.2f, 0.5f, 1.0f};
@@ -1373,9 +1373,9 @@ namespace example {
             node4->setPosition(engine::vec3f(0.57f, 0.05f, -0.85f));
             //node4->setTransform(m2);
             
-            auto * sprite2 = scene->createObject<engine::scene::Sprite>(textureManager->findFrame("hero_sword"), 0u);
-            engine::scene::attachObjectToNode(*sprite2, *node4);
-            sprite2->setOrder(1u);
+            // auto * sprite2 = scene->createObject<engine::scene::Sprite>(textureManager->findFrame("hero_sword"), 0u);
+            // engine::scene::attachObjectToNode(*sprite2, *node4);
+            // sprite2->setOrder(1u);
 
             sceneWorldRoot->addChild(node3);
 
@@ -1394,39 +1394,53 @@ namespace example {
 
                 auto const animId = animationManager.getAnimationIndex("anim0");
 
-                for (size_t i = 0u; i < 10u; ++i) {
-                    for (size_t j = 0u; j < 10u; ++j) {
-                        auto * node5 = scene->createNode();
-                        node5->setScale(engine::vec3f{0.0025f});
-                        node5->setPosition(engine::vec3f{-3.0f + static_cast<float>(i) * 0.75f, -1.0f - static_cast<float>(j) * 0.75f, 0.0f});
+                // for (size_t i = 0u; i < 10u; ++i) {
+                //     for (size_t j = 0u; j < 10u; ++j) {
+                //         auto * node5 = scene->createNode();
+                //         node5->setScale(engine::vec3f{0.0025f});
+                //         node5->setPosition(engine::vec3f{-3.0f + static_cast<float>(i) * 0.75f, -1.0f - static_cast<float>(j) * 0.75f, 0.0f});
 
-                        const auto & frame3 = textureManager->findFrame("explosion_33");
-                        auto * sprite3 = scene->createObject<engine::scene::Sprite>(frame3, 0u);
-                        engine::scene::attachObjectToNode(*sprite3, *node5);
-                        //sprite3->setOrder(-1);
-                        auto * anim0 = scene->createAnimInfo<engine::scene::FramesSequence>(animId, engine::common::random(0.25f, 1.7f));
-                        scene->destroyAnimInfo(sprite3->setAnimation(anim0));
+                //         const auto & frame3 = textureManager->findFrame("explosion_33");
+                //         auto * sprite3 = scene->createObject<engine::scene::Sprite>(frame3, 0u);
+                //         engine::scene::attachObjectToNode(*sprite3, *node5);
+                //         //sprite3->setOrder(-1);
+                //         auto * anim0 = scene->createAnimInfo<engine::scene::FramesSequence>(animId, engine::common::random(0.25f, 1.7f));
+                //         scene->destroyAnimInfo(sprite3->setAnimation(anim0));
                         
-                        sceneWorldRoot->addChild(node5);
-                    }
-                }
+                //         sceneWorldRoot->addChild(node5);
+                //     }
+                // }
             }
             
             { // floor
                 auto * node = scene->createNode();
                 node->setPosition(engine::vec3f{-30.0f, -30.0f, 0.0f});
 
-                const auto frame = engine::graphics::ImageFrame2D{
-                    textureManager->getDefaultImage(), 
+                // const auto frame = engine::graphics::ImageFrame2D{
+                //     textureManager->getDefaultImage(), 
+                //     engine::graphics::Frame2D{.uvMin = {0.0f, 0.0f}, .uvMax = {30.0f, 30.0f}}
+                // };
+
+                auto imageHandlerPtr = engine::rhi::runtime::sh_ptr<engine::graphics::ImageHandler>::make(textureManager->getWhiteImage());
+
+                const auto frame = engine::graphics::ImageFrame2D2{
+                    imageHandlerPtr.get(), 
                     engine::graphics::Frame2D{.uvMin = {0.0f, 0.0f}, .uvMax = {30.0f, 30.0f}}
                 };
 
                 auto * sprite = scene->createObject<engine::scene::Sprite>(frame, 0u);
+                sprite->setSize({60.0f, 60.0f});
                 engine::scene::attachObjectToNode(*sprite, *node);
                 sprite->setFilter(engine::scene::SpriteTextureFilter::eNearest);
                 sprite->setOrder(0);
 
                 sceneWorldRoot->addChild(node);
+
+                bgWorker.emplaceTasks(stl::make_vector(threads::WorkerTask{[imageHandlerPtr]() mutable {
+                    std::this_thread::sleep_for(std::chrono::seconds(10));
+                    imageHandlerPtr->image = textureManager->getDefaultImage();
+                }}));
+
             }
 
             sceneNodePtr = node0;
