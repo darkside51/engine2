@@ -353,7 +353,7 @@ namespace example {
 
         rhi::DeviceCreateInfo deviceCreateInfo{_gpuFeatures};
         deviceCreateInfo.queueFamilies.push_back({index, 1u, {1.0f}, queueFlags});
-        deviceCreateInfo.commandPoolThreadsCount = 1u;
+        deviceCreateInfo.commandPoolThreadsCount = 2u;
         deviceCreateInfo.inFlightFramesCount = 3u;
 
         _device = _api->createDevice(_gpu, deviceCreateInfo);
@@ -1421,11 +1421,12 @@ namespace example {
                 //     engine::graphics::Frame2D{.uvMin = {0.0f, 0.0f}, .uvMax = {30.0f, 30.0f}}
                 // };
 
-                auto imageHandlerPtr = engine::rhi::runtime::sh_ptr<engine::graphics::ImageHandler>::make(textureManager->getWhiteImage());
+                //static 
+                auto imageHandlerPtr = engine::rhi::runtime::sh_ptr<engine::graphics::ImageHandler>::make(textureManager->getDefaultImage());
 
                 const auto frame = engine::graphics::ImageFrame2D2{
                     imageHandlerPtr.get(), 
-                    engine::graphics::Frame2D{.uvMin = {0.0f, 0.0f}, .uvMax = {30.0f, 30.0f}}
+                    engine::graphics::Frame2D{.uvMin = {0.0f, 0.0f}, .uvMax = {60.0f, 60.0f}}
                 };
 
                 auto * sprite = scene->createObject<engine::scene::Sprite>(frame, 0u);
@@ -1436,9 +1437,67 @@ namespace example {
 
                 sceneWorldRoot->addChild(node);
 
-                bgWorker.emplaceTasks(stl::make_vector(threads::WorkerTask{[imageHandlerPtr]() mutable {
-                    std::this_thread::sleep_for(std::chrono::seconds(10));
-                    imageHandlerPtr->image = textureManager->getDefaultImage();
+                bgWorker.emplaceTasks(stl::make_vector(threads::WorkerTask{[this, imageHandlerPtr]() mutable {
+
+                    std::this_thread::sleep_for(std::chrono::seconds(5));
+
+                    auto * commandPool = _device->acquireCommandPool(engine::rhi::queue_flags::transfrer);
+                    auto tmpCommandList = _api->createCommandList(commandPool, engine::rhi::CommandBufferLevel::ePrimary);
+
+                    tmpCommandList->begin(engine::rhi::CommandBufferUsageFlags::eOne_Time_Submit);
+
+////
+                    auto const imageBytes = _fileManager.readFile("assets/2.png");
+                    auto textureData = engine::graphics::parseTextureData(imageBytes);
+
+                    using namespace engine::rhi;
+                    const auto imageInfo = ImageInfo{
+                        ImageUsageFlags::eSampled | ImageUsageFlags::eTransfer_Dst,
+                        textureData.metaInfo.format, {textureData.metaInfo.size.x, textureData.metaInfo.size.y, 1u}
+                    };
+
+                    auto image = _api->createImage(*_device, imageInfo);
+                    const auto stagingSize = textureData.data.size();
+                    engine::graphics::StagingBuffer staging{*_api, *_device, stagingSize};
+                    
+                    auto * imgData = staging.map();
+                    std::memcpy(imgData, textureData.data.data(), stagingSize);
+                    staging.flush();
+
+                    tmpCommandList->copyBuffer2Image(staging.getBuffer(), image, 
+                        {
+                            .bufferOffset = 0u,
+                            .bufferRowLength = 0u,
+                            .bufferImageHeight = 0u,
+                            .imageSubresource = {.aspectMask = engine::rhi::ImageAspectFlags::eColor},
+                            .imageOffset = {0u, 0u, 0u},
+                            .imageExtent = image->getExtent()
+                        }
+                    );
+////
+
+                    tmpCommandList->end();
+                    tmpCommandList->record(0u);
+
+                    auto lists = std::array{tmpCommandList.get()};
+                    auto fence = _api->createFence(*_device, FenceCreateFlags::eNone);
+                    bool const submitted = _renderQueue->submit(0u, std::array{
+                        engine::rhi::runtime::Queue::SubmitInfo {
+                            .w8Semaphores = {},
+                            .w8DstStages = {},
+                            .signalSemaphores = {},
+                            .lists = lists
+                        }
+                    }, fence);
+
+                    _renderQueue->waitSubmit(0u, UINT64_MAX, fence);
+                    _api->destroyFence(*_device, fence);
+                    tmpCommandList = nullptr;
+
+                    _renderThread->emplaceTasks(stl::make_vector(threads::WorkerTask{
+                        [imageHandlerPtr, image = std::move(image)]() mutable {
+                        imageHandlerPtr->image = std::move(image); 
+                    }}));
                 }}));
 
             }

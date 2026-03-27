@@ -209,6 +209,10 @@ namespace engine::vulkan::runtime {
     }
 
     void CommandList::record(uint8_t frameIdx) noexcept {
+        if (_passes.empty()) {
+            return;
+        }
+
         using namespace rhi::runtime;
 
         std::byte * memory = _commands.memory().data();
