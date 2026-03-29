@@ -17,17 +17,14 @@ namespace engine::scene {
 
     class Sprite : public AttachmentObject {
     public:
-        Sprite(const graphics::ImageFrame2D2 & frame, uint32_t pipeline);
+        Sprite(const graphics::ImageFrame2D & frame, uint32_t pipeline);
         ~Sprite() /*override*/ = default;
 
         void setPipeline(uint32_t pipeline) noexcept;
         uint32_t getPipeline() const noexcept;
 
-        // void setFrame(const graphics::ImageFrame2D & frame) noexcept;
-        // const graphics::ImageFrame2D & getFrame() const noexcept;
-
-        void setFrame(const graphics::ImageFrame2D2 & frame) noexcept;
-        const graphics::ImageFrame2D2 & getFrame() const noexcept;
+        void setFrame(const graphics::ImageFrame2D & frame) noexcept;
+        const graphics::ImageFrame2D & getFrame() const noexcept;
 
         bool cmp(const Sprite &) const noexcept;
 
@@ -42,8 +39,7 @@ namespace engine::scene {
         SpriteTextureFilter getFilter() const noexcept { return _filter; }
 
     private:
-        // graphics::ImageFrame2D _frame;
-        graphics::ImageFrame2D2 _frame;
+        graphics::ImageFrame2D _frame;
         uint32_t _pipeline = 0u;
         vec2f _size = vec2f{std::numeric_limits<float>::max()};
         SpriteTextureFilter _filter = SpriteTextureFilter::eLinear;

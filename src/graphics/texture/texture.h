@@ -5,7 +5,7 @@
 
 namespace engine::graphics {
 
-struct ImageHandler {
+struct ImageHandler { // for symplify async loadings
     rhi::runtime::ImagePtr image = nullptr;
 };
 

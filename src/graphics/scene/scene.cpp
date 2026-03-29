@@ -510,7 +510,7 @@ namespace engine::scene {
                 }
 
                 if (currentAnim) {
-                    //static_cast<Sprite*>(object)->setFrame(gSequenceAnimator.update2(nowTimeCount - animInfo->startTime, *currentAnim));
+                    static_cast<Sprite*>(object)->setFrame(gSequenceAnimator.update2(nowTimeCount - animInfo->startTime, *currentAnim));
                 }
             }
         }

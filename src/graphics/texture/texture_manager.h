@@ -2,6 +2,7 @@
 
 #include "common/hash.h"
 #include "image_frame.h"
+#include "texture.h"
 #include "texture_data_loader.h"
 
 #include <cstddef>
@@ -21,7 +22,7 @@ namespace engine::rhi::runtime {
 
 namespace engine::graphics {
 struct ImageHolder {
-    rhi::runtime::Image * image = nullptr;
+    ImageHandler * image = nullptr;
     uint32_t count = 0u;
 };
 
@@ -29,6 +30,9 @@ struct ImageHolderEqualTo {
     using is_transparent = void;
 
     constexpr auto operator()(const rhi::runtime::Image * img, const graphics::ImageHolder & holder) const noexcept { 
+        return img == holder.image->image.get();
+    }
+    constexpr auto operator()(const ImageHandler* img, const graphics::ImageHolder & holder) const noexcept { 
         return img == holder.image;
     }
     constexpr auto operator()(const graphics::ImageHolder & holder0, const graphics::ImageHolder & holder1) const noexcept { 
@@ -44,7 +48,8 @@ struct Hasher<graphics::ImageHolder> {
     using is_transparent = void;
 
     std::size_t operator()(const rhi::runtime::Image* image) const { return hash_type{}(image); }
-    std::size_t operator()(const graphics::ImageHolder & image) const { return hash_type{}(image.image); }
+    std::size_t operator()(const graphics::ImageHandler * image) const { return hash_type{}(image->image.get()); }
+    std::size_t operator()(const graphics::ImageHolder & image) const { return hash_type{}(image.image->image.get()); }
 };
 
 using ImageHolder_hash = Hasher<graphics::ImageHolder>;
@@ -53,15 +58,10 @@ using ImageHolder_hash = Hasher<graphics::ImageHolder>;
 namespace engine::graphics {
 
 class TextureManager {
-    using ImageFramesMap = std::unordered_map<std::string, ImageFrame2D, hash::String_hash, std::equal_to<>>;
-    using Images = std::vector<rhi::runtime::ImagePtr>;
-    using ImagesSet = std::unordered_set<ImageHolder, hash::ImageHolder_hash, graphics::ImageHolderEqualTo>;
-
 public:
     TextureManager(rhi::runtime::Rhi & api, rhi::runtime::Device & device);
     ~TextureManager() { destroy(); }
-    void createDefaultResources(rhi::runtime::Rhi & api, rhi::runtime::Device & device, 
-        const rhi::runtime::CommandListPtr & commandList);
+    void createDefaultResources(const rhi::runtime::CommandListPtr & commandList);
     void destroy();
 
     const ImageFrame2D & addFrame(std::string_view name, TextureCreateInfo && info, const Frame2D & frame = {});
@@ -81,7 +81,15 @@ public:
 
     const rhi::runtime::Device & getDevice() const noexcept { return _device; }
 
+    ImageHandler * getImageHandler(std::string_view name) noexcept; // move it to private
+
 private:
+    using ImageFramesMap = std::unordered_map<std::string, ImageFrame2D, hash::String_hash, std::equal_to<>>;
+    using Images = std::vector<ImageHandlerPtr>;
+    using ImagesSet = std::unordered_set<ImageHolder, hash::ImageHolder_hash, graphics::ImageHolderEqualTo>;
+
+    ImageHandlerPtr & getImageHandler(uint32_t idx) noexcept;
+
     rhi::runtime::Rhi & _api;
     rhi::runtime::Device & _device;
 

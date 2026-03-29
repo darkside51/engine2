@@ -24,8 +24,7 @@ namespace engine::graphics {
         _transparentImage = nullptr;
     }
 
-    void TextureManager::createDefaultResources(rhi::runtime::Rhi & api, rhi::runtime::Device & device, 
-        const rhi::runtime::CommandListPtr & commandList) {
+    void TextureManager::createDefaultResources(const rhi::runtime::CommandListPtr & commandList) {
         using namespace rhi;
 
         const auto imageInfo0 = ImageInfo{
@@ -38,19 +37,22 @@ namespace engine::graphics {
             Format::eR8G8B8A8_Unorm, {1u, 1u, 1u}
         };
 
-        _defaultImage = api.createImage(device, imageInfo0);
-        _whiteImage = api.createImage(device, imageInfo1);
-        _blackImage = api.createImage(device, imageInfo1);
-        _transparentImage = api.createImage(device, imageInfo1);
+        _defaultImage = _api.createImage(_device, imageInfo0);
+        _whiteImage = _api.createImage(_device, imageInfo1);
+        _blackImage = _api.createImage(_device, imageInfo1);
+        _transparentImage = _api.createImage(_device, imageInfo1);
 
-        _defaultFrame = {_defaultImage, {}};
+
+        auto & handler = _images.emplace_back(rhi::runtime::sh_ptr<engine::graphics::ImageHandler>::make(_defaultImage));
+
+        _defaultFrame = {handler.get(), {}};
 
         constexpr auto stagingSize = sizeof(uint32_t) * 4u + 
                                      sizeof(uint32_t) * 1u + 
                                      sizeof(uint32_t) * 1u +
                                      sizeof(uint32_t) * 1u;
 
-        StagingBuffer staging{api, device, stagingSize};    
+        StagingBuffer staging{_api, _device, stagingSize};    
 
         std::byte * memory = staging.map();
         const auto defaultImgOffset = staging.requestBytes(sizeof(uint32_t) * 4u);
@@ -135,17 +137,19 @@ namespace engine::graphics {
 
         const auto image = _api.createImage(_device, imageInfo);
 
+        ImageHandler * handler = nullptr;
         if (image) {
             auto it = _imagesSet.find(image.get());
             if (it == _imagesSet.end()) {
-                _images.emplace_back(image);
-                _imagesSet.emplace(image.get(), 1u);
+                handler = _images.emplace_back(rhi::runtime::sh_ptr<engine::graphics::ImageHandler>::make(image)).get();
+                _imagesSet.emplace(handler, 1u);
             } else {
                 ++const_cast<ImageHolder&>(*it).count;
+                handler = it->image;
             }
         }
 
-        const auto & [imageFrame, success] = _frames2D.emplace(name, ImageFrame2D{image, frame});
+        const auto & [imageFrame, success] = _frames2D.emplace(name, ImageFrame2D{handler, frame});
         assert(success);
 
         _tmpTexturesData.emplace_back(image, std::move(info));
@@ -158,17 +162,22 @@ namespace engine::graphics {
             return it->second;
         }
 
+        ImageHandler * handler = nullptr;
         if (image) {
             auto it = _imagesSet.find(image.get());
             if (it == _imagesSet.end()) {
-                _images.emplace_back(image);
-                _imagesSet.emplace(image.get(), 1u);
+                handler = _images.emplace_back(rhi::runtime::sh_ptr<engine::graphics::ImageHandler>::make(image)).get();
+                _imagesSet.emplace(handler, 1u);
             } else {
                 ++const_cast<ImageHolder&>(*it).count;
+                handler = it->image;
             }
+        } else {
+            handler = _images.emplace_back(rhi::runtime::sh_ptr<engine::graphics::ImageHandler>::make(_defaultImage)).get();
+            _imagesSet.emplace(handler, 1u);
         }
 
-        const auto & [imageFrame, success] = _frames2D.emplace(name, ImageFrame2D{image, frame});
+        const auto & [imageFrame, success] = _frames2D.emplace(name, ImageFrame2D{handler, frame});
         assert(success);
         return imageFrame->second;
     }
@@ -178,23 +187,26 @@ namespace engine::graphics {
             return;
         }
 
+        ImageHandler * handler = nullptr;
+        auto it = _imagesSet.find(image.get());
+        if (it == _imagesSet.end()) {
+            handler = _images.emplace_back(rhi::runtime::sh_ptr<engine::graphics::ImageHandler>::make(image)).get();
+            it = _imagesSet.emplace(handler, 0u).first;
+        } else {
+            handler = it->image;
+        }
+
         uint32_t newFramesCount = 0u;
         for (const auto & [name, frame] : frames) {
             if (auto it = _frames2D.find(name); it == _frames2D.end()) {
-                _frames2D.emplace(name, ImageFrame2D{image, frame});
+                _frames2D.emplace(name, ImageFrame2D{handler, frame});
                 ++newFramesCount;
             } else {
                 LOG_D("TextureManager frame with name %s alredy exists!", name.c_str());
             }
         }
 
-        auto it = _imagesSet.find(image.get());
-        if (it == _imagesSet.end()) {
-            _images.emplace_back(image);
-            _imagesSet.emplace(image.get(), newFramesCount);
-        } else {
-            const_cast<ImageHolder&>(*it).count += newFramesCount;
-        }
+        const_cast<ImageHolder&>(*it).count += newFramesCount;
     }
 
     bool TextureManager::removeFrame(std::string_view name) noexcept {
@@ -204,8 +216,8 @@ namespace engine::graphics {
             if (auto it1 = _imagesSet.find(image); it1 != _imagesSet.end()) {
                 if (--const_cast<ImageHolder&>(*it1).count == 0u) {
                     _imagesSet.erase(it1);
-                    std::erase_if(_images, [image](const rhi::runtime::ImagePtr & img) noexcept {
-                        return img.get() == image;
+                    std::erase_if(_images, [image](const ImageHandlerPtr & img) noexcept {
+                        return img->image.get() == image;
                     });
                 }
             }
@@ -220,7 +232,21 @@ namespace engine::graphics {
         // so unsafe...
         // do not use it!
         assert(idx < _images.size());
+        return _images[idx]->image;
+    }
+
+    ImageHandlerPtr & TextureManager::getImageHandler(uint32_t idx) noexcept {
+        // so unsafe...
+        // do not use it!
+        assert(idx < _images.size());
         return _images[idx];
+    }
+
+    ImageHandler * TextureManager::getImageHandler(std::string_view name) noexcept {
+        if (auto it = _frames2D.find(name); it != _frames2D.end()) {
+            return const_cast<ImageHandler *>(it->second.getImageHandlerPtr());
+        }
+        return nullptr;
     }
 
     const ImageFrame2D & TextureManager::findFrame(std::string_view name) const noexcept {
