@@ -70,9 +70,12 @@ int main() {
             });
 
             window0.setOnResize([&](uint16_t w, uint16_t h) {
-                renderThread.pause();
-                example.resize(w, h);
-                renderThread.resume();
+                renderThread.emplaceTasks(stl::make_vector(threads::WorkerTask{[&example, w, h]() mutable {
+                    example.resize(w, h);
+                }}));
+                // renderThread.pause();
+                // example.resize(w, h);
+                // renderThread.resume();
             });
 
             window0.setOnClose([&]() {

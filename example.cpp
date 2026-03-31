@@ -88,6 +88,11 @@ namespace example {
 
     threads::Worker bgWorker;
 
+    class BgThread {
+    public:
+    private:
+    };
+
     engine::scene::ViewParams viewParams;
 
     float m = 0.0f;
@@ -149,9 +154,9 @@ namespace example {
                 if (pressedRight) {
                     constexpr float kRotationSpeed = 0.005f;
                     const auto rotation = engine::vec3f(kRotationSpeed * (y0 - event.y), 0.0f, kRotationSpeed * (event.x - x0));
-                    controller.setRotation(
-                        controller.getRotation() + rotation
-                    );
+                    auto resultRotation = controller.getRotation() + rotation;
+                    resultRotation.x = std::clamp(resultRotation.x, -1.50f, 1.50f);
+                    controller.setRotation(resultRotation);
                 }
 
                 if (pressedLeft) {
@@ -1765,7 +1770,7 @@ namespace example {
                     }
 
                     meshRoot->setRotation(engine::vec3f(1.57f, 0.0f, engine::common::random(-3.14f, 3.14f)));
-                    meshRoot->setPosition(engine::vec3f(-2.0f + i % 10 * 0.5f, 0.0f + i / 10 * -0.5f, 0.0f));
+                    meshRoot->setPosition(engine::vec3f(-2.0f + i % 20 * 0.5f, 0.0f + i / 20 * -0.5f, 0.0f));
 
                     sceneWorldRoot->addChild(meshRoot);
                 }
@@ -1865,7 +1870,7 @@ namespace example {
                     }
 
                     meshRoot->setRotation(engine::vec3f(1.57f, 0.0f, engine::common::random(-3.14f, 3.14f)));
-                    meshRoot->setPosition(engine::vec3f(3.0f + i % 10 * 0.5f, 0.0f + i / 10 * -0.5f, 0.0f));
+                    meshRoot->setPosition(engine::vec3f(8.5f + i % 20 * 0.5f, 0.0f + i / 20 * -0.5f, 0.0f));
                     sceneWorldRoot->addChild(meshRoot);
                 }
             }
