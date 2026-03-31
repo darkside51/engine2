@@ -86,12 +86,94 @@ namespace example {
     engine::scene::Skeleton * tmpSkeleton = nullptr;
     engine::scene::Node * swordNode = nullptr;
 
-    threads::Worker bgWorker;
+    // threads::Worker bgWorker;
 
     class BgThread {
     public:
+        using GpuTask = threads::function<void(engine::rhi::runtime::CommandList & commandList)>;
+        using Task = threads::WorkerTask;
+
+        BgThread(engine::rhi::runtime::Rhi * api, engine::rhi::runtime::Device * device) : _api(api), _device(device) {
+            _worker.run();
+            _worker.emplaceTasks(stl::make_vector(threads::WorkerTask{[this]() mutable {
+                _fence = _api->createFence(*_device, engine::rhi::FenceCreateFlags::eNone);
+                auto * commandPool = _device->acquireCommandPool(engine::rhi::queue_flags::transfrer);
+                _commandList = _api->createCommandList(commandPool, engine::rhi::CommandBufferLevel::ePrimary);
+                _commandList->begin(engine::rhi::CommandBufferUsageFlags::eOne_Time_Submit);
+            }}));
+        }
+
+        ~BgThread() {
+            destroy();
+        }
+
+        void destroy() {
+            if (_api) {
+                _worker.stop();
+                _api->destroyFence(*_device, _fence);
+                _commandList = nullptr;
+                _api = nullptr;
+            }
+        }
+
+        void submit(std::vector<threads::WorkerTask> && tasks, std::vector<GpuTask> && gpuTasks, engine::rhi::runtime::QueuePtr & queue) {
+            const bool hasGpuTasks = !gpuTasks.empty();
+            if (tasks.empty() && !hasGpuTasks) {
+                return;
+            }
+
+            std::vector<threads::WorkerTask> allTasks;
+            allTasks.reserve(tasks.size() + hasGpuTasks ? 1u : 0u);
+
+            if (hasGpuTasks) {
+                allTasks.emplace_back(
+                    threads::WorkerTask{[this, &queue, tasks = std::move(gpuTasks)]() mutable {
+                        auto & commandList = *_commandList;
+                        for (auto & task : tasks) {
+                            task(commandList);
+                        }
+
+                        commandList.end();
+                        commandList.record(0u);
+
+                        auto lists = std::array{_commandList.get()};
+                        bool const submitted = queue->submit(0u, std::array{
+                            engine::rhi::runtime::Queue::SubmitInfo {
+                                .w8Semaphores = {},
+                                .w8DstStages = {},
+                                .signalSemaphores = {},
+                                .lists = lists
+                            }
+                        }, _fence);
+
+                        w8();
+                    }}
+                );
+                gpuTasks.clear();
+            }
+
+            std::move(tasks.begin(), tasks.end(), std::back_inserter(allTasks));
+            tasks.clear();
+            _worker.emplaceTasks(std::move(allTasks));
+        }
+
     private:
+        void w8() {
+            _api->waitFence(*_device, _fence, UINT64_MAX);
+            _api->resetFence(*_device, _fence);
+            _commandList->begin(engine::rhi::CommandBufferUsageFlags::eOne_Time_Submit);
+        }
+
+        threads::Worker _worker;
+
+        engine::rhi::runtime::Rhi * _api;
+        engine::rhi::runtime::Device * _device;
+
+        engine::rhi::runtime::Fence _fence;
+        engine::rhi::runtime::CommandListPtr _commandList;
     };
+
+    std::optional<BgThread> bgWorker;
 
     engine::scene::ViewParams viewParams;
 
@@ -234,13 +316,14 @@ namespace example {
         // camera.makePerspective(std::numbers::pi_v<float> / 3.0f, 1024.0f / 768.0f, 0.001f, 100.0f);
         camera.makePerspective(std::numbers::pi_v<float> / 3.0f, 1024.0f / 768.0f, 100.0f, 0.001f); // reverse depth;
 
-        bgWorker.run();
+        // bgWorker.run();
     }
 
     Example::~Example() = default;
 
     void Example::destroy() {
-        bgWorker.stop();
+        // bgWorker.stop();
+        bgWorker->destroy();
 
         if (_renderQueue) {
             _renderQueue->waitIdle();
@@ -362,6 +445,8 @@ namespace example {
         deviceCreateInfo.inFlightFramesCount = 3u;
 
         _device = _api->createDevice(_gpu, deviceCreateInfo);
+
+        bgWorker.emplace(_api.get(), _device.get());
     }
 
     void Example::createSwapchain() {
@@ -645,10 +730,13 @@ namespace example {
         // textureManager resources
         textureManager->createDefaultResources(tmpCommandList);
 
+        std::vector<BgThread::GpuTask> gpuTasks;
+        std::vector<BgThread::Task> tasks;
+
         // // gltf test
         {
 
-            bgWorker.emplaceTasks(stl::make_vector(threads::WorkerTask{[this]() mutable {
+            tasks.emplace_back(threads::WorkerTask{[this]() mutable {
                 auto const modelBytes = _fileManager.readFile("assets/models/model.glb");
                 auto modelLayout = engine::graphics::models::loadModelLayout(modelBytes, _fileManager, "assets/models/");
 
@@ -660,7 +748,7 @@ namespace example {
                     animationManager.registerAnimation("skeletal_mesh_anim0", engine::scene::SkeletalAnimation(animation));
                 }
                 }}));
-            }}));
+            }});
 
             // auto const modelBytes = _fileManager.readFile("assets/models/model.glb");
             // auto modelLayout = engine::graphics::models::loadModelLayout(modelBytes, _fileManager, "assets/models/");
@@ -687,19 +775,19 @@ namespace example {
             // auto modelLayout = engine::graphics::models::loadModelLayout(modelBytes, _fileManager, "assets/models/1/");
             // auto const modelIdx = modelManager->addModel("scene.gltf", std::move(modelLayout), *graphicsService, _fileManager);
 
-             bgWorker.emplaceTasks(stl::make_vector(threads::WorkerTask{[this]() mutable {
+            tasks.emplace_back(threads::WorkerTask{[this]() mutable {
                 auto const modelBytes = _fileManager.readFile("assets/models/1/scene.gltf");
                 auto modelLayout = engine::graphics::models::loadModelLayout(modelBytes, _fileManager, "assets/models/1/");
 
                 _renderThread->emplaceTasks(stl::make_vector(threads::WorkerTask{[this, modelLayout = std::move(modelLayout)]() mutable {
                     auto const modelIdx = modelManager->addModel("scene.gltf", std::move(modelLayout), *graphicsService, _fileManager);
                 }}));
-            }}));
+            }});
         }
 
         {
 
-            bgWorker.emplaceTasks(stl::make_vector(threads::WorkerTask{[this]() mutable {
+            tasks.emplace_back(threads::WorkerTask{[this]() mutable {
                auto const modelBytes = _fileManager.readFile("assets/models/Minsk_wheel.glb");
                 auto modelLayout = engine::graphics::models::loadModelLayout(modelBytes, _fileManager, "assets/models/");
 
@@ -713,7 +801,7 @@ namespace example {
                     ++i;
                 }
                 }}));
-            }}));
+            }});
 
             // auto const modelBytes = _fileManager.readFile("assets/models/Minsk_wheel.glb");
             // auto modelLayout = engine::graphics::models::loadModelLayout(modelBytes, _fileManager, "assets/models/");
@@ -739,7 +827,7 @@ namespace example {
             //     ++i;
             // }
 
-            bgWorker.emplaceTasks(stl::make_vector(threads::WorkerTask{[this]() mutable {
+            tasks.emplace_back(threads::WorkerTask{[this]() mutable {
                auto const modelBytes = _fileManager.readFile("assets/models/buster_drone.glb");
                 auto modelLayout = engine::graphics::models::loadModelLayout(modelBytes, _fileManager, "assets/models/");
 
@@ -753,11 +841,11 @@ namespace example {
                     ++i;
                 }
                 }}));
-            }}));
+            }});
         }
 
         {
-            bgWorker.emplaceTasks(stl::make_vector(threads::WorkerTask{[this]() mutable {
+            tasks.emplace_back(threads::WorkerTask{[this]() mutable {
                auto const modelBytes = _fileManager.readFile("assets/models/chaman/scene.gltf");
                 auto modelLayout = engine::graphics::models::loadModelLayout(modelBytes, _fileManager, "assets/models/chaman/");
 
@@ -771,7 +859,7 @@ namespace example {
                     ++i;
                 }
                 }}));
-            }}));
+            }});
         }
 
         // modelManager->generateGpuBuffers(*_api, *_device, tmpCommandList);
@@ -1408,7 +1496,7 @@ namespace example {
                         const auto & frame3 = textureManager->findFrame("explosion_33");
                         auto * sprite3 = scene->createObject<engine::scene::Sprite>(frame3, 0u);
                         engine::scene::attachObjectToNode(*sprite3, *node5);
-                        //sprite3->setOrder(-1);
+                        sprite3->setOrder(1);
                         auto * anim0 = scene->createAnimInfo<engine::scene::FramesSequence>(animId, engine::common::random(0.25f, 1.7f));
                         scene->destroyAnimInfo(sprite3->setAnimation(anim0));
                         
@@ -1417,6 +1505,8 @@ namespace example {
                 }
             }
             
+            //bgWorker->submit(std::move(tasks), {}, _renderQueue);
+
             { // floor
                 auto * node = scene->createNode();
                 node->setPosition(engine::vec3f{-30.0f, -30.0f, 0.0f});
@@ -1444,15 +1534,8 @@ namespace example {
 
                 sceneWorldRoot->addChild(node);
 
-                bgWorker.emplaceTasks(stl::make_vector(threads::WorkerTask{[this]() mutable {
-
-                    std::this_thread::sleep_for(std::chrono::seconds(5));
-
-                    auto * commandPool = _device->acquireCommandPool(engine::rhi::queue_flags::transfrer);
-                    auto tmpCommandList = _api->createCommandList(commandPool, engine::rhi::CommandBufferLevel::ePrimary);
-
-                    tmpCommandList->begin(engine::rhi::CommandBufferUsageFlags::eOne_Time_Submit);
-
+                gpuTasks.emplace_back(BgThread::GpuTask{[this](engine::rhi::runtime::CommandList & commandList) mutable {
+                    //std::this_thread::sleep_for(std::chrono::seconds(5));
 ////
                     auto const imageBytes = _fileManager.readFile("assets/2.png");
                     auto textureData = engine::graphics::parseTextureData(imageBytes);
@@ -1471,7 +1554,7 @@ namespace example {
                     std::memcpy(imgData, textureData.data.data(), stagingSize);
                     staging.flush();
 
-                    tmpCommandList->copyBuffer2Image(staging.getBuffer(), image, 
+                    commandList.copyBuffer2Image(staging.getBuffer(), image, 
                         {
                             .bufferOffset = 0u,
                             .bufferRowLength = 0u,
@@ -1482,30 +1565,14 @@ namespace example {
                         }
                     );
 ////
-
-                    tmpCommandList->end();
-                    tmpCommandList->record(0u);
-
-                    auto lists = std::array{tmpCommandList.get()};
-                    auto fence = _api->createFence(*_device, FenceCreateFlags::eNone);
-                    bool const submitted = _renderQueue->submit(0u, std::array{
-                        engine::rhi::runtime::Queue::SubmitInfo {
-                            .w8Semaphores = {},
-                            .w8DstStages = {},
-                            .signalSemaphores = {},
-                            .lists = lists
-                        }
-                    }, fence);
-
-                    _renderQueue->waitSubmit(0u, UINT64_MAX, fence);
-                    _api->destroyFence(*_device, fence);
-                    tmpCommandList = nullptr;
-
                     _renderThread->emplaceTasks(stl::make_vector(threads::WorkerTask{
-                        [image = std::move(image)]() mutable {
+                        [image = std::move(image)]() {
                         textureManager->getImageHandler("asyncTest")->image = std::move(image);
                     }}));
-                }}));
+                }});
+
+                // bgWorker->addTask(threads::WorkerTask{[this]() {
+                // }});
 
             }
 
@@ -1515,6 +1582,8 @@ namespace example {
             sizeof(engine::scene::Transformation);
         }
 
+
+        bgWorker->submit(std::move(tasks), std::move(gpuTasks), _renderQueue);
     }
 
     void Example::prepare() {

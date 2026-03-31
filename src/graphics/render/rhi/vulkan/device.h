@@ -73,6 +73,9 @@ public:
     Semaphore createSemaphore() const noexcept;
     Event createEvent(rhi::EventCreateFlags flags) const noexcept;
 
+    void waitForFence(const Fence & fence, uint64_t timeout) const noexcept; 
+
+    void resetFence(const Fence & fence) const noexcept;
     void destroyFence(const Fence & fence) const noexcept;
     void destroySemaphore(const Semaphore & semaphore) const noexcept;
     void destroyEvent(const Event & event) const noexcept;

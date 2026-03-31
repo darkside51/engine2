@@ -47,6 +47,12 @@ namespace engine::vulkan::runtime {
         rhi::runtime::Event createEvent(const rhi::runtime::Device & device, 
             rhi::EventCreateFlags flags) const noexcept override;
 
+        void waitFence(const rhi::runtime::Device & device, 
+            const rhi::runtime::Fence & fence, uint64_t timeout) const noexcept override;
+
+        void resetFence(const rhi::runtime::Device & device, 
+            const rhi::runtime::Fence & fence) const noexcept override;
+
         void destroyFence(const rhi::runtime::Device & device, 
             const rhi::runtime::Fence & fence) const noexcept override;
 

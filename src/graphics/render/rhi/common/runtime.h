@@ -252,6 +252,10 @@ public:
     virtual Semaphore createSemaphore(const Device & device) const noexcept = 0;
     virtual Event createEvent(const Device & device, EventCreateFlags flags) const noexcept = 0;
 
+    virtual void waitFence(const rhi::runtime::Device & device, 
+            const rhi::runtime::Fence & fence, uint64_t timeout) const noexcept = 0;
+
+    virtual void resetFence(const Device & device, const Fence & fence) const noexcept = 0;
     virtual void destroyFence(const Device & device, const Fence & fence) const noexcept = 0;
     virtual void destroySemaphore(const Device & device, const Semaphore & semaphore) const noexcept = 0;
     virtual void destroyEvent(const Device & device, const Event & event) const noexcept = 0;

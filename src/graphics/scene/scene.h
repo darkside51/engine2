@@ -321,12 +321,10 @@ void Scene::fillAttachmentsArray(const ViewParams & viewParams, Node * root, Con
                 calculateQualityFactors(object, viewParams);
 
                 if constexpr (kDebugDrawBounds) {
-                    bool showBorders = false;
                     uint32_t color = 0xff'00'ff'00u;
                     if (object) {
                         switch (object->typeIndex) {
                         case ctti::typeIndex<AttachmentObject, Skeleton>():
-                            showBorders = true;
                             color = 0xff'ff'77'00u;
                             break;
                         case ctti::typeIndex<AttachmentObject, Mesh>():
@@ -341,9 +339,7 @@ void Scene::fillAttachmentsArray(const ViewParams & viewParams, Node * root, Con
                         color |= std::min(std::clamp(object->animationQualityFactor, uint8_t{0u}, uint8_t{8u}) * 32u, 0xffu);
                     }
 
-                    if (showBorders) {
-                        _drawHelper.drawBounds(bounds, color, viewParams.cameraTransform * worldTransform);
-                    }
+                    _drawHelper.drawBounds(bounds, color, viewParams.cameraTransform * worldTransform);
                 }
             }
 

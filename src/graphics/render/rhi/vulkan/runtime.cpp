@@ -88,6 +88,16 @@ namespace engine::vulkan::runtime {
         return static_cast<const Api::Device &>(device).createEvent(flags);
     }
 
+    void Rhi::waitFence(const rhi::runtime::Device & device, 
+            const rhi::runtime::Fence & fence, uint64_t timeout) const noexcept {
+        static_cast<const Api::Device &>(device).waitForFence(static_cast<VkFence>(fence), timeout);
+    }
+
+    void Rhi::resetFence(const rhi::runtime::Device & device, 
+            const rhi::runtime::Fence & fence) const noexcept {
+        static_cast<const Api::Device &>(device).resetFence(static_cast<VkFence>(fence)); 
+    }
+
     void Rhi::destroyFence(const rhi::runtime::Device & device, 
         const rhi::runtime::Fence & fence) const noexcept {
         static_cast<const Api::Device &>(device).destroyFence(static_cast<VkFence>(fence));

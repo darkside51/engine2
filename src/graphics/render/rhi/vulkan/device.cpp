@@ -228,6 +228,14 @@ namespace engine::vulkan {
         return result;
     }
 
+    void Device::waitForFence(const Fence & fence, uint64_t timeout) const noexcept {
+        vkWaitForFences(_device, 1, &fence, VK_TRUE, timeout);
+    }
+
+    void Device::resetFence(const Fence & fence) const noexcept {
+        vkResetFences(_device, 1, &fence);
+    }
+
     void Device::destroyFence(const Fence & fence) const noexcept {
         vkResetFences(_device, 1, &fence);
         vkDestroyFence(_device, fence, _gpu.getInstance().getAllocationCallbacks());
