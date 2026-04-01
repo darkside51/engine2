@@ -235,13 +235,13 @@ namespace engine::graphics {
         return _images[idx]->image;
     }
 
-    ImageHandler * TextureManager::addImage(std::string_view name) {
+    std::pair<ImageHandler *, bool> TextureManager::addImage(std::string_view name) {
         if (auto result = getImageHandler(name)) {
-            return result;
+            return {result, false};
         }
 
-        const ImageFrame2D & frame  = addFrame(name, nullptr, {});
-        return const_cast<ImageHandler *>(frame.getImageHandlerPtr());
+        const ImageFrame2D & frame = addFrame(name, nullptr, {});
+        return {const_cast<ImageHandler *>(frame.getImageHandlerPtr()), true};
     }
 
     ImageHandlerPtr & TextureManager::getImageHandler(uint32_t idx) noexcept {

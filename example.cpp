@@ -94,6 +94,8 @@ namespace example {
         using Task = threads::WorkerTask;
 
         BgThread(engine::rhi::runtime::Rhi * api, engine::rhi::runtime::Device * device) : _api(api), _device(device) {
+            assert(_api != nullptr);
+
             _worker.run();
             _worker.emplaceTasks(stl::make_vector(threads::WorkerTask{[this]() mutable {
                 _fence = _api->createFence(*_device, engine::rhi::FenceCreateFlags::eNone);
@@ -116,45 +118,41 @@ namespace example {
             }
         }
 
-        void submit(std::vector<threads::WorkerTask> && tasks, std::vector<GpuTask> && gpuTasks, engine::rhi::runtime::QueuePtr & queue) {
-            const bool hasGpuTasks = !gpuTasks.empty();
-            if (tasks.empty() && !hasGpuTasks) {
+        void execute(std::vector<threads::WorkerTask> && tasks) {
+            if (tasks.empty()) {
+                return;
+            }
+            _worker.emplaceTasks(std::move(tasks));
+            tasks.clear();
+        }
+
+        void submit(std::vector<GpuTask> && gpuTasks, engine::rhi::runtime::QueuePtr & queue) {
+            if (gpuTasks.empty()) {
                 return;
             }
 
-            std::vector<threads::WorkerTask> allTasks;
-            allTasks.reserve(tasks.size() + hasGpuTasks ? 1u : 0u);
+            _worker.emplaceTasks(stl::make_vector(threads::WorkerTask{[this, &queue, tasks = std::move(gpuTasks)]() mutable {
+                auto & commandList = *_commandList;
+                    for (auto & task : tasks) {
+                        task(commandList);
+                    }
 
-            if (hasGpuTasks) {
-                allTasks.emplace_back(
-                    threads::WorkerTask{[this, &queue, tasks = std::move(gpuTasks)]() mutable {
-                        auto & commandList = *_commandList;
-                        for (auto & task : tasks) {
-                            task(commandList);
+                    commandList.end();
+                    commandList.record(0u);
+
+                    auto lists = std::array{_commandList.get()};
+                    bool const submitted = queue->submit(0u, std::array{
+                        engine::rhi::runtime::Queue::SubmitInfo {
+                            .w8Semaphores = {},
+                            .w8DstStages = {},
+                            .signalSemaphores = {},
+                            .lists = lists
                         }
+                    }, _fence);
 
-                        commandList.end();
-                        commandList.record(0u);
-
-                        auto lists = std::array{_commandList.get()};
-                        bool const submitted = queue->submit(0u, std::array{
-                            engine::rhi::runtime::Queue::SubmitInfo {
-                                .w8Semaphores = {},
-                                .w8DstStages = {},
-                                .signalSemaphores = {},
-                                .lists = lists
-                            }
-                        }, _fence);
-
-                        w8();
-                    }}
-                );
-                gpuTasks.clear();
-            }
-
-            std::move(tasks.begin(), tasks.end(), std::back_inserter(allTasks));
-            tasks.clear();
-            _worker.emplaceTasks(std::move(allTasks));
+                    w8();
+            }}));
+            gpuTasks.clear();
         }
 
     private:
@@ -1505,7 +1503,7 @@ namespace example {
                 }
             }
             
-            //bgWorker->submit(std::move(tasks), {}, _renderQueue);
+            //bgWorker->execute(std::move(tasks));
 
             { // floor
                 auto * node = scene->createNode();
@@ -1519,7 +1517,7 @@ namespace example {
                 //static 
                 // auto imageHandlerPtr = engine::rhi::runtime::sh_ptr<engine::graphics::ImageHandler>::make(textureManager->getDefaultImage());
 
-                const auto * imageHandler = textureManager->addImage("asyncTest");
+                const auto & [imageHandler, isNew] = textureManager->addImage("asyncTest");
 
                 const auto frame = engine::graphics::ImageFrame2D{
                     imageHandler, 
@@ -1534,42 +1532,44 @@ namespace example {
 
                 sceneWorldRoot->addChild(node);
 
-                gpuTasks.emplace_back(BgThread::GpuTask{[this](engine::rhi::runtime::CommandList & commandList) mutable {
-                    //std::this_thread::sleep_for(std::chrono::seconds(5));
-////
-                    auto const imageBytes = _fileManager.readFile("assets/2.png");
-                    auto textureData = engine::graphics::parseTextureData(imageBytes);
+                if (isNew) {
+                    gpuTasks.emplace_back(BgThread::GpuTask{[this](engine::rhi::runtime::CommandList & commandList) mutable {
+                        std::this_thread::sleep_for(std::chrono::seconds(5));
+    ////
+                        auto const imageBytes = _fileManager.readFile("assets/2.png");
+                        auto textureData = engine::graphics::parseTextureData(imageBytes);
 
-                    using namespace engine::rhi;
-                    const auto imageInfo = ImageInfo{
-                        ImageUsageFlags::eSampled | ImageUsageFlags::eTransfer_Dst,
-                        textureData.metaInfo.format, {textureData.metaInfo.size.x, textureData.metaInfo.size.y, 1u}
-                    };
+                        using namespace engine::rhi;
+                        const auto imageInfo = ImageInfo{
+                            ImageUsageFlags::eSampled | ImageUsageFlags::eTransfer_Dst,
+                            textureData.metaInfo.format, {textureData.metaInfo.size.x, textureData.metaInfo.size.y, 1u}
+                        };
 
-                    auto image = _api->createImage(*_device, imageInfo);
-                    const auto stagingSize = textureData.data.size();
-                    engine::graphics::StagingBuffer staging{*_api, *_device, stagingSize};
-                    
-                    auto * imgData = staging.map();
-                    std::memcpy(imgData, textureData.data.data(), stagingSize);
-                    staging.flush();
+                        auto image = _api->createImage(*_device, imageInfo);
+                        const auto stagingSize = textureData.data.size();
+                        engine::graphics::StagingBuffer staging{*_api, *_device, stagingSize};
+                        
+                        auto * imgData = staging.map();
+                        std::memcpy(imgData, textureData.data.data(), stagingSize);
+                        staging.flush();
 
-                    commandList.copyBuffer2Image(staging.getBuffer(), image, 
-                        {
-                            .bufferOffset = 0u,
-                            .bufferRowLength = 0u,
-                            .bufferImageHeight = 0u,
-                            .imageSubresource = {.aspectMask = engine::rhi::ImageAspectFlags::eColor},
-                            .imageOffset = {0u, 0u, 0u},
-                            .imageExtent = image->getExtent()
-                        }
-                    );
-////
-                    _renderThread->emplaceTasks(stl::make_vector(threads::WorkerTask{
-                        [image = std::move(image)]() {
-                        textureManager->getImageHandler("asyncTest")->image = std::move(image);
-                    }}));
-                }});
+                        commandList.copyBuffer2Image(staging.getBuffer(), image, 
+                            {
+                                .bufferOffset = 0u,
+                                .bufferRowLength = 0u,
+                                .bufferImageHeight = 0u,
+                                .imageSubresource = {.aspectMask = engine::rhi::ImageAspectFlags::eColor},
+                                .imageOffset = {0u, 0u, 0u},
+                                .imageExtent = image->getExtent()
+                            }
+                        );
+    ////
+                        _renderThread->emplaceTasks(stl::make_vector(threads::WorkerTask{
+                            [image = std::move(image)]() {
+                            textureManager->getImageHandler("asyncTest")->image = std::move(image);
+                        }}));
+                    }});
+                }
 
                 // bgWorker->addTask(threads::WorkerTask{[this]() {
                 // }});
@@ -1582,8 +1582,9 @@ namespace example {
             sizeof(engine::scene::Transformation);
         }
 
-
-        bgWorker->submit(std::move(tasks), std::move(gpuTasks), _renderQueue);
+        bgWorker->execute(std::move(tasks));
+        bgWorker->submit(std::move(gpuTasks), _renderQueue);
+        // bgWorker->execute(std::move(tasks));
     }
 
     void Example::prepare() {
