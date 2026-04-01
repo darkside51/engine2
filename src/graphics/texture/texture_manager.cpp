@@ -235,6 +235,15 @@ namespace engine::graphics {
         return _images[idx]->image;
     }
 
+    ImageHandler * TextureManager::addImage(std::string_view name) {
+        if (auto result = getImageHandler(name)) {
+            return result;
+        }
+
+        const ImageFrame2D & frame  = addFrame(name, nullptr, {});
+        return const_cast<ImageHandler *>(frame.getImageHandlerPtr());
+    }
+
     ImageHandlerPtr & TextureManager::getImageHandler(uint32_t idx) noexcept {
         // so unsafe...
         // do not use it!

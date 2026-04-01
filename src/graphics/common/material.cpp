@@ -132,15 +132,22 @@ namespace engine::graphics {
 
             material.cullMode = srcMaterial.doubleSided ? rhi::CullMode::eNone : rhi::CullMode::eBack;
 
-            material.textures[static_cast<uint8_t>(PbrTextureId::eBaseColor)] = getTexture(srcMaterial.pbrMetallicRoughness.baseColorTexture.index, name);
-            material.textures[static_cast<uint8_t>(PbrTextureId::eNormal)] = getTexture(srcMaterial.normalTexture.index, name);
-            material.textures[static_cast<uint8_t>(PbrTextureId::eMetallicRoughness)] = getTexture(srcMaterial.pbrMetallicRoughness.metallicRoughnessTexture.index, name);
-            material.textures[static_cast<uint8_t>(PbrTextureId::eOccolusion)] = getTexture(srcMaterial.occlusionTexture.index, name);
-            material.textures[static_cast<uint8_t>(PbrTextureId::eEmissive)] = getTexture(srcMaterial.emissiveTexture.index, name);
+            // material.textures[static_cast<uint8_t>(PbrTextureId::eBaseColor)] = getTexture(srcMaterial.pbrMetallicRoughness.baseColorTexture.index, name);
+            // material.textures[static_cast<uint8_t>(PbrTextureId::eNormal)] = getTexture(srcMaterial.normalTexture.index, name);
+            // material.textures[static_cast<uint8_t>(PbrTextureId::eMetallicRoughness)] = getTexture(srcMaterial.pbrMetallicRoughness.metallicRoughnessTexture.index, name);
+            // material.textures[static_cast<uint8_t>(PbrTextureId::eOccolusion)] = getTexture(srcMaterial.occlusionTexture.index, name);
+            // material.textures[static_cast<uint8_t>(PbrTextureId::eEmissive)] = getTexture(srcMaterial.emissiveTexture.index, name);
 
-            if (material.textures[static_cast<uint8_t>(PbrTextureId::eBaseColor)].get() != textureManager.getWhiteImage().get()) {
-                material.baseColorFactor = {1.0f, 1.0f, 1.0f, 1.0f};
-            }
+            // if (material.textures[static_cast<uint8_t>(PbrTextureId::eBaseColor)].get() != textureManager.getWhiteImage().get()) {
+            //     material.baseColorFactor = {1.0f, 1.0f, 1.0f, 1.0f};
+            // }
+
+            material.textures[static_cast<uint8_t>(PbrTextureId::eBaseColor)] = textureManager.getDefaultImage();
+            material.textures[static_cast<uint8_t>(PbrTextureId::eNormal)] = textureManager.getDefaultImage();
+            material.textures[static_cast<uint8_t>(PbrTextureId::eMetallicRoughness)] = textureManager.getDefaultImage();
+            material.textures[static_cast<uint8_t>(PbrTextureId::eOccolusion)] = textureManager.getDefaultImage();
+            material.textures[static_cast<uint8_t>(PbrTextureId::eEmissive)] = textureManager.getDefaultImage();
+            material.baseColorFactor = {1.0f, 1.0f, 1.0f, 1.0f};
         }
 
         return materialsRemap;

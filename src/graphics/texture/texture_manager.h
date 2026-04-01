@@ -81,6 +81,7 @@ public:
 
     const rhi::runtime::Device & getDevice() const noexcept { return _device; }
 
+    ImageHandler * addImage(std::string_view name);
     ImageHandler * getImageHandler(std::string_view name) noexcept; // move it to private
 
 private:

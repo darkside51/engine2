@@ -36,10 +36,6 @@ constexpr auto kDefaultSemantics = std::array {
 };
 
 class ModelManager {
-    using Allocator = allocators::PoolAllocator<sizeof(models::MeshData), alignof(models::MeshData), false>;
-    using ModelsMap = std::unordered_map<std::string, uint32_t, hash::String_hash, std::equal_to<>>;
-    using Models = std::vector<models::MeshData*>;
-
     inline static constexpr uint32_t kUnknownDataIndex = 0xff'ff'ff'ffu;
 
 public:
@@ -67,7 +63,7 @@ public:
 
     const models::MeshData & getModelData(uint32_t idx) const noexcept { 
         assert(idx < _models.size());
-        return *_models[idx];
+        return *_models[idx].first;
     }
 
     const ModelBuffers & getModelBuffers(uint32_t idx) const noexcept {
@@ -82,14 +78,14 @@ public:
             return false;
         }
         
-        if (_models[idx] != nullptr) {
-            return std::find_if(_tmpData.begin(), _tmpData.end(), [idx](const auto & p) { return p.first == idx; }) == _tmpData.end();
-        }
-
-        return false;
+        return _models[idx].second;
     }
 
 private:
+    using Allocator = allocators::PoolAllocator<sizeof(models::MeshData), alignof(models::MeshData), false>;
+    using ModelsMap = std::unordered_map<std::string, uint32_t, hash::String_hash, std::equal_to<>>;
+    using Models = std::vector<std::pair<models::MeshData*, bool>>;
+
     MaterialManager & _materialManager;
     Allocator _allocator{1024u};
     ModelsMap _modelsMap;

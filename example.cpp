@@ -828,18 +828,18 @@ namespace example {
             // }
 
             tasks.emplace_back(threads::WorkerTask{[this]() mutable {
-               auto const modelBytes = _fileManager.readFile("assets/models/buster_drone.glb");
+                auto const modelBytes = _fileManager.readFile("assets/models/buster_drone.glb");
                 auto modelLayout = engine::graphics::models::loadModelLayout(modelBytes, _fileManager, "assets/models/");
 
                 _renderThread->emplaceTasks(stl::make_vector(threads::WorkerTask{[this, modelLayout = std::move(modelLayout)]() mutable {
-                auto const modelIdx = modelManager->addModel("buster_drone.glb", std::move(modelLayout), *graphicsService, _fileManager);
+                    auto const modelIdx = modelManager->addModel("buster_drone.glb", std::move(modelLayout), *graphicsService, _fileManager);
 
-                const auto & modelData = modelManager->getModelData(modelIdx);
-                uint8_t i = 0u;
-                for (const auto & animation : modelData.animations) {
-                    animationManager.registerAnimation(engine::fmt_string("buster_anim%d", i), engine::scene::SkeletalAnimation(animation));
-                    ++i;
-                }
+                    const auto & modelData = modelManager->getModelData(modelIdx);
+                    uint8_t i = 0u;
+                    for (const auto & animation : modelData.animations) {
+                        animationManager.registerAnimation(engine::fmt_string("buster_anim%d", i), engine::scene::SkeletalAnimation(animation));
+                        ++i;
+                    }
                 }}));
             }});
         }
@@ -1519,10 +1519,10 @@ namespace example {
                 //static 
                 // auto imageHandlerPtr = engine::rhi::runtime::sh_ptr<engine::graphics::ImageHandler>::make(textureManager->getDefaultImage());
 
-                const auto & frame0 = textureManager->addFrame("asyncTest", nullptr, {});
+                const auto * imageHandler = textureManager->addImage("asyncTest");
 
                 const auto frame = engine::graphics::ImageFrame2D{
-                    frame0.getImageHandlerPtr(), 
+                    imageHandler, 
                     engine::graphics::Frame2D{.uvMin = {0.0f, 0.0f}, .uvMax = {60.0f, 60.0f}}
                 };
 

@@ -15,7 +15,7 @@ namespace engine::graphics {
     }
 
     void ModelManager::destroy() {
-        for (auto * data : _models) {
+        for (auto & [data, _] : _models) {
             _allocator.destroy(data);
         }
 
@@ -36,13 +36,33 @@ namespace engine::graphics {
             return idx;
         }
 
+        // create data
         auto * meshData = _allocator.create<models::MeshData>();
+        const auto result = _allocator.getObjectNumber(meshData);
+        _modelsMap.emplace(name, result);
         
+        if (result >= _models.size()) {
+            _models.resize(result * 2u);
+            _gpuData.resize(result * 2u);
+        }
+        
+        _gpuData[result] = {};
+        _models[result] = {meshData, false};
+
+        // load
+        auto materialsRemap = _materialManager.loadMaterials(name, layout, fileManager, graphicsService.getTextureManager());
+        meshData->loadNodes(layout);
         meshData->loadSkins(layout);
         meshData->loadAnimations(layout);
 
         auto buffers = meshData->loadMeshes(layout, attributes);
         meshData->optimizeBuffers(buffers.vertexBuffersData, buffers.indexBufferData, attributes);
+        
+        for (auto & mesh : meshData->meshes) {
+            for (auto & p : mesh.primitives) {
+                p.material = materialsRemap[p.material];
+            }
+        }
 
         // after optimize
         uint32_t uniqueOffset = 0u;
@@ -61,25 +81,6 @@ namespace engine::graphics {
             }
         }
 
-        meshData->loadNodes(layout);
-        
-        auto remap = _materialManager.loadMaterials(name, layout, fileManager, graphicsService.getTextureManager());
-        for (auto & mesh : meshData->meshes) {
-            for (auto & p : mesh.primitives) {
-                p.material = remap[p.material];
-            }
-        }
-
-        const auto result = _allocator.getObjectNumber(meshData);
-
-        _modelsMap.emplace(name, result);
-        if (result >= _models.size()) {
-            _models.resize(result * 2u);
-            _gpuData.resize(result * 2u);
-        }
-        
-        _gpuData[result] = {};
-        _models[result] = meshData;
         _tmpData.emplace_back(result, std::move(buffers));
         return result;
     }
@@ -88,15 +89,16 @@ namespace engine::graphics {
         if (auto it = _modelsMap.find(name); it != _modelsMap.end()) {
             const auto idx = it->second;
 
-            for (const auto & mesh : _models[idx]->meshes) {
+            auto * modelData = _models[idx].first;
+            for (const auto & mesh : modelData->meshes) {
                 for (auto const & p : mesh.primitives) {
                     _materialManager.removeMaterial(p.material);
                 }
             }
 
-            _allocator.destroy(_models[idx]);
+            _allocator.destroy(modelData);
             _gpuData[idx] = {};
-            _models[idx] = nullptr;
+            _models[idx] = {nullptr, false};
             std::erase_if(_tmpData, [idx](const auto & tmp) noexcept { return tmp.first == idx; });
 
             _modelsMap.erase(it);
@@ -159,6 +161,7 @@ namespace engine::graphics {
             const auto & [vertices, indices, uIndices] = data;
             auto & gpuData = _gpuData[index];
 
+            // indices
             auto const sizeInBytes = gpuData.indexBuffer->sizeInBytes();
             const auto indexBufferOffset = staging.requestBytes(sizeInBytes);
             auto * idxData = (memory + indexBufferOffset);
@@ -175,8 +178,8 @@ namespace engine::graphics {
 
             commandList->copyBuffer2Buffer(stagingBuffer, gpuData.uniqueIndicesBuffer, 
                 {.srcOffset = indexBufferOffset2, .dstOffset = 0u, .size = sizeInBytes2});
-            //
 
+            // vertices
             size_t i = 0u;
             for (auto & vb : gpuData.vertexBuffers) {
                 if (auto const sizeInBytes = vb->sizeInBytes(); sizeInBytes > 0u) {
@@ -193,6 +196,10 @@ namespace engine::graphics {
 
         staging.flush();
         staging.unmap();
+
+        for (const auto & [index, _] : _tmpData) {
+            _models[index].second = true;
+        }
 
         _tmpData.clear();
     }
