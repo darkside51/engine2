@@ -734,17 +734,35 @@ namespace example {
         // // gltf test
         {
 
-            tasks.emplace_back(threads::WorkerTask{[this]() mutable {
+            // tasks.emplace_back(threads::WorkerTask{[this]() mutable {
+            //     auto const modelBytes = _fileManager.readFile("assets/models/model.glb");
+            //     auto modelLayout = engine::graphics::models::loadModelLayout(modelBytes, _fileManager, "assets/models/");
+
+            //     _renderThread->emplaceTasks(stl::make_vector(threads::WorkerTask{[this, modelLayout = std::move(modelLayout)]() mutable {
+            //     auto const modelIdx = modelManager->addModel("model.glb", std::move(modelLayout), *graphicsService, _fileManager).first;
+
+            //     const auto & modelData = modelManager->getModelData(modelIdx);
+            //     for (const auto & animation : modelData.animations) {
+            //         animationManager.registerAnimation("skeletal_mesh_anim0", engine::scene::SkeletalAnimation(animation));
+            //     }
+            //     }}));
+            // }});
+
+            auto const modelIdx = modelManager->addModel2("model.glb").first;
+            tasks.emplace_back(threads::WorkerTask{[this, modelIdx]() mutable {
                 auto const modelBytes = _fileManager.readFile("assets/models/model.glb");
                 auto modelLayout = engine::graphics::models::loadModelLayout(modelBytes, _fileManager, "assets/models/");
+                auto buffers = modelManager->loadModel(modelIdx, "model.glb", std::move(modelLayout), *graphicsService, _fileManager);
 
-                _renderThread->emplaceTasks(stl::make_vector(threads::WorkerTask{[this, modelLayout = std::move(modelLayout)]() mutable {
-                auto const modelIdx = modelManager->addModel("model.glb", std::move(modelLayout), *graphicsService, _fileManager);
+                _renderThread->emplaceTasks(stl::make_vector(threads::WorkerTask{[this, modelIdx, buffers = std::move(buffers)]() mutable {
+                    modelManager->setBuffers(modelIdx, std::move(buffers));
 
-                const auto & modelData = modelManager->getModelData(modelIdx);
-                for (const auto & animation : modelData.animations) {
-                    animationManager.registerAnimation("skeletal_mesh_anim0", engine::scene::SkeletalAnimation(animation));
-                }
+                    const auto & modelData = modelManager->getModelData(modelIdx);
+                    uint8_t i = 0u;
+                    for (const auto & animation : modelData.animations) {
+                        animationManager.registerAnimation(engine::fmt_string("skeletal_mesh_anim%d", i), engine::scene::SkeletalAnimation(animation));
+                        ++i;
+                    }
                 }}));
             }});
 
@@ -752,7 +770,7 @@ namespace example {
             // auto modelLayout = engine::graphics::models::loadModelLayout(modelBytes, _fileManager, "assets/models/");
 
             // _renderThread->emplaceTasks(stl::make_vector(threads::WorkerTask{[this, modelLayout = std::move(modelLayout)]() mutable {
-            //     auto const modelIdx = modelManager->addModel("model.glb", std::move(modelLayout), *graphicsService, _fileManager);
+            //     auto const modelIdx = modelManager->addModel("model.glb", std::move(modelLayout), *graphicsService, _fileManager).first;
 
             //     const auto & modelData = modelManager->getModelData(modelIdx);
             //     for (const auto & animation : modelData.animations) {
@@ -760,7 +778,7 @@ namespace example {
             //     }
             // }}));
             
-            // auto const modelIdx = modelManager->addModel("model.glb", std::move(modelLayout), *graphicsService, _fileManager);
+            // auto const modelIdx = modelManager->addModel("model.glb", std::move(modelLayout), *graphicsService, _fileManager).first;
 
             // const auto & modelData = modelManager->getModelData(modelIdx);
             // for (const auto & animation : modelData.animations) {
@@ -771,39 +789,68 @@ namespace example {
         {
             // auto const modelBytes = _fileManager.readFile("assets/models/1/scene.gltf");
             // auto modelLayout = engine::graphics::models::loadModelLayout(modelBytes, _fileManager, "assets/models/1/");
-            // auto const modelIdx = modelManager->addModel("scene.gltf", std::move(modelLayout), *graphicsService, _fileManager);
+            // auto const modelIdx = modelManager->addModel("scene.gltf", std::move(modelLayout), *graphicsService, _fileManager).first;
 
-            tasks.emplace_back(threads::WorkerTask{[this]() mutable {
+            // tasks.emplace_back(threads::WorkerTask{[this]() mutable {
+            //     auto const modelBytes = _fileManager.readFile("assets/models/1/scene.gltf");
+            //     auto modelLayout = engine::graphics::models::loadModelLayout(modelBytes, _fileManager, "assets/models/1/");
+
+            //     _renderThread->emplaceTasks(stl::make_vector(threads::WorkerTask{[this, modelLayout = std::move(modelLayout)]() mutable {
+            //         auto const modelIdx = modelManager->addModel("scene.gltf", std::move(modelLayout), *graphicsService, _fileManager).first;
+            //     }}));
+            // }});
+
+            auto const modelIdx = modelManager->addModel2("scene.gltf").first;
+            tasks.emplace_back(threads::WorkerTask{[this, modelIdx]() mutable {
                 auto const modelBytes = _fileManager.readFile("assets/models/1/scene.gltf");
                 auto modelLayout = engine::graphics::models::loadModelLayout(modelBytes, _fileManager, "assets/models/1/");
+                auto buffers = modelManager->loadModel(modelIdx, "scene.gltf", std::move(modelLayout), *graphicsService, _fileManager);
 
-                _renderThread->emplaceTasks(stl::make_vector(threads::WorkerTask{[this, modelLayout = std::move(modelLayout)]() mutable {
-                    auto const modelIdx = modelManager->addModel("scene.gltf", std::move(modelLayout), *graphicsService, _fileManager);
+                _renderThread->emplaceTasks(stl::make_vector(threads::WorkerTask{[this, modelIdx, buffers = std::move(buffers)]() mutable {
+                    modelManager->setBuffers(modelIdx, std::move(buffers));
                 }}));
             }});
         }
 
         {
 
-            tasks.emplace_back(threads::WorkerTask{[this]() mutable {
-               auto const modelBytes = _fileManager.readFile("assets/models/Minsk_wheel.glb");
+            // tasks.emplace_back(threads::WorkerTask{[this]() mutable {
+            //    auto const modelBytes = _fileManager.readFile("assets/models/Minsk_wheel.glb");
+            //     auto modelLayout = engine::graphics::models::loadModelLayout(modelBytes, _fileManager, "assets/models/");
+
+            //     _renderThread->emplaceTasks(stl::make_vector(threads::WorkerTask{[this, modelLayout = std::move(modelLayout)]() mutable {
+            //     auto const modelIdx = modelManager->addModel("wheel.glb", std::move(modelLayout), *graphicsService, _fileManager).first;
+
+            //     const auto & modelData = modelManager->getModelData(modelIdx);
+            //     uint8_t i = 0u;
+            //     for (const auto & animation : modelData.animations) {
+            //         animationManager.registerAnimation(engine::fmt_string("wheel_anim%d", i), engine::scene::SkeletalAnimation(animation));
+            //         ++i;
+            //     }
+            //     }}));
+            // }});
+
+            auto const modelIdx = modelManager->addModel2("wheel.glb").first;
+            tasks.emplace_back(threads::WorkerTask{[this, modelIdx]() mutable {
+                auto const modelBytes = _fileManager.readFile("assets/models/Minsk_wheel.glb");
                 auto modelLayout = engine::graphics::models::loadModelLayout(modelBytes, _fileManager, "assets/models/");
+                auto buffers = modelManager->loadModel(modelIdx, "wheel.glb", std::move(modelLayout), *graphicsService, _fileManager);
 
-                _renderThread->emplaceTasks(stl::make_vector(threads::WorkerTask{[this, modelLayout = std::move(modelLayout)]() mutable {
-                auto const modelIdx = modelManager->addModel("wheel.glb", std::move(modelLayout), *graphicsService, _fileManager);
+                _renderThread->emplaceTasks(stl::make_vector(threads::WorkerTask{[this, modelIdx, buffers = std::move(buffers)]() mutable {
+                    modelManager->setBuffers(modelIdx, std::move(buffers));
 
-                const auto & modelData = modelManager->getModelData(modelIdx);
-                uint8_t i = 0u;
-                for (const auto & animation : modelData.animations) {
-                    animationManager.registerAnimation(engine::fmt_string("wheel_anim%d", i), engine::scene::SkeletalAnimation(animation));
-                    ++i;
-                }
+                    const auto & modelData = modelManager->getModelData(modelIdx);
+                    uint8_t i = 0u;
+                    for (const auto & animation : modelData.animations) {
+                        animationManager.registerAnimation(engine::fmt_string("wheel_anim%d", i), engine::scene::SkeletalAnimation(animation));
+                        ++i;
+                    }
                 }}));
             }});
 
             // auto const modelBytes = _fileManager.readFile("assets/models/Minsk_wheel.glb");
             // auto modelLayout = engine::graphics::models::loadModelLayout(modelBytes, _fileManager, "assets/models/");
-            // auto const modelIdx = modelManager->addModel("wheel.glb", std::move(modelLayout), *graphicsService, _fileManager);
+            // auto const modelIdx = modelManager->addModel("wheel.glb", std::move(modelLayout), *graphicsService, _fileManager).first;
 
             // const auto & modelData = modelManager->getModelData(modelIdx);
             // uint8_t i = 0u;
@@ -816,7 +863,7 @@ namespace example {
         {
             // auto const modelBytes = _fileManager.readFile("assets/models/buster_drone.glb");
             // auto modelLayout = engine::graphics::models::loadModelLayout(modelBytes, _fileManager, "assets/models/");
-            // auto const modelIdx = modelManager->addModel("buster_drone.glb", std::move(modelLayout), *graphicsService, _fileManager);
+            // auto const modelIdx = modelManager->addModel("buster_drone.glb", std::move(modelLayout), *graphicsService, _fileManager).first;
 
             // const auto & modelData = modelManager->getModelData(modelIdx);
             // uint8_t i = 0u;
@@ -825,12 +872,30 @@ namespace example {
             //     ++i;
             // }
 
-            tasks.emplace_back(threads::WorkerTask{[this]() mutable {
+            // tasks.emplace_back(threads::WorkerTask{[this]() mutable {
+            //     auto const modelBytes = _fileManager.readFile("assets/models/buster_drone.glb");
+            //     auto modelLayout = engine::graphics::models::loadModelLayout(modelBytes, _fileManager, "assets/models/");
+
+            //     _renderThread->emplaceTasks(stl::make_vector(threads::WorkerTask{[this, modelLayout = std::move(modelLayout)]() mutable {
+            //         auto const modelIdx = modelManager->addModel("buster_drone.glb", std::move(modelLayout), *graphicsService, _fileManager).first;
+
+            //         const auto & modelData = modelManager->getModelData(modelIdx);
+            //         uint8_t i = 0u;
+            //         for (const auto & animation : modelData.animations) {
+            //             animationManager.registerAnimation(engine::fmt_string("buster_anim%d", i), engine::scene::SkeletalAnimation(animation));
+            //             ++i;
+            //         }
+            //     }}));
+            // }});
+
+            auto const modelIdx = modelManager->addModel2("buster_drone.glb").first;
+            tasks.emplace_back(threads::WorkerTask{[this, modelIdx]() mutable {
                 auto const modelBytes = _fileManager.readFile("assets/models/buster_drone.glb");
                 auto modelLayout = engine::graphics::models::loadModelLayout(modelBytes, _fileManager, "assets/models/");
+                auto buffers = modelManager->loadModel(modelIdx, "buster_drone.glb", std::move(modelLayout), *graphicsService, _fileManager);
 
-                _renderThread->emplaceTasks(stl::make_vector(threads::WorkerTask{[this, modelLayout = std::move(modelLayout)]() mutable {
-                    auto const modelIdx = modelManager->addModel("buster_drone.glb", std::move(modelLayout), *graphicsService, _fileManager);
+                _renderThread->emplaceTasks(stl::make_vector(threads::WorkerTask{[this, modelIdx, buffers = std::move(buffers)]() mutable {
+                    modelManager->setBuffers(modelIdx, std::move(buffers));
 
                     const auto & modelData = modelManager->getModelData(modelIdx);
                     uint8_t i = 0u;
@@ -843,19 +908,37 @@ namespace example {
         }
 
         {
-            tasks.emplace_back(threads::WorkerTask{[this]() mutable {
-               auto const modelBytes = _fileManager.readFile("assets/models/chaman/scene.gltf");
+            // tasks.emplace_back(threads::WorkerTask{[this]() mutable {
+            //    auto const modelBytes = _fileManager.readFile("assets/models/chaman/scene.gltf");
+            //     auto modelLayout = engine::graphics::models::loadModelLayout(modelBytes, _fileManager, "assets/models/chaman/");
+
+            //     _renderThread->emplaceTasks(stl::make_vector(threads::WorkerTask{[this, modelLayout = std::move(modelLayout)]() mutable {
+            //     auto const modelIdx = modelManager->addModel("chaman.gltf", std::move(modelLayout), *graphicsService, _fileManager).first;
+
+            //     const auto & modelData = modelManager->getModelData(modelIdx);
+            //     uint8_t i = 0u;
+            //     for (const auto & animation : modelData.animations) {
+            //         animationManager.registerAnimation(engine::fmt_string("chaman_anim%d", i), engine::scene::SkeletalAnimation(animation));
+            //         ++i;
+            //     }
+            //     }}));
+            // }});
+
+            auto const modelIdx = modelManager->addModel2("chaman.gltf").first;
+            tasks.emplace_back(threads::WorkerTask{[this, modelIdx]() mutable {
+                auto const modelBytes = _fileManager.readFile("assets/models/chaman/scene.gltf");
                 auto modelLayout = engine::graphics::models::loadModelLayout(modelBytes, _fileManager, "assets/models/chaman/");
+                auto buffers = modelManager->loadModel(modelIdx, "chaman.gltf", std::move(modelLayout), *graphicsService, _fileManager);
 
-                _renderThread->emplaceTasks(stl::make_vector(threads::WorkerTask{[this, modelLayout = std::move(modelLayout)]() mutable {
-                auto const modelIdx = modelManager->addModel("chaman.gltf", std::move(modelLayout), *graphicsService, _fileManager);
+                _renderThread->emplaceTasks(stl::make_vector(threads::WorkerTask{[this, modelIdx, buffers = std::move(buffers)]() mutable {
+                    modelManager->setBuffers(modelIdx, std::move(buffers));
 
-                const auto & modelData = modelManager->getModelData(modelIdx);
-                uint8_t i = 0u;
-                for (const auto & animation : modelData.animations) {
-                    animationManager.registerAnimation(engine::fmt_string("chaman_anim%d", i), engine::scene::SkeletalAnimation(animation));
-                    ++i;
-                }
+                    const auto & modelData = modelManager->getModelData(modelIdx);
+                    uint8_t i = 0u;
+                    for (const auto & animation : modelData.animations) {
+                        animationManager.registerAnimation(engine::fmt_string("chaman_anim%d", i), engine::scene::SkeletalAnimation(animation));
+                        ++i;
+                    }
                 }}));
             }});
         }
@@ -1534,7 +1617,7 @@ namespace example {
 
                 if (isNew) {
                     gpuTasks.emplace_back(BgThread::GpuTask{[this](engine::rhi::runtime::CommandList & commandList) mutable {
-                        std::this_thread::sleep_for(std::chrono::seconds(5));
+                        //std::this_thread::sleep_for(std::chrono::seconds(5));
     ////
                         auto const imageBytes = _fileManager.readFile("assets/2.png");
                         auto textureData = engine::graphics::parseTextureData(imageBytes);

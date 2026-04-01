@@ -25,31 +25,14 @@ namespace engine::graphics {
         _tmpData.clear();
     }
 
-    uint32_t ModelManager::addModel(
-        std::string_view name, 
+    models::MeshBuffersData ModelManager::loadModel(
+        uint32_t index, std::string_view name, 
         models::Layout && layout, 
-        GraphicsService & graphicsService, 
-        const FileManager & fileManager, 
-        std::span<const graphics::models::AttributeSemantic> attributes
-    ) {
-        if (const auto idx = getModelDataIdx(name); idx != kUnknownDataIndex) {
-            return idx;
-        }
+        GraphicsService & graphicsService, const FileManager & fileManager,
+        std::span<const graphics::models::AttributeSemantic> attributes) {
 
-        // create data
-        auto * meshData = _allocator.create<models::MeshData>();
-        const auto result = _allocator.getObjectNumber(meshData);
-        _modelsMap.emplace(name, result);
-        
-        if (result >= _models.size()) {
-            _models.resize(result * 2u);
-            _gpuData.resize(result * 2u);
-        }
-        
-        _gpuData[result] = {};
-        _models[result] = {meshData, false};
+        auto * meshData = _models[index].first;
 
-        // load
         auto materialsRemap = _materialManager.loadMaterials(name, layout, fileManager, graphicsService.getTextureManager());
         meshData->loadNodes(layout);
         meshData->loadSkins(layout);
@@ -81,8 +64,61 @@ namespace engine::graphics {
             }
         }
 
-        _tmpData.emplace_back(result, std::move(buffers));
-        return result;
+        return buffers;        
+    }
+
+    void ModelManager::setBuffers(uint32_t index, models::MeshBuffersData && buffers) {
+        _tmpData.emplace_back(index, std::move(buffers));
+    }
+
+    std::pair<uint32_t, bool> ModelManager::addModel2(std::string_view name) {
+        if (const auto idx = getModelDataIdx(name); idx != kUnknownDataIndex) {
+            return {idx, false};
+        }
+
+        // create data
+        auto * meshData = _allocator.create<models::MeshData>();
+        const auto result = _allocator.getObjectNumber(meshData);
+        _modelsMap.emplace(name, result);
+        
+        if (result >= _models.size()) {
+            _models.resize(result * 2u);
+            _gpuData.resize(result * 2u);
+        }
+        
+        _gpuData[result] = {};
+        _models[result] = {meshData, false};
+        return {result, true};
+    }
+
+    std::pair<uint32_t, bool> ModelManager::addModel(
+        std::string_view name, 
+        models::Layout && layout, 
+        GraphicsService & graphicsService, 
+        const FileManager & fileManager, 
+        std::span<const graphics::models::AttributeSemantic> attributes
+    ) {
+        if (const auto idx = getModelDataIdx(name); idx != kUnknownDataIndex) {
+            return {idx, false};
+        }
+
+        // create data
+        auto * meshData = _allocator.create<models::MeshData>();
+        const auto result = _allocator.getObjectNumber(meshData);
+        _modelsMap.emplace(name, result);
+        
+        if (result >= _models.size()) {
+            _models.resize(result * 2u);
+            _gpuData.resize(result * 2u);
+        }
+        
+        _gpuData[result] = {};
+        _models[result] = {meshData, false};
+
+        // load
+        auto buffers = loadModel(result, name, std::move(layout), graphicsService, fileManager, attributes);
+        setBuffers(result, std::move(buffers));
+        return {result, true};
     }
 
     bool ModelManager::removeModel(std::string_view name) { // need to remove materials and textures!

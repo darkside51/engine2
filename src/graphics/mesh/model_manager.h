@@ -49,9 +49,18 @@ public:
     ~ModelManager() { destroy(); }
     void destroy();
 
-    uint32_t addModel(std::string_view name, models::Layout && layout, 
+    std::pair<uint32_t, bool> addModel(std::string_view name, models::Layout && layout, 
         GraphicsService & graphicsService, const FileManager & fileManager,
         std::span<const graphics::models::AttributeSemantic> attributes = kDefaultSemantics);
+
+    std::pair<uint32_t, bool> addModel2(std::string_view name);    
+
+    void setBuffers(uint32_t index, models::MeshBuffersData && buffers);
+
+    models::MeshBuffersData loadModel(uint32_t index, std::string_view name, models::Layout && layout, 
+        GraphicsService & graphicsService, const FileManager & fileManager,
+        std::span<const graphics::models::AttributeSemantic> attributes = kDefaultSemantics);
+
     bool removeModel(std::string_view name);
     
     uint32_t getModelDataIdx(std::string_view name) const noexcept {
