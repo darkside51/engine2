@@ -34,16 +34,45 @@ namespace engine::graphics {
         std::vector<uint32_t> materialsRemap;
         materialsRemap.reserve(layout.materials.size());
 
-        // todo store only unique materials!
-        // std::find(_materials.begin(), _materials.end(), material);
+        const graphics::TextureLoadInfo loadingInfo{};
+        // loadingInfo.flags = graphics::LoadFlags::eAllowSrgbColorSpace;
 
         for (const auto & srcMaterial : layout.materials) {
+            // render thread
             auto & material = *_allocator.create<Material>();
             const auto materialId = _allocator.getObjectNumber(&material);
             _materials[materialId] = &material;
+            //
+
             materialsRemap.emplace_back(materialId);
 
-            auto const getTexture = [&layout, &fileManager, &textureManager](uint16_t index, std::string_view name) -> rhi::runtime::ImagePtr {
+            const auto getTexture = [&layout, &fileManager, &textureManager, &loadingInfo](uint16_t index, std::string_view name) -> rhi::runtime::ImagePtr {
+
+                const auto createTexture = [&textureManager](
+                    std::string_view name, const rhi::runtime::Device & device, std::span<const std::byte> bytes, const graphics::TextureLoadInfo & info = {}
+                ) {
+                    auto textureData = engine::graphics::parseTextureData(bytes, info);
+
+                    const auto formatSupport = device.isFormatSupported(
+                        textureData.metaInfo.format, 
+                        engine::rhi::FormatFeatureFlags::eFormatFeature_Sampled_Image
+                    );
+
+                    const bool sampledSupport = info.supportLinearTiling ?
+                                                (
+                                                formatSupport.checkBit(engine::rhi::FormatFeatureAccess::Bit::eOptimalTilingFeaturesBit)
+                                                ||
+                                                formatSupport.checkBit(engine::rhi::FormatFeatureAccess::Bit::eLinearTilingFeaturesBit)
+                                                ):
+                                                formatSupport.checkBit(engine::rhi::FormatFeatureAccess::Bit::eOptimalTilingFeaturesBit);
+
+                    if (!sampledSupport) {
+                        engine::graphics::convertTextureDataFormat(engine::rhi::Format::eR8G8B8A8_Unorm, textureData); // ??
+                    }
+
+                    return textureManager.addFrame(name, std::move(textureData)).getImage(); // must be on render thread only!
+                };
+
                 if (index == models::kInvalidValue) {
                     return textureManager.getWhiteImage();
                 }
@@ -55,48 +84,20 @@ namespace engine::graphics {
                     const auto & bufferView = layout.bufferViews[image.bufferView];
                     const auto & buffer = layout.buffers[bufferView.buffer];
                     const std::byte * begin = &buffer.data[bufferView.offset];
-                    auto textureData = engine::graphics::parseTextureData({begin, begin + bufferView.length});
-
-                    const auto formatSupport = textureManager.getDevice().isFormatSupported(
-                        textureData.metaInfo.format, 
-                        engine::rhi::FormatFeatureFlags::eFormatFeature_Sampled_Image
-                    );
-
-                    const bool sampledSupport = formatSupport.checkBit(engine::rhi::FormatFeatureAccess::Bit::eOptimalTilingFeaturesBit);
-                                                // ||
-                                                //formatSupport.checkBit(engine::rhi::FormatFeatureAccess::Bit::eLinearTilingFeaturesBit);
-
-                    if (!sampledSupport) {
-                        engine::graphics::convertTextureDataFormat(engine::rhi::Format::eR8G8B8A8_Unorm, textureData); // ??
-                    }
 
                     if (!image.name.empty()) {
-                        return textureManager.addFrame(image.name, std::move(textureData)).getImage();
+                        return createTexture(image.name, textureManager.getDevice(), {begin, begin + bufferView.length}, loadingInfo);
                     } else {
-                        return textureManager.addFrame(std::string{name} + std::to_string(index), std::move(textureData)).getImage();
+                        return createTexture(std::string{name} + std::to_string(index), textureManager.getDevice(), {begin, begin + bufferView.length}, loadingInfo);
                     }
                 }
                 if (!image.uri.empty()) {
                     auto const imageBytes = fileManager.readFile(image.uri);
-                    auto textureData = engine::graphics::parseTextureData(imageBytes);
-
-                    const auto formatSupport = textureManager.getDevice().isFormatSupported(
-                        textureData.metaInfo.format, 
-                        engine::rhi::FormatFeatureFlags::eFormatFeature_Sampled_Image
-                    );
-
-                    const bool sampledSupport = formatSupport.checkBit(engine::rhi::FormatFeatureAccess::Bit::eOptimalTilingFeaturesBit);
-                                                // ||
-                                                //formatSupport.checkBit(engine::rhi::FormatFeatureAccess::Bit::eLinearTilingFeaturesBit);
-
-                    if (!sampledSupport) {
-                        engine::graphics::convertTextureDataFormat(engine::rhi::Format::eR8G8B8A8_Unorm, textureData); // ??
-                    }
 
                     if (!image.name.empty()) {
-                        return textureManager.addFrame(image.name, std::move(textureData)).getImage();
+                        return createTexture(image.name, textureManager.getDevice(), imageBytes, loadingInfo);
                     } else {
-                        return textureManager.addFrame(std::string{name} + std::to_string(index), std::move(textureData)).getImage();
+                        return createTexture(std::string{name} + std::to_string(index), textureManager.getDevice(), imageBytes, loadingInfo);
                     }
                 }
 
@@ -118,6 +119,7 @@ namespace engine::graphics {
             material.metallicFactor = srcMaterial.pbrMetallicRoughness.metallicFactor;
             material.roughnessFactor = srcMaterial.pbrMetallicRoughness.roughnessFactor;
             material.alphaCutoff = srcMaterial.alphaCutoff;
+
             switch (srcMaterial.alphaMode) {
             case models::AlphaMode::eOpaque:
                 material.blendMode = rhi::common_blend_modes::blend_none;
@@ -138,16 +140,11 @@ namespace engine::graphics {
             material.textures[static_cast<uint8_t>(PbrTextureId::eOccolusion)] = getTexture(srcMaterial.occlusionTexture.index, name);
             material.textures[static_cast<uint8_t>(PbrTextureId::eEmissive)] = getTexture(srcMaterial.emissiveTexture.index, name);
 
-            if (material.textures[static_cast<uint8_t>(PbrTextureId::eBaseColor)].get() != textureManager.getWhiteImage().get()) {
-                material.baseColorFactor = {1.0f, 1.0f, 1.0f, 1.0f};
-            }
-
             // material.textures[static_cast<uint8_t>(PbrTextureId::eBaseColor)] = textureManager.getDefaultImage();
             // material.textures[static_cast<uint8_t>(PbrTextureId::eNormal)] = textureManager.getDefaultImage();
             // material.textures[static_cast<uint8_t>(PbrTextureId::eMetallicRoughness)] = textureManager.getDefaultImage();
             // material.textures[static_cast<uint8_t>(PbrTextureId::eOccolusion)] = textureManager.getDefaultImage();
             // material.textures[static_cast<uint8_t>(PbrTextureId::eEmissive)] = textureManager.getDefaultImage();
-            // material.baseColorFactor = {1.0f, 1.0f, 1.0f, 1.0f};
         }
 
         return materialsRemap;

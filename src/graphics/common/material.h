@@ -52,8 +52,8 @@ public:
     void removeMaterial(uint32_t idx) noexcept;
 
 private:
-    Allocator _allocator{16384u};
-    Materials _materials{16384u};
+    Allocator _allocator{16'384u};
+    Materials _materials{_allocator.capacity()};
 };
 
 }

@@ -9,7 +9,8 @@ layout (location = 5) in uint a_sbo_offset; // per instance value
 
 layout (location = 0) out vec3 v_normal;
 layout (location = 1) out vec2 v_uv;
-layout (location = 2) out vec4 v_albedo;
+layout (location = 2) out vec4 v_color;
+layout (location = 3) out vec3 v_emissive;
 
 // storage buffer
 layout (set = 0, binding = 0) readonly buffer SkinTransformations {
@@ -18,12 +19,14 @@ layout (set = 0, binding = 0) readonly buffer SkinTransformations {
 
 layout(push_constant) uniform Camera {
 	mat4 viewProjection;
-	vec4 albedo;
+	vec4 color;
+	vec4 emissive;
 } push;
 
 void main() {
 	v_uv = a_uv;
-	v_albedo = push.albedo;
+	v_color = push.color;
+	v_emissive = push.emissive.xyz;
 
 	{ // with 48 bytes transforms
 		// skinned

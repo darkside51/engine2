@@ -49,6 +49,7 @@ inline LoadFlags operator & (LoadFlags a, LoadFlags b) {
 
 struct TextureLoadInfo {
     LoadFlags flags = LoadFlags::eNone;
+    bool supportLinearTiling = false;
 };
 
 TextureCreateInfo parseTextureData(std::span<const std::byte> bytes, const TextureLoadInfo & info = {});

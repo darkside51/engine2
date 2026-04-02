@@ -13,11 +13,13 @@ layout (set = 0, binding = 1) readonly buffer Normals {
 
 layout (location = 0) out vec3 v_normal;
 layout (location = 1) out vec2 v_uv;
-layout (location = 2) out vec4 v_albedo;
+layout (location = 2) out vec4 v_color;
+layout (location = 3) out vec3 v_emissive;
 
 layout(push_constant) uniform Params {
 	mat4 viewProjection;
-	vec4 albedo;
+	vec4 color;
+	vec4 emissive;
 } push;
 
 void main() {
@@ -31,5 +33,6 @@ void main() {
 	gl_Position = push.viewProjection * in_positions.data[vertexId];
 	v_normal = in_normals.data[vertexId].xyz;
 	v_uv = a_uv;
-	v_albedo = push.albedo;
+	v_color = push.color;
+	v_emissive = push.emissive.xyz;
 }

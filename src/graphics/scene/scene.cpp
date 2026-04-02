@@ -1159,12 +1159,14 @@ namespace engine::scene {
 
         struct Uniform {
             mat4f cameraTransform;
-            vec4f albedo;
+            vec4f color;
+            vec4f emissive;
         };
 
         Uniform uniform {
             .cameraTransform = cameraTransform, 
-            .albedo = vec4f{1.0f}
+            .color = vec4f{1.0f},
+            .emissive = vec4f{0.0f}
         };
 
         auto applyMaterial = [this, &commandList, &uniform](uint16_t materialIndex) noexcept {
@@ -1174,9 +1176,14 @@ namespace engine::scene {
             const auto & image = textures[static_cast<uint8_t>(graphics::PbrTextureId::eBaseColor)];
             assert(image != nullptr); // check textureManager default resources generated!
 
+            const auto & image2 = textures[static_cast<uint8_t>(graphics::PbrTextureId::eEmissive)];
+            assert(image2 != nullptr);
+
             // textures change more often than storage buffers - setId #1u used
             commandList->bindImage(0u, image, _linearSampler, 1u); 
-            uniform.albedo = material.baseColorFactor;
+            commandList->bindImage(1u, image2, _linearSampler, 1u); 
+            uniform.color = material.baseColorFactor;
+            uniform.emissive = vec4f{material.emissiveFactor, 0.0f};
         };
 
         uint32_t count = 1u;
@@ -1289,12 +1296,14 @@ namespace engine::scene {
 
         struct Uniform {
             mat4f cameraTransform;
-            vec4f albedo;
+            vec4f color;
+            vec4f emissive;
         };
 
         Uniform uniform {
             .cameraTransform = cameraTransform, 
-            .albedo = vec4f{1.0f}
+            .color = vec4f{1.0f},
+            .emissive = vec4f{0.0f}
         };
 
         auto applyMaterial = [this, &commandList, &uniform](uint16_t materialIndex) noexcept {
@@ -1304,9 +1313,14 @@ namespace engine::scene {
             const auto & image = textures[static_cast<uint8_t>(graphics::PbrTextureId::eBaseColor)];
             assert(image != nullptr); // check textureManager default resources generated!
 
+            const auto & image2 = textures[static_cast<uint8_t>(graphics::PbrTextureId::eEmissive)];
+            assert(image2 != nullptr);
+
             // textures change more often than storage buffers - setId #1u used
-            commandList->bindImage(0u, image, _linearSampler, 1u); 
-            uniform.albedo = material.baseColorFactor;
+            commandList->bindImage(0u, image, _linearSampler, 1u);
+            commandList->bindImage(1u, image2, _linearSampler, 1u); 
+            uniform.color = material.baseColorFactor;
+            uniform.emissive = vec4f{material.emissiveFactor, 0.0f};
         };
 
         uint32_t count = 1u;

@@ -32,8 +32,6 @@ namespace engine::graphics {
         std::span<const graphics::models::AttributeSemantic> attributes) {
 
         auto * meshData = _models[index].first;
-
-        auto materialsRemap = _materialManager.loadMaterials(name, layout, fileManager, graphicsService.getTextureManager());
         meshData->loadNodes(layout);
         meshData->loadSkins(layout);
         meshData->loadAnimations(layout);
@@ -41,12 +39,6 @@ namespace engine::graphics {
         auto buffers = meshData->loadMeshes(layout, attributes);
         meshData->optimizeBuffers(buffers.vertexBuffersData, buffers.indexBufferData, attributes);
         
-        for (auto & mesh : meshData->meshes) {
-            for (auto & p : mesh.primitives) {
-                p.material = materialsRemap[p.material];
-            }
-        }
-
         // after optimize
         uint32_t uniqueOffset = 0u;
         for (auto & mesh : meshData->meshes) {
@@ -61,6 +53,14 @@ namespace engine::graphics {
                 primitive.uniqueIndexOffset = uniqueOffset;
                 primitive.uniqueIndicesCount = size;
                 uniqueOffset += size;
+            }
+        }
+
+        //
+        auto materialsRemap = _materialManager.loadMaterials(name, layout, fileManager, graphicsService.getTextureManager());
+        for (auto & mesh : meshData->meshes) {
+            for (auto & p : mesh.primitives) {
+                p.material = materialsRemap[p.material];
             }
         }
 
@@ -206,7 +206,7 @@ namespace engine::graphics {
             commandList->copyBuffer2Buffer(stagingBuffer, gpuData.indexBuffer, 
                 {.srcOffset = indexBufferOffset, .dstOffset = 0u, .size = sizeInBytes});
 
-            // uIndices
+            // uIndices - need only for compute skinning!
             auto const sizeInBytes2 = gpuData.uniqueIndicesBuffer->sizeInBytes();
             const auto indexBufferOffset2 = staging.requestBytes(sizeInBytes2);
             auto * idxData2 = (memory + indexBufferOffset2);
