@@ -39,6 +39,7 @@ struct TextureCreateInfo {
 enum class LoadFlags : uint8_t {
     eNone = 0u,
     eAllowSrgbColorSpace = 1u,
+    eSupportLinearTiling = 2u,
 };
 inline LoadFlags operator | (LoadFlags a, LoadFlags b) {
     return static_cast<LoadFlags>(std::to_underlying(a) | std::to_underlying(b));
@@ -49,7 +50,6 @@ inline LoadFlags operator & (LoadFlags a, LoadFlags b) {
 
 struct TextureLoadInfo {
     LoadFlags flags = LoadFlags::eNone;
-    bool supportLinearTiling = false;
 };
 
 TextureCreateInfo parseTextureData(std::span<const std::byte> bytes, const TextureLoadInfo & info = {});

@@ -20,6 +20,7 @@ class FileManager;
 
 namespace engine::graphics {
 class TextureManager;
+struct ImageHandler;
 
 enum class PbrTextureId : uint8_t {
     eBaseColor = 0u,
@@ -30,7 +31,8 @@ enum class PbrTextureId : uint8_t {
 };
 
 struct Material {
-    std::array<rhi::runtime::ImagePtr, 5u> textures;
+    // std::array<rhi::runtime::ImagePtr, 5u> textures;
+    std::array<const ImageHandler*, 5u> textures;
     vec4f baseColorFactor = {1.0f, 1.0f, 1.0f, 1.0f};
     vec3f emissiveFactor = {0.0f, 0.0f, 0.0f};
     float metallicFactor = 1.0f;
@@ -46,6 +48,7 @@ class MaterialManager {
 
 public:
     void destroy();
+    std::vector<uint32_t> prepareMaterials(std::string_view name, const models::Layout & layout, TextureManager & textureManager);
     std::vector<uint32_t> loadMaterials(std::string_view name, const models::Layout & layout, const FileManager & fileManager, TextureManager & textureManager);
     const Material & getMaterial(uint32_t idx) const noexcept { return *_materials[idx];/*return reinterpret_cast<const Material*>(_allocator.memory())[idx];*/ }
 

@@ -25,6 +25,94 @@ namespace engine::graphics {
         }
     }
 
+    std::vector<uint32_t> MaterialManager::prepareMaterials(std::string_view name, const models::Layout & layout, TextureManager & textureManager) { // render thread
+        std::vector<uint32_t> materialsRemap;
+        materialsRemap.reserve(layout.materials.size());
+
+        struct MaterialTextureLoadingData {
+            ImageHandler * imageHandler = nullptr;
+            uint16_t materialId = 0u;
+            uint16_t textureIndex = 0u; 
+        };
+
+        std::vector<MaterialTextureLoadingData> texturesToLoad;
+        texturesToLoad.reserve(layout.materials.size() * 5u);
+
+        uint16_t materialIndex = 0u;
+        for (const auto & srcMaterial : layout.materials) {
+            auto & material = *_allocator.create<Material>();
+            const auto materialId = _allocator.getObjectNumber(&material);
+            _materials[materialId] = &material;
+
+            materialsRemap.emplace_back(materialId);
+
+            material.baseColorFactor = {
+                srcMaterial.pbrMetallicRoughness.baseColorFactor.x,
+                srcMaterial.pbrMetallicRoughness.baseColorFactor.y,
+                srcMaterial.pbrMetallicRoughness.baseColorFactor.z,
+                srcMaterial.pbrMetallicRoughness.baseColorFactor.w
+            };
+            material.emissiveFactor = {
+                srcMaterial.emissiveFactor.x,
+                srcMaterial.emissiveFactor.y,
+                srcMaterial.emissiveFactor.z,
+            };
+            material.metallicFactor = srcMaterial.pbrMetallicRoughness.metallicFactor;
+            material.roughnessFactor = srcMaterial.pbrMetallicRoughness.roughnessFactor;
+            material.alphaCutoff = srcMaterial.alphaCutoff;
+
+            switch (srcMaterial.alphaMode) {
+            case models::AlphaMode::eOpaque:
+                material.blendMode = rhi::common_blend_modes::blend_none;
+                break;
+            case models::AlphaMode::eMask:
+                material.blendMode = rhi::common_blend_modes::blend_none;
+                // use alphaCutoff to discard fragments
+                break;
+            case models::AlphaMode::eBlend:
+                material.blendMode = rhi::common_blend_modes::blend_alpha_pma; // ?
+                break;
+            }
+
+            material.cullMode = srcMaterial.doubleSided ? rhi::CullMode::eNone : rhi::CullMode::eBack;
+
+            const auto getTexture = [&layout, &textureManager, &texturesToLoad, materialIndex](uint16_t index, std::string_view name) -> graphics::ImageHandler* {
+                if (index == models::kInvalidValue) {
+                    return textureManager.getDefaultImageHandler();
+                }
+
+                const auto & texture = layout.textures[index];
+                const auto & image = layout.images[texture.source];
+
+                if (!image.name.empty()) {
+                    const auto & [imageHandler, isNew] = textureManager.addImage(image.name);
+                    if (isNew) {
+                        texturesToLoad.emplace_back(imageHandler, materialIndex, index);
+                    }
+                    return imageHandler;
+                } else {
+                    const auto & [imageHandler, isNew] = textureManager.addImage(std::string{name} + std::to_string(index));
+                    if (isNew) {
+                        texturesToLoad.emplace_back(imageHandler, materialIndex, index);
+                    }
+                    return imageHandler;
+                }
+
+                return textureManager.getDefaultImageHandler();
+            };
+
+            material.textures[static_cast<uint8_t>(PbrTextureId::eBaseColor)] = getTexture(srcMaterial.pbrMetallicRoughness.baseColorTexture.index, name);
+            material.textures[static_cast<uint8_t>(PbrTextureId::eEmissive)] = getTexture(srcMaterial.emissiveTexture.index, name);
+            material.textures[static_cast<uint8_t>(PbrTextureId::eNormal)] = getTexture(srcMaterial.normalTexture.index, name);
+            material.textures[static_cast<uint8_t>(PbrTextureId::eMetallicRoughness)] = getTexture(srcMaterial.pbrMetallicRoughness.metallicRoughnessTexture.index, name);
+            material.textures[static_cast<uint8_t>(PbrTextureId::eOccolusion)] = getTexture(srcMaterial.occlusionTexture.index, name);
+
+            ++materialIndex;
+        }
+
+        return materialsRemap;
+    }
+
     std::vector<uint32_t> MaterialManager::loadMaterials(
         std::string_view name, 
         const models::Layout & layout, 
@@ -48,7 +136,7 @@ namespace engine::graphics {
 
             materialsRemap.emplace_back(materialId);
 
-            const auto getTexture = [&layout, &fileManager, &textureManager](const graphics::TextureLoadInfo & loadingInfo, uint16_t index, std::string_view name) -> rhi::runtime::ImagePtr {
+            const auto getTexture = [&layout, &fileManager, &textureManager](const graphics::TextureLoadInfo & loadingInfo, uint16_t index, std::string_view name) -> const graphics::ImageHandler* {
 
                 const auto createTexture = [&textureManager, loadingInfo](
                     std::string_view name, const rhi::runtime::Device & device, std::span<const std::byte> bytes, const graphics::TextureLoadInfo & info = {}
@@ -59,8 +147,9 @@ namespace engine::graphics {
                         textureData.metaInfo.format, 
                         engine::rhi::FormatFeatureFlags::eFormatFeature_Sampled_Image
                     );
+                    const bool supportLinearTiling = (info.flags & LoadFlags::eSupportLinearTiling) != LoadFlags::eNone;
 
-                    const bool sampledSupport = info.supportLinearTiling ?
+                    const bool sampledSupport = supportLinearTiling ?
                                                 (
                                                 formatSupport.checkBit(engine::rhi::FormatFeatureAccess::Bit::eOptimalTilingFeaturesBit)
                                                 ||
@@ -73,11 +162,11 @@ namespace engine::graphics {
                         engine::graphics::convertTextureDataFormat(allowSrgb ? engine::rhi::Format::eR8G8B8A8_Srgb : engine::rhi::Format::eR8G8B8A8_Unorm, textureData); // ??
                     }
 
-                    return textureManager.addFrame(name, std::move(textureData)).getImage(); // must be on render thread only!
+                    return textureManager.addFrame(name, std::move(textureData)).getImageHandlerPtr(); // must be on render thread only!
                 };
 
                 if (index == models::kInvalidValue) {
-                    return textureManager.getWhiteImage();
+                    return textureManager.getDefaultImageHandler();
                 }
 
                 const auto & texture = layout.textures[index];
@@ -105,7 +194,7 @@ namespace engine::graphics {
                 }
 
                 assert(false);
-                return textureManager.getWhiteImage();
+                return textureManager.getDefaultImageHandler();
             };
 
             material.baseColorFactor = {
@@ -128,7 +217,8 @@ namespace engine::graphics {
                 material.blendMode = rhi::common_blend_modes::blend_none;
                 break;
             case models::AlphaMode::eMask:
-                material.blendMode = rhi::common_blend_modes::blend_multiply; // ?
+                material.blendMode = rhi::common_blend_modes::blend_none;
+                // use alphaCutoff to discard fragments
                 break;
             case models::AlphaMode::eBlend:
                 material.blendMode = rhi::common_blend_modes::blend_alpha_pma; // ?
@@ -138,13 +228,11 @@ namespace engine::graphics {
             material.cullMode = srcMaterial.doubleSided ? rhi::CullMode::eNone : rhi::CullMode::eBack;
 
             material.textures[static_cast<uint8_t>(PbrTextureId::eBaseColor)] = getTexture(loadingInfoColor, srcMaterial.pbrMetallicRoughness.baseColorTexture.index, name);
-            material.textures[static_cast<uint8_t>(PbrTextureId::eEmissive)] = getTexture(loadingInfoColor, srcMaterial.emissiveTexture.index, name);
-            
+            material.textures[static_cast<uint8_t>(PbrTextureId::eEmissive)] = getTexture(loadingInfoColor, srcMaterial.emissiveTexture.index, name);         
             material.textures[static_cast<uint8_t>(PbrTextureId::eNormal)] = getTexture(loadingInfoCommon, srcMaterial.normalTexture.index, name);
             material.textures[static_cast<uint8_t>(PbrTextureId::eMetallicRoughness)] = getTexture(loadingInfoCommon, srcMaterial.pbrMetallicRoughness.metallicRoughnessTexture.index, name);
             material.textures[static_cast<uint8_t>(PbrTextureId::eOccolusion)] = getTexture(loadingInfoCommon, srcMaterial.occlusionTexture.index, name);
             
-
             // material.textures[static_cast<uint8_t>(PbrTextureId::eBaseColor)] = textureManager.getDefaultImage();
             // material.textures[static_cast<uint8_t>(PbrTextureId::eNormal)] = textureManager.getDefaultImage();
             // material.textures[static_cast<uint8_t>(PbrTextureId::eMetallicRoughness)] = textureManager.getDefaultImage();

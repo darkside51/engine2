@@ -13,6 +13,7 @@
 
 #include "graphics/common/material.h"
 #include "graphics/mesh/model_manager.h"
+#include "graphics/texture/texture.h"
 #include "graphics/texture/texture_manager.h"
 
 #include <algorithm>
@@ -1180,8 +1181,8 @@ namespace engine::scene {
             assert(image2 != nullptr);
 
             // textures change more often than storage buffers - setId #1u used
-            commandList->bindImage(0u, image, _linearSampler, 1u); 
-            commandList->bindImage(1u, image2, _linearSampler, 1u); 
+            commandList->bindImage(0u, image->image, _linearSampler, 1u); 
+            commandList->bindImage(1u, image2->image, _linearSampler, 1u); 
             uniform.color = material.baseColorFactor;
             uniform.emissive = vec4f{material.emissiveFactor, 0.0f};
         };
@@ -1317,8 +1318,8 @@ namespace engine::scene {
             assert(image2 != nullptr);
 
             // textures change more often than storage buffers - setId #1u used
-            commandList->bindImage(0u, image, _linearSampler, 1u);
-            commandList->bindImage(1u, image2, _linearSampler, 1u); 
+            commandList->bindImage(0u, image->image, _linearSampler, 1u);
+            commandList->bindImage(1u, image2->image, _linearSampler, 1u); 
             uniform.color = material.baseColorFactor;
             uniform.emissive = vec4f{material.emissiveFactor, 0.0f};
         };

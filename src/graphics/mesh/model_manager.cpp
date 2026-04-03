@@ -5,6 +5,7 @@
 
 #include "graphics/common/graphics_service.h"
 #include "graphics/common/material.h"
+#include "graphics/texture/texture_manager.h"
 
 namespace engine::graphics {
 
@@ -27,8 +28,7 @@ namespace engine::graphics {
 
     models::MeshBuffersData ModelManager::loadModel(
         uint32_t index, std::string_view name, 
-        models::Layout && layout, 
-        GraphicsService & graphicsService, const FileManager & fileManager,
+        const models::Layout & layout, 
         std::span<const graphics::models::AttributeSemantic> attributes) {
 
         auto * meshData = _models[index].first;
@@ -56,15 +56,17 @@ namespace engine::graphics {
             }
         }
 
-        //
-        auto materialsRemap = _materialManager.loadMaterials(name, layout, fileManager, graphicsService.getTextureManager());
+        return buffers;        
+    }
+
+    void ModelManager::prepareMaterials(std::string_view name, uint32_t index, const models::Layout & layout, TextureManager & textureManager) {
+        auto materialsRemap = _materialManager.prepareMaterials(name, layout, textureManager);
+        auto * meshData = _models[index].first;
         for (auto & mesh : meshData->meshes) {
             for (auto & p : mesh.primitives) {
                 p.material = materialsRemap[p.material];
             }
         }
-
-        return buffers;        
     }
 
     void ModelManager::setBuffers(uint32_t index, models::MeshBuffersData && buffers) {
@@ -116,7 +118,7 @@ namespace engine::graphics {
         _models[result] = {meshData, false};
 
         // load
-        auto buffers = loadModel(result, name, std::move(layout), graphicsService, fileManager, attributes);
+        auto buffers = loadModel(result, name, std::move(layout), attributes);
         setBuffers(result, std::move(buffers));
         return {result, true};
     }

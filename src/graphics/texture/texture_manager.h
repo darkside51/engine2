@@ -83,6 +83,7 @@ public:
 
     std::pair<ImageHandler *, bool> addImage(std::string_view name);
     ImageHandler * getImageHandler(std::string_view name) noexcept; // move it to private
+    ImageHandler * getDefaultImageHandler() noexcept { return _images[0u].get(); }
 
 private:
     using ImageFramesMap = std::unordered_map<std::string, ImageFrame2D, hash::String_hash, std::equal_to<>>;

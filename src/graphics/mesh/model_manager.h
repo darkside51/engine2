@@ -57,9 +57,10 @@ public:
 
     void setBuffers(uint32_t index, models::MeshBuffersData && buffers);
 
-    models::MeshBuffersData loadModel(uint32_t index, std::string_view name, models::Layout && layout, 
-        GraphicsService & graphicsService, const FileManager & fileManager,
+    models::MeshBuffersData loadModel(uint32_t index, std::string_view name, const models::Layout & layout, 
         std::span<const graphics::models::AttributeSemantic> attributes = kDefaultSemantics);
+
+    void prepareMaterials(std::string_view name, uint32_t index, const models::Layout & layout, TextureManager & textureManager);
 
     bool removeModel(std::string_view name);
     
