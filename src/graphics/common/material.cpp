@@ -34,8 +34,10 @@ namespace engine::graphics {
         std::vector<uint32_t> materialsRemap;
         materialsRemap.reserve(layout.materials.size());
 
-        const graphics::TextureLoadInfo loadingInfo{};
-        // loadingInfo.flags = graphics::LoadFlags::eAllowSrgbColorSpace;
+        const graphics::TextureLoadInfo loadingInfoColor{
+            .flags = graphics::LoadFlags::eAllowSrgbColorSpace
+        };
+        const graphics::TextureLoadInfo loadingInfoCommon{};
 
         for (const auto & srcMaterial : layout.materials) {
             // render thread
@@ -46,9 +48,9 @@ namespace engine::graphics {
 
             materialsRemap.emplace_back(materialId);
 
-            const auto getTexture = [&layout, &fileManager, &textureManager, &loadingInfo](uint16_t index, std::string_view name) -> rhi::runtime::ImagePtr {
+            const auto getTexture = [&layout, &fileManager, &textureManager](const graphics::TextureLoadInfo & loadingInfo, uint16_t index, std::string_view name) -> rhi::runtime::ImagePtr {
 
-                const auto createTexture = [&textureManager](
+                const auto createTexture = [&textureManager, loadingInfo](
                     std::string_view name, const rhi::runtime::Device & device, std::span<const std::byte> bytes, const graphics::TextureLoadInfo & info = {}
                 ) {
                     auto textureData = engine::graphics::parseTextureData(bytes, info);
@@ -67,7 +69,8 @@ namespace engine::graphics {
                                                 formatSupport.checkBit(engine::rhi::FormatFeatureAccess::Bit::eOptimalTilingFeaturesBit);
 
                     if (!sampledSupport) {
-                        engine::graphics::convertTextureDataFormat(engine::rhi::Format::eR8G8B8A8_Unorm, textureData); // ??
+                        const bool allowSrgb = (loadingInfo.flags & LoadFlags::eAllowSrgbColorSpace) != LoadFlags::eNone;
+                        engine::graphics::convertTextureDataFormat(allowSrgb ? engine::rhi::Format::eR8G8B8A8_Srgb : engine::rhi::Format::eR8G8B8A8_Unorm, textureData); // ??
                     }
 
                     return textureManager.addFrame(name, std::move(textureData)).getImage(); // must be on render thread only!
@@ -134,11 +137,13 @@ namespace engine::graphics {
 
             material.cullMode = srcMaterial.doubleSided ? rhi::CullMode::eNone : rhi::CullMode::eBack;
 
-            material.textures[static_cast<uint8_t>(PbrTextureId::eBaseColor)] = getTexture(srcMaterial.pbrMetallicRoughness.baseColorTexture.index, name);
-            material.textures[static_cast<uint8_t>(PbrTextureId::eNormal)] = getTexture(srcMaterial.normalTexture.index, name);
-            material.textures[static_cast<uint8_t>(PbrTextureId::eMetallicRoughness)] = getTexture(srcMaterial.pbrMetallicRoughness.metallicRoughnessTexture.index, name);
-            material.textures[static_cast<uint8_t>(PbrTextureId::eOccolusion)] = getTexture(srcMaterial.occlusionTexture.index, name);
-            material.textures[static_cast<uint8_t>(PbrTextureId::eEmissive)] = getTexture(srcMaterial.emissiveTexture.index, name);
+            material.textures[static_cast<uint8_t>(PbrTextureId::eBaseColor)] = getTexture(loadingInfoColor, srcMaterial.pbrMetallicRoughness.baseColorTexture.index, name);
+            material.textures[static_cast<uint8_t>(PbrTextureId::eEmissive)] = getTexture(loadingInfoColor, srcMaterial.emissiveTexture.index, name);
+            
+            material.textures[static_cast<uint8_t>(PbrTextureId::eNormal)] = getTexture(loadingInfoCommon, srcMaterial.normalTexture.index, name);
+            material.textures[static_cast<uint8_t>(PbrTextureId::eMetallicRoughness)] = getTexture(loadingInfoCommon, srcMaterial.pbrMetallicRoughness.metallicRoughnessTexture.index, name);
+            material.textures[static_cast<uint8_t>(PbrTextureId::eOccolusion)] = getTexture(loadingInfoCommon, srcMaterial.occlusionTexture.index, name);
+            
 
             // material.textures[static_cast<uint8_t>(PbrTextureId::eBaseColor)] = textureManager.getDefaultImage();
             // material.textures[static_cast<uint8_t>(PbrTextureId::eNormal)] = textureManager.getDefaultImage();

@@ -309,7 +309,9 @@ namespace ktx_format {
 }
 
 namespace sail_format {
-    rhi::Format convert(SailPixelFormat format) noexcept {
+    rhi::Format convert(SailPixelFormat format, LoadFlags flags) noexcept {
+        const bool allowSrgb = (flags & LoadFlags::eAllowSrgbColorSpace) != LoadFlags::eNone;
+
         switch (format) {
         // Indexed formats.
         case SailPixelFormat::SAIL_PIXEL_FORMAT_BPP8_INDEXED: return rhi::Format::eR8_Unorm;
@@ -330,8 +332,9 @@ namespace sail_format {
         case SailPixelFormat::SAIL_PIXEL_FORMAT_BPP16_BGR565: return rhi::Format::eB5G6R5_Unorm_Pack16;
 
         // RGB formats.
-        case SailPixelFormat::SAIL_PIXEL_FORMAT_BPP24_RGB: return rhi::Format::eR8G8B8_Unorm;
-        case SailPixelFormat::SAIL_PIXEL_FORMAT_BPP24_BGR: return rhi::Format::eB8G8R8_Unorm;
+        case SailPixelFormat::SAIL_PIXEL_FORMAT_BPP24_RGB: return allowSrgb ? rhi::Format::eR8G8B8_Srgb : rhi::Format::eR8G8B8_Unorm;
+        case SailPixelFormat::SAIL_PIXEL_FORMAT_BPP24_BGR: return allowSrgb ? rhi::Format::eB8G8R8_Srgb : rhi::Format::eB8G8R8_Unorm;
+
         case SailPixelFormat::SAIL_PIXEL_FORMAT_BPP48_RGB: return rhi::Format::eR16G16B16_Unorm;
         case SailPixelFormat::SAIL_PIXEL_FORMAT_BPP48_BGR: return rhi::Format::eUndefined; // !
 
@@ -345,12 +348,12 @@ namespace sail_format {
         case SailPixelFormat::SAIL_PIXEL_FORMAT_BPP16_ARGB: return rhi::Format::eUndefined; // !
         case SailPixelFormat::SAIL_PIXEL_FORMAT_BPP16_ABGR: return rhi::Format::eUndefined; // !
 
-        case SailPixelFormat::SAIL_PIXEL_FORMAT_BPP32_RGBX: return rhi::Format::eR8G8B8A8_Unorm;
-        case SailPixelFormat::SAIL_PIXEL_FORMAT_BPP32_BGRX: return rhi::Format::eB8G8R8A8_Unorm;
+        case SailPixelFormat::SAIL_PIXEL_FORMAT_BPP32_RGBX: return allowSrgb ? rhi::Format::eR8G8B8A8_Srgb : rhi::Format::eR8G8B8A8_Unorm;
+        case SailPixelFormat::SAIL_PIXEL_FORMAT_BPP32_BGRX: return allowSrgb ? rhi::Format::eB8G8R8A8_Srgb : rhi::Format::eB8G8R8A8_Unorm;
         case SailPixelFormat::SAIL_PIXEL_FORMAT_BPP32_XRGB: return rhi::Format::eUndefined; // !
         case SailPixelFormat::SAIL_PIXEL_FORMAT_BPP32_XBGR: return rhi::Format::eA8B8G8R8_Unorm_Pack32;
-        case SailPixelFormat::SAIL_PIXEL_FORMAT_BPP32_RGBA: return rhi::Format::eR8G8B8A8_Unorm;
-        case SailPixelFormat::SAIL_PIXEL_FORMAT_BPP32_BGRA: return rhi::Format::eB8G8R8A8_Unorm;
+        case SailPixelFormat::SAIL_PIXEL_FORMAT_BPP32_RGBA: return allowSrgb ? rhi::Format::eR8G8B8A8_Srgb : rhi::Format::eR8G8B8A8_Unorm;
+        case SailPixelFormat::SAIL_PIXEL_FORMAT_BPP32_BGRA: return allowSrgb ? rhi::Format::eB8G8R8A8_Srgb : rhi::Format::eB8G8R8A8_Unorm;
         case SailPixelFormat::SAIL_PIXEL_FORMAT_BPP32_ARGB: return rhi::Format::eUndefined; // !
         case SailPixelFormat::SAIL_PIXEL_FORMAT_BPP32_ABGR: return rhi::Format::eA8B8G8R8_Unorm_Pack32;
 
@@ -392,6 +395,9 @@ namespace sail_format {
         case rhi::Format::eB8G8R8_Unorm: return SailPixelFormat::SAIL_PIXEL_FORMAT_BPP24_BGR;
         case rhi::Format::eR16G16B16_Unorm: return SailPixelFormat::SAIL_PIXEL_FORMAT_BPP48_RGB;
 
+        case rhi::Format::eR8G8B8_Srgb: return SailPixelFormat::SAIL_PIXEL_FORMAT_BPP24_RGB;
+        case rhi::Format::eB8G8R8_Srgb: return SailPixelFormat::SAIL_PIXEL_FORMAT_BPP24_BGR;
+
         // RGBA/X formats. X = unused color channel.
         case rhi::Format::eR4G4B4A4_Unorm_Pack16: return SailPixelFormat::SAIL_PIXEL_FORMAT_BPP16_RGBA;
         case rhi::Format::eB4G4R4A4_Unorm_Pack16: return SailPixelFormat::SAIL_PIXEL_FORMAT_BPP16_BGRA;
@@ -400,6 +406,9 @@ namespace sail_format {
         case rhi::Format::eB8G8R8A8_Unorm: return SailPixelFormat::SAIL_PIXEL_FORMAT_BPP32_BGRA;
         case rhi::Format::eA8B8G8R8_Unorm_Pack32: return SailPixelFormat::SAIL_PIXEL_FORMAT_BPP32_ABGR;
 
+        case rhi::Format::eR8G8B8A8_Srgb: return SailPixelFormat::SAIL_PIXEL_FORMAT_BPP32_RGBA;
+        case rhi::Format::eB8G8R8A8_Srgb: return SailPixelFormat::SAIL_PIXEL_FORMAT_BPP32_BGRA;
+
         case rhi::Format::eR16G16B16A16_Unorm: return SailPixelFormat::SAIL_PIXEL_FORMAT_BPP64_RGBA;
         
         default: SailPixelFormat::SAIL_PIXEL_FORMAT_UNKNOWN;
@@ -407,7 +416,7 @@ namespace sail_format {
         return SailPixelFormat::SAIL_PIXEL_FORMAT_UNKNOWN;
     }
 
-    TextureCreateInfo parseTextureData(std::span<const std::byte> bytes) {
+    TextureCreateInfo parseTextureData(std::span<const std::byte> bytes, const TextureLoadInfo & info) {
         sail::image_input imageInput(bytes.data(), bytes.size());
         sail::image image = imageInput.next_frame();
 
@@ -448,7 +457,7 @@ namespace sail_format {
             .metaInfo = {
                 .size = {image.width(), image.height()},
                 .bytesPerLine = static_cast<uint16_t>(image.bytes_per_line()),
-                .format = convert(image.pixel_format()),
+                .format = convert(image.pixel_format(), info.flags),
                 .bpp = static_cast<uint8_t>(image.bits_per_pixel()),
                 .hasPalette = image.is_indexed(), // image.palette().is_valid(),
                 .parserType = TextureLoaderType::eSail
@@ -457,7 +466,7 @@ namespace sail_format {
         };
     }
 
-    TextureMetaInfo parseTextureMetaInfoOnly(std::span<const std::byte> bytes) {
+    TextureMetaInfo parseTextureMetaInfoOnly(std::span<const std::byte> bytes, const TextureLoadInfo & info) {
         sail::image_input imageInput(bytes.data(), bytes.size());
         auto [image, _] = imageInput.probe();
 
@@ -468,7 +477,7 @@ namespace sail_format {
         return {
             .size = {image.width(), image.height()},
             .bytesPerLine = static_cast<uint16_t>(image.bytes_per_line()),
-            .format = convert(image.pixel_format()),
+            .format = convert(image.pixel_format(), info.flags),
             .bpp = static_cast<uint8_t>(image.bits_per_pixel()),
             .hasPalette = image.palette().is_valid(),
             .parserType = TextureLoaderType::eSail
@@ -520,7 +529,7 @@ namespace sail_format {
         if (result == ktxResult::KTX_SUCCESS) {
             return ktx_format::parseTextureData(textureHandler.texture, info);
         } else if (result == ktxResult::KTX_UNKNOWN_FILE_FORMAT) {
-            return sail_format::parseTextureData(bytes);
+            return sail_format::parseTextureData(bytes, info);
         }
 
         assert(false);
@@ -538,7 +547,7 @@ namespace sail_format {
         if (result == ktxResult::KTX_SUCCESS) {
             return ktx_format::parseTextureMetaInfoOnly(textureHandler.texture, info);
         } else if (result == ktxResult::KTX_UNKNOWN_FILE_FORMAT) {
-            return sail_format::parseTextureMetaInfoOnly(bytes);
+            return sail_format::parseTextureMetaInfoOnly(bytes, info);
         }
 
         assert(false);

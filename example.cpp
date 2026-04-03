@@ -954,8 +954,10 @@ namespace example {
 
         {
             // atlas test
-            auto const imageBytes = _fileManager.readFile("assets/atlases/hero-pma.png");
-            auto textureData = engine::graphics::parseTextureData(imageBytes);
+            const auto imageBytes = _fileManager.readFile("assets/atlases/hero-pma.png");
+            const auto textureData = engine::graphics::parseTextureData(imageBytes, {
+                                .flags = engine::graphics::LoadFlags::eAllowSrgbColorSpace
+                            });
 
             using namespace engine::rhi;
             const auto imageInfo = ImageInfo{
@@ -991,8 +993,11 @@ namespace example {
         if (1) {
             // atlas test2
             // auto const imageBytes = _fileManager.readFile("assets/atlases/fire2.png");
-            auto const imageBytes = _fileManager.readFile("assets/atlases/explosion2.png");
-            auto textureData = engine::graphics::parseTextureData(imageBytes);
+            const auto imageBytes = _fileManager.readFile("assets/atlases/explosion2.png");
+            const auto textureData = engine::graphics::parseTextureData(imageBytes, {
+                                .flags = engine::graphics::LoadFlags::eAllowSrgbColorSpace
+                            }
+                        );
 
             using namespace engine::rhi;
             const auto imageInfo = ImageInfo{
@@ -1619,8 +1624,11 @@ namespace example {
                     gpuTasks.emplace_back(BgThread::GpuTask{[this](engine::rhi::runtime::CommandList & commandList) mutable {
                         //std::this_thread::sleep_for(std::chrono::seconds(5));
     ////
-                        auto const imageBytes = _fileManager.readFile("assets/2.png");
-                        auto textureData = engine::graphics::parseTextureData(imageBytes);
+                        const auto imageBytes = _fileManager.readFile("assets/2.png");
+                        const auto textureData = engine::graphics::parseTextureData(imageBytes, {
+                                .flags = engine::graphics::LoadFlags::eAllowSrgbColorSpace
+                            }
+                        );
 
                         using namespace engine::rhi;
                         const auto imageInfo = ImageInfo{
