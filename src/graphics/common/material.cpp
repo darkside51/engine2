@@ -25,18 +25,21 @@ namespace engine::graphics {
         }
     }
 
-    std::vector<uint32_t> MaterialManager::prepareMaterials(std::string_view name, const models::Layout & layout, TextureManager & textureManager) { // render thread
+    std::vector<uint32_t> MaterialManager::prepareMaterials(
+        std::string_view name, 
+        const models::Layout & layout, 
+        TextureManager & textureManager,
+        std::vector<MaterialTextureLoadingData> & texturesToLoad
+    ) { // render thread
         std::vector<uint32_t> materialsRemap;
         materialsRemap.reserve(layout.materials.size());
 
-        struct MaterialTextureLoadingData {
-            ImageHandler * imageHandler = nullptr;
-            uint16_t materialId = 0u;
-            uint16_t textureIndex = 0u; 
-        };
+        texturesToLoad.reserve(layout.materials.size() * kCommonMaterialTexturesCount);
 
-        std::vector<MaterialTextureLoadingData> texturesToLoad;
-        texturesToLoad.reserve(layout.materials.size() * 5u);
+        const graphics::TextureLoadInfo loadingInfoColor{
+            .flags = graphics::LoadFlags::eAllowSrgbColorSpace
+        };
+        const graphics::TextureLoadInfo loadingInfoCommon{};
 
         uint16_t materialIndex = 0u;
         for (const auto & srcMaterial : layout.materials) {
@@ -76,9 +79,9 @@ namespace engine::graphics {
 
             material.cullMode = srcMaterial.doubleSided ? rhi::CullMode::eNone : rhi::CullMode::eBack;
 
-            const auto getTexture = [&layout, &textureManager, &texturesToLoad, materialIndex](uint16_t index, std::string_view name) -> graphics::ImageHandler* {
+            const auto getTexture = [&layout, &textureManager, &texturesToLoad, materialIndex](graphics::TextureLoadInfo loadingInfo, uint16_t index, std::string_view name) -> graphics::ImageHandler* {
                 if (index == models::kInvalidValue) {
-                    return textureManager.getDefaultImageHandler();
+                    return textureManager.getWhiteImageHandler();
                 }
 
                 const auto & texture = layout.textures[index];
@@ -87,13 +90,13 @@ namespace engine::graphics {
                 if (!image.name.empty()) {
                     const auto & [imageHandler, isNew] = textureManager.addImage(image.name);
                     if (isNew) {
-                        texturesToLoad.emplace_back(imageHandler, materialIndex, index);
+                        texturesToLoad.emplace_back(nullptr, imageHandler, materialIndex, index, loadingInfo);
                     }
                     return imageHandler;
                 } else {
                     const auto & [imageHandler, isNew] = textureManager.addImage(std::string{name} + std::to_string(index));
                     if (isNew) {
-                        texturesToLoad.emplace_back(imageHandler, materialIndex, index);
+                        texturesToLoad.emplace_back(nullptr, imageHandler, materialIndex, index, loadingInfo);
                     }
                     return imageHandler;
                 }
@@ -101,16 +104,62 @@ namespace engine::graphics {
                 return textureManager.getDefaultImageHandler();
             };
 
-            material.textures[static_cast<uint8_t>(PbrTextureId::eBaseColor)] = getTexture(srcMaterial.pbrMetallicRoughness.baseColorTexture.index, name);
-            material.textures[static_cast<uint8_t>(PbrTextureId::eEmissive)] = getTexture(srcMaterial.emissiveTexture.index, name);
-            material.textures[static_cast<uint8_t>(PbrTextureId::eNormal)] = getTexture(srcMaterial.normalTexture.index, name);
-            material.textures[static_cast<uint8_t>(PbrTextureId::eMetallicRoughness)] = getTexture(srcMaterial.pbrMetallicRoughness.metallicRoughnessTexture.index, name);
-            material.textures[static_cast<uint8_t>(PbrTextureId::eOccolusion)] = getTexture(srcMaterial.occlusionTexture.index, name);
+            material.textures[static_cast<uint8_t>(PbrTextureId::eBaseColor)] = getTexture(loadingInfoColor, srcMaterial.pbrMetallicRoughness.baseColorTexture.index, name);
+            material.textures[static_cast<uint8_t>(PbrTextureId::eEmissive)] = getTexture(loadingInfoColor, srcMaterial.emissiveTexture.index, name);
+            material.textures[static_cast<uint8_t>(PbrTextureId::eNormal)] = getTexture(loadingInfoCommon, srcMaterial.normalTexture.index, name);
+            material.textures[static_cast<uint8_t>(PbrTextureId::eMetallicRoughness)] = getTexture(loadingInfoCommon, srcMaterial.pbrMetallicRoughness.metallicRoughnessTexture.index, name);
+            material.textures[static_cast<uint8_t>(PbrTextureId::eOccolusion)] = getTexture(loadingInfoCommon, srcMaterial.occlusionTexture.index, name);
 
             ++materialIndex;
         }
 
         return materialsRemap;
+    }
+
+    void MaterialManager::loadMaterialTextures(
+        const models::Layout & layout, 
+        std::vector<MaterialTextureLoadingData> & texturesToLoad, 
+        const FileManager & fileManager,
+        const TextureManager & textureManager,
+        rhi::runtime::CommandList & commandList
+    ) {
+        for (auto & loadingData : texturesToLoad) {
+            const auto & srcMaterial = layout.materials[loadingData.materialId];
+            const auto & texture = layout.textures[loadingData.textureIndex];
+            const auto & image = layout.images[texture.source];
+
+            TextureCreateInfo textureData;
+            if (image.bufferView != models::kInvalidValue) {
+                const auto & bufferView = layout.bufferViews[image.bufferView];
+                const auto & buffer = layout.buffers[bufferView.buffer];
+                const std::byte * begin = &buffer.data[bufferView.offset];
+                textureData = engine::graphics::parseTextureData({begin, begin + bufferView.length}, loadingData.loadingInfo);
+            } else if (!image.uri.empty()) {
+                textureData = engine::graphics::parseTextureData(fileManager.readFile(image.uri), loadingData.loadingInfo);
+            }
+
+            const auto formatSupport = textureManager.getDevice().isFormatSupported(
+                        textureData.metaInfo.format, 
+                        engine::rhi::FormatFeatureFlags::eFormatFeature_Sampled_Image
+                    );
+            const bool supportLinearTiling = (loadingData.loadingInfo.flags & LoadFlags::eSupportLinearTiling) != LoadFlags::eNone;
+
+            const bool sampledSupport = supportLinearTiling ?
+                                        (
+                                        formatSupport.checkBit(engine::rhi::FormatFeatureAccess::Bit::eOptimalTilingFeaturesBit)
+                                        ||
+                                        formatSupport.checkBit(engine::rhi::FormatFeatureAccess::Bit::eLinearTilingFeaturesBit)
+                                        ):
+                                        formatSupport.checkBit(engine::rhi::FormatFeatureAccess::Bit::eOptimalTilingFeaturesBit);
+
+            if (!sampledSupport) {
+                const bool allowSrgb = (loadingData.loadingInfo.flags & LoadFlags::eAllowSrgbColorSpace) != LoadFlags::eNone;
+                engine::graphics::convertTextureDataFormat(allowSrgb ? engine::rhi::Format::eR8G8B8A8_Srgb : engine::rhi::Format::eR8G8B8A8_Unorm, textureData); // ??
+            }
+
+            loadingData.image = textureManager.generateImage(std::move(textureData), commandList);
+        }
+
     }
 
     std::vector<uint32_t> MaterialManager::loadMaterials(
@@ -184,7 +233,7 @@ namespace engine::graphics {
                     }
                 }
                 if (!image.uri.empty()) {
-                    auto const imageBytes = fileManager.readFile(image.uri);
+                    const auto imageBytes = fileManager.readFile(image.uri);
 
                     if (!image.name.empty()) {
                         return createTexture(image.name, textureManager.getDevice(), imageBytes, loadingInfo);

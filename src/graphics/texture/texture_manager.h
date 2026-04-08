@@ -84,6 +84,11 @@ public:
     std::pair<ImageHandler *, bool> addImage(std::string_view name);
     ImageHandler * getImageHandler(std::string_view name) noexcept; // move it to private
     ImageHandler * getDefaultImageHandler() noexcept { return _images[0u].get(); }
+    ImageHandler * getWhiteImageHandler() noexcept { return _images[1u].get(); }
+    ImageHandler * getBlackImageHandler() noexcept { return _images[2u].get(); }
+    ImageHandler * getTransparentImageHandler() noexcept { return _images[3u].get(); }
+
+    rhi::runtime::ImagePtr generateImage(TextureCreateInfo && info, rhi::runtime::CommandList & commandList) const;
 
 private:
     using ImageFramesMap = std::unordered_map<std::string, ImageFrame2D, hash::String_hash, std::equal_to<>>;

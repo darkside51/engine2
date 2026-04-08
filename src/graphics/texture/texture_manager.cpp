@@ -44,8 +44,11 @@ namespace engine::graphics {
 
 
         auto & handler = _images.emplace_back(rhi::runtime::sh_ptr<engine::graphics::ImageHandler>::make(_defaultImage));
-
         _defaultFrame = {handler.get(), {}};
+
+        _images.emplace_back(rhi::runtime::sh_ptr<engine::graphics::ImageHandler>::make(_whiteImage));
+        _images.emplace_back(rhi::runtime::sh_ptr<engine::graphics::ImageHandler>::make(_blackImage));
+        _images.emplace_back(rhi::runtime::sh_ptr<engine::graphics::ImageHandler>::make(_transparentImage));
 
         constexpr auto stagingSize = sizeof(uint32_t) * 4u + 
                                      sizeof(uint32_t) * 1u + 
@@ -302,6 +305,35 @@ namespace engine::graphics {
         staging.unmap();
 
         _tmpTexturesData.clear();
+    }
+
+    rhi::runtime::ImagePtr TextureManager::generateImage(TextureCreateInfo && textureData, rhi::runtime::CommandList & commandList) const {
+        using namespace rhi;
+        const auto imageInfo = ImageInfo{
+                    ImageUsageFlags::eSampled | ImageUsageFlags::eTransfer_Dst,
+                    textureData.metaInfo.format, {textureData.metaInfo.size.x, textureData.metaInfo.size.y, 1u}
+        };
+
+        auto image = _api.createImage(_device, imageInfo);
+        const auto stagingSize = textureData.data.size();
+        engine::graphics::StagingBuffer staging{_api, _device, stagingSize};
+                    
+        auto * imgData = staging.map();
+        std::memcpy(imgData, textureData.data.data(), stagingSize);
+        staging.flush();
+
+        commandList.copyBuffer2Image(staging.getBuffer(), image, 
+            {
+                .bufferOffset = 0u,
+                .bufferRowLength = 0u,
+                .bufferImageHeight = 0u,
+                .imageSubresource = {.aspectMask = engine::rhi::ImageAspectFlags::eColor},
+                .imageOffset = {0u, 0u, 0u},
+                .imageExtent = image->getExtent()
+            }
+        );
+
+        return image;
     }
 
 }

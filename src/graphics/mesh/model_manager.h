@@ -4,6 +4,7 @@
 #include "common/hash.h"
 #include "gltf_loader.h"
 #include "mesh_data.h"
+#include "graphics/common/material.h"
 #include "graphics/render/rhi/common/runtime.h"
 
 #include <array>
@@ -60,7 +61,7 @@ public:
     models::MeshBuffersData loadModel(uint32_t index, std::string_view name, const models::Layout & layout, 
         std::span<const graphics::models::AttributeSemantic> attributes = kDefaultSemantics);
 
-    void prepareMaterials(std::string_view name, uint32_t index, const models::Layout & layout, TextureManager & textureManager);
+    std::vector<MaterialTextureLoadingData> prepareMaterials(std::string_view name, uint32_t index, const models::Layout & layout, TextureManager & textureManager);
 
     bool removeModel(std::string_view name);
     

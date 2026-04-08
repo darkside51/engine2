@@ -4,7 +4,6 @@
 #include "graphics/render/staging_buffer.h"
 
 #include "graphics/common/graphics_service.h"
-#include "graphics/common/material.h"
 #include "graphics/texture/texture_manager.h"
 
 namespace engine::graphics {
@@ -59,14 +58,16 @@ namespace engine::graphics {
         return buffers;        
     }
 
-    void ModelManager::prepareMaterials(std::string_view name, uint32_t index, const models::Layout & layout, TextureManager & textureManager) {
-        auto materialsRemap = _materialManager.prepareMaterials(name, layout, textureManager);
+    std::vector<MaterialTextureLoadingData> ModelManager::prepareMaterials(std::string_view name, uint32_t index, const models::Layout & layout, TextureManager & textureManager) {
+        std::vector<MaterialTextureLoadingData> texturesToLoad;
+        auto materialsRemap = _materialManager.prepareMaterials(name, layout, textureManager, texturesToLoad);
         auto * meshData = _models[index].first;
         for (auto & mesh : meshData->meshes) {
             for (auto & p : mesh.primitives) {
                 p.material = materialsRemap[p.material];
             }
         }
+        return texturesToLoad;
     }
 
     void ModelManager::setBuffers(uint32_t index, models::MeshBuffersData && buffers) {

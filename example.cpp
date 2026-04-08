@@ -172,6 +172,8 @@ namespace example {
     };
 
     std::optional<BgThread> bgWorker;
+    std::vector<BgThread::GpuTask> gpuTasks;
+    std::vector<BgThread::Task> tasks;
 
     engine::scene::ViewParams viewParams;
 
@@ -728,9 +730,6 @@ namespace example {
         // textureManager resources
         textureManager->createDefaultResources(tmpCommandList);
 
-        std::vector<BgThread::GpuTask> gpuTasks;
-        std::vector<BgThread::Task> tasks;
-
         // // gltf test
         {
 
@@ -756,7 +755,18 @@ namespace example {
 
                 _renderThread->emplaceTasks(stl::make_vector(threads::WorkerTask{[this, modelIdx, buffers = std::move(buffers), modelLayout = std::move(modelLayout)]() mutable {
                     modelManager->setBuffers(modelIdx, std::move(buffers));
-                    modelManager->prepareMaterials("model.glb", modelIdx, modelLayout, *textureManager);
+                    auto texturesToLoad = modelManager->prepareMaterials("model.glb", modelIdx, modelLayout, *textureManager);
+
+                    gpuTasks.emplace_back(BgThread::GpuTask{[this, texturesToLoad = std::move(texturesToLoad), modelLayout = std::move(modelLayout)](engine::rhi::runtime::CommandList & commandList) mutable {
+                        materialManager.loadMaterialTextures(modelLayout, texturesToLoad, _fileManager, *textureManager, commandList);
+
+                        _renderThread->emplaceTasks(stl::make_vector(threads::WorkerTask{
+                                [texturesToLoad = std::move(texturesToLoad)]() {
+                                    for (auto & t : texturesToLoad) {
+                                        t.imageHandler->image = t.image;
+                                    }
+                        }}));
+                    }});
 
                     const auto & modelData = modelManager->getModelData(modelIdx);
                     uint8_t i = 0u;
@@ -809,7 +819,18 @@ namespace example {
 
                 _renderThread->emplaceTasks(stl::make_vector(threads::WorkerTask{[this, modelIdx, buffers = std::move(buffers), modelLayout = std::move(modelLayout)]() mutable {
                     modelManager->setBuffers(modelIdx, std::move(buffers));
-                    modelManager->prepareMaterials("scene.gltf", modelIdx, modelLayout, *textureManager);
+                    auto texturesToLoad = modelManager->prepareMaterials("scene.gltf", modelIdx, modelLayout, *textureManager);
+
+                    gpuTasks.emplace_back(BgThread::GpuTask{[this, texturesToLoad = std::move(texturesToLoad), modelLayout = std::move(modelLayout)](engine::rhi::runtime::CommandList & commandList) mutable {
+                        materialManager.loadMaterialTextures(modelLayout, texturesToLoad, _fileManager, *textureManager, commandList);
+
+                        _renderThread->emplaceTasks(stl::make_vector(threads::WorkerTask{
+                                [texturesToLoad = std::move(texturesToLoad)]() {
+                                    for (auto & t : texturesToLoad) {
+                                        t.imageHandler->image = t.image;
+                                    }
+                        }}));
+                    }});
                 }}));
             }});
         }
@@ -840,7 +861,18 @@ namespace example {
 
                 _renderThread->emplaceTasks(stl::make_vector(threads::WorkerTask{[this, modelIdx, buffers = std::move(buffers), modelLayout = std::move(modelLayout)]() mutable {
                     modelManager->setBuffers(modelIdx, std::move(buffers));
-                    modelManager->prepareMaterials("wheel.glb", modelIdx, modelLayout, *textureManager);
+                    auto texturesToLoad = modelManager->prepareMaterials("wheel.glb", modelIdx, modelLayout, *textureManager);
+
+                    gpuTasks.emplace_back(BgThread::GpuTask{[this, texturesToLoad = std::move(texturesToLoad), modelLayout = std::move(modelLayout)](engine::rhi::runtime::CommandList & commandList) mutable {
+                        materialManager.loadMaterialTextures(modelLayout, texturesToLoad, _fileManager, *textureManager, commandList);
+
+                        _renderThread->emplaceTasks(stl::make_vector(threads::WorkerTask{
+                                [texturesToLoad = std::move(texturesToLoad)]() {
+                                    for (auto & t : texturesToLoad) {
+                                        t.imageHandler->image = t.image;
+                                    }
+                        }}));
+                    }});
 
                     const auto & modelData = modelManager->getModelData(modelIdx);
                     uint8_t i = 0u;
@@ -899,7 +931,18 @@ namespace example {
 
                 _renderThread->emplaceTasks(stl::make_vector(threads::WorkerTask{[this, modelIdx, buffers = std::move(buffers), modelLayout = std::move(modelLayout)]() mutable {
                     modelManager->setBuffers(modelIdx, std::move(buffers));
-                    modelManager->prepareMaterials("buster_drone.glb", modelIdx, modelLayout, *textureManager);
+                    auto texturesToLoad = modelManager->prepareMaterials("buster_drone.glb", modelIdx, modelLayout, *textureManager);
+
+                    gpuTasks.emplace_back(BgThread::GpuTask{[this, texturesToLoad = std::move(texturesToLoad), modelLayout = std::move(modelLayout)](engine::rhi::runtime::CommandList & commandList) mutable {
+                        materialManager.loadMaterialTextures(modelLayout, texturesToLoad, _fileManager, *textureManager, commandList);
+
+                        _renderThread->emplaceTasks(stl::make_vector(threads::WorkerTask{
+                                [texturesToLoad = std::move(texturesToLoad)]() {
+                                    for (auto & t : texturesToLoad) {
+                                        t.imageHandler->image = t.image;
+                                    }
+                        }}));
+                    }});
 
                     const auto & modelData = modelManager->getModelData(modelIdx);
                     uint8_t i = 0u;
@@ -936,7 +979,18 @@ namespace example {
 
                 _renderThread->emplaceTasks(stl::make_vector(threads::WorkerTask{[this, modelIdx, buffers = std::move(buffers), modelLayout = std::move(modelLayout)]() mutable {
                     modelManager->setBuffers(modelIdx, std::move(buffers));
-                    modelManager->prepareMaterials("chaman.gltf", modelIdx, modelLayout, *textureManager);
+                    auto texturesToLoad = modelManager->prepareMaterials("chaman.gltf", modelIdx, modelLayout, *textureManager);
+
+                    gpuTasks.emplace_back(BgThread::GpuTask{[this, texturesToLoad = std::move(texturesToLoad), modelLayout = std::move(modelLayout)](engine::rhi::runtime::CommandList & commandList) mutable {
+                        materialManager.loadMaterialTextures(modelLayout, texturesToLoad, _fileManager, *textureManager, commandList);
+
+                        _renderThread->emplaceTasks(stl::make_vector(threads::WorkerTask{
+                                [texturesToLoad = std::move(texturesToLoad)]() {
+                                    for (auto & t : texturesToLoad) {
+                                        t.imageHandler->image = t.image;
+                                    }
+                        }}));
+                    }});
 
                     const auto & modelData = modelManager->getModelData(modelIdx);
                     uint8_t i = 0u;
@@ -1627,6 +1681,20 @@ namespace example {
 
                 if (isNew) {
                     gpuTasks.emplace_back(BgThread::GpuTask{[this](engine::rhi::runtime::CommandList & commandList) mutable {
+
+
+                    {
+                        const auto imageBytes = _fileManager.readFile("assets/output2.ktx2");
+                        const auto textureData = engine::graphics::parseTextureData(imageBytes, {});
+                        
+                        const auto formatSupport = _device->isFormatSupported(
+                            textureData.metaInfo.format, 
+                            engine::rhi::FormatFeatureFlags::eFormatFeature_Sampled_Image
+                        );
+                        int a = 0;
+                    }
+
+
                         //std::this_thread::sleep_for(std::chrono::seconds(5));
     ////
                         const auto imageBytes = _fileManager.readFile("assets/2.png");
@@ -1873,6 +1941,14 @@ namespace example {
 
     void Example::draw(threads::ExecutionTimePoint now, float delta) {
         using namespace engine;
+
+        if (!tasks.empty()) {
+            bgWorker->execute(std::move(tasks));
+        }
+        if (!gpuTasks.empty()) {
+            bgWorker->submit(std::move(gpuTasks), _renderQueue);
+        }
+
         if (_commandLists.empty()) {
             return;
         }
