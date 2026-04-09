@@ -126,12 +126,13 @@ namespace example {
             tasks.clear();
         }
 
-        void submit(std::vector<GpuTask> && gpuTasks, engine::rhi::runtime::QueuePtr & queue) {
+        template<typename T>
+        void submit(std::vector<GpuTask> && gpuTasks, T && f) {
             if (gpuTasks.empty()) {
                 return;
             }
 
-            _worker.emplaceTasks(stl::make_vector(threads::WorkerTask{[this, &queue, tasks = std::move(gpuTasks)]() mutable {
+            _worker.emplaceTasks(stl::make_vector(threads::WorkerTask{[this, f = std::move(f), tasks = std::move(gpuTasks)]() mutable {
                 auto & commandList = *_commandList;
                     for (auto & task : tasks) {
                         task(commandList);
@@ -140,17 +141,22 @@ namespace example {
                     commandList.end();
                     commandList.record(0u);
 
-                    auto lists = std::array{_commandList.get()};
-                    bool const submitted = queue->submit(0u, std::array{
-                        engine::rhi::runtime::Queue::SubmitInfo {
-                            .w8Semaphores = {},
-                            .w8DstStages = {},
-                            .signalSemaphores = {},
-                            .lists = lists
-                        }
-                    }, _fence);
+                    f(std::move(_commandList), _fence);
 
-                    w8();
+                    // auto lists = std::array{_commandList.get()};
+                    // bool const submitted = queue->submit(0u, std::array{
+                    //     engine::rhi::runtime::Queue::SubmitInfo {
+                    //         .w8Semaphores = {},
+                    //         .w8DstStages = {},
+                    //         .signalSemaphores = {},
+                    //         .lists = lists
+                    //     }
+                    // }, _fence);
+
+                    //w8();
+                    auto * commandPool = _device->acquireCommandPool(engine::rhi::queue_flags::transfrer);
+                    _commandList = _api->createCommandList(commandPool, engine::rhi::CommandBufferLevel::ePrimary);
+                    _commandList->begin(engine::rhi::CommandBufferUsageFlags::eOne_Time_Submit);
             }}));
             gpuTasks.clear();
         }
@@ -1681,21 +1687,17 @@ namespace example {
 
                 if (isNew) {
                     gpuTasks.emplace_back(BgThread::GpuTask{[this](engine::rhi::runtime::CommandList & commandList) mutable {
-
-
-                    {
-                        const auto imageBytes = _fileManager.readFile("assets/output2.ktx2");
-                        const auto textureData = engine::graphics::parseTextureData(imageBytes, {});
+                    // {
+                    //     const auto imageBytes = _fileManager.readFile("assets/output2.ktx2");
+                    //     const auto textureData = engine::graphics::parseTextureData(imageBytes, {});
                         
-                        const auto formatSupport = _device->isFormatSupported(
-                            textureData.metaInfo.format, 
-                            engine::rhi::FormatFeatureFlags::eFormatFeature_Sampled_Image
-                        );
-                        int a = 0;
-                    }
+                    //     const auto formatSupport = _device->isFormatSupported(
+                    //         textureData.metaInfo.format, 
+                    //         engine::rhi::FormatFeatureFlags::eFormatFeature_Sampled_Image
+                    //     );
+                    //     int a = 0;
+                    // }
 
-
-                        //std::this_thread::sleep_for(std::chrono::seconds(5));
     ////
                         const auto imageBytes = _fileManager.readFile("assets/2.png");
                         const auto textureData = engine::graphics::parseTextureData(imageBytes, {
@@ -1704,6 +1706,19 @@ namespace example {
                         );
 
                         using namespace engine::rhi;
+                        const uint8_t mipLevels = static_cast<uint8_t>(
+                            std::floor(
+                                std::log2(std::max(textureData.metaInfo.size.x, textureData.metaInfo.size.y))
+                            )
+                        ) + 1u;
+
+                        // const auto imageInfo = ImageInfo{
+                        //     ImageUsageFlags::eSampled | ImageUsageFlags::eTransfer_Src | ImageUsageFlags::eTransfer_Dst,
+                        //     textureData.metaInfo.format, 
+                        //     {textureData.metaInfo.size.x, textureData.metaInfo.size.y, 1u},
+                        //     ImageAspectFlags::eColor, ImageType::eType_2D, mipLevels
+                        // };
+
                         const auto imageInfo = ImageInfo{
                             ImageUsageFlags::eSampled | ImageUsageFlags::eTransfer_Dst,
                             textureData.metaInfo.format, {textureData.metaInfo.size.x, textureData.metaInfo.size.y, 1u}
@@ -1727,6 +1742,45 @@ namespace example {
                                 .imageExtent = image->getExtent()
                             }
                         );
+
+                        //// mipmaps
+                        // auto mipWidth = static_cast<int32_t>(textureData.metaInfo.size.x);
+		                // auto mipHeight = static_cast<int32_t>(textureData.metaInfo.size.y);
+                        // std::array<ImageBlit, 8u> regions;
+                        // ImageBlit & region = regions[0u];
+
+                        // for (uint32_t i = 1; i < mipLevels; ++i) {
+                        //     region.srcOffsets[0u] = { 0, 0, 0 };
+                        //     region.srcOffsets[1u] = { mipWidth, mipHeight, 1};
+                        //     region.srcSubresource = ImageSubresourceLayers{
+                        //         .aspectMask = ImageAspectFlags::eColor,
+                        //         .mipLevel = i - 1,
+                        //         .baseArrayLayer = 0u,
+                        //         .layerCount = 1u,
+                        //     };
+
+                        //     region.dstOffsets[0u] = { 0, 0, 0 };
+                        //     region.dstOffsets[1u] = { mipWidth > 1 ? mipWidth >> 1 : 1, mipHeight > 1 ? mipHeight >> 1 : 1, 1 };
+                        //     region.dstSubresource = ImageSubresourceLayers{
+                        //         .aspectMask = ImageAspectFlags::eColor,
+                        //         .mipLevel = i,
+                        //         .baseArrayLayer = 0u,
+                        //         .layerCount = 1u,
+                        //     };
+
+                        //     BlitImageInfo blitInfo {
+                        //         .dstImageLayout = ImageLayout::eTransfer_Dst_Optimal,
+                        //         .regions = regions,
+                        //         .regionsCount = 1u,
+                        //         .filter = FilterMode::eLinear
+                        //     };
+
+                        //     //commandList.blitImage(image, image, blitInfo);
+
+                        //     if (mipWidth > 1) mipWidth = mipWidth >> 1;
+			            //     if (mipHeight > 1) mipHeight = mipHeight >> 1;
+                        // }
+                        //// mipmaps
     ////
                         _renderThread->emplaceTasks(stl::make_vector(threads::WorkerTask{
                             [image = std::move(image)]() {
@@ -1747,7 +1801,7 @@ namespace example {
         }
 
         bgWorker->execute(std::move(tasks));
-        bgWorker->submit(std::move(gpuTasks), _renderQueue);
+        // bgWorker->submit(std::move(gpuTasks), _renderQueue);
         // bgWorker->execute(std::move(tasks));
     }
 
@@ -1945,8 +1999,35 @@ namespace example {
         if (!tasks.empty()) {
             bgWorker->execute(std::move(tasks));
         }
+        // if (!gpuTasks.empty()) {
+        //     bgWorker->submit(std::move(gpuTasks), _renderQueue);
+        // }
+
+
         if (!gpuTasks.empty()) {
-            bgWorker->submit(std::move(gpuTasks), _renderQueue);
+            // bgWorker->submit(std::move(gpuTasks), _renderQueue);
+
+            bgWorker->submit(std::move(gpuTasks), [this](engine::rhi::runtime::CommandListPtr && commandList, engine::rhi::runtime::Fence fence) {
+                _renderThread->emplaceTasks(stl::make_vector(threads::WorkerTask{[
+                    this,
+                    commandList = std::move(commandList), 
+                    fence
+                ](){
+                    // _externalCommandLists.emplace_back(std::move(commandList));
+                    auto lists = std::array{commandList.get()};
+                    bool const submitted = _renderQueue->submit(0u, std::array{
+                            engine::rhi::runtime::Queue::SubmitInfo {
+                                .w8Semaphores = {},
+                                .w8DstStages = {},
+                                .signalSemaphores = {},
+                                .lists = lists
+                            }
+                        }, fence);
+
+                        _api->waitFence(*_device, fence, UINT64_MAX); // need no wait
+                        _api->resetFence(*_device, fence);
+                }}));
+            });
         }
 
         if (_commandLists.empty()) {
@@ -2327,6 +2408,22 @@ namespace example {
 
         auto transferLists = std::array{transferCommandList.get()};
         auto lists = std::array{commandList.get()};
+
+        // if (!gpuTasks.empty()) {
+        //     bgWorker->submit(std::move(gpuTasks), [this](engine::rhi::runtime::CommandListPtr && commandList, engine::rhi::runtime::Fence fence) {
+        //         _api->waitFence(*_device, fence, UINT64_MAX);
+        //         _api->resetFence(*_device, fence);
+        //         auto lists = std::array{commandList.get()};
+        //         bool const submitted = _renderQueue->submit(0u, std::array{
+        //                 engine::rhi::runtime::Queue::SubmitInfo {
+        //                     .w8Semaphores = {},
+        //                     .w8DstStages = {},
+        //                     .signalSemaphores = {},
+        //                     .lists = lists
+        //                 }
+        //             }, fence);
+        //     });
+        // }
 
         bool const submitted = _renderQueue->submit(frameId, std::array{
             engine::rhi::runtime::Queue::SubmitInfo {
