@@ -116,7 +116,7 @@ namespace engine::graphics {
         return materialsRemap;
     }
 
-    void MaterialManager::loadMaterialTextures(
+    void MaterialManager::createMaterialTextures(
         const models::Layout & layout, 
         std::vector<MaterialTextureLoadingData> & texturesToLoad, 
         const FileManager & fileManager,

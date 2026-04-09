@@ -61,7 +61,7 @@ public:
     std::vector<uint32_t> prepareMaterials(std::string_view name, const models::Layout & layout, 
         TextureManager & textureManager, std::vector<MaterialTextureLoadingData> & texturesToLoad);
 
-    void loadMaterialTextures(const models::Layout & layout, std::vector<MaterialTextureLoadingData> & texturesToLoad, 
+    void createMaterialTextures(const models::Layout & layout, std::vector<MaterialTextureLoadingData> & texturesToLoad, 
         const FileManager & fileManager, const TextureManager & textureManager, rhi::runtime::CommandList & commandList);
 
     std::vector<uint32_t> loadMaterials(std::string_view name, const models::Layout & layout, const FileManager & fileManager, TextureManager & textureManager);

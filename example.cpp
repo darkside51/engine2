@@ -758,7 +758,7 @@ namespace example {
                     auto texturesToLoad = modelManager->prepareMaterials("model.glb", modelIdx, modelLayout, *textureManager);
 
                     gpuTasks.emplace_back(BgThread::GpuTask{[this, texturesToLoad = std::move(texturesToLoad), modelLayout = std::move(modelLayout)](engine::rhi::runtime::CommandList & commandList) mutable {
-                        materialManager.loadMaterialTextures(modelLayout, texturesToLoad, _fileManager, *textureManager, commandList);
+                        materialManager.createMaterialTextures(modelLayout, texturesToLoad, _fileManager, *textureManager, commandList);
 
                         _renderThread->emplaceTasks(stl::make_vector(threads::WorkerTask{
                                 [texturesToLoad = std::move(texturesToLoad)]() {
@@ -822,7 +822,7 @@ namespace example {
                     auto texturesToLoad = modelManager->prepareMaterials("scene.gltf", modelIdx, modelLayout, *textureManager);
 
                     gpuTasks.emplace_back(BgThread::GpuTask{[this, texturesToLoad = std::move(texturesToLoad), modelLayout = std::move(modelLayout)](engine::rhi::runtime::CommandList & commandList) mutable {
-                        materialManager.loadMaterialTextures(modelLayout, texturesToLoad, _fileManager, *textureManager, commandList);
+                        materialManager.createMaterialTextures(modelLayout, texturesToLoad, _fileManager, *textureManager, commandList);
 
                         _renderThread->emplaceTasks(stl::make_vector(threads::WorkerTask{
                                 [texturesToLoad = std::move(texturesToLoad)]() {
@@ -864,7 +864,7 @@ namespace example {
                     auto texturesToLoad = modelManager->prepareMaterials("wheel.glb", modelIdx, modelLayout, *textureManager);
 
                     gpuTasks.emplace_back(BgThread::GpuTask{[this, texturesToLoad = std::move(texturesToLoad), modelLayout = std::move(modelLayout)](engine::rhi::runtime::CommandList & commandList) mutable {
-                        materialManager.loadMaterialTextures(modelLayout, texturesToLoad, _fileManager, *textureManager, commandList);
+                        materialManager.createMaterialTextures(modelLayout, texturesToLoad, _fileManager, *textureManager, commandList);
 
                         _renderThread->emplaceTasks(stl::make_vector(threads::WorkerTask{
                                 [texturesToLoad = std::move(texturesToLoad)]() {
@@ -934,7 +934,7 @@ namespace example {
                     auto texturesToLoad = modelManager->prepareMaterials("buster_drone.glb", modelIdx, modelLayout, *textureManager);
 
                     gpuTasks.emplace_back(BgThread::GpuTask{[this, texturesToLoad = std::move(texturesToLoad), modelLayout = std::move(modelLayout)](engine::rhi::runtime::CommandList & commandList) mutable {
-                        materialManager.loadMaterialTextures(modelLayout, texturesToLoad, _fileManager, *textureManager, commandList);
+                        materialManager.createMaterialTextures(modelLayout, texturesToLoad, _fileManager, *textureManager, commandList);
 
                         _renderThread->emplaceTasks(stl::make_vector(threads::WorkerTask{
                                 [texturesToLoad = std::move(texturesToLoad)]() {
@@ -982,7 +982,7 @@ namespace example {
                     auto texturesToLoad = modelManager->prepareMaterials("chaman.gltf", modelIdx, modelLayout, *textureManager);
 
                     gpuTasks.emplace_back(BgThread::GpuTask{[this, texturesToLoad = std::move(texturesToLoad), modelLayout = std::move(modelLayout)](engine::rhi::runtime::CommandList & commandList) mutable {
-                        materialManager.loadMaterialTextures(modelLayout, texturesToLoad, _fileManager, *textureManager, commandList);
+                        materialManager.createMaterialTextures(modelLayout, texturesToLoad, _fileManager, *textureManager, commandList);
 
                         _renderThread->emplaceTasks(stl::make_vector(threads::WorkerTask{
                                 [texturesToLoad = std::move(texturesToLoad)]() {
