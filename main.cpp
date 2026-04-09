@@ -7,7 +7,11 @@
 #include "example.h"
 #include "utils/json.h"
 
+#include <sail-c++/sail-c++.h>
+
 int main() {
+    sail::log::set_barrier(SAIL_LOG_LEVEL_WARNING);
+
     engine::GLFWModule glfwModule;
     #ifdef DEBUG
     auto & window0 = glfwModule.createWindow("vulkan_debug", 1024u, 768u);
