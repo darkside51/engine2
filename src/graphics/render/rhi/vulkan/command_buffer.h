@@ -80,6 +80,7 @@ namespace engine::vulkan {
         void updateBuffer(const Buffer & dst, uint32_t dstOffset, uint32_t dataSize, const void* pData) const noexcept;
         void copyBuffer2Buffer(const Buffer & src, const Buffer & dst, std::span<VkBufferCopy> copyInfo) const noexcept;
         void copyBuffer2Image(const Buffer & src, const Image & dst, std::span<VkBufferImageCopy> copyInfo) const noexcept;
+        void blitImage(const Image & src, const Image & dst, VkImageLayout srcImageLayout, VkImageLayout dstImageLayout, std::span<VkImageBlit> info, VkFilter filter) const noexcept;
 
         static SubmitSyncInfo createSubmitSyncInfo(
             std::span<const VkPipelineStageFlags> waitStages,

@@ -638,11 +638,30 @@ namespace engine::vulkan::runtime {
                 }
 
                 const auto * command = static_cast<BlitImageCommand*>(cmd);
-                // std::array blitInfos{utils::convert2vk(command->info)}; // todo!
-
+                const auto & blitInfo = command->info;
+   
                 const auto & vkSrcImage = *static_cast<const Image*>(command->src);
-                const auto & vkDstImage = *static_cast<const Image*>(command->dst);
-                // _commandbuffer.blitImage(vkSrcImage, vkDstImage, blitInfos); // todo!
+                auto & vkDstImage = *static_cast<Image*>(command->dst);
+
+                const auto srcLayout = vkSrcImage.getLayout(0u, 0u);
+                const auto dstLayout = utils::convert2vk(blitInfo.dstImageLayout);
+
+                std::array<VkImageBlit, 8u> info;
+                for (uint8_t i = 0u; i < blitInfo.regionsCount; ++i) {
+                    info[i].srcOffsets[0u] = utils::convert2vk(blitInfo.regions[i].srcOffsets[0u]);
+                    info[i].srcOffsets[1u] = utils::convert2vk(blitInfo.regions[i].srcOffsets[1u]);
+                    info[i].srcSubresource = utils::convert2vk(blitInfo.regions[i].srcSubresource);
+
+                    info[i].dstOffsets[0u] = utils::convert2vk(blitInfo.regions[i].dstOffsets[0u]);
+                    info[i].dstOffsets[1u] = utils::convert2vk(blitInfo.regions[i].dstOffsets[1u]);
+                    info[i].dstSubresource = utils::convert2vk(blitInfo.regions[i].dstSubresource);
+                }
+
+                _commandbuffer.blitImage(vkSrcImage, vkDstImage, srcLayout, dstLayout, 
+                    {info.begin(), info.begin() + blitInfo.regionsCount}, 
+                    utils::convert2vk(blitInfo.filter));
+
+                vkDstImage.assignLayout(dstLayout, 0u, 0u); // assign layout after blit
             } 
                 break;
             case CommandType::ePipelineBarriers:

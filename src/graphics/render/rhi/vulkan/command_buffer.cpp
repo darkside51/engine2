@@ -111,6 +111,10 @@ namespace engine::vulkan {
         vkCmdCopyBufferToImage(_commandBuffer, src(), dst(), baseLayout, copyInfo.size(), copyInfo.data());
     }
 
+    void CommandBuffer::blitImage(const Image & src, const Image & dst, VkImageLayout srcImageLayout, VkImageLayout dstImageLayout, std::span<VkImageBlit> info, VkFilter filter) const noexcept {
+        vkCmdBlitImage(_commandBuffer, src(), srcImageLayout, dst(), dstImageLayout, info.size(), info.data(), filter);
+    }
+
     void CommandBuffer::bindPipeline(Pipeline const & pipeline) noexcept {
         if (_pipeline.pipeline != pipeline.pipeline) {
             const auto vkBindPoint = utils::convert2vk(pipeline.bindPoint);
