@@ -330,7 +330,7 @@ namespace engine::rhi::runtime {
             _currentPass = &_passes.emplace_back(Pass::Type::eTransfer, _commandsCount);
         }
 
-        _currentPass->images.emplace_back(src.get(), ImageUsageFlags::eTransfer_Src, _pipelineType); // ...
+        //_currentPass->images.emplace_back(src.get(), ImageUsageFlags::eTransfer_Src, _pipelineType); // ...
         ++_commandsCount;
     }
 

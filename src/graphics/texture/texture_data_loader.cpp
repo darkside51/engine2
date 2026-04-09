@@ -13,8 +13,8 @@
 
 namespace engine::graphics {
 namespace ktx_format {
-    rhi::Format convert(VkFormat format, LoadFlags flags) noexcept {
-        const bool allowSrgb = (flags & LoadFlags::eAllowSrgbColorSpace) != LoadFlags::eNone;
+    rhi::Format convert(VkFormat format, TextureFlags flags) noexcept {
+        const bool allowSrgb = (flags & TextureFlags::eAllowSrgbColorSpace) != TextureFlags::eNone;
 
         switch (format) {
             case VK_FORMAT_UNDEFINED: return rhi::Format::eUndefined;
@@ -219,7 +219,7 @@ namespace ktx_format {
         return rhi::Format::eUndefined;
     }
 
-    inline rhi::Format getFormat(ktxTexture * texture, LoadFlags flags) noexcept {
+    inline rhi::Format getFormat(ktxTexture * texture, TextureFlags flags) noexcept {
         switch (texture->classId) {
             case class_id::ktxTexture2_c: {
                 auto * texture2 = reinterpret_cast<ktxTexture2*>(texture);
@@ -264,7 +264,8 @@ namespace ktx_format {
                             .format = getFormat(reinterpret_cast<ktxTexture*>(texture2), info.flags),
                             .bpp = 0u,
                             .hasPalette = (texture2->_protected->_formatSize.flags & ktxFormatSizeFlagBits::KTX_FORMAT_SIZE_PALETTIZED_BIT) != 0,
-                            .parserType = TextureLoaderType::eKtx
+                            .parserType = TextureLoaderType::eKtx,
+                            .flags = info.flags
                         },
                         .data = {data.begin(), data.end()}
                     };
@@ -289,7 +290,8 @@ namespace ktx_format {
                     .format = getFormat(texture, info.flags),
                     .bpp = 0u,
                     .hasPalette = (texture->_protected->_formatSize.flags & ktxFormatSizeFlagBits::KTX_FORMAT_SIZE_PALETTIZED_BIT) != 0,
-                    .parserType = TextureLoaderType::eKtx
+                    .parserType = TextureLoaderType::eKtx,
+                    .flags = info.flags
                 },
                 .data = {data.begin(), data.end()}
             };
@@ -303,14 +305,15 @@ namespace ktx_format {
             .format = getFormat(texture, info.flags),
             .bpp = 0,
             .hasPalette = (texture->_protected->_formatSize.flags & ktxFormatSizeFlagBits::KTX_FORMAT_SIZE_PALETTIZED_BIT) != 0,
-            .parserType = TextureLoaderType::eKtx
+            .parserType = TextureLoaderType::eKtx,
+            .flags = info.flags
         };
     }
 }
 
 namespace sail_format {
-    rhi::Format convert(SailPixelFormat format, LoadFlags flags) noexcept {
-        const bool allowSrgb = (flags & LoadFlags::eAllowSrgbColorSpace) != LoadFlags::eNone;
+    rhi::Format convert(SailPixelFormat format, TextureFlags flags) noexcept {
+        const bool allowSrgb = (flags & TextureFlags::eAllowSrgbColorSpace) != TextureFlags::eNone;
 
         switch (format) {
         // Indexed formats.
@@ -440,7 +443,8 @@ namespace sail_format {
 //                 .format = convert(image.pixel_format()),
 //                 .bpp = static_cast<uint8_t>(image.bits_per_pixel()),
 //                 .hasPalette = image.palette().is_valid(),
-//                 .parserType = TextureLoaderType::eSail
+//                 .parserType = TextureLoaderType::eSail,
+//                 .flags = info.flags
 //             },
 //             .data = {data.begin(), data.end()}
 //         };
@@ -460,7 +464,8 @@ namespace sail_format {
                 .format = convert(image.pixel_format(), info.flags),
                 .bpp = static_cast<uint8_t>(image.bits_per_pixel()),
                 .hasPalette = image.is_indexed(), // image.palette().is_valid(),
-                .parserType = TextureLoaderType::eSail
+                .parserType = TextureLoaderType::eSail,
+                .flags = info.flags
             },
             .data = {data.begin(), data.end()}
         };
@@ -480,7 +485,8 @@ namespace sail_format {
             .format = convert(image.pixel_format(), info.flags),
             .bpp = static_cast<uint8_t>(image.bits_per_pixel()),
             .hasPalette = image.palette().is_valid(),
-            .parserType = TextureLoaderType::eSail
+            .parserType = TextureLoaderType::eSail,
+            .flags = info.flags
         };
     }
 
@@ -518,6 +524,7 @@ namespace sail_format {
     };
 
     TextureCreateInfo parseTextureData(std::span<const std::byte> bytes, const TextureLoadInfo & info) {
+        sail::log::set_barrier(SAIL_LOG_LEVEL_WARNING);
 		KtxTextureHandler textureHandler;
         // if data is no ktx - no load data, only check header, it is correct!
         const auto flags = ktxTextureCreateFlagBits::KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT |

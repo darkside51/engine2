@@ -64,7 +64,7 @@ namespace engine::vulkan {
     }
 
     VkResult Queue::flushCommandBuffers(std::span<const VkCommandBuffer> commandBuffers, VkFence extenalFence) noexcept {
-        auto fence = (extenalFence == VK_NULL_HANDLE ? _device.createFence(engine::rhi::FenceCreateFlags::eNone) : extenalFence);
+        auto fence = (extenalFence == VK_NULL_HANDLE ? _device.createFence(engine::rhi::FenceCreateFlags::eUnsignaled) : extenalFence);
 
         const std::array submitInfos = {
             submitInfo(commandBuffers, {

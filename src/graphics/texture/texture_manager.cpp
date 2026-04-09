@@ -309,10 +309,29 @@ namespace engine::graphics {
 
     rhi::runtime::ImagePtr TextureManager::generateImage(TextureCreateInfo && textureData, rhi::runtime::CommandList & commandList) const {
         using namespace rhi;
+
+        bool useMipMaps = (textureData.metaInfo.flags & TextureFlags::eGenerateMipMaps) != TextureFlags::eNone;
+
+        uint8_t mipLevels = 1u;
+        if (useMipMaps) {
+            mipLevels = static_cast<uint8_t>(
+                            std::floor(
+                                std::log2(std::max(textureData.metaInfo.size.x, textureData.metaInfo.size.y))
+                            )
+                        ) + 1u;
+            useMipMaps = mipLevels > 1u;
+        }
+
+        const ImageUsageFlags usage = useMipMaps ? 
+                                      ImageUsageFlags::eSampled | ImageUsageFlags::eTransfer_Src | ImageUsageFlags::eTransfer_Dst : 
+                                      ImageUsageFlags::eSampled | ImageUsageFlags::eTransfer_Dst;
+
         const auto imageInfo = ImageInfo{
-                    ImageUsageFlags::eSampled | ImageUsageFlags::eTransfer_Dst,
-                    textureData.metaInfo.format, {textureData.metaInfo.size.x, textureData.metaInfo.size.y, textureData.metaInfo.size.z}
-        };
+                            usage,
+                            textureData.metaInfo.format, 
+                            {textureData.metaInfo.size.x, textureData.metaInfo.size.y, textureData.metaInfo.size.z},
+                            ImageAspectFlags::eColor, ImageType::eType_2D, mipLevels
+                        };
 
         auto image = _api.createImage(_device, imageInfo);
         const auto stagingSize = textureData.data.size();
@@ -332,6 +351,47 @@ namespace engine::graphics {
                 .imageExtent = image->getExtent()
             }
         );
+
+        if (useMipMaps) {
+            auto mipWidth = static_cast<int32_t>(textureData.metaInfo.size.x);
+            auto mipHeight = static_cast<int32_t>(textureData.metaInfo.size.y);
+
+            std::array<ImageBlit, 8u> regions;
+            ImageBlit & region = regions[0u];
+
+            for (uint32_t i = 1u; i < mipLevels; ++i) {
+                region.srcOffsets[0u] = { 0, 0, 0 };
+                region.srcOffsets[1u] = { mipWidth, mipHeight, 1};
+                region.srcSubresource = ImageSubresourceLayers{
+                    .aspectMask = ImageAspectFlags::eColor,
+                    .mipLevel = i - 1u,
+                    .baseArrayLayer = 0u,
+                    .layerCount = 1u,
+                };
+
+                region.dstOffsets[0u] = { 0, 0, 0 };
+                region.dstOffsets[1u] = { mipWidth > 1 ? mipWidth >> 1 : 1, mipHeight > 1 ? mipHeight >> 1 : 1, 1 };
+                region.dstSubresource = ImageSubresourceLayers{
+                    .aspectMask = ImageAspectFlags::eColor,
+                    .mipLevel = i,
+                    .baseArrayLayer = 0u,
+                    .layerCount = 1u,
+                };
+
+                BlitImageInfo blitInfo {
+                    .srcImageLayout = ImageLayout::eTransfer_Src_Optimal,
+                    .dstImageLayout = ImageLayout::eTransfer_Dst_Optimal,
+                    .regions = regions,
+                    .regionsCount = 1u,
+                    .filter = FilterMode::eLinear
+                };
+
+                commandList.blitImage(image, image, blitInfo);
+
+                if (mipWidth > 1) mipWidth = mipWidth >> 1;
+                if (mipHeight > 1) mipHeight = mipHeight >> 1;
+            }
+        }
 
         return image;
     }

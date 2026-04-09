@@ -98,7 +98,8 @@ namespace example {
 
             _worker.run();
             _worker.emplaceTasks(stl::make_vector(threads::WorkerTask{[this]() mutable {
-                _fence = _api->createFence(*_device, engine::rhi::FenceCreateFlags::eNone);
+                // _fence = _api->createFence(*_device, engine::rhi::FenceCreateFlags::eSignaled);
+                _fence = _api->createFence(*_device, engine::rhi::FenceCreateFlags::eUnsignaled);
                 auto * commandPool = _device->acquireCommandPool(engine::rhi::queue_flags::transfrer);
                 _commandList = _api->createCommandList(commandPool, engine::rhi::CommandBufferLevel::ePrimary);
                 _commandList->begin(engine::rhi::CommandBufferUsageFlags::eOne_Time_Submit);
@@ -1021,7 +1022,7 @@ namespace example {
             // atlas test
             const auto imageBytes = _fileManager.readFile("assets/atlases/hero-pma.png");
             const auto textureData = engine::graphics::parseTextureData(imageBytes, {
-                                .flags = engine::graphics::LoadFlags::eAllowSrgbColorSpace
+                                .flags = engine::graphics::TextureFlags::eAllowSrgbColorSpace
                             });
 
             using namespace engine::rhi;
@@ -1060,7 +1061,7 @@ namespace example {
             // auto const imageBytes = _fileManager.readFile("assets/atlases/fire2.png");
             const auto imageBytes = _fileManager.readFile("assets/atlases/explosion2.png");
             const auto textureData = engine::graphics::parseTextureData(imageBytes, {
-                                .flags = engine::graphics::LoadFlags::eAllowSrgbColorSpace
+                                .flags = engine::graphics::TextureFlags::eAllowSrgbColorSpace
                             }
                         );
 
@@ -1349,7 +1350,7 @@ namespace example {
         tmpCommandList->record(0u);
 
         auto lists = std::array{tmpCommandList.get()};
-        auto fence = _api->createFence(*_device, FenceCreateFlags::eNone);
+        auto fence = _api->createFence(*_device, FenceCreateFlags::eUnsignaled);
         bool const submitted = _renderQueue->submit(0u, std::array{
             engine::rhi::runtime::Queue::SubmitInfo {
                 .w8Semaphores = {},
@@ -1701,7 +1702,7 @@ namespace example {
     ////
                         const auto imageBytes = _fileManager.readFile("assets/2.png");
                         const auto textureData = engine::graphics::parseTextureData(imageBytes, {
-                                .flags = engine::graphics::LoadFlags::eAllowSrgbColorSpace
+                                .flags = engine::graphics::TextureFlags::eAllowSrgbColorSpace
                             }
                         );
 
@@ -1712,16 +1713,11 @@ namespace example {
                             )
                         ) + 1u;
 
-                        // const auto imageInfo = ImageInfo{
-                        //     ImageUsageFlags::eSampled | ImageUsageFlags::eTransfer_Src | ImageUsageFlags::eTransfer_Dst,
-                        //     textureData.metaInfo.format, 
-                        //     {textureData.metaInfo.size.x, textureData.metaInfo.size.y, 1u},
-                        //     ImageAspectFlags::eColor, ImageType::eType_2D, mipLevels
-                        // };
-
                         const auto imageInfo = ImageInfo{
-                            ImageUsageFlags::eSampled | ImageUsageFlags::eTransfer_Dst,
-                            textureData.metaInfo.format, {textureData.metaInfo.size.x, textureData.metaInfo.size.y, 1u}
+                            ImageUsageFlags::eSampled | ImageUsageFlags::eTransfer_Src | ImageUsageFlags::eTransfer_Dst,
+                            textureData.metaInfo.format, 
+                            {textureData.metaInfo.size.x, textureData.metaInfo.size.y, 1u},
+                            ImageAspectFlags::eColor, ImageType::eType_2D, mipLevels
                         };
 
                         auto image = _api->createImage(*_device, imageInfo);
@@ -1744,42 +1740,43 @@ namespace example {
                         );
 
                         //// mipmaps
-                        // auto mipWidth = static_cast<int32_t>(textureData.metaInfo.size.x);
-		                // auto mipHeight = static_cast<int32_t>(textureData.metaInfo.size.y);
-                        // std::array<ImageBlit, 8u> regions;
-                        // ImageBlit & region = regions[0u];
+                        auto mipWidth = static_cast<int32_t>(textureData.metaInfo.size.x);
+		                auto mipHeight = static_cast<int32_t>(textureData.metaInfo.size.y);
+                        std::array<ImageBlit, 8u> regions;
+                        ImageBlit & region = regions[0u];
 
-                        // for (uint32_t i = 1; i < mipLevels; ++i) {
-                        //     region.srcOffsets[0u] = { 0, 0, 0 };
-                        //     region.srcOffsets[1u] = { mipWidth, mipHeight, 1};
-                        //     region.srcSubresource = ImageSubresourceLayers{
-                        //         .aspectMask = ImageAspectFlags::eColor,
-                        //         .mipLevel = i - 1,
-                        //         .baseArrayLayer = 0u,
-                        //         .layerCount = 1u,
-                        //     };
+                        for (uint32_t i = 1u; i < mipLevels; ++i) {
+                            region.srcOffsets[0u] = { 0, 0, 0 };
+                            region.srcOffsets[1u] = { mipWidth, mipHeight, 1};
+                            region.srcSubresource = ImageSubresourceLayers{
+                                .aspectMask = ImageAspectFlags::eColor,
+                                .mipLevel = i - 1u,
+                                .baseArrayLayer = 0u,
+                                .layerCount = 1u,
+                            };
 
-                        //     region.dstOffsets[0u] = { 0, 0, 0 };
-                        //     region.dstOffsets[1u] = { mipWidth > 1 ? mipWidth >> 1 : 1, mipHeight > 1 ? mipHeight >> 1 : 1, 1 };
-                        //     region.dstSubresource = ImageSubresourceLayers{
-                        //         .aspectMask = ImageAspectFlags::eColor,
-                        //         .mipLevel = i,
-                        //         .baseArrayLayer = 0u,
-                        //         .layerCount = 1u,
-                        //     };
+                            region.dstOffsets[0u] = { 0, 0, 0 };
+                            region.dstOffsets[1u] = { mipWidth > 1 ? mipWidth >> 1 : 1, mipHeight > 1 ? mipHeight >> 1 : 1, 1 };
+                            region.dstSubresource = ImageSubresourceLayers{
+                                .aspectMask = ImageAspectFlags::eColor,
+                                .mipLevel = i,
+                                .baseArrayLayer = 0u,
+                                .layerCount = 1u,
+                            };
 
-                        //     BlitImageInfo blitInfo {
-                        //         .dstImageLayout = ImageLayout::eTransfer_Dst_Optimal,
-                        //         .regions = regions,
-                        //         .regionsCount = 1u,
-                        //         .filter = FilterMode::eLinear
-                        //     };
+                            BlitImageInfo blitInfo {
+                                .srcImageLayout = ImageLayout::eTransfer_Src_Optimal,
+                                .dstImageLayout = ImageLayout::eTransfer_Dst_Optimal,
+                                .regions = regions,
+                                .regionsCount = 1u,
+                                .filter = FilterMode::eLinear
+                            };
 
-                        //     //commandList.blitImage(image, image, blitInfo);
+                            commandList.blitImage(image, image, blitInfo);
 
-                        //     if (mipWidth > 1) mipWidth = mipWidth >> 1;
-			            //     if (mipHeight > 1) mipHeight = mipHeight >> 1;
-                        // }
+                            if (mipWidth > 1) mipWidth = mipWidth >> 1;
+			                if (mipHeight > 1) mipHeight = mipHeight >> 1;
+                        }
                         //// mipmaps
     ////
                         _renderThread->emplaceTasks(stl::make_vector(threads::WorkerTask{
@@ -2012,8 +2009,11 @@ namespace example {
                     this,
                     commandList = std::move(commandList), 
                     fence
-                ](){
-                    // _externalCommandLists.emplace_back(std::move(commandList));
+                ]() /*mutable*/ {
+                    // _api->waitFence(*_device, fence, UINT64_MAX); // need no wait
+                    // _api->resetFence(*_device, fence);
+                    // _externalCommandLists.clear();
+                    
                     auto lists = std::array{commandList.get()};
                     bool const submitted = _renderQueue->submit(0u, std::array{
                             engine::rhi::runtime::Queue::SubmitInfo {
@@ -2024,8 +2024,10 @@ namespace example {
                             }
                         }, fence);
 
-                        _api->waitFence(*_device, fence, UINT64_MAX); // need no wait
-                        _api->resetFence(*_device, fence);
+                    // _externalCommandLists.emplace_back(std::move(commandList));
+
+                    _api->waitFence(*_device, fence, UINT64_MAX); // need no wait
+                    _api->resetFence(*_device, fence);
                 }}));
             });
         }

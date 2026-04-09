@@ -638,35 +638,51 @@ namespace engine::vulkan::runtime {
                 }
 
                 const auto * command = static_cast<BlitImageCommand*>(cmd);
-                const auto & blitInfo = command->info;
+                const auto & commandBlitInfo = command->info;
    
-                const auto & vkSrcImage = *static_cast<const Image*>(command->src);
+                auto & vkSrcImage = *static_cast<Image*>(command->src);
                 auto & vkDstImage = *static_cast<Image*>(command->dst);
 
-                // use first subState?
-                const auto srcLayout = vkSrcImage.getLayout(0u, 0u);
-                const auto dstLayout = utils::convert2vk(blitInfo.dstImageLayout);
+                const auto srcLayout = utils::convert2vk(commandBlitInfo.srcImageLayout);
+                const auto dstLayout = utils::convert2vk(commandBlitInfo.dstImageLayout);
 
-                std::array<VkImageBlit, 8u> info;
-                for (uint8_t i = 0u; i < blitInfo.regionsCount; ++i) {
-                    auto & dstInfo = info[i];
-                    auto const & srcInfo = blitInfo.regions[i];
+                std::array<VkImageBlit, 8u> vkBlitInfoArray;
+                for (uint8_t i = 0u; i < commandBlitInfo.regionsCount; ++i) {
+                    auto & vkBlitInfo = vkBlitInfoArray[i];
+                    auto const & blitInfo = commandBlitInfo.regions[i];
 
-                    dstInfo.srcOffsets[0u] = utils::convert2vk(srcInfo.srcOffsets[0u]);
-                    dstInfo.srcOffsets[1u] = utils::convert2vk(srcInfo.srcOffsets[1u]);
-                    dstInfo.srcSubresource = utils::convert2vk(srcInfo.srcSubresource);
+                    vkSrcImage.transition(
+                        _barriers, 
+                        srcLayout, 
+                        VK_PIPELINE_STAGE_TRANSFER_BIT, 
+                        VK_ACCESS_TRANSFER_READ_BIT, 
+                        0u, blitInfo.srcSubresource.mipLevel, 
+                        0u, 1u
+                    );
 
-                    dstInfo.dstOffsets[0u] = utils::convert2vk(srcInfo.dstOffsets[0u]);
-                    dstInfo.dstOffsets[1u] = utils::convert2vk(srcInfo.dstOffsets[1u]);
-                    dstInfo.dstSubresource = utils::convert2vk(srcInfo.dstSubresource);
+                    vkDstImage.transition(
+                        _barriers, 
+                        dstLayout, 
+                        VK_PIPELINE_STAGE_TRANSFER_BIT, 
+                        VK_ACCESS_TRANSFER_WRITE_BIT, 
+                        0u, blitInfo.dstSubresource.mipLevel, 
+                        0u, 1u
+                    );
+
+                    vkBlitInfo.srcOffsets[0u] = utils::convert2vk(blitInfo.srcOffsets[0u]);
+                    vkBlitInfo.srcOffsets[1u] = utils::convert2vk(blitInfo.srcOffsets[1u]);
+                    vkBlitInfo.srcSubresource = utils::convert2vk(blitInfo.srcSubresource);
+
+                    vkBlitInfo.dstOffsets[0u] = utils::convert2vk(blitInfo.dstOffsets[0u]);
+                    vkBlitInfo.dstOffsets[1u] = utils::convert2vk(blitInfo.dstOffsets[1u]);
+                    vkBlitInfo.dstSubresource = utils::convert2vk(blitInfo.dstSubresource);
                 }
 
-                _commandbuffer.blitImage(vkSrcImage, vkDstImage, srcLayout, dstLayout, 
-                    {info.begin(), info.begin() + blitInfo.regionsCount}, 
-                    utils::convert2vk(blitInfo.filter));
+                _barriers.flush(_commandbuffer());  
 
-                // for all subStates?
-                vkDstImage.assignLayout(dstLayout, 0u, 0u); // assign layout after blit
+                _commandbuffer.blitImage(vkSrcImage, vkDstImage, srcLayout, dstLayout, 
+                    {vkBlitInfoArray.begin(), vkBlitInfoArray.begin() + commandBlitInfo.regionsCount}, 
+                    utils::convert2vk(commandBlitInfo.filter));
             } 
                 break;
             case CommandType::ePipelineBarriers:

@@ -36,10 +36,12 @@ namespace engine::graphics {
 
         texturesToLoad.reserve(layout.materials.size() * kCommonMaterialTexturesCount);
 
-        const graphics::TextureLoadInfo loadingInfoColor{
-            .flags = graphics::LoadFlags::eAllowSrgbColorSpace
+        const TextureLoadInfo loadingInfoColor{
+            .flags = TextureFlags::eAllowSrgbColorSpace | TextureFlags::eGenerateMipMaps
         };
-        const graphics::TextureLoadInfo loadingInfoCommon{};
+        const TextureLoadInfo loadingInfoCommon{
+            .flags = TextureFlags::eGenerateMipMaps
+        };
 
         uint16_t materialIndex = 0u;
         for (const auto & srcMaterial : layout.materials) {
@@ -79,7 +81,7 @@ namespace engine::graphics {
 
             material.cullMode = srcMaterial.doubleSided ? rhi::CullMode::eNone : rhi::CullMode::eBack;
 
-            const auto getTexture = [&layout, &textureManager, &texturesToLoad, materialIndex](graphics::TextureLoadInfo loadingInfo, uint16_t index, std::string_view name) -> graphics::ImageHandler* {
+            const auto getTexture = [&layout, &textureManager, &texturesToLoad, materialIndex](TextureLoadInfo loadingInfo, uint16_t index, std::string_view name) -> ImageHandler* {
                 if (index == models::kInvalidValue) {
                     return textureManager.getWhiteImageHandler();
                 }
@@ -133,28 +135,28 @@ namespace engine::graphics {
                 const auto & bufferView = layout.bufferViews[image.bufferView];
                 const auto & buffer = layout.buffers[bufferView.buffer];
                 const std::byte * begin = &buffer.data[bufferView.offset];
-                textureData = engine::graphics::parseTextureData({begin, begin + bufferView.length}, loadingData.loadingInfo);
+                textureData = parseTextureData({begin, begin + bufferView.length}, loadingData.loadingInfo);
             } else if (!image.uri.empty()) {
-                textureData = engine::graphics::parseTextureData(fileManager.readFile(image.uri), loadingData.loadingInfo);
+                textureData = parseTextureData(fileManager.readFile(image.uri), loadingData.loadingInfo);
             }
 
             const auto formatSupport = textureManager.getDevice().isFormatSupported(
                         textureData.metaInfo.format, 
-                        engine::rhi::FormatFeatureFlags::eFormatFeature_Sampled_Image
+                        rhi::FormatFeatureFlags::eFormatFeature_Sampled_Image
                     );
-            const bool supportLinearTiling = (loadingData.loadingInfo.flags & LoadFlags::eSupportLinearTiling) != LoadFlags::eNone;
+            const bool supportLinearTiling = (loadingData.loadingInfo.flags & TextureFlags::eSupportLinearTiling) != TextureFlags::eNone;
 
             const bool sampledSupport = supportLinearTiling ?
                                         (
-                                        formatSupport.checkBit(engine::rhi::FormatFeatureAccess::Bit::eOptimalTilingFeaturesBit)
+                                        formatSupport.checkBit(rhi::FormatFeatureAccess::Bit::eOptimalTilingFeaturesBit)
                                         ||
-                                        formatSupport.checkBit(engine::rhi::FormatFeatureAccess::Bit::eLinearTilingFeaturesBit)
+                                        formatSupport.checkBit(rhi::FormatFeatureAccess::Bit::eLinearTilingFeaturesBit)
                                         ):
-                                        formatSupport.checkBit(engine::rhi::FormatFeatureAccess::Bit::eOptimalTilingFeaturesBit);
+                                        formatSupport.checkBit(rhi::FormatFeatureAccess::Bit::eOptimalTilingFeaturesBit);
 
             if (!sampledSupport) {
-                const bool allowSrgb = (loadingData.loadingInfo.flags & LoadFlags::eAllowSrgbColorSpace) != LoadFlags::eNone;
-                engine::graphics::convertTextureDataFormat(allowSrgb ? engine::rhi::Format::eR8G8B8A8_Srgb : engine::rhi::Format::eR8G8B8A8_Unorm, textureData); // ??
+                const bool allowSrgb = (loadingData.loadingInfo.flags & TextureFlags::eAllowSrgbColorSpace) != TextureFlags::eNone;
+                convertTextureDataFormat(allowSrgb ? rhi::Format::eR8G8B8A8_Srgb : rhi::Format::eR8G8B8A8_Unorm, textureData); // ??
             }
 
             loadingData.image = textureManager.generateImage(std::move(textureData), commandList);
@@ -171,10 +173,12 @@ namespace engine::graphics {
         std::vector<uint32_t> materialsRemap;
         materialsRemap.reserve(layout.materials.size());
 
-        const graphics::TextureLoadInfo loadingInfoColor{
-            .flags = graphics::LoadFlags::eAllowSrgbColorSpace
+        const TextureLoadInfo loadingInfoColor{
+            .flags = TextureFlags::eAllowSrgbColorSpace | TextureFlags::eGenerateMipMaps
         };
-        const graphics::TextureLoadInfo loadingInfoCommon{};
+        const TextureLoadInfo loadingInfoCommon{
+            .flags = TextureFlags::eGenerateMipMaps
+        };
 
         for (const auto & srcMaterial : layout.materials) {
             // render thread
@@ -185,30 +189,30 @@ namespace engine::graphics {
 
             materialsRemap.emplace_back(materialId);
 
-            const auto getTexture = [&layout, &fileManager, &textureManager](const graphics::TextureLoadInfo & loadingInfo, uint16_t index, std::string_view name) -> const graphics::ImageHandler* {
+            const auto getTexture = [&layout, &fileManager, &textureManager](const TextureLoadInfo & loadingInfo, uint16_t index, std::string_view name) -> const ImageHandler* {
 
                 const auto createTexture = [&textureManager, loadingInfo](
-                    std::string_view name, const rhi::runtime::Device & device, std::span<const std::byte> bytes, const graphics::TextureLoadInfo & info = {}
+                    std::string_view name, const rhi::runtime::Device & device, std::span<const std::byte> bytes, const TextureLoadInfo & info = {}
                 ) {
-                    auto textureData = engine::graphics::parseTextureData(bytes, info);
+                    auto textureData = parseTextureData(bytes, info);
 
                     const auto formatSupport = device.isFormatSupported(
                         textureData.metaInfo.format, 
-                        engine::rhi::FormatFeatureFlags::eFormatFeature_Sampled_Image
+                        rhi::FormatFeatureFlags::eFormatFeature_Sampled_Image
                     );
-                    const bool supportLinearTiling = (info.flags & LoadFlags::eSupportLinearTiling) != LoadFlags::eNone;
+                    const bool supportLinearTiling = (info.flags & TextureFlags::eSupportLinearTiling) != TextureFlags::eNone;
 
                     const bool sampledSupport = supportLinearTiling ?
                                                 (
-                                                formatSupport.checkBit(engine::rhi::FormatFeatureAccess::Bit::eOptimalTilingFeaturesBit)
+                                                formatSupport.checkBit(rhi::FormatFeatureAccess::Bit::eOptimalTilingFeaturesBit)
                                                 ||
-                                                formatSupport.checkBit(engine::rhi::FormatFeatureAccess::Bit::eLinearTilingFeaturesBit)
+                                                formatSupport.checkBit(rhi::FormatFeatureAccess::Bit::eLinearTilingFeaturesBit)
                                                 ):
-                                                formatSupport.checkBit(engine::rhi::FormatFeatureAccess::Bit::eOptimalTilingFeaturesBit);
+                                                formatSupport.checkBit(rhi::FormatFeatureAccess::Bit::eOptimalTilingFeaturesBit);
 
                     if (!sampledSupport) {
-                        const bool allowSrgb = (loadingInfo.flags & LoadFlags::eAllowSrgbColorSpace) != LoadFlags::eNone;
-                        engine::graphics::convertTextureDataFormat(allowSrgb ? engine::rhi::Format::eR8G8B8A8_Srgb : engine::rhi::Format::eR8G8B8A8_Unorm, textureData); // ??
+                        const bool allowSrgb = (loadingInfo.flags & TextureFlags::eAllowSrgbColorSpace) != TextureFlags::eNone;
+                        convertTextureDataFormat(allowSrgb ? rhi::Format::eR8G8B8A8_Srgb : rhi::Format::eR8G8B8A8_Unorm, textureData); // ??
                     }
 
                     return textureManager.addFrame(name, std::move(textureData)).getImageHandlerPtr(); // must be on render thread only!

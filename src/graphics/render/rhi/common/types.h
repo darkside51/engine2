@@ -769,6 +769,7 @@ namespace engine::rhi {
     };
 
     struct BlitImageInfo {
+        ImageLayout srcImageLayout = ImageLayout::eTransfer_Src_Optimal;
         ImageLayout dstImageLayout = ImageLayout::eTransfer_Dst_Optimal;
         std::array<ImageBlit, 8u> regions;
         uint8_t regionsCount = 0u;
@@ -1007,7 +1008,7 @@ namespace engine::rhi {
     }
 
     enum class FenceCreateFlags : uint8_t {
-        eNone = 0u,
+        eUnsignaled = 0u,
         eSignaled = 1u
     };
 

@@ -17,6 +17,19 @@ enum class TextureLoaderType : uint8_t {
     eRaw = 2u
 };
 
+enum class TextureFlags : uint8_t {
+    eNone = 0u,
+    eAllowSrgbColorSpace = 1u,
+    eSupportLinearTiling = 2u,
+    eGenerateMipMaps = 4u,
+};
+inline TextureFlags operator | (TextureFlags a, TextureFlags b) {
+    return static_cast<TextureFlags>(std::to_underlying(a) | std::to_underlying(b));
+}
+inline TextureFlags operator & (TextureFlags a, TextureFlags b) {
+    return static_cast<TextureFlags>(std::to_underlying(a) & std::to_underlying(b));
+}
+
 struct TextureMetaInfo {
     vec3u size;
     uint16_t bytesPerLine;
@@ -24,6 +37,7 @@ struct TextureMetaInfo {
     uint8_t bpp; // bits per pixels;
     bool hasPalette;
     TextureLoaderType parserType; 
+    TextureFlags flags;
 };
 
 struct PaletteData {
@@ -36,21 +50,8 @@ struct TextureCreateInfo {
     std::vector<std::byte> data;
 };
 
-enum class LoadFlags : uint8_t {
-    eNone = 0u,
-    eAllowSrgbColorSpace = 1u,
-    eSupportLinearTiling = 2u,
-    eGenerateMipMaps = 4u,
-};
-inline LoadFlags operator | (LoadFlags a, LoadFlags b) {
-    return static_cast<LoadFlags>(std::to_underlying(a) | std::to_underlying(b));
-}
-inline LoadFlags operator & (LoadFlags a, LoadFlags b) {
-    return static_cast<LoadFlags>(std::to_underlying(a) & std::to_underlying(b));
-}
-
 struct TextureLoadInfo {
-    LoadFlags flags = LoadFlags::eNone;
+    TextureFlags flags = TextureFlags::eNone;
 };
 
 TextureCreateInfo parseTextureData(std::span<const std::byte> bytes, const TextureLoadInfo & info = {});
