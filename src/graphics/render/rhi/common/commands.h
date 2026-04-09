@@ -46,6 +46,7 @@ namespace engine::rhi::runtime {
         eUpdateBuffer = 26u,
         ePushConstants = 27u,
         eBindTexelBuffer = 28u,
+        eBlitImage = 29u,
     };
 
     class CommandList;
@@ -315,6 +316,17 @@ namespace engine::rhi::runtime {
             dst(dst) {}
     };
 
+    struct BlitImageCommand : Command {
+        BlitImageInfo info{};
+        Image * src = nullptr;
+        Image * dst = nullptr;
+        BlitImageCommand(Image * src, Image * dst, const BlitImageInfo & info) : 
+            Command(CommandType::eBlitImage, sizeof(BlitImageCommand)),
+            info(info),
+            src(src), 
+            dst(dst) {}
+    };
+
     struct PipelineBarriersCommand : Command { // todo!
         PipelineBarriersCommand() : Command(CommandType::ePipelineBarriers, sizeof(PipelineBarriersCommand)) {}
     };
@@ -394,7 +406,8 @@ namespace engine::rhi::runtime {
             case CommandType::eDispatch: [[fallthrough]];
             case CommandType::eUpdateBuffer: [[fallthrough]];
             case CommandType::ePushConstants: [[fallthrough]];
-            case CommandType::eBindTexelBuffer:
+            case CommandType::eBindTexelBuffer: [[fallthrough]];
+            case CommandType::eBlitImage:
                 return;
             case CommandType::eBeginRenderPass: {
                 static_cast<const BeginRenderPassCommand*>(this)->~BeginRenderPassCommand();

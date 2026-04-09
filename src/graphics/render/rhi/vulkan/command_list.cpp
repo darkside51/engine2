@@ -626,6 +626,25 @@ namespace engine::vulkan::runtime {
                 _commandbuffer.copyBuffer2Image(vkSrcBuffer, vkDstImage, copyInfos);
             }   
                 break; 
+
+            case CommandType::eBlitImage:
+            {
+                if (passId < _passes.size()) {
+                    const auto & pass = _passes[passId];
+                    if (pass.commandNumber == commandsNumber && pass.type == Pass::Type::eTransfer) {
+                        applyBarriers(pass, nullptr, {});
+                        ++passId;
+                    }
+                }
+
+                const auto * command = static_cast<BlitImageCommand*>(cmd);
+                // std::array blitInfos{utils::convert2vk(command->info)}; // todo!
+
+                const auto & vkSrcImage = *static_cast<const Image*>(command->src);
+                const auto & vkDstImage = *static_cast<const Image*>(command->dst);
+                // _commandbuffer.blitImage(vkSrcImage, vkDstImage, blitInfos); // todo!
+            } 
+                break;
             case CommandType::ePipelineBarriers:
                 // todo!
                 //_barriers.flush(_commandbuffer());

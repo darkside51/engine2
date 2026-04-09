@@ -40,6 +40,7 @@ enum class LoadFlags : uint8_t {
     eNone = 0u,
     eAllowSrgbColorSpace = 1u,
     eSupportLinearTiling = 2u,
+    eGenerateMipMaps = 4u,
 };
 inline LoadFlags operator | (LoadFlags a, LoadFlags b) {
     return static_cast<LoadFlags>(std::to_underlying(a) | std::to_underlying(b));

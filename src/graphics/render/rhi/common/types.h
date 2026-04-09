@@ -756,6 +756,25 @@ namespace engine::rhi {
         eAttachment_Feedback_Loop_Optimal_Ext = 21u,
     };
 
+    enum class FilterMode : uint8_t {
+        eNearest = 0u,
+        eLinear = 1u
+    };
+
+    struct ImageBlit {
+        ImageSubresourceLayers srcSubresource;
+        std::array<Offset3D, 2u> srcOffsets;
+        ImageSubresourceLayers dstSubresource;
+        std::array<Offset3D, 2u> dstOffsets;
+    };
+
+    struct BlitImageInfo {
+        ImageLayout dstImageLayout = ImageLayout::eTransfer_Dst_Optimal;
+        std::array<ImageBlit, 8u> regions;
+        uint8_t regionsCount = 0u;
+        FilterMode filter = FilterMode::eLinear;
+    };
+
     struct AttachmentDescription {
         Format format = Format::eR8G8B8A8_Unorm;
         AttachmentLoadStoreOp loadStoreOp{};
@@ -1262,11 +1281,6 @@ namespace engine::rhi {
                 .inputRate = inputRate 
             };
         }
-    };
-
-    enum class FilterMode : uint8_t {
-        eNearest = 0u,
-        eLinear = 1u
     };
 
     enum class SamplerAddressMode : uint8_t {

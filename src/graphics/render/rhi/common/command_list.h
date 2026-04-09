@@ -118,8 +118,10 @@ namespace engine::rhi::runtime {
         void writeTimestamp(QueryPool *pool, PipelineStageFlags stage, uint16_t query) noexcept;
 
         void copyBuffer2Buffer(const BufferPtr & src, BufferPtr & dst, const CopyBufferInfo & copyInfos) noexcept;
-        void copyBuffer2Image(const BufferPtr & src, ImagePtr & dst, const CopyBufferImageInfo & copyInfos) noexcept;
         void updateBuffer(BufferPtr & dst, uint32_t dstOffset, uint32_t dataSize, const void* pData) noexcept;
+
+        void copyBuffer2Image(const BufferPtr & src, ImagePtr & dst, const CopyBufferImageInfo & copyInfos) noexcept;
+        void blitImage(const ImagePtr & src, ImagePtr & dst, const BlitImageInfo & info) noexcept;
 
         void insertBarriers() noexcept;
 
