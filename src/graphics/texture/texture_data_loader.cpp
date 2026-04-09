@@ -259,7 +259,7 @@ namespace ktx_format {
 
                     return {
                         .metaInfo = {
-                            .size = {texture2->baseWidth, texture2->baseHeight},
+                            .size = {texture2->baseWidth, texture2->baseHeight, 1u},
                             .bytesPerLine = static_cast<uint16_t>(ktxTexture_GetRowPitch(reinterpret_cast<ktxTexture*>(texture2), 0u)),
                             .format = getFormat(reinterpret_cast<ktxTexture*>(texture2), info.flags),
                             .bpp = 0u,
@@ -284,7 +284,7 @@ namespace ktx_format {
 
             return {
                 .metaInfo = {
-                    .size = {texture->baseWidth, texture->baseHeight},
+                    .size = {texture->baseWidth, texture->baseHeight, 1u},
                     .bytesPerLine = static_cast<uint16_t>(ktxTexture_GetRowPitch(texture, 0u)),
                     .format = getFormat(texture, info.flags),
                     .bpp = 0u,
@@ -298,7 +298,7 @@ namespace ktx_format {
 
     TextureMetaInfo parseTextureMetaInfoOnly(ktxTexture * texture, const TextureLoadInfo & info) {
         return {
-            .size = {texture->baseWidth, texture->baseHeight},
+            .size = {texture->baseWidth, texture->baseHeight, 1u},
             .bytesPerLine = static_cast<uint16_t>(ktxTexture_GetRowPitch(texture, 0u)),
             .format = getFormat(texture, info.flags),
             .bpp = 0,
@@ -435,7 +435,7 @@ namespace sail_format {
 
 //         return {
 //             .metaInfo = {
-//                 .size = {image.width(), image.height()},
+//                 .size = {image.width(), image.height(), 1u},
 //                 .bytesPerLine = static_cast<uint16_t>(image.bytes_per_line()),
 //                 .format = convert(image.pixel_format()),
 //                 .bpp = static_cast<uint8_t>(image.bits_per_pixel()),
@@ -455,7 +455,7 @@ namespace sail_format {
 
         return {
             .metaInfo = {
-                .size = {image.width(), image.height()},
+                .size = {image.width(), image.height(), 1u},
                 .bytesPerLine = static_cast<uint16_t>(image.bytes_per_line()),
                 .format = convert(image.pixel_format(), info.flags),
                 .bpp = static_cast<uint8_t>(image.bits_per_pixel()),
@@ -475,7 +475,7 @@ namespace sail_format {
         }
 
         return {
-            .size = {image.width(), image.height()},
+            .size = {image.width(), image.height(), 1u},
             .bytesPerLine = static_cast<uint16_t>(image.bytes_per_line()),
             .format = convert(image.pixel_format(), info.flags),
             .bpp = static_cast<uint8_t>(image.bits_per_pixel()),

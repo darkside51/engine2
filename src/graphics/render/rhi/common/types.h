@@ -595,6 +595,33 @@ namespace engine::rhi {
             aspectFlags(isDepthStencilFormat(format) ? ImageAspectFlags::eDepthStencil : 
                 (isDepthFormat(format) ? ImageAspectFlags::eDepth: ImageAspectFlags::eColor)) {}
 
+        ImageInfo(ImageUsageFlags usage, Format format, Extent3D extent, 
+            ImageAspectFlags aspectFlags,
+            ImageType type = ImageType::eType_2D,
+            uint8_t mipLevels = 1u,
+            uint8_t arrayLayers = 1u,
+            uint8_t samples = 1u,
+            ImageTiling tiling = ImageTiling::eOptimal,
+            ImageCreateFlags flags = ImageCreateFlags::eNone,
+            SharingMode sharing = SharingMode::eExclusive,
+            MemoryPropertyFlags memoryFlags = MemoryPropertyFlags::eDeviceLocal,
+            MemoryExtendedFlags memoryExtFlags = MemoryExtendedFlags::eNone,
+            std::vector<uint32_t> queueFamilyIndices = {}
+        ) : 
+            type(type),
+            usage(usage),
+            sharing(sharing),
+            format(format),
+            aspectFlags(aspectFlags),
+            tiling(tiling),
+            flags(flags),
+            memoryFlags(memoryFlags),
+            memoryExtFlags(memoryExtFlags),
+            extent(extent),
+            mipLevels(mipLevels),
+            arrayLayers(arrayLayers),
+            samples(samples),
+            queueFamilyIndices(std::move(queueFamilyIndices)) {}        
     };
 
     struct ImageSubresourceLayers {

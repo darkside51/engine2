@@ -311,7 +311,7 @@ namespace engine::graphics {
         using namespace rhi;
         const auto imageInfo = ImageInfo{
                     ImageUsageFlags::eSampled | ImageUsageFlags::eTransfer_Dst,
-                    textureData.metaInfo.format, {textureData.metaInfo.size.x, textureData.metaInfo.size.y, 1u}
+                    textureData.metaInfo.format, {textureData.metaInfo.size.x, textureData.metaInfo.size.y, textureData.metaInfo.size.z}
         };
 
         auto image = _api.createImage(_device, imageInfo);

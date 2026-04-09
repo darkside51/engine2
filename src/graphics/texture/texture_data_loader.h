@@ -18,7 +18,7 @@ enum class TextureLoaderType : uint8_t {
 };
 
 struct TextureMetaInfo {
-    vec2u size;
+    vec3u size;
     uint16_t bytesPerLine;
     rhi::Format format;
     uint8_t bpp; // bits per pixels;

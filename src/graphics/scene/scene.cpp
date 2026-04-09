@@ -1469,6 +1469,7 @@ namespace engine::scene {
                 if (minCount * 2u < _lastFramesUsedMeshsTransforms) {
                     _meshTransforms->resize(minCount * kSsboTransformSize);
                     _tmpUniqueMeshes.resize(minCount);
+                    _tmpUniqueMeshes.shrink_to_fit(); // ?
                 }
                 _lastFramesUsedMeshsTransforms = _meshTransformsInFrame;
             }
@@ -1517,7 +1518,7 @@ namespace engine::scene {
                 _lastFramesUsedMeshsTransforms = _meshTransformsInFrame;
                 _lastFramesUsedMeshesDraw = _meshesDrawInFrame;
                 _lastFramesUsedSkeletalTransforms = _skeletalTransformsInFrame;
-                _skeletonsInFrame = _lastFramesUsedSkeletonsInFrame;
+                _lastFramesUsedSkeletonsInFrame = _skeletonsInFrame;
                 _tryReduceUsedMemoryTime = now;
             }
         }
