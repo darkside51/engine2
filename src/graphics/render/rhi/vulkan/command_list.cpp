@@ -643,24 +643,29 @@ namespace engine::vulkan::runtime {
                 const auto & vkSrcImage = *static_cast<const Image*>(command->src);
                 auto & vkDstImage = *static_cast<Image*>(command->dst);
 
+                // use first subState?
                 const auto srcLayout = vkSrcImage.getLayout(0u, 0u);
                 const auto dstLayout = utils::convert2vk(blitInfo.dstImageLayout);
 
                 std::array<VkImageBlit, 8u> info;
                 for (uint8_t i = 0u; i < blitInfo.regionsCount; ++i) {
-                    info[i].srcOffsets[0u] = utils::convert2vk(blitInfo.regions[i].srcOffsets[0u]);
-                    info[i].srcOffsets[1u] = utils::convert2vk(blitInfo.regions[i].srcOffsets[1u]);
-                    info[i].srcSubresource = utils::convert2vk(blitInfo.regions[i].srcSubresource);
+                    auto & dstInfo = info[i];
+                    auto const & srcInfo = blitInfo.regions[i];
 
-                    info[i].dstOffsets[0u] = utils::convert2vk(blitInfo.regions[i].dstOffsets[0u]);
-                    info[i].dstOffsets[1u] = utils::convert2vk(blitInfo.regions[i].dstOffsets[1u]);
-                    info[i].dstSubresource = utils::convert2vk(blitInfo.regions[i].dstSubresource);
+                    dstInfo.srcOffsets[0u] = utils::convert2vk(srcInfo.srcOffsets[0u]);
+                    dstInfo.srcOffsets[1u] = utils::convert2vk(srcInfo.srcOffsets[1u]);
+                    dstInfo.srcSubresource = utils::convert2vk(srcInfo.srcSubresource);
+
+                    dstInfo.dstOffsets[0u] = utils::convert2vk(srcInfo.dstOffsets[0u]);
+                    dstInfo.dstOffsets[1u] = utils::convert2vk(srcInfo.dstOffsets[1u]);
+                    dstInfo.dstSubresource = utils::convert2vk(srcInfo.dstSubresource);
                 }
 
                 _commandbuffer.blitImage(vkSrcImage, vkDstImage, srcLayout, dstLayout, 
                     {info.begin(), info.begin() + blitInfo.regionsCount}, 
                     utils::convert2vk(blitInfo.filter));
 
+                // for all subStates?
                 vkDstImage.assignLayout(dstLayout, 0u, 0u); // assign layout after blit
             } 
                 break;
