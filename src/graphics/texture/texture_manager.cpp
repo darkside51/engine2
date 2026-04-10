@@ -359,12 +359,12 @@ namespace engine::graphics {
             std::array<ImageBlit, 8u> regions;
             ImageBlit & region = regions[0u];
 
-            for (uint32_t i = 1u; i < mipLevels; ++i) {
+            for (uint8_t i = 1u; i < mipLevels; ++i) {
                 region.srcOffsets[0u] = { 0, 0, 0 };
                 region.srcOffsets[1u] = { mipWidth, mipHeight, 1};
                 region.srcSubresource = ImageSubresourceLayers{
                     .aspectMask = ImageAspectFlags::eColor,
-                    .mipLevel = i - 1u,
+                    .mipLevel = static_cast<uint8_t>(i - 1u),
                     .baseArrayLayer = 0u,
                     .layerCount = 1u,
                 };

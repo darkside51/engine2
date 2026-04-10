@@ -2,6 +2,7 @@
 
 #include "threads.h"
 
+#include <array>
 #include <cassert>
 #include <chrono>
 #include <functional>
@@ -11,6 +12,7 @@ namespace threads {
     using ExecutionTimePoint = std::chrono::time_point<std::chrono::steady_clock>;
 
     class ExecutionContext {
+        static constexpr uint8_t kTaskFamiliesCount = 4u;
     public:
         ~ExecutionContext() {
             stop();
@@ -45,21 +47,21 @@ namespace threads {
             return _threadId;
         }
 
-        inline void emplaceTasks(WorkerTasks && tasks) {
-            SpinLock lock(_lockTasks);
-            std::move(tasks.begin(), tasks.end(), std::back_inserter(_tasks));
+        inline void emplaceTasks(WorkerTasks && tasks, uint8_t id = 0u) {
+            SpinLock lock(_tasks[id].lockTasks);
+            std::move(tasks.begin(), tasks.end(), std::back_inserter(_tasks[id].tasks));
         }
 
-        void performTasks() {
+        void performTasks(uint8_t id = 0u) {
             assert(std::this_thread::get_id() == _threadId);
             WorkerTasks tasks;
             {
-                SpinLock lock(_lockTasks);
-                tasks = std::move(_tasks);
+                SpinLock lock(_tasks[id].lockTasks);
+                tasks = std::move(_tasks[id].tasks);
             }
 
-            for (auto & t : tasks) {
-                t();
+            for (auto & task : tasks) {
+                task();
             }
         }
 
@@ -88,8 +90,12 @@ namespace threads {
         std::atomic_flag _paused;
         std::atomic_flag _stop;
 
-        std::atomic_flag _lockTasks;
-        WorkerTasks _tasks;
+        struct Tasks {
+            std::atomic_flag lockTasks;
+            WorkerTasks tasks;
+        };
+
+        std::array<Tasks, kTaskFamiliesCount> _tasks;
     };
 
     template <typename T>

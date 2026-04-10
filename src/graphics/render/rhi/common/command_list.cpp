@@ -328,9 +328,13 @@ namespace engine::rhi::runtime {
 
         if (_currentPass == nullptr) {
             _currentPass = &_passes.emplace_back(Pass::Type::eTransfer, _commandsCount);
+            // _currentPass->images.emplace_back(src.get(), ImageUsageFlags::eTransfer_Src, _pipelineType); // ...
+            // if (src.get() != dst.get()) {
+            //     _currentPass->images.emplace_back(dst.get(), ImageUsageFlags::eTransfer_Dst, _pipelineType); // ...
+            // }
         }
 
-        //_currentPass->images.emplace_back(src.get(), ImageUsageFlags::eTransfer_Src, _pipelineType); // ...
+        // _currentPass->images.emplace_back(dst.get(), ImageUsageFlags::eTransfer_Dst, _pipelineType); // ...
         ++_commandsCount;
     }
 

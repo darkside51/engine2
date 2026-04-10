@@ -29,6 +29,10 @@ public:
         _idx = (_idx + 1u) % _framesCount;
         return _idx; 
     }
+
+    inline uint8_t nextFrameId() const noexcept {
+        return (_idx + 1u) % _framesCount;
+    }
     
 private:
     uint8_t _framesCount = 1u;

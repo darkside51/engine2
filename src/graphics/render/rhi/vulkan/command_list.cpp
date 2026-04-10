@@ -155,11 +155,13 @@ namespace engine::vulkan::runtime {
 
             // images
             const auto & images = pass.images.view();
+            // size_t imn = 0u;
             for (const auto & image : images) {
                 auto * vkImage = static_cast<vulkan::Image*>(image.image);
                 auto const usage = vkImage->usage();
+                // ++imn;
 
-            if ((image.flags & rhi::ImageUsageFlags::eTransfer_Dst) != rhi::ImageUsageFlags::eNone) {
+                if ((image.flags & rhi::ImageUsageFlags::eTransfer_Dst) != rhi::ImageUsageFlags::eNone) {
                     vkImage->transition(
                         _barriers,
                         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 

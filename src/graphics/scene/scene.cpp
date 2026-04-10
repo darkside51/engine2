@@ -256,6 +256,7 @@ namespace engine::scene {
         // samplers
         _linearSampler.info.magFilter = rhi::FilterMode::eLinear;
         _linearSampler.info.minFilter = rhi::FilterMode::eLinear;
+        _linearSampler.info.mipMapMode = rhi::FilterMode::eLinear;
         // _linearSampler.info.addressModeU = rhi::SamplerAddressMode::eClamp_To_Edge;
         // _linearSampler.info.addressModeV = rhi::SamplerAddressMode::eClamp_To_Edge;
         // _linearSampler.info.addressModeW = rhi::SamplerAddressMode::eClamp_To_Edge;

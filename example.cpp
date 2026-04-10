@@ -90,7 +90,7 @@ namespace example {
 
     class BgThread {
     public:
-        using GpuTask = threads::function<void(engine::rhi::runtime::CommandList & commandList)>;
+        using GpuTask = threads::function<void(engine::rhi::runtime::CommandList & commandList, std::vector<threads::WorkerTask> & callbacks)>;
         using Task = threads::WorkerTask;
 
         BgThread(engine::rhi::runtime::Rhi * api, engine::rhi::runtime::Device * device) : _api(api), _device(device) {
@@ -98,8 +98,6 @@ namespace example {
 
             _worker.run();
             _worker.emplaceTasks(stl::make_vector(threads::WorkerTask{[this]() mutable {
-                // _fence = _api->createFence(*_device, engine::rhi::FenceCreateFlags::eSignaled);
-                _fence = _api->createFence(*_device, engine::rhi::FenceCreateFlags::eUnsignaled);
                 auto * commandPool = _device->acquireCommandPool(engine::rhi::queue_flags::transfrer);
                 _commandList = _api->createCommandList(commandPool, engine::rhi::CommandBufferLevel::ePrimary);
                 _commandList->begin(engine::rhi::CommandBufferUsageFlags::eOne_Time_Submit);
@@ -113,7 +111,6 @@ namespace example {
         void destroy() {
             if (_api) {
                 _worker.stop();
-                _api->destroyFence(*_device, _fence);
                 _commandList = nullptr;
                 _api = nullptr;
             }
@@ -134,47 +131,32 @@ namespace example {
             }
 
             _worker.emplaceTasks(stl::make_vector(threads::WorkerTask{[this, f = std::move(f), tasks = std::move(gpuTasks)]() mutable {
+                std::vector<threads::WorkerTask> callbacks;
+                callbacks.reserve(tasks.size());
+
                 auto & commandList = *_commandList;
-                    for (auto & task : tasks) {
-                        task(commandList);
-                    }
+                for (auto & task : tasks) {
+                    task(commandList, callbacks);
+                }
 
-                    commandList.end();
-                    commandList.record(0u);
+                commandList.end();
+                commandList.record(0u);
 
-                    f(std::move(_commandList), _fence);
+                f(std::move(_commandList), std::move(callbacks));
 
-                    // auto lists = std::array{_commandList.get()};
-                    // bool const submitted = queue->submit(0u, std::array{
-                    //     engine::rhi::runtime::Queue::SubmitInfo {
-                    //         .w8Semaphores = {},
-                    //         .w8DstStages = {},
-                    //         .signalSemaphores = {},
-                    //         .lists = lists
-                    //     }
-                    // }, _fence);
-
-                    //w8();
-                    auto * commandPool = _device->acquireCommandPool(engine::rhi::queue_flags::transfrer);
-                    _commandList = _api->createCommandList(commandPool, engine::rhi::CommandBufferLevel::ePrimary);
-                    _commandList->begin(engine::rhi::CommandBufferUsageFlags::eOne_Time_Submit);
+                auto * commandPool = _device->acquireCommandPool(engine::rhi::queue_flags::transfrer);
+                _commandList = _api->createCommandList(commandPool, engine::rhi::CommandBufferLevel::ePrimary);
+                _commandList->begin(engine::rhi::CommandBufferUsageFlags::eOne_Time_Submit);
             }}));
             gpuTasks.clear();
         }
 
     private:
-        void w8() {
-            _api->waitFence(*_device, _fence, UINT64_MAX);
-            _api->resetFence(*_device, _fence);
-            _commandList->begin(engine::rhi::CommandBufferUsageFlags::eOne_Time_Submit);
-        }
-
         threads::Worker _worker;
 
         engine::rhi::runtime::Rhi * _api;
         engine::rhi::runtime::Device * _device;
 
-        engine::rhi::runtime::Fence _fence;
         engine::rhi::runtime::CommandListPtr _commandList;
     };
 
@@ -349,6 +331,7 @@ namespace example {
         
         _commandLists.clear();
         _transferCommandLists.clear();
+        _externalCommandLists.clear();
         _queryPool = nullptr;
 
         _defaultImage = nullptr;
@@ -764,15 +747,14 @@ namespace example {
                     modelManager->setBuffers(modelIdx, std::move(buffers));
                     auto texturesToLoad = modelManager->prepareMaterials("model.glb", modelIdx, modelLayout, *textureManager);
 
-                    gpuTasks.emplace_back(BgThread::GpuTask{[this, texturesToLoad = std::move(texturesToLoad), modelLayout = std::move(modelLayout)](engine::rhi::runtime::CommandList & commandList) mutable {
+                    gpuTasks.emplace_back(BgThread::GpuTask{[this, texturesToLoad = std::move(texturesToLoad), modelLayout = std::move(modelLayout)](engine::rhi::runtime::CommandList & commandList, std::vector<threads::WorkerTask> & callbacks) mutable {
                         materialManager.createMaterialTextures(modelLayout, texturesToLoad, _fileManager, *textureManager, commandList);
 
-                        _renderThread->emplaceTasks(stl::make_vector(threads::WorkerTask{
-                                [texturesToLoad = std::move(texturesToLoad)]() {
-                                    for (auto & t : texturesToLoad) {
-                                        t.imageHandler->image = t.image;
-                                    }
-                        }}));
+                        callbacks.emplace_back([texturesToLoad = std::move(texturesToLoad)](){
+                            for (auto & t : texturesToLoad) {
+                                t.imageHandler->image = t.image;
+                            }
+                        });
                     }});
 
                     const auto & modelData = modelManager->getModelData(modelIdx);
@@ -828,15 +810,14 @@ namespace example {
                     modelManager->setBuffers(modelIdx, std::move(buffers));
                     auto texturesToLoad = modelManager->prepareMaterials("scene.gltf", modelIdx, modelLayout, *textureManager);
 
-                    gpuTasks.emplace_back(BgThread::GpuTask{[this, texturesToLoad = std::move(texturesToLoad), modelLayout = std::move(modelLayout)](engine::rhi::runtime::CommandList & commandList) mutable {
+                    gpuTasks.emplace_back(BgThread::GpuTask{[this, texturesToLoad = std::move(texturesToLoad), modelLayout = std::move(modelLayout)](engine::rhi::runtime::CommandList & commandList, std::vector<threads::WorkerTask> & callbacks) mutable {
                         materialManager.createMaterialTextures(modelLayout, texturesToLoad, _fileManager, *textureManager, commandList);
 
-                        _renderThread->emplaceTasks(stl::make_vector(threads::WorkerTask{
-                                [texturesToLoad = std::move(texturesToLoad)]() {
-                                    for (auto & t : texturesToLoad) {
-                                        t.imageHandler->image = t.image;
-                                    }
-                        }}));
+                        callbacks.emplace_back([texturesToLoad = std::move(texturesToLoad)](){
+                            for (auto & t : texturesToLoad) {
+                                t.imageHandler->image = t.image;
+                            }
+                        });
                     }});
                 }}));
             }});
@@ -870,15 +851,14 @@ namespace example {
                     modelManager->setBuffers(modelIdx, std::move(buffers));
                     auto texturesToLoad = modelManager->prepareMaterials("wheel.glb", modelIdx, modelLayout, *textureManager);
 
-                    gpuTasks.emplace_back(BgThread::GpuTask{[this, texturesToLoad = std::move(texturesToLoad), modelLayout = std::move(modelLayout)](engine::rhi::runtime::CommandList & commandList) mutable {
+                    gpuTasks.emplace_back(BgThread::GpuTask{[this, texturesToLoad = std::move(texturesToLoad), modelLayout = std::move(modelLayout)](engine::rhi::runtime::CommandList & commandList, std::vector<threads::WorkerTask> & callbacks) mutable {
                         materialManager.createMaterialTextures(modelLayout, texturesToLoad, _fileManager, *textureManager, commandList);
 
-                        _renderThread->emplaceTasks(stl::make_vector(threads::WorkerTask{
-                                [texturesToLoad = std::move(texturesToLoad)]() {
-                                    for (auto & t : texturesToLoad) {
-                                        t.imageHandler->image = t.image;
-                                    }
-                        }}));
+                        callbacks.emplace_back([texturesToLoad = std::move(texturesToLoad)](){
+                            for (auto & t : texturesToLoad) {
+                                t.imageHandler->image = t.image;
+                            }
+                        });
                     }});
 
                     const auto & modelData = modelManager->getModelData(modelIdx);
@@ -940,15 +920,14 @@ namespace example {
                     modelManager->setBuffers(modelIdx, std::move(buffers));
                     auto texturesToLoad = modelManager->prepareMaterials("buster_drone.glb", modelIdx, modelLayout, *textureManager);
 
-                    gpuTasks.emplace_back(BgThread::GpuTask{[this, texturesToLoad = std::move(texturesToLoad), modelLayout = std::move(modelLayout)](engine::rhi::runtime::CommandList & commandList) mutable {
+                    gpuTasks.emplace_back(BgThread::GpuTask{[this, texturesToLoad = std::move(texturesToLoad), modelLayout = std::move(modelLayout)](engine::rhi::runtime::CommandList & commandList, std::vector<threads::WorkerTask> & callbacks) mutable {
                         materialManager.createMaterialTextures(modelLayout, texturesToLoad, _fileManager, *textureManager, commandList);
 
-                        _renderThread->emplaceTasks(stl::make_vector(threads::WorkerTask{
-                                [texturesToLoad = std::move(texturesToLoad)]() {
-                                    for (auto & t : texturesToLoad) {
-                                        t.imageHandler->image = t.image;
-                                    }
-                        }}));
+                        callbacks.emplace_back([texturesToLoad = std::move(texturesToLoad)](){
+                            for (auto & t : texturesToLoad) {
+                                t.imageHandler->image = t.image;
+                            }
+                        });
                     }});
 
                     const auto & modelData = modelManager->getModelData(modelIdx);
@@ -988,15 +967,14 @@ namespace example {
                     modelManager->setBuffers(modelIdx, std::move(buffers));
                     auto texturesToLoad = modelManager->prepareMaterials("chaman.gltf", modelIdx, modelLayout, *textureManager);
 
-                    gpuTasks.emplace_back(BgThread::GpuTask{[this, texturesToLoad = std::move(texturesToLoad), modelLayout = std::move(modelLayout)](engine::rhi::runtime::CommandList & commandList) mutable {
+                    gpuTasks.emplace_back(BgThread::GpuTask{[this, texturesToLoad = std::move(texturesToLoad), modelLayout = std::move(modelLayout)](engine::rhi::runtime::CommandList & commandList, std::vector<threads::WorkerTask> & callbacks) mutable {
                         materialManager.createMaterialTextures(modelLayout, texturesToLoad, _fileManager, *textureManager, commandList);
 
-                        _renderThread->emplaceTasks(stl::make_vector(threads::WorkerTask{
-                                [texturesToLoad = std::move(texturesToLoad)]() {
-                                    for (auto & t : texturesToLoad) {
-                                        t.imageHandler->image = t.image;
-                                    }
-                        }}));
+                        callbacks.emplace_back([texturesToLoad = std::move(texturesToLoad)](){
+                            for (auto & t : texturesToLoad) {
+                                t.imageHandler->image = t.image;
+                            }
+                        });
                     }});
 
                     const auto & modelData = modelManager->getModelData(modelIdx);
@@ -1687,7 +1665,7 @@ namespace example {
                 sceneWorldRoot->addChild(node);
 
                 if (isNew) {
-                    gpuTasks.emplace_back(BgThread::GpuTask{[this](engine::rhi::runtime::CommandList & commandList) mutable {
+                    gpuTasks.emplace_back(BgThread::GpuTask{[this](engine::rhi::runtime::CommandList & commandList, std::vector<threads::WorkerTask> & callbacks) mutable {
                     // {
                     //     const auto imageBytes = _fileManager.readFile("assets/output2.ktx2");
                     //     const auto textureData = engine::graphics::parseTextureData(imageBytes, {});
@@ -1779,10 +1757,9 @@ namespace example {
                         }
                         //// mipmaps
     ////
-                        _renderThread->emplaceTasks(stl::make_vector(threads::WorkerTask{
-                            [image = std::move(image)]() {
+                        callbacks.emplace_back([image = std::move(image)](){
                             textureManager->getImageHandler("asyncTest")->image = std::move(image);
-                        }}));
+                        });
                     }});
                 }
 
@@ -1825,6 +1802,8 @@ namespace example {
         scene->initRenderData(*_api, *_device);
 
         // on render thread
+        _externalCommandLists.resize(inflightFrames);
+
         auto * commandPool = _device->acquireCommandPool(engine::rhi::queue_flags::graphics | engine::rhi::queue_flags::present);
         _commandLists.reserve(inflightFrames);
         for (size_t i = 0u; i < inflightFrames; ++i) {
@@ -1866,7 +1845,7 @@ namespace example {
                 viewParams.cameraView = view;
                 viewParams.cameraTransform = transform;
                 viewParams.cameraPosition = cameraPos; 
-            }}));
+            }}), 0u);
         }
     }
 
@@ -1990,45 +1969,25 @@ namespace example {
         }
     }
 
-    void Example::draw(threads::ExecutionTimePoint now, float delta) {
+    void Example::draw(threads::ExecutionContext & executionContext, threads::ExecutionTimePoint now, float delta) {
         using namespace engine;
 
         if (!tasks.empty()) {
             bgWorker->execute(std::move(tasks));
         }
-        // if (!gpuTasks.empty()) {
-        //     bgWorker->submit(std::move(gpuTasks), _renderQueue);
-        // }
-
 
         if (!gpuTasks.empty()) {
-            // bgWorker->submit(std::move(gpuTasks), _renderQueue);
-
-            bgWorker->submit(std::move(gpuTasks), [this](engine::rhi::runtime::CommandListPtr && commandList, engine::rhi::runtime::Fence fence) {
+            bgWorker->submit(std::move(gpuTasks), [this](engine::rhi::runtime::CommandListPtr && commandList, std::vector<threads::WorkerTask> && callbacks) {
                 _renderThread->emplaceTasks(stl::make_vector(threads::WorkerTask{[
                     this,
-                    commandList = std::move(commandList), 
-                    fence
-                ]() /*mutable*/ {
-                    // _api->waitFence(*_device, fence, UINT64_MAX); // need no wait
-                    // _api->resetFence(*_device, fence);
-                    // _externalCommandLists.clear();
-                    
-                    auto lists = std::array{commandList.get()};
-                    bool const submitted = _renderQueue->submit(0u, std::array{
-                            engine::rhi::runtime::Queue::SubmitInfo {
-                                .w8Semaphores = {},
-                                .w8DstStages = {},
-                                .signalSemaphores = {},
-                                .lists = lists
-                            }
-                        }, fence);
-
-                    // _externalCommandLists.emplace_back(std::move(commandList));
-
-                    _api->waitFence(*_device, fence, UINT64_MAX); // need no wait
-                    _api->resetFence(*_device, fence);
-                }}));
+                    commandList = std::move(commandList),
+                    callbacks = std::move(callbacks)
+                ]() mutable {
+                    _externalCommandLists[_frameIndex()] = std::move(commandList);
+                    for (auto & callback : callbacks) {
+                        callback();
+                    }
+                }}), 1u);
             });
         }
 
@@ -2041,7 +2000,10 @@ namespace example {
 
         if (_canDraw) {
             auto const waitSubmitResult = _renderQueue->waitSubmit(frameId); // result!!!
+            _externalCommandLists[frameId] = {};
         }
+
+        executionContext.performTasks(1u);
 
         const auto [imageIndex, success] = _swapchain->acquireNextImage(frameId); // https://vulkan-tutorial.com/Drawing_a_triangle/Swap_chain_recreation
 
@@ -2411,36 +2373,45 @@ namespace example {
         auto transferLists = std::array{transferCommandList.get()};
         auto lists = std::array{commandList.get()};
 
-        // if (!gpuTasks.empty()) {
-        //     bgWorker->submit(std::move(gpuTasks), [this](engine::rhi::runtime::CommandListPtr && commandList, engine::rhi::runtime::Fence fence) {
-        //         _api->waitFence(*_device, fence, UINT64_MAX);
-        //         _api->resetFence(*_device, fence);
-        //         auto lists = std::array{commandList.get()};
-        //         bool const submitted = _renderQueue->submit(0u, std::array{
-        //                 engine::rhi::runtime::Queue::SubmitInfo {
-        //                     .w8Semaphores = {},
-        //                     .w8DstStages = {},
-        //                     .signalSemaphores = {},
-        //                     .lists = lists
-        //                 }
-        //             }, fence);
-        //     });
-        // }
+        if (_externalCommandLists[frameId]) {
+            auto extLists = std::array{_externalCommandLists[frameId].get()};
 
-        bool const submitted = _renderQueue->submit(frameId, std::array{
-            engine::rhi::runtime::Queue::SubmitInfo {
-                .w8Semaphores = {},
-                .w8DstStages = {},
-                .signalSemaphores = {},
-                .lists = transferLists
-            },
-            engine::rhi::runtime::Queue::SubmitInfo { 
-                .w8Semaphores = waitSemaphores,
-                .w8DstStages = waitStages,
-                .signalSemaphores = signalSemaphores,
-                .lists = lists
-            }
-        });
+            bool const submitted = _renderQueue->submit(frameId, std::array{
+                engine::rhi::runtime::Queue::SubmitInfo {
+                    .w8Semaphores = {},
+                    .w8DstStages = {},
+                    .signalSemaphores = {},
+                    .lists = extLists
+                },
+                engine::rhi::runtime::Queue::SubmitInfo {
+                    .w8Semaphores = {},
+                    .w8DstStages = {},
+                    .signalSemaphores = {},
+                    .lists = transferLists
+                },
+                engine::rhi::runtime::Queue::SubmitInfo { 
+                    .w8Semaphores = waitSemaphores,
+                    .w8DstStages = waitStages,
+                    .signalSemaphores = signalSemaphores,
+                    .lists = lists
+                }
+            });
+        } else {
+            bool const submitted = _renderQueue->submit(frameId, std::array{
+                engine::rhi::runtime::Queue::SubmitInfo {
+                    .w8Semaphores = {},
+                    .w8DstStages = {},
+                    .signalSemaphores = {},
+                    .lists = transferLists
+                },
+                engine::rhi::runtime::Queue::SubmitInfo { 
+                    .w8Semaphores = waitSemaphores,
+                    .w8DstStages = waitStages,
+                    .signalSemaphores = signalSemaphores,
+                    .lists = lists
+                }
+            });
+        }
 
         ++_frameIndex;
 

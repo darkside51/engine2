@@ -1312,7 +1312,7 @@ namespace engine::rhi {
         float maxAnisotropy = 0.0f;
 
         inline size_t hash() const noexcept {
-            constexpr auto kRoundMult = 100;
+            constexpr auto kAnisotropyRound = 100;
             const auto value = (static_cast<uint64_t>(magFilter) << 0u) | 
                                (static_cast<uint64_t>(magFilter) << 8u) |
                                (static_cast<uint64_t>(mipMapMode) << 16u) |
@@ -1324,7 +1324,7 @@ namespace engine::rhi {
 
             return hash::hash_combine(
                 value,
-                std::round(maxAnisotropy * kRoundMult)
+                std::round(maxAnisotropy * kAnisotropyRound)
             );
         }
 

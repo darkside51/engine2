@@ -132,7 +132,6 @@ namespace engine::vulkan {
                 cmdBuffersView[i++] = vkList->commandBuffer()();
             }
 
-            
             tmp.pipelineStageFlags.resize(info.w8Semaphores.size());
             auto pipelineStageFlagsView = tmp.pipelineStageFlags.view();
 

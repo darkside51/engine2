@@ -33,9 +33,9 @@ int main() {
             constexpr float redrawTime = 1.0f / 120.0f;
 
             threads::Executor renderThread([&](auto & executionContext, threads::ExecutionTimePoint now, float delta) {
-                executionContext.performTasks();
+                executionContext.performTasks(0u);
                 example.update(now, delta);
-                example.draw(now, delta);
+                example.draw(executionContext, now, delta);
             }, redrawTime);
 
             example.setRenderThread(&renderThread);
@@ -72,7 +72,7 @@ int main() {
             window0.setOnResize([&](uint16_t w, uint16_t h) {
                 renderThread.emplaceTasks(stl::make_vector(threads::WorkerTask{[&example, w, h]() mutable {
                     example.resize(w, h);
-                }}));
+                }}), 0u);
                 // renderThread.pause();
                 // example.resize(w, h);
                 // renderThread.resume();
