@@ -10,11 +10,34 @@
 #include <stop_token>
 		
 namespace threads {
+    struct TTAS_Spinlock {
+        std::atomic<bool> locked{false};
+
+        void lock() {
+            for (;;) {
+                // First try to acquire with an atomic swap
+                if (!locked.exchange(true, std::memory_order_acquire)) {
+                    return;
+                }
+                // If failed, spin with a "read-only" load to avoid cache thrashing
+                while (locked.load(std::memory_order_relaxed)) {
+                    // Optional: CPU hint to save power and improve pipeline performance
+                    // std::hint::spin_loop(); // C++20
+                    // __builtin_ia32_pause(); // x86 specific
+                }
+            }
+        }
+
+        void unlock() {
+            locked.store(false, std::memory_order_release);
+        }
+    };
+
 
     class SpinLock {
 	public:
 		explicit SpinLock(std::atomic_flag & l) : _lock(l) {
-			while (_lock.test_and_set(std::memory_order_release)) {}
+			while (_lock.test_and_set(std::memory_order_acquire)) {}
 		}
 
 		~SpinLock() {
@@ -22,7 +45,7 @@ namespace threads {
 		}
 
         inline bool try_lock() noexcept {
-            return !_lock.test_and_set(std::memory_order_release);
+            return !_lock.test_and_set(std::memory_order_acquire);
         }
 
         inline void unlock() noexcept {

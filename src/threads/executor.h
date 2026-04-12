@@ -58,6 +58,7 @@ namespace threads {
             {
                 SpinLock lock(_tasks[id].lockTasks);
                 tasks = std::move(_tasks[id].tasks);
+                _tasks[id].tasks.clear();
             }
 
             for (auto & task : tasks) {
@@ -91,7 +92,7 @@ namespace threads {
         std::atomic_flag _stop;
 
         struct Tasks {
-            std::atomic_flag lockTasks;
+            std::atomic_flag lockTasks = ATOMIC_FLAG_INIT;
             WorkerTasks tasks;
         };
 

@@ -87,6 +87,7 @@ namespace example {
     engine::scene::Node * swordNode = nullptr;
 
     // threads::Worker bgWorker;
+    // std::vector<threads::WorkerTask> gCallbacks[3u];
 
     class BgThread {
     public:
@@ -124,13 +125,12 @@ namespace example {
             tasks.clear();
         }
 
-        template<typename T>
-        void submit(std::vector<GpuTask> && gpuTasks, T && f) {
-            if (gpuTasks.empty()) {
+        void submit(std::vector<GpuTask> && tasks, auto && f) {
+            if (tasks.empty()) {
                 return;
             }
 
-            _worker.emplaceTasks(stl::make_vector(threads::WorkerTask{[this, f = std::move(f), tasks = std::move(gpuTasks)]() mutable {
+            _worker.emplaceTasks(stl::make_vector(threads::WorkerTask{[this, f = std::move(f), tasks = std::move(tasks)]() mutable {
                 std::vector<threads::WorkerTask> callbacks;
                 callbacks.reserve(tasks.size());
 
@@ -148,7 +148,7 @@ namespace example {
                 _commandList = _api->createCommandList(commandPool, engine::rhi::CommandBufferLevel::ePrimary);
                 _commandList->begin(engine::rhi::CommandBufferUsageFlags::eOne_Time_Submit);
             }}));
-            gpuTasks.clear();
+            tasks.clear();
         }
 
     private:
@@ -331,7 +331,11 @@ namespace example {
         
         _commandLists.clear();
         _transferCommandLists.clear();
+
+        _api->destroyFence(*_device, _externalCommandFence);
         _externalCommandLists.clear();
+        _externalCallbacks.clear();
+
         _queryPool = nullptr;
 
         _defaultImage = nullptr;
@@ -1723,12 +1727,12 @@ namespace example {
                         std::array<ImageBlit, 8u> regions;
                         ImageBlit & region = regions[0u];
 
-                        for (uint32_t i = 1u; i < mipLevels; ++i) {
+                        for (uint8_t i = 1u; i < mipLevels; ++i) {
                             region.srcOffsets[0u] = { 0, 0, 0 };
                             region.srcOffsets[1u] = { mipWidth, mipHeight, 1};
                             region.srcSubresource = ImageSubresourceLayers{
                                 .aspectMask = ImageAspectFlags::eColor,
-                                .mipLevel = i - 1u,
+                                .mipLevel = static_cast<uint8_t>(i - 1u),
                                 .baseArrayLayer = 0u,
                                 .layerCount = 1u,
                             };
@@ -1803,6 +1807,7 @@ namespace example {
 
         // on render thread
         _externalCommandLists.resize(inflightFrames);
+        _externalCallbacks.resize(inflightFrames);
 
         auto * commandPool = _device->acquireCommandPool(engine::rhi::queue_flags::graphics | engine::rhi::queue_flags::present);
         _commandLists.reserve(inflightFrames);
@@ -1829,6 +1834,9 @@ namespace example {
         for (auto & result : _queryResults) {
             result.resize(4u); // need 4 values for get 2 timestamps wits rhi::QueryResultFlags::eWith_Availability flag!
         }
+
+        // _externalCommandFence = _api->createFence(*_device, engine::rhi::FenceCreateFlags::eSignaled);
+        _externalCommandFence = _api->createFence(*_device, engine::rhi::FenceCreateFlags::eUnsignaled);
 
         //
         createDefaultResources();
@@ -1976,21 +1984,6 @@ namespace example {
             bgWorker->execute(std::move(tasks));
         }
 
-        if (!gpuTasks.empty()) {
-            bgWorker->submit(std::move(gpuTasks), [this](engine::rhi::runtime::CommandListPtr && commandList, std::vector<threads::WorkerTask> && callbacks) {
-                _renderThread->emplaceTasks(stl::make_vector(threads::WorkerTask{[
-                    this,
-                    commandList = std::move(commandList),
-                    callbacks = std::move(callbacks)
-                ]() mutable {
-                    _externalCommandLists[_frameIndex()] = std::move(commandList);
-                    for (auto & callback : callbacks) {
-                        callback();
-                    }
-                }}), 1u);
-            });
-        }
-
         if (_commandLists.empty()) {
             return;
         }
@@ -1999,11 +1992,32 @@ namespace example {
         const auto frameId = _frameIndex();
 
         if (_canDraw) {
-            auto const waitSubmitResult = _renderQueue->waitSubmit(frameId); // result!!!
-            _externalCommandLists[frameId] = {};
-        }
+            bgWorker->submit(std::move(gpuTasks), [this](engine::rhi::runtime::CommandListPtr && commandList, std::vector<threads::WorkerTask> && callbacks) mutable {
+                _renderThread->emplaceTasks(stl::make_vector(threads::WorkerTask{[
+                    this,
+                    commandList = std::move(commandList),
+                    callbacks = std::move(callbacks)
+                ]() mutable {
+                    auto frameId = _frameIndex();       
+                    if (!_externalCallbacks[frameId].empty()) {
+                        printf("wtfwtfwtf!!!!!!!!!!! frame : %d\n", frameId);
+                    }
+                    _externalCommandLists[frameId] = std::move(commandList);
+                    _externalCallbacks[frameId] = std::move(callbacks);
+                    printf("new callbacks for frame : %d\n", frameId);
+                }}), 1u);
+            });
 
-        executionContext.performTasks(1u);
+            auto const waitSubmitResult = _renderQueue->waitSubmit(frameId); // result!!!
+
+            _externalCommandLists[frameId] = {};
+            for (auto & callback : _externalCallbacks[frameId]) {
+                callback();
+            }
+            _externalCallbacks[frameId].clear();
+            printf("clear callbacks for frame : %d\n", frameId);
+            executionContext.performTasks(1u);
+        }
 
         const auto [imageIndex, success] = _swapchain->acquireNextImage(frameId); // https://vulkan-tutorial.com/Drawing_a_triangle/Swap_chain_recreation
 
@@ -2275,8 +2289,8 @@ namespace example {
         commandList->endRenderPass();
 
         // final pass
-        std::array images2Shaders{rhi::runtime::ImageTransitionInfo{_colorAttachmentImages[imageIndex].get()}};
-        commandList->beginRenderPass(_renderPasses[kScreenRenderPass], _mainFrameBuffers[imageIndex], clearValues, {{0, 0}, {width, height}}, images2Shaders);
+        // std::array images2Shaders{rhi::runtime::ImageTransitionInfo{_colorAttachmentImages[imageIndex].get()}};
+        commandList->beginRenderPass(_renderPasses[kScreenRenderPass], _mainFrameBuffers[imageIndex], clearValues, {{0, 0}, {width, height}});
 
         // draw with postEffect
         commandList->bindPipeline(_pipelines[kPostEffectPipeline]);

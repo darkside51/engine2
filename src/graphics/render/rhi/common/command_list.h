@@ -81,9 +81,7 @@ namespace engine::rhi::runtime {
         void reset(CommandBufferResetFlags flags) noexcept;
 
         void beginRenderPass(RenderPass renderPass, FrameBufferPtr & framebuffer, 
-            std::span<const ClearValue> clearValues, const Rect2D & area, 
-            std::span<ImageTransitionInfo> imageTransitionInfo = {},
-            std::span<BufferTransitionInfo> bufferTransitionInfo = {}) noexcept;
+            std::span<const ClearValue> clearValues, const Rect2D & area) noexcept;
         void endRenderPass() noexcept;
         void nextSubpass(SubpassContents contents = SubpassContents::ePrimaryBufferInline,
             std::span<ImageTransitionInfo> imageTransitionInfo = {},

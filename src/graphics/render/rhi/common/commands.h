@@ -100,21 +100,15 @@ namespace engine::rhi::runtime {
         FrameBuffer * framebuffer = nullptr; 
         dynamic_array<ClearValue, 4u> clearValues;
         rhi::Rect2D area{};
-        std::span<ImageTransitionInfo> imageTransitionInfo;
-        std::span<BufferTransitionInfo> bufferTransitionInfo;
         BeginRenderPassCommand(
             RenderPass renderPass, FrameBufferPtr & framebuffer, 
-            std::span<const ClearValue> clearValues, const Rect2D & area, 
-            std::span<ImageTransitionInfo> imageTransitionInfo = {},
-            std::span<BufferTransitionInfo> bufferTransitionInfo = {}
+            std::span<const ClearValue> clearValues, const Rect2D & area
         ) : 
             Command(CommandType::eBeginRenderPass, sizeof(BeginRenderPassCommand)),
             renderPass(renderPass),
             framebuffer(framebuffer.get()),
             clearValues(clearValues),
-            area(area),
-            imageTransitionInfo(imageTransitionInfo),
-            bufferTransitionInfo(bufferTransitionInfo) {}
+            area(area) {}
     };
 
     struct EndRenderPassCommand : Command {

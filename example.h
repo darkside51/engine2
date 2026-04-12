@@ -83,6 +83,9 @@ private:
     std::vector<engine::rhi::runtime::CommandListPtr> _transferCommandLists;
     std::vector<engine::rhi::runtime::CommandListPtr> _externalCommandLists;
 
+    std::vector<std::vector<threads::WorkerTask>> _externalCallbacks;
+    engine::rhi::runtime::Fence _externalCommandFence;
+
     engine::rhi::FrameIndex _frameIndex;
 
     engine::ImGuiSystem _imgui;

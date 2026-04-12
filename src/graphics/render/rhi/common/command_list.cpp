@@ -56,12 +56,9 @@ namespace engine::rhi::runtime {
     }
 
     void CommandList::beginRenderPass(RenderPass renderPass, FrameBufferPtr & framebuffer, 
-        std::span<const ClearValue> clearValues, const Rect2D & area, 
-        std::span<ImageTransitionInfo> imageTransitionInfo,
-        std::span<BufferTransitionInfo> bufferTransitionInfo) noexcept {
+        std::span<const ClearValue> clearValues, const Rect2D & area) noexcept {
         _resources.push_back(framebuffer);
-        _commands->create<BeginRenderPassCommand>(renderPass, framebuffer, clearValues, area, 
-            imageTransitionInfo, bufferTransitionInfo);
+        _commands->create<BeginRenderPassCommand>(renderPass, framebuffer, clearValues, area);
         
         if constexpr (kStatisticsEnable) {
             ++_statistics.renderPasses;
@@ -328,10 +325,10 @@ namespace engine::rhi::runtime {
 
         if (_currentPass == nullptr) {
             _currentPass = &_passes.emplace_back(Pass::Type::eTransfer, _commandsCount);
-            // _currentPass->images.emplace_back(src.get(), ImageUsageFlags::eTransfer_Src, _pipelineType); // ...
-            // if (src.get() != dst.get()) {
-            //     _currentPass->images.emplace_back(dst.get(), ImageUsageFlags::eTransfer_Dst, _pipelineType); // ...
-            // }
+            _currentPass->images.emplace_back(src.get(), ImageUsageFlags::eTransfer_Src, _pipelineType); // ...
+            if (src.get() != dst.get()) {
+                _currentPass->images.emplace_back(dst.get(), ImageUsageFlags::eTransfer_Dst, _pipelineType); // ...
+            }
         }
 
         // _currentPass->images.emplace_back(dst.get(), ImageUsageFlags::eTransfer_Dst, _pipelineType); // ...
