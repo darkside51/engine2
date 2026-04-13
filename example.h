@@ -82,9 +82,7 @@ private:
     std::vector<engine::rhi::runtime::CommandListPtr> _commandLists;
     std::vector<engine::rhi::runtime::CommandListPtr> _transferCommandLists;
     std::vector<engine::rhi::runtime::CommandListPtr> _externalCommandLists;
-
-    std::vector<std::vector<threads::WorkerTask>> _externalCallbacks;
-    engine::rhi::runtime::Fence _externalCommandFence;
+    bool _readyToSubmitExternal = true;
 
     engine::rhi::FrameIndex _frameIndex;
 

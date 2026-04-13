@@ -332,9 +332,7 @@ namespace example {
         _commandLists.clear();
         _transferCommandLists.clear();
 
-        _api->destroyFence(*_device, _externalCommandFence);
         _externalCommandLists.clear();
-        _externalCallbacks.clear();
 
         _queryPool = nullptr;
 
@@ -1807,7 +1805,6 @@ namespace example {
 
         // on render thread
         _externalCommandLists.resize(inflightFrames);
-        _externalCallbacks.resize(inflightFrames);
 
         auto * commandPool = _device->acquireCommandPool(engine::rhi::queue_flags::graphics | engine::rhi::queue_flags::present);
         _commandLists.reserve(inflightFrames);
@@ -1834,9 +1831,6 @@ namespace example {
         for (auto & result : _queryResults) {
             result.resize(4u); // need 4 values for get 2 timestamps wits rhi::QueryResultFlags::eWith_Availability flag!
         }
-
-        // _externalCommandFence = _api->createFence(*_device, engine::rhi::FenceCreateFlags::eSignaled);
-        _externalCommandFence = _api->createFence(*_device, engine::rhi::FenceCreateFlags::eUnsignaled);
 
         //
         createDefaultResources();
@@ -1984,6 +1978,23 @@ namespace example {
             bgWorker->execute(std::move(tasks));
         }
 
+        if (!gpuTasks.empty() && _readyToSubmitExternal) {
+            _readyToSubmitExternal = false;
+            bgWorker->submit(std::move(gpuTasks), [this](engine::rhi::runtime::CommandListPtr && commandList, std::vector<threads::WorkerTask> && callbacks) mutable {
+                _renderThread->emplaceTasks(stl::make_vector(threads::WorkerTask{[
+                    this,
+                    commandList = std::move(commandList),
+                    callbacks = std::move(callbacks)
+                ]() mutable {    
+                    _externalCommandLists[_frameIndex()] = std::move(commandList);
+                    for (auto & callback : callbacks) {
+                        callback();
+                    }
+                    _readyToSubmitExternal = true;
+                }}), 1u);
+            });
+        }
+
         if (_commandLists.empty()) {
             return;
         }
@@ -1992,30 +2003,9 @@ namespace example {
         const auto frameId = _frameIndex();
 
         if (_canDraw) {
-            bgWorker->submit(std::move(gpuTasks), [this](engine::rhi::runtime::CommandListPtr && commandList, std::vector<threads::WorkerTask> && callbacks) mutable {
-                _renderThread->emplaceTasks(stl::make_vector(threads::WorkerTask{[
-                    this,
-                    commandList = std::move(commandList),
-                    callbacks = std::move(callbacks)
-                ]() mutable {
-                    auto frameId = _frameIndex();       
-                    if (!_externalCallbacks[frameId].empty()) {
-                        printf("wtfwtfwtf!!!!!!!!!!! frame : %d\n", frameId);
-                    }
-                    _externalCommandLists[frameId] = std::move(commandList);
-                    _externalCallbacks[frameId] = std::move(callbacks);
-                    printf("new callbacks for frame : %d\n", frameId);
-                }}), 1u);
-            });
-
             auto const waitSubmitResult = _renderQueue->waitSubmit(frameId); // result!!!
 
             _externalCommandLists[frameId] = {};
-            for (auto & callback : _externalCallbacks[frameId]) {
-                callback();
-            }
-            _externalCallbacks[frameId].clear();
-            printf("clear callbacks for frame : %d\n", frameId);
             executionContext.performTasks(1u);
         }
 
