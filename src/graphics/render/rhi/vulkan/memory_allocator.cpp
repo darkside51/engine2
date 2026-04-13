@@ -9,6 +9,24 @@ namespace engine::vulkan {
         // vmaCalculateStatistics()
     }
 
+    void GPUMemoryAllocator::initProperties() noexcept {
+        _properties.allowLazilyAllocations = false;
+
+        const auto & memProps = _allocator->m_MemProps;
+        uint32_t memType = 0u;
+        
+        for (const auto & mem : memProps.memoryTypes) {
+            if (memType++ > memProps.memoryTypeCount) {
+                break;
+            }
+
+            if (mem.propertyFlags & VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT) {
+                _properties.allowLazilyAllocations = true;
+                break;
+            }
+        }
+    }
+
     void GPUMemoryAllocator::create(VkInstance instance, VkPhysicalDevice gpu, VkDevice device, const AllocatorCreateInfo & info) {
         VmaAllocatorCreateInfo allocatorCreateInfo = {};
         allocatorCreateInfo.device = device;
@@ -63,6 +81,7 @@ namespace engine::vulkan {
             _allocator = VK_NULL_HANDLE;
         } else {
             LOG_I("vulkan: memory allocator create successful");
+            initProperties();
         }
     }
 
@@ -168,7 +187,19 @@ namespace engine::vulkan {
 
         vmaInfo.flags = receiveAllocationCreateFlags(memoryExtFlags);
         // vmaInfo.flags = ; // check usage for set it
-        vmaInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE; // VMA_MEMORY_USAGE_GPU_ONLY ? // VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE or VMA_MEMORY_USAGE_AUTO_PREFER_HOST
+
+        if ((requiredFlags & VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT) != 0) {
+            if (_properties.allowLazilyAllocations) {
+                vmaInfo.usage = VMA_MEMORY_USAGE_GPU_LAZILY_ALLOCATED;
+            } else {
+                // has no eLazilyAllocated memory on some platform!
+                vmaInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
+                requiredFlags = requiredFlags & ~VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT;
+            }
+        } else {
+            vmaInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE; // VMA_MEMORY_USAGE_GPU_ONLY ? // VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE or VMA_MEMORY_USAGE_AUTO_PREFER_HOST
+        }
+        
         vmaInfo.requiredFlags = requiredFlags;
 
         return vmaCreateImage(_allocator, &info, &vmaInfo, &image, &allocation.allocation, &allocation.info);

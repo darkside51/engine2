@@ -35,6 +35,10 @@ struct MemoryAllocation {
 };
 
 class GPUMemoryAllocator {
+    struct Properties {
+        bool allowLazilyAllocations = false;
+    };
+
 public:
     ~GPUMemoryAllocator();
     void create(VkInstance instance, VkPhysicalDevice gpu, VkDevice device, const AllocatorCreateInfo & info);
@@ -57,7 +61,9 @@ public:
     VkResult invalidateMemory(const MemoryAllocation & allocation, VkDeviceSize offset = 0u, VkDeviceSize size = VK_WHOLE_SIZE) noexcept;
 
 private:
+    void initProperties() noexcept;
     VmaAllocator _allocator = VK_NULL_HANDLE;
+    Properties _properties;
 };
 
 }

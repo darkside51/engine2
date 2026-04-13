@@ -465,7 +465,8 @@ namespace example {
         auto imageInfo = engine::rhi::ImageInfo{
             engine::rhi::ImageUsageFlags::eDepth_Stencil_Attachment | engine::rhi::ImageUsageFlags::eTransient_Attachment,
             depthFormat, {size.width, size.height, 1u}
-        }; 
+        };
+        imageInfo.memoryFlags = engine::rhi::MemoryPropertyFlags::eDeviceLocal | engine::rhi::MemoryPropertyFlags::eLazilyAllocated;
         imageInfo.memoryExtFlags = engine::rhi::MemoryExtendedFlags::eDedicated;
 
         _depthImages.clear();
