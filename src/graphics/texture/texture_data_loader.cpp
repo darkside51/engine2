@@ -1,8 +1,11 @@
 #include "texture_data_loader.h"
 
+#include "log/log.h"
 // ktx
 #include <ktx.h> // KTX-Software/include
+#include <ktxint.h>
 #include <texture.h> // KTX-Software/include
+#include <texture2.h> // KTX-Software/include
 #include <vk_format.h> // KTX-Software/lib/ // this header include gl_format.h and conversions gl to vk
 
 // sail
@@ -227,10 +230,25 @@ namespace ktx_format {
             }
             case class_id::ktxTexture1_c: {
                 auto * texture1 = reinterpret_cast<ktxTexture1*>(texture);
-                return convert(vkGetFormatFromOpenGLFormat(texture1->glInternalformat, texture1->glType), flags);
+                // return convert(vkGetFormatFromOpenGLFormat(texture1->glBaseInternalformat, texture1->glType), flags);
+                return convert(vkGetFormatFromOpenGLInternalFormat(texture1->glInternalformat), flags);
             }
             default: return rhi::Format::eUndefined;
         }
+    }
+
+    KTX_error_code levelCallback(int miplevel, int face, int width, int height, int depth, 
+        ktx_uint64_t faceLodSize,
+        void* pixels, void* userdata) {
+        LOG_D("mip level: %d, face: %d, size: %u bytes\n", miplevel, face, faceLodSize);
+
+        if (miplevel == 0u) {
+            TextureCreateInfo & result = *static_cast<TextureCreateInfo*>(userdata);
+            result.data = {static_cast<std::byte*>(pixels), static_cast<std::byte*>(pixels) + faceLodSize};
+        }
+
+        // Example: Upload 'pixels' to GPU here using glTexImage2D or vkCmdCopyBufferToImage
+        return KTX_SUCCESS; // Return KTX_SUCCESS to continue, or error to stop
     }
 
     TextureCreateInfo parseTextureData(ktxTexture * texture, const TextureLoadInfo & info) {
@@ -257,7 +275,7 @@ namespace ktx_format {
                         ktxTexture_GetImageSize(texture, 0u)
                     };
 
-                    return {
+                    TextureCreateInfo result {
                         .metaInfo = {
                             .size = {texture2->baseWidth, texture2->baseHeight, 1u},
                             .bytesPerLine = static_cast<uint16_t>(ktxTexture_GetRowPitch(reinterpret_cast<ktxTexture*>(texture2), 0u)),
@@ -267,8 +285,22 @@ namespace ktx_format {
                             .parserType = TextureLoaderType::eKtx,
                             .flags = info.flags
                         },
-                        .data = {data.begin(), data.end()}
+                        .data = {}
                     };
+                    ktxTexture2_IterateLevels(texture2, levelCallback, &result);
+                    return result;
+                    // return {
+                    //     .metaInfo = {
+                    //         .size = {texture2->baseWidth, texture2->baseHeight, 1u},
+                    //         .bytesPerLine = static_cast<uint16_t>(ktxTexture_GetRowPitch(reinterpret_cast<ktxTexture*>(texture2), 0u)),
+                    //         .format = getFormat(reinterpret_cast<ktxTexture*>(texture2), info.flags),
+                    //         .bpp = 0u,
+                    //         .hasPalette = (texture2->_protected->_formatSize.flags & ktxFormatSizeFlagBits::KTX_FORMAT_SIZE_PALETTIZED_BIT) != 0,
+                    //         .parserType = TextureLoaderType::eKtx,
+                    //         .flags = info.flags
+                    //     },
+                    //     .data = {data.begin(), data.end()}
+                    // };
 
                 }
             }
@@ -283,7 +315,7 @@ namespace ktx_format {
                 ktxTexture_GetImageSize(texture, 0u)
             };
 
-            return {
+            TextureCreateInfo result {
                 .metaInfo = {
                     .size = {texture->baseWidth, texture->baseHeight, 1u},
                     .bytesPerLine = static_cast<uint16_t>(ktxTexture_GetRowPitch(texture, 0u)),
@@ -293,8 +325,23 @@ namespace ktx_format {
                     .parserType = TextureLoaderType::eKtx,
                     .flags = info.flags
                 },
-                .data = {data.begin(), data.end()}
+                .data = {}
             };
+
+            ktxTexture_IterateLevels(texture, levelCallback, &result);
+            return result;
+            // return {
+            //     .metaInfo = {
+            //         .size = {texture->baseWidth, texture->baseHeight, 1u},
+            //         .bytesPerLine = static_cast<uint16_t>(ktxTexture_GetRowPitch(texture, 0u)),
+            //         .format = getFormat(texture, info.flags),
+            //         .bpp = 0u,
+            //         .hasPalette = (texture->_protected->_formatSize.flags & ktxFormatSizeFlagBits::KTX_FORMAT_SIZE_PALETTIZED_BIT) != 0,
+            //         .parserType = TextureLoaderType::eKtx,
+            //         .flags = info.flags
+            //     },
+            //     .data = {data.begin(), data.end()}
+            // };
         }
     }
 

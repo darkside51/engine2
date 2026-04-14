@@ -1685,7 +1685,8 @@ namespace example {
                     // }
 
     ////
-                        const auto imageBytes = _fileManager.readFile("assets/2.png");
+                        // const auto imageBytes = _fileManager.readFile("assets/vulkan_11_rgba.ktx");
+                        const auto imageBytes = _fileManager.readFile("assets/2d_bc7.ktx2");
                         const auto textureData = engine::graphics::parseTextureData(imageBytes, {
                                 .flags = engine::graphics::TextureFlags::eAllowSrgbColorSpace
                             }
