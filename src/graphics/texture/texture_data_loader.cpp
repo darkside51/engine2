@@ -263,18 +263,12 @@ namespace ktx_format {
                 // or is this enough?
                 #if (defined ENGINE_PLATFORM_LINUX) || (defined ENGINE_PLATFORM_WINDOWS)
                     const auto targetFormat = ktx_transcode_fmt_e::KTX_TTF_BC1_OR_3;
+                    // const auto targetFormat = ktx_transcode_fmt_e::KTX_TTF_BC7_RGBA;
                 #endif
 
                 const auto result = ktxTexture2_TranscodeBasis(texture2, targetFormat, 0u);
 
                 if (result == ktxResult::KTX_SUCCESS) {
-                    ktx_size_t imageOffset = 0u;
-                    const auto imageOffsetGetResult = ktxTexture2_GetImageOffset(texture2, 0u, 0u, 0u, &imageOffset);
-                    std::span data{
-                        reinterpret_cast<std::byte*>(texture2->pData) + imageOffset, 
-                        ktxTexture_GetImageSize(texture, 0u)
-                    };
-
                     TextureCreateInfo result {
                         .metaInfo = {
                             .size = {texture2->baseWidth, texture2->baseHeight, 1u},
@@ -289,32 +283,12 @@ namespace ktx_format {
                     };
                     ktxTexture2_IterateLevels(texture2, levelCallback, &result);
                     return result;
-                    // return {
-                    //     .metaInfo = {
-                    //         .size = {texture2->baseWidth, texture2->baseHeight, 1u},
-                    //         .bytesPerLine = static_cast<uint16_t>(ktxTexture_GetRowPitch(reinterpret_cast<ktxTexture*>(texture2), 0u)),
-                    //         .format = getFormat(reinterpret_cast<ktxTexture*>(texture2), info.flags),
-                    //         .bpp = 0u,
-                    //         .hasPalette = (texture2->_protected->_formatSize.flags & ktxFormatSizeFlagBits::KTX_FORMAT_SIZE_PALETTIZED_BIT) != 0,
-                    //         .parserType = TextureLoaderType::eKtx,
-                    //         .flags = info.flags
-                    //     },
-                    //     .data = {data.begin(), data.end()}
-                    // };
-
                 }
             }
 
             assert(false);
             return {};
         } else {
-            ktx_size_t imageOffset = 0u;
-            const auto imageOffsetGetResult = ktxTexture_GetImageOffset(texture, 0u, 0u, 0u, &imageOffset);
-            std::span data{
-                reinterpret_cast<std::byte*>(ktxTexture_GetData(texture)) + imageOffset, 
-                ktxTexture_GetImageSize(texture, 0u)
-            };
-
             TextureCreateInfo result {
                 .metaInfo = {
                     .size = {texture->baseWidth, texture->baseHeight, 1u},
@@ -330,18 +304,6 @@ namespace ktx_format {
 
             ktxTexture_IterateLevels(texture, levelCallback, &result);
             return result;
-            // return {
-            //     .metaInfo = {
-            //         .size = {texture->baseWidth, texture->baseHeight, 1u},
-            //         .bytesPerLine = static_cast<uint16_t>(ktxTexture_GetRowPitch(texture, 0u)),
-            //         .format = getFormat(texture, info.flags),
-            //         .bpp = 0u,
-            //         .hasPalette = (texture->_protected->_formatSize.flags & ktxFormatSizeFlagBits::KTX_FORMAT_SIZE_PALETTIZED_BIT) != 0,
-            //         .parserType = TextureLoaderType::eKtx,
-            //         .flags = info.flags
-            //     },
-            //     .data = {data.begin(), data.end()}
-            // };
         }
     }
 
