@@ -81,7 +81,8 @@ private:
     std::vector<engine::rhi::runtime::Semaphore> _transfersCompleteSemaphores;
     std::vector<engine::rhi::runtime::CommandListPtr> _commandLists;
     std::vector<engine::rhi::runtime::CommandListPtr> _transferCommandLists;
-    std::vector<engine::rhi::runtime::CommandListPtr> _externalCommandLists;
+    // std::vector<engine::rhi::runtime::CommandListPtr> _externalCommandLists;
+    std::vector<engine::rhi::runtime::CommandList*> _externalCommandLists;
     bool _readyToSubmitExternal = true;
 
     engine::rhi::FrameIndex _frameIndex;

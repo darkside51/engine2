@@ -94,14 +94,17 @@ namespace example {
         using GpuTask = threads::function<void(engine::rhi::runtime::CommandList & commandList, std::vector<threads::WorkerTask> & callbacks)>;
         using Task = threads::WorkerTask;
 
-        BgThread(engine::rhi::runtime::Rhi * api, engine::rhi::runtime::Device * device) : _api(api), _device(device) {
+        BgThread(engine::rhi::runtime::Rhi * api, engine::rhi::runtime::Device * device) : _api(api), _device(device), _frameIndex(3u) {
             assert(_api != nullptr);
 
             _worker.run();
             _worker.emplaceTasks(stl::make_vector(threads::WorkerTask{[this]() mutable {
                 auto * commandPool = _device->acquireCommandPool(engine::rhi::queue_flags::transfrer);
-                _commandList = _api->createCommandList(commandPool, engine::rhi::CommandBufferLevel::ePrimary);
-                _commandList->begin(engine::rhi::CommandBufferUsageFlags::eOne_Time_Submit);
+                _commandLists.resize(_frameIndex.size());
+                for (auto & commandList : _commandLists) {
+                    commandList = _api->createCommandList(commandPool, engine::rhi::CommandBufferLevel::ePrimary);
+                }
+                _commandLists[0u]->begin(engine::rhi::CommandBufferUsageFlags::eOne_Time_Submit);
             }}));
         }
 
@@ -112,7 +115,7 @@ namespace example {
         void destroy() {
             if (_api) {
                 _worker.stop();
-                _commandList = nullptr;
+                _commandLists.clear();
                 _api = nullptr;
             }
         }
@@ -125,28 +128,28 @@ namespace example {
             tasks.clear();
         }
 
-        void submit(std::vector<GpuTask> && tasks, auto && f) {
+        void submit(std::vector<GpuTask> && tasks, auto && executor) {
             if (tasks.empty()) {
                 return;
             }
 
-            _worker.emplaceTasks(stl::make_vector(threads::WorkerTask{[this, f = std::move(f), tasks = std::move(tasks)]() mutable {
+            _worker.emplaceTasks(stl::make_vector(threads::WorkerTask{[this, executor = std::move(executor), tasks = std::move(tasks)]() mutable {
                 std::vector<threads::WorkerTask> callbacks;
                 callbacks.reserve(tasks.size());
 
-                auto & commandList = *_commandList;
+                const auto frameIdx = _frameIndex();
+                auto & commandList = *_commandLists[frameIdx];
                 for (auto & task : tasks) {
                     task(commandList, callbacks);
                 }
 
                 commandList.end();
-                commandList.record(0u);
+                commandList.record(frameIdx);
 
-                f(std::move(_commandList), std::move(callbacks));
+                executor(&commandList, std::move(callbacks));
 
-                auto * commandPool = _device->acquireCommandPool(engine::rhi::queue_flags::transfrer);
-                _commandList = _api->createCommandList(commandPool, engine::rhi::CommandBufferLevel::ePrimary);
-                _commandList->begin(engine::rhi::CommandBufferUsageFlags::eOne_Time_Submit);
+                ++_frameIndex;
+                _commandLists[_frameIndex()]->begin(engine::rhi::CommandBufferUsageFlags::eOne_Time_Submit);
             }}));
             tasks.clear();
         }
@@ -157,7 +160,8 @@ namespace example {
         engine::rhi::runtime::Rhi * _api;
         engine::rhi::runtime::Device * _device;
 
-        engine::rhi::runtime::CommandListPtr _commandList;
+        std::vector<engine::rhi::runtime::CommandListPtr> _commandLists;
+        engine::rhi::FrameIndex _frameIndex;
     };
 
     std::optional<BgThread> bgWorker;
@@ -1624,7 +1628,7 @@ namespace example {
                     for (size_t j = 0u; j < 10u; ++j) {
                         auto * node5 = scene->createNode();
                         node5->setScale(engine::vec3f{0.0025f});
-                        node5->setPosition(engine::vec3f{-3.0f + static_cast<float>(i) * 0.75f, -1.0f - static_cast<float>(j) * 0.75f, 0.0f});
+                        node5->setPosition(engine::vec3f{-14.0f + static_cast<float>(i) * 0.75f, -1.0f - static_cast<float>(j) * 0.75f, 0.0f});
 
                         const auto & frame3 = textureManager->findFrame("explosion_33");
                         auto * sprite3 = scene->createObject<engine::scene::Sprite>(frame3, 0u);
@@ -1687,12 +1691,22 @@ namespace example {
                             }
                         );
 
+                        const auto formatBlitSupport = _device->isFormatSupported(
+                            textureData.metaInfo.format, 
+                            engine::rhi::FormatFeatureFlags::eFormatFeature_BLit_Dst
+                        );
+
+                        // const auto formatBlitSupport2 = _device->isFormatSupported(
+                        //     engine::rhi::Format::eR8G8B8A8_Srgb, 
+                        //     engine::rhi::FormatFeatureFlags::eFormatFeature_BLit_Dst
+                        // );
+
                         using namespace engine::rhi;
-                        const uint8_t mipLevels = static_cast<uint8_t>(
+                        const uint8_t mipLevels = formatBlitSupport.features != 0u ? static_cast<uint8_t>(
                             std::floor(
                                 std::log2(std::max(textureData.metaInfo.size.x, textureData.metaInfo.size.y))
                             )
-                        ) + 1u;
+                        ) + 1u : 1u;
 
                         const auto imageInfo = ImageInfo{
                             ImageUsageFlags::eSampled | ImageUsageFlags::eTransfer_Src | ImageUsageFlags::eTransfer_Dst,
@@ -1981,13 +1995,13 @@ namespace example {
 
         if (!gpuTasks.empty() && _readyToSubmitExternal) {
             _readyToSubmitExternal = false;
-            bgWorker->submit(std::move(gpuTasks), [this](engine::rhi::runtime::CommandListPtr && commandList, std::vector<threads::WorkerTask> && callbacks) mutable {
+            bgWorker->submit(std::move(gpuTasks), [this](engine::rhi::runtime::CommandList * commandList, std::vector<threads::WorkerTask> && callbacks) mutable {
                 _renderThread->emplaceTasks(stl::make_vector(threads::WorkerTask{[
                     this,
-                    commandList = std::move(commandList),
+                    commandList,
                     callbacks = std::move(callbacks)
                 ]() mutable {    
-                    _externalCommandLists[_frameIndex()] = std::move(commandList);
+                    _externalCommandLists[_frameIndex()] = commandList;
                     for (auto & callback : callbacks) {
                         callback();
                     }
@@ -2006,7 +2020,7 @@ namespace example {
         if (_canDraw) {
             auto const waitSubmitResult = _renderQueue->waitSubmit(frameId); // result!!!
 
-            _externalCommandLists[frameId] = {};
+            _externalCommandLists[frameId] = nullptr;
             executionContext.performTasks(1u);
         }
 
@@ -2379,7 +2393,7 @@ namespace example {
         auto lists = std::array{commandList.get()};
 
         if (_externalCommandLists[frameId]) {
-            auto extLists = std::array{_externalCommandLists[frameId].get()};
+            auto extLists = std::array{_externalCommandLists[frameId]};
 
             bool const submitted = _renderQueue->submit(frameId, std::array{
                 engine::rhi::runtime::Queue::SubmitInfo {
