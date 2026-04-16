@@ -12,6 +12,7 @@
 #include <vulkan/vulkan.h>
 
 #include <cstdint>
+#include <string_view>
 #include <vector>
 
 namespace engine::vulkan {
@@ -114,6 +115,7 @@ public:
     float getTimestampPeriod() const noexcept;
 
     rhi::FormatFeatureAccess isFormatSupported(rhi::Format format, rhi::FormatFeatureFlags featureFlags) const noexcept override;
+    bool isExtensionSupported(std::string_view extension) const noexcept override;
 
 private:
     void createAllocator(uint32_t largeHeapBlockSize) noexcept;

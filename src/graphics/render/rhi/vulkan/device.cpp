@@ -313,6 +313,14 @@ namespace engine::vulkan {
         return _gpu.isFormatSupported(utils::convert2vk(format), utils::convert2vk(featureFlags));
     }
 
+    bool Device::isExtensionSupported(std::string_view extension) const noexcept {
+        const auto & extensions = _gpu.deviceExtensions();
+        auto it = std::find_if(extensions.begin(), extensions.end(), [extension](const auto & ext){
+            return extension == ext;
+        });
+        return it != extensions.end();
+    }
+
     Device::Sampler Device::getSampler(const rhi::SamplerInfo & samplerInfo) {
         return _samplerManager.getSampler(samplerInfo);
     }

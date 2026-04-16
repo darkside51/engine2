@@ -405,7 +405,8 @@ namespace example {
             {
                 engine::vulkan::runtime::Rhi::Api::Impl::kSwapchainExtName, 
                 VK_KHR_DEDICATED_ALLOCATION_EXTENSION_NAME,
-                VK_EXT_HOST_QUERY_RESET_EXTENSION_NAME // for Resetting the query pool
+                VK_EXT_HOST_QUERY_RESET_EXTENSION_NAME, // for Resetting the query pool
+                VK_EXT_SHADER_VIEWPORT_INDEX_LAYER_EXTENSION_NAME // for use gl_Layer into vertex shaders (since Vulkan 1.2 support natively)
             }
         });
 
@@ -441,6 +442,8 @@ namespace example {
         deviceCreateInfo.inFlightFramesCount = 3u;
 
         _device = _api->createDevice(_gpu, deviceCreateInfo);
+
+        const bool isSupportShaderIndexLayer = _device->isExtensionSupported(VK_EXT_SHADER_VIEWPORT_INDEX_LAYER_EXTENSION_NAME);
 
         bgWorker.emplace(_api.get(), _device.get());
     }

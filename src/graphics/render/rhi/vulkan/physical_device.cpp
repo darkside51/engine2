@@ -188,6 +188,13 @@ namespace engine::vulkan {
 
         _gpu = device;
         _extensions = info.requiredExtensions;
+        // _extensions.reserve(deviceExtensions.size());
+        // for (const auto & ext : deviceExtensions) {
+        //     char * a = new char[255];
+        //     std::strcpy(a, ext.extensionName);
+        //     _extensions.emplace_back(a);
+        // }
+
         vkGetPhysicalDeviceMemoryProperties(_gpu, &_memoryProperties);
     }
 

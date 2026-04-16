@@ -13,6 +13,7 @@
 #include <cstdint>
 #include <memory>
 #include <span>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -65,6 +66,7 @@ public:
     virtual size_t getTexelBufferOffsetAlignment() const noexcept = 0;
     
     virtual FormatFeatureAccess isFormatSupported(Format format, FormatFeatureFlags featureFlags) const noexcept = 0;
+    virtual bool isExtensionSupported(std::string_view extension) const noexcept = 0;
 
     virtual void evaluateSampler(rhi::SamplerValue & samplerValue) = 0;
 };
