@@ -245,7 +245,6 @@ namespace ktx_format {
         TextureCreateInfo & result = *static_cast<TextureCreateInfo*>(userdata);
         result.data[miplevel] = {static_cast<std::byte*>(pixels), static_cast<std::byte*>(pixels) + faceLodSize};
 
-        // Example: Upload 'pixels' to GPU here using glTexImage2D or vkCmdCopyBufferToImage
         return KTX_SUCCESS; // Return KTX_SUCCESS to continue, or error to stop
     }
 

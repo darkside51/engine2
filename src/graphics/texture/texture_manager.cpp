@@ -312,8 +312,14 @@ namespace engine::graphics {
 
         bool useMipMaps = (textureData.metaInfo.flags & TextureFlags::eGenerateMipMaps) != TextureFlags::eNone;
 
-        uint8_t mipLevels = 1u;
-        if (useMipMaps) {
+        uint8_t mipLevels = textureData.data.size();
+
+        const auto formatBlitSupport = _device.isFormatSupported(textureData.metaInfo.format, 
+            engine::rhi::FormatFeatureFlags::eFormatFeature_BLit_Dst);
+
+        const bool blitAvailable = formatBlitSupport.features != 0u;
+
+        if (useMipMaps && mipLevels == 1u && blitAvailable) {
             mipLevels = static_cast<uint8_t>(
                             std::floor(
                                 std::log2(std::max(textureData.metaInfo.size.x, textureData.metaInfo.size.y))
@@ -327,32 +333,62 @@ namespace engine::graphics {
                                       ImageUsageFlags::eSampled | ImageUsageFlags::eTransfer_Dst;
 
         const auto imageInfo = ImageInfo{
-                            usage,
-                            textureData.metaInfo.format, 
-                            {textureData.metaInfo.size.x, textureData.metaInfo.size.y, textureData.metaInfo.size.z},
-                            ImageAspectFlags::eColor, ImageType::eType_2D, mipLevels
-                        };
+            usage,
+            textureData.metaInfo.format, 
+            {textureData.metaInfo.size.x, textureData.metaInfo.size.y, textureData.metaInfo.size.z},
+            ImageAspectFlags::eColor, ImageType::eType_2D, mipLevels
+        };
 
         auto image = _api.createImage(_device, imageInfo);
-        const auto stagingSize = textureData.data[0u].size();
+
+        auto stagingSize = 0u;
+        for (const auto & textureMipMapLevelData : textureData.data) {
+            stagingSize += textureMipMapLevelData.size();
+        }
         engine::graphics::StagingBuffer staging{_api, _device, stagingSize};
+
+        auto * memory = staging.map();
+        const auto readyMipLevels = textureData.data.size();
+
+        std::vector<std::byte*> imgData;
+        std::vector<uint32_t> mipOffsets;
+        imgData.resize(readyMipLevels);
+        mipOffsets.resize(readyMipLevels);
+
+        for (uint8_t i = 0u; i < readyMipLevels; ++i) {
+            mipOffsets[i] = staging.requestBytes(textureData.data[i].size());
+            imgData[i] = memory + mipOffsets[i];
+            std::memcpy(imgData[i], textureData.data[i].data(), textureData.data[i].size());
+        }
                     
-        auto * imgData = staging.map();
-        std::memcpy(imgData, textureData.data[0u].data(), stagingSize);
         staging.flush();
 
-        commandList.copyBuffer2Image(staging.getBuffer(), image, 
-            {
-                .bufferOffset = 0u,
-                .bufferRowLength = 0u,
-                .bufferImageHeight = 0u,
-                .imageSubresource = {.aspectMask = engine::rhi::ImageAspectFlags::eColor},
-                .imageOffset = {0u, 0u, 0u},
-                .imageExtent = image->getExtent()
-            }
-        );
+        auto extent = image->getExtent();
+        for (uint8_t i = 0u; i < readyMipLevels; ++i) {
+            commandList.copyBuffer2Image(staging.getBuffer(), image, 
+                {
+                    .bufferOffset = 0u,
+                    .bufferRowLength = 0u,
+                    .bufferImageHeight = 0u,
+                    .imageSubresource = {
+                        .aspectMask = engine::rhi::ImageAspectFlags::eColor,
+                        .mipLevel = i,
+                        .baseArrayLayer = 0u,
+                        .layerCount = 1u
+                    },
+                    .imageOffset = {0u, 0u, 0u},
+                    .imageExtent = extent
+                }
+            );
+            extent.width = std::max(extent.width >> 1u, 1u);
+            extent.height = std::max(extent.height >> 1u, 1u);
+        }
 
-        if (useMipMaps) {
+        if (readyMipLevels > 1u) {
+            return image;
+        }
+
+        if (useMipMaps && blitAvailable) {
             auto mipWidth = static_cast<int32_t>(textureData.metaInfo.size.x);
             auto mipHeight = static_cast<int32_t>(textureData.metaInfo.size.y);
 
@@ -388,8 +424,8 @@ namespace engine::graphics {
 
                 commandList.blitImage(image, image, blitInfo);
 
-                if (mipWidth > 1) mipWidth = mipWidth >> 1;
-                if (mipHeight > 1) mipHeight = mipHeight >> 1;
+                mipWidth = std::max(mipWidth >> 1, 1);
+                mipHeight = std::max(mipHeight >> 1, 1);
             }
         }
 
