@@ -37,10 +37,10 @@ namespace engine::graphics {
         texturesToLoad.reserve(layout.materials.size() * kCommonMaterialTexturesCount);
 
         const TextureLoadInfo loadingInfoColor{
-            .flags = TextureFlags::eAllowSrgbColorSpace | TextureFlags::eGenerateMipMaps
+            .flags = TextureFlags::eAllowSrgbColorSpace | TextureFlags::eUseMipMaps
         };
         const TextureLoadInfo loadingInfoCommon{
-            .flags = TextureFlags::eGenerateMipMaps
+            .flags = TextureFlags::eUseMipMaps
         };
 
         uint16_t materialIndex = 0u;
@@ -174,10 +174,10 @@ namespace engine::graphics {
         materialsRemap.reserve(layout.materials.size());
 
         const TextureLoadInfo loadingInfoColor{
-            .flags = TextureFlags::eAllowSrgbColorSpace | TextureFlags::eGenerateMipMaps
+            .flags = TextureFlags::eAllowSrgbColorSpace | TextureFlags::eUseMipMaps
         };
         const TextureLoadInfo loadingInfoCommon{
-            .flags = TextureFlags::eGenerateMipMaps
+            .flags = TextureFlags::eUseMipMaps
         };
 
         for (const auto & srcMaterial : layout.materials) {

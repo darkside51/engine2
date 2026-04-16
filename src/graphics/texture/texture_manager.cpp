@@ -310,7 +310,7 @@ namespace engine::graphics {
     rhi::runtime::ImagePtr TextureManager::generateImage(TextureCreateInfo && textureData, rhi::runtime::CommandList & commandList) const {
         using namespace rhi;
 
-        bool useMipMaps = (textureData.metaInfo.flags & TextureFlags::eGenerateMipMaps) != TextureFlags::eNone;
+        bool useMipMaps = (textureData.metaInfo.flags & TextureFlags::eUseMipMaps) != TextureFlags::eNone;
 
         uint8_t mipLevels = textureData.data.size();
 

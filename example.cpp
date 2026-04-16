@@ -1116,7 +1116,7 @@ namespace example {
         const bool sampledSupport = featureAccess24.checkBit(engine::rhi::FormatFeatureAccess::Bit::eOptimalTilingFeaturesBit) ||
                                     featureAccess24.checkBit(engine::rhi::FormatFeatureAccess::Bit::eLinearTilingFeaturesBit);
 
-        if (textureData.metaInfo.bpp == 24u && !sampledSupport) {
+        if (textureData.metaInfo.bitsPerPixel == 24u && !sampledSupport) {
             // if (featureAccess16.optimalTilingFeatures || featureAccess16.linearTilingFeatures) {
             //     auto status = image.convert(SAIL_PIXEL_FORMAT_BPP16_RGBA);
             //     const auto bpp2 = image.bits_per_pixel();

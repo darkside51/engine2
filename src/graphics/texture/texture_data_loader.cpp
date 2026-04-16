@@ -271,7 +271,7 @@ namespace ktx_format {
                             .size = {texture2->baseWidth, texture2->baseHeight, 1u},
                             .bytesPerRow = static_cast<uint16_t>(ktxTexture_GetRowPitch(reinterpret_cast<ktxTexture*>(texture2), 0u)),
                             .format = getFormat(reinterpret_cast<ktxTexture*>(texture2), info.flags),
-                            .bpp = 0u,
+                            .bitsPerPixel = 0u,
                             .numLevels = static_cast<uint8_t>(texture2->numLevels),
                             .hasPalette = (texture2->_protected->_formatSize.flags & ktxFormatSizeFlagBits::KTX_FORMAT_SIZE_PALETTIZED_BIT) != 0,
                             .parserType = TextureLoaderType::eKtx,
@@ -292,7 +292,7 @@ namespace ktx_format {
                     .size = {texture->baseWidth, texture->baseHeight, 1u},
                     .bytesPerRow = static_cast<uint16_t>(ktxTexture_GetRowPitch(texture, 0u)),
                     .format = getFormat(texture, info.flags),
-                    .bpp = 0u,
+                    .bitsPerPixel = 0u,
                     .numLevels = static_cast<uint8_t>(texture->numLevels),
                     .hasPalette = (texture->_protected->_formatSize.flags & ktxFormatSizeFlagBits::KTX_FORMAT_SIZE_PALETTIZED_BIT) != 0,
                     .parserType = TextureLoaderType::eKtx,
@@ -311,7 +311,7 @@ namespace ktx_format {
             .size = {texture->baseWidth, texture->baseHeight, 1u},
             .bytesPerRow = static_cast<uint16_t>(ktxTexture_GetRowPitch(texture, 0u)),
             .format = getFormat(texture, info.flags),
-            .bpp = 0,
+            .bitsPerPixel = 0,
             .numLevels = static_cast<uint8_t>(texture->numLevels),
             .hasPalette = (texture->_protected->_formatSize.flags & ktxFormatSizeFlagBits::KTX_FORMAT_SIZE_PALETTIZED_BIT) != 0,
             .parserType = TextureLoaderType::eKtx,
@@ -450,7 +450,7 @@ namespace sail_format {
 //                 .size = {image.width(), image.height(), 1u},
 //                 .bytesPerLine = static_cast<uint16_t>(image.bytes_per_line()),
 //                 .format = convert(image.pixel_format()),
-//                 .bpp = static_cast<uint8_t>(image.bits_per_pixel()),
+//                 .bitsPerPixel = static_cast<uint8_t>(image.bits_per_pixel()),
 //                 .hasPalette = image.palette().is_valid(),
 //                 .parserType = TextureLoaderType::eSail,
 //                 .flags = info.flags
@@ -473,7 +473,7 @@ namespace sail_format {
                 .size = {image.width(), image.height(), 1u},
                 .bytesPerRow = static_cast<uint16_t>(image.bytes_per_line()),
                 .format = convert(image.pixel_format(), info.flags),
-                .bpp = static_cast<uint8_t>(image.bits_per_pixel()),
+                .bitsPerPixel = static_cast<uint8_t>(image.bits_per_pixel()),
                 .numLevels = 1u,
                 .hasPalette = image.is_indexed(), // image.palette().is_valid(),
                 .parserType = TextureLoaderType::eSail,
@@ -495,7 +495,7 @@ namespace sail_format {
             .size = {image.width(), image.height(), 1u},
             .bytesPerRow = static_cast<uint16_t>(image.bytes_per_line()),
             .format = convert(image.pixel_format(), info.flags),
-            .bpp = static_cast<uint8_t>(image.bits_per_pixel()),
+            .bitsPerPixel = static_cast<uint8_t>(image.bits_per_pixel()),
             .numLevels = 1u,
             .hasPalette = image.palette().is_valid(),
             .parserType = TextureLoaderType::eSail,
@@ -515,7 +515,7 @@ namespace sail_format {
         if (image.can_convert(targetFormat)) {
             if (image.convert(targetFormat) == SAIL_OK) {
                 info.metaInfo.format = format;
-                info.metaInfo.bpp = image.bits_per_pixel();
+                info.metaInfo.bitsPerPixel = image.bits_per_pixel();
                 info.metaInfo.numLevels = 1u;
                 info.metaInfo.bytesPerRow = image.bytes_per_line();
                 std::span data{static_cast<std::byte*>(image.pixels()), image.pixels_size()};

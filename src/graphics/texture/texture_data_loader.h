@@ -21,7 +21,7 @@ enum class TextureFlags : uint8_t {
     eNone = 0u,
     eAllowSrgbColorSpace = 1u,
     eSupportLinearTiling = 2u,
-    eGenerateMipMaps = 4u,
+    eUseMipMaps = 4u,
 };
 inline TextureFlags operator | (TextureFlags a, TextureFlags b) {
     return static_cast<TextureFlags>(std::to_underlying(a) | std::to_underlying(b));
@@ -34,7 +34,7 @@ struct TextureMetaInfo {
     vec3u size;
     uint16_t bytesPerRow;
     rhi::Format format;
-    uint8_t bpp; // bits per pixels;
+    uint8_t bitsPerPixel;
     uint8_t numLevels;
     bool hasPalette;
     TextureLoaderType parserType; 
