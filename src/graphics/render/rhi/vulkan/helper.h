@@ -15,7 +15,7 @@ namespace engine::vulkan::helper {
 
 	inline void getVulkanInstanceExtensions(std::vector<VkExtensionProperties>& extensions) noexcept {
 		uint32_t extensionCount = 0u;
-		const auto result = vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr); // has 160 x 3 = 480bytes memory leak here
+		const auto result = vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr); // has some memory leak here (on Linux,...)
 		if (result != VK_SUCCESS) { return; }
 		extensions.resize(extensionCount);
 		vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, extensions.data());

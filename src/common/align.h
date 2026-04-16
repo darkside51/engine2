@@ -16,4 +16,9 @@ namespace engine {
 	constexpr inline std::decay_t<T> align_value(const T value, const U align) noexcept {
 		return (value + align - 1) & ~(align - 1);
 	}
+
+	template <typename T, typename U = T>
+	constexpr inline std::decay_t<T> align_value_no_pow2(const T value, const U align) noexcept {
+		return ((value + align - 1) / align) * align;
+	}
 }

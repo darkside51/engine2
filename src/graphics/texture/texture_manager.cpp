@@ -367,7 +367,7 @@ namespace engine::graphics {
         for (uint8_t i = 0u; i < readyMipLevels; ++i) {
             commandList.copyBuffer2Image(staging.getBuffer(), image, 
                 {
-                    .bufferOffset = 0u,
+                    .bufferOffset = mipOffsets[i],
                     .bufferRowLength = 0u,
                     .bufferImageHeight = 0u,
                     .imageSubresource = {
