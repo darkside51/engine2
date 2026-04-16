@@ -237,15 +237,13 @@ namespace ktx_format {
         }
     }
 
-    KTX_error_code levelCallback(int miplevel, int face, int width, int height, int depth, 
+    KTX_error_code getMipLevelData(int miplevel, int face, int width, int height, int depth, 
         ktx_uint64_t faceLodSize,
         void* pixels, void* userdata) {
         LOG_D("mip level: %d, face: %d, size: %u bytes\n", miplevel, face, faceLodSize);
 
-        if (miplevel == 0u) {
-            TextureCreateInfo & result = *static_cast<TextureCreateInfo*>(userdata);
-            result.data = {static_cast<std::byte*>(pixels), static_cast<std::byte*>(pixels) + faceLodSize};
-        }
+        TextureCreateInfo & result = *static_cast<TextureCreateInfo*>(userdata);
+        result.data[miplevel] = {static_cast<std::byte*>(pixels), static_cast<std::byte*>(pixels) + faceLodSize};
 
         // Example: Upload 'pixels' to GPU here using glTexImage2D or vkCmdCopyBufferToImage
         return KTX_SUCCESS; // Return KTX_SUCCESS to continue, or error to stop
@@ -272,16 +270,17 @@ namespace ktx_format {
                     TextureCreateInfo result {
                         .metaInfo = {
                             .size = {texture2->baseWidth, texture2->baseHeight, 1u},
-                            .bytesPerLine = static_cast<uint16_t>(ktxTexture_GetRowPitch(reinterpret_cast<ktxTexture*>(texture2), 0u)),
+                            .bytesPerRow = static_cast<uint16_t>(ktxTexture_GetRowPitch(reinterpret_cast<ktxTexture*>(texture2), 0u)),
                             .format = getFormat(reinterpret_cast<ktxTexture*>(texture2), info.flags),
                             .bpp = 0u,
+                            .numLevels = static_cast<uint8_t>(texture2->numLevels),
                             .hasPalette = (texture2->_protected->_formatSize.flags & ktxFormatSizeFlagBits::KTX_FORMAT_SIZE_PALETTIZED_BIT) != 0,
                             .parserType = TextureLoaderType::eKtx,
                             .flags = info.flags
                         },
-                        .data = {}
+                        .data = std::vector<std::vector<std::byte>>{texture2->numLevels}
                     };
-                    ktxTexture2_IterateLevels(texture2, levelCallback, &result);
+                    ktxTexture2_IterateLevels(texture2, getMipLevelData, &result);
                     return result;
                 }
             }
@@ -292,17 +291,18 @@ namespace ktx_format {
             TextureCreateInfo result {
                 .metaInfo = {
                     .size = {texture->baseWidth, texture->baseHeight, 1u},
-                    .bytesPerLine = static_cast<uint16_t>(ktxTexture_GetRowPitch(texture, 0u)),
+                    .bytesPerRow = static_cast<uint16_t>(ktxTexture_GetRowPitch(texture, 0u)),
                     .format = getFormat(texture, info.flags),
                     .bpp = 0u,
+                    .numLevels = static_cast<uint8_t>(texture->numLevels),
                     .hasPalette = (texture->_protected->_formatSize.flags & ktxFormatSizeFlagBits::KTX_FORMAT_SIZE_PALETTIZED_BIT) != 0,
                     .parserType = TextureLoaderType::eKtx,
                     .flags = info.flags
                 },
-                .data = {}
+                .data = std::vector<std::vector<std::byte>>{texture->numLevels}
             };
 
-            ktxTexture_IterateLevels(texture, levelCallback, &result);
+            ktxTexture_IterateLevels(texture, getMipLevelData, &result);
             return result;
         }
     }
@@ -310,9 +310,10 @@ namespace ktx_format {
     TextureMetaInfo parseTextureMetaInfoOnly(ktxTexture * texture, const TextureLoadInfo & info) {
         return {
             .size = {texture->baseWidth, texture->baseHeight, 1u},
-            .bytesPerLine = static_cast<uint16_t>(ktxTexture_GetRowPitch(texture, 0u)),
+            .bytesPerRow = static_cast<uint16_t>(ktxTexture_GetRowPitch(texture, 0u)),
             .format = getFormat(texture, info.flags),
             .bpp = 0,
+            .numLevels = static_cast<uint8_t>(texture->numLevels),
             .hasPalette = (texture->_protected->_formatSize.flags & ktxFormatSizeFlagBits::KTX_FORMAT_SIZE_PALETTIZED_BIT) != 0,
             .parserType = TextureLoaderType::eKtx,
             .flags = info.flags
@@ -463,20 +464,23 @@ namespace sail_format {
 
 // void set_palette(sail::palette &&palette) noexcept;
 
-        auto & palette = image.palette();
-        palette.data();
+        // auto & palette = image.palette();
+        // palette.data();
 
+        std::vector<std::vector<std::byte>> mipLevelsData{1u};
+        mipLevelsData[0u] = {data.begin(), data.end()};
         return {
             .metaInfo = {
                 .size = {image.width(), image.height(), 1u},
-                .bytesPerLine = static_cast<uint16_t>(image.bytes_per_line()),
+                .bytesPerRow = static_cast<uint16_t>(image.bytes_per_line()),
                 .format = convert(image.pixel_format(), info.flags),
                 .bpp = static_cast<uint8_t>(image.bits_per_pixel()),
+                .numLevels = 1u,
                 .hasPalette = image.is_indexed(), // image.palette().is_valid(),
                 .parserType = TextureLoaderType::eSail,
                 .flags = info.flags
             },
-            .data = {data.begin(), data.end()}
+            .data = std::move(mipLevelsData)
         };
     }
 
@@ -490,9 +494,10 @@ namespace sail_format {
 
         return {
             .size = {image.width(), image.height(), 1u},
-            .bytesPerLine = static_cast<uint16_t>(image.bytes_per_line()),
+            .bytesPerRow = static_cast<uint16_t>(image.bytes_per_line()),
             .format = convert(image.pixel_format(), info.flags),
             .bpp = static_cast<uint8_t>(image.bits_per_pixel()),
+            .numLevels = 1u,
             .hasPalette = image.palette().is_valid(),
             .parserType = TextureLoaderType::eSail,
             .flags = info.flags
@@ -505,16 +510,19 @@ namespace sail_format {
         }
 
         const auto targetFormat = convert(format, false);
-        sail::image image(info.data.data(), convert(info.metaInfo.format, info.metaInfo.hasPalette), 
-            info.metaInfo.size.x, info.metaInfo.size.y, info.metaInfo.bytesPerLine);
+        sail::image image(info.data[0u].data(), convert(info.metaInfo.format, info.metaInfo.hasPalette), 
+            info.metaInfo.size.x, info.metaInfo.size.y, info.metaInfo.bytesPerRow);
 
         if (image.can_convert(targetFormat)) {
             if (image.convert(targetFormat) == SAIL_OK) {
                 info.metaInfo.format = format;
                 info.metaInfo.bpp = image.bits_per_pixel();
-                info.metaInfo.bytesPerLine = image.bytes_per_line();
+                info.metaInfo.numLevels = 1u;
+                info.metaInfo.bytesPerRow = image.bytes_per_line();
                 std::span data{static_cast<std::byte*>(image.pixels()), image.pixels_size()};
-                info.data = {data.begin(), data.end()};
+                std::vector<std::vector<std::byte>> mipLevelsData{1u};
+                mipLevelsData[0u] = {data.begin(), data.end()};
+                info.data = std::move(mipLevelsData);
                 return true;
             }
         }

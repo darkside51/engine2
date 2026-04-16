@@ -54,14 +54,14 @@ namespace engine {
         template <typename... Args>
         inline void log(const char* fmt, Args &&...args) const {
             const auto threadId = std::hash<std::thread::id>{}(std::this_thread::get_id());
-            const auto format = fmt_string("[%lu] <%lu> %s\n", time::unixUTCTime(), threadId, fmt);
+            const auto format = fmt_string("[time:  %lu] <thread: %lu> %s\n", time::unixUTCTime(), threadId, fmt);
             _printer(format, std::forward<Args>(args)...);
         }
 
         template <typename... Args>
         inline void log(LogLevel level, const char* fmt, Args &&...args) const {
             const auto threadId = std::hash<std::thread::id>{}(std::this_thread::get_id());
-            const auto format = fmt_string("[%lu] <%lu> (%s) %s\n", time::unixUTCTime(), threadId, _printer.level(level), fmt);
+            const auto format = fmt_string("[time: %lu] <thread: %lu> (%s) %s\n", time::unixUTCTime(), threadId, _printer.level(level), fmt);
             _printer(format, std::forward<Args>(args)...);
         }
 

@@ -276,7 +276,7 @@ namespace engine::graphics {
 
         uint32_t allDataSize = 0u;
         for (const auto & [_, info] : _tmpTexturesData) {
-            allDataSize += info.data.size();
+            allDataSize += info.data[0u].size();
         }
 
         StagingBuffer staging{_api, _device, allDataSize};
@@ -284,10 +284,10 @@ namespace engine::graphics {
         std::byte * memory = staging.map();
 
         for (auto & [image, info] : _tmpTexturesData) {
-            auto const sizeInBytes = info.data.size();
+            auto const sizeInBytes = info.data[0u].size();
             const auto bufferOffset = staging.requestBytes(sizeInBytes);
             auto * data = (memory + bufferOffset);
-            std::memcpy(data, info.data.data(), sizeInBytes);
+            std::memcpy(data, info.data[0u].data(), sizeInBytes);
 
             commandList->copyBuffer2Image(staging.getBuffer(), image, 
                 {
@@ -334,11 +334,11 @@ namespace engine::graphics {
                         };
 
         auto image = _api.createImage(_device, imageInfo);
-        const auto stagingSize = textureData.data.size();
+        const auto stagingSize = textureData.data[0u].size();
         engine::graphics::StagingBuffer staging{_api, _device, stagingSize};
                     
         auto * imgData = staging.map();
-        std::memcpy(imgData, textureData.data.data(), stagingSize);
+        std::memcpy(imgData, textureData.data[0u].data(), stagingSize);
         staging.flush();
 
         commandList.copyBuffer2Image(staging.getBuffer(), image, 

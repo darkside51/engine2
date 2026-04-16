@@ -32,9 +32,10 @@ inline TextureFlags operator & (TextureFlags a, TextureFlags b) {
 
 struct TextureMetaInfo {
     vec3u size;
-    uint16_t bytesPerLine;
+    uint16_t bytesPerRow;
     rhi::Format format;
     uint8_t bpp; // bits per pixels;
+    uint8_t numLevels;
     bool hasPalette;
     TextureLoaderType parserType; 
     TextureFlags flags;
@@ -47,7 +48,7 @@ struct PaletteData {
 
 struct TextureCreateInfo {
     TextureMetaInfo metaInfo;
-    std::vector<std::byte> data;
+    std::vector<std::vector<std::byte>> data;
 };
 
 struct TextureLoadInfo {
