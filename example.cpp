@@ -1666,7 +1666,7 @@ namespace example {
                 auto * sprite = scene->createObject<engine::scene::Sprite>(frame, 0u);
                 sprite->setSize({60.0f, 60.0f});
                 engine::scene::attachObjectToNode(*sprite, *node);
-                sprite->setFilter(engine::scene::SpriteTextureFilter::eNearest);
+                //sprite->setFilter(engine::scene::SpriteTextureFilter::eNearest);
                 sprite->setOrder(0);
 
                 sceneWorldRoot->addChild(node);
