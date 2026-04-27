@@ -21,8 +21,8 @@ layout (constant_id = 0) const int kSsaoKernelSize = 32;
 //layout (constant_id = 1) const float kSsaoRadius = 0.5;
 //const float bias = 0.025f;
 
-layout (constant_id = 1) const float kSsaoRadius = 0.3;
-const float bias = 0.02f;
+layout (constant_id = 1) const float kSsaoRadius = 0.2;
+const float bias = 0.01f;
 
 layout (set = 0, binding = 4) uniform UBOSSAOKernel {
 	vec4 samples[kSsaoKernelSize];
@@ -77,7 +77,10 @@ void main() {
 	float NdotL = max(0.1, dot(normal, L));
 	vec3 baseColor = albedo.rgb;// * NdotL;
 
-	out_color = vec4(baseColor * occlusion, 1.0);
-
+	out_color = vec4(baseColor, 1.0);
 	out_color.rgb = pow(out_color.rgb, vec3(0.4545)); // gamma correction 1.0 / 2.2 = 0.4545
+	out_color.rgb *= occlusion;
+
+	//out_color = vec4(baseColor * occlusion, 1.0);
+	//out_color.rgb = pow(out_color.rgb, vec3(0.4545)); // gamma correction 1.0 / 2.2 = 0.4545
 }
