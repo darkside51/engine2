@@ -47,20 +47,22 @@
 // https://nikitablack.github.io/post/how_to_use_vulkan_timestamp_queries/
 
 namespace example {
-    constexpr uint8_t kDepthFormatTargetBits = 24u;
+    constexpr uint8_t kDepthFormatTargetBits = 32u;
 
     constexpr uint8_t kScreenRenderPass = 0u;
     constexpr uint8_t kSceneRenderPass = 1u;
+    constexpr uint8_t kGbufferRenderPass = 2u;
+    constexpr uint8_t kSsaoRenderPass = 3u;
 
     constexpr uint8_t kImguiProgram = 0u;
     constexpr uint8_t kPostEffectProgram = 1u;
     constexpr uint8_t kDebugProgram = 2u;
     constexpr uint8_t kSpritesProgram = 3u;
     constexpr uint8_t kMeshProgram = 4u;
-    constexpr uint8_t kMeshSkeletalInstancedProgram = 5u;
-    constexpr uint8_t kMeshInstancedProgram = 6u;
-    constexpr uint8_t kComputeProgram = 7u;
-    constexpr uint8_t kMeshAfterComputeProgram = 8u;
+    // constexpr uint8_t kMeshSkeletalInstancedProgram = 5u;
+    constexpr uint8_t kMeshInstancedProgram = 5u;
+    constexpr uint8_t kComputeProgram = 6u;
+    constexpr uint8_t kMeshAfterComputeProgram = 7u;
 
     constexpr uint8_t kPostEffectPipeline = 0u;
 
@@ -486,6 +488,95 @@ namespace example {
 
             _mainFrameBuffers.emplace_back(_api->createFrameBuffer(*_device, std::move(fbAttachemnts), _renderPasses[kScreenRenderPass]));
         }
+
+        // ssao
+
+        // ssao attachments
+        _gBufferAttachments.clear();
+        _gBufferAttachments.reserve(swapchainImagesCount);
+
+        _ssaoImages.clear();
+        _ssaoImages.reserve(swapchainImagesCount);
+
+        auto positionImageInfo = engine::rhi::ImageInfo{
+            engine::rhi::ImageUsageFlags::eColor_Attachment | engine::rhi::ImageUsageFlags::eSampled,
+            engine::rhi::Format::eR32G32B32A32_Sfloat, {size.width, size.height, 1u}
+        };
+        positionImageInfo.memoryExtFlags = engine::rhi::MemoryExtendedFlags::eDedicated;
+
+        auto otherColorImageInfo = engine::rhi::ImageInfo{
+            engine::rhi::ImageUsageFlags::eColor_Attachment | engine::rhi::ImageUsageFlags::eSampled,
+            engine::rhi::Format::eR8G8B8A8_Unorm, {size.width, size.height, 1u}
+        };
+        otherColorImageInfo.memoryExtFlags = engine::rhi::MemoryExtendedFlags::eDedicated;
+
+        auto depthImageInfo = engine::rhi::ImageInfo{
+            engine::rhi::ImageUsageFlags::eDepth_Stencil_Attachment | engine::rhi::ImageUsageFlags::eTransient_Attachment,
+            depthFormat, {size.width, size.height, 1u}
+        };
+        depthImageInfo.memoryFlags = engine::rhi::MemoryPropertyFlags::eDeviceLocal | engine::rhi::MemoryPropertyFlags::eLazilyAllocated;
+        depthImageInfo.memoryExtFlags = engine::rhi::MemoryExtendedFlags::eDedicated;
+
+        auto ssaoImageInfo = engine::rhi::ImageInfo{
+            engine::rhi::ImageUsageFlags::eColor_Attachment | engine::rhi::ImageUsageFlags::eSampled,
+            engine::rhi::Format::eR8_Unorm, {size.width, size.height, 1u}
+        };
+        ssaoImageInfo.memoryExtFlags = engine::rhi::MemoryExtendedFlags::eDedicated;
+
+        for (uint32_t i = 0u; i < swapchainImagesCount; ++i) {
+            _gBufferAttachments.emplace_back(
+                _api->createImage(*_device, positionImageInfo), // position
+                _api->createImage(*_device, otherColorImageInfo), // normal
+                _api->createImage(*_device, otherColorImageInfo), // albedo
+                _api->createImage(*_device, depthImageInfo) // depth
+            );
+
+            _ssaoImages.emplace_back(_api->createImage(*_device, ssaoImageInfo));
+        }
+
+        // ssao framebuffers
+        _gBuffers.clear();
+        _gBuffers.reserve(swapchainImagesCount);
+
+        _ssaoBuffers.clear();
+        _ssaoBuffers.reserve(swapchainImagesCount);
+
+        for (uint32_t i = 0u; i < swapchainImagesCount; ++i) {
+            {
+                std::vector<engine::rhi::FrameBufferAttachment> fbAttachemnts{4u};
+
+                auto & positionImage = _gBufferAttachments[i].position;
+                fbAttachemnts[0u].image = positionImage.get();
+                fbAttachemnts[0u].imageSize = {positionImage->getExtent().width, positionImage->getExtent().height};
+                fbAttachemnts[0u].aspect = engine::rhi::ImageAspectFlags::eColor;
+
+                auto & normalImage = _gBufferAttachments[i].normal;
+                fbAttachemnts[1u].image = normalImage.get();
+                fbAttachemnts[1u].imageSize = {normalImage->getExtent().width, normalImage->getExtent().height};
+                fbAttachemnts[1u].aspect = engine::rhi::ImageAspectFlags::eColor;
+
+                auto & albedoImage = _gBufferAttachments[i].albedo;
+                fbAttachemnts[2u].image = albedoImage.get();
+                fbAttachemnts[2u].imageSize = {albedoImage->getExtent().width, albedoImage->getExtent().height};
+                fbAttachemnts[2u].aspect = engine::rhi::ImageAspectFlags::eColor;
+
+                auto & depthImage = _gBufferAttachments[i].depth;
+                fbAttachemnts[3u].image = depthImage.get();
+                fbAttachemnts[3u].imageSize = {depthImage->getExtent().width, depthImage->getExtent().height};
+                fbAttachemnts[3u].aspect = engine::rhi::ImageAspectFlags::eDepth;
+
+                _gBuffers.emplace_back(_api->createFrameBuffer(*_device, std::move(fbAttachemnts), _renderPasses[kGbufferRenderPass]));
+            }
+
+            {
+                std::vector<engine::rhi::FrameBufferAttachment> fbAttachemnts{1u};
+                auto & image = _ssaoImages[i];
+                fbAttachemnts[0u].image = image.get();
+                fbAttachemnts[0u].imageSize = {image->getExtent().width, image->getExtent().height};
+
+                _ssaoBuffers.emplace_back(_api->createFrameBuffer(*_device, std::move(fbAttachemnts), _renderPasses[kSsaoRenderPass]));
+            }
+        }
     }
 
     void Example::resize(uint16_t w, uint16_t h) {
@@ -517,6 +608,19 @@ namespace example {
 
         _renderPasses.emplace_back(_api->getRenderPass(*_device, engine::parseRenderPass(json["screen"], formats0))); // kScreenPass
         _renderPasses.emplace_back(_api->getRenderPass(*_device, engine::parseRenderPass(json["scene"], formats1))); // kScenePass
+
+        { // ssao
+            const auto formatsGBuffer = std::array{
+                engine::rhi::Format::eR32G32B32A32_Sfloat, 
+                engine::rhi::Format::eR8G8B8A8_Unorm, 
+                engine::rhi::Format::eR8G8B8A8_Unorm, 
+                depthFormat};
+            const auto formatsSsao = std::array{engine::rhi::Format::eR8_Unorm};
+
+            _renderPasses.emplace_back(_api->getRenderPass(*_device, engine::parseRenderPass(json["gBuffer"], formatsGBuffer))); // kGbufferRenderPass
+            _renderPasses.emplace_back(_api->getRenderPass(*_device, engine::parseRenderPass(json["ssao"], formatsSsao))); // kSsaoRenderPass
+        }
+        
     }
 
     void Example::loadShaders() {
@@ -571,15 +675,15 @@ namespace example {
             _programs.emplace_back(_api->createProgram(*_device, std::array{vsModule.getView(), fsModule.getView()}));
         }
 
-        { // kMeshSkeletalInstancedProgram
-            auto const vBytes = _fileManager.readFile("shaders/mesh_skeletal_instanced.vert.spv");
-            auto const fBytes = _fileManager.readFile("shaders/mesh.frag.spv");
+        // { // kMeshSkeletalInstancedProgram
+        //     auto const vBytes = _fileManager.readFile("shaders/mesh_skeletal_instanced.vert.spv");
+        //     auto const fBytes = _fileManager.readFile("shaders/mesh.frag.spv");
 
-            const auto & vsModule = _shaderModulesManager->registerModule("mesh_skeletal_instanced.vert", *_device, engine::rhi::shaders::Stages::eVertex, vBytes);
-            const auto & fsModule = _shaderModulesManager->registerModule("mesh.frag", *_device, engine::rhi::shaders::Stages::eFragment, fBytes);
+        //     const auto & vsModule = _shaderModulesManager->registerModule("mesh_skeletal_instanced.vert", *_device, engine::rhi::shaders::Stages::eVertex, vBytes);
+        //     const auto & fsModule = _shaderModulesManager->registerModule("mesh.frag", *_device, engine::rhi::shaders::Stages::eFragment, fBytes);
 
-            _programs.emplace_back(_api->createProgram(*_device, std::array{vsModule.getView(), fsModule.getView()}, {.dynamicDescriptorsMask = 0x0u}));
-        }
+        //     _programs.emplace_back(_api->createProgram(*_device, std::array{vsModule.getView(), fsModule.getView()}, {.dynamicDescriptorsMask = 0x0u}));
+        // }
 
         { // kMeshInstancedProgram
             auto const vBytes = _fileManager.readFile("shaders/mesh_instanced.vert.spv");
@@ -635,8 +739,8 @@ namespace example {
         scene->registerGraphicsPipeline(_api->createGraphicsPipeline(*_device, _renderPasses[kSceneRenderPass], _programs[kSpritesProgram], info2, 0u));
 
         // skeletal mesh
-        const GraphicsPipelineStatesInfo info4 = engine::parseGraphicsPipelineInfo(json["mesh_skeletal"]);
-        scene->registerGraphicsPipeline(_api->createGraphicsPipeline(*_device, _renderPasses[kSceneRenderPass], _programs[kMeshSkeletalInstancedProgram], info4, 0u));
+        // const GraphicsPipelineStatesInfo info4 = engine::parseGraphicsPipelineInfo(json["mesh_skeletal"]);
+        // scene->registerGraphicsPipeline(_api->createGraphicsPipeline(*_device, _renderPasses[kSceneRenderPass], _programs[kMeshSkeletalInstancedProgram], info4, 0u));
         
         // mesh
         const GraphicsPipelineStatesInfo info5 = engine::parseGraphicsPipelineInfo(json["mesh"]);
@@ -989,7 +1093,7 @@ namespace example {
 
             auto m2 = engine::makeMatrix(0.01F);
             auto * sprite = scene->createObject<engine::scene::Sprite>(textureManager->findFrame("hero_head"), 0u);
-            engine::scene::attachObjectToNode(*sprite, *node3);
+            //engine::scene::attachObjectToNode(*sprite, *node3);
             sprite->setOrder(1u);
 
             m2[1][1] *= -1.0f;
@@ -1000,7 +1104,7 @@ namespace example {
             node4->setPosition(engine::vec3f(0.57f, 0.05f, -0.85f));
 
             auto * sprite2 = scene->createObject<engine::scene::Sprite>(textureManager->findFrame("hero_sword"), 0u);
-            engine::scene::attachObjectToNode(*sprite2, *node4);
+            //engine::scene::attachObjectToNode(*sprite2, *node4);
             sprite2->setOrder(1u);
 
             sceneWorldRoot->addChild(node3);
@@ -1022,7 +1126,7 @@ namespace example {
 
                         const auto & frame3 = textureManager->findFrame("explosion_33");
                         auto * sprite3 = scene->createObject<engine::scene::Sprite>(frame3, 0u);
-                        engine::scene::attachObjectToNode(*sprite3, *node5);
+                        //engine::scene::attachObjectToNode(*sprite3, *node5);
                         sprite3->setOrder(1);
                         auto * anim0 = scene->createAnimInfo<engine::scene::FramesSequence>(animId, engine::common::random(0.25f, 1.7f));
                         scene->destroyAnimInfo(sprite3->setAnimation(anim0));
@@ -1045,7 +1149,7 @@ namespace example {
 
                 auto * sprite = scene->createObject<engine::scene::Sprite>(frame, 0u);
                 sprite->setSize({60.0f, 60.0f});
-                engine::scene::attachObjectToNode(*sprite, *node);
+                //engine::scene::attachObjectToNode(*sprite, *node);
                 //sprite->setFilter(engine::scene::SpriteTextureFilter::eNearest);
                 sprite->setOrder(0);
 
@@ -1136,9 +1240,11 @@ namespace example {
             _renderThread->emplaceTasks(stl::make_vector(threads::WorkerTask{[
                 transform = camera.getTransform(), 
                 view = camera.getView(), 
+                projection = camera.getProjection(),
                 cameraPos = controller.cameraPosition()
             ](){
                 viewParams.cameraView = view;
+                viewParams.cameraProjection = projection;
                 viewParams.cameraTransform = transform;
                 viewParams.cameraPosition = cameraPos; 
             }}), 0u);
@@ -1273,8 +1379,8 @@ namespace example {
             if (modelManager->isDataReady(modelIndex)) {
                 meshLoaded = true;
                 engine::scene::MeshPipelines pipelines = {
-                    .commonPipeline = 2u, 
-                    .skeletalPipeline = scene->isComputeSkinningEnabled() ? 3u : 1u
+                    .commonPipeline = 1u, 
+                    .skeletalPipeline = scene->isComputeSkinningEnabled() ? 2u : 1u
                 };
 
                 auto const animId = animationManager.getAnimationIndex("skeletal_mesh_anim0");
@@ -1312,8 +1418,8 @@ namespace example {
             if (modelManager->isDataReady(modelIndex)) {
                 meshLoaded2 = true;
                 engine::scene::MeshPipelines pipelines = {
-                    .commonPipeline = 2u, 
-                    .skeletalPipeline = scene->isComputeSkinningEnabled() ? 3u : 1u
+                    .commonPipeline = 1u, 
+                    .skeletalPipeline = scene->isComputeSkinningEnabled() ? 2u : 1u
                 };
 
                 auto * meshRoot = engine::scene::createNodeWithSkeletalMesh(*scene, *modelManager, modelIndex, 
@@ -1332,8 +1438,8 @@ namespace example {
             if (modelManager->isDataReady(modelIndex)) {
                 meshLoaded3 = true;
                 engine::scene::MeshPipelines pipelines = {
-                    .commonPipeline = 2u, 
-                    .skeletalPipeline = scene->isComputeSkinningEnabled() ? 3u : 1u
+                    .commonPipeline = 1u, 
+                    .skeletalPipeline = scene->isComputeSkinningEnabled() ? 2u : 1u
                 };
                 auto * meshRoot = engine::scene::createNodeWithSkeletalMesh(*scene, *modelManager, modelIndex, 
                     engine::scene::Bounds::Type::eCube, pipelines,
@@ -1357,8 +1463,8 @@ namespace example {
             if (modelManager->isDataReady(modelIndex)) {
                 meshLoaded4 = true;
                 engine::scene::MeshPipelines pipelines = {
-                    .commonPipeline = 2u, 
-                    .skeletalPipeline = scene->isComputeSkinningEnabled() ? 3u : 1u
+                    .commonPipeline = 1u, 
+                    .skeletalPipeline = scene->isComputeSkinningEnabled() ? 2u : 1u
                 };
                 auto const animId = animationManager.getAnimationIndex("buster_anim0");
                 for (uint8_t i = 0u; i < 20u; ++i) {
@@ -1384,8 +1490,8 @@ namespace example {
             if (modelManager->isDataReady(modelIndex)) {
                 meshLoaded5 = true;
                 engine::scene::MeshPipelines pipelines = {
-                    .commonPipeline = 2u, 
-                    .skeletalPipeline = scene->isComputeSkinningEnabled() ? 3u : 1u
+                    .commonPipeline = 1u, 
+                    .skeletalPipeline = scene->isComputeSkinningEnabled() ? 2u : 1u
                 };
                 auto const animId = animationManager.getAnimationIndex("chaman_anim1");
                 for (uint16_t i = 0u; i < 500u; ++i) {
@@ -1419,6 +1525,13 @@ namespace example {
             rhi::ClearValue{0.0f}
         };
 
+        constexpr auto gBufferClearValues = std::array{
+            rhi::ClearValue{0x00'00'00'ffu},
+            rhi::ClearValue{0x00'00'00'ffu},
+            rhi::ClearValue{0x00'00'00'ffu},
+            rhi::ClearValue{0.0f}
+        };
+
         constexpr auto clearValues = std::array{
             rhi::ClearValue{0x77'77'77'ffu},
         };
@@ -1440,7 +1553,7 @@ namespace example {
         commandList->beginRenderPass(_renderPasses[kSceneRenderPass], _sceneFrameBuffers[imageIndex], sceneClearValues, {{0, 0}, {width, height}});
         // scene->dispatch(commandList, frameId, objects, offsets);
         
-        scene->draw(commandList, transferCommandList, frameId, viewParams.cameraTransform, objects, offsets);    
+        scene->draw(commandList, transferCommandList, frameId, viewParams, objects, offsets);    
         
         drawHelper.prepare(*transferCommandList, frameId);
         drawHelper.draw(*commandList, frameId, now);

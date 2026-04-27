@@ -50,7 +50,74 @@
 			}
 		]
 	},
-
+	"gBuffer" : {
+		"attachments" : [
+			{
+				"loadStoreOp" : ["eClear", "eStore"],
+				"stencilLoadStoreOp" : ["eDont_Care", "eDont_Care"],
+				"finalLayout" : "eShader_Read_Only_Optimal"
+			},
+			{
+				"loadStoreOp" : ["eClear", "eStore"],
+				"stencilLoadStoreOp" : ["eDont_Care", "eDont_Care"],
+				"finalLayout" : "eShader_Read_Only_Optimal"
+			},
+			{
+				"loadStoreOp" : ["eClear", "eStore"],
+				"stencilLoadStoreOp" : ["eDont_Care", "eDont_Care"],
+				"finalLayout" : "eShader_Read_Only_Optimal"
+			},
+			{
+				"loadStoreOp" : ["eClear", "eStore"],
+				"stencilLoadStoreOp" : ["eDont_Care", "eDont_Care"],
+				"finalLayout" : "eDepth_Stencil_Read_Only_Optimal"
+			}
+		],
+		"subpasses" : [
+			{
+				"inputAttachments": [],
+				"resolveAttachments" : [],
+				"reserveAttachments": [],
+				"colorAttachments": [
+					{
+						"attachment": 0,
+						"layout": "eColor_Attachment_Optimal"
+					},
+					{
+						"attachment": 1,
+						"layout": "eColor_Attachment_Optimal"
+					},
+					{
+						"attachment": 2,
+						"layout": "eColor_Attachment_Optimal"
+					}
+				],
+				"depthStencilAttachment" : {
+					"attachment": 3,
+					"layout": "eDepth_Stencil_Attachment_Optimal"
+				}
+			}
+		]
+	},
+	"ssao" : {
+		"attachments" : [
+			{
+				"loadStoreOp" : ["eClear", "eStore"],
+				"stencilLoadStoreOp" : ["eDont_Care", "eDont_Care"],
+				"finalLayout" : "eShader_Read_Only_Optimal"
+			}
+		],
+		"subpasses" : [
+			{
+				"colorAttachments": [
+					{
+						"attachment": 0,
+						"layout": "eColor_Attachment_Optimal"
+					}
+				]
+			}
+		]
+	},
 	"scene2Test" : {
 		"attachments" : [
 			{

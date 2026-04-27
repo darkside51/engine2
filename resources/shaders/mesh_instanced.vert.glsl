@@ -10,13 +10,19 @@ layout (location = 1) out vec2 v_uv;
 layout (location = 2) out vec4 v_color;
 layout (location = 3) out vec3 v_emissive;
 
+layout (set = 0, binding = 0) uniform UniformBuffer {
+	mat4 view;
+	mat4 projection;
+	mat4 viewProjection;
+	vec3 cameraPosition;
+} u_viewParams;
+
 // storage buffer
-layout (set = 0, binding = 0) readonly buffer Transformations {
+layout (set = 1, binding = 0) readonly buffer Transformations {
    mat3x4 transforms[];
 } sbo;
 
-layout(push_constant) uniform Camera {
-	mat4 viewProjection;
+layout(push_constant) uniform Params {
 	vec4 color;
 	vec4 emissive;
 } push;
@@ -36,7 +42,7 @@ void main() {
 			vec4(0.0, 0.0, 0.0, 1.0)
 		);
 
-		gl_Position = push.viewProjection * (vec4(a_position, 1.0) * model);
+		gl_Position = u_viewParams.viewProjection * (vec4(a_position, 1.0) * model);
 		v_normal = normalize((vec4(a_normal, 0.0) * model).xyz);
 	}
 }

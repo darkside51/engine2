@@ -5,8 +5,8 @@ layout (location = 1) in vec2 v_uv;
 layout (location = 2) in vec4 v_color;
 layout (location = 3) in vec3 v_emissive;
 
-layout(set = 1, binding = 0) uniform sampler2D u_texture;
-layout(set = 1, binding = 1) uniform sampler2D u_texture_emissive;
+layout(set = 2, binding = 0) uniform sampler2D u_texture;
+layout(set = 2, binding = 1) uniform sampler2D u_texture_emissive;
 
 layout (location = 0) out vec4 out_color;
 

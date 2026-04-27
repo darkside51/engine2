@@ -73,6 +73,7 @@ void attachObjectToNode(AttachmentObject & object, Node & node) noexcept;
 
 struct ViewParams {
     mat4f cameraView;
+    mat4f cameraProjection;
     mat4f cameraTransform;
     vec3f cameraPosition;
 };
@@ -148,7 +149,7 @@ public:
     void animate(std::chrono::time_point<std::chrono::steady_clock> now, float delta, std::span<AttachmentObject*> objects, 
         const AnimationManager & animationManager);
     void draw(rhi::runtime::CommandListPtr & commandList, rhi::runtime::CommandListPtr & transferCommandList, uint8_t frame, 
-        const mat4f & cameraTransform, std::span<AttachmentObject*> objects, const DrawDataOffsets & offsets);
+        const ViewParams & viewParams, std::span<AttachmentObject*> objects, const DrawDataOffsets & offsets);
     void dispatch(rhi::runtime::CommandListPtr & commandList, uint8_t frame, std::span<AttachmentObject*> objects, const DrawDataOffsets & offsets);
 
     // getters
@@ -173,21 +174,21 @@ private:
 
     // draw
     void drawObjects(rhi::runtime::CommandListPtr & commandList, uint8_t frame, 
-        const mat4f & cameraTransform, AttachmentsIterator begin, AttachmentsIterator end, 
+        const ViewParams & viewParams, AttachmentsIterator begin, AttachmentsIterator end, 
         uint16_t typeIdx, DrawDataOffsets & offsets);
 
-    void drawDummies(AttachmentsIterator begin, AttachmentsIterator end, const mat4f & cameraTransform, uint32_t color);
+    void drawDummies(AttachmentsIterator begin, AttachmentsIterator end, const ViewParams & viewParams, uint32_t color);
     void drawSprites(rhi::runtime::CommandListPtr & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end,
-        const mat4f & cameraTransform, uint32_t & vtxOffset, uint32_t & idxOffset);
+        const ViewParams & viewParams, uint32_t & vtxOffset, uint32_t & idxOffset);
     void drawSpritesBatch(rhi::runtime::CommandListPtr & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end, 
-        const mat4f & cameraTransform, uint32_t batchVertexesCount, uint32_t batchIndicesCount, uint32_t vtxOffset, uint32_t idxOffset);
+        const ViewParams & viewParams, uint32_t batchVertexesCount, uint32_t batchIndicesCount, uint32_t vtxOffset, uint32_t idxOffset);
 
     void drawMeshes(rhi::runtime::CommandListPtr & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end,
-        const mat4f & cameraTransform, uint32_t & offset);
+        const ViewParams & viewParams, uint32_t & offset);
     void drawMeshes2(rhi::runtime::CommandListPtr & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end,
-        const mat4f & cameraTransform, uint32_t & offset, uint32_t & skeletonsOffset);
-    void drawSameMeshes(rhi::runtime::CommandListPtr & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end, 
-        const mat4f & cameraTransform, uint32_t count, bool skeletal, uint32_t startTransformIndex);   
+        const ViewParams & viewParams, uint32_t & offset, uint32_t & skeletonsOffset);
+    void drawSameMeshes(rhi::runtime::CommandListPtr & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end,
+        uint32_t count, bool skeletal, uint32_t startTransformIndex);   
 
     using NodesAllocator = allocators::PoolAllocatorChain<sizeof(Node), alignof(Node), false, false>;
     NodesAllocator _nodeAllocator{512u, 256u};
@@ -242,6 +243,8 @@ private:
     const graphics::GraphicsService & _graphicsService;
     graphics::DrawHelper & _drawHelper;
     std::chrono::time_point<std::chrono::steady_clock> _tryReduceUsedMemoryTime;
+
+    std::unique_ptr<engine::graphics::InflightBuffer> _viewParamsUniformBuffer = nullptr;
 
     // sprites:
     uint32_t _spritesVertexesCount = 0u;

@@ -136,6 +136,8 @@ namespace engine::scene {
 
         _animations.clear();
 
+        _viewParamsUniformBuffer = nullptr;
+
         _spritesVertices = nullptr;
         _spritesIndices = nullptr;
 
@@ -273,6 +275,17 @@ namespace engine::scene {
         device.evaluateSampler(_nearestSampler);
         device.evaluateSampler(_linearSampler);
 
+        // viewParams:
+        const rhi::BufferInfo unifromsInfo {
+            rhi::BufferUsageFlags::eUniform_Buffer | rhi::BufferUsageFlags::eTransfer_Dst,
+            rhi::MemoryPropertyFlags::eDeviceLocal | rhi::MemoryPropertyFlags::eHostVisible
+        };
+        const size_t uniformBufferOffsetAlign = _device->getUniformBufferOffsetAlignment();
+
+        _viewParamsUniformBuffer = std::make_unique<graphics::InflightBuffer>(
+            api, device, unifromsInfo, std::max(uniformBufferOffsetAlign, sizeof(ViewParams))
+        );
+        
         //create vertex and index buffers
         const rhi::BufferInfo verticesInfo {
             rhi::BufferUsageFlags::eVertex_Buffer | rhi::BufferUsageFlags::eTransfer_Dst,
@@ -965,7 +978,7 @@ namespace engine::scene {
     }
 
     void Scene::drawObjects(rhi::runtime::CommandListPtr & commandList, uint8_t frame, 
-        const mat4f & cameraTransform, AttachmentsIterator begin, AttachmentsIterator end, 
+        const ViewParams & viewParams, AttachmentsIterator begin, AttachmentsIterator end, 
         uint16_t typeIdx, DrawDataOffsets & offsets) {
         switch (typeIdx) {
         case ctti::typeIndex<AttachmentObject, Skeleton>(): // do not draw skeletons
@@ -973,29 +986,36 @@ namespace engine::scene {
         case ctti::typeIndex<AttachmentObject, Mesh>():
         {
             if constexpr (kComputeSkinningAvailable) {
-                drawMeshes2(commandList, frame, begin, end, cameraTransform, offsets.meshesDrawOffset, offsets.skeletonOffset);
+                drawMeshes2(commandList, frame, begin, end, viewParams, offsets.meshesDrawOffset, offsets.skeletonOffset);
             } else {
-                drawMeshes(commandList, frame, begin, end, cameraTransform, offsets.meshesDrawOffset);
+                drawMeshes(commandList, frame, begin, end, viewParams, offsets.meshesDrawOffset);
             }
         }
             break;
         case ctti::typeIndex<AttachmentObject, Sprite>():
         {
-            drawSprites(commandList, frame, begin, end, cameraTransform, offsets.spriteVerticesOffset, offsets.spriteIndicesOffset);
+            drawSprites(commandList, frame, begin, end, viewParams, offsets.spriteVerticesOffset, offsets.spriteIndicesOffset);
         }
             break;
         case ctti::typeIndex<AttachmentObject, Dummy>():
         {
-            drawDummies(begin, end, cameraTransform, 0xff'00'00'ffu);
+            drawDummies(begin, end, viewParams, 0xff'00'00'ffu);
         }
             break;
         }
     }
 
     void Scene::draw(rhi::runtime::CommandListPtr & commandList, rhi::runtime::CommandListPtr & transferCommandList, uint8_t frame, 
-        const mat4f & cameraTransform, std::span<AttachmentObject*> objects, const DrawDataOffsets & offsets) {
+        const ViewParams & viewParams, std::span<AttachmentObject*> objects, const DrawDataOffsets & offsets) {
         if (objects.empty()) {
             return;
+        }
+
+        { // update uniforms
+            auto * uniform = _viewParamsUniformBuffer->memory2<ViewParams>();
+            memcpy(uniform, &viewParams, sizeof(ViewParams));
+            _viewParamsUniformBuffer->modify();
+            _viewParamsUniformBuffer->commit(*transferCommandList, frame);
         }
 
         DrawDataOffsets offsets2 = offsets;
@@ -1004,25 +1024,25 @@ namespace engine::scene {
         for (auto it = currentIt + 1u; it != objects.end(); ++it) {
             const auto currenTypeIndex = (*it)->typeIndex;
             if (currenTypeIndex != typeIdx) {
-                drawObjects(commandList, frame, cameraTransform, currentIt, it, typeIdx, offsets2);
+                drawObjects(commandList, frame, viewParams, currentIt, it, typeIdx, offsets2);
 
                 currentIt = it;
                 typeIdx = currenTypeIndex;
             }
         }
 
-        drawObjects(commandList, frame, cameraTransform, currentIt, objects.end(), typeIdx, offsets2);
+        drawObjects(commandList, frame, viewParams, currentIt, objects.end(), typeIdx, offsets2);
     }
 
-    void Scene::drawDummies(AttachmentsIterator begin, AttachmentsIterator end, const mat4f & cameraTransform, uint32_t color) {
+    void Scene::drawDummies(AttachmentsIterator begin, AttachmentsIterator end, const ViewParams & viewParams, uint32_t color) {
         for (auto it = begin; it != end; ++it) {
             const auto & object = *it;
-            _drawHelper.drawSphere(vec3f{0.0f}, 0.1f, color, 32u, cameraTransform * object->node->getWorldTransform());
+            _drawHelper.drawSphere(vec3f{0.0f}, 0.1f, color, 32u, viewParams.cameraTransform * object->node->getWorldTransform());
         }
     }
 
     void Scene::drawSprites(rhi::runtime::CommandListPtr & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end, 
-        const mat4f & cameraTransform, uint32_t & vtxOffset, uint32_t & idxOffset) {
+        const ViewParams & viewParams, uint32_t & vtxOffset, uint32_t & idxOffset) {
         auto currentIt = begin;
         auto it = currentIt;
         const auto & sprite = *static_cast<const Sprite*>(*it);
@@ -1045,7 +1065,7 @@ namespace engine::scene {
 
             if (completeBatch) {
                 // draw
-                drawSpritesBatch(commandList, frame, currentIt, it, cameraTransform, batchVertexesCount, batchIndicesCount, vtxOffset, idxOffset);
+                drawSpritesBatch(commandList, frame, currentIt, it, viewParams, batchVertexesCount, batchIndicesCount, vtxOffset, idxOffset);
                 vtxOffset += batchVertexesCount;
                 idxOffset += batchIndicesCount;
 
@@ -1062,13 +1082,13 @@ namespace engine::scene {
             }
         }
 
-        drawSpritesBatch(commandList, frame, currentIt, end, cameraTransform, batchVertexesCount, batchIndicesCount, vtxOffset, idxOffset);
+        drawSpritesBatch(commandList, frame, currentIt, end, viewParams, batchVertexesCount, batchIndicesCount, vtxOffset, idxOffset);
         vtxOffset += batchVertexesCount;
         idxOffset += batchIndicesCount;
     }
 
     void Scene::drawSpritesBatch(rhi::runtime::CommandListPtr & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end, 
-        const mat4f & cameraTransform, uint32_t batchVertexesCount, uint32_t batchIndicesCount, uint32_t vtxOffset, uint32_t idxOffset) {
+        const ViewParams & viewParams, uint32_t batchVertexesCount, uint32_t batchIndicesCount, uint32_t vtxOffset, uint32_t idxOffset) {
 
         const auto & sprite = *static_cast<const Sprite*>(*begin);
         const auto & pipeline = getGraphicsPipeline(sprite.getPipeline());
@@ -1143,14 +1163,14 @@ namespace engine::scene {
             commandList->bindVertexBuffer(0u, vertexBuffer, 0u);
             commandList->bindIndexBuffer(indexBuffer, 0u, rhi::IndexType::eU32);
             commandList->bindImage(0u, image, sprite.getFilter() == SpriteTextureFilter::eLinear ? _linearSampler : _nearestSampler);
-            commandList->pushConstants(rhi::shaders::Stages::eVertex, 0u, sizeof(mat4f), &cameraTransform);
+            commandList->pushConstants(rhi::shaders::Stages::eVertex, 0u, sizeof(mat4f), &viewParams.cameraTransform);
 
             commandList->drawIndexed(batchIndicesCount, 1u, idxOffset);
         }
     }
 
     void Scene::drawMeshes2(rhi::runtime::CommandListPtr & commandList, uint8_t frame, 
-        AttachmentsIterator begin, AttachmentsIterator end, const mat4f & cameraTransform, uint32_t & offset, uint32_t & skeletonsOffset) {
+        AttachmentsIterator begin, AttachmentsIterator end, const ViewParams & viewParams, uint32_t & offset, uint32_t & skeletonsOffset) {
         auto currentIt = begin;
         const auto & mesh = *static_cast<const Mesh*>(*currentIt);
         auto pipelineIdx = mesh.getPipeline();
@@ -1160,13 +1180,11 @@ namespace engine::scene {
         auto materialIndex = mesh.materialIndex();
 
         struct Uniform {
-            mat4f cameraTransform;
             vec4f color;
             vec4f emissive;
         };
 
         Uniform uniform {
-            .cameraTransform = cameraTransform, 
             .color = vec4f{1.0f},
             .emissive = vec4f{0.0f}
         };
@@ -1182,8 +1200,8 @@ namespace engine::scene {
             assert(image2 != nullptr);
 
             // textures change more often than storage buffers - setId #1u used
-            commandList->bindImage(0u, image->image, _linearSampler, 1u); 
-            commandList->bindImage(1u, image2->image, _linearSampler, 1u); 
+            commandList->bindImage(0u, image->image, _linearSampler, 2u); 
+            commandList->bindImage(1u, image2->image, _linearSampler, 2u); 
             uniform.color = material.baseColorFactor;
             uniform.emissive = vec4f{material.emissiveFactor, 0.0f};
         };
@@ -1193,15 +1211,17 @@ namespace engine::scene {
         const auto & pipeline = getGraphicsPipeline(pipelineIdx);
         assert(pipeline != nullptr);
         commandList->bindPipeline(pipeline);
+
+        commandList->bindBuffer(0u, (*_viewParamsUniformBuffer)(frame), 0u, 0u);
+
         applyMaterial(materialIndex);
-
         commandList->pushConstants(rhi::shaders::Stages::eVertex, 0u, sizeof(Uniform), &uniform);
-
+        
         if (skeletal) {
-            commandList->bindBuffer(0u, _computedVertices, 0u, 0u);
-            commandList->bindBuffer(1u, _computedNormals, 0u, 0u);
+            commandList->bindBuffer(0u, _computedVertices, 1u, 0u);
+            commandList->bindBuffer(1u, _computedNormals, 1u, 0u);
         } else {
-            commandList->bindBuffer(0u, (*_meshTransforms)(frame), 0u, 0u);
+            commandList->bindBuffer(0u, (*_meshTransforms)(frame), 1u, 0u);
         }
 
         for (auto it = currentIt + 1u; it != end; ++it) {
@@ -1225,10 +1245,10 @@ namespace engine::scene {
             if (completePack) {
                 // draw
                 if (skeletal) {
-                    drawSameMeshes(commandList, frame, currentIt, it, cameraTransform, count, skeletal, skeletonsOffset);
+                    drawSameMeshes(commandList, frame, currentIt, it, count, skeletal, skeletonsOffset);
                     skeletonsOffset += count;
                 } else {
-                    drawSameMeshes(commandList, frame, currentIt, it, cameraTransform, count, skeletal, offset);
+                    drawSameMeshes(commandList, frame, currentIt, it, count, skeletal, offset);
                 }
                 offset += count;
 
@@ -1245,10 +1265,10 @@ namespace engine::scene {
 
                 if (currentSkeletal != skeletal) {
                     if (currentSkeletal) {
-                        commandList->bindBuffer(0u, _computedVertices, 0u, 0u);
-                        commandList->bindBuffer(1u, _computedNormals, 0u, 0u);
+                        commandList->bindBuffer(0u, _computedVertices, 1u, 0u);
+                        commandList->bindBuffer(1u, _computedNormals, 1u, 0u);
                     } else {
-                        commandList->bindBuffer(0u, (*_meshTransforms)(frame), 0u, 0u);
+                        commandList->bindBuffer(0u, (*_meshTransforms)(frame), 1u, 0u);
                     }
                 }
 
@@ -1266,16 +1286,16 @@ namespace engine::scene {
         }
 
         if (skeletal) {
-            drawSameMeshes(commandList, frame, currentIt, end, cameraTransform, count, skeletal, skeletonsOffset);
+            drawSameMeshes(commandList, frame, currentIt, end, count, skeletal, skeletonsOffset);
             skeletonsOffset += count;
         } else {
-            drawSameMeshes(commandList, frame, currentIt, end, cameraTransform, count, skeletal, offset);
+            drawSameMeshes(commandList, frame, currentIt, end, count, skeletal, offset);
         }
         offset += count;
     }
 
     void Scene::drawMeshes(rhi::runtime::CommandListPtr & commandList, uint8_t frame, 
-        AttachmentsIterator begin, AttachmentsIterator end, const mat4f & cameraTransform, uint32_t & offset) {
+        AttachmentsIterator begin, AttachmentsIterator end, const ViewParams & viewParams, uint32_t & offset) {
         auto currentIt = begin;
         auto it = currentIt;
         const auto & mesh = *static_cast<const Mesh*>(*it);
@@ -1297,13 +1317,11 @@ namespace engine::scene {
         ++i;
 
         struct Uniform {
-            mat4f cameraTransform;
             vec4f color;
             vec4f emissive;
         };
 
         Uniform uniform {
-            .cameraTransform = cameraTransform, 
             .color = vec4f{1.0f},
             .emissive = vec4f{0.0f}
         };
@@ -1330,16 +1348,18 @@ namespace engine::scene {
         const auto & pipeline = getGraphicsPipeline(pipelineIdx);
         assert(pipeline != nullptr);
         commandList->bindPipeline(pipeline);
-        applyMaterial(materialIndex);
-
-        if (skeletal) {
-            commandList->bindBuffer(0u, (*_meshSkeletalTransforms)(frame), 0u, 0u);
-        } else {
-            commandList->bindBuffer(0u, (*_meshTransforms)(frame), 0u, 0u);
-        }
         
+        commandList->bindBuffer(0u, (*_viewParamsUniformBuffer)(frame), 0u, 0u);
+
+        applyMaterial(materialIndex);
         commandList->pushConstants(rhi::shaders::Stages::eVertex, 0u, sizeof(Uniform), &uniform);
 
+        if (skeletal) {
+            commandList->bindBuffer(0u, (*_meshSkeletalTransforms)(frame), 1u, 0u);
+        } else {
+            commandList->bindBuffer(0u, (*_meshTransforms)(frame), 1u, 0u);
+        }
+        
         for (; it != end; ++it, ++i) {
             const auto & mesh2 = *static_cast<const Mesh*>(*it);
             
@@ -1366,7 +1386,7 @@ namespace engine::scene {
                  
             if (completePack) {
                 // draw
-                drawSameMeshes(commandList, frame, currentIt, it, cameraTransform, count, skeletal, offset);
+                drawSameMeshes(commandList, frame, currentIt, it, count, skeletal, offset);
                 offset += count;
 
                 if (pipelineChanged) {
@@ -1382,9 +1402,9 @@ namespace engine::scene {
 
                 if (currentSkeletal != skeletal) {
                     if (currentSkeletal) {
-                        commandList->bindBuffer(0u, (*_meshSkeletalTransforms)(frame), 0u, 0u);
+                        commandList->bindBuffer(0u, (*_meshSkeletalTransforms)(frame), 1u, 0u);
                     } else {
-                        commandList->bindBuffer(0u, (*_meshTransforms)(frame), 0u, 0u);
+                        commandList->bindBuffer(0u, (*_meshTransforms)(frame), 1u, 0u);
                     }
                 }
 
@@ -1401,14 +1421,14 @@ namespace engine::scene {
             }
         }
 
-        drawSameMeshes(commandList, frame, currentIt, end, cameraTransform, count, skeletal, offset);
+        drawSameMeshes(commandList, frame, currentIt, end, count, skeletal, offset);
         offset += count;
 
         _meshTransformIndices->modify(sizeof(uint32_t) * i, sizeof(uint32_t) * startOffset);
     }
 
-    void Scene::drawSameMeshes(rhi::runtime::CommandListPtr & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end, 
-        const mat4f & cameraTransform, uint32_t count, bool skeletal, uint32_t startTransformIndex) {
+    void Scene::drawSameMeshes(rhi::runtime::CommandListPtr & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end,
+        uint32_t count, bool skeletal, uint32_t startTransformIndex) {
         const auto & mesh = *static_cast<const Mesh*>(*begin);
 
         if constexpr (kComputeSkinningAvailable) {
