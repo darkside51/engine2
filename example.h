@@ -12,10 +12,6 @@
 
 #include <vector>
 
-// namespace threads {
-//     class ExecutionContext;
-// }
-
 namespace example {
 
 class Example : public engine::InputHandler {
@@ -81,7 +77,6 @@ private:
     std::vector<engine::rhi::runtime::Semaphore> _transfersCompleteSemaphores;
     std::vector<engine::rhi::runtime::CommandListPtr> _commandLists;
     std::vector<engine::rhi::runtime::CommandListPtr> _transferCommandLists;
-    // std::vector<engine::rhi::runtime::CommandListPtr> _externalCommandLists;
     std::vector<engine::rhi::runtime::CommandList*> _externalCommandLists;
     bool _readyToSubmitExternal = true;
 
@@ -90,17 +85,8 @@ private:
     engine::ImGuiSystem _imgui;
     engine::rhi::runtime::BufferPtr _postPositions = nullptr;
     engine::rhi::runtime::BufferPtr _postIndices = nullptr;
-    engine::rhi::runtime::ImagePtr _defaultImage = nullptr;
-    std::unique_ptr<engine::graphics::InflightBuffer> _uniformBufferI = nullptr;
-    engine::rhi::runtime::BufferPtr _storageBuffer = nullptr;
-    engine::rhi::runtime::BufferPtr _cpuStorageResult = nullptr;
 
     bool _canDraw = true;
-
-    // sphere
-    engine::rhi::runtime::BufferPtr _sphereVtx = nullptr;
-    engine::rhi::runtime::BufferPtr _sphereIdx = nullptr;
-    engine::rhi::runtime::ImagePtr _sphereImage = nullptr;
 
     //queryPool
     engine::rhi::runtime::QueryPoolPtr _queryPool = nullptr;
