@@ -59,7 +59,7 @@ namespace engine::vulkan {
         VkSurfaceFormatKHR surfaceFormat;
         // if the surface format list only includes one entry with VK_FORMAT_UNDEFINED,
 		// there is no preferred format, so we assume VK_FORMAT_B8G8R8A8_UNORM
-		if ((surfaceSupportDetails.formats.size() == 1) && (surfaceSupportDetails.formats[0].format == VK_FORMAT_UNDEFINED)) {
+		if ((surfaceSupportDetails.formats.size() == 1u) && (surfaceSupportDetails.formats[0].format == VK_FORMAT_UNDEFINED)) {
 			surfaceFormat.format = VK_FORMAT_B8G8R8A8_UNORM;
 			surfaceFormat.colorSpace = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR; // or surfaceSupportDetails.formats[0].colorSpace ??;
 		} else {
@@ -67,7 +67,7 @@ namespace engine::vulkan {
 			// check for the presence of VK_FORMAT_B8G8R8A8_UNORM
             uint8_t priority = 0u;
 			for (const auto & format : surfaceSupportDetails.formats) { // hmmm....
-                if (format.colorSpace == utils::convert2vk(_info.colorSpace)) {
+                if (format.format == utils::convert2vk(_info.format) && format.colorSpace == utils::convert2vk(_info.colorSpace)) {
                     surfaceFormat.format = format.format;
 					surfaceFormat.colorSpace = format.colorSpace;
                     break;

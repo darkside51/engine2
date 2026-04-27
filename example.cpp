@@ -47,6 +47,8 @@
 // https://nikitablack.github.io/post/how_to_use_vulkan_timestamp_queries/
 
 namespace example {
+    constexpr uint8_t kDepthFormatTargetBits = 24u;
+
     constexpr uint8_t kScreenRenderPass = 0u;
     constexpr uint8_t kSceneRenderPass = 1u;
 
@@ -70,7 +72,6 @@ namespace example {
     constexpr bool kUseTransferCommandListForPrepareImgui = true;
 
     engine::graphics::DrawHelper drawHelper;
-    
     
     engine::graphics::MaterialManager materialManager;
     engine::scene::AnimationManager animationManager;
@@ -467,7 +468,7 @@ namespace example {
 
         auto const size = _swapchain->getSize();
 
-        const auto depthFormat = _device->getSupportedDepthFormat(32u, false);
+        const auto depthFormat = _device->getSupportedDepthFormat(kDepthFormatTargetBits, false);
 
         auto imageInfo = engine::rhi::ImageInfo{
             engine::rhi::ImageUsageFlags::eDepth_Stencil_Attachment | engine::rhi::ImageUsageFlags::eTransient_Attachment,
@@ -544,11 +545,12 @@ namespace example {
 
     void Example::createRenderPasses() {
         const auto bytes = _fileManager.readFile("descriptors/render_pass.json");
-        std::string_view input(reinterpret_cast<const char*>(bytes.data()), bytes.size());
+
         engine::json::Json json{};
+        std::string_view input(reinterpret_cast<const char*>(bytes.data()), bytes.size());
         const auto err = engine::json::read_json(json, input);
 
-        const auto depthFormat = _device->getSupportedDepthFormat(32u, false);
+        const auto depthFormat = _device->getSupportedDepthFormat(kDepthFormatTargetBits, false);
         const auto formats0 = std::array{engine::rhi::Format::eB8G8R8A8_Unorm}; // _swapchain->getFormat()
         // const auto formats0 = std::array{engine::rhi::Format::eB8G8R8A8_Srgb}; // for my amd gpu
         const auto formats1 = std::array{engine::rhi::Format::eR8G8B8A8_Unorm, depthFormat};
@@ -1363,6 +1365,7 @@ namespace example {
         };
 
         const size_t kUniformBufferOffsetAlign = _device->getUniformBufferOffsetAlignment();
+        const auto alignedSize = engine::align_value(sizeof(UniformBuffer), kUniformBufferOffsetAlign);
         _uniformBufferI = std::make_unique<engine::graphics::InflightBuffer>(*_api, *_device, unifromsInfo, std::max(kUniformBufferOffsetAlign, sizeof(UniformBuffer)));
     
         { // update uniforms
