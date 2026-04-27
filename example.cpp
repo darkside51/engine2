@@ -66,6 +66,9 @@ namespace example {
 
     constexpr uint8_t kPostEffectPipeline = 0u;
 
+    constexpr uint8_t kSsaoKernelSize = 32u;
+    constexpr uint8_t kSsaoNoiseDim = 4u;
+
     engine::graphics::DrawHelper drawHelper;
     
     engine::graphics::MaterialManager materialManager;
@@ -75,6 +78,8 @@ namespace example {
     std::optional<engine::graphics::GraphicsService> graphicsService{};
     std::optional<engine::scene::Scene> scene{};
 
+    // engine::vec2f kNearFarPlane = {0.001f, 100.0f}; // common depth
+    engine::vec2f kNearFarPlane = {100.0f, 0.001f}; // reverse depth
     engine::scene::Camera camera;
     engine::scene::SphereCameraController controller{camera};
     engine::scene::Node * sceneWorldRoot = nullptr;
@@ -277,7 +282,7 @@ namespace example {
         controller.setMinMaxDistance(0.01f, 30.0f);
 
         // camera.makePerspective(std::numbers::pi_v<float> / 3.0f, 1024.0f / 768.0f, 0.001f, 100.0f);
-        camera.makePerspective(std::numbers::pi_v<float> / 3.0f, 1024.0f / 768.0f, 100.0f, 0.001f); // reverse depth;
+        camera.makePerspective(std::numbers::pi_v<float> / 3.0f, 1024.0f / 768.0f, kNearFarPlane.x, kNearFarPlane.y); // reverse depth;
     }
 
     Example::~Example() = default;
@@ -302,7 +307,6 @@ namespace example {
         
         _commandLists.clear();
         _transferCommandLists.clear();
-
         _externalCommandLists.clear();
 
         _queryPool = nullptr;
@@ -317,6 +321,9 @@ namespace example {
         modelManager->destroy();
         materialManager.destroy();
         textureManager->destroy();
+
+        _ssaoKernelBuffer = {};
+        _ssaoNoise = {};
         
         _pipelines.clear();
         _programs.clear();
@@ -744,13 +751,13 @@ namespace example {
         
         // mesh
         const GraphicsPipelineStatesInfo info5 = engine::parseGraphicsPipelineInfo(json["mesh"]);
-        scene->registerGraphicsPipeline(_api->createGraphicsPipeline(*_device, _renderPasses[kSceneRenderPass], _programs[kMeshInstancedProgram], info5, 0u));
+        scene->registerGraphicsPipeline(_api->createGraphicsPipeline(*_device, _renderPasses[kGbufferRenderPass], _programs[kMeshInstancedProgram], info5, 0u));
 
         // compute
         scene->registerComputePipeline(_api->createComputePipeline(*_device, _programs[kComputeProgram]));
 
         const GraphicsPipelineStatesInfo info6 = engine::parseGraphicsPipelineInfo(json["mesh_skeletal_computed"]);
-        scene->registerGraphicsPipeline(_api->createGraphicsPipeline(*_device, _renderPasses[kSceneRenderPass], _programs[kMeshAfterComputeProgram], info6, 0u));
+        scene->registerGraphicsPipeline(_api->createGraphicsPipeline(*_device, _renderPasses[kGbufferRenderPass], _programs[kMeshAfterComputeProgram], info6, 0u));
     }
 
     void Example::createDefaultResources() {
@@ -1015,6 +1022,64 @@ namespace example {
             }
         }
 
+        //
+        // ssao kenel
+        std::vector<engine::vec4f> ssaoKernel(kSsaoKernelSize);
+		for (uint8_t i = 0u; i < kSsaoKernelSize; ++i) {
+			engine::vec3f sample{engine::common::random(-1.0f, 1.0f), engine::common::random(-1.0f, 1.0f), engine::common::random(0.0f, 1.0f)};
+			sample = glm::normalize(sample);
+			sample *= engine::common::random(0.0f, 1.0f);
+			float scale = float(i) / float(kSsaoKernelSize);
+			scale = glm::mix(0.1f, 1.0f, scale * scale);
+			ssaoKernel[i] = {sample * scale, 0.0f};
+		}
+        BufferInfo kernelBufferInfo {
+            BufferUsageFlags::eUniform_Buffer,
+            MemoryPropertyFlags::eDeviceLocal | MemoryPropertyFlags::eHostVisible
+        };
+
+        _ssaoKernelBuffer = _api->createBuffer(*_device, kernelBufferInfo, ssaoKernel.size() * sizeof(engine::vec4f));
+        {
+            auto * memory = static_cast<std::byte*>(_ssaoKernelBuffer->map());
+            std::memcpy(memory, ssaoKernel.data(), ssaoKernel.size() * sizeof(engine::vec4f));
+            _ssaoKernelBuffer->flush();
+            _ssaoKernelBuffer->unmap();
+        }
+
+        // ssao noise
+        std::vector<engine::vec4f> noiseValues(kSsaoNoiseDim * kSsaoNoiseDim);
+		for (uint32_t i = 0; i < static_cast<uint32_t>(noiseValues.size()); i++) {
+			noiseValues[i] = {engine::common::random(-1.0f, 1.0f), engine::common::random(-1.0f, 1.0f), 0.0f, 0.0f};
+		}
+
+        const auto noiseImageInfo = ImageInfo{
+            ImageUsageFlags::eSampled | ImageUsageFlags::eTransfer_Dst,
+            Format::eR32G32B32A32_Sfloat, {kSsaoNoiseDim, kSsaoNoiseDim, 1u}
+        };
+
+        _ssaoNoise = _api->createImage(*_device, noiseImageInfo);
+
+        {
+            const auto stagingSize = noiseValues.size() * sizeof(engine::vec4f);
+            engine::graphics::StagingBuffer staging{*_api, *_device, stagingSize};
+            
+            auto * imgData = staging.map();
+            std::memcpy(imgData, noiseValues.data(), stagingSize);
+            staging.flush();
+
+            tmpCommandList->copyBuffer2Image(staging.getBuffer(), _ssaoNoise, 
+                {
+                    .bufferOffset = 0u,
+                    .bufferRowLength = 0u,
+                    .bufferImageHeight = 0u,
+                    .imageSubresource = {.aspectMask = engine::rhi::ImageAspectFlags::eColor},
+                    .imageOffset = {0u, 0u, 0u},
+                    .imageExtent = _ssaoNoise->getExtent()
+                }
+            );
+        }
+        //
+
         // create post buffers and default image
         BufferInfo bufferInfo {
             BufferUsageFlags::eVertex_Buffer | BufferUsageFlags::eTransfer_Dst,
@@ -1247,6 +1312,7 @@ namespace example {
                 viewParams.cameraProjection = projection;
                 viewParams.cameraTransform = transform;
                 viewParams.cameraPosition = cameraPos; 
+                viewParams.nearFarPlanes = kNearFarPlane;
             }}), 0u);
         }
     }
@@ -1528,7 +1594,7 @@ namespace example {
         constexpr auto gBufferClearValues = std::array{
             rhi::ClearValue{0x00'00'00'ffu},
             rhi::ClearValue{0x00'00'00'ffu},
-            rhi::ClearValue{0x00'00'00'ffu},
+            rhi::ClearValue{0x77'77'77'ffu},
             rhi::ClearValue{0.0f}
         };
 
@@ -1550,7 +1616,8 @@ namespace example {
         scene->dispatch(commandList, frameId, objects, offsets);
 
         // scene pass
-        commandList->beginRenderPass(_renderPasses[kSceneRenderPass], _sceneFrameBuffers[imageIndex], sceneClearValues, {{0, 0}, {width, height}});
+        // commandList->beginRenderPass(_renderPasses[kSceneRenderPass], _sceneFrameBuffers[imageIndex], sceneClearValues, {{0, 0}, {width, height}});
+        commandList->beginRenderPass(_renderPasses[kGbufferRenderPass], _gBuffers[imageIndex], gBufferClearValues, {{0, 0}, {width, height}});
         // scene->dispatch(commandList, frameId, objects, offsets);
         
         scene->draw(commandList, transferCommandList, frameId, viewParams, objects, offsets);    
@@ -1569,7 +1636,20 @@ namespace example {
         commandList->bindPipeline(_pipelines[kPostEffectPipeline]);
         commandList->bindVertexBuffer(0u, _postPositions);
         commandList->bindIndexBuffer(_postIndices, 0u, rhi::IndexType::eU16);
-        commandList->bindImage(0u, _colorAttachmentImages[imageIndex], rhi::SamplerValue{});
+        //commandList->bindImage(0u, _colorAttachmentImages[imageIndex], rhi::SamplerValue{});
+
+        rhi::SamplerValue ssaoSampler{};
+        ssaoSampler.info.addressModeU = rhi::SamplerAddressMode::eClamp_To_Border;
+        ssaoSampler.info.addressModeV = rhi::SamplerAddressMode::eClamp_To_Border;
+        ssaoSampler.info.addressModeW = rhi::SamplerAddressMode::eClamp_To_Border;
+
+        commandList->bindImage(0u, _gBufferAttachments[imageIndex].position, ssaoSampler);
+        commandList->bindImage(1u, _gBufferAttachments[imageIndex].normal, ssaoSampler);
+        commandList->bindImage(2u, _gBufferAttachments[imageIndex].albedo, ssaoSampler);
+        commandList->bindImage(3u, _ssaoNoise, rhi::SamplerValue{});
+        commandList->bindBuffer(4u, _ssaoKernelBuffer);
+        commandList->pushConstants(engine::rhi::shaders::Stages::eFragment, 0u, sizeof(engine::mat4f), &viewParams.cameraProjection);
+
         commandList->drawIndexed(6u);
 
         // draw imgui

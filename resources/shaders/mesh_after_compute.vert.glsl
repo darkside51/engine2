@@ -8,6 +8,7 @@ layout (set = 0, binding = 0) uniform UniformBuffer {
 	mat4 projection;
 	mat4 viewProjection;
 	vec3 cameraPosition;
+	vec2 nearFarPlanes;
 } u_viewParams;
 
 layout (set = 1, binding = 0) readonly buffer Positions {
@@ -22,6 +23,7 @@ layout (location = 0) out vec3 v_normal;
 layout (location = 1) out vec2 v_uv;
 layout (location = 2) out vec4 v_color;
 layout (location = 3) out vec3 v_emissive;
+layout (location = 4) out vec3 v_viewPosition;
 
 layout(push_constant) uniform Params {
 	vec4 color;
@@ -41,4 +43,11 @@ void main() {
 	v_uv = a_uv;
 	v_color = push.color;
 	v_emissive = push.emissive.xyz;
+
+	//v_viewPosition = gl_Position.xyz / gl_Position.w;//vec3(u_viewParams.view * in_positions.data[vertexId]);
+	//v_viewPosition.y *= -1.0f;
+
+	v_viewPosition = vec3(u_viewParams.view * in_positions.data[vertexId]);
+	mat3 normalMatrix = transpose(inverse(mat3(u_viewParams.view)));
+	v_normal = normalMatrix * v_normal;
 }

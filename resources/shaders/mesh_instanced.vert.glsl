@@ -9,12 +9,14 @@ layout (location = 0) out vec3 v_normal;
 layout (location = 1) out vec2 v_uv;
 layout (location = 2) out vec4 v_color;
 layout (location = 3) out vec3 v_emissive;
+layout (location = 4) out vec3 v_viewPosition;
 
 layout (set = 0, binding = 0) uniform UniformBuffer {
 	mat4 view;
 	mat4 projection;
 	mat4 viewProjection;
 	vec3 cameraPosition;
+	vec2 nearFarPlanes;
 } u_viewParams;
 
 // storage buffer
@@ -42,7 +44,12 @@ void main() {
 			vec4(0.0, 0.0, 0.0, 1.0)
 		);
 
-		gl_Position = u_viewParams.viewProjection * (vec4(a_position, 1.0) * model);
+		vec4 worldPosition = vec4(a_position, 1.0) * model;
+		gl_Position = u_viewParams.viewProjection * worldPosition;
 		v_normal = normalize((vec4(a_normal, 0.0) * model).xyz);
+
+		v_viewPosition = vec3(u_viewParams.view * worldPosition);
+		mat3 normalMatrix = transpose(inverse(mat3(u_viewParams.view)));
+		v_normal = normalMatrix * v_normal;
 	}
 }

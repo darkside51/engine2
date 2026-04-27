@@ -76,6 +76,7 @@ struct ViewParams {
     mat4f cameraProjection;
     mat4f cameraTransform;
     vec3f cameraPosition;
+    vec2f nearFarPlanes;
 };
 
 class Scene {
