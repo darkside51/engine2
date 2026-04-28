@@ -71,20 +71,17 @@ namespace engine::vulkan {
 
         const auto findSuitablePool = [&](std::list<DescriptorPool> & pools) noexcept -> DescriptorPool* {
             for (auto & pool : pools) {
-                bool suitable = true;
-                for (size_t i = 0u; i < std::to_underlying(rhi::shaders::ResourceType::eCount); ++i) {
-                    if (pool.maxSets() == pool.allocatedSets()) {
-                        suitable = false;
-                        break;
+                if (bool suitable = (pool.maxSets() < pool.allocatedSets())) {
+                    for (size_t i = 0u; i < std::to_underlying(rhi::shaders::ResourceType::eCount); ++i) {
+                        if (!pool.hasResources(static_cast<rhi::shaders::ResourceType>(i), resources[i])) {
+                            suitable = false;
+                            break;
+                        }
                     }
-                    if (!pool.hasResources(static_cast<rhi::shaders::ResourceType>(i), resources[i])) {
-                        suitable = false;
-                        break;
-                    }
-                }
 
-                if (suitable) {
-                    return &pool;
+                    if (suitable) {
+                        return &pool;
+                    }
                 }
             }
             return nullptr;

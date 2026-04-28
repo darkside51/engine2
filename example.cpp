@@ -1699,6 +1699,20 @@ namespace example {
         //commandList->nextSubpass(rhi::SubpassContents::ePrimaryBufferInline);
         commandList->endRenderPass();
 
+        rhi::SamplerValue ssaoSampler{};
+        ssaoSampler.info.addressModeU = rhi::SamplerAddressMode::eClamp_To_Border;
+        ssaoSampler.info.addressModeV = rhi::SamplerAddressMode::eClamp_To_Border;
+        ssaoSampler.info.addressModeW = rhi::SamplerAddressMode::eClamp_To_Border;
+        _device->evaluateSampler(ssaoSampler);
+
+        rhi::SamplerValue commonSampler{};
+        commonSampler.info.minFilter = engine::rhi::FilterMode::eLinear;
+        commonSampler.info.magFilter = engine::rhi::FilterMode::eLinear;
+        commonSampler.info.addressModeU = rhi::SamplerAddressMode::eClamp_To_Border;
+        commonSampler.info.addressModeV = rhi::SamplerAddressMode::eClamp_To_Border;
+        commonSampler.info.addressModeW = rhi::SamplerAddressMode::eClamp_To_Border;
+        _device->evaluateSampler(commonSampler);
+
         // ssao pass
         commandList->beginRenderPass(_renderPasses[kSsaoRenderPass], _ssaoBuffers[imageIndex], clearValues, {{0, 0}, {width, height}});
 
@@ -1706,43 +1720,30 @@ namespace example {
         commandList->bindVertexBuffer(0u, _postPositions);
         commandList->bindIndexBuffer(_postIndices, 0u, rhi::IndexType::eU16);
 
-        rhi::SamplerValue ssaoSampler{};
-        ssaoSampler.info.addressModeU = rhi::SamplerAddressMode::eClamp_To_Border;
-        ssaoSampler.info.addressModeV = rhi::SamplerAddressMode::eClamp_To_Border;
-        ssaoSampler.info.addressModeW = rhi::SamplerAddressMode::eClamp_To_Border;
-
         commandList->bindImage(0u, _gBufferAttachments[imageIndex].position, ssaoSampler);
         commandList->bindImage(1u, _gBufferAttachments[imageIndex].normal, ssaoSampler);
         commandList->bindImage(2u, _ssaoNoise, rhi::SamplerValue{});
         commandList->bindBuffer(3u, _ssaoKernelBuffer);
         commandList->pushConstants(engine::rhi::shaders::Stages::eFragment, 0u, sizeof(engine::mat4f), &viewParams.cameraProjection);
-
         commandList->drawIndexed(6u);
+
         commandList->endRenderPass();
 
-        { // emissive blur
-            rhi::SamplerValue commonSampler{};
-            commonSampler.info.minFilter = engine::rhi::FilterMode::eLinear;
-            commonSampler.info.magFilter = engine::rhi::FilterMode::eLinear;
-
-            engine::vec4f uniform{1.6f, 2.0f, 1.0f, 0.0f};
+        if constexpr (true) { // emissive blur
+            engine::vec4f blurUniform{2.2f, 1.6f, 1.0f, 0.0f};
 
             bool horizontal = true;
             const auto imagesCount = _gBufferAttachments.size();
             for (uint8_t i = 0u; i < 4u; ++i) { // ping - pong
-                uniform.z *= horizontal ? 1.0f : 0.0f;
-                if (horizontal) {
-                    commandList->beginRenderPass(_renderPasses[kBlurRenderPass], _emissiveBluredBuffers[imageIndex + imagesCount], clearValues, {{0, 0}, {width, height}});
-                } else {
-                    commandList->beginRenderPass(_renderPasses[kBlurRenderPass], _emissiveBluredBuffers[imageIndex], clearValues, {{0, 0}, {width, height}});
-                }
-                
+                blurUniform.z = horizontal ? 1.0f : 0.0f;
+                commandList->beginRenderPass(_renderPasses[kBlurRenderPass], _emissiveBluredBuffers[imageIndex + (horizontal ? imagesCount : 0u)], clearValues, {{0, 0}, {width, height}});
+
                 commandList->bindPipeline(_pipelines[kEmissiveBlurPipeline]);
                 commandList->bindVertexBuffer(0u, _postPositions);
                 commandList->bindIndexBuffer(_postIndices, 0u, rhi::IndexType::eU16);
 
                 commandList->bindImage(0u, horizontal ? _gBufferAttachments[imageIndex].emissive : _gBufferAttachments[imageIndex].emissive2, commonSampler);
-                commandList->pushConstants(engine::rhi::shaders::Stages::eFragment, 0u, sizeof(engine::vec4f), &uniform);
+                commandList->pushConstants(engine::rhi::shaders::Stages::eFragment, 0u, sizeof(engine::vec4f), &blurUniform);
                 commandList->drawIndexed(6u);
 
                 commandList->endRenderPass();
@@ -1757,16 +1758,12 @@ namespace example {
 
         // draw with postEffect
         const auto normalMatrix = glm::transpose(glm::inverse(engine::mat3f(viewParams.cameraView)));
-        const engine::vec3f lightDir = glm::normalize(normalMatrix * engine::vec3f{-0.06f, -0.05f, 0.75f});
+        const engine::vec3f lightDir = glm::normalize(normalMatrix * engine::vec3f{-0.26f, -0.15f, 0.75f});
 
         commandList->bindPipeline(_pipelines[kPostEffectPipeline]);
         commandList->bindVertexBuffer(0u, _postPositions);
         commandList->bindIndexBuffer(_postIndices, 0u, rhi::IndexType::eU16);
         //commandList->bindImage(0u, _colorAttachmentImages[imageIndex], rhi::SamplerValue{});
-
-        rhi::SamplerValue commonSampler{};
-        commonSampler.info.minFilter = engine::rhi::FilterMode::eLinear;
-        commonSampler.info.magFilter = engine::rhi::FilterMode::eLinear;
 
         commandList->bindImage(0u, _ssaoImages[imageIndex], ssaoSampler);
         commandList->bindImage(1u, _gBufferAttachments[imageIndex].normal, ssaoSampler);

@@ -38,26 +38,11 @@ float ssaoRadialBlur(int blurRange) {
 	return result / float(n);
 }
 
-vec3 emissiveRadialBlur(int blurRange, int step) {
-	int n = 0;
-	const vec2 texelSize = 1.0 / vec2(textureSize(textureEmissive, 0));
-	vec3 result = vec3(0.0);
-	for (int x = -blurRange; x <= blurRange; x += step) {
-		for (int y = -blurRange; y <= blurRange; y += step) {
-			const vec2 offset = vec2(float(x), float(y)) * texelSize;
-			result += texture(textureEmissive, v_uv + offset).rgb;
-			n++;
-		}
-	}
-	return result / float(n);
-}
-
 void main() {
 	const float occlusion = ssaoRadialBlur(1);
 	const vec3 normal = texture(textureNormal, v_uv).rgb * 2.0 - 1.0;
 	const vec4 albedo = texture(textureAlbedo, v_uv);
 	const vec4 emissive = texture(textureEmissive, v_uv);
-	//const vec4 emissive = vec4(8.0f * emissiveRadialBlur(8, 4), 1.0f);
 
 	vec3 viewDir = vec3(1.0, 0.0, 0.0);
 	vec3 reflect = reflect(push.lightDir.xyz, normal);
@@ -66,7 +51,7 @@ void main() {
 	const float ambient = 0.05;
 	const float NdotL = max(0.0, dot(normal, push.lightDir.xyz));
 	const vec3 baseColor = albedo.rgb * (NdotL + ambient) + specular + emissive.rgb;
-	const vec3 clearColor = vec3(0.5f) + emissive.rgb;
+	const vec3 clearColor = vec3(0.2f) + emissive.rgb;
 	out_color = vec4(mix(pow(baseColor, vec3(0.4545)) * occlusion, clearColor, step(albedo.w, 0.0)), 1.0); // gamma correction 1.0 / 2.2 = 0.4545
 
 	//out_color = vec4(mix(pow(baseColor * occlusion, vec3(0.4545)), clearColor, step(albedo.w, 0.0)), 1.0); // gamma correction 1.0 / 2.2 = 0.4545
