@@ -53,6 +53,7 @@ namespace example {
     constexpr uint8_t kSceneRenderPass = 1u;
     constexpr uint8_t kGbufferRenderPass = 2u;
     constexpr uint8_t kSsaoRenderPass = 3u;
+    constexpr uint8_t kBlurRenderPass = 4u;
 
     constexpr uint8_t kImguiProgram = 0u;
     constexpr uint8_t kPostEffectProgram = 1u;
@@ -64,9 +65,11 @@ namespace example {
     constexpr uint8_t kComputeProgram = 6u;
     constexpr uint8_t kMeshAfterComputeProgram = 7u;
     constexpr uint8_t kSsaoProgram = 8u;
+    constexpr uint8_t kEmissiveBlurProgram = 9u;
 
     constexpr uint8_t kPostEffectPipeline = 0u;
     constexpr uint8_t kSsaoPipeline = 1u;
+    constexpr uint8_t kEmissiveBlurPipeline = 2u;
 
     constexpr uint8_t kSsaoKernelSize = 32u;
     constexpr uint8_t kSsaoNoiseDim = 4u;
@@ -538,6 +541,7 @@ namespace example {
                 _api->createImage(*_device, otherColorImageInfo), // normal
                 _api->createImage(*_device, otherColorImageInfo), // albedo
                 _api->createImage(*_device, otherColorImageInfo), // emissive
+                _api->createImage(*_device, otherColorImageInfo), // emissive2
                 _api->createImage(*_device, depthImageInfo) // depth
             );
 
@@ -592,6 +596,26 @@ namespace example {
                 _ssaoBuffers.emplace_back(_api->createFrameBuffer(*_device, std::move(fbAttachemnts), _renderPasses[kSsaoRenderPass]));
             }
         }
+
+        _emissiveBluredBuffers.clear();
+        _emissiveBluredBuffers.reserve(swapchainImagesCount * 2u);
+        for (uint32_t i = 0u; i < swapchainImagesCount; ++i) {
+            std::vector<engine::rhi::FrameBufferAttachment> fbAttachemnts{1u};
+            auto & image = _gBufferAttachments[i].emissive;
+            fbAttachemnts[0u].image = image.get();
+            fbAttachemnts[0u].imageSize = {image->getExtent().width, image->getExtent().height};
+
+            _emissiveBluredBuffers.emplace_back(_api->createFrameBuffer(*_device, std::move(fbAttachemnts), _renderPasses[kBlurRenderPass]));
+        }
+
+        for (uint32_t i = 0u; i < swapchainImagesCount; ++i) {
+            std::vector<engine::rhi::FrameBufferAttachment> fbAttachemnts{1u};
+            auto & image = _gBufferAttachments[i].emissive2;
+            fbAttachemnts[0u].image = image.get();
+            fbAttachemnts[0u].imageSize = {image->getExtent().width, image->getExtent().height};
+
+            _emissiveBluredBuffers.emplace_back(_api->createFrameBuffer(*_device, std::move(fbAttachemnts), _renderPasses[kBlurRenderPass]));
+        }
     }
 
     void Example::resize(uint16_t w, uint16_t h) {
@@ -635,6 +659,9 @@ namespace example {
 
             _renderPasses.emplace_back(_api->getRenderPass(*_device, engine::parseRenderPass(json["gBuffer"], formatsGBuffer))); // kGbufferRenderPass
             _renderPasses.emplace_back(_api->getRenderPass(*_device, engine::parseRenderPass(json["ssao"], formatsSsao))); // kSsaoRenderPass
+
+            const auto formatsEmissiveBlur = std::array{engine::rhi::Format::eR8G8B8A8_Unorm};
+            _renderPasses.emplace_back(_api->getRenderPass(*_device, engine::parseRenderPass(json["blur"], formatsEmissiveBlur))); // kBlurRenderPass
         }
         
     }
@@ -735,6 +762,16 @@ namespace example {
 
             _programs.emplace_back(_api->createProgram(*_device, std::array{vsModule.getView(), fsModule.getView()}));
         }
+
+        { // kEmissiveBlurProgram
+            //auto const vBytes = _fileManager.readFile("shaders/postEffect.vert.spv");
+            auto const fBytes = _fileManager.readFile("shaders/gaussblur.frag.spv");
+
+            const auto & vsModule = _shaderModulesManager->registerModule("postEffect.vert", *_device, engine::rhi::shaders::Stages::eVertex, {});
+            const auto & fsModule = _shaderModulesManager->registerModule("gaussblur.frag", *_device, engine::rhi::shaders::Stages::eFragment, fBytes);
+
+            _programs.emplace_back(_api->createProgram(*_device, std::array{vsModule.getView(), fsModule.getView()}));
+        }
     }
     
     void Example::createPipelines() {
@@ -762,6 +799,9 @@ namespace example {
 
         // kSsaoPipeline
         _pipelines.emplace_back(_api->createGraphicsPipeline(*_device, _renderPasses[kSsaoRenderPass], _programs[kSsaoProgram], info0, 0u));
+
+        // kEmissiveBlurPipeline
+        _pipelines.emplace_back(_api->createGraphicsPipeline(*_device, _renderPasses[kBlurRenderPass], _programs[kEmissiveBlurProgram], info0, 0u));
 
         // scene pipelines
         const GraphicsPipelineStatesInfo info2 = engine::parseGraphicsPipelineInfo(json["sprite_common"]);
@@ -1630,7 +1670,7 @@ namespace example {
         };
 
         constexpr auto clearValues = std::array{
-            rhi::ClearValue{0x77'77'77'ffu},
+            rhi::ClearValue{0x00'00'00'ffu},
         };
 
         commandList->setViewport(0.0f, 0.0f, width, height);
@@ -1678,8 +1718,38 @@ namespace example {
         commandList->pushConstants(engine::rhi::shaders::Stages::eFragment, 0u, sizeof(engine::mat4f), &viewParams.cameraProjection);
 
         commandList->drawIndexed(6u);
-
         commandList->endRenderPass();
+
+        { // emissive blur
+            rhi::SamplerValue commonSampler{};
+            commonSampler.info.minFilter = engine::rhi::FilterMode::eLinear;
+            commonSampler.info.magFilter = engine::rhi::FilterMode::eLinear;
+
+            engine::vec4f uniform{1.6f, 2.0f, 1.0f, 0.0f};
+
+            bool horizontal = true;
+            const auto imagesCount = _gBufferAttachments.size();
+            for (uint8_t i = 0u; i < 4u; ++i) { // ping - pong
+                uniform.z *= horizontal ? 1.0f : 0.0f;
+                if (horizontal) {
+                    commandList->beginRenderPass(_renderPasses[kBlurRenderPass], _emissiveBluredBuffers[imageIndex + imagesCount], clearValues, {{0, 0}, {width, height}});
+                } else {
+                    commandList->beginRenderPass(_renderPasses[kBlurRenderPass], _emissiveBluredBuffers[imageIndex], clearValues, {{0, 0}, {width, height}});
+                }
+                
+                commandList->bindPipeline(_pipelines[kEmissiveBlurPipeline]);
+                commandList->bindVertexBuffer(0u, _postPositions);
+                commandList->bindIndexBuffer(_postIndices, 0u, rhi::IndexType::eU16);
+
+                commandList->bindImage(0u, horizontal ? _gBufferAttachments[imageIndex].emissive : _gBufferAttachments[imageIndex].emissive2, commonSampler);
+                commandList->pushConstants(engine::rhi::shaders::Stages::eFragment, 0u, sizeof(engine::vec4f), &uniform);
+                commandList->drawIndexed(6u);
+
+                commandList->endRenderPass();
+                horizontal = !horizontal;
+            }
+
+        }
 
         // final pass
         // std::array images2Shaders{rhi::runtime::ImageTransitionInfo{_colorAttachmentImages[imageIndex].get()}};
@@ -1694,13 +1764,16 @@ namespace example {
         commandList->bindIndexBuffer(_postIndices, 0u, rhi::IndexType::eU16);
         //commandList->bindImage(0u, _colorAttachmentImages[imageIndex], rhi::SamplerValue{});
 
+        rhi::SamplerValue commonSampler{};
+        commonSampler.info.minFilter = engine::rhi::FilterMode::eLinear;
+        commonSampler.info.magFilter = engine::rhi::FilterMode::eLinear;
+
         commandList->bindImage(0u, _ssaoImages[imageIndex], ssaoSampler);
         commandList->bindImage(1u, _gBufferAttachments[imageIndex].normal, ssaoSampler);
         commandList->bindImage(2u, _gBufferAttachments[imageIndex].albedo, ssaoSampler);
-        commandList->bindImage(3u, _gBufferAttachments[imageIndex].emissive, ssaoSampler);
+        commandList->bindImage(3u, _gBufferAttachments[imageIndex].emissive, commonSampler);
 
         commandList->pushConstants(engine::rhi::shaders::Stages::eFragment, 0u, sizeof(engine::vec3f), &lightDir);
-
         commandList->drawIndexed(6u);
 
         // draw imgui

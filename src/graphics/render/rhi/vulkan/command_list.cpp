@@ -249,6 +249,8 @@ namespace engine::vulkan::runtime {
                     const auto * setLayout = currentPipeline->getProgram()->getLayout(set);
                     auto & pool = device.getDescriptorPoolManager().getCompatiblePool(*setLayout, frameIdx);
                     const auto descriptorSet = pool.allocateDescriptorSet(*setLayout);
+                    assert(descriptorSet.set != VK_NULL_HANDLE);
+                    
                     descriptorSetUpdaters[set].flush(descriptorSet);
 
                     descriptorSets[set] = descriptorSet();

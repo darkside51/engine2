@@ -15,7 +15,7 @@
 namespace example {
 
 struct GBufferAttachments {
-    engine::rhi::runtime::ImagePtr position, normal, albedo, emissive, depth;
+    engine::rhi::runtime::ImagePtr position, normal, albedo, emissive, emissive2, depth;
 };
 
 class Example : public engine::InputHandler {
@@ -86,7 +86,7 @@ private:
     std::vector<engine::rhi::runtime::ImagePtr> _ssaoBluredImages;
     std::vector<engine::rhi::runtime::FrameBufferPtr> _gBuffers;
     std::vector<engine::rhi::runtime::FrameBufferPtr> _ssaoBuffers;
-    std::vector<engine::rhi::runtime::FrameBufferPtr> _ssaoBluredBuffers;
+    std::vector<engine::rhi::runtime::FrameBufferPtr> _emissiveBluredBuffers;
 
     engine::rhi::runtime::QueuePtr _renderQueue;
     std::vector<engine::rhi::runtime::Semaphore> _readyToPresentSemaphores;

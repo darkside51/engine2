@@ -127,6 +127,25 @@
 			}
 		]
 	},
+	"blur" : {
+		"attachments" : [
+			{
+				"loadStoreOp" : ["eLoad", "eStore"],
+				"stencilLoadStoreOp" : ["eDont_Care", "eDont_Care"],
+				"finalLayout" : "eShader_Read_Only_Optimal"
+			}
+		],
+		"subpasses" : [
+			{
+				"colorAttachments": [
+					{
+						"attachment": 0,
+						"layout": "eShader_Read_Only_Optimal"
+					}
+				]
+			}
+		]
+	},
 	"scene2Test" : {
 		"attachments" : [
 			{

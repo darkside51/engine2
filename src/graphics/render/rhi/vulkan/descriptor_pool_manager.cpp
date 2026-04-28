@@ -73,6 +73,10 @@ namespace engine::vulkan {
             for (auto & pool : pools) {
                 bool suitable = true;
                 for (size_t i = 0u; i < std::to_underlying(rhi::shaders::ResourceType::eCount); ++i) {
+                    if (pool.maxSets() == pool.allocatedSets()) {
+                        suitable = false;
+                        break;
+                    }
                     if (!pool.hasResources(static_cast<rhi::shaders::ResourceType>(i), resources[i])) {
                         suitable = false;
                         break;
