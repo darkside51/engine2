@@ -16,7 +16,7 @@ class Device;
 
 struct RenderPass {
     // limits maxColorAttachments!
-    static constexpr size_t kMaxAttachemts = 4u; 
+    static constexpr size_t kMaxAttachemts = 8u; 
     struct AttachmentInfo {
         VkImageLayout finalLayout = VkImageLayout::VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
     };

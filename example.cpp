@@ -537,6 +537,7 @@ namespace example {
                 _api->createImage(*_device, positionImageInfo), // position
                 _api->createImage(*_device, otherColorImageInfo), // normal
                 _api->createImage(*_device, otherColorImageInfo), // albedo
+                _api->createImage(*_device, otherColorImageInfo), // emissive
                 _api->createImage(*_device, depthImageInfo) // depth
             );
 
@@ -552,7 +553,7 @@ namespace example {
 
         for (uint32_t i = 0u; i < swapchainImagesCount; ++i) {
             {
-                std::vector<engine::rhi::FrameBufferAttachment> fbAttachemnts{4u};
+                std::vector<engine::rhi::FrameBufferAttachment> fbAttachemnts{5u};
 
                 auto & positionImage = _gBufferAttachments[i].position;
                 fbAttachemnts[0u].image = positionImage.get();
@@ -569,10 +570,15 @@ namespace example {
                 fbAttachemnts[2u].imageSize = {albedoImage->getExtent().width, albedoImage->getExtent().height};
                 fbAttachemnts[2u].aspect = engine::rhi::ImageAspectFlags::eColor;
 
+                auto & emissiveImage = _gBufferAttachments[i].emissive;
+                fbAttachemnts[3u].image = emissiveImage.get();
+                fbAttachemnts[3u].imageSize = {emissiveImage->getExtent().width, emissiveImage->getExtent().height};
+                fbAttachemnts[3u].aspect = engine::rhi::ImageAspectFlags::eColor;
+
                 auto & depthImage = _gBufferAttachments[i].depth;
-                fbAttachemnts[3u].image = depthImage.get();
-                fbAttachemnts[3u].imageSize = {depthImage->getExtent().width, depthImage->getExtent().height};
-                fbAttachemnts[3u].aspect = engine::rhi::ImageAspectFlags::eDepth;
+                fbAttachemnts[4u].image = depthImage.get();
+                fbAttachemnts[4u].imageSize = {depthImage->getExtent().width, depthImage->getExtent().height};
+                fbAttachemnts[4u].aspect = engine::rhi::ImageAspectFlags::eDepth;
 
                 _gBuffers.emplace_back(_api->createFrameBuffer(*_device, std::move(fbAttachemnts), _renderPasses[kGbufferRenderPass]));
             }
@@ -622,6 +628,7 @@ namespace example {
             const auto formatsGBuffer = std::array{
                 engine::rhi::Format::eR32G32B32A32_Sfloat, 
                 engine::rhi::Format::eR8G8B8A8_Unorm, 
+                engine::rhi::Format::eR8G8B8A8_Unorm,
                 engine::rhi::Format::eR8G8B8A8_Unorm, 
                 depthFormat};
             const auto formatsSsao = std::array{engine::rhi::Format::eR8_Unorm};
@@ -1618,6 +1625,7 @@ namespace example {
             rhi::ClearValue{0x00'00'00'00u},
             rhi::ClearValue{0x00'00'00'00u},
             rhi::ClearValue{0x00'00'00'00u},
+            rhi::ClearValue{0x00'00'00'00u},
             rhi::ClearValue{0.0f, 0u}
         };
 
@@ -1679,7 +1687,7 @@ namespace example {
 
         // draw with postEffect
         const auto normalMatrix = glm::transpose(glm::inverse(engine::mat3f(viewParams.cameraView)));
-        const engine::vec3f lightDir = glm::normalize(normalMatrix * engine::vec3f{-0.11f, -0.1f, 0.75f});
+        const engine::vec3f lightDir = glm::normalize(normalMatrix * engine::vec3f{-0.06f, -0.05f, 0.75f});
 
         commandList->bindPipeline(_pipelines[kPostEffectPipeline]);
         commandList->bindVertexBuffer(0u, _postPositions);
@@ -1689,6 +1697,7 @@ namespace example {
         commandList->bindImage(0u, _ssaoImages[imageIndex], ssaoSampler);
         commandList->bindImage(1u, _gBufferAttachments[imageIndex].normal, ssaoSampler);
         commandList->bindImage(2u, _gBufferAttachments[imageIndex].albedo, ssaoSampler);
+        commandList->bindImage(3u, _gBufferAttachments[imageIndex].emissive, ssaoSampler);
 
         commandList->pushConstants(engine::rhi::shaders::Stages::eFragment, 0u, sizeof(engine::vec3f), &lightDir);
 

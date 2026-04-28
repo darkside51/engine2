@@ -68,6 +68,11 @@
 				"finalLayout" : "eShader_Read_Only_Optimal"
 			},
 			{
+				"loadStoreOp" : ["eClear", "eStore"],
+				"stencilLoadStoreOp" : ["eDont_Care", "eDont_Care"],
+				"finalLayout" : "eShader_Read_Only_Optimal"
+			},
+			{
 				"loadStoreOp" : ["eClear", "eDont_Care"],
 				"stencilLoadStoreOp" : ["eDont_Care", "eDont_Care"],
 				"finalLayout" : "eDepth_Stencil_Read_Only_Optimal"
@@ -90,10 +95,14 @@
 					{
 						"attachment": 2,
 						"layout": "eColor_Attachment_Optimal"
+					},
+					{
+						"attachment": 3,
+						"layout": "eColor_Attachment_Optimal"
 					}
 				],
 				"depthStencilAttachment" : {
-					"attachment": 3,
+					"attachment": 4,
 					"layout": "eDepth_Stencil_Attachment_Optimal"
 				}
 			}

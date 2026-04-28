@@ -11,7 +11,7 @@
 namespace engine::rhi {
 
 struct SubpassDescription {
-    static constexpr size_t kMaxAttachemts = 4u; 
+    static constexpr size_t kMaxAttachemts = 8u; 
     std::pair<const void*, size_t> pNext = {nullptr, 0u}; // value + hash(value) 
     AttachmentReference depthStencilAttachment = {}; // undefined as default
     dynamic_array<AttachmentReference, kMaxAttachemts> inputAttachments;
