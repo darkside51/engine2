@@ -63,8 +63,10 @@ namespace example {
     constexpr uint8_t kMeshInstancedProgram = 5u;
     constexpr uint8_t kComputeProgram = 6u;
     constexpr uint8_t kMeshAfterComputeProgram = 7u;
+    constexpr uint8_t kSsaoProgram = 8u;
 
     constexpr uint8_t kPostEffectPipeline = 0u;
+    constexpr uint8_t kSsaoPipeline = 1u;
 
     constexpr uint8_t kSsaoKernelSize = 32u;
     constexpr uint8_t kSsaoNoiseDim = 4u;
@@ -716,6 +718,16 @@ namespace example {
 
             _programs.emplace_back(_api->createProgram(*_device, std::array{vsModule.getView(), fsModule.getView()}));
         }
+
+        { // kSsaoProgram
+            //auto const vBytes = _fileManager.readFile("shaders/postEffect.vert.spv");
+            auto const fBytes = _fileManager.readFile("shaders/ssao.frag.spv");
+
+            const auto & vsModule = _shaderModulesManager->registerModule("postEffect.vert", *_device, engine::rhi::shaders::Stages::eVertex, {});
+            const auto & fsModule = _shaderModulesManager->registerModule("ssao.frag", *_device, engine::rhi::shaders::Stages::eFragment, fBytes);
+
+            _programs.emplace_back(_api->createProgram(*_device, std::array{vsModule.getView(), fsModule.getView()}));
+        }
     }
     
     void Example::createPipelines() {
@@ -740,6 +752,9 @@ namespace example {
         // kPostEffectPipeline
         const GraphicsPipelineStatesInfo info0 = engine::parseGraphicsPipelineInfo(json["postEffect"]);
         _pipelines.emplace_back(_api->createGraphicsPipeline(*_device, _renderPasses[kScreenRenderPass], _programs[kPostEffectProgram], info0, 0u));
+
+        // kSsaoPipeline
+        _pipelines.emplace_back(_api->createGraphicsPipeline(*_device, _renderPasses[kSsaoRenderPass], _programs[kSsaoProgram], info0, 0u));
 
         // scene pipelines
         const GraphicsPipelineStatesInfo info2 = engine::parseGraphicsPipelineInfo(json["sprite_common"]);
@@ -1024,13 +1039,17 @@ namespace example {
 
         //
         // ssao kenel
+        constexpr auto lerp = [](float a, float b, float f) noexcept {
+            return a + f * (b - a);
+        };
+
         std::vector<engine::vec4f> ssaoKernel(kSsaoKernelSize);
 		for (uint8_t i = 0u; i < kSsaoKernelSize; ++i) {
 			engine::vec3f sample{engine::common::random(-1.0f, 1.0f), engine::common::random(-1.0f, 1.0f), engine::common::random(0.0f, 1.0f)};
 			sample = glm::normalize(sample);
 			sample *= engine::common::random(0.0f, 1.0f);
 			float scale = float(i) / float(kSsaoKernelSize);
-			scale = glm::mix(0.1f, 1.0f, scale * scale);
+			scale = lerp(0.1f, 1.0f, scale * scale);
 			ssaoKernel[i] = {sample * scale, 0.0f};
 		}
         BufferInfo kernelBufferInfo {
@@ -1588,14 +1607,14 @@ namespace example {
         // render
         constexpr auto sceneClearValues = std::array{
             rhi::ClearValue{0x77'77'77'ffu},
-            rhi::ClearValue{0.0f}
+            rhi::ClearValue{0.0f, 0u}
         };
 
         constexpr auto gBufferClearValues = std::array{
             rhi::ClearValue{0x00'00'00'ffu},
             rhi::ClearValue{0x00'00'00'ffu},
             rhi::ClearValue{0x77'77'77'ffu},
-            rhi::ClearValue{0.0f}
+            rhi::ClearValue{0.0f, 0u}
         };
 
         constexpr auto clearValues = std::array{
@@ -1628,15 +1647,12 @@ namespace example {
         //commandList->nextSubpass(rhi::SubpassContents::ePrimaryBufferInline);
         commandList->endRenderPass();
 
-        // final pass
-        // std::array images2Shaders{rhi::runtime::ImageTransitionInfo{_colorAttachmentImages[imageIndex].get()}};
-        commandList->beginRenderPass(_renderPasses[kScreenRenderPass], _mainFrameBuffers[imageIndex], clearValues, {{0, 0}, {width, height}});
+        // ssao pass
+        commandList->beginRenderPass(_renderPasses[kSsaoRenderPass], _ssaoBuffers[imageIndex], clearValues, {{0, 0}, {width, height}});
 
-        // draw with postEffect
-        commandList->bindPipeline(_pipelines[kPostEffectPipeline]);
+        commandList->bindPipeline(_pipelines[kSsaoPipeline]);
         commandList->bindVertexBuffer(0u, _postPositions);
         commandList->bindIndexBuffer(_postIndices, 0u, rhi::IndexType::eU16);
-        //commandList->bindImage(0u, _colorAttachmentImages[imageIndex], rhi::SamplerValue{});
 
         rhi::SamplerValue ssaoSampler{};
         ssaoSampler.info.addressModeU = rhi::SamplerAddressMode::eClamp_To_Border;
@@ -1645,10 +1661,32 @@ namespace example {
 
         commandList->bindImage(0u, _gBufferAttachments[imageIndex].position, ssaoSampler);
         commandList->bindImage(1u, _gBufferAttachments[imageIndex].normal, ssaoSampler);
-        commandList->bindImage(2u, _gBufferAttachments[imageIndex].albedo, ssaoSampler);
-        commandList->bindImage(3u, _ssaoNoise, rhi::SamplerValue{});
-        commandList->bindBuffer(4u, _ssaoKernelBuffer);
+        commandList->bindImage(2u, _ssaoNoise, rhi::SamplerValue{});
+        commandList->bindBuffer(3u, _ssaoKernelBuffer);
         commandList->pushConstants(engine::rhi::shaders::Stages::eFragment, 0u, sizeof(engine::mat4f), &viewParams.cameraProjection);
+
+        commandList->drawIndexed(6u);
+
+        commandList->endRenderPass();
+
+        // final pass
+        // std::array images2Shaders{rhi::runtime::ImageTransitionInfo{_colorAttachmentImages[imageIndex].get()}};
+        commandList->beginRenderPass(_renderPasses[kScreenRenderPass], _mainFrameBuffers[imageIndex], clearValues, {{0, 0}, {width, height}});
+
+        // draw with postEffect
+        const auto normalMatrix = glm::transpose(glm::inverse(engine::mat3f(viewParams.cameraView)));
+        const engine::vec3f lightDir = glm::normalize(normalMatrix * engine::vec3f{-0.45f, -0.4f, 0.55f});
+
+        commandList->bindPipeline(_pipelines[kPostEffectPipeline]);
+        commandList->bindVertexBuffer(0u, _postPositions);
+        commandList->bindIndexBuffer(_postIndices, 0u, rhi::IndexType::eU16);
+        //commandList->bindImage(0u, _colorAttachmentImages[imageIndex], rhi::SamplerValue{});
+
+        commandList->bindImage(0u, _ssaoImages[imageIndex], ssaoSampler);
+        commandList->bindImage(1u, _gBufferAttachments[imageIndex].normal, ssaoSampler);
+        commandList->bindImage(2u, _gBufferAttachments[imageIndex].albedo, ssaoSampler);
+
+        commandList->pushConstants(engine::rhi::shaders::Stages::eFragment, 0u, sizeof(engine::vec3f), &lightDir);
 
         commandList->drawIndexed(6u);
 

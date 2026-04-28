@@ -68,7 +68,7 @@
 				"finalLayout" : "eShader_Read_Only_Optimal"
 			},
 			{
-				"loadStoreOp" : ["eClear", "eStore"],
+				"loadStoreOp" : ["eClear", "eDont_Care"],
 				"stencilLoadStoreOp" : ["eDont_Care", "eDont_Care"],
 				"finalLayout" : "eDepth_Stencil_Read_Only_Optimal"
 			}

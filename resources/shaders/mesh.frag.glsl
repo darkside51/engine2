@@ -25,8 +25,8 @@ layout (location = 0) out vec4 outPosition;
 layout (location = 1) out vec4 outNormal;
 layout (location = 2) out vec4 outAlbedo;
 
-const vec3 lightDirection = normalize(vec3(0.45, 0.4, -0.55));
-const vec3 upDirection = normalize(vec3(0.0, 0.0, 1.0));
+//const vec3 lightDirection = normalize(vec3(0.45, 0.4, -0.55));
+//const vec3 upDirection = normalize(vec3(0.0, 0.0, 1.0));
 
 void main() {
 	//const float ambient = 0.1;
