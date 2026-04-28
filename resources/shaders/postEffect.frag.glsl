@@ -58,9 +58,13 @@ void main() {
 	const vec4 albedo = texture(textureAlbedo, v_uv);
 	const vec4 emissive = texture(textureEmissive, v_uv);//4.0 * emissiveRadialBlur(16, 2);
 
+	vec3 viewDir = vec3(1.0, 0.0, 0.0);
+	vec3 reflect = reflect(push.lightDir.xyz, normal);
+	vec3 specular = vec3(0.0);//pow(max(dot(reflect, viewDir), 0.0), 8.0) * vec3(1.0);
+
 	const float ambient = 0.05;
-	const float NdotL = ambient + max(0.0, dot(normal, push.lightDir.xyz));
-	const vec3 baseColor = albedo.rgb * NdotL + emissive.rgb;
+	const float NdotL = max(0.0, dot(normal, push.lightDir.xyz));
+	const vec3 baseColor = albedo.rgb * (NdotL + ambient) + specular + emissive.rgb;
 	const vec3 clearColor = vec3(0.5f);
 	out_color = vec4(mix(pow(baseColor, vec3(0.4545)) * occlusion, clearColor, step(albedo.w, 0.0)), 1.0); // gamma correction 1.0 / 2.2 = 0.4545
 
