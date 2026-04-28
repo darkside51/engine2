@@ -1066,20 +1066,24 @@ namespace example {
         }
 
         // ssao noise
-        std::vector<engine::vec4f> noiseValues(kSsaoNoiseDim * kSsaoNoiseDim);
-		for (uint32_t i = 0; i < static_cast<uint32_t>(noiseValues.size()); i++) {
-			noiseValues[i] = {engine::common::random(-1.0f, 1.0f), engine::common::random(-1.0f, 1.0f), 0.0f, 0.0f};
+        std::vector<engine::vec2f> noiseValues(kSsaoNoiseDim * kSsaoNoiseDim);
+		for (size_t i = 0u; i < noiseValues.size(); ++i) {
+			// noiseValues[i] = {engine::common::random(-1.0f, 1.0f), engine::common::random(-1.0f, 1.0f), 0.0f, 0.0f};
+            noiseValues[i] = {
+                static_cast<float>(engine::common::random(-32'767, 32'767)) / 32'767.0f, 
+                static_cast<float>(engine::common::random(-32'767, 32'767)) / 32'767.0f
+            };
 		}
 
         const auto noiseImageInfo = ImageInfo{
             ImageUsageFlags::eSampled | ImageUsageFlags::eTransfer_Dst,
-            Format::eR32G32B32A32_Sfloat, {kSsaoNoiseDim, kSsaoNoiseDim, 1u}
+            Format::eR16G16_Sfloat, {kSsaoNoiseDim, kSsaoNoiseDim, 1u}
         };
 
         _ssaoNoise = _api->createImage(*_device, noiseImageInfo);
 
         {
-            const auto stagingSize = noiseValues.size() * sizeof(engine::vec4f);
+            const auto stagingSize = noiseValues.size() * sizeof(decltype(noiseValues)::value_type);
             engine::graphics::StagingBuffer staging{*_api, *_device, stagingSize};
             
             auto * imgData = staging.map();
@@ -1563,7 +1567,7 @@ namespace example {
                     }
 
                     meshRoot->setRotation(engine::vec3f(1.57f, 0.0f, engine::common::random(-3.14f, 3.14f)));
-                    meshRoot->setPosition(engine::vec3f(-5.0f + i % 2 * 1.25f, 0.0f - i / 2 * 1.25f, 0.42f));
+                    meshRoot->setPosition(engine::vec3f(-5.5f + i % 2 * 1.5f, 0.0f - i / 2 * 1.5f, 0.42f));
                     sceneWorldRoot->addChild(meshRoot);
                 }
             }
@@ -1611,9 +1615,9 @@ namespace example {
         };
 
         constexpr auto gBufferClearValues = std::array{
-            rhi::ClearValue{0x00'00'00'ffu},
-            rhi::ClearValue{0x00'00'00'ffu},
-            rhi::ClearValue{0x77'77'77'ffu},
+            rhi::ClearValue{0x00'00'00'00u},
+            rhi::ClearValue{0x00'00'00'00u},
+            rhi::ClearValue{0x00'00'00'00u},
             rhi::ClearValue{0.0f, 0u}
         };
 
@@ -1675,7 +1679,7 @@ namespace example {
 
         // draw with postEffect
         const auto normalMatrix = glm::transpose(glm::inverse(engine::mat3f(viewParams.cameraView)));
-        const engine::vec3f lightDir = glm::normalize(normalMatrix * engine::vec3f{-0.45f, -0.4f, 0.55f});
+        const engine::vec3f lightDir = glm::normalize(normalMatrix * engine::vec3f{-0.11f, -0.1f, 0.75f});
 
         commandList->bindPipeline(_pipelines[kPostEffectPipeline]);
         commandList->bindVertexBuffer(0u, _postPositions);

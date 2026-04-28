@@ -1,8 +1,8 @@
 #version 450
 
 layout (constant_id = 0) const int kSsaoKernelSize = 32;
-layout (constant_id = 1) const float kSsaoRadius = 0.2;
-layout (constant_id = 2) const float bias = 0.005f;
+layout (constant_id = 1) const float kSsaoRadius = 0.15;
+layout (constant_id = 2) const float bias = 0.01f;
 
 layout(set = 0, binding = 0) uniform sampler2D texturePositionDepth;
 layout(set = 0, binding = 1) uniform sampler2D textureNormal;
@@ -28,7 +28,7 @@ void main() {
 	ivec2 texDim = textureSize(texturePositionDepth, 0); 
 	ivec2 noiseDim = textureSize(ssaoNoise, 0);
 	const vec2 noiseUV = vec2(float(texDim.x)/float(noiseDim.x), float(texDim.y)/(noiseDim.y)) * v_uv;  
-	vec3 randomVec = texture(ssaoNoise, noiseUV).xyz * 2.0 - 1.0;
+	vec3 randomVec = vec3(texture(ssaoNoise, noiseUV).xy * 2.0 - 1.0, -1.0);
 
 	// create TBN matrix
 	vec3 tangent = normalize(randomVec - normal * dot(randomVec, normal));
