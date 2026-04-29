@@ -1,8 +1,8 @@
 #version 450
 
 layout (constant_id = 0) const int kSsaoKernelSize = 32;
-layout (constant_id = 1) const float kSsaoRadius = 0.12;
-layout (constant_id = 2) const float bias = 0.012f;
+layout (constant_id = 1) const float kSsaoRadius = 0.08;
+layout (constant_id = 2) const float bias = 0.01f;
 
 layout(set = 0, binding = 0) uniform sampler2D texturePositionDepth;
 layout(set = 0, binding = 1) uniform sampler2D textureNormal;
