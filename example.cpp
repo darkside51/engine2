@@ -440,6 +440,7 @@ namespace example {
 
     void Example::sizeChanged() {
         const uint32_t swapchainImagesCount = _swapchain->getImagesCount();
+        const auto framesCount = _device->inFlightFramesCount();
 
         auto const size = _swapchain->getSize();
 
@@ -453,8 +454,8 @@ namespace example {
         imageInfo.memoryExtFlags = engine::rhi::MemoryExtendedFlags::eDedicated;
 
         _depthImages.clear();
-        _depthImages.reserve(swapchainImagesCount);
-        for (uint32_t i = 0u; i < swapchainImagesCount; ++i) {
+        _depthImages.reserve(framesCount);
+        for (uint32_t i = 0u; i < framesCount; ++i) {
             _depthImages.emplace_back(std::move(_api->createImage(*_device, imageInfo)));
         }
 
@@ -466,14 +467,14 @@ namespace example {
         colorImageInfo.memoryExtFlags = engine::rhi::MemoryExtendedFlags::eDedicated;
 
         _colorAttachmentImages.clear();
-        _colorAttachmentImages.reserve(swapchainImagesCount);
-        for (uint32_t i = 0u; i < swapchainImagesCount; ++i) {
+        _colorAttachmentImages.reserve(framesCount);
+        for (uint32_t i = 0u; i < framesCount; ++i) {
             _colorAttachmentImages.emplace_back(std::move(_api->createImage(*_device, colorImageInfo)));
         }
 
         _sceneFrameBuffers.clear();
-        _sceneFrameBuffers.reserve(swapchainImagesCount);
-        for (uint32_t i = 0u; i < swapchainImagesCount; ++i) {
+        _sceneFrameBuffers.reserve(framesCount);
+        for (uint32_t i = 0u; i < framesCount; ++i) {
             std::vector<engine::rhi::FrameBufferAttachment> fbAttachemnts{2u};
 
             auto & colorImage = _colorAttachmentImages[i];
@@ -501,14 +502,13 @@ namespace example {
             _mainFrameBuffers.emplace_back(_api->createFrameBuffer(*_device, std::move(fbAttachemnts), _renderPasses[kScreenRenderPass]));
         }
 
-        // ssao
-
+        // ssao:
         // ssao attachments
         _gBufferAttachments.clear();
-        _gBufferAttachments.reserve(swapchainImagesCount);
+        _gBufferAttachments.reserve(framesCount);
 
         _ssaoImages.clear();
-        _ssaoImages.reserve(swapchainImagesCount);
+        _ssaoImages.reserve(framesCount);
 
         auto positionImageInfo = engine::rhi::ImageInfo{
             engine::rhi::ImageUsageFlags::eColor_Attachment | engine::rhi::ImageUsageFlags::eSampled,
@@ -535,7 +535,7 @@ namespace example {
         };
         ssaoImageInfo.memoryExtFlags = engine::rhi::MemoryExtendedFlags::eDedicated;
 
-        for (uint32_t i = 0u; i < swapchainImagesCount; ++i) {
+        for (uint32_t i = 0u; i < framesCount; ++i) {
             _gBufferAttachments.emplace_back(
                 _api->createImage(*_device, positionImageInfo), // position
                 _api->createImage(*_device, otherColorImageInfo), // normal
@@ -550,12 +550,12 @@ namespace example {
 
         // ssao framebuffers
         _gBuffers.clear();
-        _gBuffers.reserve(swapchainImagesCount);
+        _gBuffers.reserve(framesCount);
 
         _ssaoBuffers.clear();
-        _ssaoBuffers.reserve(swapchainImagesCount);
+        _ssaoBuffers.reserve(framesCount);
 
-        for (uint32_t i = 0u; i < swapchainImagesCount; ++i) {
+        for (uint32_t i = 0u; i < framesCount; ++i) {
             {
                 std::vector<engine::rhi::FrameBufferAttachment> fbAttachemnts{5u};
 
@@ -598,8 +598,8 @@ namespace example {
         }
 
         _emissiveBluredBuffers.clear();
-        _emissiveBluredBuffers.reserve(swapchainImagesCount * 2u);
-        for (uint32_t i = 0u; i < swapchainImagesCount; ++i) {
+        _emissiveBluredBuffers.reserve(framesCount * 2u);
+        for (uint32_t i = 0u; i < framesCount; ++i) {
             std::vector<engine::rhi::FrameBufferAttachment> fbAttachemnts{1u};
             auto & image = _gBufferAttachments[i].emissive;
             fbAttachemnts[0u].image = image.get();
@@ -608,7 +608,7 @@ namespace example {
             _emissiveBluredBuffers.emplace_back(_api->createFrameBuffer(*_device, std::move(fbAttachemnts), _renderPasses[kBlurRenderPass]));
         }
 
-        for (uint32_t i = 0u; i < swapchainImagesCount; ++i) {
+        for (uint32_t i = 0u; i < framesCount; ++i) {
             std::vector<engine::rhi::FrameBufferAttachment> fbAttachemnts{1u};
             auto & image = _gBufferAttachments[i].emissive2;
             fbAttachemnts[0u].image = image.get();
@@ -632,6 +632,7 @@ namespace example {
         sizeChanged();
 
         gStats.inFlightFramesCount = _swapchain->getImagesCount();
+        gStats.inFlightFramesCount = _device->inFlightFramesCount();
     }
 
     void Example::createRenderPasses() {
@@ -659,7 +660,9 @@ namespace example {
 
             _renderPasses.emplace_back(_api->getRenderPass(*_device, engine::parseRenderPass(json["gBuffer"], formatsGBuffer))); // kGbufferRenderPass
             _renderPasses.emplace_back(_api->getRenderPass(*_device, engine::parseRenderPass(json["ssao"], formatsSsao))); // kSsaoRenderPass
+        }
 
+        { // blur
             const auto formatsEmissiveBlur = std::array{engine::rhi::Format::eR8G8B8A8_Unorm};
             _renderPasses.emplace_back(_api->getRenderPass(*_device, engine::parseRenderPass(json["blur"], formatsEmissiveBlur))); // kBlurRenderPass
         }
@@ -1100,46 +1103,54 @@ namespace example {
 			ssaoKernel[i] = {sample * scale, 0.0f};
 		}
         BufferInfo kernelBufferInfo {
-            BufferUsageFlags::eUniform_Buffer,
-            MemoryPropertyFlags::eDeviceLocal | MemoryPropertyFlags::eHostVisible
+            BufferUsageFlags::eUniform_Buffer | BufferUsageFlags::eTransfer_Dst,
+            MemoryPropertyFlags::eDeviceLocal
         };
 
         _ssaoKernelBuffer = _api->createBuffer(*_device, kernelBufferInfo, ssaoKernel.size() * sizeof(engine::vec4f));
-        {
-            auto * memory = static_cast<std::byte*>(_ssaoKernelBuffer->map());
-            std::memcpy(memory, ssaoKernel.data(), ssaoKernel.size() * sizeof(engine::vec4f));
-            _ssaoKernelBuffer->flush();
-            _ssaoKernelBuffer->unmap();
-        }
 
         // ssao noise
         std::vector<engine::vec2f> noiseValues(kSsaoNoiseDim * kSsaoNoiseDim);
 		for (size_t i = 0u; i < noiseValues.size(); ++i) {
-			// noiseValues[i] = {engine::common::random(-1.0f, 1.0f), engine::common::random(-1.0f, 1.0f), 0.0f, 0.0f};
-            noiseValues[i] = {
-                static_cast<float>(engine::common::random(-32'767, 32'767)) / 32'767.0f, 
-                static_cast<float>(engine::common::random(-32'767, 32'767)) / 32'767.0f
-            };
+			noiseValues[i] = {engine::common::random(-1.0f, 1.0f), engine::common::random(-1.0f, 1.0f)};
+            // noiseValues[i] = {
+            //     static_cast<float>(engine::common::random(-32'767, 32'767)) / 32'767.0f, 
+            //     static_cast<float>(engine::common::random(-32'767, 32'767)) / 32'767.0f
+            // };
 		}
 
         const auto noiseImageInfo = ImageInfo{
             ImageUsageFlags::eSampled | ImageUsageFlags::eTransfer_Dst,
-            Format::eR16G16_Sfloat, {kSsaoNoiseDim, kSsaoNoiseDim, 1u}
+            Format::eR32G32_Sfloat, {kSsaoNoiseDim, kSsaoNoiseDim, 1u}
         };
 
         _ssaoNoise = _api->createImage(*_device, noiseImageInfo);
 
-        {
-            const auto stagingSize = noiseValues.size() * sizeof(decltype(noiseValues)::value_type);
+        { // fill ssao data
+            const auto kernelDataSize = kSsaoKernelSize * sizeof(decltype(ssaoKernel)::value_type);
+            const auto noiseDataSize = noiseValues.size() * sizeof(decltype(noiseValues)::value_type);
+            const auto stagingSize = kernelDataSize + noiseDataSize;
+
             engine::graphics::StagingBuffer staging{*_api, *_device, stagingSize};
             
-            auto * imgData = staging.map();
-            std::memcpy(imgData, noiseValues.data(), stagingSize);
+            std::byte * memory = staging.map();
+            const auto kernelOffset = staging.requestBytes(kernelDataSize);
+            const auto noiseOffset = staging.requestBytes(noiseDataSize);
+
+            auto * kernelData = (memory + kernelOffset);
+            auto * noiseData = (memory + noiseOffset);
+
+            std::memcpy(kernelData, ssaoKernel.data(), kernelDataSize);
+            std::memcpy(noiseData, noiseValues.data(), noiseDataSize);
             staging.flush();
+
+            tmpCommandList->copyBuffer2Buffer(staging.getBuffer(), _ssaoKernelBuffer, 
+                {.srcOffset = kernelOffset, .dstOffset = 0u, .size = kernelDataSize}
+            );
 
             tmpCommandList->copyBuffer2Image(staging.getBuffer(), _ssaoNoise, 
                 {
-                    .bufferOffset = 0u,
+                    .bufferOffset = noiseOffset,
                     .bufferRowLength = 0u,
                     .bufferImageHeight = 0u,
                     .imageSubresource = {.aspectMask = engine::rhi::ImageAspectFlags::eColor},
@@ -1688,8 +1699,8 @@ namespace example {
         scene->dispatch(commandList, frameId, objects, offsets);
 
         // scene pass
-        // commandList->beginRenderPass(_renderPasses[kSceneRenderPass], _sceneFrameBuffers[imageIndex], sceneClearValues, {{0, 0}, {width, height}});
-        commandList->beginRenderPass(_renderPasses[kGbufferRenderPass], _gBuffers[imageIndex], gBufferClearValues, {{0, 0}, {width, height}});
+        // commandList->beginRenderPass(_renderPasses[kSceneRenderPass], _sceneFrameBuffers[frameId], sceneClearValues, {{0, 0}, {width, height}});
+        commandList->beginRenderPass(_renderPasses[kGbufferRenderPass], _gBuffers[frameId], gBufferClearValues, {{0, 0}, {width, height}});
         // scene->dispatch(commandList, frameId, objects, offsets);
         
         scene->draw(commandList, transferCommandList, frameId, viewParams, objects, offsets);    
@@ -1700,31 +1711,31 @@ namespace example {
         //commandList->nextSubpass(rhi::SubpassContents::ePrimaryBufferInline);
         commandList->endRenderPass();
 
-        rhi::SamplerValue ssaoSampler{};
-        ssaoSampler.info.minFilter = engine::rhi::FilterMode::eLinear;
-        ssaoSampler.info.magFilter = engine::rhi::FilterMode::eLinear;
-        ssaoSampler.info.addressModeU = rhi::SamplerAddressMode::eClamp_To_Border;
-        ssaoSampler.info.addressModeV = rhi::SamplerAddressMode::eClamp_To_Border;
-        ssaoSampler.info.addressModeW = rhi::SamplerAddressMode::eClamp_To_Border;
-        _device->evaluateSampler(ssaoSampler);
+        rhi::SamplerValue nearestSampler{};
+        nearestSampler.info.minFilter = engine::rhi::FilterMode::eNearest;
+        nearestSampler.info.magFilter = engine::rhi::FilterMode::eNearest;
+        nearestSampler.info.addressModeU = rhi::SamplerAddressMode::eClamp_To_Border;
+        nearestSampler.info.addressModeV = rhi::SamplerAddressMode::eClamp_To_Border;
+        nearestSampler.info.addressModeW = rhi::SamplerAddressMode::eClamp_To_Border;
+        _device->evaluateSampler(nearestSampler);
 
-        rhi::SamplerValue commonSampler{};
-        commonSampler.info.minFilter = engine::rhi::FilterMode::eLinear;
-        commonSampler.info.magFilter = engine::rhi::FilterMode::eLinear;
-        commonSampler.info.addressModeU = rhi::SamplerAddressMode::eClamp_To_Border;
-        commonSampler.info.addressModeV = rhi::SamplerAddressMode::eClamp_To_Border;
-        commonSampler.info.addressModeW = rhi::SamplerAddressMode::eClamp_To_Border;
-        _device->evaluateSampler(commonSampler);
+        rhi::SamplerValue linearSampler{};
+        linearSampler.info.minFilter = engine::rhi::FilterMode::eLinear;
+        linearSampler.info.magFilter = engine::rhi::FilterMode::eLinear;
+        linearSampler.info.addressModeU = rhi::SamplerAddressMode::eClamp_To_Border;
+        linearSampler.info.addressModeV = rhi::SamplerAddressMode::eClamp_To_Border;
+        linearSampler.info.addressModeW = rhi::SamplerAddressMode::eClamp_To_Border;
+        _device->evaluateSampler(linearSampler);
 
         // ssao pass
-        commandList->beginRenderPass(_renderPasses[kSsaoRenderPass], _ssaoBuffers[imageIndex], clearValues, {{0, 0}, {width, height}});
+        commandList->beginRenderPass(_renderPasses[kSsaoRenderPass], _ssaoBuffers[frameId], clearValues, {{0, 0}, {width, height}});
 
         commandList->bindPipeline(_pipelines[kSsaoPipeline]);
         commandList->bindVertexBuffer(0u, _postPositions);
         commandList->bindIndexBuffer(_postIndices, 0u, rhi::IndexType::eU16);
 
-        commandList->bindImage(0u, _gBufferAttachments[imageIndex].position, ssaoSampler);
-        commandList->bindImage(1u, _gBufferAttachments[imageIndex].normal, ssaoSampler);
+        commandList->bindImage(0u, _gBufferAttachments[frameId].position, nearestSampler);
+        commandList->bindImage(1u, _gBufferAttachments[frameId].normal, nearestSampler);
         commandList->bindImage(2u, _ssaoNoise, rhi::SamplerValue{});
         commandList->bindBuffer(3u, _ssaoKernelBuffer);
         commandList->pushConstants(engine::rhi::shaders::Stages::eFragment, 0u, sizeof(engine::mat4f), &viewParams.cameraProjection);
@@ -1739,13 +1750,13 @@ namespace example {
             const auto imagesCount = _gBufferAttachments.size();
             for (uint8_t i = 0u; i < 4u; ++i) { // ping - pong
                 blurUniform.z = horizontal ? 1.0f : 0.0f;
-                commandList->beginRenderPass(_renderPasses[kBlurRenderPass], _emissiveBluredBuffers[imageIndex + (horizontal ? imagesCount : 0u)], clearValues, {{0, 0}, {width, height}});
+                commandList->beginRenderPass(_renderPasses[kBlurRenderPass], _emissiveBluredBuffers[frameId + (horizontal ? imagesCount : 0u)], clearValues, {{0, 0}, {width, height}});
 
                 commandList->bindPipeline(_pipelines[kEmissiveBlurPipeline]);
                 commandList->bindVertexBuffer(0u, _postPositions);
                 commandList->bindIndexBuffer(_postIndices, 0u, rhi::IndexType::eU16);
 
-                commandList->bindImage(0u, horizontal ? _gBufferAttachments[imageIndex].emissive : _gBufferAttachments[imageIndex].emissive2, ssaoSampler);
+                commandList->bindImage(0u, horizontal ? _gBufferAttachments[frameId].emissive : _gBufferAttachments[frameId].emissive2, linearSampler);
                 commandList->pushConstants(engine::rhi::shaders::Stages::eFragment, 0u, sizeof(engine::vec4f), &blurUniform);
                 commandList->drawIndexed(6u);
 
@@ -1766,12 +1777,12 @@ namespace example {
         commandList->bindPipeline(_pipelines[kPostEffectPipeline]);
         commandList->bindVertexBuffer(0u, _postPositions);
         commandList->bindIndexBuffer(_postIndices, 0u, rhi::IndexType::eU16);
-        //commandList->bindImage(0u, _colorAttachmentImages[imageIndex], rhi::SamplerValue{});
+        //commandList->bindImage(0u, _colorAttachmentImages[frameId], rhi::SamplerValue{});
 
-        commandList->bindImage(0u, _ssaoImages[imageIndex], ssaoSampler);
-        commandList->bindImage(1u, _gBufferAttachments[imageIndex].normal, ssaoSampler);
-        commandList->bindImage(2u, _gBufferAttachments[imageIndex].albedo, ssaoSampler);
-        commandList->bindImage(3u, _gBufferAttachments[imageIndex].emissive, commonSampler);
+        commandList->bindImage(0u, _ssaoImages[frameId], linearSampler);
+        commandList->bindImage(1u, _gBufferAttachments[frameId].normal, nearestSampler);
+        commandList->bindImage(2u, _gBufferAttachments[frameId].albedo, nearestSampler);
+        commandList->bindImage(3u, _gBufferAttachments[frameId].emissive, linearSampler);
 
         commandList->pushConstants(engine::rhi::shaders::Stages::eFragment, 0u, sizeof(engine::vec3f), &lightDir);
         commandList->drawIndexed(6u);

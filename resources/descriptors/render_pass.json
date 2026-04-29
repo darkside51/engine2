@@ -132,6 +132,7 @@
 			{
 				"loadStoreOp" : ["eLoad", "eStore"],
 				"stencilLoadStoreOp" : ["eDont_Care", "eDont_Care"],
+				"initialLayout" : "eColor_Attachment_Optimal",
 				"finalLayout" : "eShader_Read_Only_Optimal"
 			}
 		],
@@ -140,7 +141,7 @@
 				"colorAttachments": [
 					{
 						"attachment": 0,
-						"layout": "eShader_Read_Only_Optimal"
+						"layout": "eColor_Attachment_Optimal"
 					}
 				]
 			}

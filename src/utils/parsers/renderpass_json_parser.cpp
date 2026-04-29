@@ -279,6 +279,8 @@ namespace engine {
             };
 
             attachments[i].format = formats[i];
+
+            attachments[i].initialLayout = parseImageLayout(json::getValue(js, "initialLayout", std::string_view("eUndefined")));
             attachments[i].finalLayout = parseImageLayout(js["finalLayout"].as<std::string_view>());
             attachments[i].loadStoreOp = parseLoadStoreOp(loadStoreOp);
             attachments[i].stencilLoadStoreOp = parseLoadStoreOp(stencilLoadStoreOp);
