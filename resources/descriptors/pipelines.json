@@ -78,7 +78,7 @@
 		}
 	},
 	"sprite_common": {
-		"blendModes": ["blend_alpha"],
+		"blendModes": ["blend_none", "blend_none", "blend_none", "blend_none"],
 		"rasterisationState": {
 			"polygonMode": "eFill",
 			"cullmode": "eNone"

@@ -48,11 +48,14 @@ void main() {
 	vec3 reflect = reflect(push.lightDir.xyz, normal);
 	vec3 specular = vec3(0.0);//pow(max(dot(reflect, viewDir), 0.0), 8.0) * vec3(1.0);
 
-	const float ambient = 0.05;
+	const float ambient = 0.3;
 	const float NdotL = max(0.0, dot(normal, push.lightDir.xyz));
 	const vec3 baseColor = albedo.rgb * (NdotL + ambient) + specular + emissive.rgb;
-	const vec3 clearColor = vec3(0.2f) + emissive.rgb;
-	out_color = vec4(mix(pow(baseColor, vec3(0.4545)) * occlusion, clearColor, step(albedo.w, 0.0)), 1.0); // gamma correction 1.0 / 2.2 = 0.4545
+	const vec3 clearColor = pow(vec3(0.2f) + emissive.rgb, vec3(0.4545)); // gamma correction 1.0 / 2.2 = 0.4545
+	const vec3 color = pow(baseColor, vec3(0.4545)) * occlusion; // gamma correction 1.0 / 2.2 = 0.4545
+	out_color = vec4(mix(color, clearColor, step(albedo.w, 0.0)), 1.0); 
+
+	//out_color = vec4(mix(pow(baseColor, vec3(0.4545)) * occlusion, clearColor, step(albedo.w, 0.0)), 1.0); // gamma correction 1.0 / 2.2 = 0.4545
 
 	//out_color = vec4(mix(pow(baseColor * occlusion, vec3(0.4545)), clearColor, step(albedo.w, 0.0)), 1.0); // gamma correction 1.0 / 2.2 = 0.4545
 	//out_color = vec4(occlusion, occlusion, occlusion, 1.0);

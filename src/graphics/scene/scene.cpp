@@ -1162,8 +1162,10 @@ namespace engine::scene {
             commandList->bindPipeline(pipeline);
             commandList->bindVertexBuffer(0u, vertexBuffer, 0u);
             commandList->bindIndexBuffer(indexBuffer, 0u, rhi::IndexType::eU32);
-            commandList->bindImage(0u, image, sprite.getFilter() == SpriteTextureFilter::eLinear ? _linearSampler : _nearestSampler);
-            commandList->pushConstants(rhi::shaders::Stages::eVertex, 0u, sizeof(mat4f), &viewParams.cameraTransform);
+            commandList->bindImage(1u, image, sprite.getFilter() == SpriteTextureFilter::eLinear ? _linearSampler : _nearestSampler);
+
+            commandList->bindBuffer(0u, (*_viewParamsUniformBuffer)(frame), 0u, 0u);
+            //commandList->pushConstants(rhi::shaders::Stages::eVertex, 0u, sizeof(mat4f), &viewParams.cameraTransform);
 
             commandList->drawIndexed(batchIndicesCount, 1u, idxOffset);
         }

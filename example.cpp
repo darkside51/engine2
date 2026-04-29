@@ -805,7 +805,7 @@ namespace example {
 
         // scene pipelines
         const GraphicsPipelineStatesInfo info2 = engine::parseGraphicsPipelineInfo(json["sprite_common"]);
-        scene->registerGraphicsPipeline(_api->createGraphicsPipeline(*_device, _renderPasses[kSceneRenderPass], _programs[kSpritesProgram], info2, 0u));
+        scene->registerGraphicsPipeline(_api->createGraphicsPipeline(*_device, _renderPasses[kGbufferRenderPass], _programs[kSpritesProgram], info2, 0u));
 
         // skeletal mesh
         // const GraphicsPipelineStatesInfo info4 = engine::parseGraphicsPipelineInfo(json["mesh_skeletal"]);
@@ -1284,7 +1284,7 @@ namespace example {
 
                 auto * sprite = scene->createObject<engine::scene::Sprite>(frame, 0u);
                 sprite->setSize({60.0f, 60.0f});
-                //engine::scene::attachObjectToNode(*sprite, *node);
+                engine::scene::attachObjectToNode(*sprite, *node);
                 //sprite->setFilter(engine::scene::SpriteTextureFilter::eNearest);
                 sprite->setOrder(0);
 
@@ -1294,7 +1294,8 @@ namespace example {
                     gpuTasks.emplace_back(BgThread::GpuTask{[this](engine::rhi::runtime::CommandList & commandList, std::vector<threads::WorkerTask> & callbacks) mutable {
 
                         // const auto imageBytes = _fileManager.readFile("assets/vulkan_11_rgba.ktx");
-                        const auto imageBytes = _fileManager.readFile("assets/2d_bc7.ktx2");
+                        // const auto imageBytes = _fileManager.readFile("assets/2d_bc7.ktx2");
+                        const auto imageBytes = _fileManager.readFile("assets/2.png");
                         auto textureData = engine::graphics::parseTextureData(imageBytes, {
                                 .flags = engine::graphics::TextureFlags::eAllowSrgbColorSpace | engine::graphics::TextureFlags::eUseMipMaps
                             }
@@ -1700,6 +1701,8 @@ namespace example {
         commandList->endRenderPass();
 
         rhi::SamplerValue ssaoSampler{};
+        ssaoSampler.info.minFilter = engine::rhi::FilterMode::eLinear;
+        ssaoSampler.info.magFilter = engine::rhi::FilterMode::eLinear;
         ssaoSampler.info.addressModeU = rhi::SamplerAddressMode::eClamp_To_Border;
         ssaoSampler.info.addressModeV = rhi::SamplerAddressMode::eClamp_To_Border;
         ssaoSampler.info.addressModeW = rhi::SamplerAddressMode::eClamp_To_Border;
@@ -1730,7 +1733,7 @@ namespace example {
         commandList->endRenderPass();
 
         if constexpr (true) { // emissive blur
-            engine::vec4f blurUniform{2.2f, 1.6f, 1.0f, 0.0f};
+            engine::vec4f blurUniform{1.6f, 1.6f, 1.0f, 0.0f};
 
             bool horizontal = true;
             const auto imagesCount = _gBufferAttachments.size();
@@ -1742,7 +1745,7 @@ namespace example {
                 commandList->bindVertexBuffer(0u, _postPositions);
                 commandList->bindIndexBuffer(_postIndices, 0u, rhi::IndexType::eU16);
 
-                commandList->bindImage(0u, horizontal ? _gBufferAttachments[imageIndex].emissive : _gBufferAttachments[imageIndex].emissive2, commonSampler);
+                commandList->bindImage(0u, horizontal ? _gBufferAttachments[imageIndex].emissive : _gBufferAttachments[imageIndex].emissive2, ssaoSampler);
                 commandList->pushConstants(engine::rhi::shaders::Stages::eFragment, 0u, sizeof(engine::vec4f), &blurUniform);
                 commandList->drawIndexed(6u);
 
