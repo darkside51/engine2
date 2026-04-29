@@ -1250,7 +1250,7 @@ namespace example {
             node4->setPosition(engine::vec3f(0.57f, 0.05f, -0.85f));
 
             auto * sprite2 = scene->createObject<engine::scene::Sprite>(textureManager->findFrame("hero_sword"), 0u);
-            //engine::scene::attachObjectToNode(*sprite2, *node4);
+            engine::scene::attachObjectToNode(*sprite2, *node4);
             sprite2->setOrder(1u);
 
             sceneWorldRoot->addChild(node3);
@@ -1272,7 +1272,7 @@ namespace example {
 
                         const auto & frame3 = textureManager->findFrame("explosion_33");
                         auto * sprite3 = scene->createObject<engine::scene::Sprite>(frame3, 0u);
-                        //engine::scene::attachObjectToNode(*sprite3, *node5);
+                        engine::scene::attachObjectToNode(*sprite3, *node5);
                         sprite3->setOrder(1);
                         auto * anim0 = scene->createAnimInfo<engine::scene::FramesSequence>(animId, engine::common::random(0.25f, 1.7f));
                         scene->destroyAnimInfo(sprite3->setAnimation(anim0));

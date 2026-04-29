@@ -1,8 +1,9 @@
 #version 450
 
 layout (constant_id = 0) const int kSsaoKernelSize = 32;
-layout (constant_id = 1) const float kSsaoRadius = 0.08;
-layout (constant_id = 2) const float bias = 0.010f;
+layout (constant_id = 1) const float kSsaoRadius = 0.2f;
+layout (constant_id = 2) const float bias = 0.015f;
+layout (constant_id = 3) const float kMaxDepth = 15.0f;
 
 layout(set = 0, binding = 0) uniform sampler2D texturePositionDepth;
 layout(set = 0, binding = 1) uniform sampler2D textureNormal;
@@ -50,7 +51,7 @@ void main() {
 		const float sampleDepth = -texture(texturePositionDepth, offset.xy).w; 
 		const float rangeCheck = smoothstep(0.0f, 1.0f, kSsaoRadius / abs(fragPos.z - sampleDepth));
 
-		occlusion += (sampleDepth >= samplePos.z + bias ? 1.0f : 0.0f) * rangeCheck;           
+		occlusion += (sampleDepth >= samplePos.z + bias ? 1.0f : 0.0f) * rangeCheck * step(-kMaxDepth, sampleDepth);           
 	}
 	occlusion = 1.0 - (occlusion / float(kSsaoKernelSize));
 	out_color = occlusion;
