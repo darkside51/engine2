@@ -1239,7 +1239,7 @@ namespace example {
 
             auto m2 = engine::makeMatrix(0.01F);
             auto * sprite = scene->createObject<engine::scene::Sprite>(textureManager->findFrame("hero_head"), 0u);
-            //engine::scene::attachObjectToNode(*sprite, *node3);
+            engine::scene::attachObjectToNode(*sprite, *node3);
             sprite->setOrder(1u);
 
             m2[1][1] *= -1.0f;
@@ -1305,8 +1305,8 @@ namespace example {
                     gpuTasks.emplace_back(BgThread::GpuTask{[this](engine::rhi::runtime::CommandList & commandList, std::vector<threads::WorkerTask> & callbacks) mutable {
 
                         // const auto imageBytes = _fileManager.readFile("assets/vulkan_11_rgba.ktx");
-                        // const auto imageBytes = _fileManager.readFile("assets/2d_bc7.ktx2");
-                        const auto imageBytes = _fileManager.readFile("assets/2.png");
+                        const auto imageBytes = _fileManager.readFile("assets/2d_bc7.ktx2");
+                        // const auto imageBytes = _fileManager.readFile("assets/2.png");
                         auto textureData = engine::graphics::parseTextureData(imageBytes, {
                                 .flags = engine::graphics::TextureFlags::eAllowSrgbColorSpace | engine::graphics::TextureFlags::eUseMipMaps
                             }
