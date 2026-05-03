@@ -90,6 +90,20 @@ namespace example {
     engine::scene::Node * sceneWorldRoot = nullptr;
     engine::scene::Node * swordNode = nullptr;
 
+    // options
+    bool showOptions = false;
+    
+    bool ssaoEnable = true;
+    bool showSsao = false;
+    bool showEmissive = false;
+    float ssaoRadius = 0.2f;
+    float ssaoBias = 0.007f;
+    float ssaoMaxDepth = 16.0f;
+
+    bool emissiveBlur = true;
+    float emissiveBlurScale = 2.2f;
+    float emissiveBlurStrength = 1.6f;
+    
     class BgThread {
     public:
         using GpuTask = threads::function<void(engine::rhi::runtime::CommandList & commandList, std::vector<threads::WorkerTask> & callbacks)>;
@@ -1399,6 +1413,43 @@ namespace example {
         }
     }
 
+    void optionsWindow() {
+        ImGui::SetNextWindowSize(ImVec2(400, 300), ImGuiCond_FirstUseEver);
+        if (!ImGui::Begin("options", nullptr, 0)) {
+            // Early out if the window is collapsed, as an optimization.
+            ImGui::End();
+            return;
+        }
+
+        ImGui::Checkbox("ssao", &ssaoEnable);
+        ImGui::DragFloat("ssao radius", &ssaoRadius, 0.001f, 0.0f, 1.0f);
+        ImGui::DragFloat("ssao bias", &ssaoBias, 0.001f, 0.0f, 1.0f);
+        ImGui::DragFloat("ssao max depth", &ssaoMaxDepth, 0.05f, 0.0f, 100.0f);
+        
+        ImGui::NewLine();
+        ImGui::Checkbox("blur emissive", &emissiveBlur);
+        ImGui::DragFloat("blur scale", &emissiveBlurScale, 0.1f, 0.0f, 10.0f);
+        ImGui::DragFloat("blur strength", &emissiveBlurStrength, 0.1f, 0.0f, 10.0f);
+
+        ImGui::NewLine();
+        static int m = 0;
+        if (ImGui::RadioButton("composite", m == 0)) { 
+            m = 0; 
+            showSsao = false;
+            showEmissive = false;
+         }
+        if (ImGui::RadioButton("ambient occlusion", m == 1)) { 
+            m = 1;
+            showSsao = true;
+            showEmissive = false;
+        }
+        if (ImGui::RadioButton("emissive", m == 2)) { 
+            m = 2; 
+            showSsao = false;
+            showEmissive = true;
+        }
+    }
+
     void Example::update(threads::ExecutionTimePoint now, float delta) {
         if (_mainThread) {
             // _mainThread->emplaceTasks(stl::make_vector(threads::WorkerTask{[](){
@@ -1413,12 +1464,20 @@ namespace example {
         if (showDemo) {
             ImGui::ShowDemoWindow();
         }
+
+        if (showOptions) {
+            optionsWindow();
+        }
+
         if (ImGui::BeginMainMenuBar()) {
             if (ImGui::BeginMenu("#\t")) {
                 if (ImGui::MenuItem("Info")) {
                 }
                 if (ImGui::MenuItem("Demo")) {
                     showDemo = !showDemo;
+                }
+                if (ImGui::MenuItem("Options")) {
+                    showOptions = !showOptions;
                 }
                 ImGui::EndMenu();
             }
@@ -1728,6 +1787,16 @@ namespace example {
         _device->evaluateSampler(linearSampler);
 
         // ssao pass
+        struct SsaoParams {
+            engine::mat4f projection;
+            engine::vec4f options;
+        };
+
+        const SsaoParams ssaoParams {
+            .projection = viewParams.cameraProjection,
+            .options = {ssaoRadius, ssaoBias, ssaoMaxDepth, 0.0f}
+        };
+
         commandList->beginRenderPass(_renderPasses[kSsaoRenderPass], _ssaoBuffers[frameId], clearValues, {{0, 0}, {width, height}});
 
         commandList->bindPipeline(_pipelines[kSsaoPipeline]);
@@ -1738,13 +1807,13 @@ namespace example {
         commandList->bindImage(1u, _gBufferAttachments[frameId].normal, nearestSampler);
         commandList->bindImage(2u, _ssaoNoise, rhi::SamplerValue{});
         commandList->bindBuffer(3u, _ssaoKernelBuffer);
-        commandList->pushConstants(engine::rhi::shaders::Stages::eFragment, 0u, sizeof(engine::mat4f), &viewParams.cameraProjection);
+        commandList->pushConstants(engine::rhi::shaders::Stages::eFragment, 0u, sizeof(SsaoParams), &ssaoParams);
         commandList->drawIndexed(6u);
 
         commandList->endRenderPass();
 
-        if constexpr (true) { // emissive blur
-            engine::vec4f blurUniform{1.6f, 1.6f, 1.0f, 0.0f};
+        if (emissiveBlur) { // emissive blur
+            engine::vec4f blurUniform{emissiveBlurScale, emissiveBlurStrength, 1.0f, 0.0f};
 
             bool horizontal = true;
             const auto imagesCount = _gBufferAttachments.size();
@@ -1757,6 +1826,7 @@ namespace example {
                 commandList->bindIndexBuffer(_postIndices, 0u, rhi::IndexType::eU16);
 
                 commandList->bindImage(0u, horizontal ? _gBufferAttachments[frameId].emissive : _gBufferAttachments[frameId].emissive2, linearSampler);
+                //commandList->bindImage(1u, _gBufferAttachments[frameId].position, nearestSampler);
                 commandList->pushConstants(engine::rhi::shaders::Stages::eFragment, 0u, sizeof(engine::vec4f), &blurUniform);
                 commandList->drawIndexed(6u);
 
@@ -1771,8 +1841,16 @@ namespace example {
         commandList->beginRenderPass(_renderPasses[kScreenRenderPass], _mainFrameBuffers[imageIndex], clearValues, {{0, 0}, {width, height}});
 
         // draw with postEffect
+        struct PostParams {
+            engine::vec4f lightDir{};
+            engine::vec4f options{};
+        };
+
         const auto normalMatrix = glm::transpose(glm::inverse(engine::mat3f(viewParams.cameraView)));
-        const engine::vec3f lightDir = glm::normalize(normalMatrix * engine::vec3f{-0.26f, -0.15f, 0.75f});
+        const PostParams postParams{
+            .lightDir = engine::vec4f{glm::normalize(normalMatrix * engine::vec3f{-0.26f, -0.15f, 0.75f}), 0.0f},
+            .options = {ssaoEnable, showSsao, showEmissive, 0.0f}
+        };
 
         commandList->bindPipeline(_pipelines[kPostEffectPipeline]);
         commandList->bindVertexBuffer(0u, _postPositions);
@@ -1784,7 +1862,7 @@ namespace example {
         commandList->bindImage(2u, _gBufferAttachments[frameId].albedo, nearestSampler);
         commandList->bindImage(3u, _gBufferAttachments[frameId].emissive, linearSampler);
 
-        commandList->pushConstants(engine::rhi::shaders::Stages::eFragment, 0u, sizeof(engine::vec3f), &lightDir);
+        commandList->pushConstants(engine::rhi::shaders::Stages::eFragment, 0u, sizeof(PostParams), &postParams);
         commandList->drawIndexed(6u);
 
         // draw imgui

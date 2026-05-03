@@ -1,9 +1,9 @@
 #version 450
 
 layout (constant_id = 0) const int kSsaoKernelSize = 32;
-layout (constant_id = 1) const float kSsaoRadius = 0.08f;
-layout (constant_id = 2) const float bias = 0.01f;
-layout (constant_id = 3) const float kMaxDepth = 16.0f;
+//layout (constant_id = 1) const float kSsaoRadius = 0.2f;
+//layout (constant_id = 2) const float bias = 0.007f;
+//layout (constant_id = 3) const float kMaxDepth = 16.0f;
 
 layout(set = 0, binding = 0) uniform sampler2D texturePositionDepth;
 layout(set = 0, binding = 1) uniform sampler2D textureNormal;
@@ -15,12 +15,17 @@ layout (set = 0, binding = 3) uniform UBOSSAOKernel {
 
 layout(push_constant) uniform Params {
 	mat4 projection;
+	vec4 options;
 } push;
 
 layout (location = 0) in vec2 v_uv;
 layout (location = 0) out float out_color;
 
 void main() {
+	const float radius = push.options.x;
+	const float bias = push.options.y;
+	const float maxDepth = push.options.z;
+
 	// gBuffer values
 	vec3 fragPos = texture(texturePositionDepth, v_uv).rgb;
 	vec3 normal = texture(textureNormal, v_uv).rgb * 2.0 - 1.0;
@@ -41,7 +46,8 @@ void main() {
 	// remove banding
 	for(int i = 0; i < kSsaoKernelSize; i++) {		
 		vec3 samplePos = TBN * uboSSAOKernel.samples[i].xyz; 
-		samplePos = fragPos + samplePos * kSsaoRadius; 
+		//samplePos = fragPos + samplePos * kSsaoRadius;
+		samplePos = fragPos + samplePos * radius;
 		
 		// project
 		vec4 offset = push.projection * vec4(samplePos, 1.0f);
@@ -49,9 +55,11 @@ void main() {
 		offset.xyz = offset.xyz * 0.5f + 0.5f; 
 		
 		const float sampleDepth = -texture(texturePositionDepth, offset.xy).w; 
-		const float rangeCheck = smoothstep(0.0f, 1.0f, kSsaoRadius / abs(fragPos.z - sampleDepth));
+		//const float rangeCheck = smoothstep(0.0f, 1.0f, kSsaoRadius / abs(fragPos.z - sampleDepth));
+		const float rangeCheck = smoothstep(0.0f, 1.0f, radius / abs(fragPos.z - sampleDepth));
 
-		occlusion += (sampleDepth >= samplePos.z + bias ? 1.0f : 0.0f) * rangeCheck * step(-kMaxDepth, sampleDepth);           
+		//occlusion += (sampleDepth >= samplePos.z + bias ? 1.0f : 0.0f) * rangeCheck * step(-kMaxDepth, sampleDepth);
+		occlusion += (sampleDepth >= samplePos.z + bias ? 1.0f : 0.0f) * rangeCheck * step(-maxDepth, sampleDepth);         
 	}
 	occlusion = 1.0 - (occlusion / float(kSsaoKernelSize));
 	out_color = occlusion;

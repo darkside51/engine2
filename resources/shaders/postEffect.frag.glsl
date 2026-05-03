@@ -22,6 +22,7 @@ layout (location = 0) out vec4 out_color;
 
 layout(push_constant) uniform Params {
 	vec4 lightDir;
+	vec4 options;
 } push;
 
 float ssaoRadialBlur(int blurRange) {
@@ -39,7 +40,9 @@ float ssaoRadialBlur(int blurRange) {
 }
 
 void main() {
-	const float occlusion = ssaoRadialBlur(2);
+	const bool aoEnable = push.options.x > 0.0f;
+
+	const float occlusion = aoEnable ? ssaoRadialBlur(2) : 1.0;
 	const vec3 normal = texture(textureNormal, v_uv).rgb * 2.0 - 1.0;
 	const vec4 albedo = texture(textureAlbedo, v_uv);
 	const vec4 emissive = texture(textureEmissive, v_uv);
@@ -51,12 +54,15 @@ void main() {
 	const float ambient = 0.5f;
 	const float NdotL = max(0.0f, dot(normal, push.lightDir.xyz));
 	const vec3 baseColor = albedo.rgb * (NdotL + ambient) + specular + emissive.rgb;
-	const vec3 color = pow(baseColor, vec3(0.4545)) * occlusion; // gamma correction 1.0 / 2.2 = 0.4545
+	const vec3 color = pow(baseColor * occlusion, vec3(0.4545)); // gamma correction 1.0 / 2.2 = 0.4545
 	out_color = vec4(color, 1.0f);
-	//const vec3 clearColor = pow(vec3(0.2f) + emissive.rgb, vec3(0.4545)); // gamma correction 1.0 / 2.2 = 0.4545
+	//const vec3 clearColor = pow(vec3(0.5f) + emissive.rgb, vec3(0.4545)); // gamma correction 1.0 / 2.2 = 0.4545
 	//out_color = vec4(mix(color, clearColor, step(albedo.w, 0.0)), 1.0); 
 
 	//out_color = vec4(mix(pow(baseColor, vec3(0.4545)) * occlusion, clearColor, step(albedo.w, 0.0)), 1.0); // gamma correction 1.0 / 2.2 = 0.4545
+
+	out_color = mix(out_color, vec4(occlusion, occlusion, occlusion, 1.0), push.options.y);
+	out_color = mix(out_color, emissive, push.options.z);
 
 	//out_color = vec4(mix(pow(baseColor * occlusion, vec3(0.4545)), clearColor, step(albedo.w, 0.0)), 1.0); // gamma correction 1.0 / 2.2 = 0.4545
 	//out_color = vec4(occlusion, occlusion, occlusion, 1.0);
