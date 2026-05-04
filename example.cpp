@@ -91,7 +91,7 @@ namespace example {
     engine::scene::Node * swordNode = nullptr;
 
     // options
-    bool showOptions = false;
+    bool showOptions = true;
     
     bool ssaoEnable = true;
     bool showSsao = false;
@@ -103,7 +103,54 @@ namespace example {
     bool emissiveBlur = true;
     float emissiveBlurScale = 2.2f;
     float emissiveBlurStrength = 1.6f;
+    int emissiveBlurSteps = 2;
+
+    float ambientFactor = 0.5f;
+    engine::vec3f light = {-0.26f, -0.15f, 0.75f};
     
+    void optionsWindow() {
+        ImGui::SetNextWindowSize(ImVec2(350, 450), ImGuiCond_FirstUseEver);
+        if (!ImGui::Begin("options", &showOptions, 0)) {
+            // Early out if the window is collapsed, as an optimization.
+            ImGui::End();
+            return;
+        }
+
+        ImGui::Checkbox("ssao", &ssaoEnable);
+        ImGui::DragFloat("ssao radius", &ssaoRadius, 0.001f, 0.0f, 1.0f);
+        ImGui::DragFloat("ssao bias", &ssaoBias, 0.001f, 0.0f, 1.0f);
+        ImGui::DragFloat("ssao max depth", &ssaoMaxDepth, 0.05f, 0.0f, 100.0f);
+        
+        ImGui::NewLine();
+        ImGui::Checkbox("blur emissive", &emissiveBlur);
+        ImGui::DragInt("blur steps", &emissiveBlurSteps, 1, 0, 8);
+        ImGui::DragFloat("blur scale", &emissiveBlurScale, 0.1f, 0.0f, 10.0f);
+        ImGui::DragFloat("blur strength", &emissiveBlurStrength, 0.1f, 0.0f, 10.0f);
+
+        ImGui::NewLine();
+        ImGui::DragFloat("ambient factor", &ambientFactor, 0.01f, 0.0f, 1.0f);
+        ImGui::DragFloat3("light direction", &light[0u], 0.01, -1.0f, 1.0f);
+
+        ImGui::NewLine();
+        static int m = 0;
+        if (ImGui::RadioButton("composite", m == 0)) { 
+            m = 0; 
+            showSsao = false;
+            showEmissive = false;
+         }
+        if (ImGui::RadioButton("ambient occlusion", m == 1)) { 
+            m = 1;
+            showSsao = true;
+            showEmissive = false;
+        }
+        if (ImGui::RadioButton("emissive", m == 2)) { 
+            m = 2; 
+            showSsao = false;
+            showEmissive = true;
+        }
+        ImGui::End();
+    }
+
     class BgThread {
     public:
         using GpuTask = threads::function<void(engine::rhi::runtime::CommandList & commandList, std::vector<threads::WorkerTask> & callbacks)>;
@@ -1319,8 +1366,8 @@ namespace example {
                     gpuTasks.emplace_back(BgThread::GpuTask{[this](engine::rhi::runtime::CommandList & commandList, std::vector<threads::WorkerTask> & callbacks) mutable {
 
                         // const auto imageBytes = _fileManager.readFile("assets/vulkan_11_rgba.ktx");
-                        const auto imageBytes = _fileManager.readFile("assets/2d_bc7.ktx2");
-                        // const auto imageBytes = _fileManager.readFile("assets/2.png");
+                        // const auto imageBytes = _fileManager.readFile("assets/2d_bc7.ktx2");
+                        const auto imageBytes = _fileManager.readFile("assets/2.png");
                         auto textureData = engine::graphics::parseTextureData(imageBytes, {
                                 .flags = engine::graphics::TextureFlags::eAllowSrgbColorSpace | engine::graphics::TextureFlags::eUseMipMaps
                             }
@@ -1410,43 +1457,6 @@ namespace example {
                 viewParams.cameraPosition = cameraPos; 
                 viewParams.nearFarPlanes = kNearFarPlane;
             }}), 0u);
-        }
-    }
-
-    void optionsWindow() {
-        ImGui::SetNextWindowSize(ImVec2(400, 300), ImGuiCond_FirstUseEver);
-        if (!ImGui::Begin("options", nullptr, 0)) {
-            // Early out if the window is collapsed, as an optimization.
-            ImGui::End();
-            return;
-        }
-
-        ImGui::Checkbox("ssao", &ssaoEnable);
-        ImGui::DragFloat("ssao radius", &ssaoRadius, 0.001f, 0.0f, 1.0f);
-        ImGui::DragFloat("ssao bias", &ssaoBias, 0.001f, 0.0f, 1.0f);
-        ImGui::DragFloat("ssao max depth", &ssaoMaxDepth, 0.05f, 0.0f, 100.0f);
-        
-        ImGui::NewLine();
-        ImGui::Checkbox("blur emissive", &emissiveBlur);
-        ImGui::DragFloat("blur scale", &emissiveBlurScale, 0.1f, 0.0f, 10.0f);
-        ImGui::DragFloat("blur strength", &emissiveBlurStrength, 0.1f, 0.0f, 10.0f);
-
-        ImGui::NewLine();
-        static int m = 0;
-        if (ImGui::RadioButton("composite", m == 0)) { 
-            m = 0; 
-            showSsao = false;
-            showEmissive = false;
-         }
-        if (ImGui::RadioButton("ambient occlusion", m == 1)) { 
-            m = 1;
-            showSsao = true;
-            showEmissive = false;
-        }
-        if (ImGui::RadioButton("emissive", m == 2)) { 
-            m = 2; 
-            showSsao = false;
-            showEmissive = true;
         }
     }
 
@@ -1817,7 +1827,7 @@ namespace example {
 
             bool horizontal = true;
             const auto imagesCount = _gBufferAttachments.size();
-            for (uint8_t i = 0u; i < 4u; ++i) { // ping - pong
+            for (uint8_t i = 0u; i < 2u * emissiveBlurSteps; ++i) { // ping - pong
                 blurUniform.z = horizontal ? 1.0f : 0.0f;
                 commandList->beginRenderPass(_renderPasses[kBlurRenderPass], _emissiveBluredBuffers[frameId + (horizontal ? imagesCount : 0u)], clearValues, {{0, 0}, {width, height}});
 
@@ -1842,13 +1852,13 @@ namespace example {
 
         // draw with postEffect
         struct PostParams {
-            engine::vec4f lightDir{};
+            engine::vec4f light{};
             engine::vec4f options{};
         };
 
         const auto normalMatrix = glm::transpose(glm::inverse(engine::mat3f(viewParams.cameraView)));
         const PostParams postParams{
-            .lightDir = engine::vec4f{glm::normalize(normalMatrix * engine::vec3f{-0.26f, -0.15f, 0.75f}), 0.0f},
+            .light = engine::vec4f{glm::normalize(normalMatrix * light), ambientFactor},
             .options = {ssaoEnable, showSsao, showEmissive, 0.0f}
         };
 
