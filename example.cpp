@@ -93,7 +93,8 @@ namespace example {
     // options
     bool showOptions = true;
     
-    bool ssaoEnable = true;
+    float ssaoEnable = 1.0f;
+    bool ssaoBlur = true;
     bool showSsao = false;
     bool showEmissive = false;
     float ssaoRadius = 0.2f;
@@ -111,12 +112,16 @@ namespace example {
     void optionsWindow() {
         ImGui::SetNextWindowSize(ImVec2(350, 450), ImGuiCond_FirstUseEver);
         if (!ImGui::Begin("options", &showOptions, 0)) {
-            // Early out if the window is collapsed, as an optimization.
+            // early out if the window is collapsed, as an optimization.
             ImGui::End();
             return;
         }
 
-        ImGui::Checkbox("ssao", &ssaoEnable);
+        bool enableSsao = ssaoEnable > 0.0f;
+        ImGui::Checkbox("ssao", &enableSsao);
+        ImGui::SameLine();
+        ImGui::Checkbox("blur", &ssaoBlur);
+        ssaoEnable = enableSsao ? (ssaoBlur ? 3.0f : 1.0f) : 0.0f;
         ImGui::DragFloat("ssao radius", &ssaoRadius, 0.001f, 0.0f, 1.0f);
         ImGui::DragFloat("ssao bias", &ssaoBias, 0.001f, 0.0f, 1.0f);
         ImGui::DragFloat("ssao max depth", &ssaoMaxDepth, 0.05f, 0.0f, 100.0f);

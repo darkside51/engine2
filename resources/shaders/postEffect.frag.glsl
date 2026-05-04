@@ -42,7 +42,7 @@ float ssaoRadialBlur(int blurRange) {
 void main() {
 	const bool aoEnable = push.options.x > 0.0f;
 
-	const float occlusion = aoEnable ? ssaoRadialBlur(2) : 1.0;
+	const float occlusion = aoEnable ? ssaoRadialBlur(int(push.options.x - 1.0f)) : 1.0f;
 	const vec3 normal = texture(textureNormal, v_uv).rgb * 2.0 - 1.0;
 	const vec4 albedo = texture(textureAlbedo, v_uv);
 	const vec4 emissive = texture(textureEmissive, v_uv);
