@@ -99,7 +99,7 @@ namespace example {
     bool showEmissive = false;
     float ssaoRadius = 0.11f;
     float ssaoBias = 0.004f;
-    float ssaoMaxDepth = 16.0f;
+    float ssaoRangeDepth = 5.0f;
     enum class SsaoRangeMethod : uint8_t {
         eSmoothstep = 0u,
         eClamp = 1u
@@ -113,11 +113,12 @@ namespace example {
 
     float vignetteExtent = 0.1f;
 
-    float ambientFactor = 0.5f;
-    engine::vec3f light = {-0.26f, -0.15f, 0.75f};
+    engine::vec4f ambientColor = engine::vec4f{0.5f};
+    engine::vec4f directionalLightColor = engine::vec4f{1.0f};
+    engine::vec3f light = {0.26f, 0.15f, -0.75f};
     
     void optionsWindow() {
-        ImGui::SetNextWindowSize(ImVec2(350, 490), ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowSize(ImVec2(540, 570), ImGuiCond_FirstUseEver);
         if (!ImGui::Begin("options", &showOptions, 0)) {
             // early out if the window is collapsed, as an optimization.
             ImGui::End();
@@ -131,7 +132,7 @@ namespace example {
         ssaoEnable = enableSsao ? (ssaoBlur ? 3.0f : 1.0f) : 0.0f;
         ImGui::DragFloat("ssao radius", &ssaoRadius, 0.001f, 0.0f, 1.0f);
         ImGui::DragFloat("ssao bias", &ssaoBias, 0.001f, 0.0f, 1.0f);
-        ImGui::DragFloat("ssao max depth", &ssaoMaxDepth, 0.05f, 0.0f, 100.0f);
+        ImGui::DragFloat("ssao range depth", &ssaoRangeDepth, 0.05f, 0.0f, 100.0f);
         ImGui::Text("range method:");
         static int ssaoRange = 0;
         if (ImGui::RadioButton("smoothstep", ssaoRangeMethod == SsaoRangeMethod::eSmoothstep)) { 
@@ -151,9 +152,15 @@ namespace example {
         ImGui::DragFloat("vignette", &vignetteExtent, 0.01f, 0.0f, 1.0f);
         
         ImGui::NewLine();
-        ImGui::DragFloat("ambient factor", &ambientFactor, 0.01f, 0.0f, 1.0f);
+        
         ImGui::DragFloat3("light direction", &light[0u], 0.01, -1.0f, 1.0f);
 
+        ImGui::ColorEdit3("ambient color", &ambientColor[0u]);
+        ImGui::DragFloat("ambient factor", &ambientColor[3u], 0.01f, 0.0f, 1.0f);
+
+        ImGui::ColorEdit3("directional light color", &directionalLightColor[0u]);
+        ImGui::DragFloat("directional light factor", &directionalLightColor[3u], 0.01f, 0.0f, 1.0f);
+        
         ImGui::NewLine();
         static int m = 0;
         if (ImGui::RadioButton("composite", m == 0)) { 
@@ -1827,7 +1834,7 @@ namespace example {
 
         const SsaoParams ssaoParams {
             .projection = viewParams.cameraProjection,
-            .options = {ssaoRadius, ssaoBias, ssaoMaxDepth, static_cast<float>(ssaoRangeMethod)}
+            .options = {ssaoRadius, ssaoBias, ssaoRangeDepth, static_cast<float>(ssaoRangeMethod)}
         };
 
         commandList->beginRenderPass(_renderPasses[kSsaoRenderPass], _ssaoBuffers[frameId], clearValues, {{0, 0}, {width, height}});
@@ -1875,13 +1882,17 @@ namespace example {
 
         // draw with postEffect
         struct PostParams {
+            engine::vec4f ambient{};
+            engine::vec4f directionalLight{};
             engine::vec4f light{};
             engine::vec4f options{};
         };
 
         const auto normalMatrix = glm::transpose(glm::inverse(engine::mat3f(viewParams.cameraView)));
         const PostParams postParams{
-            .light = engine::vec4f{glm::normalize(normalMatrix * light), ambientFactor},
+            .ambient = ambientColor,
+            .directionalLight = directionalLightColor,
+            .light = engine::vec4f{glm::normalize(normalMatrix * light), 0.0f},
             .options = {ssaoEnable, showSsao, showEmissive, vignetteExtent}
         };
 

@@ -21,6 +21,8 @@ layout (location = 0) in vec2 v_uv;
 layout (location = 0) out vec4 out_color;
 
 layout(push_constant) uniform Params {
+	vec4 ambient;
+	vec4 directionalLight;
 	vec4 light;
 	vec4 options;
 } push;
@@ -51,9 +53,11 @@ void main() {
 	vec3 reflect = reflect(push.light.xyz, normal);
 	vec3 specular = vec3(0.0);//pow(max(dot(reflect, viewDir), 0.0), 8.0) * vec3(1.0);
 
-	const float ambient = push.light.w;
-	const float NdotL = max(0.0f, dot(normal, push.light.xyz));
-	const vec3 baseColor = albedo.rgb * (NdotL + ambient) + specular + emissive.rgb;
+	const float NdotL = max(0.0f, dot(normal, -push.light.xyz));
+
+	const vec3 baseColor = (push.ambient.xyz * push.ambient.w + NdotL * (push.directionalLight.xyz * push.directionalLight.w)) * albedo.rgb + specular + emissive.rgb;
+
+	//const vec3 baseColor = albedo.rgb * (NdotL + ambient) + specular + emissive.rgb;
 	const vec3 color = pow(baseColor * occlusion, vec3(0.4545)); // gamma correction 1.0 / 2.2 = 0.4545
 	out_color = vec4(color, 1.0f);
 	//const vec3 clearColor = pow(vec3(0.5f) + emissive.rgb, vec3(0.4545)); // gamma correction 1.0 / 2.2 = 0.4545
