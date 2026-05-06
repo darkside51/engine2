@@ -64,6 +64,14 @@ void main() {
 	out_color = mix(out_color, vec4(occlusion, occlusion, occlusion, 1.0), push.options.y);
 	out_color = mix(out_color, emissive, push.options.z);
 
+
+	// vignette
+	if (push.options.w > 0.0f) {
+		const vec2 uv =  v_uv * (1.0f - v_uv.yx);
+    	const float vig = pow(uv.x*uv.y * 15.0f, push.options.w); // multiply with sth for intensity; change push.options.w for modifying the extend of the  vignette
+    	out_color.rgb *= vig;
+    }
+
 	//out_color = vec4(mix(pow(baseColor * occlusion, vec3(0.4545)), clearColor, step(albedo.w, 0.0)), 1.0); // gamma correction 1.0 / 2.2 = 0.4545
 	//out_color = vec4(occlusion, occlusion, occlusion, 1.0);
 	//out_color = vec4(normal, 1.0);

@@ -106,6 +106,8 @@ namespace example {
     float emissiveBlurStrength = 1.6f;
     int emissiveBlurSteps = 2;
 
+    float vignetteExtent = 0.1f;
+
     float ambientFactor = 0.5f;
     engine::vec3f light = {-0.26f, -0.15f, 0.75f};
     
@@ -132,6 +134,9 @@ namespace example {
         ImGui::DragFloat("blur scale", &emissiveBlurScale, 0.1f, 0.0f, 10.0f);
         ImGui::DragFloat("blur strength", &emissiveBlurStrength, 0.1f, 0.0f, 10.0f);
 
+        ImGui::NewLine();
+        ImGui::DragFloat("vignette", &vignetteExtent, 0.01f, 0.0f, 1.0f);
+        
         ImGui::NewLine();
         ImGui::DragFloat("ambient factor", &ambientFactor, 0.01f, 0.0f, 1.0f);
         ImGui::DragFloat3("light direction", &light[0u], 0.01, -1.0f, 1.0f);
@@ -1864,7 +1869,7 @@ namespace example {
         const auto normalMatrix = glm::transpose(glm::inverse(engine::mat3f(viewParams.cameraView)));
         const PostParams postParams{
             .light = engine::vec4f{glm::normalize(normalMatrix * light), ambientFactor},
-            .options = {ssaoEnable, showSsao, showEmissive, 0.0f}
+            .options = {ssaoEnable, showSsao, showEmissive, vignetteExtent}
         };
 
         commandList->bindPipeline(_pipelines[kPostEffectPipeline]);
