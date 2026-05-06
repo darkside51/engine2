@@ -56,7 +56,9 @@ void main() {
 		
 		const float sampleDepth = -texture(texturePositionDepth, offset.xy).w; 
 		//const float rangeCheck = smoothstep(0.0f, 1.0f, kSsaoRadius / abs(fragPos.z - sampleDepth));
-		const float rangeCheck = smoothstep(0.0f, 1.0f, radius / abs(fragPos.z - sampleDepth));
+		const float rangeCheck = push.options.w < 0.5f ?
+								 smoothstep(0.0f, 1.0f, radius / abs(fragPos.z - sampleDepth)) :
+								 clamp(radius / abs(fragPos.z - sampleDepth), 0.0f, 1.0f);
 
 		//occlusion += (sampleDepth >= samplePos.z + bias ? 1.0f : 0.0f) * rangeCheck * step(-kMaxDepth, sampleDepth);
 		occlusion += (sampleDepth >= samplePos.z + bias ? 1.0f : 0.0f) * rangeCheck * step(-maxDepth, sampleDepth);         

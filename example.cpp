@@ -97,9 +97,14 @@ namespace example {
     bool ssaoBlur = true;
     bool showSsao = false;
     bool showEmissive = false;
-    float ssaoRadius = 0.2f;
-    float ssaoBias = 0.007f;
+    float ssaoRadius = 0.11f;
+    float ssaoBias = 0.004f;
     float ssaoMaxDepth = 16.0f;
+    enum class SsaoRangeMethod : uint8_t {
+        eSmoothstep = 0u,
+        eClamp = 1u
+    };
+    SsaoRangeMethod ssaoRangeMethod = SsaoRangeMethod::eSmoothstep;
 
     bool emissiveBlur = true;
     float emissiveBlurScale = 2.2f;
@@ -112,7 +117,7 @@ namespace example {
     engine::vec3f light = {-0.26f, -0.15f, 0.75f};
     
     void optionsWindow() {
-        ImGui::SetNextWindowSize(ImVec2(350, 450), ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowSize(ImVec2(350, 490), ImGuiCond_FirstUseEver);
         if (!ImGui::Begin("options", &showOptions, 0)) {
             // early out if the window is collapsed, as an optimization.
             ImGui::End();
@@ -127,6 +132,14 @@ namespace example {
         ImGui::DragFloat("ssao radius", &ssaoRadius, 0.001f, 0.0f, 1.0f);
         ImGui::DragFloat("ssao bias", &ssaoBias, 0.001f, 0.0f, 1.0f);
         ImGui::DragFloat("ssao max depth", &ssaoMaxDepth, 0.05f, 0.0f, 100.0f);
+        ImGui::Text("range method:");
+        static int ssaoRange = 0;
+        if (ImGui::RadioButton("smoothstep", ssaoRangeMethod == SsaoRangeMethod::eSmoothstep)) { 
+            ssaoRangeMethod = SsaoRangeMethod::eSmoothstep; 
+         }
+        if (ImGui::RadioButton("clamp", ssaoRangeMethod == SsaoRangeMethod::eClamp)) { 
+            ssaoRangeMethod = SsaoRangeMethod::eClamp;
+        }
         
         ImGui::NewLine();
         ImGui::Checkbox("blur emissive", &emissiveBlur);
@@ -1814,7 +1827,7 @@ namespace example {
 
         const SsaoParams ssaoParams {
             .projection = viewParams.cameraProjection,
-            .options = {ssaoRadius, ssaoBias, ssaoMaxDepth, 0.0f}
+            .options = {ssaoRadius, ssaoBias, ssaoMaxDepth, static_cast<float>(ssaoRangeMethod)}
         };
 
         commandList->beginRenderPass(_renderPasses[kSsaoRenderPass], _ssaoBuffers[frameId], clearValues, {{0, 0}, {width, height}});
