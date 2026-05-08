@@ -55,6 +55,7 @@ namespace engine::scene {
     constexpr uint32_t kInitialSkeletalmeshTransformsInFrameMax = 128u;
     constexpr uint32_t kMinStagingSize = 100u * 1024u /*100 Kb*/;
     constexpr uint32_t kStaginBufferEnlargeSizeMult = 2u;
+    constexpr uint32_t kViewParamsBufferCapacity = 128u;
 
     constexpr uint16_t kUndefinedAnimId = 0xff'ffu;
     constexpr float kAnimUpdateFrequency = 1.0f / 120.0f;
@@ -284,8 +285,9 @@ namespace engine::scene {
         const size_t uniformBufferOffsetAlign = _device->getUniformBufferOffsetAlignment();
 
         _viewParamsUniformBuffer = std::make_unique<graphics::InflightBuffer>(
-            api, device, unifromsInfo, std::max(uniformBufferOffsetAlign, sizeof(ViewParams))
+            api, device, unifromsInfo, std::max(uniformBufferOffsetAlign, sizeof(ViewParams)) * kViewParamsBufferCapacity
         );
+        _viewParamsUniformBuffer->createBuffers();
         
         //create vertex and index buffers
         const rhi::BufferInfo verticesInfo {
@@ -1014,11 +1016,14 @@ namespace engine::scene {
             return;
         }
 
+        const size_t uniformBufferOffsetAlign = _device->getUniformBufferOffsetAlignment();
+
         { // update uniforms
-            auto * uniform = _viewParamsUniformBuffer->memory2<ViewParams>();
-            memcpy(uniform, &viewParams, sizeof(ViewParams));
-            _viewParamsUniformBuffer->modify();
-            _viewParamsUniformBuffer->commit(*transferCommandList, frame);
+            assert(_currentViewParamsBufferOffset < std::max(uniformBufferOffsetAlign, sizeof(ViewParams)) * kViewParamsBufferCapacity);
+
+            auto * uniform = reinterpret_cast<ViewParams*>(_viewParamsUniformBuffer->memory2<std::byte>() + _currentViewParamsBufferOffset);
+            memcpy(uniform , &viewParams, sizeof(ViewParams));
+            _viewParamsUniformBuffer->modify(sizeof(ViewParams), _currentViewParamsBufferOffset);
         }
 
         DrawDataOffsets offsets2 = offsets;
@@ -1035,6 +1040,9 @@ namespace engine::scene {
         }
 
         drawObjects(commandList, frame, viewParams, currentIt, objects.end(), typeIdx, offsets2);
+
+        // change unifrom buffer offset
+        _currentViewParamsBufferOffset += align_value(sizeof(ViewParams), uniformBufferOffsetAlign);
     }
 
     void Scene::drawDummies(AttachmentsIterator begin, AttachmentsIterator end, const ViewParams & viewParams, uint32_t color) {
@@ -1174,7 +1182,7 @@ namespace engine::scene {
             commandList->bindIndexBuffer(indexBuffer, 0u, rhi::IndexType::eU32);
             commandList->bindImage(1u, image, sprite.getFilter() == SpriteTextureFilter::eLinear ? _linearSampler : _nearestSampler);
 
-            commandList->bindBuffer(0u, (*_viewParamsUniformBuffer)(frame), 0u, 0u);
+            commandList->bindBuffer(0u, (*_viewParamsUniformBuffer)(frame), 0u, _currentViewParamsBufferOffset);
             //commandList->pushConstants(rhi::shaders::Stages::eVertex, 0u, sizeof(mat4f), &viewParams.cameraTransform);
 
             commandList->drawIndexed(batchIndicesCount, 1u, idxOffset);
@@ -1224,7 +1232,7 @@ namespace engine::scene {
         assert(pipeline != nullptr);
         commandList->bindPipeline(pipeline);
 
-        commandList->bindBuffer(0u, (*_viewParamsUniformBuffer)(frame), 0u, 0u);
+        commandList->bindBuffer(0u, (*_viewParamsUniformBuffer)(frame), 0u, _currentViewParamsBufferOffset);
 
         applyMaterial(materialIndex);
         commandList->pushConstants(rhi::shaders::Stages::eVertex, 0u, sizeof(Uniform), &uniform);
@@ -1361,7 +1369,7 @@ namespace engine::scene {
         assert(pipeline != nullptr);
         commandList->bindPipeline(pipeline);
         
-        commandList->bindBuffer(0u, (*_viewParamsUniformBuffer)(frame), 0u, 0u);
+        commandList->bindBuffer(0u, (*_viewParamsUniformBuffer)(frame), 0u, _currentViewParamsBufferOffset);
 
         applyMaterial(materialIndex);
         commandList->pushConstants(rhi::shaders::Stages::eVertex, 0u, sizeof(Uniform), &uniform);
@@ -1568,6 +1576,8 @@ namespace engine::scene {
 
     void Scene::beginFrame(std::chrono::time_point<std::chrono::steady_clock> now) noexcept {
         reduceUsedMemory(now);
+        _currentViewParamsBufferOffset = 0u;
+
         _meshTransformIndicesMap.clear();
         _tmpUniqueMeshes.clear();
         _meshTransformIndicesMap.reserve(_meshTransformsInFrame);
@@ -1602,6 +1612,7 @@ namespace engine::scene {
     }
 
     void Scene::performCommits(rhi::runtime::CommandListPtr & commandList, uint8_t frame) {
+        _viewParamsUniformBuffer->commit(*commandList, frame);
         _spritesVertices->commit(*commandList, frame);
         _spritesIndices->commit(*commandList, frame);
         _meshTransforms->commit(*commandList, frame);

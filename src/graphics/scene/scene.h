@@ -245,6 +245,7 @@ private:
     graphics::DrawHelper & _drawHelper;
     std::chrono::time_point<std::chrono::steady_clock> _tryReduceUsedMemoryTime;
 
+    uint32_t _currentViewParamsBufferOffset = 0u;
     std::unique_ptr<engine::graphics::InflightBuffer> _viewParamsUniformBuffer = nullptr;
 
     // sprites:

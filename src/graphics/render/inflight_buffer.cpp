@@ -52,6 +52,14 @@ namespace engine::graphics {
         }
     }
 
+    void InflightBuffer::createBuffers() noexcept {
+        for (auto & [_, buffer, __, ___] : _buffers) {
+            if (buffer == nullptr) {
+                buffer = _api.createBuffer(_device, _bufferInfo, _size);
+            }
+        }
+    }
+
     void InflightBuffer::applySize(uint8_t idx) noexcept {
         auto & [mappedMemory, buffer, _, __] = _buffers[idx];
         if (buffer == nullptr || buffer->sizeInBytes() != _size) {

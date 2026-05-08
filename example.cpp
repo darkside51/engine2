@@ -1797,16 +1797,16 @@ namespace example {
 
         scene->animate(now, delta, objects, animationManager); // after fillAttachmentsArrays and after beginFrame for correct
 
-        //auto o0 = std::vector<engine::scene::AttachmentObject*>{objects.begin(), objects.begin() + objects.size() / 2};
-        //auto o1 = std::vector<engine::scene::AttachmentObject*>{objects.begin() + objects.size() / 2, objects.end()};
+        // auto o0 = std::span<engine::scene::AttachmentObject*>{objects.begin(), objects.begin() + objects.size() / 2};
+        // auto o1 = std::span<engine::scene::AttachmentObject*>{objects.begin() + objects.size() / 2, objects.end()};
 
         const auto offsets = scene->prepareDrawData(objects, frameId);
-        //const auto offsets0 = scene->prepareDrawData(o0, frameId);
-        //const auto offsets1 = scene->prepareDrawData(o1, frameId);
+        // const auto offsets0 = scene->prepareDrawData(o0, frameId);
+        // const auto offsets1 = scene->prepareDrawData(o1, frameId);
 
         scene->dispatch(commandList, frameId, objects, offsets);
-        //scene->dispatch(commandList, frameId, o0, offsets0);
-        //scene->dispatch(commandList, frameId, o1, offsets1);
+        // scene->dispatch(commandList, frameId, o0, offsets0);
+        // scene->dispatch(commandList, frameId, o1, offsets1);
 
         // scene pass
         // commandList->beginRenderPass(_renderPasses[kSceneRenderPass], _sceneFrameBuffers[frameId], sceneClearValues, {{0, 0}, {width, height}});
@@ -1814,8 +1814,8 @@ namespace example {
         // scene->dispatch(commandList, frameId, objects, offsets);
         
         scene->draw(commandList, transferCommandList, frameId, viewParams, objects, offsets);
-        //scene->draw(commandList, transferCommandList, frameId, viewParams, o1, offsets1);
-        //scene->draw(commandList, transferCommandList, frameId, viewParams, o0, offsets0);   
+        // scene->draw(commandList, transferCommandList, frameId, viewParams, o1, offsets1);
+        // scene->draw(commandList, transferCommandList, frameId, viewParams, o0, offsets0);   
         
         drawHelper.prepare(*transferCommandList, frameId);
         drawHelper.draw(*commandList, frameId, now);
