@@ -39,6 +39,7 @@
 #include "graphics/scene/scene_helper.h"
 #include "graphics/mesh/model_manager.h"
 #include "graphics/common/material.h"
+#include "graphics/common/background_command_context.h"
 
 #include <optional>
 
@@ -183,21 +184,12 @@ namespace example {
 
     class BgThread {
     public:
-        using GpuTask = threads::function<void(engine::rhi::runtime::CommandList & commandList, std::vector<threads::WorkerTask> & callbacks)>;
+        using GpuTask = engine::graphics::BackgroundCommandContext::Command;
         using Task = threads::WorkerTask;
 
-        BgThread(engine::rhi::runtime::Rhi * api, engine::rhi::runtime::Device * device) : _api(api), _device(device), _frameIndex(3u) {
-            assert(_api != nullptr);
-
+        BgThread(engine::rhi::runtime::Rhi * api, engine::rhi::runtime::Device * device) : 
+            _commandContext(&_worker, *api, *device, device->inFlightFramesCount()) {
             _worker.run();
-            _worker.emplaceTasks(stl::make_vector(threads::WorkerTask{[this]() mutable {
-                auto * commandPool = _device->acquireCommandPool(engine::rhi::queue_flags::transfrer);
-                _commandLists.resize(_frameIndex.size());
-                for (auto & commandList : _commandLists) {
-                    commandList = _api->createCommandList(commandPool, engine::rhi::CommandBufferLevel::ePrimary);
-                }
-                _commandLists[0u]->begin(engine::rhi::CommandBufferUsageFlags::eOne_Time_Submit);
-            }}));
         }
 
         ~BgThread() {
@@ -205,11 +197,7 @@ namespace example {
         }
 
         void destroy() {
-            if (_api) {
-                _worker.stop();
-                _commandLists.clear();
-                _api = nullptr;
-            }
+            _commandContext.destroy();
         }
 
         void execute(std::vector<threads::WorkerTask> && tasks) {
@@ -221,39 +209,12 @@ namespace example {
         }
 
         void submit(std::vector<GpuTask> && tasks, auto && executor) {
-            if (tasks.empty()) {
-                return;
-            }
-
-            _worker.emplaceTasks(stl::make_vector(threads::WorkerTask{[this, executor = std::move(executor), tasks = std::move(tasks)]() mutable {
-                std::vector<threads::WorkerTask> callbacks;
-                callbacks.reserve(tasks.size());
-
-                const auto frameIdx = _frameIndex();
-                auto & commandList = *_commandLists[frameIdx];
-                for (auto & task : tasks) {
-                    task(commandList, callbacks);
-                }
-
-                commandList.end();
-                commandList.record(frameIdx);
-
-                executor(&commandList, std::move(callbacks));
-
-                ++_frameIndex;
-                _commandLists[_frameIndex()]->begin(engine::rhi::CommandBufferUsageFlags::eOne_Time_Submit);
-            }}));
-            tasks.clear();
+            _commandContext.submit(std::move(tasks), std::forward<decltype(executor)>(executor));
         }
 
     private:
         threads::Worker _worker;
-
-        engine::rhi::runtime::Rhi * _api;
-        engine::rhi::runtime::Device * _device;
-
-        std::vector<engine::rhi::runtime::CommandListPtr> _commandLists;
-        engine::rhi::FrameIndex _frameIndex;
+        engine::graphics::BackgroundCommandContext _commandContext;
     };
 
     std::optional<BgThread> bgWorker;

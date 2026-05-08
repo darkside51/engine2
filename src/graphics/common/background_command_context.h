@@ -9,19 +9,19 @@
 
 namespace engine::graphics {
 
-class BackGroundCommandContext {
+class BackgroundCommandContext {
 public:
     using Command = threads::function<void(rhi::runtime::CommandList & commandList, std::vector<threads::WorkerTask> & callbacks)>;
 
-    BackGroundCommandContext(threads::Worker * worker, rhi::runtime::Rhi & api, rhi::runtime::Device & device, uint8_t frames);
-    ~BackGroundCommandContext();
+    BackgroundCommandContext(threads::Worker * worker, rhi::runtime::Rhi & api, rhi::runtime::Device & device, uint8_t frames);
+    ~BackgroundCommandContext();
 
     void destroy();
 
     void submit(std::vector<Command> && commands, auto && grabber) {
         if (commands.empty()) {
-                return;
-            }
+            return;
+        }
 
         _worker->emplaceTasks(stl::make_vector(threads::WorkerTask{[this, grabber = std::move(grabber), commands = std::move(commands)]() mutable {
             std::vector<threads::WorkerTask> callbacks;
