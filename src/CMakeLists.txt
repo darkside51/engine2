@@ -83,6 +83,7 @@ set(
 	graphics
 	graphics/render
 	graphics/render/rhi/common
+	graphics/render/techniques
 	graphics/ui
 	graphics/scene
 	graphics/scene/animation
