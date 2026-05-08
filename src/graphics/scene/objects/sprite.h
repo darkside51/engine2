@@ -38,10 +38,14 @@ namespace engine::scene {
         void setFilter(SpriteTextureFilter f) noexcept { _filter = f; }
         SpriteTextureFilter getFilter() const noexcept { return _filter; }
 
+        void setEmissive(float emissive) noexcept { _emissive = emissive; }
+        float getEmissive() const noexcept { return _emissive; }
+
     private:
         graphics::ImageFrame2D _frame;
         uint32_t _pipeline = 0u;
         vec2f _size = vec2f{std::numeric_limits<float>::max()};
+        float _emissive = 0.0f;
         SpriteTextureFilter _filter = SpriteTextureFilter::eLinear;
     };
 

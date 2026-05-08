@@ -1366,6 +1366,7 @@ namespace example {
                         auto * sprite3 = scene->createObject<engine::scene::Sprite>(frame3, 0u);
                         engine::scene::attachObjectToNode(*sprite3, *node5);
                         sprite3->setOrder(1);
+                        sprite3->setEmissive(0.5f);
                         auto * anim0 = scene->createAnimInfo<engine::scene::FramesSequence>(animId, engine::common::random(0.25f, 1.7f));
                         scene->destroyAnimInfo(sprite3->setAnimation(anim0));
                         

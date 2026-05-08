@@ -6,7 +6,7 @@ layout(set = 0, binding = 1) uniform sampler2D texture0;
 
 layout (location = 0) in vec2 v_uv;
 layout (location = 1) in vec3 v_viewPosition;
-layout (location = 2) in vec3 v_normal;
+layout (location = 2) in vec4 v_normalAndEmissive;
 layout (location = 3) in mat3 v_normalMatrix;
 
 //layout (location = 0) out vec4 out_color;
@@ -29,10 +29,10 @@ void main() {
 
 	out_position = vec4(v_viewPosition, linearDepth(gl_FragCoord.z, u_viewParams.nearFarPlanes.x, u_viewParams.nearFarPlanes.y));
 
-	vec3 normal = v_normalMatrix * -normalize(cross(dFdx(v_normal), dFdy(v_normal)));
+	vec3 normal = v_normalMatrix * -normalize(cross(dFdx(v_normalAndEmissive.xyz), dFdy(v_normalAndEmissive.xyz)));
 
 	out_normal = vec4(normalize(normal) * 0.5 + 0.5, 1.0);
 	out_albedo = texture(texture0, v_uv);
-	out_emissive = vec4(0.0, 0.0, 0.0, 0.0);
-	//out_emissive = out_albedo * 0.5;
+	//out_emissive = vec4(0.0, 0.0, 0.0, 0.0);
+	out_emissive = out_albedo * v_normalAndEmissive.w;
 }

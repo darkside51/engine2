@@ -48,7 +48,13 @@ namespace engine::scene {
             return _pipeline < other._pipeline;
         }
 
-        return std::less<const rhi::runtime::Image*>{}(_frame.getImage().get(), other._frame.getImage().get());
+        if (_frame.getImage().get() != other._frame.getImage().get()) {
+            return std::less<const rhi::runtime::Image*>{}(_frame.getImage().get(), other._frame.getImage().get());
+        }
+
+        // do not touch _emissive here
+
+        return _filter < other._filter;
     }
 
     void Sprite::attachToNode(Node * node) noexcept {

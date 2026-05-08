@@ -96,6 +96,7 @@ namespace engine::scene {
      struct SpriteVertex {
         std::array<float, 3u> position;
         std::array<uint16_t, 2u> uv;
+        std::array<uint8_t, 4u> color;
     };
 
     constexpr uint32_t kSpriteVertexSize = sizeof(SpriteVertex);
@@ -1091,6 +1092,7 @@ namespace engine::scene {
 
     void Scene::drawSpritesBatch(rhi::runtime::CommandListPtr & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end, 
         const ViewParams & viewParams, uint32_t batchVertexesCount, uint32_t batchIndicesCount, uint32_t vtxOffset, uint32_t idxOffset) {
+        using namespace graphics;
 
         const auto & sprite = *static_cast<const Sprite*>(*begin);
         const auto & pipeline = getGraphicsPipeline(sprite.getPipeline());
@@ -1110,6 +1112,9 @@ namespace engine::scene {
             const auto & frame2D = sprite.getFrame().getFrame();
             const auto & model = sprite.node->getWorldTransform();
 
+            const auto em8 = static_cast<uint8_t>(float_to_unorm(sprite.getEmissive(), 8u));
+            const std::array<uint8_t, 4u> color = {em8, 0u, 0u, 0u};
+
             const vec2f corner0 = {0.0f, 0.0f};
             const vec2f corner1 = sprite.getSize();
             // const vec2f corner1 = {(frame2D.uvMax[0u] - frame2D.uvMin[0u]) * imageSize.x, 
@@ -1117,30 +1122,33 @@ namespace engine::scene {
 
             // fill vertexes and indices
             // vertexes
-            using namespace graphics;
             auto v = model * vec4f(corner0.x, corner0.y, 0.0f, 1.0f);
             v /= v.w;
             *(vMem + i + 0u) = {
                 .position = {v.x, v.y, v.z},
-                .uv = to_vec2u16(frame2D.uvMin[0u], frame2D.uvMax[1u])
+                .uv = to_vec2u16(frame2D.uvMin[0u], frame2D.uvMax[1u]),
+                .color = color
             };
             v = model * vec4f(corner1.x, corner0.y, 0.0f, 1.0f);
             v /= v.w;
             *(vMem + i + 1u) = {
                 .position = {v.x, v.y, v.z},
-                .uv = to_vec2u16(frame2D.uvMax[0u], frame2D.uvMax[1u])
+                .uv = to_vec2u16(frame2D.uvMax[0u], frame2D.uvMax[1u]),
+                .color = color
             };
             v = model * vec4f(corner0.x, corner1.y, 0.0f, 1.0f);
             v /= v.w;
             *(vMem + i + 2u) = {
                 .position = {v.x, v.y, v.z},
-                .uv = to_vec2u16(frame2D.uvMin[0u], frame2D.uvMin[1u])
+                .uv = to_vec2u16(frame2D.uvMin[0u], frame2D.uvMin[1u]),
+                .color = color
             };
             v = model * vec4f(corner1.x, corner1.y, 0.0f, 1.0f);
             v /= v.w;
             *(vMem + i + 3u) = {
                 .position = {v.x, v.y, v.z},
-                .uv = to_vec2u16(frame2D.uvMax[0u], frame2D.uvMin[1u])
+                .uv = to_vec2u16(frame2D.uvMax[0u], frame2D.uvMin[1u]),
+                .color = color
             };
             
             // indices
