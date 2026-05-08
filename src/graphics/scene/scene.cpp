@@ -1201,7 +1201,7 @@ namespace engine::scene {
             const auto & image2 = textures[static_cast<uint8_t>(graphics::PbrTextureId::eEmissive)];
             assert(image2 != nullptr);
 
-            // textures change more often than storage buffers - setId #1u used
+            // textures change more often than storage buffers - setId #2u used
             commandList->bindImage(0u, image->image, _linearSampler, 2u); 
             commandList->bindImage(1u, image2->image, _linearSampler, 2u); 
             uniform.color = material.baseColorFactor;
@@ -1338,9 +1338,9 @@ namespace engine::scene {
             const auto & image2 = textures[static_cast<uint8_t>(graphics::PbrTextureId::eEmissive)];
             assert(image2 != nullptr);
 
-            // textures change more often than storage buffers - setId #1u used
-            commandList->bindImage(0u, image->image, _linearSampler, 1u);
-            commandList->bindImage(1u, image2->image, _linearSampler, 1u); 
+            // textures change more often than storage buffers - setId #2u used
+            commandList->bindImage(0u, image->image, _linearSampler, 2u);
+            commandList->bindImage(1u, image2->image, _linearSampler, 2u); 
             uniform.color = material.baseColorFactor;
             uniform.emissive = vec4f{material.emissiveFactor, 0.0f};
         };

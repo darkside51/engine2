@@ -1792,17 +1792,28 @@ namespace example {
         scene->fillAttachmentsArray(viewParams, sceneWorldRoot, [](engine::scene::AttachmentObject* object) {
             return true; 
         }, objects);
+
+        //auto o0 = std::vector<engine::scene::AttachmentObject*>{objects.begin(), objects.begin() + objects.size() / 2};
+        //auto o1 = std::vector<engine::scene::AttachmentObject*>{objects.begin() + objects.size() / 2, objects.end()};
+
         scene->animate(now, delta, objects, animationManager); // after fillAttachmentsArrays and after beginFrame for correct
         const auto offsets = scene->prepareDrawData(objects, frameId);
 
+        //const auto offsets0 = scene->prepareDrawData(o0, frameId);
+        //const auto offsets1 = scene->prepareDrawData(o1, frameId);
+
         scene->dispatch(commandList, frameId, objects, offsets);
+        //scene->dispatch(commandList, frameId, o0, offsets0);
+        //scene->dispatch(commandList, frameId, o1, offsets1);
 
         // scene pass
         // commandList->beginRenderPass(_renderPasses[kSceneRenderPass], _sceneFrameBuffers[frameId], sceneClearValues, {{0, 0}, {width, height}});
         commandList->beginRenderPass(_renderPasses[kGbufferRenderPass], _gBuffers[frameId], gBufferClearValues, {{0, 0}, {width, height}});
         // scene->dispatch(commandList, frameId, objects, offsets);
         
-        scene->draw(commandList, transferCommandList, frameId, viewParams, objects, offsets);    
+        scene->draw(commandList, transferCommandList, frameId, viewParams, objects, offsets);
+        //scene->draw(commandList, transferCommandList, frameId, viewParams, o0, offsets0);  
+        //scene->draw(commandList, transferCommandList, frameId, viewParams, o1, offsets1);    
         
         drawHelper.prepare(*transferCommandList, frameId);
         drawHelper.draw(*commandList, frameId, now);
