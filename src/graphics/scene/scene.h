@@ -282,6 +282,7 @@ private:
     uint32_t _skeletonsInFrame = 0u;
     uint32_t _uniqueSkeletons = 0u;
     uint32_t _lastFramesUsedSkeletonsInFrame = 0u;
+    uint32_t _computeSkinVerticesOffset = 0u;
     std::unique_ptr<graphics::InflightBuffer> _skeletonIds = nullptr;
 
     uint32_t _computedVerticesSizeInFrame = 0u; // need resize buffers functional!

@@ -962,6 +962,7 @@ namespace engine::scene {
         }
 
         DrawDataOffsets offsets2 = offsets;
+        offsets2.computeSkinVerticesOffset = _computeSkinVerticesOffset;
         auto currentIt = objects.begin();
         uint16_t typeIdx = (*currentIt)->typeIndex;
         for (auto it = currentIt + 1u; it != objects.end(); ++it) {
@@ -975,6 +976,7 @@ namespace engine::scene {
         }
 
         dispatchObjects(commandList, frame, currentIt, objects.end(), typeIdx, offsets2);
+        _computeSkinVerticesOffset = offsets2.computeSkinVerticesOffset;
     }
 
     void Scene::drawObjects(rhi::runtime::CommandListPtr & commandList, uint8_t frame, 
@@ -1569,6 +1571,7 @@ namespace engine::scene {
         _skeletalTransformsInFrame = 0u;
         _skeletonsInFrame = 0u;
         _uniqueSkeletons = 0u;
+        _computeSkinVerticesOffset = 0u;
 
         completeAnimations();
 
