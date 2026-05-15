@@ -33,7 +33,8 @@ void main() {
 
 	// gBuffer values
 	//const vec3 fragPos = texture(texturePositionDepth, v_uv).rgb;
-	const vec3 fragPos = (push.view * vec4(texture(texturePositionDepth, v_uv).rgb, 1.0)).xyz;
+	const vec4 position = texture(texturePositionDepth, v_uv);
+	const vec3 fragPos = (push.view * vec4(position.rgb, 1.0f - step(position.w, 0.0))).xyz;
 	const vec3 normal = texture(textureNormal, v_uv).rgb * 2.0 - 1.0;
 
 	// get a random vector using a noise lookup
