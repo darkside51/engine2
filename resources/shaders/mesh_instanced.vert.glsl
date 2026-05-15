@@ -9,7 +9,8 @@ layout (location = 0) out vec3 v_normal;
 layout (location = 1) out vec2 v_uv;
 layout (location = 2) out vec4 v_color;
 layout (location = 3) out vec3 v_emissive;
-layout (location = 4) out vec3 v_viewPosition;
+//layout (location = 4) out vec3 v_viewPosition;
+layout (location = 4) out vec3 v_worldPosition;
 
 layout (set = 0, binding = 0) uniform UniformBuffer {
 	mat4 view;
@@ -48,7 +49,8 @@ void main() {
 		gl_Position = u_viewParams.viewProjection * worldPosition;
 		v_normal = normalize((vec4(a_normal, 0.0) * model).xyz);
 
-		v_viewPosition = vec3(u_viewParams.view * worldPosition);
+		//v_viewPosition = vec3(u_viewParams.view * worldPosition);
+		v_worldPosition = worldPosition.xyz;
 		mat3 normalMatrix = transpose(inverse(mat3(u_viewParams.view)));
 		v_normal = normalMatrix * v_normal;
 	}

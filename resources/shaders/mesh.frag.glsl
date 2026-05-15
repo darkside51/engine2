@@ -14,7 +14,8 @@ layout (location = 0) in vec3 v_normal;
 layout (location = 1) in vec2 v_uv;
 layout (location = 2) in vec4 v_color;
 layout (location = 3) in vec3 v_emissive;
-layout (location = 4) in vec3 v_viewPosition;
+//layout (location = 4) in vec3 v_viewPosition;
+layout (location = 4) in vec3 v_worldPosition;
 
 layout(set = 2, binding = 0) uniform sampler2D u_texture;
 layout(set = 2, binding = 1) uniform sampler2D u_texture_emissive;
@@ -22,6 +23,7 @@ layout(set = 2, binding = 1) uniform sampler2D u_texture_emissive;
 //layout (location = 0) out vec4 out_color;
 
 layout (location = 0) out vec4 out_position;
+//layout (location = 1) out vec4 out_world_position;
 layout (location = 1) out vec4 out_normal;
 layout (location = 2) out vec4 out_albedo;
 layout (location = 3) out vec4 out_emissive;
@@ -37,8 +39,12 @@ void main() {
 	//out_color = (texture(u_texture, v_uv) * v_color) * lightColor * light;// * vec4(1.0, 0.0, 0.0, 1.0);
 	//out_color.rgb += texture(u_texture_emissive, v_uv).rgb * v_emissive;
 
-	out_position = vec4(v_viewPosition, linearDepth(gl_FragCoord.z, u_viewParams.nearFarPlanes.x, u_viewParams.nearFarPlanes.y));
+	const float depthLinear = linearDepth(gl_FragCoord.z, u_viewParams.nearFarPlanes.x, u_viewParams.nearFarPlanes.y);
+	//out_position = vec4(v_viewPosition, depthLinear);
+	out_position = vec4(v_worldPosition, depthLinear);
+	
 	out_normal = vec4(normalize(v_normal) * 0.5 + 0.5, 1.0);
 	out_albedo = texture(u_texture, v_uv) * v_color;
 	out_emissive = vec4(texture(u_texture_emissive, v_uv).rgb * v_emissive, 1.0);
+	//out_world_position = vec4(v_worldPosition, depthLinear);
 }

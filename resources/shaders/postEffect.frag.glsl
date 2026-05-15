@@ -16,6 +16,7 @@ layout(set = 0, binding = 0) uniform sampler2D textureSsao;
 layout(set = 0, binding = 1) uniform sampler2D textureNormal;
 layout(set = 0, binding = 2) uniform sampler2D textureAlbedo;
 layout(set = 0, binding = 3) uniform sampler2D textureEmissive;
+layout(set = 0, binding = 4) uniform sampler2D textureWorldPosition;
 
 layout (location = 0) in vec2 v_uv;
 layout (location = 0) out vec4 out_color;
@@ -48,6 +49,7 @@ void main() {
 	const vec3 normal = texture(textureNormal, v_uv).rgb * 2.0 - 1.0;
 	const vec4 albedo = texture(textureAlbedo, v_uv);
 	const vec4 emissive = texture(textureEmissive, v_uv);
+	const vec4 worldPosition = texture(textureWorldPosition, v_uv);
 
 	vec3 viewDir = vec3(1.0, 0.0, 0.0);
 	vec3 reflect = reflect(push.light.xyz, normal);
@@ -65,9 +67,9 @@ void main() {
 
 	//out_color = vec4(mix(pow(baseColor, vec3(0.4545)) * occlusion, clearColor, step(albedo.w, 0.0)), 1.0); // gamma correction 1.0 / 2.2 = 0.4545
 
-	out_color = mix(out_color, vec4(occlusion, occlusion, occlusion, 1.0), push.options.y);
-	out_color = mix(out_color, emissive, push.options.z);
-
+	out_color = mix(out_color, vec4(occlusion, occlusion, occlusion, 1.0), step(0.1, push.options.y) * step(push.options.y, 1.1));
+	out_color = mix(out_color, emissive, step(1.1, push.options.y) * step(push.options.y, 2.1));
+	out_color = mix(out_color, worldPosition, step(2.1, push.options.y) * step(push.options.y, 3.1));
 
 	// vignette
 	if (push.options.w > 0.0f) {
@@ -80,4 +82,5 @@ void main() {
 	//out_color = vec4(occlusion, occlusion, occlusion, 1.0);
 	//out_color = vec4(normal, 1.0);
 	//out_color = emissive;
+	//out_color = texture(textureWorldPosition, v_uv);
 }

@@ -23,7 +23,8 @@ layout (location = 0) out vec3 v_normal;
 layout (location = 1) out vec2 v_uv;
 layout (location = 2) out vec4 v_color;
 layout (location = 3) out vec3 v_emissive;
-layout (location = 4) out vec3 v_viewPosition;
+//layout (location = 4) out vec3 v_viewPosition;
+layout (location = 4) out vec3 v_worldPosition;
 
 layout(push_constant) uniform Params {
 	vec4 color;
@@ -47,7 +48,8 @@ void main() {
 	//v_viewPosition = gl_Position.xyz / gl_Position.w;//vec3(u_viewParams.view * in_positions.data[vertexId]);
 	//v_viewPosition.y *= -1.0f;
 
-	v_viewPosition = vec3(u_viewParams.view * in_positions.data[vertexId]);
+	v_worldPosition = in_positions.data[vertexId].xyz;
+	//v_viewPosition = vec3(u_viewParams.view * in_positions.data[vertexId]);
 	mat3 normalMatrix = transpose(inverse(mat3(u_viewParams.view)));
 	v_normal = normalMatrix * v_normal;
 }

@@ -280,7 +280,7 @@
 		}
 	},
 	"mesh_skeletal_computed": {
-		"blendModes": ["blend_none","blend_none", "blend_none", "blend_none"],
+		"blendModes": ["blend_none", "blend_none", "blend_none", "blend_none"],
 		"rasterisationState": {
 			"polygonMode": "eFill",
 			"cullmode": "eBack"

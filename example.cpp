@@ -94,10 +94,16 @@ namespace example {
     // options
     bool showOptions = true;
     
+    enum class DebugShow : uint8_t {
+        eCommon = 0u,
+        eSsao = 1u,
+        eEmissive = 2u,
+        eWorldPos = 3u
+    };
+
     float ssaoEnable = 1.0f;
     bool ssaoBlur = true;
-    bool showSsao = false;
-    bool showEmissive = false;
+    DebugShow debugShow = DebugShow::eCommon;
     float ssaoRadius = 0.11f;
     float ssaoBias = 0.004f;
     float ssaoRangeDepth = 5.0f;
@@ -119,7 +125,7 @@ namespace example {
     engine::vec3f light = {0.26f, 0.15f, -0.75f};
     
     void optionsWindow() {
-        ImGui::SetNextWindowSize(ImVec2(540, 570), ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowSize(ImVec2(540, 590), ImGuiCond_FirstUseEver);
         if (!ImGui::Begin("options", &showOptions, 0)) {
             // early out if the window is collapsed, as an optimization.
             ImGui::End();
@@ -153,31 +159,24 @@ namespace example {
         ImGui::DragFloat("vignette", &vignetteExtent, 0.01f, 0.0f, 1.0f);
         
         ImGui::NewLine();
-        
         ImGui::DragFloat3("light direction", &light[0u], 0.01, -1.0f, 1.0f);
-
         ImGui::ColorEdit3("ambient color", &ambientColor[0u]);
         ImGui::DragFloat("ambient factor", &ambientColor[3u], 0.01f, 0.0f, 1.0f);
-
         ImGui::ColorEdit3("directional light color", &directionalLightColor[0u]);
         ImGui::DragFloat("directional light factor", &directionalLightColor[3u], 0.01f, 0.0f, 1.0f);
         
         ImGui::NewLine();
-        static int m = 0;
-        if (ImGui::RadioButton("composite", m == 0)) { 
-            m = 0; 
-            showSsao = false;
-            showEmissive = false;
+        if (ImGui::RadioButton("composite", debugShow == DebugShow::eCommon)) { 
+            debugShow = DebugShow::eCommon;
          }
-        if (ImGui::RadioButton("ambient occlusion", m == 1)) { 
-            m = 1;
-            showSsao = true;
-            showEmissive = false;
+        if (ImGui::RadioButton("ambient occlusion", debugShow == DebugShow::eSsao)) { 
+            debugShow = DebugShow::eSsao;
         }
-        if (ImGui::RadioButton("emissive", m == 2)) { 
-            m = 2; 
-            showSsao = false;
-            showEmissive = true;
+        if (ImGui::RadioButton("emissive", debugShow == DebugShow::eEmissive)) { 
+            debugShow = DebugShow::eEmissive;
+        }
+        if (ImGui::RadioButton("world positions", debugShow == DebugShow::eWorldPos)) { 
+            debugShow = DebugShow::eWorldPos;
         }
         ImGui::End();
     }
@@ -705,7 +704,7 @@ namespace example {
 
         { // ssao
             const auto formatsGBuffer = std::array{
-                engine::rhi::Format::eR32G32B32A32_Sfloat, 
+                engine::rhi::Format::eR32G32B32A32_Sfloat,
                 engine::rhi::Format::eR8G8B8A8_Unorm, 
                 engine::rhi::Format::eR8G8B8A8_Unorm,
                 engine::rhi::Format::eR8G8B8A8_Unorm, 
@@ -1809,12 +1808,14 @@ namespace example {
         // ssao pass
         struct SsaoParams {
             engine::mat4f projection;
-            engine::vec4f options;
+            engine::mat4f view;
+            // engine::vec4f options;
         };
 
         const SsaoParams ssaoParams {
             .projection = viewParams.cameraProjection,
-            .options = {ssaoRadius, ssaoBias, ssaoRangeDepth, static_cast<float>(ssaoRangeMethod)}
+            .view = viewParams.cameraView
+            //.options = {ssaoRadius, ssaoBias, ssaoRangeDepth, static_cast<float>(ssaoRangeMethod)}
         };
 
         commandList->beginRenderPass(_renderPasses[kSsaoRenderPass], _ssaoBuffers[frameId], clearValues, {{0, 0}, {width, height}});
@@ -1873,7 +1874,7 @@ namespace example {
             .ambient = ambientColor,
             .directionalLight = directionalLightColor,
             .light = engine::vec4f{glm::normalize(normalMatrix * light), 0.0f},
-            .options = {ssaoEnable, showSsao, showEmissive, vignetteExtent}
+            .options = {ssaoEnable, static_cast<float>(debugShow), 0.0f, vignetteExtent}
         };
 
         commandList->bindPipeline(_pipelines[kPostEffectPipeline]);
@@ -1885,6 +1886,7 @@ namespace example {
         commandList->bindImage(1u, _gBufferAttachments[frameId].normal, nearestSampler);
         commandList->bindImage(2u, _gBufferAttachments[frameId].albedo, nearestSampler);
         commandList->bindImage(3u, _gBufferAttachments[frameId].emissive, linearSampler);
+        commandList->bindImage(4u, _gBufferAttachments[frameId].position, nearestSampler);
 
         commandList->pushConstants(engine::rhi::shaders::Stages::eFragment, 0u, sizeof(PostParams), &postParams);
         commandList->drawIndexed(6u);
