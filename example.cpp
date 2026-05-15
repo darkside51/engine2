@@ -222,6 +222,7 @@ namespace example {
     std::vector<BgThread::Task> tasks;
 
     engine::scene::ViewParams viewParams;
+    bool viewParamsUpdated = false;
 
     struct Stats {
         float cpuFrameTime = 0.0f;
@@ -1449,6 +1450,7 @@ namespace example {
                 viewParams.cameraTransform = transform;
                 viewParams.cameraPosition = cameraPos; 
                 viewParams.nearFarPlanes = kNearFarPlane;
+                viewParamsUpdated = true;
             }}), 0u);
         }
     }
@@ -1728,6 +1730,10 @@ namespace example {
 
         // prepare frame draw data (update uniforms and copy buffers memory)
         prepareFrameDrawData(commandList, frameId, delta);
+
+        if (viewParamsUpdated) { // viewParams has been changed
+            viewParamsUpdated = false;
+        }
 
         // render
         constexpr auto sceneClearValues = std::array{
