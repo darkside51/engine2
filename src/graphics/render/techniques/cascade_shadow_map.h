@@ -19,14 +19,19 @@ namespace engine::graphics {
         CascadeShadowMap(rhi::runtime::Rhi & api, rhi::runtime::Device & device, 
             uint16_t size, uint8_t cascades, uint8_t bits, float near, float far);
 
+        void createRenderData();
         void initCascadeSplits() noexcept;
         void updateCascades(const mat4f & cameraInverse);
 
+        void beginRenderPass(rhi::runtime::CommandList & commandList, uint8_t frameId) noexcept;
+        void endRenderPass(rhi::runtime::CommandList & commandList) const noexcept;
+
+        const rhi::runtime::ImagePtr & getImage(uint8_t frameId) const noexcept;
+
+        const vec3f & getDirection() const noexcept { return _direction; }
         bool setDirection(const vec3f & direction, float eps = 1e-5f) noexcept;
 
     private:
-        void createRenderData();
-
         std::vector<CascadeFrameBuffer> _framebuffers; // inflight frames count
         rhi::runtime::RenderPass _renderPass;
         rhi::SamplerValue _sampler;

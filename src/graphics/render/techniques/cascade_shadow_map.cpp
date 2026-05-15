@@ -1,6 +1,5 @@
 #include "cascade_shadow_map.h"
-
-
+#include "graphics/render/rhi/common/command_list.h"
 
 namespace engine::graphics {
 
@@ -98,7 +97,7 @@ namespace engine::graphics {
                 .frameBuffers = std::vector<runtime::FrameBufferPtr>(_cascadesCount)
             };
 
-            for (uint8_t j = 0u; j < _cascadesCount; ++j) {
+            for (uint8_t j = 0u; j < _cascadesCount; ++j) { // can create only 1 framebuffer if draw with instancing?
                 std::vector fbAttachemnts = {
                     FrameBufferAttachment{
                         .image = framebuffer.image.get(),
@@ -156,24 +155,24 @@ namespace engine::graphics {
             const float splitDist = _cascadeSplits[i];
 
             std::array frustumCorners = {
-				vec3f(-1.0f,  1.0f, 0.0f),
-				vec3f(1.0f,  1.0f, 0.0f),
-				vec3f(1.0f, -1.0f, 0.0f),
-				vec3f(-1.0f, -1.0f,	0.0f),
-				vec3f(-1.0f,  1.0f, 1.0f),
-				vec3f(1.0f,  1.0f, 1.0f),
-				vec3f(1.0f, -1.0f, 1.0f),
-				vec3f(-1.0f, -1.0f, 1.0f)
+				vec3f{-1.0f,  1.0f, 0.0f},
+				vec3f{1.0f,  1.0f, 0.0f},
+				vec3f{1.0f, -1.0f, 0.0f},
+				vec3f{-1.0f, -1.0f,	0.0f},
+				vec3f{-1.0f,  1.0f, 1.0f},
+				vec3f{1.0f,  1.0f, 1.0f},
+				vec3f{1.0f, -1.0f, 1.0f},
+				vec3f{-1.0f, -1.0f, 1.0f}
 			};
 
             // project frustum corners into world space
 			for (auto & corner : frustumCorners) {
-				const vec4f invCorner = cameraInverse * vec4f(corner, 1.0f);
+				const auto invCorner = cameraInverse * vec4f{corner, 1.0f};
 				corner = invCorner / invCorner.w;
 			}
 
             for (uint8_t j = 0u; j < 4u; ++j) {
-				const vec3f dist = frustumCorners[j + 4u] - frustumCorners[j];
+				const auto dist = frustumCorners[j + 4u] - frustumCorners[j];
 				frustumCorners[j + 4u] = frustumCorners[j] + (dist * splitDist);
 				frustumCorners[j] = frustumCorners[j] + (dist * lastSplitDist);
 			}
@@ -201,5 +200,28 @@ namespace engine::graphics {
 
             lastSplitDist = _cascadeSplits[i];
         }
+    }
+
+    void CascadeShadowMap::beginRenderPass(rhi::runtime::CommandList & commandList, uint8_t frameId) noexcept {
+        constexpr auto clearValues = std::array{
+            rhi::ClearValue{0.0f, 0u},
+        };
+        commandList.beginRenderPass(_renderPass, _framebuffers[frameId].frameBuffers[0u], clearValues, {{0, 0}, {_size, _size}});
+    }
+
+    void CascadeShadowMap::endRenderPass(rhi::runtime::CommandList & commandList) const noexcept {
+        commandList.endRenderPass();
+    }
+
+    const rhi::runtime::ImagePtr & CascadeShadowMap::getImage(uint8_t frameId) const noexcept {
+        return _framebuffers[frameId].image;
+    }
+
+    bool CascadeShadowMap::setDirection(const vec3f & direction, float eps) noexcept {
+        if (compare(_direction, direction, eps)) {
+            _direction = direction;
+            return true;
+        }
+        return false;
     }
 }
