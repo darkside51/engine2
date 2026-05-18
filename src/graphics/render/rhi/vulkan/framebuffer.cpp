@@ -19,8 +19,8 @@ FrameBuffer::FrameBuffer(const Device & device, std::vector<rhi::FrameBufferAtta
     std::vector<VkImageView> attachments;
     attachments.reserve(_attachments.size());
     for (auto & attachment : _attachments) {
-        attachments.emplace_back(static_cast<Image*>(attachment.image)->getImageView(rhi::ImageViewType::eType_2D, 
-                            attachment.layer, 1u, attachment.level, 1u, attachment.aspect));
+        attachments.emplace_back(static_cast<Image*>(attachment.image)->getImageView(attachment.viewType, 
+                            attachment.layer, attachment.layersCount, attachment.level, attachment.levelsCount, attachment.aspect));
         _size = rhi::getMipLevelSize(attachment.imageSize, attachment.level);
     }
 

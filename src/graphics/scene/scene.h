@@ -79,6 +79,11 @@ struct ViewParams {
     vec2f nearFarPlanes;
 };
 
+enum class FillAttachmentFlags : uint8_t {
+    eNone = 0u,
+    eCalculateQuality = 1u,
+};
+
 class Scene {
     using AttachmentsIterator = std::span<AttachmentObject*>::iterator;
     
@@ -144,7 +149,8 @@ public:
     void endFrame(rhi::runtime::CommandListPtr & commandList, rhi::runtime::CommandListPtr & transferCommandList, uint8_t frame);
 
     template <typename Condition>
-    void fillAttachmentsArray(const ViewParams & viewParams, Node * root, Condition && condition, std::vector<AttachmentObject*> & objects);
+    void fillAttachmentsArray(const ViewParams & viewParams, Node * root, Condition && condition, 
+        std::vector<AttachmentObject*> & objects, FillAttachmentFlags flags);
     DrawDataOffsets prepareDrawData(std::span<AttachmentObject*> objects, uint8_t frame) noexcept;
 
     void animate(std::chrono::time_point<std::chrono::steady_clock> now, float delta, std::span<AttachmentObject*> objects, 
@@ -302,12 +308,13 @@ private:
 };
 
 template <typename Condition>
-void Scene::fillAttachmentsArray(const ViewParams & viewParams, Node * root, Condition && condition, std::vector<AttachmentObject*> & objects) {
+void Scene::fillAttachmentsArray(const ViewParams & viewParams, Node * root, Condition && condition, 
+    std::vector<AttachmentObject*> & objects, FillAttachmentFlags flags) {
     const Frustum frustum(viewParams.cameraTransform);
     objects.clear();
     objects.reserve(kFillNodesReserveSize);
 
-    recalculateHierarchy(root, [this, &frustum, &viewParams, &objects, &condition](Node * n) noexcept { 
+    recalculateHierarchy(root, [this, &frustum, &viewParams, &objects, &condition, flags](Node * n) noexcept { 
         if (n->isHidden()) {
             return false;
         }
@@ -324,7 +331,9 @@ void Scene::fillAttachmentsArray(const ViewParams & viewParams, Node * root, Con
         while (object) {
             if (!object->isHidden() && condition(object)) {
                 objects.emplace_back(object);
-                calculateQualityFactors(object, viewParams);
+                if (static_cast<uint8_t>(flags) & static_cast<uint8_t>(FillAttachmentFlags::eCalculateQuality) > 0u) {
+                    calculateQualityFactors(object, viewParams);
+                }
 
                 // if constexpr (kDebugDrawBounds) {
                 //     uint32_t color = 0xff'00'ff'00u;

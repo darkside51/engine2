@@ -2,6 +2,7 @@
 #include "graphics/render/rhi/common/command_list.h"
 
 namespace engine::graphics {
+    constexpr bool kUseInstanceDrawShadows = true;
 
     CascadeShadowMap::CascadeShadowMap(rhi::runtime::Rhi & api, rhi::runtime::Device & device, 
             uint16_t size, uint8_t cascades, uint8_t bits, float near, float far) : 
@@ -41,8 +42,8 @@ namespace engine::graphics {
                 .depthStencilAttachment = {
                     .pNext = {nullptr, 0u},
                     .attachment = 0u,
-                    .layout = ImageLayout::eDepth_Attachment_Optimal, //eDepth_Stencil_Attachment_Optimal, // eDepth_Attachment_Optimal - maybe?
-                    .aspectMask = ImageAspectFlags::eDepth
+                    .layout = ImageLayout::eDepth_Stencil_Attachment_Optimal, //eDepth_Stencil_Attachment_Optimal, // eDepth_Attachment_Optimal - maybe?
+                    .aspectMask = ImageAspectFlags::eDepthStencil
                 }
             }
         };
@@ -80,7 +81,7 @@ namespace engine::graphics {
         // image
         const auto imageInfo = ImageInfo {
             ImageUsageFlags::eSampled | ImageUsageFlags::eDepth_Stencil_Attachment, format, {_size, _size, 1u},
-            ImageAspectFlags::eDepth,
+            ImageAspectFlags::eDepthStencil,
             ImageType::eType_2D,
             1u,
             _cascadesCount,
@@ -94,23 +95,44 @@ namespace engine::graphics {
         for (uint8_t i = 0u; i < frames; ++i) {
             CascadeFrameBuffer framebuffer = {
                 .image = _api.createImage(_device, imageInfo),
-                .frameBuffers = std::vector<runtime::FrameBufferPtr>(_cascadesCount)
+                .frameBuffers = std::vector<runtime::FrameBufferPtr>(kUseInstanceDrawShadows ? 1u : _cascadesCount)
             };
 
-            for (uint8_t j = 0u; j < _cascadesCount; ++j) { // can create only 1 framebuffer if draw with instancing?
+            if constexpr (kUseInstanceDrawShadows) {
+                //create only 1 framebuffer if draw with instancing
                 std::vector fbAttachemnts = {
                     FrameBufferAttachment{
                         .image = framebuffer.image.get(),
                         .imageSize = {_size, _size},
-                        .aspect = ImageAspectFlags::eDepth,
-                        .layer = j,
-                        .level = 0u
+                        .aspect = ImageAspectFlags::eDepthStencil,
+                        .layer = 0u,
+                        .level = 0u,
+                        .layersCount = _cascadesCount,
+                        .levelsCount = 1u,
+                        .viewType = ImageViewType::eType_2D_Array
                     }
                 };
 
-                framebuffer.frameBuffers[j] = _api.createFrameBuffer(_device, std::move(fbAttachemnts), _renderPass);
-            }
+                framebuffer.frameBuffers[0] = _api.createFrameBuffer(_device, std::move(fbAttachemnts), _renderPass);
+            } else {
+                for (uint8_t j = 0u; j < _cascadesCount; ++j) {
+                    std::vector fbAttachemnts = {
+                        FrameBufferAttachment{
+                            .image = framebuffer.image.get(),
+                            .imageSize = {_size, _size},
+                            .aspect = ImageAspectFlags::eDepthStencil,
+                            .layer = j,
+                            .level = 0u,
+                            .layersCount = 1u,
+                            .levelsCount = 1u,
+                            .viewType = ImageViewType::eType_2D
+                        }
+                    };
 
+                    framebuffer.frameBuffers[j] = _api.createFrameBuffer(_device, std::move(fbAttachemnts), _renderPass);
+                }
+            }
+            
             _framebuffers.emplace_back(framebuffer);
         }
 
@@ -206,6 +228,8 @@ namespace engine::graphics {
         constexpr auto clearValues = std::array{
             rhi::ClearValue{0.0f, 0u},
         };
+        commandList.setViewport(0.0f, 0.0f, _size, _size);
+        commandList.setScissor({{0, 0}, {_size, _size}});
         commandList.beginRenderPass(_renderPass, _framebuffers[frameId].frameBuffers[0u], clearValues, {{0, 0}, {_size, _size}});
     }
 

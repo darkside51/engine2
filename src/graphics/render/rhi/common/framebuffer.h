@@ -16,6 +16,9 @@ struct FrameBufferAttachment {
     ImageAspectFlags aspect = ImageAspectFlags::eColor;
     uint8_t layer = 0u;
     uint8_t level = 0u;
+    uint8_t layersCount = 1u;
+    uint8_t levelsCount = 1u;
+    ImageViewType viewType = ImageViewType::eType_2D;
 
     // FrameBufferAttachment(FrameBufferAttachment &&) noexcept = default;
     // FrameBufferAttachment(const FrameBufferAttachment &) = default;

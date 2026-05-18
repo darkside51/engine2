@@ -528,7 +528,7 @@ namespace engine::rhi {
         eDepth = 2u,
         eStencil = 4u,
         eMetadata = 8u,
-        eDepthStencil = eDepth | eColor
+        eDepthStencil = eDepth | eStencil
     };
     inline ImageAspectFlags operator | (ImageAspectFlags a, ImageAspectFlags b) {
         return static_cast<ImageAspectFlags>(std::to_underlying(a) | std::to_underlying(b));

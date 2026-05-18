@@ -40,6 +40,7 @@
 #include "graphics/mesh/model_manager.h"
 #include "graphics/common/material.h"
 #include "graphics/common/background_command_context.h"
+#include "graphics/render/techniques/cascade_shadow_map.h"
 
 #include <optional>
 
@@ -90,6 +91,11 @@ namespace example {
     engine::scene::SphereCameraController controller{camera};
     engine::scene::Node * sceneWorldRoot = nullptr;
     engine::scene::Node * swordNode = nullptr;
+
+    std::vector<engine::scene::AttachmentObject*> shadowObjects(1024u);
+    std::vector<engine::scene::AttachmentObject*> objects(1024u);
+
+    std::unique_ptr<engine::graphics::CascadeShadowMap> shadowMap = nullptr;
 
     // options
     bool showOptions = true;
@@ -381,6 +387,8 @@ namespace example {
 
         _ssaoKernelBuffer = {};
         _ssaoNoise = {};
+
+        shadowMap = nullptr;
         
         _pipelines.clear();
         _programs.clear();
@@ -1378,6 +1386,12 @@ namespace example {
         }
 
         bgWorker->execute(std::move(tasks));
+
+        ///////
+        shadowMap = std::make_unique<engine::graphics::CascadeShadowMap>(*_api, *_device, 2048u, 3u, 24u, kNearFarPlane.y, kNearFarPlane.x);
+        shadowMap->createRenderData();
+        shadowMap->setDirection(glm::normalize(-light));
+
     }
 
     void Example::prepare() {
@@ -1731,10 +1745,52 @@ namespace example {
         prepareFrameDrawData(commandList, frameId, delta);
 
         if (viewParamsUpdated) { // viewParams has been changed
+            shadowMap->updateCascades(glm::inverse(viewParams.cameraTransform));
             viewParamsUpdated = false;
         }
 
         // render
+        scene->beginFrame(now);
+
+        // scene->fillAttachmentsArray(viewParams, sceneWorldRoot, [](engine::scene::AttachmentObject* object) {
+        //     if (object->typeIndex == ctti::typeIndex<engine::scene::AttachmentObject, engine::scene::Mesh>()) {
+        //         return true;
+        //     }
+        //      return false;
+        // }, shadowObjects, engine::scene::FillAttachmentFlags::eNone);
+
+        shadowObjects.clear();
+        shadowObjects.reserve(1024u);
+
+        scene->fillAttachmentsArray(viewParams, sceneWorldRoot, [](engine::scene::AttachmentObject* object) noexcept {
+            if (object->typeIndex == ctti::typeIndex<engine::scene::AttachmentObject, engine::scene::Mesh>()) {
+                shadowObjects.emplace_back(object); // check visible with shadow matrix?
+            }
+            return true; 
+        }, objects, engine::scene::FillAttachmentFlags::eCalculateQuality);
+
+        scene->animate(now, delta, objects, animationManager); // after fillAttachmentsArrays and after beginFrame for correct
+
+        // auto o0 = std::span<engine::scene::AttachmentObject*>{objects.begin(), objects.begin() + objects.size() / 2};
+        // auto o1 = std::span<engine::scene::AttachmentObject*>{objects.begin() + objects.size() / 2, objects.end()};
+
+        const auto offsets = scene->prepareDrawData(objects, frameId);
+        // const auto offsets0 = scene->prepareDrawData(o0, frameId);
+        // const auto offsets1 = scene->prepareDrawData(o1, frameId);
+
+        scene->dispatch(commandList, frameId, objects, offsets);
+        // scene->dispatch(commandList, frameId, o0, offsets0);
+        // scene->dispatch(commandList, frameId, o1, offsets1);
+
+        shadowMap->beginRenderPass(*commandList, frameId);
+        // draw shadows
+        // ...
+        // engine::scene::ViewParams shadowViewParams;
+        // 
+        // scene->drawShadows(commandList, transferCommandList, frameId, shadowViewParams, shadowObjects, offsets); // offsets?
+        shadowMap->endRenderPass(*commandList);
+
+        // draw scene
         constexpr auto sceneClearValues = std::array{
             rhi::ClearValue{0x77'77'77'ffu},
             rhi::ClearValue{0.0f, 0u}
@@ -1754,25 +1810,6 @@ namespace example {
 
         commandList->setViewport(0.0f, 0.0f, width, height);
         commandList->setScissor({{0, 0}, {width, height}});
-
-        scene->beginFrame(now);
-        std::vector<engine::scene::AttachmentObject*> objects(1024u);
-        scene->fillAttachmentsArray(viewParams, sceneWorldRoot, [](engine::scene::AttachmentObject* object) {
-            return true; 
-        }, objects);
-
-        scene->animate(now, delta, objects, animationManager); // after fillAttachmentsArrays and after beginFrame for correct
-
-        // auto o0 = std::span<engine::scene::AttachmentObject*>{objects.begin(), objects.begin() + objects.size() / 2};
-        // auto o1 = std::span<engine::scene::AttachmentObject*>{objects.begin() + objects.size() / 2, objects.end()};
-
-        const auto offsets = scene->prepareDrawData(objects, frameId);
-        // const auto offsets0 = scene->prepareDrawData(o0, frameId);
-        // const auto offsets1 = scene->prepareDrawData(o1, frameId);
-
-        scene->dispatch(commandList, frameId, objects, offsets);
-        // scene->dispatch(commandList, frameId, o0, offsets0);
-        // scene->dispatch(commandList, frameId, o1, offsets1);
 
         // scene pass
         // commandList->beginRenderPass(_renderPasses[kSceneRenderPass], _sceneFrameBuffers[frameId], sceneClearValues, {{0, 0}, {width, height}});
