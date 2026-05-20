@@ -311,8 +311,9 @@ template <typename Condition>
 void Scene::fillAttachmentsArray(const ViewParams & viewParams, Node * root, Condition && condition, 
     std::vector<AttachmentObject*> & objects, FillAttachmentFlags flags) {
     const Frustum frustum(viewParams.cameraTransform);
+    const auto currentSize = static_cast<uint32_t>(objects.size()); 
     objects.clear();
-    objects.reserve(kFillNodesReserveSize);
+    objects.reserve(std::max(kFillNodesReserveSize, currentSize));
 
     recalculateHierarchy(root, [this, &frustum, &viewParams, &objects, &condition, flags](Node * n) noexcept { 
         if (n->isHidden()) {
