@@ -1772,7 +1772,10 @@ namespace example {
         // auto time = std::chrono::steady_clock::now();
         scene->fillAttachmentsArray(viewParams, sceneWorldRoot, [](engine::scene::AttachmentObject* object) noexcept {
             if (object->typeIndex == ctti::typeIndex<engine::scene::AttachmentObject, engine::scene::Mesh>()) {
-                shadowObjects.emplace_back(object); // check visible with shadow matrix?
+                auto & mesh = *static_cast<engine::scene::Mesh*>(object);
+                if (mesh.getPipeline() == 1u) { 
+                    shadowObjects.emplace_back(object); // check visible with shadow matrix?
+                }
             }
             return true; 
         }, objects, engine::scene::FillAttachmentFlags::eCalculateQuality);
@@ -1797,9 +1800,8 @@ namespace example {
         shadowMap->beginRenderPass(*commandList, frameId);
         // draw shadows
         // ...
-        // engine::scene::ViewParams shadowViewParams;
-        // 
-        // scene->drawShadows(commandList, transferCommandList, frameId, shadowViewParams, shadowObjects, offsets); // offsets?
+        const auto cascadeMatrices = shadowMap->getCascadeMatrices();
+        scene->draw(engine::scene::RenderPass::eShadow, commandList, transferCommandList, frameId, viewParams, shadowObjects, offsets, &cascadeMatrices);
         shadowMap->endRenderPass(*commandList);
 
         // draw scene
@@ -1828,7 +1830,7 @@ namespace example {
         commandList->beginRenderPass(_renderPasses[kGbufferRenderPass], _gBuffers[frameId], gBufferClearValues, {{0, 0}, {width, height}});
         // scene->dispatch(commandList, frameId, objects, offsets);
         
-        scene->draw(commandList, transferCommandList, frameId, viewParams, objects, offsets);
+        scene->draw(engine::scene::RenderPass::eCommon, commandList, transferCommandList, frameId, viewParams, objects, offsets);
         // scene->draw(commandList, transferCommandList, frameId, viewParams, o1, offsets1);
         // scene->draw(commandList, transferCommandList, frameId, viewParams, o0, offsets0);   
         

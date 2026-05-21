@@ -5,6 +5,7 @@
 #include "math/math.h"
 
 #include <cstdint>
+#include <span>
 #include <vector>
 
 namespace engine::graphics {
@@ -30,6 +31,8 @@ namespace engine::graphics {
 
         const vec3f & getDirection() const noexcept { return _direction; }
         bool setDirection(const vec3f & direction, float eps = 1e-5f) noexcept;
+
+        std::span<const mat4f> getCascadeMatrices() const noexcept { return _cascadeMatrices; }
 
     private:
         std::vector<CascadeFrameBuffer> _framebuffers; // inflight frames count

@@ -79,9 +79,18 @@ struct ViewParams {
     vec2f nearFarPlanes;
 };
 
+struct ShadowViewParams {
+    std::span<const mat4f> cascadeMatrices;
+};
+
 enum class FillAttachmentFlags : uint8_t {
     eNone = 0u,
     eCalculateQuality = 1u,
+};
+
+enum class RenderPass : uint8_t {
+    eCommon = 0u,
+    eShadow = 1u,
 };
 
 class Scene {
@@ -96,6 +105,15 @@ class Scene {
     };
 
 public:
+    struct CommonPipeline {
+        enum class Type : uint8_t {
+            eMeshShadow = 0u,
+            eMeshSkinnedShadow = 1u,
+            eCount
+        };
+        std::array<uint32_t, std::to_underlying(Type::eCount)> pipelines;
+    };
+
     Scene(const graphics::GraphicsService & graphicsService, graphics::DrawHelper & drawHelper);
     ~Scene();
 
@@ -141,6 +159,11 @@ public:
     uint32_t registerGraphicsPipeline(rhi::runtime::PipelinePtr && pipeline);
     const rhi::runtime::PipelinePtr & getGraphicsPipeline(uint32_t pipelineId) const noexcept;
 
+    void assignCommonPipeline(uint32_t pipelineId, CommonPipeline::Type type) noexcept;
+    uint32_t getCommonPipeline(CommonPipeline::Type type) const noexcept {
+        return _commonPipelines.pipelines[std::to_underlying(type)];
+    }
+
     uint32_t registerComputePipeline(rhi::runtime::PipelinePtr && pipeline);
     const rhi::runtime::PipelinePtr & getComputePipeline(uint32_t pipelineId) const noexcept;
 
@@ -155,8 +178,8 @@ public:
 
     void animate(std::chrono::time_point<std::chrono::steady_clock> now, float delta, std::span<AttachmentObject*> objects, 
         const AnimationManager & animationManager);
-    void draw(rhi::runtime::CommandListPtr & commandList, rhi::runtime::CommandListPtr & transferCommandList, uint8_t frame, 
-        const ViewParams & viewParams, std::span<AttachmentObject*> objects, const DrawDataOffsets & offsets);
+    void draw(RenderPass pass, rhi::runtime::CommandListPtr & commandList, rhi::runtime::CommandListPtr & transferCommandList, uint8_t frame, 
+        const ViewParams & viewParams, std::span<AttachmentObject*> objects, const DrawDataOffsets & offsets, const void * external = nullptr);
     void dispatch(rhi::runtime::CommandListPtr & commandList, uint8_t frame, std::span<AttachmentObject*> objects, const DrawDataOffsets & offsets);
 
     // getters
@@ -194,8 +217,10 @@ private:
         const ViewParams & viewParams, uint32_t & offset);
     void drawMeshes2(rhi::runtime::CommandListPtr & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end,
         const ViewParams & viewParams, uint32_t & offset, uint32_t & skeletonsOffset);
+    void drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end,
+        const ViewParams & viewParams, uint32_t & offset, uint32_t & skeletonsOffset);
     void drawSameMeshes(rhi::runtime::CommandListPtr & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end,
-        uint32_t count, bool skeletal, uint32_t startTransformIndex);   
+        uint32_t count, bool skeletal, uint32_t startTransformIndex);
 
     using NodesAllocator = allocators::PoolAllocatorChain<sizeof(Node), alignof(Node), false, false>;
     NodesAllocator _nodeAllocator{512u, 256u};
@@ -305,6 +330,10 @@ private:
     // samplers:
     rhi::SamplerValue _nearestSampler;
     rhi::SamplerValue _linearSampler;
+
+    //
+    RenderPass _currentPass = RenderPass::eCommon;
+    CommonPipeline _commonPipelines;
 };
 
 template <typename Condition>
