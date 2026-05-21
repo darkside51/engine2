@@ -818,10 +818,10 @@ namespace example {
         }
 
         { // kSsaoProgram
-            //auto const vBytes = _fileManager.readFile("shaders/postEffect.vert.spv");
+            auto const vBytes = _fileManager.readFile("shaders/ssao.vert.spv");
             auto const fBytes = _fileManager.readFile("shaders/ssao.frag.spv");
 
-            const auto & vsModule = _shaderModulesManager->registerModule("postEffect.vert", *_device, engine::rhi::shaders::Stages::eVertex, {});
+            const auto & vsModule = _shaderModulesManager->registerModule("ssao.vert", *_device, engine::rhi::shaders::Stages::eVertex, vBytes);
             const auto & fsModule = _shaderModulesManager->registerModule("ssao.frag", *_device, engine::rhi::shaders::Stages::eFragment, fBytes);
 
             _programs.emplace_back(_api->createProgram(*_device, std::array{vsModule.getView(), fsModule.getView()}));
@@ -1752,6 +1752,8 @@ namespace example {
         // render
         scene->beginFrame(now);
 
+        // auto time = std::chrono::steady_clock::now();
+
         // scene->fillAttachmentsArray(viewParams, sceneWorldRoot, [](engine::scene::AttachmentObject* object) {
         //     if (object->typeIndex == ctti::typeIndex<engine::scene::AttachmentObject, engine::scene::Mesh>()) {
         //         return true;
@@ -1759,15 +1761,25 @@ namespace example {
         //      return false;
         // }, shadowObjects, engine::scene::FillAttachmentFlags::eNone);
 
+        // auto time1 = std::chrono::steady_clock::now();
+        // std::chrono::duration<float> duration = time1 - time; // as default in seconds
+        // printf("0: %d\n", std::chrono::duration_cast<std::chrono::milliseconds>(duration).count());
+        // time = time1;
+
         shadowObjects.clear();
         shadowObjects.reserve(1024u);
 
+        // auto time = std::chrono::steady_clock::now();
         scene->fillAttachmentsArray(viewParams, sceneWorldRoot, [](engine::scene::AttachmentObject* object) noexcept {
             if (object->typeIndex == ctti::typeIndex<engine::scene::AttachmentObject, engine::scene::Mesh>()) {
                 shadowObjects.emplace_back(object); // check visible with shadow matrix?
             }
             return true; 
         }, objects, engine::scene::FillAttachmentFlags::eCalculateQuality);
+
+        // auto time1 = std::chrono::steady_clock::now();
+        // auto duration = time1 - time; // as default in seconds
+        // printf("1: %d\n", std::chrono::duration_cast<std::chrono::microseconds>(duration).count());
 
         scene->animate(now, delta, objects, animationManager); // after fillAttachmentsArrays and after beginFrame for correct
 
@@ -1845,14 +1857,14 @@ namespace example {
         // ssao pass
         struct SsaoParams {
             engine::mat4f projection;
-            engine::mat4f view;
-            // engine::vec4f options;
+            //engine::mat4f view;
+            engine::vec4f options;
         };
 
         const SsaoParams ssaoParams {
             .projection = viewParams.cameraProjection,
-            .view = viewParams.cameraView
-            //.options = {ssaoRadius, ssaoBias, ssaoRangeDepth, static_cast<float>(ssaoRangeMethod)}
+            //.view = viewParams.cameraView
+            .options = {ssaoRadius, ssaoBias, ssaoRangeDepth, static_cast<float>(ssaoRangeMethod)}
         };
 
         commandList->beginRenderPass(_renderPasses[kSsaoRenderPass], _ssaoBuffers[frameId], clearValues, {{0, 0}, {width, height}});
@@ -1865,7 +1877,7 @@ namespace example {
         commandList->bindImage(1u, _gBufferAttachments[frameId].normal, nearestSampler);
         commandList->bindImage(2u, _ssaoNoise, rhi::SamplerValue{});
         commandList->bindBuffer(3u, _ssaoKernelBuffer);
-        commandList->pushConstants(engine::rhi::shaders::Stages::eFragment, 0u, sizeof(SsaoParams), &ssaoParams);
+        commandList->pushConstants(engine::rhi::shaders::Stages::eVertex | engine::rhi::shaders::Stages::eFragment, 0u, sizeof(SsaoParams), &ssaoParams);
         commandList->drawIndexed(6u);
 
         commandList->endRenderPass();

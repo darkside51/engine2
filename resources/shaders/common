@@ -3,3 +3,23 @@ float linearDepth(float depth, float nearPlane, float farPlane) {
 	const float z = depth * 2.0f - 1.0f; 
 	return (2.0f * nearPlane * farPlane) / (farPlane + nearPlane - z * (farPlane - nearPlane));	
 }
+ 
+vec3 createRay(vec4 postProjectiveSpacePosition, vec3 camBasisUp, vec3 camBasisSide, vec3 camBasisFront, float tanHalfVerticalFov, float tanHalfHorizontalFov) {
+	// projection matrix part 
+	// float tanHalfVerticalFov; // invProjection.11; 
+	// float tanHalfHorizontalFov; // invProjection.00; 
+	// camera basis in reconstruction space
+	// vec3 camBasisUp;
+	// vec3 camBasisSide;
+	// vec3 camBasisFront;
+	// postProjectiveSpacePosition в homogeneous projection space
+
+   vec3 leftRight = camBasisSide * -postProjectiveSpacePosition.x * tanHalfHorizontalFov;
+   vec3 upDown = camBasisUp * postProjectiveSpacePosition.y * tanHalfVerticalFov;
+   vec3 forward = camBasisFront;
+   return (forward + leftRight + upDown);
+}
+
+vec3 reconstructPosition(vec3 rayDir, vec3 cameraPosition, float linearDepth) {
+   return cameraPosition + rayDir * linearDepth;
+}

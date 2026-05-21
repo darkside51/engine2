@@ -1,5 +1,7 @@
 #version 450
 
+#import common
+
 layout (constant_id = 0) const int kSsaoKernelSize = 32;
 //layout (constant_id = 1) const float kSsaoRadius = 0.2f;
 //layout (constant_id = 2) const float bias = 0.007f;
@@ -15,26 +17,32 @@ layout (set = 0, binding = 3) uniform UBOSSAOKernel {
 
 layout(push_constant) uniform Params {
 	mat4 projection;
-	mat4 view; // and try to use world positions texture
-	//vec4 options;
+	//mat4 view; // and try to use world positions texture
+	vec4 options;
 } push;
 
 layout (location = 0) in vec2 v_uv;
+layout (location = 1) in vec3 v_rayDir;
 layout (location = 0) out float out_color;
 
 void main() {
-	//const float radius = push.options.x;
-	//const float bias = push.options.y;
-	//const float maxDepth = push.options.z;
+	const float radius = push.options.x;
+	const float bias = push.options.y;
+	const float maxDepth = push.options.z;
 
-	const float radius = 0.11f;
-	const float bias = 0.004f;
-	const float maxDepth = 5.0f;
+	//const float radius = 0.11f;
+	//const float bias = 0.004f;
+	//const float maxDepth = 5.0f;
 
 	// gBuffer values
 	//const vec3 fragPos = texture(texturePositionDepth, v_uv).rgb;
-	const vec4 position = texture(texturePositionDepth, v_uv);
-	const vec3 fragPos = (push.view * vec4(position.rgb, 1.0f - step(position.w, 0.0))).xyz;
+	//const vec4 position = texture(texturePositionDepth, v_uv);
+
+	//const vec3 fragPos = (push.view * vec4(position.rgb, 1.0f - step(position.w, 0.0))).xyz;
+
+	const float linearDepth = texture(texturePositionDepth, v_uv).w;
+	const vec3 fragPos = reconstructPosition(v_rayDir, vec3(0.0f), linearDepth);
+
 	const vec3 normal = texture(textureNormal, v_uv).rgb * 2.0 - 1.0;
 
 	// get a random vector using a noise lookup
@@ -62,10 +70,10 @@ void main() {
 		offset.xyz = offset.xyz * 0.5f + 0.5f; 
 		
 		const float sampleDepth = -texture(texturePositionDepth, offset.xy).w; 
-		const float rangeCheck = smoothstep(0.0f, 1.0f, radius / abs(fragPos.z - sampleDepth));
-		//const float rangeCheck = push.options.w < 0.5f ?
-		//						 smoothstep(0.0f, 1.0f, radius / abs(fragPos.z - sampleDepth)) :
-		//						 clamp(radius / abs(fragPos.z - sampleDepth), 0.0f, 1.0f);
+		//const float rangeCheck = smoothstep(0.0f, 1.0f, radius / abs(fragPos.z - sampleDepth));
+		const float rangeCheck = push.options.w < 0.5f ?
+								 smoothstep(0.0f, 1.0f, radius / abs(fragPos.z - sampleDepth)) :
+								 clamp(radius / abs(fragPos.z - sampleDepth), 0.0f, 1.0f);
 
 		occlusion += (sampleDepth >= samplePos.z + bias ? 1.0f : 0.0f) * rangeCheck * smoothstep(0.0f, 1.0f, -maxDepth / fragPos.z);         
 	}
