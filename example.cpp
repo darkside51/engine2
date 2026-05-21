@@ -1912,6 +1912,7 @@ namespace example {
 
         // draw with postEffect
         struct PostParams {
+            engine::mat4f view;
             engine::vec4f ambient{};
             engine::vec4f directionalLight{};
             engine::vec4f light{};
@@ -1919,12 +1920,28 @@ namespace example {
         };
 
         const auto normalMatrix = glm::transpose(glm::inverse(engine::mat3f(viewParams.cameraView)));
-        const PostParams postParams{
+        // const PostParams postParams{
+        //     .projection = viewParams.cameraProjection,
+        //     .cameraPosition = {viewParams.cameraPosition, 0.0f},
+        //     //.ambient = ambientColor,
+        //     .directionalLight = directionalLightColor,
+        //     .light = engine::vec4f{glm::normalize(normalMatrix * light), 0.0f},
+        //     .options = {ssaoEnable, static_cast<float>(debugShow), 0.0f, vignetteExtent}
+        // };
+
+        PostParams postParams{
+            .view = viewParams.cameraView,
             .ambient = ambientColor,
             .directionalLight = directionalLightColor,
             .light = engine::vec4f{glm::normalize(normalMatrix * light), 0.0f},
             .options = {ssaoEnable, static_cast<float>(debugShow), 0.0f, vignetteExtent}
         };
+
+        const mat4 invProjection = glm::inverse(viewParams.cameraProjection);
+
+        postParams.view[0][3] = invProjection[0][0];
+        postParams.view[1][3] = invProjection[1][1];
+        postParams.view[3] = {viewParams.cameraPosition, 1.0f};
 
         commandList->bindPipeline(_pipelines[kPostEffectPipeline]);
         commandList->bindVertexBuffer(0u, _postPositions);
@@ -1937,7 +1954,7 @@ namespace example {
         commandList->bindImage(3u, _gBufferAttachments[frameId].emissive, linearSampler);
         commandList->bindImage(4u, _gBufferAttachments[frameId].position, nearestSampler);
 
-        commandList->pushConstants(engine::rhi::shaders::Stages::eFragment, 0u, sizeof(PostParams), &postParams);
+        commandList->pushConstants(engine::rhi::shaders::Stages::eVertex | engine::rhi::shaders::Stages::eFragment, 0u, sizeof(PostParams), &postParams);
         commandList->drawIndexed(6u);
 
         // draw imgui

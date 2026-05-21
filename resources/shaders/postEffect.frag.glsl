@@ -12,6 +12,8 @@ void main() {
 }
 */
 
+#import common
+
 layout(set = 0, binding = 0) uniform sampler2D textureSsao;
 layout(set = 0, binding = 1) uniform sampler2D textureNormal;
 layout(set = 0, binding = 2) uniform sampler2D textureAlbedo;
@@ -19,9 +21,11 @@ layout(set = 0, binding = 3) uniform sampler2D textureEmissive;
 layout(set = 0, binding = 4) uniform sampler2D textureWorldPosition;
 
 layout (location = 0) in vec2 v_uv;
+layout (location = 1) in vec3 v_rayDir;
 layout (location = 0) out vec4 out_color;
 
 layout(push_constant) uniform Params {
+	mat4 view;
 	vec4 ambient;
 	vec4 directionalLight;
 	vec4 light;
@@ -49,14 +53,18 @@ void main() {
 	const vec3 normal = texture(textureNormal, v_uv).rgb * 2.0 - 1.0;
 	const vec4 albedo = texture(textureAlbedo, v_uv);
 	const vec4 emissive = texture(textureEmissive, v_uv);
-	const vec4 worldPosition = texture(textureWorldPosition, v_uv);
+
+	const float linearDepth = texture(textureWorldPosition, v_uv).w;
+    const vec3 cameraPosition = push.view[3].xyz;
+
+	const vec4 worldPosition = vec4(reconstructPosition(v_rayDir, cameraPosition, linearDepth), 1.0f);
+	//const vec4 worldPosition = texture(textureWorldPosition, v_uv);
 
 	vec3 viewDir = vec3(1.0, 0.0, 0.0);
 	vec3 reflect = reflect(push.light.xyz, normal);
 	vec3 specular = vec3(0.0);//pow(max(dot(reflect, viewDir), 0.0), 8.0) * vec3(1.0);
 
 	const float NdotL = max(0.0f, dot(normal, -push.light.xyz));
-
 	const vec3 baseColor = (push.ambient.xyz * push.ambient.w + NdotL * (push.directionalLight.xyz * push.directionalLight.w)) * albedo.rgb + specular + emissive.rgb;
 
 	//const vec3 baseColor = albedo.rgb * (NdotL + ambient) + specular + emissive.rgb;
