@@ -5,6 +5,11 @@
 #include <cstdlib>
 
 namespace engine::time {
+    using seconds = std::chrono::seconds;
+    using milliseconds = std::chrono::milliseconds;
+    using microseconds = std::chrono::microseconds;
+    using nanoseconds = std::chrono::nanoseconds;
+
     using SteadyClock = std::chrono::steady_clock;
     using SteadyTimePoint = SteadyClock::time_point;
 
@@ -52,4 +57,25 @@ namespace engine::time {
 #endif
         return system_time();
 	}
+
+    class Timer {
+    public:
+        Timer() : _time(SteadyClock::now()) {}
+
+        void reset() noexcept {
+            _time = SteadyClock::now();
+        }
+
+        auto elapsedTime() const noexcept {
+            return SteadyClock::now() - _time;
+        }
+
+        template <typename T = std::chrono::milliseconds>
+        auto elapsed() const noexcept {
+            return std::chrono::duration_cast<T>(elapsedTime()).count();
+        }
+
+    private:
+        SteadyTimePoint _time;
+    };
 }

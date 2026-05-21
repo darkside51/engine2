@@ -221,6 +221,7 @@ private:
         const ViewParams & viewParams, uint32_t & offset, uint32_t & skeletonsOffset);
     void drawSameMeshes(rhi::runtime::CommandListPtr & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end,
         uint32_t count, bool skeletal, uint32_t startTransformIndex);
+    // todo: void drawSameMeshesShadow(...);
 
     using NodesAllocator = allocators::PoolAllocatorChain<sizeof(Node), alignof(Node), false, false>;
     NodesAllocator _nodeAllocator{512u, 256u};

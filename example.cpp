@@ -1752,8 +1752,6 @@ namespace example {
         // render
         scene->beginFrame(now);
 
-        // auto time = std::chrono::steady_clock::now();
-
         // scene->fillAttachmentsArray(viewParams, sceneWorldRoot, [](engine::scene::AttachmentObject* object) {
         //     if (object->typeIndex == ctti::typeIndex<engine::scene::AttachmentObject, engine::scene::Mesh>()) {
         //         return true;
@@ -1761,15 +1759,10 @@ namespace example {
         //      return false;
         // }, shadowObjects, engine::scene::FillAttachmentFlags::eNone);
 
-        // auto time1 = std::chrono::steady_clock::now();
-        // std::chrono::duration<float> duration = time1 - time; // as default in seconds
-        // printf("0: %d\n", std::chrono::duration_cast<std::chrono::milliseconds>(duration).count());
-        // time = time1;
-
         shadowObjects.clear();
         shadowObjects.reserve(1024u);
 
-        // auto time = std::chrono::steady_clock::now();
+        // auto timer = engine::time::Timer{};
         scene->fillAttachmentsArray(viewParams, sceneWorldRoot, [](engine::scene::AttachmentObject* object) noexcept {
             if (object->typeIndex == ctti::typeIndex<engine::scene::AttachmentObject, engine::scene::Mesh>()) {
                 auto & mesh = *static_cast<engine::scene::Mesh*>(object);
@@ -1779,10 +1772,7 @@ namespace example {
             }
             return true; 
         }, objects, engine::scene::FillAttachmentFlags::eCalculateQuality);
-
-        // auto time1 = std::chrono::steady_clock::now();
-        // auto duration = time1 - time; // as default in seconds
-        // printf("1: %d\n", std::chrono::duration_cast<std::chrono::microseconds>(duration).count());
+        // printf("1: %d\n", timer.elapsed<engine::time::microseconds>());
 
         scene->animate(now, delta, objects, animationManager); // after fillAttachmentsArrays and after beginFrame for correct
 

@@ -55,7 +55,7 @@ namespace engine::scene {
     constexpr uint32_t kInitialSkeletalmeshTransformsInFrameMax = 128u;
     constexpr uint32_t kMinStagingSize = 100u * 1024u /*100 Kb*/;
     constexpr uint32_t kStaginBufferEnlargeSizeMult = 2u;
-    constexpr uint32_t kViewParamsBufferSizeBytes = 1024u;
+    constexpr uint32_t kViewParamsBufferSizeBytes = 1024u; // 1Kb
 
     constexpr uint16_t kUndefinedAnimId = 0xff'ffu;
     constexpr float kAnimUpdateFrequency = 1.0f / 120.0f;
@@ -65,7 +65,7 @@ namespace engine::scene {
     constexpr uint32_t kDefaultSkeletoneBonesCount = 128u;
     constexpr uint32_t kSsboSkeletalTransformSize = sizeof(SsboTransform) * kDefaultSkeletoneBonesCount;
 
-    constexpr uint8_t kSkeletalAnimationCountToEnableMultyThreading = 64u;
+    constexpr uint8_t kSkeletalAnimationCountToEnableMultyThreading = 32u;
     constexpr uint8_t kAnimationCalculationPoolsCount = 4u;
 
     // compute skinning
