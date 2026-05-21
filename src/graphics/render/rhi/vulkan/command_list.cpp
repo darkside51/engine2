@@ -474,7 +474,7 @@ namespace engine::vulkan::runtime {
                         command->viewType, 
                         command->baseLayer, command->layersCount, 
                         command->baseLevel, command->levelsCount, 
-                        image->getInfo().aspectFlags
+                        command->aspectFlags
                     ) : nullptr;
 
                     VkSampler sampler = nullptr;

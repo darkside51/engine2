@@ -104,7 +104,8 @@ namespace example {
         eCommon = 0u,
         eSsao = 1u,
         eEmissive = 2u,
-        eWorldPos = 3u
+        eWorldPos = 3u,
+        eShadowCascade0 = 4u
     };
 
     float ssaoEnable = 1.0f;
@@ -131,7 +132,7 @@ namespace example {
     engine::vec3f light = {0.26f, 0.15f, -0.75f};
     
     void optionsWindow() {
-        ImGui::SetNextWindowSize(ImVec2(540, 590), ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowSize(ImVec2(540, 610), ImGuiCond_FirstUseEver);
         if (!ImGui::Begin("options", &showOptions, 0)) {
             // early out if the window is collapsed, as an optimization.
             ImGui::End();
@@ -183,6 +184,9 @@ namespace example {
         }
         if (ImGui::RadioButton("world positions", debugShow == DebugShow::eWorldPos)) { 
             debugShow = DebugShow::eWorldPos;
+        }
+        if (ImGui::RadioButton("shadow cascade 0", debugShow == DebugShow::eShadowCascade0)) { 
+            debugShow = DebugShow::eShadowCascade0;
         }
         ImGui::End();
     }
@@ -1945,8 +1949,13 @@ namespace example {
         commandList->bindImage(2u, _gBufferAttachments[frameId].albedo, nearestSampler);
         commandList->bindImage(3u, _gBufferAttachments[frameId].emissive, linearSampler);
         commandList->bindImage(4u, _gBufferAttachments[frameId].position, nearestSampler);
+        commandList->bindImage(
+            rhi::ImageViewType::eType_2D_Array, 
+            rhi::ImageAspectFlags::eDepth, 
+            5u, shadowMap->getImage(frameId), linearSampler
+        );
 
-        commandList->pushConstants(engine::rhi::shaders::Stages::eVertex | engine::rhi::shaders::Stages::eFragment, 0u, sizeof(PostParams), &postParams);
+        commandList->pushConstants(rhi::shaders::Stages::eVertex | rhi::shaders::Stages::eFragment, 0u, sizeof(PostParams), &postParams);
         commandList->drawIndexed(6u);
 
         // draw imgui

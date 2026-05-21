@@ -104,7 +104,7 @@ namespace engine::graphics {
                     FrameBufferAttachment{
                         .image = framebuffer.image.get(),
                         .imageSize = {_size, _size},
-                        .aspect = ImageAspectFlags::eDepthStencil,
+                        .aspect = ImageAspectFlags::eDepth,
                         .layer = 0u,
                         .level = 0u,
                         .layersCount = _cascadesCount,
@@ -120,7 +120,7 @@ namespace engine::graphics {
                         FrameBufferAttachment{
                             .image = framebuffer.image.get(),
                             .imageSize = {_size, _size},
-                            .aspect = ImageAspectFlags::eDepthStencil,
+                            .aspect = ImageAspectFlags::eDepth,
                             .layer = j,
                             .level = 0u,
                             .layersCount = 1u,

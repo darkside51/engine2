@@ -195,6 +195,7 @@ namespace engine::rhi::runtime {
     struct BindImageSamplerCommand : Command { // todo!
         Image * image = nullptr;
         rhi::ImageViewType viewType = rhi::ImageViewType::eType_2D;
+        rhi::ImageAspectFlags aspectFlags = rhi::ImageAspectFlags::eNone;
         uint16_t binding = 0u;
         uint8_t setId = 0u;
 
@@ -203,11 +204,31 @@ namespace engine::rhi::runtime {
         uint32_t baseLevel = 0u;
         uint32_t levelsCount = 1u;
 
-        std::optional<rhi::SamplerValue> samplerValue= {};
+        std::optional<rhi::SamplerValue> samplerValue = {};
 
-        BindImageSamplerCommand(uint16_t binding, Image * image, std::optional<rhi::SamplerValue> sampler, uint8_t setId = 0u) : 
+        BindImageSamplerCommand(rhi::ImageViewType viewType, uint16_t binding, Image * image, std::optional<rhi::SamplerValue> sampler, uint8_t setId = 0u) : 
             Command(CommandType::eBindImageSampler, sizeof(BindImageSamplerCommand)),
             image(image),
+            viewType(viewType),
+            aspectFlags(image->getInfo().aspectFlags),
+            binding(binding),
+            setId(setId),
+            layersCount(image->getInfo().arrayLayers),
+            levelsCount(image->getInfo().mipLevels),
+            samplerValue(sampler) {
+            }
+
+        BindImageSamplerCommand(
+            rhi::ImageViewType viewType, 
+            rhi::ImageAspectFlags aspectFlags, 
+            uint16_t binding, 
+            Image * image, 
+            std::optional<rhi::SamplerValue> sampler, 
+            uint8_t setId = 0u) : 
+            Command(CommandType::eBindImageSampler, sizeof(BindImageSamplerCommand)),
+            image(image),
+            viewType(viewType),
+            aspectFlags(aspectFlags),
             binding(binding),
             setId(setId),
             layersCount(image->getInfo().arrayLayers),

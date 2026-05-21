@@ -102,6 +102,7 @@ namespace engine::rhi::runtime {
         void bindBuffer(uint16_t binding, const BufferPtr & buffer, uint8_t setId = 0u, uint64_t offset = 0u, uint64_t range = kWholeSize64) noexcept;
         void bindBufferDynamic(uint16_t binding, const BufferPtr & buffer, uint8_t setId = 0u, uint64_t offset = 0u, uint64_t range = kWholeSize64) noexcept;
         void bindImage(uint16_t binding, const ImagePtr & image, std::optional<rhi::SamplerValue> sampler, uint8_t setId = 0u) noexcept;
+        void bindImage(ImageViewType viewType, ImageAspectFlags aspectFlags, uint16_t binding, const ImagePtr & image, std::optional<rhi::SamplerValue> sampler, uint8_t setId = 0u) noexcept;
         void bindSampler(uint16_t binding, const rhi::SamplerValue & sampler, uint8_t setId = 0u) noexcept;
         void bindTexelBuffer(uint16_t binding, const BufferPtr & buffer, Format format, uint8_t setId = 0u, uint64_t offset = 0u, uint64_t range = kWholeSize64) noexcept;
         void pushConstants(shaders::Stages stages, uint32_t offset, uint32_t size, const void * bytes) noexcept;

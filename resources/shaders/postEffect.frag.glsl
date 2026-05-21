@@ -19,6 +19,7 @@ layout(set = 0, binding = 1) uniform sampler2D textureNormal;
 layout(set = 0, binding = 2) uniform sampler2D textureAlbedo;
 layout(set = 0, binding = 3) uniform sampler2D textureEmissive;
 layout(set = 0, binding = 4) uniform sampler2D texturePositionDepth;
+layout(set = 0, binding = 5) uniform sampler2DArrayShadow textureShadowMap;
 
 layout (location = 0) in vec2 v_uv;
 layout (location = 1) in vec3 v_rayDir;
@@ -78,6 +79,9 @@ void main() {
 	out_color = mix(out_color, vec4(occlusion, occlusion, occlusion, 1.0), step(0.1, push.options.y) * step(push.options.y, 1.1));
 	out_color = mix(out_color, emissive, step(1.1, push.options.y) * step(push.options.y, 2.1));
 	out_color = mix(out_color, worldPosition, step(2.1, push.options.y) * step(push.options.y, 3.1));
+
+	const float shadowDepth = texture(textureShadowMap, vec4(v_uv, 0.0, 0.0)).r;
+	out_color = mix(out_color, vec4(shadowDepth, shadowDepth, shadowDepth, 1.0f), step(3.1, push.options.y) * step(push.options.y, 4.1));
 
 	// vignette
 	if (push.options.w > 0.0f) {
