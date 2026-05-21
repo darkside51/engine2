@@ -22,7 +22,7 @@ layout(set = 2, binding = 1) uniform sampler2D u_texture_emissive;
 
 //layout (location = 0) out vec4 out_color;
 
-layout (location = 0) out vec4 out_position;
+layout (location = 0) out float out_position;
 //layout (location = 1) out vec4 out_world_position;
 layout (location = 1) out vec4 out_normal;
 layout (location = 2) out vec4 out_albedo;
@@ -40,8 +40,9 @@ void main() {
 	//out_color.rgb += texture(u_texture_emissive, v_uv).rgb * v_emissive;
 
 	const float depthLinear = linearDepth(gl_FragCoord.z, u_viewParams.nearFarPlanes.x, u_viewParams.nearFarPlanes.y);
+	out_position = depthLinear;
 	//out_position = vec4(v_viewPosition, depthLinear);
-	out_position = vec4(v_worldPosition, depthLinear);
+	//out_position = vec4(v_worldPosition, depthLinear);
 	
 	out_normal = vec4(normalize(v_normal) * 0.5 + 0.5, 1.0);
 	out_albedo = texture(u_texture, v_uv) * v_color;

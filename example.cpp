@@ -573,7 +573,7 @@ namespace example {
 
         auto positionImageInfo = engine::rhi::ImageInfo{
             engine::rhi::ImageUsageFlags::eColor_Attachment | engine::rhi::ImageUsageFlags::eSampled,
-            engine::rhi::Format::eR32G32B32A32_Sfloat, {size.width, size.height, 1u}
+            engine::rhi::Format::eR32_Sfloat, {size.width, size.height, 1u}
         };
         positionImageInfo.memoryExtFlags = engine::rhi::MemoryExtendedFlags::eDedicated;
 
@@ -712,7 +712,7 @@ namespace example {
 
         { // ssao
             const auto formatsGBuffer = std::array{
-                engine::rhi::Format::eR32G32B32A32_Sfloat,
+                engine::rhi::Format::eR32_Sfloat,
                 engine::rhi::Format::eR8G8B8A8_Unorm, 
                 engine::rhi::Format::eR8G8B8A8_Unorm,
                 engine::rhi::Format::eR8G8B8A8_Unorm, 
@@ -828,10 +828,10 @@ namespace example {
         }
 
         { // kEmissiveBlurProgram
-            //auto const vBytes = _fileManager.readFile("shaders/postEffect.vert.spv");
+            auto const vBytes = _fileManager.readFile("shaders/gaussblur.vert.spv");
             auto const fBytes = _fileManager.readFile("shaders/gaussblur.frag.spv");
 
-            const auto & vsModule = _shaderModulesManager->registerModule("postEffect.vert", *_device, engine::rhi::shaders::Stages::eVertex, {});
+            const auto & vsModule = _shaderModulesManager->registerModule("gaussblur.vert", *_device, engine::rhi::shaders::Stages::eVertex, vBytes);
             const auto & fsModule = _shaderModulesManager->registerModule("gaussblur.frag", *_device, engine::rhi::shaders::Stages::eFragment, fBytes);
 
             _programs.emplace_back(_api->createProgram(*_device, std::array{vsModule.getView(), fsModule.getView()}));

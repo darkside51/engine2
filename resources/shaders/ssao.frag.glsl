@@ -40,7 +40,7 @@ void main() {
 
 	//const vec3 fragPos = (push.view * vec4(position.rgb, 1.0f - step(position.w, 0.0))).xyz;
 
-	const float linearDepth = texture(texturePositionDepth, v_uv).w;
+	const float linearDepth = texture(texturePositionDepth, v_uv).r;
 	const vec3 fragPos = reconstructPosition(v_rayDir, vec3(0.0f), linearDepth);
 
 	const vec3 normal = texture(textureNormal, v_uv).rgb * 2.0 - 1.0;
@@ -69,7 +69,7 @@ void main() {
 		offset.xyz /= offset.w; 
 		offset.xyz = offset.xyz * 0.5f + 0.5f; 
 		
-		const float sampleDepth = -texture(texturePositionDepth, offset.xy).w; 
+		const float sampleDepth = -texture(texturePositionDepth, offset.xy).r; 
 		//const float rangeCheck = smoothstep(0.0f, 1.0f, radius / abs(fragPos.z - sampleDepth));
 		const float rangeCheck = push.options.w < 0.5f ?
 								 smoothstep(0.0f, 1.0f, radius / abs(fragPos.z - sampleDepth)) :

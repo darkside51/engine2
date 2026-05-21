@@ -18,7 +18,7 @@ layout(set = 0, binding = 0) uniform sampler2D textureSsao;
 layout(set = 0, binding = 1) uniform sampler2D textureNormal;
 layout(set = 0, binding = 2) uniform sampler2D textureAlbedo;
 layout(set = 0, binding = 3) uniform sampler2D textureEmissive;
-layout(set = 0, binding = 4) uniform sampler2D textureWorldPosition;
+layout(set = 0, binding = 4) uniform sampler2D texturePositionDepth;
 
 layout (location = 0) in vec2 v_uv;
 layout (location = 1) in vec3 v_rayDir;
@@ -54,11 +54,11 @@ void main() {
 	const vec4 albedo = texture(textureAlbedo, v_uv);
 	const vec4 emissive = texture(textureEmissive, v_uv);
 
-	const float linearDepth = texture(textureWorldPosition, v_uv).w;
+	const float linearDepth = texture(texturePositionDepth, v_uv).r;
     const vec3 cameraPosition = push.view[3].xyz;
 
 	const vec4 worldPosition = vec4(reconstructPosition(v_rayDir, cameraPosition, linearDepth), 1.0f);
-	//const vec4 worldPosition = texture(textureWorldPosition, v_uv);
+	//const vec4 worldPosition = texture(texturePositionDepth, v_uv);
 
 	vec3 viewDir = vec3(1.0, 0.0, 0.0);
 	vec3 reflect = reflect(push.light.xyz, normal);
