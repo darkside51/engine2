@@ -198,14 +198,8 @@ namespace engine::rhi::runtime {
         ++_commandsCount;
     }
 
-    void CommandList::bindImage(uint16_t binding, const ImagePtr & image, std::optional<rhi::SamplerValue> sampler, uint8_t setId) noexcept {
-        bindImage(ImageViewType::eType_2D, image->getInfo().aspectFlags, binding, image, sampler, setId);
-    }
-
-    void CommandList::bindImage(
-        ImageViewType viewType, ImageAspectFlags aspectFlags, 
-        uint16_t binding, const ImagePtr & image, 
-        std::optional<rhi::SamplerValue> sampler, uint8_t setId) noexcept {
+    void CommandList::bindImage(uint16_t binding, const ImagePtr & image, std::optional<rhi::SamplerValue> sampler, uint8_t setId, 
+        ImageAspectFlags aspectFlags, ImageViewType viewType) noexcept {
         // no check it with state, correct check into record function!
         _resources.push_back(image);
         _commands->create<BindImageSamplerCommand>(viewType, aspectFlags, binding, image.get(), sampler, setId);
@@ -216,7 +210,7 @@ namespace engine::rhi::runtime {
 
     void CommandList::bindSampler(uint16_t binding, const rhi::SamplerValue & sampler, uint8_t setId) noexcept {
         // no check it with state, correct check into record function!
-        _commands->create<BindImageSamplerCommand>(ImageViewType::eType_2D, binding, nullptr, sampler, setId);
+        _commands->create<BindImageSamplerCommand>(ImageViewType::eType_Undefined, binding, nullptr, sampler, setId);
         ++_commandsCount;
     }
 

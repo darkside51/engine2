@@ -111,8 +111,8 @@ namespace example {
     float ssaoEnable = 1.0f;
     bool ssaoBlur = true;
     DebugShow debugShow = DebugShow::eCommon;
-    float ssaoRadius = 0.11f;
-    float ssaoBias = 0.004f;
+    float ssaoRadius = 0.07f;
+    float ssaoBias = 0.003f;
     float ssaoRangeDepth = 5.0f;
     enum class SsaoRangeMethod : uint8_t {
         eSmoothstep = 0u,
@@ -1950,9 +1950,8 @@ namespace example {
         commandList->bindImage(3u, _gBufferAttachments[frameId].emissive, linearSampler);
         commandList->bindImage(4u, _gBufferAttachments[frameId].position, nearestSampler);
         commandList->bindImage(
-            rhi::ImageViewType::eType_2D_Array, 
-            rhi::ImageAspectFlags::eDepth, 
-            5u, shadowMap->getImage(frameId), linearSampler
+            5u, shadowMap->getImage(frameId), linearSampler, 0u, 
+            rhi::ImageAspectFlags::eDepth, rhi::ImageViewType::eType_2D_Array 
         );
 
         commandList->pushConstants(rhi::shaders::Stages::eVertex | rhi::shaders::Stages::eFragment, 0u, sizeof(PostParams), &postParams);
