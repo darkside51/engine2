@@ -68,6 +68,7 @@ namespace example {
     constexpr uint8_t kMeshAfterComputeProgram = 7u;
     constexpr uint8_t kSsaoProgram = 8u;
     constexpr uint8_t kEmissiveBlurProgram = 9u;
+    constexpr uint8_t kMeshShadowProgram = 10u;
 
     constexpr uint8_t kPostEffectPipeline = 0u;
     constexpr uint8_t kSsaoPipeline = 1u;
@@ -840,6 +841,12 @@ namespace example {
 
             _programs.emplace_back(_api->createProgram(*_device, std::array{vsModule.getView(), fsModule.getView()}));
         }
+
+        { // kMeshShadowProgram
+            auto const vBytes = _fileManager.readFile("shaders/mesh_instanced_shadow.vert.spv");
+            const auto & vsModule = _shaderModulesManager->registerModule("mesh_instanced_shadow.vert", *_device, engine::rhi::shaders::Stages::eVertex, vBytes);
+            _programs.emplace_back(_api->createProgram(*_device, std::array{vsModule.getView()}));
+        }
     }
     
     void Example::createPipelines() {
@@ -888,6 +895,15 @@ namespace example {
 
         const GraphicsPipelineStatesInfo info6 = engine::parseGraphicsPipelineInfo(json["mesh_skeletal_computed"]);
         scene->registerGraphicsPipeline(_api->createGraphicsPipeline(*_device, _renderPasses[kGbufferRenderPass], _programs[kMeshAfterComputeProgram], info6, 0u));
+
+        // shadow
+        shadowMap = std::make_unique<engine::graphics::CascadeShadowMap>(*_api, *_device, 2048u, 3u, 24u, kNearFarPlane.y, kNearFarPlane.x);
+        shadowMap->createRenderData();
+        shadowMap->setDirection(glm::normalize(-light));
+
+        const GraphicsPipelineStatesInfo info7 = engine::parseGraphicsPipelineInfo(json["mesh_shadows"]);
+        const uint32_t meshShadowPipeline = scene->registerGraphicsPipeline(_api->createGraphicsPipeline(*_device, shadowMap->getRenderPass(), _programs[kMeshShadowProgram], info7, 0u));
+        scene->assignCommonPipeline(meshShadowPipeline, engine::scene::Scene::CommonPipeline::Type::eMeshShadow);
     }
 
     void Example::createDefaultResources() {
@@ -1391,11 +1407,8 @@ namespace example {
 
         bgWorker->execute(std::move(tasks));
 
-        ///////
-        shadowMap = std::make_unique<engine::graphics::CascadeShadowMap>(*_api, *_device, 2048u, 3u, 24u, kNearFarPlane.y, kNearFarPlane.x);
-        shadowMap->createRenderData();
-        shadowMap->setDirection(glm::normalize(-light));
-
+        //
+        shadowMap->prepare();
     }
 
     void Example::prepare() {
@@ -1758,11 +1771,12 @@ namespace example {
 
         // scene->fillAttachmentsArray(viewParams, sceneWorldRoot, [](engine::scene::AttachmentObject* object) {
         //     if (object->typeIndex == ctti::typeIndex<engine::scene::AttachmentObject, engine::scene::Mesh>()) {
-        //         return true;
+        //         auto & mesh = *static_cast<engine::scene::Mesh*>(object);
+        //         return mesh.getPipeline() == 1u;
         //     }
         //      return false;
         // }, shadowObjects, engine::scene::FillAttachmentFlags::eNone);
-
+ 
         shadowObjects.clear();
         shadowObjects.reserve(1024u);
 
@@ -1783,10 +1797,12 @@ namespace example {
         // auto o0 = std::span<engine::scene::AttachmentObject*>{objects.begin(), objects.begin() + objects.size() / 2};
         // auto o1 = std::span<engine::scene::AttachmentObject*>{objects.begin() + objects.size() / 2, objects.end()};
 
+        const auto offsets0 = scene->prepareDrawData(shadowObjects, frameId);
         const auto offsets = scene->prepareDrawData(objects, frameId);
         // const auto offsets0 = scene->prepareDrawData(o0, frameId);
         // const auto offsets1 = scene->prepareDrawData(o1, frameId);
 
+        scene->dispatch(commandList, frameId, shadowObjects, offsets0);
         scene->dispatch(commandList, frameId, objects, offsets);
         // scene->dispatch(commandList, frameId, o0, offsets0);
         // scene->dispatch(commandList, frameId, o1, offsets1);
@@ -1795,7 +1811,7 @@ namespace example {
         // draw shadows
         // ...
         const auto cascadeMatrices = shadowMap->getCascadeMatrices();
-        scene->draw(engine::scene::RenderPass::eShadow, commandList, transferCommandList, frameId, viewParams, shadowObjects, offsets, &cascadeMatrices);
+        scene->draw(engine::scene::RenderPass::eShadow, commandList, transferCommandList, frameId, viewParams, shadowObjects, offsets0, &cascadeMatrices);
         shadowMap->endRenderPass(*commandList);
 
         // draw scene

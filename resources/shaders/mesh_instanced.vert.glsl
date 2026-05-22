@@ -3,7 +3,7 @@
 layout (location = 0) in vec3 a_position;
 layout (location = 1) in vec3 a_normal;
 layout (location = 2) in vec2 a_uv;
-layout (location = 3) in uint a_sbo_offset; // per instance value
+//layout (location = 3) in uint a_sbo_offset; // per instance value
 
 layout (location = 0) out vec3 v_normal;
 layout (location = 1) out vec2 v_uv;
@@ -25,9 +25,14 @@ layout (set = 1, binding = 0) readonly buffer Transformations {
    mat3x4 transforms[];
 } sbo;
 
+layout (set = 1, binding = 1) readonly buffer offsetIds {
+   uint data[];
+} in_offset_ids;
+
 layout(push_constant) uniform Params {
 	vec4 color;
 	vec4 emissive;
+	uvec4 offset;
 } push;
 
 void main() {
@@ -37,7 +42,7 @@ void main() {
 
 	{ // with 48 bytes transforms
 		// common 
-		const mat3x4 transform = sbo.transforms[a_sbo_offset];
+		const mat3x4 transform = sbo.transforms[in_offset_ids.data[gl_InstanceIndex + push.offset.x]];//sbo.transforms[a_sbo_offset];
 		const mat4 model = mat4(
 			transform[0],
 			transform[1],

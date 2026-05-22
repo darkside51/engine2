@@ -155,11 +155,6 @@
 					"stride" : 4,
 					"binding" : 2,
 					"inputRate": "eVertex"
-				},
-				{
-					"stride" : 4,
-					"binding" : 3,
-					"inputRate": "eInstance"
 				}
 			],
 			"attributes":[
@@ -180,11 +175,38 @@
                     "binding": 2,
                     "format": "eR16G16_Sfloat",
                     "offset": 0
-				},
+				}
+			]
+		}
+	},
+	"mesh_shadows": {
+		"rasterisationState": {
+			"polygonMode": "eFill",
+			"cullmode": "eBack"
+		},
+		"depthStencilState": {
+			"depth": {
+				"depthTestEnable": true,
+				"depthWriteEnable": true,
+				"depthCompareOp": "eGreater"
+			}
+		},
+		"inputAssemblyState": {
+			"topology" : "eTriangles"
+		},
+		"vertexInputState": {
+			"inputBindings": [
 				{
-					"location": 3,
-                    "binding": 3,
-                    "format": "eR32_Uint",
+					"stride" : 8,
+					"binding" : 0,
+					"inputRate": "eVertex"
+				}
+			],
+			"attributes":[
+				{
+					"location": 0,
+                    "binding": 0,
+                    "format": "eR16G16B16_Sfloat",
                     "offset": 0
 				}
 			]
@@ -301,11 +323,6 @@
 					"stride" : 4,
 					"binding" : 0,
 					"inputRate": "eVertex"
-				},
-				{
-					"stride" : 4,
-					"binding" : 1,
-					"inputRate": "eInstance"
 				}
 			],
 			"attributes":[
@@ -313,12 +330,6 @@
 					"location": 0,
                     "binding": 0,
                     "format": "eR16G16_Sfloat",
-                    "offset": 0
-				},
-				{
-					"location": 1,
-                    "binding": 1,
-                    "format": "eR32_Uint",
                     "offset": 0
 				}
 			]

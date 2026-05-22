@@ -1,7 +1,7 @@
 #version 450
 
 layout (location = 0) in vec2 a_uv;
-layout (location = 1) in uint a_skeleton_ids; // per instance value
+//layout (location = 1) in uint a_skeleton_ids; // per instance value
 
 layout (set = 0, binding = 0) uniform UniformBuffer {
 	mat4 view;
@@ -19,6 +19,10 @@ layout (set = 1, binding = 1) readonly buffer Normals {
    vec4 data[];
 } in_normals;
 
+layout (set = 1, binding = 2) readonly buffer SkeletonIds {
+   uint data[];
+} in_skeleton_ids;
+
 layout (location = 0) out vec3 v_normal;
 layout (location = 1) out vec2 v_uv;
 layout (location = 2) out vec4 v_color;
@@ -29,6 +33,7 @@ layout (location = 4) out vec3 v_worldPosition;
 layout(push_constant) uniform Params {
 	vec4 color;
 	vec4 emissive;
+	uvec4 offset;
 } push;
 
 void main() {
@@ -38,7 +43,7 @@ void main() {
 	//const uint vertexCount = (a_skeleton_ids >> 16u) & 0xffffu;
 	//const uint vertexId = gl_VertexIndex + skeletonId * vertexCount;
 
-	const uint vertexId = gl_VertexIndex + a_skeleton_ids;
+	const uint vertexId = gl_VertexIndex + in_skeleton_ids.data[gl_InstanceIndex + push.offset.x];//a_skeleton_ids;
 	gl_Position = u_viewParams.viewProjection * in_positions.data[vertexId];
 	v_normal = in_normals.data[vertexId].xyz;
 	v_uv = a_uv;

@@ -148,7 +148,9 @@ namespace engine::graphics {
             .borderColor = BorderColor::eFloat_Opaque_Black,
             .maxAnisotropy = 0.0f
         };
+    }
 
+    void CascadeShadowMap::prepare() {
         _device.evaluateSampler(_sampler);
     }
 

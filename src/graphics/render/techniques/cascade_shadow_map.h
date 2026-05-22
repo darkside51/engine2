@@ -21,6 +21,7 @@ namespace engine::graphics {
             uint16_t size, uint8_t cascades, uint8_t bits, float near, float far);
 
         void createRenderData();
+        void prepare();
         void initCascadeSplits() noexcept;
         void updateCascades(const mat4f & cameraInverse);
 
@@ -33,6 +34,7 @@ namespace engine::graphics {
         bool setDirection(const vec3f & direction, float eps = 1e-5f) noexcept;
 
         std::span<const mat4f> getCascadeMatrices() const noexcept { return _cascadeMatrices; }
+        rhi::runtime::RenderPass getRenderPass() const noexcept { return _renderPass; }
 
     private:
         std::vector<CascadeFrameBuffer> _framebuffers; // inflight frames count

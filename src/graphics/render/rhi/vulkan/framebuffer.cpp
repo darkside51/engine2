@@ -18,10 +18,12 @@ FrameBuffer::FrameBuffer(const Device & device, std::vector<rhi::FrameBufferAtta
 
     std::vector<VkImageView> attachments;
     attachments.reserve(_attachments.size());
+    uint8_t layersCount = 1u;
     for (auto & attachment : _attachments) {
         attachments.emplace_back(static_cast<Image*>(attachment.image)->getImageView(attachment.viewType, 
                             attachment.layer, attachment.layersCount, attachment.level, attachment.levelsCount, attachment.aspect));
         _size = rhi::getMipLevelSize(attachment.imageSize, attachment.level);
+        layersCount = std::max(layersCount, attachment.layersCount);
     }
 
     VkFramebufferCreateInfo info = {};
@@ -33,7 +35,7 @@ FrameBuffer::FrameBuffer(const Device & device, std::vector<rhi::FrameBufferAtta
     info.pAttachments = attachments.data();
     info.width = _size.width;
     info.height = _size.height;
-    info.layers = 1u;
+    info.layers = layersCount; // is it correct?
 
     const auto * allocationCallbacks = _device.gpu().getInstance().getAllocationCallbacks();
     if (auto result = vkCreateFramebuffer(_device(), &info, allocationCallbacks, &_framebuffer); result != VK_SUCCESS) {
