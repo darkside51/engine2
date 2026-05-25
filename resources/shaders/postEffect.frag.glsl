@@ -80,8 +80,8 @@ void main() {
 	out_color = mix(out_color, emissive, step(1.1, push.options.y) * step(push.options.y, 2.1));
 	out_color = mix(out_color, worldPosition, step(2.1, push.options.y) * step(push.options.y, 3.1));
 
-	const float shadowDepth = texture(textureShadowMap, vec4(v_uv, 0.0, 0.0)).r;
-	out_color = mix(out_color, vec4(shadowDepth, shadowDepth, shadowDepth, 1.0f), step(3.1, push.options.y) * step(push.options.y, 4.1));
+	const float shadowDepth = texture(textureShadowMap, vec4(v_uv, clamp(int(push.options.y - 4.0), 0, 2), 0.0)).r;
+	out_color = mix(out_color, vec4(shadowDepth, shadowDepth, shadowDepth, 1.0f), step(3.1, push.options.y) * step(push.options.y, 7.1));
 
 	// vignette
 	if (push.options.w > 0.0f) {

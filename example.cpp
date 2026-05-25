@@ -106,7 +106,9 @@ namespace example {
         eSsao = 1u,
         eEmissive = 2u,
         eWorldPos = 3u,
-        eShadowCascade0 = 4u
+        eShadowCascade0 = 4u,
+        eShadowCascade1 = 5u,
+        eShadowCascade2 = 6u
     };
 
     float ssaoEnable = 1.0f;
@@ -130,10 +132,11 @@ namespace example {
 
     engine::vec4f ambientColor = engine::vec4f{0.5f};
     engine::vec4f directionalLightColor = engine::vec4f{1.0f};
-    engine::vec3f light = {0.26f, 0.15f, -0.75f};
+    engine::vec3f lightDir = {0.26f, 0.15f, -0.75f};
+    bool lightDirty = false;
     
     void optionsWindow() {
-        ImGui::SetNextWindowSize(ImVec2(540, 610), ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowSize(ImVec2(540, 670), ImGuiCond_FirstUseEver);
         if (!ImGui::Begin("options", &showOptions, 0)) {
             // early out if the window is collapsed, as an optimization.
             ImGui::End();
@@ -167,7 +170,9 @@ namespace example {
         ImGui::DragFloat("vignette", &vignetteExtent, 0.01f, 0.0f, 1.0f);
         
         ImGui::NewLine();
-        ImGui::DragFloat3("light direction", &light[0u], 0.01, -1.0f, 1.0f);
+        if (ImGui::DragFloat3("light direction", &lightDir[0u], 0.01, -1.0f, 1.0f)) {
+            lightDirty = true;
+        }
         ImGui::ColorEdit3("ambient color", &ambientColor[0u]);
         ImGui::DragFloat("ambient factor", &ambientColor[3u], 0.01f, 0.0f, 1.0f);
         ImGui::ColorEdit3("directional light color", &directionalLightColor[0u]);
@@ -188,6 +193,12 @@ namespace example {
         }
         if (ImGui::RadioButton("shadow cascade 0", debugShow == DebugShow::eShadowCascade0)) { 
             debugShow = DebugShow::eShadowCascade0;
+        }
+        if (ImGui::RadioButton("shadow cascade 1", debugShow == DebugShow::eShadowCascade1)) { 
+            debugShow = DebugShow::eShadowCascade1;
+        }
+        if (ImGui::RadioButton("shadow cascade 2", debugShow == DebugShow::eShadowCascade2)) { 
+            debugShow = DebugShow::eShadowCascade2;
         }
         ImGui::End();
     }
@@ -897,9 +908,9 @@ namespace example {
         scene->registerGraphicsPipeline(_api->createGraphicsPipeline(*_device, _renderPasses[kGbufferRenderPass], _programs[kMeshAfterComputeProgram], info6, 0u));
 
         // shadow
-        shadowMap = std::make_unique<engine::graphics::CascadeShadowMap>(*_api, *_device, 2048u, 3u, 24u, kNearFarPlane.y, kNearFarPlane.x);
+        shadowMap = std::make_unique<engine::graphics::CascadeShadowMap>(*_api, *_device, 2048u, 3u, 24u, kNearFarPlane.x, kNearFarPlane.y);
         shadowMap->createRenderData();
-        shadowMap->setDirection(glm::normalize(-light));
+        shadowMap->setDirection(glm::normalize(lightDir));
 
         const GraphicsPipelineStatesInfo info7 = engine::parseGraphicsPipelineInfo(json["mesh_shadows"]);
         const uint32_t meshShadowPipeline = scene->registerGraphicsPipeline(_api->createGraphicsPipeline(*_device, shadowMap->getRenderPass(), _programs[kMeshShadowProgram], info7, 0u));
@@ -1761,9 +1772,11 @@ namespace example {
         // prepare frame draw data (update uniforms and copy buffers memory)
         prepareFrameDrawData(commandList, frameId, delta);
 
-        if (viewParamsUpdated) { // viewParams has been changed
+        if (viewParamsUpdated || lightDirty) { // viewParams has been changed
+            shadowMap->setDirection(glm::normalize(lightDir));
             shadowMap->updateCascades(glm::inverse(viewParams.cameraTransform));
             viewParamsUpdated = false;
+            lightDirty = false;
         }
 
         // render
@@ -1945,7 +1958,7 @@ namespace example {
             .view = viewParams.cameraView,
             .ambient = ambientColor,
             .directionalLight = directionalLightColor,
-            .light = engine::vec4f{glm::normalize(normalMatrix * light), 0.0f},
+            .light = engine::vec4f{glm::normalize(normalMatrix * lightDir), 0.0f},
             .options = {ssaoEnable, static_cast<float>(debugShow), 0.0f, vignetteExtent}
         };
 

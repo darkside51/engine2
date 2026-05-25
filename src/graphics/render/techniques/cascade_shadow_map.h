@@ -50,6 +50,7 @@ namespace engine::graphics {
 
 		vec3f _direction = vec3f{0.0f, 0.0f, -1.0f};
         float _clipRange;
+        bool _reversedDepth = false;
         float _near;
         float _far;
         float _cascadeSplitLambda = 0.95f;

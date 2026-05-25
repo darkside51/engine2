@@ -12,8 +12,9 @@ namespace engine::graphics {
             _splitDepths(cascades),
             _cascadeSplits(cascades),
             _clipRange(std::abs(far - near)),
-            _near(near),
-            _far(far),
+            _reversedDepth(near > far),
+            _near(_reversedDepth ? far : near),
+            _far(_reversedDepth ? near : far),
             _size(size),
             _cascadesCount(cascades),
             _bits(bits) {
@@ -144,7 +145,7 @@ namespace engine::graphics {
             .addressModeU = SamplerAddressMode::eClamp_To_Border,
             .addressModeV = SamplerAddressMode::eClamp_To_Border,
             .addressModeW = SamplerAddressMode::eClamp_To_Border,
-            .compareOp = CompareOp::eGreater,
+            .compareOp = _reversedDepth ? CompareOp::eGequal : CompareOp::eLess,
             .borderColor = BorderColor::eFloat_Opaque_Black,
             .maxAnisotropy = 0.0f
         };
@@ -178,14 +179,24 @@ namespace engine::graphics {
 		for (uint8_t i = 0u; i < _cascadesCount; ++i) {
             const float splitDist = _cascadeSplits[i];
 
-            std::array frustumCorners = {
+            auto frustumCorners = _reversedDepth ? std::array{
+				vec3f{-1.0f,  1.0f, 1.0f},
+				vec3f{ 1.0f,  1.0f, 1.0f},
+				vec3f{ 1.0f, -1.0f, 1.0f},
+				vec3f{-1.0f, -1.0f,	1.0f},
 				vec3f{-1.0f,  1.0f, 0.0f},
-				vec3f{1.0f,  1.0f, 0.0f},
-				vec3f{1.0f, -1.0f, 0.0f},
+				vec3f{ 1.0f,  1.0f, 0.0f},
+				vec3f{ 1.0f, -1.0f, 0.0f},
+				vec3f{-1.0f, -1.0f, 0.0f}
+			} :
+            std::array{
+				vec3f{-1.0f,  1.0f, 0.0f},
+				vec3f{ 1.0f,  1.0f, 0.0f},
+				vec3f{ 1.0f, -1.0f, 0.0f},
 				vec3f{-1.0f, -1.0f,	0.0f},
 				vec3f{-1.0f,  1.0f, 1.0f},
-				vec3f{1.0f,  1.0f, 1.0f},
-				vec3f{1.0f, -1.0f, 1.0f},
+				vec3f{ 1.0f,  1.0f, 1.0f},
+				vec3f{ 1.0f, -1.0f, 1.0f},
 				vec3f{-1.0f, -1.0f, 1.0f}
 			};
 
@@ -215,11 +226,13 @@ namespace engine::graphics {
             radius = std::ceil(radius * 16.0f) / 16.0f;
 
             const mat4f lightViewMatrix = glm::lookAtRH(frustumCenter - _direction * radius, frustumCenter, vec3f{0.0f, 1.0f, 0.0f});
-			const mat4f lightOrthoMatrix = glm::orthoRH_ZO(-radius, radius, -radius, radius, 0.0f, 2.0f * radius);
-            // mat4f lightOrthoMatrix = glm::ortho(-radius, radius, -radius, radius, -2.0f * radius, 2.0f * radius);
-
+            const mat4f lightOrthoMatrix = _reversedDepth ? 
+                glm::orthoRH_ZO(-radius, radius, -radius, radius, 2.0f * radius, 0.0f) : 
+                glm::orthoRH_ZO(-radius, radius, -radius, radius, 0.0f, 2.0f * radius);
+			
             // store split distance and matrix in cascade
-			_splitDepths[i] = (_near + splitDist * _clipRange) * -1.0f;
+            const float sign = _reversedDepth ? -1.0f : 1.0f;
+            _splitDepths[i] = (_near + sign * splitDist * _clipRange) * -1.0f;
 			_cascadeMatrices[i] = lightOrthoMatrix * lightViewMatrix;
 
             lastSplitDist = _cascadeSplits[i];
@@ -227,8 +240,8 @@ namespace engine::graphics {
     }
 
     void CascadeShadowMap::beginRenderPass(rhi::runtime::CommandList & commandList, uint8_t frameId) noexcept {
-        constexpr auto clearValues = std::array{
-            rhi::ClearValue{0.0f, 0u},
+        const auto clearValues = std::array{
+            rhi::ClearValue{_reversedDepth ? 0.0f : 1.0f, 0u},
         };
         commandList.setViewport(0.0f, 0.0f, _size, _size);
         commandList.setScissor({{0, 0}, {_size, _size}});
