@@ -36,6 +36,10 @@ namespace engine::graphics {
         std::span<const mat4f> getCascadeMatrices() const noexcept { return _cascadeMatrices; }
         rhi::runtime::RenderPass getRenderPass() const noexcept { return _renderPass; }
 
+        std::span<const float> getCascadeSplitDepths() const noexcept { return _splitDepths; }
+
+        const rhi::SamplerValue & getSampler() const noexcept { return _sampler; }
+
     private:
         std::vector<CascadeFrameBuffer> _framebuffers; // inflight frames count
         rhi::runtime::RenderPass _renderPass;

@@ -182,7 +182,7 @@
 	"mesh_shadows": {
 		"rasterisationState": {
 			"polygonMode": "eFill",
-			"cullmode": "eBack"
+			"cullmode": "eFront"
 		},
 		"depthStencilState": {
 			"depth": {

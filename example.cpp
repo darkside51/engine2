@@ -97,6 +97,11 @@ namespace example {
     std::vector<engine::scene::AttachmentObject*> objects(1024u);
 
     std::unique_ptr<engine::graphics::CascadeShadowMap> shadowMap = nullptr;
+    std::unique_ptr<engine::graphics::InflightBuffer> shadowMapUniformBuffer = nullptr;
+    struct ShadowMapUniforms {
+        std::array<engine::mat4f, 3u> cascades;
+        engine::vec4f splits;
+    };
 
     // options
     bool showOptions = true;
@@ -1420,6 +1425,14 @@ namespace example {
 
         //
         shadowMap->prepare();
+        const engine::rhi::BufferInfo unifromsInfo {
+            engine::rhi::BufferUsageFlags::eUniform_Buffer | engine::rhi::BufferUsageFlags::eTransfer_Dst,
+            engine::rhi::MemoryPropertyFlags::eDeviceLocal | engine::rhi::MemoryPropertyFlags::eHostVisible
+        };
+        shadowMapUniformBuffer = std::make_unique<engine::graphics::InflightBuffer>(
+            *_api, *_device, unifromsInfo, sizeof(ShadowMapUniforms)
+        );
+        shadowMapUniformBuffer->createBuffers();
     }
 
     void Example::prepare() {
@@ -1775,9 +1788,17 @@ namespace example {
         if (viewParamsUpdated || lightDirty) { // viewParams has been changed
             shadowMap->setDirection(glm::normalize(lightDir));
             shadowMap->updateCascades(glm::inverse(viewParams.cameraTransform));
+
+            auto * shadowUniforms = shadowMapUniformBuffer->memory2<ShadowMapUniforms>();
+            memcpy(shadowUniforms->cascades.data(), shadowMap->getCascadeMatrices().data(), sizeof(engine::mat4f) * 3u);
+            memcpy(&shadowUniforms->splits, shadowMap->getCascadeSplitDepths().data(), shadowMap->getCascadeSplitDepths().size() * sizeof(float));
+            shadowMapUniformBuffer->modify();
+
             viewParamsUpdated = false;
             lightDirty = false;
         }
+
+        shadowMapUniformBuffer->commit(*transferCommandList, frameId);
 
         // render
         scene->beginFrame(now);
@@ -1979,9 +2000,10 @@ namespace example {
         commandList->bindImage(3u, _gBufferAttachments[frameId].emissive, linearSampler);
         commandList->bindImage(4u, _gBufferAttachments[frameId].position, nearestSampler);
         commandList->bindImage(
-            5u, shadowMap->getImage(frameId), linearSampler, 0u, 
+            5u, shadowMap->getImage(frameId), shadowMap->getSampler(), 0u, 
             rhi::ImageAspectFlags::eDepth, rhi::ImageViewType::eType_2D_Array 
         );
+        commandList->bindBuffer(6u, (*shadowMapUniformBuffer)(frameId), 0u, 0u);
 
         commandList->pushConstants(rhi::shaders::Stages::eVertex | rhi::shaders::Stages::eFragment, 0u, sizeof(PostParams), &postParams);
         commandList->drawIndexed(6u);

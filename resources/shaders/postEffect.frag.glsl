@@ -21,6 +21,11 @@ layout(set = 0, binding = 3) uniform sampler2D textureEmissive;
 layout(set = 0, binding = 4) uniform sampler2D texturePositionDepth;
 layout(set = 0, binding = 5) uniform sampler2DArrayShadow textureShadowMap;
 
+layout (set = 0, binding = 6) uniform shadowsUniformBuffer {
+	mat4 cascades[3];
+	vec4 splits;
+} u_shadow;
+
 layout (location = 0) in vec2 v_uv;
 layout (location = 1) in vec3 v_rayDir;
 layout (location = 0) out vec4 out_color;
@@ -47,6 +52,20 @@ float ssaoRadialBlur(int blurRange) {
 	return result / float(n);
 }
 
+float textureProj(vec4 shadowCoord, vec2 offset, uint cascadeIndex) {
+	float shadow = 1.0;
+	float bias = 0.005;
+
+	if (shadowCoord.z > -1.0 && shadowCoord.z < 1.0) {
+		float dist = texture(textureShadowMap, vec4(shadowCoord.st + offset, cascadeIndex, shadowCoord.z)).r;
+		if (shadowCoord.w > 0.0 && dist < 0.001) {
+			shadow = 0.2;
+		}
+	}
+	return shadow;
+
+}
+
 void main() {
 	const bool aoEnable = push.options.x > 0.0f;
 
@@ -61,12 +80,29 @@ void main() {
 	const vec4 worldPosition = vec4(reconstructPosition(v_rayDir, cameraPosition, linearDepth), 1.0f);
 	//const vec4 worldPosition = texture(texturePositionDepth, v_uv);
 
+	// shadows
+	// get cascade index for the current fragment's view position
+	uint cascade = 0;
+	//for (uint i = 0; i < (3 - 1); ++i) {
+	//	if (in_view_depth < u_shadow.splits[i]) {	
+	//		cascade = i + 1;
+	//	}
+	//}
+
+	vec4 shadowCoord = u_shadow.cascades[cascade] * worldPosition;
+	shadowCoord.xy = (shadowCoord.xy + 1.0) * 0.5;
+	shadowCoord.xyz = shadowCoord.xyz / shadowCoord.w;
+
+	const float shadowValue = textureProj(shadowCoord, vec2(0.0f), cascade);//1.0f - texture(textureShadowMap, vec4(shadowCoord.xy, cascade, shadowCoord.z)).r;
+	//const float shadowValue = 1.0f - texture(textureShadowMap, vec4(shadowCoord.xy, cascade, shadowCoord.z)).r;
+	//
+
 	vec3 viewDir = vec3(1.0, 0.0, 0.0);
 	vec3 reflect = reflect(push.light.xyz, normal);
 	vec3 specular = vec3(0.0);//pow(max(dot(reflect, viewDir), 0.0), 8.0) * vec3(1.0);
 
 	const float NdotL = max(0.0f, dot(normal, -push.light.xyz));
-	const vec3 baseColor = (push.ambient.xyz * push.ambient.w + NdotL * (push.directionalLight.xyz * push.directionalLight.w)) * albedo.rgb + specular + emissive.rgb;
+	const vec3 baseColor = shadowValue * (push.ambient.xyz * push.ambient.w + NdotL * (push.directionalLight.xyz * push.directionalLight.w)) * albedo.rgb + specular + emissive.rgb;
 
 	//const vec3 baseColor = albedo.rgb * (NdotL + ambient) + specular + emissive.rgb;
 	const vec3 color = pow(baseColor * occlusion, vec3(0.4545)); // gamma correction 1.0 / 2.2 = 0.4545
