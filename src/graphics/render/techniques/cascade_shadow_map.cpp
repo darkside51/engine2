@@ -156,8 +156,8 @@ namespace engine::graphics {
     }
 
     void CascadeShadowMap::initCascadeSplits() noexcept {
-        const float minZ = _near + 1.0f;
-		const float maxZ = _far - 20.0f;
+        const float minZ = _near + 1.5f;
+		const float maxZ = _far - 30.0f;
 
 		const float range = maxZ - minZ;
 		const float ratio = maxZ / minZ;
@@ -231,8 +231,7 @@ namespace engine::graphics {
                 glm::orthoRH_ZO(-radius, radius, -radius, radius, 0.0f, 2.0f * radius);
 			
             // store split distance and matrix in cascade
-            //const float sign = _reversedDepth ? -1.0f : 1.0f;
-            _splitDepths[i] = (_near + /*sign **/ splitDist * _clipRange) * -1.0f;
+            _splitDepths[i] = (_near + splitDist * _clipRange) * -1.0f;
 			_cascadeMatrices[i] = lightOrthoMatrix * lightViewMatrix;
 
             lastSplitDist = _cascadeSplits[i];

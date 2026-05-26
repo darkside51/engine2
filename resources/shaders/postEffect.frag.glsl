@@ -55,31 +55,31 @@ float ssaoRadialBlur(int blurRange) {
 }
 
 float textureProj(vec4 shadowCoord, vec2 offset, uint cascadeIndex) {
-	float shadow = 1.0;
-	float bias = 0.001;
+	float shadow = 1.0f;
+	const float bias = 0.001f;
 
-	if (shadowCoord.z > -1.0 && shadowCoord.z < 1.0) {
-		//float dist = texture(textureShadowMap, vec4(shadowCoord.st + offset, cascadeIndex, shadowCoord.z)).r;
-		//if (shadowCoord.w > 0.0 && dist < 0.001) {
-		//	shadow = 0.2;
+	if (shadowCoord.z > -1.0f && shadowCoord.z < 1.0f) {
+		//const float dist = texture(textureShadowMap, vec4(shadowCoord.xy + offset, cascadeIndex, shadowCoord.z + bias));
+		//if (shadowCoord.w > 0.0 && dist < bias) {
+		//	shadow = clamp(push.ambient.w + dist, 0.0f, 1.0f);
 		//}
-		float dist = texture(textureShadowMap, vec3(shadowCoord.xy + offset, cascadeIndex)).r;
+		const float dist = texture(textureShadowMap, vec3(shadowCoord.xy + offset, cascadeIndex)).r;
 		if (shadowCoord.w > 0 && dist > shadowCoord.z + bias) {
-			shadow = 0.2;
+			shadow = push.ambient.w;
 		}
 	}
 	return shadow;
 }
 
 float filterPCF(vec4 sc, uint cascadeIndex) {
-	ivec2 texDim = textureSize(textureShadowMap, 0).xy;
-	float scale = 0.75;
-	float dx = scale * 1.0 / float(texDim.x);
-	float dy = scale * 1.0 / float(texDim.y);
+	const ivec2 texDim = textureSize(textureShadowMap, 0).xy;
+	const float scale = 0.65;
+	const float dx = scale * 1.0 / float(texDim.x);
+	const float dy = scale * 1.0 / float(texDim.y);
 
 	float shadowFactor = 0.0;
 	int count = 0;
-	int range = 1;
+	const int range = 1;
 	
 	for (int x = -range; x <= range; x++) {
 		for (int y = -range; y <= range; y++) {
@@ -115,9 +115,9 @@ void main() {
 	}
 
 	vec4 shadowCoord = u_shadow.cascades[cascade] * worldPosition;
+	shadowCoord = shadowCoord / shadowCoord.w;
 	shadowCoord.xy = (shadowCoord.xy + 1.0) * 0.5;
-	shadowCoord.xyz = shadowCoord.xyz / shadowCoord.w;
-
+	
 	//const float shadowValue = 1.0f - texture(textureShadowMap, vec4(shadowCoord.xy, cascade, shadowCoord.z)).r;
 	//const float shadowValue = textureProj(shadowCoord, vec2(0.0f), cascade);
 	const float shadowValue = filterPCF(shadowCoord, cascade);
@@ -142,9 +142,13 @@ void main() {
 	out_color = mix(out_color, emissive, step(1.1, push.options.y) * step(push.options.y, 2.1));
 	out_color = mix(out_color, worldPosition, step(2.1, push.options.y) * step(push.options.y, 3.1));
 
-	const float shadowDepth = 0.0f;//texture(textureShadowMap, vec4(v_uv, clamp(int(push.options.y - 4.0), 0, 2), 0.0)).r;
-	out_color = mix(out_color, vec4(shadowDepth, shadowDepth, shadowDepth, 1.0f), step(3.1, push.options.y) * step(push.options.y, 6.9));
-
+	
+	if (push.options.y > 3.0f && push.options.y < 7.0) {
+		const float shadowDepth = texture(textureShadowMap, vec3(v_uv, clamp(int(push.options.y - 4.0), 0, 2))).r;
+		//texture(textureShadowMap, vec4(v_uv, clamp(int(push.options.y - 4.0), 0, 2), 0.0)).r;
+		out_color = mix(out_color, vec4(shadowDepth, shadowDepth, shadowDepth, 1.0f), step(3.1, push.options.y) * step(push.options.y, 6.9));
+	}
+	
 	// vignette
 	if (push.options.w > 0.0f) {
 		const vec2 uv =  v_uv * (1.0f - v_uv.yx);

@@ -136,7 +136,7 @@ namespace example {
 
     float vignetteExtent = 0.1f;
 
-    engine::vec4f ambientColor = engine::vec4f{0.5f};
+    engine::vec4f ambientColor = engine::vec4f{0.25f};
     engine::vec4f directionalLightColor = engine::vec4f{1.0f};
     engine::vec3f lightDir = {0.26f, 0.15f, -0.75f};
     bool lightDirty = false;
