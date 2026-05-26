@@ -87,7 +87,7 @@ namespace example {
     std::optional<engine::scene::Scene> scene{};
 
     // engine::vec2f kNearFarPlane = {0.001f, 100.0f}; // common depth
-    engine::vec2f kNearFarPlane = {100.0f, 0.001f}; // reverse depth
+    engine::vec2f kNearFarPlane = {50.0f, 0.01f}; // reverse depth
     engine::scene::Camera camera;
     engine::scene::SphereCameraController controller{camera};
     engine::scene::Node * sceneWorldRoot = nullptr;
@@ -113,7 +113,8 @@ namespace example {
         eWorldPos = 3u,
         eShadowCascade0 = 4u,
         eShadowCascade1 = 5u,
-        eShadowCascade2 = 6u
+        eShadowCascade2 = 6u,
+        eDebugCascades = 7u
     };
 
     float ssaoEnable = 1.0f;
@@ -204,6 +205,9 @@ namespace example {
         }
         if (ImGui::RadioButton("shadow cascade 2", debugShow == DebugShow::eShadowCascade2)) { 
             debugShow = DebugShow::eShadowCascade2;
+        }
+        if (ImGui::RadioButton("debug cascades", debugShow == DebugShow::eDebugCascades)) { 
+            debugShow = DebugShow::eDebugCascades;
         }
         ImGui::End();
     }

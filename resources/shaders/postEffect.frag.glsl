@@ -19,7 +19,8 @@ layout(set = 0, binding = 1) uniform sampler2D textureNormal;
 layout(set = 0, binding = 2) uniform sampler2D textureAlbedo;
 layout(set = 0, binding = 3) uniform sampler2D textureEmissive;
 layout(set = 0, binding = 4) uniform sampler2D texturePositionDepth;
-layout(set = 0, binding = 5) uniform sampler2DArrayShadow textureShadowMap;
+//layout(set = 0, binding = 5) uniform sampler2DArrayShadow textureShadowMap;
+layout(set = 0, binding = 5) uniform sampler2DArray textureShadowMap;
 
 layout (set = 0, binding = 6) uniform shadowsUniformBuffer {
 	mat4 cascades[3];
@@ -27,7 +28,8 @@ layout (set = 0, binding = 6) uniform shadowsUniformBuffer {
 } u_shadow;
 
 layout (location = 0) in vec2 v_uv;
-layout (location = 1) in vec3 v_rayDir;
+layout (location = 1) in vec3 v_rayDirWorld;
+layout (location = 2) in vec3 v_rayDirView;
 layout (location = 0) out vec4 out_color;
 
 layout(push_constant) uniform Params {
@@ -54,16 +56,38 @@ float ssaoRadialBlur(int blurRange) {
 
 float textureProj(vec4 shadowCoord, vec2 offset, uint cascadeIndex) {
 	float shadow = 1.0;
-	float bias = 0.005;
+	float bias = 0.001;
 
 	if (shadowCoord.z > -1.0 && shadowCoord.z < 1.0) {
-		float dist = texture(textureShadowMap, vec4(shadowCoord.st + offset, cascadeIndex, shadowCoord.z)).r;
-		if (shadowCoord.w > 0.0 && dist < 0.001) {
+		//float dist = texture(textureShadowMap, vec4(shadowCoord.st + offset, cascadeIndex, shadowCoord.z)).r;
+		//if (shadowCoord.w > 0.0 && dist < 0.001) {
+		//	shadow = 0.2;
+		//}
+		float dist = texture(textureShadowMap, vec3(shadowCoord.xy + offset, cascadeIndex)).r;
+		if (shadowCoord.w > 0 && dist > shadowCoord.z + bias) {
 			shadow = 0.2;
 		}
 	}
 	return shadow;
+}
 
+float filterPCF(vec4 sc, uint cascadeIndex) {
+	ivec2 texDim = textureSize(textureShadowMap, 0).xy;
+	float scale = 0.75;
+	float dx = scale * 1.0 / float(texDim.x);
+	float dy = scale * 1.0 / float(texDim.y);
+
+	float shadowFactor = 0.0;
+	int count = 0;
+	int range = 1;
+	
+	for (int x = -range; x <= range; x++) {
+		for (int y = -range; y <= range; y++) {
+			shadowFactor += textureProj(sc, vec2(dx*x, dy*y), cascadeIndex);
+			count++;
+		}
+	}
+	return shadowFactor / count;
 }
 
 void main() {
@@ -77,24 +101,26 @@ void main() {
 	const float linearDepth = texture(texturePositionDepth, v_uv).r;
     const vec3 cameraPosition = push.view[3].xyz;
 
-	const vec4 worldPosition = vec4(reconstructPosition(v_rayDir, cameraPosition, linearDepth), 1.0f);
+	const vec4 worldPosition = vec4(reconstructPosition(v_rayDirWorld, cameraPosition, linearDepth), 1.0f);
+	const float viewDepth = reconstructPosition(v_rayDirView, vec3(0.0f), linearDepth).z;
 	//const vec4 worldPosition = texture(texturePositionDepth, v_uv);
 
 	// shadows
 	// get cascade index for the current fragment's view position
 	uint cascade = 0;
-	//for (uint i = 0; i < (3 - 1); ++i) {
-	//	if (in_view_depth < u_shadow.splits[i]) {	
-	//		cascade = i + 1;
-	//	}
-	//}
+	for (uint i = 0; i < 2; ++i) {
+		if (viewDepth < u_shadow.splits[i]) {	
+			cascade = i + 1;
+		}
+	}
 
 	vec4 shadowCoord = u_shadow.cascades[cascade] * worldPosition;
 	shadowCoord.xy = (shadowCoord.xy + 1.0) * 0.5;
 	shadowCoord.xyz = shadowCoord.xyz / shadowCoord.w;
 
-	const float shadowValue = textureProj(shadowCoord, vec2(0.0f), cascade);//1.0f - texture(textureShadowMap, vec4(shadowCoord.xy, cascade, shadowCoord.z)).r;
 	//const float shadowValue = 1.0f - texture(textureShadowMap, vec4(shadowCoord.xy, cascade, shadowCoord.z)).r;
+	//const float shadowValue = textureProj(shadowCoord, vec2(0.0f), cascade);
+	const float shadowValue = filterPCF(shadowCoord, cascade);
 	//
 
 	vec3 viewDir = vec3(1.0, 0.0, 0.0);
@@ -116,8 +142,8 @@ void main() {
 	out_color = mix(out_color, emissive, step(1.1, push.options.y) * step(push.options.y, 2.1));
 	out_color = mix(out_color, worldPosition, step(2.1, push.options.y) * step(push.options.y, 3.1));
 
-	const float shadowDepth = texture(textureShadowMap, vec4(v_uv, clamp(int(push.options.y - 4.0), 0, 2), 0.0)).r;
-	out_color = mix(out_color, vec4(shadowDepth, shadowDepth, shadowDepth, 1.0f), step(3.1, push.options.y) * step(push.options.y, 7.1));
+	const float shadowDepth = 0.0f;//texture(textureShadowMap, vec4(v_uv, clamp(int(push.options.y - 4.0), 0, 2), 0.0)).r;
+	out_color = mix(out_color, vec4(shadowDepth, shadowDepth, shadowDepth, 1.0f), step(3.1, push.options.y) * step(push.options.y, 6.9));
 
 	// vignette
 	if (push.options.w > 0.0f) {
@@ -131,4 +157,18 @@ void main() {
 	//out_color = vec4(normal, 1.0);
 	//out_color = emissive;
 	//out_color = texture(textureWorldPosition, v_uv);
+
+	if (push.options.y > 6.0) {
+		switch(cascade) {
+			case 0 : 
+				out_color.rgb *= vec3(1.0f, 0.25f, 0.25f);
+				break;
+			case 1 : 
+				out_color.rgb *= vec3(0.25f, 1.0f, 0.25f);
+				break;
+			case 2 : 
+				out_color.rgb *= vec3(0.25f, 0.25f, 1.0f);
+				break;
+		}
+	}
 }

@@ -4,7 +4,8 @@
 
 layout (location = 0) in vec2 a_position;
 layout (location = 0) out vec2 v_uv;
-layout (location = 1) out vec3 v_rayDir;
+layout (location = 1) out vec3 v_rayDirWorld;
+layout (location = 2) out vec3 v_rayDirView;
 
 layout(push_constant) uniform Params {
 	mat4 view;
@@ -24,5 +25,6 @@ void main() {
 		push.view[2].xyz
 	));
 
-	v_rayDir = createRay(gl_Position, m[1], -m[0], -m[2], push.view[1][3], push.view[0][3]);
+	v_rayDirWorld = createRay(gl_Position, m[1], -m[0], -m[2], push.view[1][3], push.view[0][3]);
+	v_rayDirView = createRay(gl_Position, vec3(0.0, 1.0, 0.0), vec3(-1.0, 0.0, 0.0), vec3(0.0, 0.0, -1.0), push.view[1][3], push.view[0][3]);
 }

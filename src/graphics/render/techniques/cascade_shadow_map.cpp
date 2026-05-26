@@ -156,8 +156,8 @@ namespace engine::graphics {
     }
 
     void CascadeShadowMap::initCascadeSplits() noexcept {
-        const float minZ = _near;
-		const float maxZ = _near + _clipRange;
+        const float minZ = _near + 1.0f;
+		const float maxZ = _far - 20.0f;
 
 		const float range = maxZ - minZ;
 		const float ratio = maxZ / minZ;
@@ -217,13 +217,13 @@ namespace engine::graphics {
 			for (uint8_t j = 0u; j < 8u; ++j) { frustumCenter += frustumCorners[j]; }
 			frustumCenter /= 8.0f;
 
-            // float radius = 0.0f;
-			// for (uint8_t j = 0u; j < 8u; ++j) {
-			// 	const float distance = glm::length(frustumCorners[j] - frustumCenter);
-			// 	radius = std::max(radius, distance);
-			// }
-            float radius = glm::length(frustumCorners[7u] - frustumCenter);
-            radius = std::ceil(radius * 16.0f) / 16.0f;
+            float radius = 0.0f;
+			for (uint8_t j = 0u; j < 8u; ++j) {
+				const float distance = glm::length2(frustumCorners[j] - frustumCenter);
+				radius = std::max(radius, distance);
+			}
+            // float radius = glm::length(frustumCorners[7u] - frustumCenter);
+            radius = std::ceil(std::sqrt(radius) * 16.0f) / 16.0f;
 
             const mat4f lightViewMatrix = glm::lookAtRH(frustumCenter - _direction * radius, frustumCenter, vec3f{0.0f, 1.0f, 0.0f});
             const mat4f lightOrthoMatrix = _reversedDepth ? 
@@ -231,8 +231,8 @@ namespace engine::graphics {
                 glm::orthoRH_ZO(-radius, radius, -radius, radius, 0.0f, 2.0f * radius);
 			
             // store split distance and matrix in cascade
-            const float sign = _reversedDepth ? -1.0f : 1.0f;
-            _splitDepths[i] = (_near + sign * splitDist * _clipRange) * -1.0f;
+            //const float sign = _reversedDepth ? -1.0f : 1.0f;
+            _splitDepths[i] = (_near + /*sign **/ splitDist * _clipRange) * -1.0f;
 			_cascadeMatrices[i] = lightOrthoMatrix * lightViewMatrix;
 
             lastSplitDist = _cascadeSplits[i];
