@@ -69,6 +69,7 @@ namespace example {
     constexpr uint8_t kSsaoProgram = 8u;
     constexpr uint8_t kEmissiveBlurProgram = 9u;
     constexpr uint8_t kMeshShadowProgram = 10u;
+    constexpr uint8_t kMeshAfterComputeShadowProgram = 11u;
 
     constexpr uint8_t kPostEffectPipeline = 0u;
     constexpr uint8_t kSsaoPipeline = 1u;
@@ -176,13 +177,13 @@ namespace example {
         ImGui::DragFloat("vignette", &vignetteExtent, 0.01f, 0.0f, 1.0f);
         
         ImGui::NewLine();
-        if (ImGui::DragFloat3("light direction", &lightDir[0u], 0.01, -1.0f, 1.0f)) {
+        if (ImGui::DragFloat3("light direction", &lightDir[0u], 0.005f, -1.0f, 1.0f)) {
             lightDirty = true;
         }
         ImGui::ColorEdit3("ambient color", &ambientColor[0u]);
         ImGui::DragFloat("ambient factor", &ambientColor[3u], 0.01f, 0.0f, 1.0f);
         ImGui::ColorEdit3("directional light color", &directionalLightColor[0u]);
-        ImGui::DragFloat("directional light factor", &directionalLightColor[3u], 0.01f, 0.0f, 1.0f);
+        ImGui::DragFloat("directional light factor", &directionalLightColor[3u], 0.01f, 0.0f, 2.0f);
         
         ImGui::NewLine();
         if (ImGui::RadioButton("composite", debugShow == DebugShow::eCommon)) { 
@@ -413,6 +414,7 @@ namespace example {
         _ssaoKernelBuffer = {};
         _ssaoNoise = {};
 
+        shadowMapUniformBuffer = nullptr;
         shadowMap = nullptr;
         
         _pipelines.clear();
@@ -867,6 +869,12 @@ namespace example {
             const auto & vsModule = _shaderModulesManager->registerModule("mesh_instanced_shadow.vert", *_device, engine::rhi::shaders::Stages::eVertex, vBytes);
             _programs.emplace_back(_api->createProgram(*_device, std::array{vsModule.getView()}));
         }
+
+        { // kMeshAfterComputeShadowProgram
+            auto const vBytes = _fileManager.readFile("shaders/mesh_after_compute_shadow.vert.spv");
+            const auto & vsModule = _shaderModulesManager->registerModule("mesh_after_compute_shadow.vert", *_device, engine::rhi::shaders::Stages::eVertex, vBytes);
+            _programs.emplace_back(_api->createProgram(*_device, std::array{vsModule.getView()}));
+        }
     }
     
     void Example::createPipelines() {
@@ -924,6 +932,10 @@ namespace example {
         const GraphicsPipelineStatesInfo info7 = engine::parseGraphicsPipelineInfo(json["mesh_shadows"]);
         const uint32_t meshShadowPipeline = scene->registerGraphicsPipeline(_api->createGraphicsPipeline(*_device, shadowMap->getRenderPass(), _programs[kMeshShadowProgram], info7, 0u));
         scene->assignCommonPipeline(meshShadowPipeline, engine::scene::Scene::CommonPipeline::Type::eMeshShadow);
+
+        const GraphicsPipelineStatesInfo info8 = engine::parseGraphicsPipelineInfo(json["mesh_skin_shadows"]);
+        const uint32_t meshSkinShadowPipeline = scene->registerGraphicsPipeline(_api->createGraphicsPipeline(*_device, shadowMap->getRenderPass(), _programs[kMeshAfterComputeShadowProgram], info8, 0u));
+        scene->assignCommonPipeline(meshSkinShadowPipeline, engine::scene::Scene::CommonPipeline::Type::eMeshSkinnedShadow);
     }
 
     void Example::createDefaultResources() {
@@ -1654,7 +1666,7 @@ namespace example {
                 };
 
                 auto const animId = animationManager.getAnimationIndex("skeletal_mesh_anim0");
-                for (size_t i = 0u; i < 500u; ++i) {
+                for (size_t i = 0u; i < 300u; ++i) {
                     auto * meshRoot = engine::scene::createNodeWithSkeletalMesh(*scene, *modelManager, modelIndex, 
                         engine::scene::Bounds::Type::eCube, pipelines, 
                         {.size = {0.47f, 0.47f, 0.47f}, .type = engine::scene::ObjectSizeLayout::Type::eMin},
@@ -1764,7 +1776,7 @@ namespace example {
                     .skeletalPipeline = scene->isComputeSkinningEnabled() ? 2u : 1u
                 };
                 auto const animId = animationManager.getAnimationIndex("chaman_anim1");
-                for (uint16_t i = 0u; i < 500u; ++i) {
+                for (uint16_t i = 0u; i < 300u; ++i) {
                     auto * meshRoot = engine::scene::createNodeWithSkeletalMesh(*scene, *modelManager, modelIndex, 
                         engine::scene::Bounds::Type::eCube, pipelines,
                         {.size = {0.47f, 0.47f, 0.47f}, .type = engine::scene::ObjectSizeLayout::Type::eMin});
@@ -1822,13 +1834,17 @@ namespace example {
         scene->fillAttachmentsArray(viewParams, sceneWorldRoot, [](engine::scene::AttachmentObject* object) noexcept {
             if (object->typeIndex == ctti::typeIndex<engine::scene::AttachmentObject, engine::scene::Mesh>()) {
                 auto & mesh = *static_cast<engine::scene::Mesh*>(object);
-                if (mesh.getPipeline() == 1u) { 
+                //if (mesh.getPipeline() == 1u) { 
                     shadowObjects.emplace_back(object); // check visible with shadow matrix?
-                }
+                //}
             }
             return true; 
         }, objects, engine::scene::FillAttachmentFlags::eCalculateQuality);
         // printf("1: %d\n", timer.elapsed<engine::time::microseconds>());
+
+        std::sort(shadowObjects.begin(), shadowObjects.end(), [](const engine::scene::AttachmentObject * a, const engine::scene::AttachmentObject * b) noexcept {
+            return engine::scene::Scene::compareAttachmentsForDraw(*a, *b);
+        });
 
         scene->animate(now, delta, objects, animationManager); // after fillAttachmentsArrays and after beginFrame for correct
 
@@ -1836,12 +1852,15 @@ namespace example {
         // auto o1 = std::span<engine::scene::AttachmentObject*>{objects.begin() + objects.size() / 2, objects.end()};
 
         const auto offsets0 = scene->prepareDrawData(shadowObjects, frameId);
-        const auto offsets = scene->prepareDrawData(objects, frameId);
+        const auto offsets1 = scene->prepareDrawData(objects, frameId);
+        
         // const auto offsets0 = scene->prepareDrawData(o0, frameId);
         // const auto offsets1 = scene->prepareDrawData(o1, frameId);
 
         scene->dispatch(commandList, frameId, shadowObjects, offsets0);
-        scene->dispatch(commandList, frameId, objects, offsets);
+        scene->dispatch(commandList, frameId, objects, offsets1);
+    
+    
         // scene->dispatch(commandList, frameId, o0, offsets0);
         // scene->dispatch(commandList, frameId, o1, offsets1);
 
@@ -1878,7 +1897,7 @@ namespace example {
         commandList->beginRenderPass(_renderPasses[kGbufferRenderPass], _gBuffers[frameId], gBufferClearValues, {{0, 0}, {width, height}});
         // scene->dispatch(commandList, frameId, objects, offsets);
         
-        scene->draw(engine::scene::RenderPass::eCommon, commandList, transferCommandList, frameId, viewParams, objects, offsets);
+        scene->draw(engine::scene::RenderPass::eCommon, commandList, transferCommandList, frameId, viewParams, objects, offsets1);
         // scene->draw(commandList, transferCommandList, frameId, viewParams, o1, offsets1);
         // scene->draw(commandList, transferCommandList, frameId, viewParams, o0, offsets0);   
         

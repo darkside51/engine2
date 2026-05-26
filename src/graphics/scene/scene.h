@@ -185,9 +185,13 @@ public:
     // getters
     bool isComputeSkinningEnabled() const noexcept;
 
-private:
     // attachments
     static bool compareAttachmentsForDraw(const AttachmentObject & a, const AttachmentObject & b) noexcept;
+
+private:
+    
+    // static bool compareAttachmentsForDraw(const AttachmentObject & a, const AttachmentObject & b) noexcept;
+    // attachments
     void calculateQualityFactors(engine::scene::AttachmentObject* object, const ViewParams & viewParams) noexcept;
     
     uint32_t calculateTargetStagingSize() const noexcept;

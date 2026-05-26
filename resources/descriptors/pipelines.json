@@ -334,5 +334,25 @@
 				}
 			]
 		}
+	},
+	"mesh_skin_shadows": {
+		"rasterisationState": {
+			"polygonMode": "eFill",
+			"cullmode": "eFront"
+		},
+		"depthStencilState": {
+			"depth": {
+				"depthTestEnable": true,
+				"depthWriteEnable": true,
+				"depthCompareOp": "eGreater"
+			}
+		},
+		"inputAssemblyState": {
+			"topology" : "eTriangles"
+		},
+		"vertexInputState": {
+			"inputBindings": [],
+			"attributes":[]
+		}
 	}
 }
