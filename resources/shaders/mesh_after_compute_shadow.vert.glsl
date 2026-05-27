@@ -2,8 +2,10 @@
 
 #extension GL_ARB_shader_viewport_layer_array : enable
 
+layout (constant_id = 0) const uint shadowCascades = 2;
+
 layout (set = 0, binding = 0) uniform UniformBuffer {
-	mat4 cascades[2];
+	mat4 cascades[shadowCascades];
 } u_viewParams;
 
 layout (set = 1, binding = 0) readonly buffer Positions {

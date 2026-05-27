@@ -1,5 +1,7 @@
 #version 450
 
+layout (constant_id = 0) const uint shadowCascades = 2;
+
 /*
 layout(set = 0, binding = 0) uniform sampler2D texture0;
 
@@ -19,11 +21,11 @@ layout(set = 0, binding = 1) uniform sampler2D textureNormal;
 layout(set = 0, binding = 2) uniform sampler2D textureAlbedo;
 layout(set = 0, binding = 3) uniform sampler2D textureEmissive;
 layout(set = 0, binding = 4) uniform sampler2D texturePositionDepth;
-//layout(set = 0, binding = 5) uniform sampler2DArrayShadow textureShadowMap;
-layout(set = 0, binding = 5) uniform sampler2DArray textureShadowMap;
+layout(set = 0, binding = 5) uniform sampler2DArrayShadow textureShadowMap;
+//layout(set = 0, binding = 5) uniform sampler2DArray textureShadowMap;
 
 layout (set = 0, binding = 6) uniform shadowsUniformBuffer {
-	mat4 cascades[2];
+	mat4 cascades[shadowCascades];
 	vec4 splits;
 } u_shadow;
 
@@ -55,20 +57,17 @@ float ssaoRadialBlur(int blurRange) {
 }
 
 float textureProj(vec4 shadowCoord, vec2 offset, uint cascadeIndex) {
-	float shadow = 1.0f;
-	const float bias = 0.001f;
+	if (shadowCoord.z > 0.0f && shadowCoord.z < 1.0f) {
+		const float bias = 0.001f;
+		const float dist = texture(textureShadowMap, vec4(shadowCoord.xy + offset, cascadeIndex, shadowCoord.z + bias));
+		return mix(clamp(push.ambient.w + dist, 0.0f, 1.0f), 1.0f, step(shadowCoord.w, 0.0f));
 
-	if (shadowCoord.z > -1.0f && shadowCoord.z < 1.0f) {
-		//const float dist = texture(textureShadowMap, vec4(shadowCoord.xy + offset, cascadeIndex, shadowCoord.z + bias));
-		//if (shadowCoord.w > 0.0 && dist < bias) {
-		//	shadow = clamp(push.ambient.w + dist, 0.0f, 1.0f);
+		//const float dist = texture(textureShadowMap, vec3(shadowCoord.xy + offset, cascadeIndex)).r;
+		//if (shadowCoord.w > 0.0f && dist > shadowCoord.z + bias) {
+		//	return push.ambient.w;
 		//}
-		const float dist = texture(textureShadowMap, vec3(shadowCoord.xy + offset, cascadeIndex)).r;
-		if (shadowCoord.w > 0 && dist > shadowCoord.z + bias) {
-			shadow = push.ambient.w;
-		}
 	}
-	return shadow;
+	return 1.0f;
 }
 
 float filterPCF(vec4 sc, uint cascadeIndex) {
@@ -77,7 +76,7 @@ float filterPCF(vec4 sc, uint cascadeIndex) {
 	const float dx = scale * 1.0 / float(texDim.x);
 	const float dy = scale * 1.0 / float(texDim.y);
 
-	float shadowFactor = 0.0;
+	float shadowFactor = 1.0;
 	int count = 0;
 	const int range = 1;
 	
@@ -108,7 +107,7 @@ void main() {
 	// shadows
 	// get cascade index for the current fragment's view position
 	uint cascade = 0;
-	for (uint i = 0; i < 1; ++i) {
+	for (uint i = 0; i < shadowCascades - 1; ++i) {
 		if (viewDepth < u_shadow.splits[i]) {	
 			cascade = i + 1;
 		}
@@ -119,8 +118,8 @@ void main() {
 	shadowCoord.xy = (shadowCoord.xy + 1.0) * 0.5;
 	
 	//const float shadowValue = 1.0f - texture(textureShadowMap, vec4(shadowCoord.xy, cascade, shadowCoord.z)).r;
-	//const float shadowValue = textureProj(shadowCoord, vec2(0.0f), cascade);
-	const float shadowValue = filterPCF(shadowCoord, cascade);
+	const float shadowValue = textureProj(shadowCoord, vec2(0.0f), cascade); // hardware pcf if use sampler2DArrayShadow
+	//const float shadowValue = filterPCF(shadowCoord, cascade);
 	//
 
 	vec3 viewDir = vec3(1.0, 0.0, 0.0);
@@ -144,8 +143,8 @@ void main() {
 
 	
 	if (push.options.y > 3.0f && push.options.y < 7.0) {
-		const float shadowDepth = texture(textureShadowMap, vec3(v_uv, clamp(int(push.options.y - 4.0), 0, 2))).r;
-		//texture(textureShadowMap, vec4(v_uv, clamp(int(push.options.y - 4.0), 0, 2), 0.0)).r;
+		//const float shadowDepth = texture(textureShadowMap, vec3(v_uv, clamp(int(push.options.y - 4.0), 0, 2))).r;
+		const float shadowDepth = texture(textureShadowMap, vec4(v_uv, clamp(int(push.options.y - 4.0), 0, 2), 0.0)).r;
 		out_color = mix(out_color, vec4(shadowDepth, shadowDepth, shadowDepth, 1.0f), step(3.1, push.options.y) * step(push.options.y, 6.9));
 	}
 	

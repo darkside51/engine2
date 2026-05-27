@@ -146,7 +146,7 @@ namespace engine::graphics {
             .addressModeV = SamplerAddressMode::eClamp_To_Border,
             .addressModeW = SamplerAddressMode::eClamp_To_Border,
             .compareOp = _reversedDepth ? CompareOp::eGequal : CompareOp::eLess,
-            .borderColor = BorderColor::eFloat_Opaque_Black,
+            .borderColor = _reversedDepth ? BorderColor::eFloat_Opaque_Black : BorderColor::eFloat_Opaque_White,
             .maxAnisotropy = 0.0f
         };
     }
@@ -156,8 +156,8 @@ namespace engine::graphics {
     }
 
     void CascadeShadowMap::initCascadeSplits() noexcept {
-        const float minZ = _near + 0.5f;
-		const float maxZ = _far - 35.0f;
+        const float minZ = _near + 1.0f;
+		const float maxZ = _far - 40.0f;
 
 		const float range = maxZ - minZ;
 		const float ratio = maxZ / minZ;
@@ -217,14 +217,14 @@ namespace engine::graphics {
 			for (uint8_t j = 0u; j < 8u; ++j) { frustumCenter += frustumCorners[j]; }
 			frustumCenter /= 8.0f;
 
-            float radius = 0.0f;
-			for (uint8_t j = 0u; j < 8u; ++j) {
-				const float distance = glm::length2(frustumCorners[j] - frustumCenter);
-				radius = std::max(radius, distance);
-			}
-            // float radius = glm::length(frustumCorners[7u] - frustumCenter);
-            radius = std::ceil(std::sqrt(radius) * 16.0f) / 16.0f;
+            // float radius = 0.0f;
+			// for (uint8_t j = 0u; j < 8u; ++j) {
+			// 	const float distance = glm::length2(frustumCorners[j] - frustumCenter);
+			// 	radius = std::max(radius, distance);
+			// }
+            // radius = std::ceil(std::sqrt(radius) * 16.0f) / 16.0f;
 
+            const float radius = glm::length(frustumCorners[7u] - frustumCenter);
             const mat4f lightViewMatrix = glm::lookAtRH(frustumCenter - _direction * radius, frustumCenter, vec3f{0.0f, 1.0f, 0.0f});
             const mat4f lightOrthoMatrix = _reversedDepth ? 
                 glm::orthoRH_ZO(-radius, radius, -radius, radius, 2.0f * radius, 0.0f) : 
