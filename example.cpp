@@ -1835,17 +1835,13 @@ namespace example {
         scene->fillAttachmentsArray(viewParams, sceneWorldRoot, [](engine::scene::AttachmentObject* object) noexcept {
             if (object->typeIndex == ctti::typeIndex<engine::scene::AttachmentObject, engine::scene::Mesh>()) {
                 auto & mesh = *static_cast<engine::scene::Mesh*>(object);
-                //if (mesh.getPipeline() == 1u) { 
-                    shadowObjects.emplace_back(object); // check visible with shadow matrix?
-                //}
+                shadowObjects.emplace_back(object); // check visible with shadow matrix?
             }
             return true; 
         }, objects, engine::scene::FillAttachmentFlags::eCalculateQuality);
         // printf("1: %d\n", timer.elapsed<engine::time::microseconds>());
 
-        std::sort(shadowObjects.begin(), shadowObjects.end(), [](const engine::scene::AttachmentObject * a, const engine::scene::AttachmentObject * b) noexcept {
-            return engine::scene::Scene::compareAttachmentsForDraw(*a, *b);
-        });
+        engine::scene::Scene::sortObjectsForDraw(shadowObjects);
 
         scene->animate(now, delta, objects, animationManager); // after fillAttachmentsArrays and after beginFrame for correct
 

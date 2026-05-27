@@ -186,12 +186,16 @@ public:
     bool isComputeSkinningEnabled() const noexcept;
 
     // attachments
-    static bool compareAttachmentsForDraw(const AttachmentObject & a, const AttachmentObject & b) noexcept;
+    static void sortObjectsForDraw(std::vector<AttachmentObject*> & objects) noexcept {
+        std::sort(objects.begin(), objects.end(), [](const AttachmentObject * a, const AttachmentObject * b) noexcept {
+            return compareAttachmentsForDraw(*a, *b);
+        });
+    }
 
 private:
     
-    // static bool compareAttachmentsForDraw(const AttachmentObject & a, const AttachmentObject & b) noexcept;
     // attachments
+    static bool compareAttachmentsForDraw(const AttachmentObject & a, const AttachmentObject & b) noexcept;
     void calculateQualityFactors(engine::scene::AttachmentObject* object, const ViewParams & viewParams) noexcept;
     
     uint32_t calculateTargetStagingSize() const noexcept;
@@ -339,6 +343,9 @@ private:
     //
     RenderPass _currentPass = RenderPass::eCommon;
     CommonPipeline _commonPipelines;
+
+    // shadows
+    uint8_t _shadowCascades = 0u;
 };
 
 template <typename Condition>

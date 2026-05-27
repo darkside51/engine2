@@ -1047,7 +1047,8 @@ namespace engine::scene {
                 assert(external != nullptr);
                 auto * uniform = _viewParamsUniformBuffer->memory2<std::byte>() + _currentViewParamsBufferOffset;
                 const ShadowViewParams & shadowParams = *static_cast<const ShadowViewParams *>(external);
-                const auto dataSize = sizeof(mat4f) * shadowParams.cascadeMatrices.size();
+                _shadowCascades = shadowParams.cascadeMatrices.size();
+                const auto dataSize = sizeof(mat4f) * _shadowCascades;
                 memcpy(uniform , shadowParams.cascadeMatrices.data(), dataSize);
                 _viewParamsUniformBuffer->modify(dataSize, _currentViewParamsBufferOffset);
             }
@@ -1241,8 +1242,6 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
             .offset_and_count = vec4u{0u}
         };
 
-        const uint32_t kShadowCascades = 2u;
-
         uint32_t count = 1u;
 
         const auto & pipeline = getGraphicsPipeline(pipelineIdx);
@@ -1282,12 +1281,12 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
                 if (skeletal) {
                     uniform.offset_and_count = {skeletonsOffset, count, 0u, 0u};
                     commandList->pushConstants(rhi::shaders::Stages::eVertex, 0u, sizeof(Uniform), &uniform);
-                    drawSameMeshes(commandList, frame, currentIt, it, count * kShadowCascades, skeletal, skeletonsOffset);
+                    drawSameMeshes(commandList, frame, currentIt, it, count * _shadowCascades, skeletal, skeletonsOffset);
                     skeletonsOffset += count;
                 } else {
                     uniform.offset_and_count = {offset, count, 0u, 0u};
                     commandList->pushConstants(rhi::shaders::Stages::eVertex, 0u, sizeof(Uniform), &uniform);
-                    drawSameMeshes(commandList, frame, currentIt, it, count * kShadowCascades, skeletal, offset);
+                    drawSameMeshes(commandList, frame, currentIt, it, count * _shadowCascades, skeletal, offset);
                 }
                 offset += count;
 
@@ -1323,12 +1322,12 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
         if (skeletal) {
             uniform.offset_and_count = {skeletonsOffset, count, 0u, 0u};
             commandList->pushConstants(rhi::shaders::Stages::eVertex, 0u, sizeof(Uniform), &uniform);
-            drawSameMeshes(commandList, frame, currentIt, end, count * kShadowCascades, skeletal, skeletonsOffset);
+            drawSameMeshes(commandList, frame, currentIt, end, count * _shadowCascades, skeletal, skeletonsOffset);
             skeletonsOffset += count;
         } else {
             uniform.offset_and_count = {offset, count, 0u, 0u};
             commandList->pushConstants(rhi::shaders::Stages::eVertex, 0u, sizeof(Uniform), &uniform);
-            drawSameMeshes(commandList, frame, currentIt, end, count * kShadowCascades, skeletal, offset);
+            drawSameMeshes(commandList, frame, currentIt, end, count * _shadowCascades, skeletal, offset);
         }
         offset += count;
     }
