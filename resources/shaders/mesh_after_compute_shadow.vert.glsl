@@ -3,7 +3,7 @@
 #extension GL_ARB_shader_viewport_layer_array : enable
 
 layout (set = 0, binding = 0) uniform UniformBuffer {
-	mat4 cascades[3];
+	mat4 cascades[2];
 } u_viewParams;
 
 layout (set = 1, binding = 0) readonly buffer Positions {

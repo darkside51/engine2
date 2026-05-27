@@ -100,7 +100,7 @@ namespace example {
     std::unique_ptr<engine::graphics::CascadeShadowMap> shadowMap = nullptr;
     std::unique_ptr<engine::graphics::InflightBuffer> shadowMapUniformBuffer = nullptr;
     struct ShadowMapUniforms {
-        std::array<engine::mat4f, 3u> cascades;
+        std::array<engine::mat4f, 2u> cascades;
         engine::vec4f splits;
     };
 
@@ -925,7 +925,7 @@ namespace example {
         scene->registerGraphicsPipeline(_api->createGraphicsPipeline(*_device, _renderPasses[kGbufferRenderPass], _programs[kMeshAfterComputeProgram], info6, 0u));
 
         // shadow
-        shadowMap = std::make_unique<engine::graphics::CascadeShadowMap>(*_api, *_device, 2048u, 3u, 24u, kNearFarPlane.x, kNearFarPlane.y);
+        shadowMap = std::make_unique<engine::graphics::CascadeShadowMap>(*_api, *_device, 2048u, 2u, 16u, kNearFarPlane.x, kNearFarPlane.y);
         shadowMap->createRenderData();
         shadowMap->setDirection(glm::normalize(lightDir));
 
@@ -1806,7 +1806,7 @@ namespace example {
             shadowMap->updateCascades(glm::inverse(viewParams.cameraTransform));
 
             auto * shadowUniforms = shadowMapUniformBuffer->memory2<ShadowMapUniforms>();
-            memcpy(shadowUniforms->cascades.data(), shadowMap->getCascadeMatrices().data(), sizeof(engine::mat4f) * 3u);
+            memcpy(shadowUniforms->cascades.data(), shadowMap->getCascadeMatrices().data(), sizeof(engine::mat4f) * shadowMap->getCascadeMatrices().size());
             memcpy(&shadowUniforms->splits, shadowMap->getCascadeSplitDepths().data(), shadowMap->getCascadeSplitDepths().size() * sizeof(float));
             shadowMapUniformBuffer->modify();
 

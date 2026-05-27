@@ -23,7 +23,7 @@ layout(set = 0, binding = 4) uniform sampler2D texturePositionDepth;
 layout(set = 0, binding = 5) uniform sampler2DArray textureShadowMap;
 
 layout (set = 0, binding = 6) uniform shadowsUniformBuffer {
-	mat4 cascades[3];
+	mat4 cascades[2];
 	vec4 splits;
 } u_shadow;
 
@@ -108,7 +108,7 @@ void main() {
 	// shadows
 	// get cascade index for the current fragment's view position
 	uint cascade = 0;
-	for (uint i = 0; i < 2; ++i) {
+	for (uint i = 0; i < 1; ++i) {
 		if (viewDepth < u_shadow.splits[i]) {	
 			cascade = i + 1;
 		}

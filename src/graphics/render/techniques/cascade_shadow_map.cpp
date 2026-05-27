@@ -156,8 +156,8 @@ namespace engine::graphics {
     }
 
     void CascadeShadowMap::initCascadeSplits() noexcept {
-        const float minZ = _near + 1.5f;
-		const float maxZ = _far - 30.0f;
+        const float minZ = _near + 0.5f;
+		const float maxZ = _far - 35.0f;
 
 		const float range = maxZ - minZ;
 		const float ratio = maxZ / minZ;

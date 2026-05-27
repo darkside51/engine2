@@ -1241,7 +1241,7 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
             .offset_and_count = vec4u{0u}
         };
 
-        const uint32_t kShadowCascades = 3u;
+        const uint32_t kShadowCascades = 2u;
 
         uint32_t count = 1u;
 
