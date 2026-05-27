@@ -178,6 +178,7 @@ namespace example {
         
         ImGui::NewLine();
         if (ImGui::DragFloat3("light direction", &lightDir[0u], 0.005f, -1.0f, 1.0f)) {
+            lightDir.z = std::min(lightDir.z, -0.01f);
             lightDirty = true;
         }
         ImGui::ColorEdit3("ambient color", &ambientColor[0u]);
