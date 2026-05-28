@@ -179,39 +179,6 @@
 			]
 		}
 	},
-	"mesh_shadows": {
-		"rasterisationState": {
-			"polygonMode": "eFill",
-			"cullmode": "eFront"
-		},
-		"depthStencilState": {
-			"depth": {
-				"depthTestEnable": true,
-				"depthWriteEnable": true,
-				"depthCompareOp": "eGreater"
-			}
-		},
-		"inputAssemblyState": {
-			"topology" : "eTriangles"
-		},
-		"vertexInputState": {
-			"inputBindings": [
-				{
-					"stride" : 8,
-					"binding" : 0,
-					"inputRate": "eVertex"
-				}
-			],
-			"attributes":[
-				{
-					"location": 0,
-                    "binding": 0,
-                    "format": "eR16G16B16_Sfloat",
-                    "offset": 0
-				}
-			]
-		}
-	},
 	"mesh_skeletal": {
 		"blendModes": ["blend_none"],
 		"rasterisationState": {
@@ -330,6 +297,39 @@
 					"location": 0,
                     "binding": 0,
                     "format": "eR16G16_Sfloat",
+                    "offset": 0
+				}
+			]
+		}
+	},
+	"mesh_shadows": {
+		"rasterisationState": {
+			"polygonMode": "eFill",
+			"cullmode": "eFront"
+		},
+		"depthStencilState": {
+			"depth": {
+				"depthTestEnable": true,
+				"depthWriteEnable": true,
+				"depthCompareOp": "eGreater"
+			}
+		},
+		"inputAssemblyState": {
+			"topology" : "eTriangles"
+		},
+		"vertexInputState": {
+			"inputBindings": [
+				{
+					"stride" : 8,
+					"binding" : 0,
+					"inputRate": "eVertex"
+				}
+			],
+			"attributes":[
+				{
+					"location": 0,
+                    "binding": 0,
+                    "format": "eR16G16B16_Sfloat",
                     "offset": 0
 				}
 			]

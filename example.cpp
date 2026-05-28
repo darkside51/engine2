@@ -88,7 +88,7 @@ namespace example {
     std::optional<engine::scene::Scene> scene{};
 
     // engine::vec2f kNearFarPlane = {0.001f, 100.0f}; // common depth
-    engine::vec2f kNearFarPlane = {50.0f, 0.01f}; // reverse depth
+    engine::vec2f kNearFarPlane = {100.0f, 0.01f}; // reverse depth
     engine::scene::Camera camera;
     engine::scene::SphereCameraController controller{camera};
     engine::scene::Node * sceneWorldRoot = nullptr;
@@ -140,7 +140,8 @@ namespace example {
     engine::vec4f directionalLightColor = engine::vec4f{1.0f, 1.0f, 1.0f, 0.75f};
     engine::vec3f lightDir = {0.26f, 0.15f, -0.75f};
     bool lightDirty = false;
-    
+    float saturation = 1.0f;
+
     void optionsWindow() {
         ImGui::SetNextWindowSize(ImVec2(540, 670), ImGuiCond_FirstUseEver);
         if (!ImGui::Begin("options", &showOptions, 0)) {
@@ -172,6 +173,9 @@ namespace example {
         ImGui::DragFloat("blur scale", &emissiveBlurScale, 0.1f, 0.0f, 10.0f);
         ImGui::DragFloat("blur strength", &emissiveBlurStrength, 0.1f, 0.0f, 10.0f);
 
+        ImGui::NewLine();
+        ImGui::DragFloat("saturation", &saturation, 0.01f, 0.0f, 2.0f);
+        
         ImGui::NewLine();
         ImGui::DragFloat("vignette", &vignetteExtent, 0.01f, 0.0f, 1.0f);
         
@@ -923,7 +927,7 @@ namespace example {
 
         // shadow
         shadowMap = std::make_unique<engine::graphics::CascadeShadowMap>(*_api, *_device, 4096u, 2u, 24u, kNearFarPlane.x, kNearFarPlane.y);
-        shadowMap->initCascadeSplits({1.2f, -40.0f});
+        shadowMap->initCascadeSplits({1.2f, -90.0f});
         shadowMap->createRenderData();
         shadowMap->setDirection(glm::normalize(lightDir));
 
@@ -1417,9 +1421,9 @@ namespace example {
                     gpuTasks.emplace_back(BgThread::GpuTask{[this](engine::rhi::runtime::CommandList & commandList, std::vector<threads::WorkerTask> & callbacks) mutable {
 
                         // const auto imageBytes = _fileManager.readFile("assets/vulkan_11_rgba.ktx");
-                        const auto imageBytes = _fileManager.readFile("assets/2d_bc7.ktx2");
-                        //const auto imageBytes = _fileManager.readFile("assets/2.png");
-                        //const auto imageBytes = _fileManager.readFile("assets/asphalt-7.jpg");
+                        // const auto imageBytes = _fileManager.readFile("assets/2d_bc7.ktx2");
+                        // const auto imageBytes = _fileManager.readFile("assets/2.png");
+                        const auto imageBytes = _fileManager.readFile("assets/ground0.jpg");
                         auto textureData = engine::graphics::parseTextureData(imageBytes, {
                                 .flags = engine::graphics::TextureFlags::eAllowSrgbColorSpace | engine::graphics::TextureFlags::eUseMipMaps
                             }
@@ -2005,7 +2009,7 @@ namespace example {
             .ambient = ambientColor,
             .directionalLight = directionalLightColor,
             .light = engine::vec4f{glm::normalize(normalMatrix * lightDir), 0.0f},
-            .options = {ssaoEnable, static_cast<float>(debugShow), 0.0f, vignetteExtent}
+            .options = {ssaoEnable, static_cast<float>(debugShow), saturation, vignetteExtent}
         };
 
         const mat4 invProjection = glm::inverse(viewParams.cameraProjection);
