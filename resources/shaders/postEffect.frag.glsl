@@ -62,6 +62,7 @@ float textureProj(vec4 shadowCoord, vec2 offset, uint cascadeIndex) {
 		const float dist = texture(textureShadowMap, vec4(shadowCoord.xy + offset, cascadeIndex, shadowCoord.z + bias));
 		return mix(clamp(push.ambient.w + dist, 0.0f, 1.0f), 1.0f, step(shadowCoord.w, 0.0f));
 
+		//const float bias = 0.001f;
 		//const float dist = texture(textureShadowMap, vec3(shadowCoord.xy + offset, cascadeIndex)).r;
 		//if (shadowCoord.w > 0.0f && dist > shadowCoord.z + bias) {
 		//	return push.ambient.w;
@@ -94,6 +95,12 @@ void main() {
 
 	const float occlusion = aoEnable ? ssaoRadialBlur(int(push.options.x - 1.0f)) : 1.0f;
 	const vec3 normal = texture(textureNormal, v_uv).rgb * 2.0 - 1.0;
+
+	//float r = texture(textureAlbedo, v_uv - 0.001f).r;
+    //float g = texture(textureAlbedo, v_uv - 0.001f).g;
+    //float b = texture(textureAlbedo, v_uv + 0.001f).b;
+    //const vec4 albedo = vec4(r, g, b, 1.0f);
+
 	const vec4 albedo = texture(textureAlbedo, v_uv);
 	const vec4 emissive = texture(textureEmissive, v_uv);
 
@@ -127,10 +134,24 @@ void main() {
 	vec3 specular = vec3(0.0);//pow(max(dot(reflect, viewDir), 0.0), 8.0) * vec3(1.0);
 
 	const float NdotL = max(0.0f, dot(normal, -push.light.xyz));
-	const vec3 baseColor = shadowValue * (push.ambient.xyz * push.ambient.w + NdotL * (push.directionalLight.xyz * push.directionalLight.w)) * albedo.rgb + specular + emissive.rgb;
+	const vec3 ambient = push.ambient.xyz * push.ambient.w * occlusion;
+	const vec3 baseColor = shadowValue * (ambient + NdotL * (push.directionalLight.xyz * push.directionalLight.w)) * albedo.rgb + specular + emissive.rgb;
 
 	//const vec3 baseColor = albedo.rgb * (NdotL + ambient) + specular + emissive.rgb;
-	const vec3 color = pow(baseColor * occlusion, vec3(0.4545)); // gamma correction 1.0 / 2.2 = 0.4545
+	const vec3 color = pow(baseColor, vec3(0.4545)); // gamma correction 1.0 / 2.2 = 0.4545
+	//const vec3 color = pow(baseColor, vec3(1.0 / 1.8)); // gamma correction 1.0 / 2.2 = 0.4545
+
+
+	// 2. Contrast
+    //color = pow(color, vec3(1.1,  1.1, 1.1));
+    
+    // 3. Saturation
+    //float luminance = dot(color, vec3(0.2126, 0.7152, 0.0722));
+    //color = mix(luminance.xxx, color, 0.75);
+    
+    // 4. Filmic Tonemapping (Reinhard)
+    //color = color / (color + 1.0);
+
 	out_color = vec4(color, 1.0f);
 	//const vec3 clearColor = pow(vec3(0.5f) + emissive.rgb, vec3(0.4545)); // gamma correction 1.0 / 2.2 = 0.4545
 	//out_color = vec4(mix(color, clearColor, step(albedo.w, 0.0)), 1.0); 

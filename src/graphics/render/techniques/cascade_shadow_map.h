@@ -22,7 +22,7 @@ namespace engine::graphics {
 
         void createRenderData();
         void prepare();
-        void initCascadeSplits() noexcept;
+        void initCascadeSplits(vec2f nearFarOffsets) noexcept;
         void updateCascades(const mat4f & cameraInverse);
 
         void beginRenderPass(rhi::runtime::CommandList & commandList, uint8_t frameId) noexcept;

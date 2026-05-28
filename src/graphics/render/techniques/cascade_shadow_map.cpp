@@ -18,7 +18,6 @@ namespace engine::graphics {
             _size(size),
             _cascadesCount(cascades),
             _bits(bits) {
-        initCascadeSplits();
     }
 
     void CascadeShadowMap::createRenderData() {
@@ -155,15 +154,15 @@ namespace engine::graphics {
         _device.evaluateSampler(_sampler);
     }
 
-    void CascadeShadowMap::initCascadeSplits() noexcept {
-        const float minZ = _near + 1.0f;
-		const float maxZ = _far - 40.0f;
+    void CascadeShadowMap::initCascadeSplits(vec2f nearFarOffsets) noexcept {
+        const float minZ = _near + nearFarOffsets.x;
+		const float maxZ = _far + nearFarOffsets.y;
 
 		const float range = maxZ - minZ;
 		const float ratio = maxZ / minZ;
 
-		// Calculate split depths based on view camera frustum
-		// Based on method presented in https://developer.nvidia.com/gpugems/GPUGems3/gpugems3_ch10.html
+		// calculate split depths based on view camera frustum
+		// based on method presented in https://developer.nvidia.com/gpugems/GPUGems3/gpugems3_ch10.html
 		for (uint32_t i = 0u; i < _cascadesCount; i++) {
 			const float p = (i + 1u) / static_cast<float>(_cascadesCount);
 			const float log = minZ * std::pow(ratio, p);
@@ -216,13 +215,6 @@ namespace engine::graphics {
 			vec3f frustumCenter{0.0f};
 			for (uint8_t j = 0u; j < 8u; ++j) { frustumCenter += frustumCorners[j]; }
 			frustumCenter /= 8.0f;
-
-            // float radius = 0.0f;
-			// for (uint8_t j = 0u; j < 8u; ++j) {
-			// 	const float distance = glm::length2(frustumCorners[j] - frustumCenter);
-			// 	radius = std::max(radius, distance);
-			// }
-            // radius = std::ceil(std::sqrt(radius) * 16.0f) / 16.0f;
 
             const float radius = glm::length(frustumCorners[7u] - frustumCenter);
             const mat4f lightViewMatrix = glm::lookAtRH(frustumCenter - _direction * radius, frustumCenter, vec3f{0.0f, 1.0f, 0.0f});

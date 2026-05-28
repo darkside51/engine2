@@ -30,6 +30,11 @@ layout (set = 0, binding = 0) uniform UniformBuffer {
 void main() {
 	//out_color = texture(, v_uv);
 
+	vec4 albedo = texture(texture0, v_uv);
+	if (albedo.a < 0.5) {
+		discard;
+	}
+
 	const float depthLinear = linearDepth(gl_FragCoord.z, u_viewParams.nearFarPlanes.x, u_viewParams.nearFarPlanes.y);
 	//out_position = vec4(v_viewPosition, depthLinear);
 	//out_position = vec4(v_worldPosition, depthLinear);
@@ -38,7 +43,8 @@ void main() {
 	vec3 normal = v_normalMatrix * -normalize(cross(dFdx(v_normalAndEmissive.xyz), dFdy(v_normalAndEmissive.xyz)));
 
 	out_normal = vec4(normalize(normal) * 0.5 + 0.5, 1.0);
-	out_albedo = texture(texture0, v_uv);
+	out_albedo = albedo;
+	//out_albedo = texture(texture0, v_uv);
 	//out_emissive = vec4(0.0, 0.0, 0.0, 0.0);
 	out_emissive = out_albedo * v_normalAndEmissive.w;
 	//out_world_position = vec4(v_worldPosition, depthLinear);

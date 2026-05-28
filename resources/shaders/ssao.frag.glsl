@@ -75,7 +75,7 @@ void main() {
 								 smoothstep(0.0f, 1.0f, radius / abs(fragPos.z - sampleDepth)) :
 								 clamp(radius / abs(fragPos.z - sampleDepth), 0.0f, 1.0f);
 
-		occlusion += (sampleDepth >= samplePos.z + bias ? 1.0f : 0.0f) * rangeCheck * smoothstep(0.0f, 1.0f, -maxDepth / fragPos.z);         
+		occlusion += step(samplePos.z + bias, sampleDepth) * (1.0f - step(0.0f, sampleDepth)) * rangeCheck * smoothstep(0.0f, 1.0f, -maxDepth / fragPos.z);       
 	}
 	
 	out_color = 1.0f - (occlusion / float(kSsaoKernelSize));

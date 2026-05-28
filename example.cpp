@@ -137,8 +137,8 @@ namespace example {
 
     float vignetteExtent = 0.1f;
 
-    engine::vec4f ambientColor = engine::vec4f{0.25f};
-    engine::vec4f directionalLightColor = engine::vec4f{1.0f};
+    engine::vec4f ambientColor = engine::vec4f{1.0f, 1.0f, 1.0f, 0.25f};
+    engine::vec4f directionalLightColor = engine::vec4f{1.0f, 1.0f, 1.0f, 0.75f};
     engine::vec3f lightDir = {0.26f, 0.15f, -0.75f};
     bool lightDirty = false;
     
@@ -926,7 +926,8 @@ namespace example {
         scene->registerGraphicsPipeline(_api->createGraphicsPipeline(*_device, _renderPasses[kGbufferRenderPass], _programs[kMeshAfterComputeProgram], info6, 0u));
 
         // shadow
-        shadowMap = std::make_unique<engine::graphics::CascadeShadowMap>(*_api, *_device, 4096u, 2u, 16u, kNearFarPlane.x, kNearFarPlane.y);
+        shadowMap = std::make_unique<engine::graphics::CascadeShadowMap>(*_api, *_device, 4096u, 2u, 24u, kNearFarPlane.x, kNearFarPlane.y);
+        shadowMap->initCascadeSplits({1.2f, -40.0f});
         shadowMap->createRenderData();
         shadowMap->setDirection(glm::normalize(lightDir));
 
@@ -1420,12 +1421,24 @@ namespace example {
                     gpuTasks.emplace_back(BgThread::GpuTask{[this](engine::rhi::runtime::CommandList & commandList, std::vector<threads::WorkerTask> & callbacks) mutable {
 
                         // const auto imageBytes = _fileManager.readFile("assets/vulkan_11_rgba.ktx");
-                        // const auto imageBytes = _fileManager.readFile("assets/2d_bc7.ktx2");
-                        const auto imageBytes = _fileManager.readFile("assets/2.png");
+                        const auto imageBytes = _fileManager.readFile("assets/2d_bc7.ktx2");
+                        //const auto imageBytes = _fileManager.readFile("assets/2.png");
+                        //const auto imageBytes = _fileManager.readFile("assets/asphalt-7.jpg");
                         auto textureData = engine::graphics::parseTextureData(imageBytes, {
                                 .flags = engine::graphics::TextureFlags::eAllowSrgbColorSpace | engine::graphics::TextureFlags::eUseMipMaps
                             }
                         );
+
+                        const auto formatSupport = _device->isFormatSupported(
+                            textureData.metaInfo.format, 
+                            rhi::FormatFeatureFlags::eFormatFeature_Sampled_Image
+                        );
+
+                        const bool sampledSupport = formatSupport.checkBit(rhi::FormatFeatureAccess::Bit::eOptimalTilingFeaturesBit);
+
+                        if (!sampledSupport) {
+                            convertTextureDataFormat(rhi::Format::eR8G8B8A8_Srgb, textureData); // ??
+                        }
 
                         auto image = textureManager->generateImage(std::move(textureData), commandList);
 
@@ -1600,6 +1613,7 @@ namespace example {
 
     void Example::draw(threads::ExecutionContext & executionContext, threads::ExecutionTimePoint now, float delta) {
         using namespace engine;
+        auto frameTimer = engine::time::Timer{};
 
         if (!tasks.empty()) {
             bgWorker->execute(std::move(tasks));
@@ -1675,20 +1689,21 @@ namespace example {
                     
                     // meshRoot->childAt(0u)->getAttachment(1u)->setHidden(true);
 
+                    meshRoot->setRotation(engine::vec3f(1.57f, 0.0f, engine::common::random(-3.14f, 3.14f)));
+                    meshRoot->setPosition(engine::vec3f(-2.0f + i % 20 * 0.5f, 0.0f + i / 20 * -0.5f, 0.0f));
+
                     if (auto * skeleton = static_cast<engine::scene::Skeleton *>(meshRoot->getAttachment())) {
                         if (i == 5u) {
                             auto * handBone = skeleton->node(15u);
                             swordNode->removeFromParent();
                             handBone->addChild(swordNode);
+                            meshRoot->setRotation(engine::vec3f(1.57f, 0.0f, 0.25f));
                             // meshRoot->childAt(0u)->getAttachment(1u)->setHidden(true); // todo: fix it for compute skinning method
                         }
 
                         auto * anim0 = scene->createAnimInfo<engine::scene::SkeletalAnimation>(animId, engine::common::random(0.25f, 1.7f));
                         scene->destroyAnimInfo(skeleton->setAnimation(anim0));
                     }
-
-                    meshRoot->setRotation(engine::vec3f(1.57f, 0.0f, engine::common::random(-3.14f, 3.14f)));
-                    meshRoot->setPosition(engine::vec3f(-2.0f + i % 20 * 0.5f, 0.0f + i / 20 * -0.5f, 0.0f));
 
                     sceneWorldRoot->addChild(meshRoot);
                 }
@@ -1875,11 +1890,11 @@ namespace example {
         };
 
         constexpr auto gBufferClearValues = std::array{
-            rhi::ClearValue{0x00'00'00'00u},
-            rhi::ClearValue{0x00'00'00'00u},
-            rhi::ClearValue{0x00'00'00'00u},
-            rhi::ClearValue{0x00'00'00'00u},
-            rhi::ClearValue{0.0f, 0u}
+            rhi::ClearValue{0x00'00'00'00u},    // position
+            rhi::ClearValue{0x00'00'00'00u},    // normal
+            rhi::ClearValue{0xff'ff'ff'ffu},    // albedo
+            rhi::ClearValue{0x00'00'00'00u},    // emissive
+            rhi::ClearValue{0.0f, 0u}           // depth
         };
 
         constexpr auto clearValues = std::array{
@@ -2060,12 +2075,6 @@ namespace example {
             printf("_queryResults no available!\n");
         }
 
-        gStats.cpuFrameTime = delta * 1'000.0f;
-
-        gStats.drawCalls = 0u;
-        gStats.drawCalls += commandList->getStats().drawCalls;
-        gStats.drawCalls += transferCommandList->getStats().drawCalls;
-
         // submit
         // const auto waitSemaphores = std::array{_swapchain->imageAvailableSemaphore(frameId)};
         // const auto signalSemaphores = std::array{_readyToPresentSemaphores[frameId]};
@@ -2158,6 +2167,11 @@ namespace example {
 
         // present
         auto const presentResult = _renderQueue->present(_swapchain.get(), imageIndex, signalSemaphores);
+
+        gStats.drawCalls = 0u;
+        gStats.cpuFrameTime = static_cast<float>(frameTimer.elapsed<engine::time::microseconds>()) * 0.001f;
+        gStats.drawCalls = commandList->getStats().drawCalls;
+        gStats.drawCalls += transferCommandList->getStats().drawCalls;
     }
 
 }
