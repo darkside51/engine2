@@ -192,6 +192,8 @@ namespace engine::graphics::models {
 
                             auto * dst8 = reinterpret_cast<uint8_t*>(&vbData[currentBufferOffset]);
                             auto * dst16 = reinterpret_cast<uint16_t*>(&vbData[currentBufferOffset]);
+                            auto * dst32 = reinterpret_cast<uint32_t*>(&vbData[currentBufferOffset]);
+                            auto * dstf = reinterpret_cast<float*>(&vbData[currentBufferOffset]);
 
                             for (uint32_t i = 0u; i < accessor.count; ++i) {
                                 uint32_t sourceIndex = i * componentCount;
@@ -225,11 +227,29 @@ namespace engine::graphics::models {
                                         }
                                     }
                                         break;
+                                    case 4u:
+                                    {
+                                        if (accessor.componentType == AccessorComponentType::eByte || accessor.componentType == AccessorComponentType::eUnsigned_Byte) {
+                                            dst32[targetIndex + j] = src8[sourceIndex + j];
+                                        } else if (accessor.componentType == AccessorComponentType::eShort || accessor.componentType == AccessorComponentType::eUnsigned_Short) {
+                                            dst32[targetIndex + j] = src16[sourceIndex + j];
+                                        } else if (accessor.componentType == AccessorComponentType::eUnsigned_int) {
+                                            dst32[targetIndex + j] = src32[sourceIndex + j];
+                                        }  else if (accessor.componentType == AccessorComponentType::eFloat) {
+                                            dstf[targetIndex + j] = srcf[sourceIndex + j];
+                                        }
+                                    }
+                                        break;
+                                    default: 
+                                        assert(false);
+                                        break;
                                     }
                                 }
 
                                 for (uint32_t j = componentCount; j < targetComponentCount; ++j) {
-                                    if (targetComponentDimension == 2) {
+                                    if (targetComponentDimension == 4u) {
+                                        dst32[targetIndex + j] = 0u;
+                                    } else if (targetComponentDimension == 2u) {
                                         dst16[targetIndex + j] = 0u;
                                     } else {
                                         dst8[targetIndex + j] = 0u;
