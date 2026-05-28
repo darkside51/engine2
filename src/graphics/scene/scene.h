@@ -114,6 +114,10 @@ public:
         std::array<uint32_t, std::to_underlying(Type::eCount)> pipelines;
     };
 
+    struct DispatchResult {
+        uint32_t computeSkinVerticesOffset = 0u;
+    };
+
     Scene(const graphics::GraphicsService & graphicsService, graphics::DrawHelper & drawHelper);
     ~Scene();
 
@@ -180,7 +184,7 @@ public:
         const AnimationManager & animationManager);
     void draw(RenderPass pass, rhi::runtime::CommandListPtr & commandList, rhi::runtime::CommandListPtr & transferCommandList, uint8_t frame, 
         const ViewParams & viewParams, std::span<AttachmentObject*> objects, const DrawDataOffsets & offsets, const void * external = nullptr);
-    void dispatch(rhi::runtime::CommandListPtr & commandList, uint8_t frame, std::span<AttachmentObject*> objects, const DrawDataOffsets & offsets);
+    DispatchResult dispatch(rhi::runtime::CommandListPtr & commandList, uint8_t frame, std::span<AttachmentObject*> objects, const DrawDataOffsets & offsets);
 
     // getters
     bool isComputeSkinningEnabled() const noexcept;
@@ -323,7 +327,6 @@ private:
     uint32_t _skeletonsInFrame = 0u;
     uint32_t _uniqueSkeletons = 0u;
     uint32_t _lastFramesUsedSkeletonsInFrame = 0u;
-    uint32_t _computeSkinVerticesOffset = 0u;
     std::unique_ptr<graphics::InflightBuffer> _skeletonIds = nullptr;
 
     uint32_t _computedVerticesSizeInFrame = 0u; // need resize buffers functional!

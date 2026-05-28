@@ -15,6 +15,8 @@ void main() {
 */
 
 #import common
+#import lighting
+#import blur
 
 layout(set = 0, binding = 0) uniform sampler2D textureSsao;
 layout(set = 0, binding = 1) uniform sampler2D textureNormal;
@@ -42,64 +44,12 @@ layout(push_constant) uniform Params {
 	vec4 options;
 } push;
 
-float ssaoRadialBlur(int blurRange) {
-	int n = 0;
-	const vec2 texelSize = 1.0 / vec2(textureSize(textureSsao, 0));
-	float result = 0.0;
-	for (int x = -blurRange; x <= blurRange; x++) {
-		for (int y = -blurRange; y <= blurRange; y++) {
-			const vec2 offset = vec2(float(x), float(y)) * texelSize;
-			result += texture(textureSsao, v_uv + offset).r;
-			n++;
-		}
-	}
-	return result / float(n);
-}
-
-float textureProj(vec4 shadowCoord, vec2 offset, uint cascadeIndex) {
-	if (shadowCoord.z > 0.0f && shadowCoord.z < 1.0f) {
-		const float bias = 0.001f;
-		const float dist = texture(textureShadowMap, vec4(shadowCoord.xy + offset, cascadeIndex, shadowCoord.z + bias));
-		return mix(clamp(push.ambient.w + dist, 0.0f, 1.0f), 1.0f, step(shadowCoord.w, 0.0f));
-
-		//const float bias = 0.001f;
-		//const float dist = texture(textureShadowMap, vec3(shadowCoord.xy + offset, cascadeIndex)).r;
-		//if (shadowCoord.w > 0.0f && dist > shadowCoord.z + bias) {
-		//	return push.ambient.w;
-		//}
-	}
-	return 1.0f;
-}
-
-float filterPCF(vec4 sc, uint cascadeIndex) {
-	const ivec2 texDim = textureSize(textureShadowMap, 0).xy;
-	const float scale = 0.65;
-	const float dx = scale * 1.0 / float(texDim.x);
-	const float dy = scale * 1.0 / float(texDim.y);
-
-	float shadowFactor = 1.0;
-	int count = 0;
-	const int range = 1;
-	
-	for (int x = -range; x <= range; x++) {
-		for (int y = -range; y <= range; y++) {
-			shadowFactor += textureProj(sc, vec2(dx*x, dy*y), cascadeIndex);
-			count++;
-		}
-	}
-	return shadowFactor / count;
-}
 
 void main() {
 	const bool aoEnable = push.options.x > 0.0f;
 
-	const float occlusion = aoEnable ? ssaoRadialBlur(int(push.options.x - 1.0f)) : 1.0f;
+	const float occlusion = aoEnable ? radialBlur(textureSsao, v_uv, int(push.options.x - 1.0f)) : 1.0f;
 	const vec3 normal = texture(textureNormal, v_uv).rgb * 2.0 - 1.0;
-
-	//float r = texture(textureAlbedo, v_uv - 0.001f).r;
-    //float g = texture(textureAlbedo, v_uv - 0.001f).g;
-    //float b = texture(textureAlbedo, v_uv + 0.001f).b;
-    //const vec4 albedo = vec4(r, g, b, 1.0f);
 
 	const vec4 albedo = texture(textureAlbedo, v_uv);
 	const vec4 emissive = texture(textureEmissive, v_uv);
@@ -124,10 +74,8 @@ void main() {
 	shadowCoord = shadowCoord / shadowCoord.w;
 	shadowCoord.xy = (shadowCoord.xy + 1.0) * 0.5;
 	
-	//const float shadowValue = 1.0f - texture(textureShadowMap, vec4(shadowCoord.xy, cascade, shadowCoord.z)).r;
-	const float shadowValue = textureProj(shadowCoord, vec2(0.0f), cascade); // hardware pcf if use sampler2DArrayShadow
-	//const float shadowValue = filterPCF(shadowCoord, cascade);
-	//
+	const float shadowValue = textureProj(textureShadowMap, shadowCoord, vec2(0.0f), cascade, push.ambient.w); // hardware pcf if use sampler2DArrayShadow
+	//const float shadowValue = filterPCF(textureShadowMap, shadowCoord, cascade, push.ambient.w);
 
 	vec3 viewDir = vec3(1.0, 0.0, 0.0);
 	vec3 reflect = reflect(push.light.xyz, normal);
@@ -136,11 +84,49 @@ void main() {
 	const float NdotL = max(0.0f, dot(normal, -push.light.xyz));
 	const vec3 ambient = push.ambient.xyz * push.ambient.w * occlusion;
 	const vec3 baseColor = shadowValue * (ambient + NdotL * (push.directionalLight.xyz * push.directionalLight.w)) * albedo.rgb + specular + emissive.rgb;
+	vec3 color = pow(baseColor, vec3(0.4545)); // gamma correction 1.0 / 2.2 = 0.4545
+	
+	// vignette
+	if (push.options.w > 0.0f) {
+		const vec2 uv =  v_uv * (1.0f - v_uv.yx);
+	    const float vig = pow(uv.x*uv.y * 15.0f, push.options.w); // multiply with sth for intensity; change push.options.w for modifying the extend of the  vignette
+	    color *= vig;
+	}
+	out_color = vec4(color, 1.0f);
 
-	//const vec3 baseColor = albedo.rgb * (NdotL + ambient) + specular + emissive.rgb;
-	const vec3 color = pow(baseColor, vec3(0.4545)); // gamma correction 1.0 / 2.2 = 0.4545
-	//const vec3 color = pow(baseColor, vec3(1.0 / 1.8)); // gamma correction 1.0 / 2.2 = 0.4545
+	if (push.options.y > 0.0f) {
+		out_color = mix(out_color, vec4(occlusion, occlusion, occlusion, 1.0), step(0.1, push.options.y) * step(push.options.y, 1.1));
+		out_color = mix(out_color, emissive, step(1.1, push.options.y) * step(push.options.y, 2.1));
+		out_color = mix(out_color, worldPosition, step(2.1, push.options.y) * step(push.options.y, 3.1));
 
+		
+		if (push.options.y > 3.0f && push.options.y < 7.0) {
+			//const float shadowDepth = texture(textureShadowMap, vec3(v_uv, clamp(int(push.options.y - 4.0), 0, 2))).r;
+			const float shadowDepth = texture(textureShadowMap, vec4(v_uv, clamp(int(push.options.y - 4.0), 0, 2), 0.0));
+			out_color = mix(out_color, vec4(shadowDepth, shadowDepth, shadowDepth, 1.0f), step(3.1, push.options.y) * step(push.options.y, 5.9));
+		}
+		
+
+		if (push.options.y > 5.0) {
+			switch(cascade) {
+				case 0 : 
+					out_color.rgb *= vec3(1.0f, 0.25f, 0.25f);
+					break;
+				case 1 : 
+					out_color.rgb *= vec3(0.25f, 1.0f, 0.25f);
+					break;
+				case 2 : 
+					out_color.rgb *= vec3(0.25f, 0.25f, 1.0f);
+					break;
+			}
+		}
+	}
+
+	/*
+	//float r = texture(textureAlbedo, v_uv - 0.001f).r;
+    //float g = texture(textureAlbedo, v_uv - 0.001f).g;
+    //float b = texture(textureAlbedo, v_uv + 0.001f).b;
+    //const vec4 albedo = vec4(r, g, b, 1.0f);
 
 	// 2. Contrast
     //color = pow(color, vec3(1.1,  1.1, 1.1));
@@ -151,48 +137,5 @@ void main() {
     
     // 4. Filmic Tonemapping (Reinhard)
     //color = color / (color + 1.0);
-
-	out_color = vec4(color, 1.0f);
-	//const vec3 clearColor = pow(vec3(0.5f) + emissive.rgb, vec3(0.4545)); // gamma correction 1.0 / 2.2 = 0.4545
-	//out_color = vec4(mix(color, clearColor, step(albedo.w, 0.0)), 1.0); 
-
-	//out_color = vec4(mix(pow(baseColor, vec3(0.4545)) * occlusion, clearColor, step(albedo.w, 0.0)), 1.0); // gamma correction 1.0 / 2.2 = 0.4545
-
-	out_color = mix(out_color, vec4(occlusion, occlusion, occlusion, 1.0), step(0.1, push.options.y) * step(push.options.y, 1.1));
-	out_color = mix(out_color, emissive, step(1.1, push.options.y) * step(push.options.y, 2.1));
-	out_color = mix(out_color, worldPosition, step(2.1, push.options.y) * step(push.options.y, 3.1));
-
-	
-	if (push.options.y > 3.0f && push.options.y < 7.0) {
-		//const float shadowDepth = texture(textureShadowMap, vec3(v_uv, clamp(int(push.options.y - 4.0), 0, 2))).r;
-		const float shadowDepth = texture(textureShadowMap, vec4(v_uv, clamp(int(push.options.y - 4.0), 0, 2), 0.0)).r;
-		out_color = mix(out_color, vec4(shadowDepth, shadowDepth, shadowDepth, 1.0f), step(3.1, push.options.y) * step(push.options.y, 6.9));
-	}
-	
-	// vignette
-	if (push.options.w > 0.0f) {
-		const vec2 uv =  v_uv * (1.0f - v_uv.yx);
-    	const float vig = pow(uv.x*uv.y * 15.0f, push.options.w); // multiply with sth for intensity; change push.options.w for modifying the extend of the  vignette
-    	out_color.rgb *= vig;
-    }
-
-	//out_color = vec4(mix(pow(baseColor * occlusion, vec3(0.4545)), clearColor, step(albedo.w, 0.0)), 1.0); // gamma correction 1.0 / 2.2 = 0.4545
-	//out_color = vec4(occlusion, occlusion, occlusion, 1.0);
-	//out_color = vec4(normal, 1.0);
-	//out_color = emissive;
-	//out_color = texture(textureWorldPosition, v_uv);
-
-	if (push.options.y > 6.0) {
-		switch(cascade) {
-			case 0 : 
-				out_color.rgb *= vec3(1.0f, 0.25f, 0.25f);
-				break;
-			case 1 : 
-				out_color.rgb *= vec3(0.25f, 1.0f, 0.25f);
-				break;
-			case 2 : 
-				out_color.rgb *= vec3(0.25f, 0.25f, 1.0f);
-				break;
-		}
-	}
+	*/
 }

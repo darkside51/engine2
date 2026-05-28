@@ -963,17 +963,16 @@ namespace engine::scene {
         }
     }
 
-    void Scene::dispatch(rhi::runtime::CommandListPtr & commandList, uint8_t frame, std::span<AttachmentObject*> objects, const DrawDataOffsets & offsets) {
+    Scene::DispatchResult Scene::dispatch(rhi::runtime::CommandListPtr & commandList, uint8_t frame, std::span<AttachmentObject*> objects, const DrawDataOffsets & offsets) {
         if constexpr (!kComputeSkinningAvailable) {
-            return;
+            return {};
         }
 
         if (objects.empty()) {
-            return;
+            return {};
         }
 
         DrawDataOffsets offsets2 = offsets;
-        offsets2.computeSkinVerticesOffset = _computeSkinVerticesOffset;
         auto currentIt = objects.begin();
         uint16_t typeIdx = (*currentIt)->typeIndex;
         for (auto it = currentIt + 1u; it != objects.end(); ++it) {
@@ -987,7 +986,9 @@ namespace engine::scene {
         }
 
         dispatchObjects(commandList, frame, currentIt, objects.end(), typeIdx, offsets2);
-        _computeSkinVerticesOffset = offsets2.computeSkinVerticesOffset;
+        return {
+            .computeSkinVerticesOffset = offsets2.computeSkinVerticesOffset
+        };
     }
 
     void Scene::drawObjects(rhi::runtime::CommandListPtr & commandList, uint8_t frame, 
@@ -1749,7 +1750,6 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
         _skeletalTransformsInFrame = 0u;
         _skeletonsInFrame = 0u;
         _uniqueSkeletons = 0u;
-        _computeSkinVerticesOffset = 0u;
 
         completeAnimations();
 

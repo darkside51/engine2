@@ -1,0 +1,39 @@
+
+float textureProj(in sampler2DArrayShadow shadowTex, vec4 shadowCoord, vec2 offset, uint cascadeIndex, float ambient) {
+	if (shadowCoord.z > 0.0f && shadowCoord.z < 1.0f) {
+		const float bias = 0.001f;
+		const float dist = texture(shadowTex, vec4(shadowCoord.xy + offset, cascadeIndex, shadowCoord.z + bias));
+		return mix(clamp(ambient + dist, 0.0f, 1.0f), 1.0f, step(shadowCoord.w, 0.0f));
+	}
+	return 1.0f;
+}
+
+float textureProj2(in sampler2DArray shadowTex, vec4 shadowCoord, vec2 offset, uint cascadeIndex, float ambient) {
+	if (shadowCoord.z > 0.0f && shadowCoord.z < 1.0f) {
+		const float bias = 0.001f;
+		const float dist = texture(shadowTex, vec3(shadowCoord.xy + offset, cascadeIndex)).r;
+		if (shadowCoord.w > 0.0f && dist > shadowCoord.z + bias) {
+			return ambient;
+		}
+	}
+	return 1.0f;
+}
+
+float filterPCF(in sampler2DArray shadowTex, vec4 sc, uint cascadeIndex, float ambient) {
+	const ivec2 texDim = textureSize(shadowTex, 0).xy;
+	const float scale = 0.65;
+	const float dx = scale * 1.0 / float(texDim.x);
+	const float dy = scale * 1.0 / float(texDim.y);
+
+	float shadowFactor = 1.0;
+	int count = 0;
+	const int range = 1;
+	
+	for (int x = -range; x <= range; x++) {
+		for (int y = -range; y <= range; y++) {
+			shadowFactor += textureProj2(shadowTex, sc, vec2(dx*x, dy*y), cascadeIndex, ambient);
+			count++;
+		}
+	}
+	return shadowFactor / count;
+}

@@ -114,8 +114,7 @@ namespace example {
         eWorldPos = 3u,
         eShadowCascade0 = 4u,
         eShadowCascade1 = 5u,
-        eShadowCascade2 = 6u,
-        eDebugCascades = 7u
+        eDebugCascades = 6u
     };
 
     float ssaoEnable = 1.0f;
@@ -204,9 +203,6 @@ namespace example {
         }
         if (ImGui::RadioButton("shadow cascade 1", debugShow == DebugShow::eShadowCascade1)) { 
             debugShow = DebugShow::eShadowCascade1;
-        }
-        if (ImGui::RadioButton("shadow cascade 2", debugShow == DebugShow::eShadowCascade2)) { 
-            debugShow = DebugShow::eShadowCascade2;
         }
         if (ImGui::RadioButton("debug cascades", debugShow == DebugShow::eDebugCascades)) { 
             debugShow = DebugShow::eDebugCascades;
@@ -1681,7 +1677,7 @@ namespace example {
                 };
 
                 auto const animId = animationManager.getAnimationIndex("skeletal_mesh_anim0");
-                for (size_t i = 0u; i < 300u; ++i) {
+                for (size_t i = 0u; i < 500u; ++i) {
                     auto * meshRoot = engine::scene::createNodeWithSkeletalMesh(*scene, *modelManager, modelIndex, 
                         engine::scene::Bounds::Type::eCube, pipelines, 
                         {.size = {0.47f, 0.47f, 0.47f}, .type = engine::scene::ObjectSizeLayout::Type::eMin},
@@ -1792,7 +1788,7 @@ namespace example {
                     .skeletalPipeline = scene->isComputeSkinningEnabled() ? 2u : 1u
                 };
                 auto const animId = animationManager.getAnimationIndex("chaman_anim1");
-                for (uint16_t i = 0u; i < 300u; ++i) {
+                for (uint16_t i = 0u; i < 500u; ++i) {
                     auto * meshRoot = engine::scene::createNodeWithSkeletalMesh(*scene, *modelManager, modelIndex, 
                         engine::scene::Bounds::Type::eCube, pipelines,
                         {.size = {0.47f, 0.47f, 0.47f}, .type = engine::scene::ObjectSizeLayout::Type::eMin});
@@ -1849,7 +1845,6 @@ namespace example {
         // auto timer = engine::time::Timer{};
         scene->fillAttachmentsArray(viewParams, sceneWorldRoot, [](engine::scene::AttachmentObject* object) noexcept {
             if (object->typeIndex == ctti::typeIndex<engine::scene::AttachmentObject, engine::scene::Mesh>()) {
-                auto & mesh = *static_cast<engine::scene::Mesh*>(object);
                 shadowObjects.emplace_back(object); // check visible with shadow matrix?
             }
             return true; 
@@ -1863,32 +1858,28 @@ namespace example {
         // auto o0 = std::span<engine::scene::AttachmentObject*>{objects.begin(), objects.begin() + objects.size() / 2};
         // auto o1 = std::span<engine::scene::AttachmentObject*>{objects.begin() + objects.size() / 2, objects.end()};
 
-        const auto offsets0 = scene->prepareDrawData(shadowObjects, frameId);
+        //const auto offsets0 = scene->prepareDrawData(shadowObjects, frameId);
         const auto offsets1 = scene->prepareDrawData(objects, frameId);
         
         // const auto offsets0 = scene->prepareDrawData(o0, frameId);
-        // const auto offsets1 = scene->prepareDrawData(o1, frameId);
+        // auto offsets1 = scene->prepareDrawData(o1, frameId);
 
-        scene->dispatch(commandList, frameId, shadowObjects, offsets0);
-        scene->dispatch(commandList, frameId, objects, offsets1);
+        //const auto result0 = scene->dispatch(commandList, frameId, shadowObjects, offsets0);
+        const auto result1 = scene->dispatch(commandList, frameId, objects, offsets1);
     
     
-        // scene->dispatch(commandList, frameId, o0, offsets0);
+        // const auto result = scene->dispatch(commandList, frameId, o0, offsets0);
+        // offsets1.computeSkinVerticesOffset = result.computeSkinVerticesOffset;
         // scene->dispatch(commandList, frameId, o1, offsets1);
 
         shadowMap->beginRenderPass(*commandList, frameId);
         // draw shadows
         // ...
         const auto cascadeMatrices = shadowMap->getCascadeMatrices();
-        scene->draw(engine::scene::RenderPass::eShadow, commandList, transferCommandList, frameId, viewParams, shadowObjects, offsets0, &cascadeMatrices);
+        scene->draw(engine::scene::RenderPass::eShadow, commandList, transferCommandList, frameId, viewParams, shadowObjects, offsets1, &cascadeMatrices);
         shadowMap->endRenderPass(*commandList);
 
         // draw scene
-        constexpr auto sceneClearValues = std::array{
-            rhi::ClearValue{0x77'77'77'ffu},
-            rhi::ClearValue{0.0f, 0u}
-        };
-
         constexpr auto gBufferClearValues = std::array{
             rhi::ClearValue{0x00'00'00'00u},    // position
             rhi::ClearValue{0x00'00'00'00u},    // normal
@@ -1905,7 +1896,6 @@ namespace example {
         commandList->setScissor({{0, 0}, {width, height}});
 
         // scene pass
-        // commandList->beginRenderPass(_renderPasses[kSceneRenderPass], _sceneFrameBuffers[frameId], sceneClearValues, {{0, 0}, {width, height}});
         commandList->beginRenderPass(_renderPasses[kGbufferRenderPass], _gBuffers[frameId], gBufferClearValues, {{0, 0}, {width, height}});
         // scene->dispatch(commandList, frameId, objects, offsets);
         
