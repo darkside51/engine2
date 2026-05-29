@@ -110,11 +110,12 @@ namespace example {
     enum class DebugShow : uint8_t {
         eCommon = 0u,
         eSsao = 1u,
-        eEmissive = 2u,
-        eWorldPos = 3u,
-        eShadowCascade0 = 4u,
-        eShadowCascade1 = 5u,
-        eDebugCascades = 6u
+        eAlbedo = 2u,
+        eEmissive = 3u,
+        eWorldPos = 4u,
+        eShadowCascade0 = 5u,
+        eShadowCascade1 = 6u,
+        eDebugCascades = 7u
     };
 
     float ssaoEnable = 1.0f;
@@ -143,7 +144,7 @@ namespace example {
     float saturation = 1.0f;
 
     void optionsWindow() {
-        ImGui::SetNextWindowSize(ImVec2(540, 670), ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowSize(ImVec2(540, 710), ImGuiCond_FirstUseEver);
         if (!ImGui::Begin("options", &showOptions, 0)) {
             // early out if the window is collapsed, as an optimization.
             ImGui::End();
@@ -195,6 +196,9 @@ namespace example {
          }
         if (ImGui::RadioButton("ambient occlusion", debugShow == DebugShow::eSsao)) { 
             debugShow = DebugShow::eSsao;
+        }
+        if (ImGui::RadioButton("albedo", debugShow == DebugShow::eAlbedo)) { 
+            debugShow = DebugShow::eAlbedo;
         }
         if (ImGui::RadioButton("emissive", debugShow == DebugShow::eEmissive)) { 
             debugShow = DebugShow::eEmissive;
@@ -1107,6 +1111,30 @@ namespace example {
             }});
         }
 
+        {
+            auto const modelIdx = modelManager->addModel2("cathedral.glb").first;
+            tasks.emplace_back(threads::WorkerTask{[this, modelIdx]() mutable {
+                auto const modelBytes = _fileManager.readFile("assets/models/St_Basils_Cathedral.glb");
+                auto modelLayout = engine::graphics::models::loadModelLayout(modelBytes, _fileManager, "assets/models/");
+                auto buffers = modelManager->loadModel(modelIdx, "cathedral.glb", modelLayout);
+
+                _renderThread->emplaceTasks(stl::make_vector(threads::WorkerTask{[this, modelIdx, buffers = std::move(buffers), modelLayout = std::move(modelLayout)]() mutable {
+                    modelManager->setBuffers(modelIdx, std::move(buffers));
+                    auto texturesToLoad = modelManager->prepareMaterials("cathedral.glb", modelIdx, modelLayout, *textureManager);
+
+                    gpuTasks.emplace_back(BgThread::GpuTask{[this, texturesToLoad = std::move(texturesToLoad), modelLayout = std::move(modelLayout)](engine::rhi::runtime::CommandList & commandList, std::vector<threads::WorkerTask> & callbacks) mutable {
+                        materialManager.createMaterialTextures(modelLayout, texturesToLoad, _fileManager, *textureManager, commandList);
+
+                        callbacks.emplace_back([texturesToLoad = std::move(texturesToLoad)](){
+                            for (auto & t : texturesToLoad) {
+                                t.imageHandler->image = t.image;
+                            }
+                        });
+                    }});
+                }}));
+            }});
+        }
+
         textureManager->generateGpuData(tmpCommandList);
         //
 
@@ -1806,6 +1834,25 @@ namespace example {
                     meshRoot->setPosition(engine::vec3f(8.5f + i % 20 * 0.5f, 0.0f + i / 20 * -0.5f, 0.0f));
                     sceneWorldRoot->addChild(meshRoot);
                 }
+            }
+        }
+
+        static bool meshLoaded6 = false;
+        if (!meshLoaded6) {
+            const auto modelIndex = modelManager->getModelDataIdx("cathedral.glb");
+            if (modelManager->isDataReady(modelIndex)) {
+                meshLoaded6 = true;
+                engine::scene::MeshPipelines pipelines = {
+                    .commonPipeline = 1u, 
+                    .skeletalPipeline = scene->isComputeSkinningEnabled() ? 2u : 1u
+                };
+                auto * meshRoot = engine::scene::createNodeWithSkeletalMesh(*scene, *modelManager, modelIndex, 
+                    engine::scene::Bounds::Type::eCube, pipelines,
+                    {.size = {4.5f, 4.5f, 4.5f}, .type = engine::scene::ObjectSizeLayout::Type::eMin});
+
+                meshRoot->setRotation(engine::vec3f(1.57f, 0.0f, 1.57f));
+                meshRoot->setPosition(engine::vec3f(10.0f, 4.0f, 0.0f));
+                sceneWorldRoot->addChild(meshRoot);
             }
         }
 

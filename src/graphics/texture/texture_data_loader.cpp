@@ -436,36 +436,38 @@ namespace sail_format {
             return {};
         }
         
-        std::span data{static_cast<std::byte*>(image.pixels()), image.pixels_size()}; 
-
-// if (image.is_indexed()) { // palleted
-//     const auto targetFormat = convert(rhi::Format::eR8G8B8A8_Unorm, false);
-//     if (image.can_convert(targetFormat)) {
-//             if (image.convert(targetFormat) == SAIL_OK) {
-
-//             std::span data{static_cast<std::byte*>(image.pixels()), image.pixels_size()};
-
-//         return {
-//             .metaInfo = {
-//                 .size = {image.width(), image.height(), 1u},
-//                 .bytesPerLine = static_cast<uint16_t>(image.bytes_per_line()),
-//                 .format = convert(image.pixel_format()),
-//                 .bitsPerPixel = static_cast<uint8_t>(image.bits_per_pixel()),
-//                 .hasPalette = image.palette().is_valid(),
-//                 .parserType = TextureLoaderType::eSail,
-//                 .flags = info.flags
-//             },
-//             .data = {data.begin(), data.end()}
-//         };
-//             }
-//         }
-// }
-
 // void set_palette(sail::palette &&palette) noexcept;
 
         // auto & palette = image.palette();
         // palette.data();
 
+        if (image.is_indexed()) { // palleted
+            const auto targetFormat = convert(rhi::Format::eR8G8B8A8_Unorm, true);
+            if (image.can_convert(targetFormat)) {
+                if (image.convert(targetFormat) == SAIL_OK) {
+
+                    std::span data{static_cast<std::byte*>(image.pixels()), image.pixels_size()};
+                    std::vector<std::vector<std::byte>> mipLevelsData{1u};
+                    mipLevelsData[0u] = {data.begin(), data.end()};
+
+                    return {
+                        .metaInfo = {
+                            .size = {image.width(), image.height(), 1u},
+                            .bytesPerRow = static_cast<uint16_t>(image.bytes_per_line()),
+                            .format = convert(image.pixel_format(), info.flags),
+                            .bitsPerPixel = static_cast<uint8_t>(image.bits_per_pixel()),
+                            .numLevels = 1u,
+                            .hasPalette = image.is_indexed(), // image.palette().is_valid(),
+                            .parserType = TextureLoaderType::eSail,
+                            .flags = info.flags
+                        },
+                        .data = std::move(mipLevelsData)
+                    };
+                }
+            }
+        }
+
+        std::span data{static_cast<std::byte*>(image.pixels()), image.pixels_size()}; 
         std::vector<std::vector<std::byte>> mipLevelsData{1u};
         mipLevelsData[0u] = {data.begin(), data.end()};
         return {

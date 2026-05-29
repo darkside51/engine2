@@ -50,7 +50,7 @@ void main() {
 	const float occlusion = push.options.x > 0.0f ? radialBlur(textureSsao, v_uv, int(push.options.x - 1.0f)) : 1.0f;
 	const vec3 normal = texture(textureNormal, v_uv).rgb * 2.0f - 1.0f;
 
-	const vec4 albedo = texture(textureAlbedo, v_uv);
+	/*const*/ vec4 albedo = texture(textureAlbedo, v_uv);
 	const vec4 emissive = texture(textureEmissive, v_uv);
 
 	const float linearDepth = texture(texturePositionDepth, v_uv).r;
@@ -97,17 +97,19 @@ void main() {
 	out_color = vec4(color, 1.0f);
 
 	if (push.options.y > 0.0f) {
+		albedo.rgb = pow(albedo.rgb, vec3(0.4545f));
 		out_color = mix(out_color, vec4(occlusion, occlusion, occlusion, 1.0f), step(0.1f, push.options.y) * step(push.options.y, 1.1f));
-		out_color = mix(out_color, emissive, step(1.1f, push.options.y) * step(push.options.y, 2.1f));
-		out_color = mix(out_color, worldPosition, step(2.1f, push.options.y) * step(push.options.y, 3.1f));
+		out_color = mix(out_color, albedo, step(1.1f, push.options.y) * step(push.options.y, 2.1f));
+		out_color = mix(out_color, emissive, step(2.1f, push.options.y) * step(push.options.y, 3.1f));
+		out_color = mix(out_color, worldPosition, step(3.1f, push.options.y) * step(push.options.y, 4.1f));
 
-		if (push.options.y > 3.0f && push.options.y < 7.0f) {
-			//const float shadowDepth = texture(textureShadowMap, vec3(v_uv, clamp(int(push.options.y - 4.0f), 0.0f, 2.0f))).r;
-			const float shadowDepth = texture(textureShadowMap, vec4(v_uv, clamp(int(push.options.y - 4.0f), 0.0f, 2.0f), 0.0f));
-			out_color = mix(out_color, vec4(shadowDepth, shadowDepth, shadowDepth, 1.0f), step(3.1f, push.options.y) * step(push.options.y, 5.9f));
+		if (push.options.y > 4.0f && push.options.y < 8.0f) {
+			//const float shadowDepth = texture(textureShadowMap, vec3(v_uv, clamp(int(push.options.y - 5.0f), 0.0f, 2.0f))).r;
+			const float shadowDepth = texture(textureShadowMap, vec4(v_uv, clamp(int(push.options.y - 5.0f), 0.0f, 2.0f), 0.0f));
+			out_color = mix(out_color, vec4(shadowDepth, shadowDepth, shadowDepth, 1.0f), step(4.1f, push.options.y) * step(push.options.y, 6.9f));
 		}
 
-		if (push.options.y > 5.0f) {
+		if (push.options.y > 6.0f) {
 			switch(cascade) {
 				case 0 : 
 					out_color.rgb *= vec3(1.0f, 0.25f, 0.25f);
