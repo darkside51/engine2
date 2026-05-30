@@ -173,12 +173,6 @@ namespace example {
         ImGui::DragInt("blur steps", &emissiveBlurSteps, 1, 0, 8);
         ImGui::DragFloat("blur scale", &emissiveBlurScale, 0.1f, 0.0f, 10.0f);
         ImGui::DragFloat("blur strength", &emissiveBlurStrength, 0.1f, 0.0f, 10.0f);
-
-        ImGui::NewLine();
-        ImGui::DragFloat("saturation", &saturation, 0.01f, 0.0f, 2.0f);
-        
-        ImGui::NewLine();
-        ImGui::DragFloat("vignette", &vignetteExtent, 0.01f, 0.0f, 1.0f);
         
         ImGui::NewLine();
         if (ImGui::DragFloat3("light direction", &lightDir[0u], 0.005f, -1.0f, 1.0f)) {
@@ -190,6 +184,10 @@ namespace example {
         ImGui::ColorEdit3("directional light color", &directionalLightColor[0u]);
         ImGui::DragFloat("directional light factor", &directionalLightColor[3u], 0.01f, 0.0f, 2.0f);
         
+        ImGui::NewLine();
+        ImGui::DragFloat("saturation", &saturation, 0.01f, 0.0f, 10.0f);
+        ImGui::DragFloat("vignette", &vignetteExtent, 0.01f, 0.0f, 1.0f);
+
         ImGui::NewLine();
         if (ImGui::RadioButton("composite", debugShow == DebugShow::eCommon)) { 
             debugShow = DebugShow::eCommon;
@@ -1451,7 +1449,7 @@ namespace example {
                         // const auto imageBytes = _fileManager.readFile("assets/vulkan_11_rgba.ktx");
                         // const auto imageBytes = _fileManager.readFile("assets/2d_bc7.ktx2");
                         // const auto imageBytes = _fileManager.readFile("assets/2.png");
-                        const auto imageBytes = _fileManager.readFile("assets/ground0.jpg");
+                        const auto imageBytes = _fileManager.readFile("assets/images.png");
                         auto textureData = engine::graphics::parseTextureData(imageBytes, {
                                 .flags = engine::graphics::TextureFlags::eAllowSrgbColorSpace | engine::graphics::TextureFlags::eUseMipMaps
                             }

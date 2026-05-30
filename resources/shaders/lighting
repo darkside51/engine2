@@ -1,7 +1,6 @@
 
-float textureProj(in sampler2DArrayShadow shadowTex, vec4 shadowCoord, vec2 offset, uint cascadeIndex, float ambient) {
+float textureProj(in sampler2DArrayShadow shadowTex, vec4 shadowCoord, vec2 offset, uint cascadeIndex, float bias, float ambient) {
 	if (shadowCoord.z > 0.0f && shadowCoord.z < 1.0f) {
-		const float bias = 0.001f;
 		const float dist = texture(shadowTex, vec4(shadowCoord.xy + offset, cascadeIndex, shadowCoord.z + bias));
 		return mix(clamp(ambient + dist, 0.0f, 1.0f), 1.0f, step(shadowCoord.w, 0.0f));
 	}

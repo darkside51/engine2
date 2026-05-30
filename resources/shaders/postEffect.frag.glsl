@@ -60,6 +60,8 @@ void main() {
 	const float viewDepth = reconstructPosition(v_rayDirView, vec3(0.0f), linearDepth).z;
 	//const vec4 worldPosition = texture(texturePositionDepth, v_uv);
 
+	const float NdotL = max(0.0f, dot(normal, -push.light.xyz));
+
 	// shadows
 	// get cascade index for the current fragment's view position
 	uint cascade = 0;
@@ -71,16 +73,16 @@ void main() {
 
 	vec4 shadowCoord = u_shadow.cascades[cascade] * worldPosition;
 	shadowCoord = shadowCoord / shadowCoord.w;
-	shadowCoord.xy = (shadowCoord.xy + 1.0f) * 0.5f;
+	shadowCoord.xy = shadowCoord.xy * 0.5f + 0.5f;
 	
-	const float shadowValue = textureProj(textureShadowMap, shadowCoord, vec2(0.0f), cascade, push.ambient.w); // hardware pcf if use sampler2DArrayShadow
+	const float bias = max(0.0075f * (1.0f - NdotL), 0.001f);
+	const float shadowValue = textureProj(textureShadowMap, shadowCoord, vec2(0.0f), cascade, bias, push.ambient.w); // hardware pcf if use sampler2DArrayShadow
 	//const float shadowValue = filterPCF(textureShadowMap, shadowCoord, cascade, push.ambient.w);
 
 	vec3 viewDir = vec3(0.0f, 0.0f, 1.0f);
 	vec3 reflect = reflect(push.light.xyz, normal);
 	vec3 specular = vec3(0.0f);//pow(max(dot(reflect, viewDir), 0.0f), 8.0f) * vec3(1.0f);
 
-	const float NdotL = max(0.0f, dot(normal, -push.light.xyz));
 	const vec3 ambient = push.ambient.xyz * push.ambient.w * occlusion;
 	const vec3 baseColor = shadowValue * (ambient + NdotL * (push.directionalLight.xyz * push.directionalLight.w)) * albedo.rgb + specular + emissive.rgb;
 	vec3 color = pow(baseColor, vec3(0.4545f)); // gamma correction 1.0f / 2.2f = 0.4545f

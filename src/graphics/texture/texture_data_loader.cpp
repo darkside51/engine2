@@ -441,7 +441,7 @@ namespace sail_format {
         // auto & palette = image.palette();
         // palette.data();
 
-        if (image.is_indexed()) { // palleted
+        if (image.is_indexed()) { // palette
             const auto targetFormat = convert(rhi::Format::eR8G8B8A8_Unorm, true);
             if (image.can_convert(targetFormat)) {
                 if (image.convert(targetFormat) == SAIL_OK) {
