@@ -58,9 +58,6 @@ void main() {
 
 	const vec4 worldPosition = vec4(reconstructPosition(v_rayDirWorld, cameraPosition, linearDepth), 1.0f);
 	const float viewDepth = reconstructPosition(v_rayDirView, vec3(0.0f), linearDepth).z;
-	//const vec4 worldPosition = texture(texturePositionDepth, v_uv);
-
-	const float NdotL = max(0.0f, dot(normal, -push.light.xyz));
 
 	// shadows
 	// get cascade index for the current fragment's view position
@@ -75,20 +72,23 @@ void main() {
 	shadowCoord = shadowCoord / shadowCoord.w;
 	shadowCoord.xy = shadowCoord.xy * 0.5f + 0.5f;
 	
-	const float bias = max(0.0075f * (1.0f - NdotL), 0.001f);
+	const float bias = max(0.002f * (1.0f - dot(normal, push.light.xyz)), 0.001f);
 	const float shadowValue = textureProj(textureShadowMap, shadowCoord, vec2(0.0f), cascade, bias, push.ambient.w); // hardware pcf if use sampler2DArrayShadow
-	//const float shadowValue = filterPCF(textureShadowMap, shadowCoord, cascade, push.ambient.w);
+	//const float shadowValue = filterPCF(textureShadowMap, shadowCoord, cascade, bias, push.ambient.w);
 
 	vec3 viewDir = vec3(0.0f, 0.0f, 1.0f);
 	vec3 reflect = reflect(push.light.xyz, normal);
 	vec3 specular = vec3(0.0f);//pow(max(dot(reflect, viewDir), 0.0f), 8.0f) * vec3(1.0f);
 
 	const vec3 ambient = push.ambient.xyz * push.ambient.w * occlusion;
-	const vec3 baseColor = shadowValue * (ambient + NdotL * (push.directionalLight.xyz * push.directionalLight.w)) * albedo.rgb + specular + emissive.rgb;
-	vec3 color = pow(baseColor, vec3(0.4545f)); // gamma correction 1.0f / 2.2f = 0.4545f
+	const float NdotL = max(0.0f, dot(normal, -push.light.xyz));
+	const vec3 light = shadowValue * (ambient + NdotL * (push.directionalLight.xyz * push.directionalLight.w));
+	vec3 baseColor = mix(light * albedo.rgb + specular + emissive.rgb, vec3(1.0f), step(0.0f, viewDepth));
 	
 	// saturation
-	color = saturate(color, push.options.z);
+	baseColor = saturate(baseColor, push.options.z);
+
+	vec3 color = pow(baseColor, vec3(0.4545f)); // gamma correction 1.0f / 2.2f = 0.4545f
 
 	// vignette
 	if (push.options.w > 0.0f) {
