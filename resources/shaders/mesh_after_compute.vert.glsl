@@ -25,36 +25,22 @@ layout (set = 1, binding = 2) readonly buffer SkeletonIds {
 
 layout (location = 0) out vec3 v_normal;
 layout (location = 1) out vec2 v_uv;
-layout (location = 2) out vec4 v_color;
-layout (location = 3) out vec3 v_emissive;
-//layout (location = 4) out vec3 v_viewPosition;
-layout (location = 4) out vec3 v_worldPosition;
+layout (location = 2) out vec3 v_worldPosition;
 
 layout(push_constant) uniform Params {
 	vec4 color;
 	vec4 emissive;
+	vec4 metalicRoughness;
 	uvec4 offset;
 } push;
 
 void main() {
-	//uint vertexId = push.vertexDataOffset + gl_VertexIndex + gl_InstanceIndex * push.vertexPerObjects;
-
-	//const uint skeletonId = a_skeleton_ids & 0xffffu;
-	//const uint vertexCount = (a_skeleton_ids >> 16u) & 0xffffu;
-	//const uint vertexId = gl_VertexIndex + skeletonId * vertexCount;
-
 	const uint vertexId = gl_VertexIndex + in_skeleton_ids.data[gl_InstanceIndex + push.offset.x];//a_skeleton_ids;
 	gl_Position = u_viewParams.viewProjection * in_positions.data[vertexId];
 	v_normal = in_normals.data[vertexId].xyz;
 	v_uv = a_uv;
-	v_color = push.color;
-	v_emissive = push.emissive.xyz;
-
-	//v_viewPosition = gl_Position.xyz / gl_Position.w;//vec3(u_viewParams.view * in_positions.data[vertexId]);
-	//v_viewPosition.y *= -1.0f;
 
 	v_worldPosition = in_positions.data[vertexId].xyz;
-	//v_viewPosition = vec3(u_viewParams.view * in_positions.data[vertexId]);
 	mat3 normalMatrix = transpose(inverse(mat3(u_viewParams.view)));
 	v_normal = normalMatrix * v_normal;
 }

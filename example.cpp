@@ -112,10 +112,11 @@ namespace example {
         eSsao = 1u,
         eAlbedo = 2u,
         eEmissive = 3u,
-        eWorldPos = 4u,
-        eShadowCascade0 = 5u,
-        eShadowCascade1 = 6u,
-        eDebugCascades = 7u
+        eMetallicRoughness = 4u,
+        eWorldPos = 5u,
+        eShadowCascade0 = 6u,
+        eShadowCascade1 = 7u,
+        eDebugCascades = 8u
     };
 
     float ssaoEnable = 1.0f;
@@ -144,7 +145,7 @@ namespace example {
     float saturation = 1.0f;
 
     void optionsWindow() {
-        ImGui::SetNextWindowSize(ImVec2(540, 710), ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowSize(ImVec2(540, 740), ImGuiCond_FirstUseEver);
         if (!ImGui::Begin("options", &showOptions, 0)) {
             // early out if the window is collapsed, as an optimization.
             ImGui::End();
@@ -200,6 +201,9 @@ namespace example {
         }
         if (ImGui::RadioButton("emissive", debugShow == DebugShow::eEmissive)) { 
             debugShow = DebugShow::eEmissive;
+        }
+        if (ImGui::RadioButton("metallic roughness", debugShow == DebugShow::eMetallicRoughness)) { 
+            debugShow = DebugShow::eMetallicRoughness;
         }
         if (ImGui::RadioButton("world positions", debugShow == DebugShow::eWorldPos)) { 
             debugShow = DebugShow::eWorldPos;
@@ -626,6 +630,12 @@ namespace example {
         };
         ssaoImageInfo.memoryExtFlags = engine::rhi::MemoryExtendedFlags::eDedicated;
 
+        auto metallicRoughnessColorImageInfo = engine::rhi::ImageInfo{
+            engine::rhi::ImageUsageFlags::eColor_Attachment | engine::rhi::ImageUsageFlags::eSampled,
+            engine::rhi::Format::eR8G8_Unorm, {size.width, size.height, 1u}
+        };
+        metallicRoughnessColorImageInfo.memoryExtFlags = engine::rhi::MemoryExtendedFlags::eDedicated;
+
         for (uint32_t i = 0u; i < framesCount; ++i) {
             _gBufferAttachments.emplace_back(
                 _api->createImage(*_device, positionImageInfo), // position
@@ -633,7 +643,8 @@ namespace example {
                 _api->createImage(*_device, otherColorImageInfo), // albedo
                 _api->createImage(*_device, otherColorImageInfo), // emissive
                 _api->createImage(*_device, otherColorImageInfo), // emissive2
-                _api->createImage(*_device, depthImageInfo) // depth
+                _api->createImage(*_device, depthImageInfo), // depth
+                _api->createImage(*_device, metallicRoughnessColorImageInfo) // metallicRoughness
             );
 
             _ssaoImages.emplace_back(_api->createImage(*_device, ssaoImageInfo));
@@ -648,7 +659,7 @@ namespace example {
 
         for (uint32_t i = 0u; i < framesCount; ++i) {
             {
-                std::vector<engine::rhi::FrameBufferAttachment> fbAttachemnts{5u};
+                std::vector<engine::rhi::FrameBufferAttachment> fbAttachemnts{6u};
 
                 auto & positionImage = _gBufferAttachments[i].position;
                 fbAttachemnts[0u].image = positionImage.get();
@@ -674,6 +685,11 @@ namespace example {
                 fbAttachemnts[4u].image = depthImage.get();
                 fbAttachemnts[4u].imageSize = {depthImage->getExtent().width, depthImage->getExtent().height};
                 fbAttachemnts[4u].aspect = engine::rhi::ImageAspectFlags::eDepth;
+
+                auto & metallicRoughnessImage = _gBufferAttachments[i].metallicRoughness;
+                fbAttachemnts[5u].image = metallicRoughnessImage.get();
+                fbAttachemnts[5u].imageSize = {metallicRoughnessImage->getExtent().width, metallicRoughnessImage->getExtent().height};
+                fbAttachemnts[5u].aspect = engine::rhi::ImageAspectFlags::eColor;
 
                 _gBuffers.emplace_back(_api->createFrameBuffer(*_device, std::move(fbAttachemnts), _renderPasses[kGbufferRenderPass]));
             }
@@ -746,7 +762,8 @@ namespace example {
                 engine::rhi::Format::eR8G8B8A8_Unorm, 
                 engine::rhi::Format::eR8G8B8A8_Unorm,
                 engine::rhi::Format::eR8G8B8A8_Unorm, 
-                depthFormat};
+                depthFormat,
+                engine::rhi::Format::eR8G8_Unorm};
             const auto formatsSsao = std::array{engine::rhi::Format::eR8_Unorm};
 
             _renderPasses.emplace_back(_api->getRenderPass(*_device, engine::parseRenderPass(json["gBuffer"], formatsGBuffer))); // kGbufferRenderPass
@@ -1934,6 +1951,7 @@ namespace example {
             rhi::ClearValue{0x00'00'00'00u},    // normal
             rhi::ClearValue{0xff'ff'ff'ffu},    // albedo
             rhi::ClearValue{0x00'00'00'00u},    // emissive
+            rhi::ClearValue{0x00'00'00'00u},    // metallicRoughness
             rhi::ClearValue{0.0f, 0u}           // depth
         };
 
@@ -2073,11 +2091,12 @@ namespace example {
         commandList->bindImage(2u, _gBufferAttachments[frameId].albedo, nearestSampler);
         commandList->bindImage(3u, _gBufferAttachments[frameId].emissive, linearSampler);
         commandList->bindImage(4u, _gBufferAttachments[frameId].position, nearestSampler);
+        commandList->bindImage(5u, _gBufferAttachments[frameId].metallicRoughness, linearSampler);
         commandList->bindImage(
-            5u, shadowMap->getImage(frameId), shadowMap->getSampler(), 0u, 
+            6u, shadowMap->getImage(frameId), shadowMap->getSampler(), 0u, 
             rhi::ImageAspectFlags::eDepth, rhi::ImageViewType::eType_2D_Array 
         );
-        commandList->bindBuffer(6u, (*shadowMapUniformBuffer)(frameId), 0u, 0u);
+        commandList->bindBuffer(7u, (*shadowMapUniformBuffer)(frameId), 0u, 0u);
 
         commandList->pushConstants(rhi::shaders::Stages::eVertex | rhi::shaders::Stages::eFragment, 0u, sizeof(PostParams), &postParams);
         commandList->drawIndexed(6u);

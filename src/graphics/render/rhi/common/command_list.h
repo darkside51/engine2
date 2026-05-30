@@ -36,7 +36,7 @@ namespace engine::rhi::runtime {
 
     struct Pass {
         static constexpr uint16_t kDefaultBuffersInArray = 1024u;
-        static constexpr uint16_t kDefaultImagesInArray = 256u;
+        static constexpr uint16_t kDefaultImagesInArray = 512u;
         
         enum class Type : uint8_t {
             eTransfer = 0u,

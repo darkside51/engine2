@@ -1346,12 +1346,14 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
         struct Uniform {
             vec4f color;
             vec4f emissive;
+            vec4f metalicRoughness;
             vec4u offset;
         };
 
         Uniform uniform {
             .color = vec4f{1.0f},
             .emissive = vec4f{0.0f},
+            .metalicRoughness = vec4f{0.0f},
             .offset = vec4u{0u}
         };
 
@@ -1365,11 +1367,16 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
             const auto & image2 = textures[static_cast<uint8_t>(graphics::PbrTextureId::eEmissive)];
             assert(image2 != nullptr);
 
+            const auto & image3 = textures[static_cast<uint8_t>(graphics::PbrTextureId::eMetallicRoughness)];
+            assert(image3 != nullptr);
+
             // textures change more often than storage buffers - setId #2u used
             commandList->bindImage(0u, image->image, _linearSampler, 2u); 
-            commandList->bindImage(1u, image2->image, _linearSampler, 2u); 
+            commandList->bindImage(1u, image2->image, _linearSampler, 2u);
+            commandList->bindImage(2u, image3->image, _linearSampler, 2u);
             uniform.color = material.baseColorFactor;
             uniform.emissive = vec4f{material.emissiveFactor, 0.0f};
+            uniform.metalicRoughness = vec4f(material.metallicFactor, material.roughnessFactor, 0.0f, 1.0f);
         };
 
         uint32_t count = 1u;
@@ -1392,7 +1399,7 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
         uniform.offset.x = skeletal ? skeletonsOffset : offset;
 
         applyMaterial(materialIndex);
-        commandList->pushConstants(rhi::shaders::Stages::eVertex, 0u, sizeof(Uniform), &uniform);
+        commandList->pushConstants(rhi::shaders::Stages::eVertex | rhi::shaders::Stages::eFragment, 0u, sizeof(Uniform), &uniform);
 
         for (auto it = currentIt + 1u; it != end; ++it) {
             const auto & mesh2 = *static_cast<const Mesh*>(*it);
@@ -1433,9 +1440,9 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
 
                 if (pipelineChanged || materialChanged) {
                     applyMaterial(currenMaterialIndex);
-                    commandList->pushConstants(rhi::shaders::Stages::eVertex, 0u, sizeof(Uniform), &uniform);
+                    commandList->pushConstants(rhi::shaders::Stages::eVertex | rhi::shaders::Stages::eFragment, 0u, sizeof(Uniform), &uniform);
                 } else {
-                    commandList->pushConstants(rhi::shaders::Stages::eVertex, 32u, sizeof(vec4u), &uniform.offset);
+                    commandList->pushConstants(rhi::shaders::Stages::eVertex | rhi::shaders::Stages::eFragment, 48u, sizeof(vec4u), &uniform.offset);
                 }
 
                 if (currentSkeletal != skeletal) {
@@ -1529,7 +1536,7 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
         commandList->bindBuffer(0u, (*_viewParamsUniformBuffer)(frame), 0u, _currentViewParamsBufferOffset);
 
         applyMaterial(materialIndex);
-        commandList->pushConstants(rhi::shaders::Stages::eVertex, 0u, sizeof(Uniform), &uniform);
+        commandList->pushConstants(rhi::shaders::Stages::eVertex | rhi::shaders::Stages::eFragment, 0u, sizeof(Uniform), &uniform);
 
         if (skeletal) {
             commandList->bindBuffer(0u, (*_meshSkeletalTransforms)(frame), 1u, 0u);
@@ -1574,7 +1581,7 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
 
                 if (pipelineChanged || materialChanged) {
                     applyMaterial(currenMaterialIndex);
-                    commandList->pushConstants(rhi::shaders::Stages::eVertex, 0u, sizeof(Uniform), &uniform);
+                    commandList->pushConstants(rhi::shaders::Stages::eVertex | rhi::shaders::Stages::eFragment, 0u, sizeof(Uniform), &uniform);
                 }
 
                 if (currentSkeletal != skeletal) {
