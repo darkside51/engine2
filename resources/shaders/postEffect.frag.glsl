@@ -24,8 +24,8 @@ layout(set = 0, binding = 1) uniform sampler2D textureNormal;
 layout(set = 0, binding = 2) uniform sampler2D textureAlbedo;
 layout(set = 0, binding = 3) uniform sampler2D textureEmissive;
 layout(set = 0, binding = 4) uniform sampler2D texturePositionDepth;
-layout(set = 0, binding = 5) uniform sampler2DArrayShadow textureShadowMap;
-//layout(set = 0, binding = 5) uniform sampler2DArray textureShadowMap;
+//layout(set = 0, binding = 5) uniform sampler2DArrayShadow textureShadowMap;
+layout(set = 0, binding = 5) uniform sampler2DArray textureShadowMap;
 
 layout (set = 0, binding = 6) uniform shadowsUniformBuffer {
 	mat4 cascades[shadowCascades];
@@ -45,6 +45,7 @@ layout(push_constant) uniform Params {
 	vec4 options;
 } push;
 
+const float biases[4] = float[](0.0001f, 0.0004f, 0.0001f, 0.0002f);
 
 void main() {
 	const float occlusion = push.options.x > 0.0f ? radialBlur(textureSsao, v_uv, int(push.options.x - 1.0f)) : 1.0f;
@@ -72,16 +73,17 @@ void main() {
 	shadowCoord = shadowCoord / shadowCoord.w;
 	shadowCoord.xy = shadowCoord.xy * 0.5f + 0.5f;
 	
-	const float bias = max(0.002f * (1.0f - dot(normal, push.light.xyz)), 0.001f);
-	const float shadowValue = textureProj(textureShadowMap, shadowCoord, vec2(0.0f), cascade, bias, push.ambient.w); // hardware pcf if use sampler2DArrayShadow
-	//const float shadowValue = filterPCF(textureShadowMap, shadowCoord, cascade, bias, push.ambient.w);
+	const float NdotL = max(0.0f, dot(normal, -push.light.xyz));
+
+	const float bias = max(biases[2 * cascade + 1] * (1.0f - abs(NdotL)), biases[2 * cascade]);
+	//const float shadowValue = textureProj(textureShadowMap, shadowCoord, vec2(0.0f), cascade, bias, push.ambient.w); // hardware pcf if use sampler2DArrayShadow
+	const float shadowValue = filterPCF(textureShadowMap, shadowCoord, cascade, bias, push.ambient.w);
 
 	vec3 viewDir = vec3(0.0f, 0.0f, 1.0f);
 	vec3 reflect = reflect(push.light.xyz, normal);
 	vec3 specular = vec3(0.0f);//pow(max(dot(reflect, viewDir), 0.0f), 8.0f) * vec3(1.0f);
 
 	const vec3 ambient = push.ambient.xyz * push.ambient.w * occlusion;
-	const float NdotL = max(0.0f, dot(normal, -push.light.xyz));
 	const vec3 light = shadowValue * (ambient + NdotL * (push.directionalLight.xyz * push.directionalLight.w));
 	vec3 baseColor = mix(light * albedo.rgb + specular + emissive.rgb, vec3(1.0f), step(0.0f, viewDepth));
 	
@@ -106,8 +108,8 @@ void main() {
 		out_color = mix(out_color, worldPosition, step(3.1f, push.options.y) * step(push.options.y, 4.1f));
 
 		if (push.options.y > 4.0f && push.options.y < 8.0f) {
-			//const float shadowDepth = texture(textureShadowMap, vec3(v_uv, clamp(int(push.options.y - 5.0f), 0.0f, 2.0f))).r;
-			const float shadowDepth = texture(textureShadowMap, vec4(v_uv, clamp(int(push.options.y - 5.0f), 0.0f, 2.0f), 0.0f));
+			const float shadowDepth = texture(textureShadowMap, vec3(v_uv, clamp(int(push.options.y - 5.0f), 0.0f, 2.0f))).r;
+			//const float shadowDepth = texture(textureShadowMap, vec4(v_uv, clamp(int(push.options.y - 5.0f), 0.0f, 2.0f), 0.0f));
 			out_color = mix(out_color, vec4(shadowDepth, shadowDepth, shadowDepth, 1.0f), step(4.1f, push.options.y) * step(push.options.y, 6.9f));
 		}
 
