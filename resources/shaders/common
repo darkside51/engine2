@@ -1,9 +1,4 @@
 
-//float linearDepth(float depth, float nearPlane, float farPlane) {
-//	const float z = depth * 2.0f - 1.0f; 
-//	return (2.0f * nearPlane * farPlane) / (farPlane + nearPlane - z * (farPlane - nearPlane));	
-//}
-
 float linearDepth(float depth, float nearPlane, float farPlane) {
    return ((nearPlane / (nearPlane-farPlane)) * farPlane) / (depth - (farPlane / (farPlane-nearPlane)));
 }

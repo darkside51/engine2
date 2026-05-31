@@ -116,7 +116,7 @@ struct dynamic_array {
     template <typename U>
     T& emplace_back(U && v) {
         if (auto * arr = std::get_if<std::array<T, Max>>(&value)) { [[likely]];
-            if (capacity < Max - 1) {
+            if (capacity < Max) {
                 auto & result = (*arr)[capacity++];
                 if constexpr(std::is_convertible_v<T, U>) {
                     result = std::forward<U>(v);
@@ -142,7 +142,7 @@ struct dynamic_array {
     template <typename ...Args>
     T& emplace_back(Args && ... args) {
         if (auto * arr = std::get_if<std::array<T, Max>>(&value)) { [[likely]];
-            if (capacity < Max - 1) {
+            if (capacity < Max) {
                 auto & result = (*arr)[capacity++];
                 new(&result) T{std::forward<Args>(args)...};
                 return result;

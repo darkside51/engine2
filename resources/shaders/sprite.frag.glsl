@@ -18,6 +18,7 @@ layout (location = 0) out float out_position;
 layout (location = 1) out vec4 out_normal;
 layout (location = 2) out vec4 out_albedo;
 layout (location = 3) out vec4 out_emissive;
+layout (location = 4) out vec2 out_metalicRoughness;
 
 layout (set = 0, binding = 0) uniform UniformBuffer {
 	mat4 view;
@@ -48,4 +49,5 @@ void main() {
 	//out_emissive = vec4(0.0, 0.0, 0.0, 0.0);
 	out_emissive = out_albedo * v_normalAndEmissive.w;
 	//out_world_position = vec4(v_worldPosition, depthLinear);
+	out_metalicRoughness = vec2(0.0f);
 }
