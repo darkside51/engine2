@@ -18,6 +18,7 @@ void main() {
 #import lighting
 #import blur
 #import colors
+#import pbr
 
 layout(set = 0, binding = 0) uniform sampler2D textureSsao;
 layout(set = 0, binding = 1) uniform sampler2D textureNormal;
@@ -31,6 +32,7 @@ layout(set = 0, binding = 6) uniform sampler2DArray textureShadowMap;
 layout (set = 0, binding = 7) uniform shadowsUniformBuffer {
 	mat4 cascades[shadowCascades];
 	vec4 splits;
+	vec4 options;
 } u_shadow;
 
 layout (location = 0) in vec2 v_uv;
@@ -79,20 +81,39 @@ void main() {
 	const float NdotL = max(0.0f, dot(normal, -push.light.xyz));
 
 	const float bias = max(biases[2 * cascade + 1] * (1.0f - abs(NdotL)), biases[2 * cascade]);
-	//const float shadowValue = textureProj(textureShadowMap, shadowCoord, vec2(0.0f), cascade, bias, push.ambient.w); // hardware pcf if use sampler2DArrayShadow
-	const float shadowValue = filterPCF(textureShadowMap, shadowCoord, cascade, bias, push.ambient.w);
-
-	vec3 viewDir = vec3(0.0f, 0.0f, 1.0f);
-	vec3 reflect = reflect(push.light.xyz, normal);
-	vec3 specular = pow(max(dot(reflect, viewDir), 0.0f), 16.0f) * metallicRoughness.r * push.directionalLight.xyz;
+	//const float shadowValue = textureProj(textureShadowMap, shadowCoord, vec2(0.0f), cascade, bias, u_shadow.options.x); // hardware pcf if use sampler2DArrayShadow
+	const float shadowValue = filterPCF(textureShadowMap, shadowCoord, cascade, bias, u_shadow.options.x);
 
 	const vec3 ambient = push.ambient.xyz * push.ambient.w * occlusion;
-	const vec3 light = shadowValue * (ambient + NdotL * (push.directionalLight.xyz * push.directionalLight.w));
-	vec3 baseColor = mix(light * albedo.rgb + specular + emissive.rgb, vec3(1.0f), step(0.0f, viewDepth));
+
+// pbr
+	const vec3 N = normal;
+	const vec3 V = vec3(0.0f, 0.0f, 1.0f);
+	const vec3 L = -push.light.xyz;
+
+	//vec3 V = normalize(cameraPosition - worldPosition.xyz);
+	//vec3 L = normalize(100.0f * -push.light.xyz - worldPosition.xyz);
+
+	const vec3 Lo = BRDF(L, V, N, metallicRoughness.x, metallicRoughness.y, push.directionalLight.xyz * push.directionalLight.w, albedo.rgb);
+
+	// combine with ambient
+	vec3 baseColor = albedo.xyz * ambient;
+	baseColor += max(Lo, vec3(0.0));
+	baseColor *= shadowValue;
+	baseColor += emissive.rgb;
+	baseColor = mix(baseColor, vec3(1.0f), step(0.0f, viewDepth));
+//
+
+	//vec3 viewDir = vec3(0.0f, 0.0f, 1.0f);
+	//vec3 reflect = reflect(push.light.xyz, normal);
+	//vec3 specular = pow(max(dot(reflect, viewDir), 0.0f), 16.0f) * metallicRoughness.r * push.directionalLight.xyz;
+
+	//const vec3 light = shadowValue * (ambient + NdotL * (push.directionalLight.xyz * push.directionalLight.w));
+	//vec3 baseColor = mix(light * albedo.rgb + specular + emissive.rgb, vec3(1.0f), step(0.0f, viewDepth));
 	
 	// saturation
 	baseColor = saturate(baseColor, push.options.z);
-
+	// gamma
 	vec3 color = pow(baseColor, vec3(0.4545f)); // gamma correction 1.0f / 2.2f = 0.4545f
 
 	// vignette

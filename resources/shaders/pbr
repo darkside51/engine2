@@ -1,0 +1,52 @@
+
+// normal distribution function
+float d_GGX(float dotNH, float roughness) {
+	const float PI = 3.14159265359f;
+	const float alpha = roughness * roughness;
+	const float alpha2 = alpha * alpha;
+	const float denom = dotNH * dotNH * (alpha2 - 1.0f) + 1.0f;
+	return (alpha2) / (PI * denom*denom); 
+}
+
+// geometric shadowing function
+float g_SchlicksmithGGX(float dotNL, float dotNV, float roughness) {
+	const float r = (roughness + 1.0f);
+	const float k = (r * r) / 8.0f;
+	const float GL = dotNL / (dotNL * (1.0f - k) + k);
+	const float GV = dotNV / (dotNV * (1.0f - k) + k);
+	return GL * GV;
+}
+
+// fresnel function
+vec3 f_Schlick(float cosTheta, float metallic, vec3 materialColor) {
+	const vec3 f0 = mix(vec3(0.04f), materialColor, metallic); // * material.specular
+	const vec3 f = f0 + (1.0f - f0) * pow(1.0f - cosTheta, 5.0f); 
+	return f;    
+}
+
+// specular BRDF composition --------------------------------------------
+vec3 BRDF(vec3 L, vec3 V, vec3 N, float metallic, float roughness, vec3 lightColor, vec3 materialColor) {
+	// Precalculate vectors and dot products	
+	const vec3 H = normalize (V + L);
+	const float dotNV = clamp(dot(N, V), 0.0f, 1.0f);
+	const float dotNL = clamp(dot(N, L), 0.0f, 1.0f);
+	const float dotLH = clamp(dot(L, H), 0.0f, 1.0f);
+	const float dotNH = clamp(dot(N, H), 0.0f, 1.0f);
+
+	vec3 color = vec3(0.0);
+	if (dotNL > 0.0f) {
+		const float rroughness = max(0.05f, roughness);
+		// D = Normal distribution (Distribution of the microfacets)
+		const float D = d_GGX(dotNH, roughness); 
+		// G = Geometric shadowing term (Microfacets shadowing)
+		const float G = g_SchlicksmithGGX(dotNL, dotNV, rroughness);
+		// F = Fresnel factor (Reflectance depending on angle of incidence)
+		const vec3 F = f_Schlick(dotNV, metallic, materialColor);
+
+		const vec3 spec = D * F * G / (1.0f * dotNL * dotNV);
+
+		color += spec * dotNL * lightColor;
+	}
+
+	return color;
+}

@@ -102,6 +102,7 @@ namespace example {
     struct ShadowMapUniforms {
         std::array<engine::mat4f, 2u> cascades;
         engine::vec4f splits;
+        engine::vec4f options;
     };
 
     // options
@@ -141,6 +142,7 @@ namespace example {
     engine::vec4f ambientColor = engine::vec4f{1.0f, 1.0f, 1.0f, 0.25f};
     engine::vec4f directionalLightColor = engine::vec4f{1.0f, 1.0f, 1.0f, 0.75f};
     engine::vec3f lightDir = {0.26f, 0.15f, -0.75f};
+    engine::vec4f shadowsOptions = {0.25f, 0.0f, 0.0f, 0.0f};
     bool lightDirty = false;
     float saturation = 1.0f;
 
@@ -184,6 +186,9 @@ namespace example {
         ImGui::DragFloat("ambient factor", &ambientColor[3u], 0.01f, 0.0f, 1.0f);
         ImGui::ColorEdit3("directional light color", &directionalLightColor[0u]);
         ImGui::DragFloat("directional light factor", &directionalLightColor[3u], 0.01f, 0.0f, 2.0f);
+        if (ImGui::DragFloat("shadow factor", &shadowsOptions[0u], 0.01f, 0.0f, 1.0f)) {
+            lightDirty = true;
+        }
         
         ImGui::NewLine();
         ImGui::DragFloat("saturation", &saturation, 0.01f, 0.0f, 10.0f);
@@ -1886,6 +1891,7 @@ namespace example {
             auto * shadowUniforms = shadowMapUniformBuffer->memory2<ShadowMapUniforms>();
             memcpy(shadowUniforms->cascades.data(), shadowMap->getCascadeMatrices().data(), sizeof(engine::mat4f) * shadowMap->getCascadeMatrices().size());
             memcpy(&shadowUniforms->splits, shadowMap->getCascadeSplitDepths().data(), shadowMap->getCascadeSplitDepths().size() * sizeof(float));
+            shadowUniforms->options = shadowsOptions;
             shadowMapUniformBuffer->modify();
 
             viewParamsUpdated = false;
