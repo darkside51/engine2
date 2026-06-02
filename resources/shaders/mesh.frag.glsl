@@ -35,8 +35,8 @@ void main() {
 	const float depthLinear = linearDepth(gl_FragCoord.z, u_viewParams.nearFarPlanes.x, u_viewParams.nearFarPlanes.y);
 	out_position = depthLinear;
 
-	out_normal = vec4(normalize(v_normal) * 0.5 + 0.5, 1.0);
+	out_normal = vec4(normalize(v_normal) * 0.5f + 0.5f, 1.0f);
 	out_albedo = texture(u_texture, v_uv) * push.color;
-	out_emissive = vec4(texture(u_texture_emissive, v_uv).rgb * push.emissive.rgb, 1.0);
-	out_metalicRoughness = vec2(texture(u_texture_metalicRoughness, v_uv).rg * push.metalicRoughness.xy);
+	out_emissive = vec4(texture(u_texture_emissive, v_uv).rgb * push.emissive.rgb, 1.0f);
+	out_metalicRoughness = vec2(texture(u_texture_metalicRoughness, v_uv).bg * push.metalicRoughness.xy);
 }

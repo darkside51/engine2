@@ -185,7 +185,7 @@ namespace example {
         ImGui::ColorEdit3("ambient color", &ambientColor[0u]);
         ImGui::DragFloat("ambient factor", &ambientColor[3u], 0.01f, 0.0f, 1.0f);
         ImGui::ColorEdit3("directional light color", &directionalLightColor[0u]);
-        ImGui::DragFloat("directional light factor", &directionalLightColor[3u], 0.01f, 0.0f, 2.0f);
+        ImGui::DragFloat("directional light factor", &directionalLightColor[3u], 0.01f, 0.0f, 10.0f);
         if (ImGui::DragFloat("shadow factor", &shadowsOptions[0u], 0.01f, 0.0f, 1.0f)) {
             lightDirty = true;
         }
@@ -515,7 +515,7 @@ namespace example {
         rhi::DeviceCreateInfo deviceCreateInfo{_gpuFeatures};
         deviceCreateInfo.queueFamilies.push_back({index, 1u, {1.0f}, queueFlags});
         deviceCreateInfo.commandPoolThreadsCount = 2u;
-        deviceCreateInfo.inFlightFramesCount = 3u;
+        deviceCreateInfo.inFlightFramesCount = 2u;
 
         _device = _api->createDevice(_gpu, deviceCreateInfo);
 
@@ -1470,8 +1470,8 @@ namespace example {
 
                         // const auto imageBytes = _fileManager.readFile("assets/vulkan_11_rgba.ktx");
                         // const auto imageBytes = _fileManager.readFile("assets/2d_bc7.ktx2");
-                        // const auto imageBytes = _fileManager.readFile("assets/2.png");
-                        const auto imageBytes = _fileManager.readFile("assets/images.png");
+                        const auto imageBytes = _fileManager.readFile("assets/2.png");
+                        // const auto imageBytes = _fileManager.readFile("assets/images.png");
                         auto textureData = engine::graphics::parseTextureData(imageBytes, {
                                 .flags = engine::graphics::TextureFlags::eAllowSrgbColorSpace | engine::graphics::TextureFlags::eUseMipMaps
                             }
@@ -1570,7 +1570,6 @@ namespace example {
 
     void Example::deviceProcess() {
         if (controller.calculateTransform() && _renderThread) {
-            auto cameraPos = controller.cameraPosition();
             _renderThread->emplaceTasks(stl::make_vector(threads::WorkerTask{[
                 transform = camera.getTransform(), 
                 view = camera.getView(), 

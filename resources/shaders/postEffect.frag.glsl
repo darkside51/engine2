@@ -48,7 +48,7 @@ layout(push_constant) uniform Params {
 	vec4 options;
 } push;
 
-const float biases[4] = float[](0.0001f, 0.0004f, 0.0001f, 0.0002f);
+const float biases[4] = float[](0.0001f, 0.0004f, 0.0001f, 0.0002f); // count = shadowCascades * 2
 
 void main() {
 	const float occlusion = push.options.x > 0.0f ? radialBlur(textureSsao, v_uv, int(push.options.x - 1.0f)) : 1.0f;
@@ -63,13 +63,13 @@ void main() {
     const vec3 cameraPosition = push.view[3].xyz;
 
 	const vec4 worldPosition = vec4(reconstructPosition(v_rayDirWorld, cameraPosition, linearDepth), 1.0f);
-	const float viewDepth = reconstructPosition(v_rayDirView, vec3(0.0f), linearDepth).z;
+	const vec3 viewPosition = reconstructPosition(v_rayDirView, vec3(0.0f), linearDepth);
 
 	// shadows
 	// get cascade index for the current fragment's view position
 	uint cascade = 0;
 	for (uint i = 0; i < shadowCascades - 1; ++i) {
-		if (viewDepth < u_shadow.splits[i]) {	
+		if (viewPosition.z < u_shadow.splits[i]) {	
 			cascade = i + 1;
 		}
 	}
@@ -78,43 +78,66 @@ void main() {
 	shadowCoord = shadowCoord / shadowCoord.w;
 	shadowCoord.xy = shadowCoord.xy * 0.5f + 0.5f;
 	
-	const float NdotL = max(0.0f, dot(normal, -push.light.xyz));
+	// pbr
+	const vec3 N = normal; // in view space
+    const vec3 V = normalize(-viewPosition); // in view space
+    const vec3 L = normalize(-push.light.xyz); // in view space
 
-	const float bias = max(biases[2 * cascade + 1] * (1.0f - abs(NdotL)), biases[2 * cascade]);
-	//const float shadowValue = textureProj(textureShadowMap, shadowCoord, vec2(0.0f), cascade, bias, u_shadow.options.x); // hardware pcf if use sampler2DArrayShadow
+    const float NdotL = max(dot(N, L), 0.0f); 
+
+    const float bias = max(biases[2 * cascade + 1] * (1.0f - abs(NdotL)), biases[2 * cascade]);
+	////const float shadowValue = textureProj(textureShadowMap, shadowCoord, vec2(0.0f), cascade, bias, u_shadow.options.x); // hardware pcf if use sampler2DArrayShadow
 	const float shadowValue = filterPCF(textureShadowMap, shadowCoord, cascade, bias, u_shadow.options.x);
 
-	const vec3 ambient = push.ambient.xyz * push.ambient.w * occlusion;
+    // calculate base reflectance at normal incidence (dielectric vs metal)
+    vec3 F0 = vec3(0.04f); 
+    F0 = mix(F0, albedo.rgb, metallicRoughness.x);
 
-// pbr
-	const vec3 N = normal;
-	const vec3 V = vec3(0.0f, 0.0f, 1.0f);
-	const vec3 L = -push.light.xyz;
+    // reflectance equation setup
+    vec3 Lo = vec3(0.0f);
+    
+    // per-light calculation (Loop for multiple lights)
+    const vec3 H = normalize(V + L);
 
-	//vec3 V = normalize(cameraPosition - worldPosition.xyz);
-	//vec3 L = normalize(100.0f * -push.light.xyz - worldPosition.xyz);
+    const float distance = 1.0f;//length(lightPosition - worldPosition.xyz);
+    const float attenuation = 1.0f / (distance * distance); // Physical attenuation
+    const vec3 radiance = push.directionalLight.xyz * push.directionalLight.w * attenuation;
 
-	const vec3 Lo = BRDF(L, V, N, metallicRoughness.x, metallicRoughness.y, push.directionalLight.xyz * push.directionalLight.w, albedo.rgb);
+     // Cook-Torrance BRDF Evaluation
+    const float D = distributionGGX(N, H, metallicRoughness.y);
+    const float G = geometrySmith(N, V, L, metallicRoughness.y);      
+    const vec3 F = fresnelSchlick(max(dot(H, V), 0.0f), F0);
 
-	// combine with ambient
-	vec3 baseColor = albedo.xyz * ambient;
-	baseColor += max(Lo, vec3(0.0));
-	baseColor *= shadowValue;
-	baseColor += emissive.rgb;
-	baseColor = mix(baseColor, vec3(1.0f), step(0.0f, viewDepth));
-//
+    const vec3 numerator = D * G * F;
+    const float denominator = 4.0f * max(dot(N, V), 0.0f) * max(dot(N, L), 0.0f) + 0.0001f; // Avoid division by zero
+    const vec3 specular = numerator / denominator;
 
-	//vec3 viewDir = vec3(0.0f, 0.0f, 1.0f);
-	//vec3 reflect = reflect(push.light.xyz, normal);
-	//vec3 specular = pow(max(dot(reflect, viewDir), 0.0f), 16.0f) * metallicRoughness.r * push.directionalLight.xyz;
+    // energy conservation: diffuse must equal remaining non-reflected energy
+    const vec3 kS = F;
+    vec3 kD = vec3(1.0) - kS;
+    kD *= 1.0f - metallicRoughness.x;	 // Metals absorb refracted light completely
 
-	//const vec3 light = shadowValue * (ambient + NdotL * (push.directionalLight.xyz * push.directionalLight.w));
-	//vec3 baseColor = mix(light * albedo.rgb + specular + emissive.rgb, vec3(1.0f), step(0.0f, viewDepth));
-	
-	// saturation
+    Lo += (kD * albedo.rgb / PI + specular) * radiance * NdotL;
+
+    // ambient lighting (Placeholder: upgrade to Image-Based Lighting later)
+    const vec3 ambient = push.ambient.w * albedo.rgb * occlusion;
+    vec3 baseColor = ambient + Lo;
+    baseColor *= shadowValue;
+    baseColor += emissive.rgb;
+	//
+
+	// 1. contrast
+    baseColor = pow(baseColor, vec3(1.1f,  1.1f, 1.1f));
+
+	// 2. saturation
 	baseColor = saturate(baseColor, push.options.z);
-	// gamma
+
+	// 3. compress HDR to [0.0f, 1.0f]
+	//baseColor = baseColor / (baseColor + vec3(1.0f)); // Reinhard Tonemapping to map
+
+	// 4. gamma
 	vec3 color = pow(baseColor, vec3(0.4545f)); // gamma correction 1.0f / 2.2f = 0.4545f
+	color = mix(color, vec3(1.0f), step(0.0f, viewPosition.z));
 
 	// vignette
 	if (push.options.w > 0.0f) {
@@ -152,21 +175,4 @@ void main() {
 			}
 		}
 	}
-
-	/*
-	//float r = texture(textureAlbedo, v_uv - 0.001f).r;
-    //float g = texture(textureAlbedo, v_uv - 0.001f).g;
-    //float b = texture(textureAlbedo, v_uv + 0.001f).b;
-    //const vec4 albedo = vec4(r, g, b, 1.0f);
-
-	// 2. Contrast
-    //color = pow(color, vec3(1.1,  1.1, 1.1));
-    
-    // 3. Saturation
-    //float luminance = dot(color, vec3(0.2126, 0.7152, 0.0722));
-    //color = mix(luminance.xxx, color, 0.75);
-    
-    // 4. Filmic Tonemapping (Reinhard)
-    //color = color / (color + 1.0);
-	*/
 }

@@ -49,5 +49,5 @@ void main() {
 	//out_emissive = vec4(0.0, 0.0, 0.0, 0.0);
 	out_emissive = out_albedo * v_normalAndEmissive.w;
 	//out_world_position = vec4(v_worldPosition, depthLinear);
-	out_metalicRoughness = vec2(0.0f);
+	out_metalicRoughness = vec2(0.0f, 1.0f);
 }
