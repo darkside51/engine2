@@ -139,10 +139,10 @@ namespace example {
 
     float vignetteExtent = 0.1f;
 
-    engine::vec4f ambientColor = engine::vec4f{1.0f, 1.0f, 1.0f, 0.25f};
-    engine::vec4f directionalLightColor = engine::vec4f{1.0f, 1.0f, 1.0f, 0.75f};
+    engine::vec4f ambientColor = {1.0f, 1.0f, 1.0f, 0.5f};
+    engine::vec4f directionalLightColor = {1.0f, 1.0f, 1.0f, 1.0f};
     engine::vec3f lightDir = {0.26f, 0.15f, -0.75f};
-    engine::vec4f shadowsOptions = {0.25f, 0.0f, 0.0f, 0.0f};
+    engine::vec4f shadowsOptions = {0.2f, 0.0f, 0.0f, 0.0f};
     bool lightDirty = false;
     float saturation = 1.0f;
 
@@ -1470,7 +1470,7 @@ namespace example {
 
                         // const auto imageBytes = _fileManager.readFile("assets/vulkan_11_rgba.ktx");
                         // const auto imageBytes = _fileManager.readFile("assets/2d_bc7.ktx2");
-                        const auto imageBytes = _fileManager.readFile("assets/2.png");
+                        const auto imageBytes = _fileManager.readFile("assets/asphalt-7.jpg");
                         // const auto imageBytes = _fileManager.readFile("assets/images.png");
                         auto textureData = engine::graphics::parseTextureData(imageBytes, {
                                 .flags = engine::graphics::TextureFlags::eAllowSrgbColorSpace | engine::graphics::TextureFlags::eUseMipMaps
