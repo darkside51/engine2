@@ -29,6 +29,7 @@ public:
     void createPipelines(rhi::runtime::Rhi & api,
         rhi::runtime::Device & device,
         const rhi::runtime::GpuProgramPtr & program, rhi::runtime::RenderPass renderPass, 
+        uint8_t attachmentsCount, uint8_t colorAttachmentIdx,
         uint32_t subpass = 0u, bool reverseDepth = true);
 
     void createBuffers(rhi::runtime::Rhi & api,

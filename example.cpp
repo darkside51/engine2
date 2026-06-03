@@ -922,7 +922,12 @@ namespace example {
 
         loadShaders();
         _imgui.createPipeline(*_api, *_device, _programs[kImguiProgram], _renderPasses[kScreenRenderPass], 0u);
-        drawHelper.createPipelines(*_api, *_device, _programs[kDebugProgram], _renderPasses[kGbufferRenderPass], 0u, true);
+        drawHelper.createPipelines(
+            *_api, *_device, 
+            _programs[kDebugProgram], _renderPasses[kGbufferRenderPass], 
+            5u, // attachmentsCount 
+            2u, // colorAttachmentIdx
+            0u, true);
 
         const auto bytes = _fileManager.readFile("descriptors/pipelines.json");
         std::string_view input(reinterpret_cast<const char*>(bytes.data()), bytes.size());

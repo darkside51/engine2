@@ -408,7 +408,7 @@ namespace engine::graphics::models {
         j = 0U;
         for (auto & vertexBuffer : vertexBuffersData) {
             if (vertexBuffer.empty()) {
-                ++j;
+                //++j;
                 continue;
             }
             std::vector<std::byte> vertices(vertexCount * streams[j].size);
@@ -426,7 +426,7 @@ namespace engine::graphics::models {
         j = 0U;
         for (auto & vertexBuffer : vertexBuffersData) {
             if (vertexBuffer.empty()) {
-                ++j;
+                //++j;
                 continue;
             }
             meshopt_remapVertexBuffer(vertexBuffer.data(), vertexBuffer.data(), vertexCount, streams[j].size, remap.data());

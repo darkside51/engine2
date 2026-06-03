@@ -36,6 +36,15 @@ constexpr auto kDefaultSemantics = std::array {
     models::AttributeSemantic::eWeights
 };
 
+constexpr auto kDefaultSemantics2 = std::array {
+    models::AttributeSemantic::ePosition, 
+    models::AttributeSemantic::eNormal, 
+    models::AttributeSemantic::eTangent, 
+    models::AttributeSemantic::eUv0,
+    models::AttributeSemantic::eJoints,
+    models::AttributeSemantic::eWeights
+};
+
 class ModelManager {
     inline static constexpr uint32_t kUnknownDataIndex = 0xff'ff'ff'ffu;
 

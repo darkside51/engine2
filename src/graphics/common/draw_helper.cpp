@@ -33,7 +33,8 @@ namespace engine::graphics {
 
     void DrawHelper::createPipelines(rhi::runtime::Rhi & api,
         rhi::runtime::Device & device, 
-        const rhi::runtime::GpuProgramPtr & program, rhi::runtime::RenderPass renderPass, 
+        const rhi::runtime::GpuProgramPtr & program, rhi::runtime::RenderPass renderPass,
+        uint8_t attachmentsCount, uint8_t colorAttachmentIdx, 
         uint32_t subpass, bool reverseDepth) {
         const auto depthCompareOp = reverseDepth ? rhi::CompareOp::eGreater : rhi::CompareOp::eLess;
 
@@ -48,13 +49,11 @@ namespace engine::graphics {
         rhi::GraphicsPipelineStatesInfo info;
         info.viewportState = {1u, 1u};
         // "blend_none", "blend_none", "blend_none", "blend_none", "blend_none"
-        info.blendModes = {
-            rhi::common_blend_modes::blend_none, 
-            rhi::common_blend_modes::blend_none, 
-            rhi::common_blend_modes::blend_none, 
-            rhi::common_blend_modes::blend_none, 
-            rhi::common_blend_modes::blend_none
-        };
+        info.blendModes.resize(attachmentsCount);
+        for (auto & mode : info.blendModes) {
+            mode = rhi::common_blend_modes::blend_none;
+        }
+
         info.depthStencilState = {
             {
                 .depthTestEnable = true,
@@ -90,13 +89,7 @@ namespace engine::graphics {
 
         _linePipeline = api.createGraphicsPipeline(device, renderPass, program, info, subpass);
 
-        info.blendModes = {
-            rhi::common_blend_modes::blend_alpha,
-            rhi::common_blend_modes::blend_none, 
-            rhi::common_blend_modes::blend_none, 
-            rhi::common_blend_modes::blend_none, 
-            rhi::common_blend_modes::blend_none
-        };
+        info.blendModes[colorAttachmentIdx] = rhi::common_blend_modes::blend_alpha;
         info.rasterisationState = {rhi::PolygonMode::eFill, rhi::CullMode::eNone};
         info.inputAssemblyState = {rhi::PrimitiveTopology::eTriangles, false};
         info.depthStencilState = {

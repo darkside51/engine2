@@ -1399,10 +1399,14 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
             const auto & image3 = textures[static_cast<uint8_t>(graphics::PbrTextureId::eMetallicRoughness)];
             assert(image3 != nullptr);
 
+            // const auto & image4 = textures[static_cast<uint8_t>(graphics::PbrTextureId::eNormal)];
+            // assert(image4 != nullptr);
+
             // textures change more often than storage buffers - setId #2u used
             commandList->bindImage(0u, image->image, _linearSampler, 2u); 
             commandList->bindImage(1u, image2->image, _linearSampler, 2u);
             commandList->bindImage(2u, image3->image, _linearSampler, 2u);
+            //commandList->bindImage(3u, image4->image, _linearSampler, 2u);
             uniform.color = material.baseColorFactor;
             uniform.emissive = vec4f{material.emissiveFactor, 0.0f};
             uniform.metalicRoughness = vec4f(material.metallicFactor, material.roughnessFactor, 0.0f, 1.0f);

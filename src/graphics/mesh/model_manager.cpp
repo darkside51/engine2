@@ -188,6 +188,8 @@ namespace engine::graphics {
                 if (const auto size = vb.size()) {
                     gpuData.vertexBuffers.emplace_back(api.createBuffer(device, verticesBufferInfo, size));
                     allDataSize += size;
+                } else {
+                    gpuData.vertexBuffers.emplace_back(nullptr);
                 }
             }
         }
@@ -221,6 +223,10 @@ namespace engine::graphics {
             // vertices
             size_t i = 0u;
             for (auto & vb : gpuData.vertexBuffers) {
+                if (vb == nullptr) {
+                    ++i;
+                    continue;
+                }
                 if (auto const sizeInBytes = vb->sizeInBytes(); sizeInBytes > 0u) {
                     const auto bufferOffset = staging.requestBytes(sizeInBytes);
                     auto * data = (memory + bufferOffset);
