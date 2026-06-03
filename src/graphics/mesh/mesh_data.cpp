@@ -58,10 +58,10 @@ namespace engine::graphics::models {
         4u, // eJoints: R8G8B8A8
         4u, // eWeights: R16G16B16A16
         2u, // eUv0: R16G16
-        4u, // eUv1
-        4u, // eUv2
-        4u, // eUv3
-        4u, // eUv4
+        2u, // eUv1
+        2u, // eUv2
+        2u, // eUv3
+        2u, // eUv4
     };
 
     MeshBuffersData MeshData::loadMeshes(const Layout & layout, std::span<const AttributeSemantic> allowedAttributes) {
@@ -408,7 +408,6 @@ namespace engine::graphics::models {
         j = 0U;
         for (auto & vertexBuffer : vertexBuffersData) {
             if (vertexBuffer.empty()) {
-                //++j;
                 continue;
             }
             std::vector<std::byte> vertices(vertexCount * streams[j].size);
@@ -426,7 +425,6 @@ namespace engine::graphics::models {
         j = 0U;
         for (auto & vertexBuffer : vertexBuffersData) {
             if (vertexBuffer.empty()) {
-                //++j;
                 continue;
             }
             meshopt_remapVertexBuffer(vertexBuffer.data(), vertexBuffer.data(), vertexCount, streams[j].size, remap.data());
@@ -549,6 +547,40 @@ namespace engine::graphics::models {
         //         std::swap(vertices, vb);
         //     }
         // }
+
+        // restore vertex data as floats
+        // const auto src16p = std::span(reinterpret_cast<const uint16_t*>(vertexBuffersData[0u].data()), vertexBuffersData[0u].size() / sizeof(uint16_t));
+        // const auto src8n = std::span(reinterpret_cast<const int8_t*>(vertexBuffersData[1u].data()), vertexBuffersData[0u].size() / sizeof(int8_t));
+        // const auto src16uv = std::span(reinterpret_cast<const uint16_t*>(vertexBuffersData[2u/*3u*/].data()), vertexBuffersData[0u].size() / sizeof(uint16_t));
+        
+        // std::vector<vec3f> positions;
+        // std::vector<vec3f> normals;
+        // std::vector<vec2f> uvs;
+
+        // const auto count = src16p.size() / 4u;
+        // positions.reserve(count);
+        // normals.reserve(count);
+        // uvs.reserve(count);
+
+        // for (uint32_t i = 0u, j = 0u; i < src16p.size(); i += 4u, j += 2u) {
+        //     positions.emplace_back(
+        //         uint16_to_float(src16p[i + 0u]),
+        //         uint16_to_float(src16p[i + 1u]),
+        //         uint16_to_float(src16p[i + 2u])
+        //     );
+
+        //     normals.emplace_back(
+        //         snorm_to_float(src8n[i + 0u], 8u), 
+        //         snorm_to_float(src8n[i + 1u], 8u), 
+        //         snorm_to_float(src8n[i + 2u], 8u)
+        //     );
+
+        //     uvs.emplace_back(
+        //         uint16_to_float(src16uv[j + 0u]), 
+        //         uint16_to_float(src16uv[j + 1u])
+        //     );
+        // }
+        // restore vertex data as floats
 
         ////
         for (auto & vertexBuffer : vertexBuffersData) {

@@ -70,7 +70,10 @@ public:
     models::MeshBuffersData loadModel(uint32_t index, std::string_view name, const models::Layout & layout, 
         std::span<const graphics::models::AttributeSemantic> attributes = kDefaultSemantics);
 
-    std::vector<MaterialTextureLoadingData> prepareMaterials(std::string_view name, uint32_t index, const models::Layout & layout, TextureManager & textureManager);
+    std::vector<MaterialTextureLoadingData> prepareMaterials(
+        std::string_view name, uint32_t index, 
+        const models::Layout & layout, 
+        TextureManager & textureManager);
 
     bool removeModel(std::string_view name);
     

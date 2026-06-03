@@ -42,14 +42,16 @@ void loadNodes(Scene & scene, const graphics::ModelManager::ModelBuffers & gpuBu
                 
             mesh->setUniqueIndices({gpuBuffers.uniqueIndicesBuffer});
             mesh->setIndices({gpuBuffers.indexBuffer});
-            mesh->setAttribute({gpuBuffers.vertexBuffers[0u]}, engine::scene::mesh::Semantic::ePosition);
-            mesh->setAttribute({gpuBuffers.vertexBuffers[1u]}, engine::scene::mesh::Semantic::eNormal);
-            mesh->setAttribute({gpuBuffers.vertexBuffers[2u]}, engine::scene::mesh::Semantic::eUv0);
+            uint8_t bufferId = 0u;
+            mesh->setAttribute({gpuBuffers.vertexBuffers[bufferId++]}, engine::scene::mesh::Semantic::ePosition);
+            mesh->setAttribute({gpuBuffers.vertexBuffers[bufferId++]}, engine::scene::mesh::Semantic::eNormal);
+            // mesh->setAttribute({gpuBuffers.vertexBuffers[bufferId++]}, engine::scene::mesh::Semantic::eTangent);
+            mesh->setAttribute({gpuBuffers.vertexBuffers[bufferId++]}, engine::scene::mesh::Semantic::eUv0);
 
             if (createSkeletalMesh) {
                 mesh->setSkeleton(skeleton);
-                mesh->setAttribute({gpuBuffers.vertexBuffers[3u]}, engine::scene::mesh::Semantic::eJoints);
-                mesh->setAttribute({gpuBuffers.vertexBuffers[4u]}, engine::scene::mesh::Semantic::eWeights);
+                mesh->setAttribute({gpuBuffers.vertexBuffers[bufferId++]}, engine::scene::mesh::Semantic::eJoints);
+                mesh->setAttribute({gpuBuffers.vertexBuffers[bufferId++]}, engine::scene::mesh::Semantic::eWeights);
             }
 
             mesh->setOrder(order);
