@@ -1,24 +1,12 @@
 #version 450
 
-layout (constant_id = 0) const uint shadowCascades = 2;
-
-/*
-layout(set = 0, binding = 0) uniform sampler2D texture0;
-
-layout (location = 0) in vec2 v_uv;
-layout (location = 0) out vec4 out_color;
-
-void main() {
-	out_color = texture(texture0, v_uv);
-	out_color.rgb = pow(out_color.rgb, vec3(0.4545)); // gamma correction 1.0 / 2.2 = 0.4545
-}
-*/
-
 #import common
 #import lighting
 #import blur
 #import colors
 #import pbr
+
+layout (constant_id = 0) const uint shadowCascades = 2;
 
 layout(set = 0, binding = 0) uniform sampler2D textureSsao;
 layout(set = 0, binding = 1) uniform sampler2D textureNormal;
@@ -83,41 +71,47 @@ void main() {
     const vec3 V = normalize(-viewPosition); // in view space
     const vec3 L = normalize(-push.light.xyz); // in view space
 
-    const float NdotL = max(dot(N, L), 0.0f); 
+    // per-light calculation (Loop for multiple lights)
+    const vec3 H = normalize(V + L);
 
-    const float bias = max(biases[2 * cascade + 1] * (1.0f - abs(NdotL)), biases[2 * cascade]);
+    const float dotNL = max(dot(N, L), 0.0f);
+    const float dotNV = max(dot(N, V), 0.0f);
+    const float dotNH = max(dot(N, H), 0.0f);
+    const float dotHV = max(dot(H, V), 0.0f);
+
+    const float bias = max(biases[2 * cascade + 1] * (1.0f - abs(dotNL)), biases[2 * cascade]);
 	////const float shadowValue = textureProj(textureShadowMap, shadowCoord, vec2(0.0f), cascade, bias, u_shadow.options.x); // hardware pcf if use sampler2DArrayShadow
 	const float shadowValue = filterPCF(textureShadowMap, shadowCoord, cascade, bias, u_shadow.options.x);
 
+	const float metallic = metallicRoughness.x;
+	const float roughness = metallicRoughness.y;
+
     // calculate base reflectance at normal incidence (dielectric vs metal)
     vec3 F0 = vec3(0.04f); 
-    F0 = mix(F0, albedo.rgb, metallicRoughness.x);
+    F0 = mix(F0, albedo.rgb, metallic);
 
     // reflectance equation setup
     vec3 Lo = vec3(0.0f);
     
-    // per-light calculation (Loop for multiple lights)
-    const vec3 H = normalize(V + L);
-
     const float distance = 1.0f;//length(lightPosition - worldPosition.xyz);
     const float attenuation = 1.0f / (distance * distance); // Physical attenuation
     const vec3 radiance = push.directionalLight.xyz * push.directionalLight.w * attenuation;
 
      // Cook-Torrance BRDF Evaluation
-    const float D = distributionGGX(N, H, metallicRoughness.y);
-    const float G = geometrySmith(N, V, L, metallicRoughness.y);      
-    const vec3 F = fresnelSchlick(max(dot(H, V), 0.0f), F0);
+    const float D = distributionGGX(dotNH, roughness);
+    const float G = geometrySmith(dotNV, dotNL, roughness);      
+    const vec3 F = fresnelSchlick(dotHV, F0);
 
     const vec3 numerator = D * G * F;
-    const float denominator = 4.0f * max(dot(N, V), 0.0f) * max(dot(N, L), 0.0f) + 0.0001f; // Avoid division by zero
+    const float denominator = 4.0f * dotNV * dotNL + 0.0001f; // avoid division by zero
     const vec3 specular = numerator / denominator;
 
     // energy conservation: diffuse must equal remaining non-reflected energy
     const vec3 kS = F;
-    vec3 kD = vec3(1.0) - kS;
-    kD *= 1.0f - metallicRoughness.x;	 // Metals absorb refracted light completely
+    vec3 kD = vec3(1.0f) - kS;
+    kD *= 1.0f - metallic;	 // Metals absorb refracted light completely
 
-    Lo += (kD * albedo.rgb / PI + specular) * radiance * NdotL;
+    Lo += (kD * albedo.rgb / PI + specular) * radiance * dotNL;
 
     // ambient lighting (Placeholder: upgrade to Image-Based Lighting later)
     const vec3 ambient = push.ambient.xyz * push.ambient.w * albedo.rgb * occlusion;
@@ -154,14 +148,15 @@ void main() {
 		out_color = mix(out_color, emissive, step(2.1f, push.options.y) * step(push.options.y, 3.1f));
 		out_color = mix(out_color, vec4(metallicRoughness, 0.0f, 1.0f), step(3.1f, push.options.y) * step(push.options.y, 4.1f));
 		out_color = mix(out_color, worldPosition, step(4.1f, push.options.y) * step(push.options.y, 5.1f));
+		out_color = mix(out_color, vec4(normal * 0.5f + 0.5f, 1.0f), step(5.1f, push.options.y) * step(push.options.y, 6.1f));
 
-		if (push.options.y > 5.0f && push.options.y < 9.0f) {
-			const float shadowDepth = texture(textureShadowMap, vec3(v_uv, clamp(int(push.options.y - 6.0f), 0.0f, 2.0f))).r;
-			//const float shadowDepth = texture(textureShadowMap, vec4(v_uv, clamp(int(push.options.y - 6.0f), 0.0f, 2.0f), 0.0f));
-			out_color = mix(out_color, vec4(shadowDepth, shadowDepth, shadowDepth, 1.0f), step(5.1f, push.options.y) * step(push.options.y, 7.9f));
+		if (push.options.y > 6.0f && push.options.y < 10.0f) {
+			const float shadowDepth = texture(textureShadowMap, vec3(v_uv, clamp(int(push.options.y - 7.0f), 0.0f, 2.0f))).r;
+			//const float shadowDepth = texture(textureShadowMap, vec4(v_uv, clamp(int(push.options.y - 7.0f), 0.0f, 2.0f), 0.0f));
+			out_color = mix(out_color, vec4(shadowDepth, shadowDepth, shadowDepth, 1.0f), step(6.1f, push.options.y) * step(push.options.y, 8.9f));
 		}
 
-		if (push.options.y > 7.0f) {
+		if (push.options.y > 8.0f) {
 			switch(cascade) {
 				case 0 : 
 					out_color.rgb *= vec3(1.0f, 0.25f, 0.25f);

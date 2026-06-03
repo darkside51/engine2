@@ -115,9 +115,10 @@ namespace example {
         eEmissive = 3u,
         eMetallicRoughness = 4u,
         eWorldPos = 5u,
-        eShadowCascade0 = 6u,
-        eShadowCascade1 = 7u,
-        eDebugCascades = 8u
+        eNormal = 6u,
+        eShadowCascade0 = 7u,
+        eShadowCascade1 = 8u,
+        eDebugCascades = 9u
     };
 
     float ssaoEnable = 1.0f;
@@ -147,7 +148,7 @@ namespace example {
     float saturation = 1.0f;
 
     void optionsWindow() {
-        ImGui::SetNextWindowSize(ImVec2(540, 740), ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowSize(ImVec2(540, 770), ImGuiCond_FirstUseEver);
         if (!ImGui::Begin("options", &showOptions, 0)) {
             // early out if the window is collapsed, as an optimization.
             ImGui::End();
@@ -212,6 +213,9 @@ namespace example {
         }
         if (ImGui::RadioButton("world positions", debugShow == DebugShow::eWorldPos)) { 
             debugShow = DebugShow::eWorldPos;
+        }
+        if (ImGui::RadioButton("normals", debugShow == DebugShow::eNormal)) { 
+            debugShow = DebugShow::eNormal;
         }
         if (ImGui::RadioButton("shadow cascade 0", debugShow == DebugShow::eShadowCascade0)) { 
             debugShow = DebugShow::eShadowCascade0;
