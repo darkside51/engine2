@@ -120,7 +120,7 @@ void main() {
     Lo += (kD * albedo.rgb / PI + specular) * radiance * NdotL;
 
     // ambient lighting (Placeholder: upgrade to Image-Based Lighting later)
-    const vec3 ambient = push.ambient.w * albedo.rgb * occlusion;
+    const vec3 ambient = push.ambient.xyz * push.ambient.w * albedo.rgb * occlusion;
     vec3 baseColor = ambient + Lo;
     baseColor *= shadowValue;
     baseColor += emissive.rgb;

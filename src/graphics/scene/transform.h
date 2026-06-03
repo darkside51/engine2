@@ -57,9 +57,9 @@ public:
         return false;
     }
 
-    void apply(mat4f & matrix) noexcept {
-        matrix = makeMatrix(_scale);
-        matrix = glm::mat4_cast(_rotation) * matrix;
+    void apply(mat4f & matrix) const noexcept {
+        matrix = glm::mat4_cast(_rotation);
+        scaleMatrix(matrix, _scale);
         matrix[3u] = {_position, 1.0f};
     }
 

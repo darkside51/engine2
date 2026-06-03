@@ -124,7 +124,7 @@ namespace example {
     bool ssaoBlur = true;
     DebugShow debugShow = DebugShow::eCommon;
     float ssaoRadius = 0.07f;
-    float ssaoBias = 0.003f;
+    float ssaoBias = 0.001f;
     float ssaoRangeDepth = 5.0f;
     enum class SsaoRangeMethod : uint8_t {
         eSmoothstep = 0u,
@@ -951,7 +951,7 @@ namespace example {
 
         // shadow
         shadowMap = std::make_unique<engine::graphics::CascadeShadowMap>(*_api, *_device, 4096u, 2u, 24u, kNearFarPlane.x, kNearFarPlane.y);
-        shadowMap->initCascadeSplits({1.2f, -90.0f});
+        shadowMap->initCascadeSplits({1.2f, -87.0f});
         shadowMap->createRenderData();
         shadowMap->setDirection(glm::normalize(lightDir));
 
