@@ -133,7 +133,7 @@ void main() {
 	baseColor = saturate(baseColor, push.options.z);
 
 	// 3. compress HDR to [0.0f, 1.0f]
-	//baseColor = baseColor / (baseColor + vec3(1.0f)); // Reinhard Tonemapping to map
+	baseColor = baseColor / (baseColor + vec3(1.0f)); // Reinhard Tonemapping to map
 
 	// 4. gamma
 	vec3 color = pow(baseColor, vec3(0.4545f)); // gamma correction 1.0f / 2.2f = 0.4545f
