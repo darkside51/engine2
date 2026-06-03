@@ -121,7 +121,7 @@ void main() {
 	//
 
 	// 1. contrast
-    baseColor = pow(baseColor, vec3(1.1f,  1.1f, 1.1f));
+    baseColor = pow(baseColor, vec3(1.1f));
 
 	// 2. saturation
 	baseColor = saturate(baseColor, push.options.z);

@@ -123,6 +123,7 @@ namespace example {
 
     float ssaoEnable = 1.0f;
     bool ssaoBlur = true;
+    bool showBboxes = false;
     DebugShow debugShow = DebugShow::eCommon;
     float ssaoRadius = 0.07f;
     float ssaoBias = 0.001f;
@@ -159,6 +160,8 @@ namespace example {
         ImGui::Checkbox("ssao", &enableSsao);
         ImGui::SameLine();
         ImGui::Checkbox("blur", &ssaoBlur);
+        ImGui::SameLine();
+        ImGui::Checkbox("bboxes", &showBboxes);
         ssaoEnable = enableSsao ? (ssaoBlur ? 3.0f : 1.0f) : 0.0f;
         ImGui::DragFloat("ssao radius", &ssaoRadius, 0.001f, 0.0f, 1.0f);
         ImGui::DragFloat("ssao bias", &ssaoBias, 0.001f, 0.0f, 1.0f);
@@ -690,15 +693,15 @@ namespace example {
                 fbAttachemnts[3u].imageSize = {emissiveImage->getExtent().width, emissiveImage->getExtent().height};
                 fbAttachemnts[3u].aspect = engine::rhi::ImageAspectFlags::eColor;
 
-                auto & depthImage = _gBufferAttachments[i].depth;
-                fbAttachemnts[4u].image = depthImage.get();
-                fbAttachemnts[4u].imageSize = {depthImage->getExtent().width, depthImage->getExtent().height};
-                fbAttachemnts[4u].aspect = engine::rhi::ImageAspectFlags::eDepth;
-
                 auto & metallicRoughnessImage = _gBufferAttachments[i].metallicRoughness;
-                fbAttachemnts[5u].image = metallicRoughnessImage.get();
-                fbAttachemnts[5u].imageSize = {metallicRoughnessImage->getExtent().width, metallicRoughnessImage->getExtent().height};
-                fbAttachemnts[5u].aspect = engine::rhi::ImageAspectFlags::eColor;
+                fbAttachemnts[4u].image = metallicRoughnessImage.get();
+                fbAttachemnts[4u].imageSize = {metallicRoughnessImage->getExtent().width, metallicRoughnessImage->getExtent().height};
+                fbAttachemnts[4u].aspect = engine::rhi::ImageAspectFlags::eColor;
+
+                auto & depthImage = _gBufferAttachments[i].depth;
+                fbAttachemnts[5u].image = depthImage.get();
+                fbAttachemnts[5u].imageSize = {depthImage->getExtent().width, depthImage->getExtent().height};
+                fbAttachemnts[5u].aspect = engine::rhi::ImageAspectFlags::eDepth;
 
                 _gBuffers.emplace_back(_api->createFrameBuffer(*_device, std::move(fbAttachemnts), _renderPasses[kGbufferRenderPass]));
             }
@@ -770,9 +773,10 @@ namespace example {
                 engine::rhi::Format::eR32_Sfloat,
                 engine::rhi::Format::eR8G8B8A8_Unorm, 
                 engine::rhi::Format::eR8G8B8A8_Unorm,
-                engine::rhi::Format::eR8G8B8A8_Unorm, 
-                depthFormat,
-                engine::rhi::Format::eR8G8_Unorm};
+                engine::rhi::Format::eR8G8B8A8_Unorm,
+                engine::rhi::Format::eR8G8_Unorm,
+                depthFormat
+                };
             const auto formatsSsao = std::array{engine::rhi::Format::eR8_Unorm};
 
             _renderPasses.emplace_back(_api->getRenderPass(*_device, engine::parseRenderPass(json["gBuffer"], formatsGBuffer))); // kGbufferRenderPass
@@ -918,7 +922,7 @@ namespace example {
 
         loadShaders();
         _imgui.createPipeline(*_api, *_device, _programs[kImguiProgram], _renderPasses[kScreenRenderPass], 0u);
-        drawHelper.createPipelines(*_api, *_device, _programs[kDebugProgram], _renderPasses[kSceneRenderPass], 0u, true);
+        drawHelper.createPipelines(*_api, *_device, _programs[kDebugProgram], _renderPasses[kGbufferRenderPass], 0u, true);
 
         const auto bytes = _fileManager.readFile("descriptors/pipelines.json");
         std::string_view input(reinterpret_cast<const char*>(bytes.data()), bytes.size());
@@ -1474,8 +1478,8 @@ namespace example {
 
                         // const auto imageBytes = _fileManager.readFile("assets/vulkan_11_rgba.ktx");
                         // const auto imageBytes = _fileManager.readFile("assets/2d_bc7.ktx2");
-                        const auto imageBytes = _fileManager.readFile("assets/asphalt-7.jpg");
-                        // const auto imageBytes = _fileManager.readFile("assets/images.png");
+                        // const auto imageBytes = _fileManager.readFile("assets/asphalt-7.jpg");
+                        const auto imageBytes = _fileManager.readFile("assets/grass3.png");
                         auto textureData = engine::graphics::parseTextureData(imageBytes, {
                                 .flags = engine::graphics::TextureFlags::eAllowSrgbColorSpace | engine::graphics::TextureFlags::eUseMipMaps
                             }
@@ -1979,8 +1983,11 @@ namespace example {
         // scene->draw(commandList, transferCommandList, frameId, viewParams, o1, offsets1);
         // scene->draw(commandList, transferCommandList, frameId, viewParams, o0, offsets0);   
         
-        drawHelper.prepare(*transferCommandList, frameId);
-        drawHelper.draw(*commandList, frameId, now);
+        if (showBboxes) {
+            scene->drawDebug(viewParams, objects);
+            drawHelper.prepare(*transferCommandList, frameId);
+            drawHelper.draw(*commandList, frameId, now);
+        }
 
         //commandList->nextSubpass(rhi::SubpassContents::ePrimaryBufferInline);
         commandList->endRenderPass();

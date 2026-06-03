@@ -35,7 +35,6 @@ namespace engine::graphics {
         rhi::runtime::Device & device, 
         const rhi::runtime::GpuProgramPtr & program, rhi::runtime::RenderPass renderPass, 
         uint32_t subpass, bool reverseDepth) {
-
         const auto depthCompareOp = reverseDepth ? rhi::CompareOp::eGreater : rhi::CompareOp::eLess;
 
         if (_api == nullptr) {
@@ -48,7 +47,14 @@ namespace engine::graphics {
 
         rhi::GraphicsPipelineStatesInfo info;
         info.viewportState = {1u, 1u};
-        info.blendModes = {rhi::common_blend_modes::blend_none};
+        // "blend_none", "blend_none", "blend_none", "blend_none", "blend_none"
+        info.blendModes = {
+            rhi::common_blend_modes::blend_none, 
+            rhi::common_blend_modes::blend_none, 
+            rhi::common_blend_modes::blend_none, 
+            rhi::common_blend_modes::blend_none, 
+            rhi::common_blend_modes::blend_none
+        };
         info.depthStencilState = {
             {
                 .depthTestEnable = true,
@@ -84,7 +90,13 @@ namespace engine::graphics {
 
         _linePipeline = api.createGraphicsPipeline(device, renderPass, program, info, subpass);
 
-        info.blendModes = {rhi::common_blend_modes::blend_alpha};
+        info.blendModes = {
+            rhi::common_blend_modes::blend_alpha,
+            rhi::common_blend_modes::blend_none, 
+            rhi::common_blend_modes::blend_none, 
+            rhi::common_blend_modes::blend_none, 
+            rhi::common_blend_modes::blend_none
+        };
         info.rasterisationState = {rhi::PolygonMode::eFill, rhi::CullMode::eNone};
         info.inputAssemblyState = {rhi::PrimitiveTopology::eTriangles, false};
         info.depthStencilState = {

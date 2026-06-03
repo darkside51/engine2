@@ -184,6 +184,7 @@ public:
         const AnimationManager & animationManager);
     void draw(RenderPass pass, rhi::runtime::CommandListPtr & commandList, rhi::runtime::CommandListPtr & transferCommandList, uint8_t frame, 
         const ViewParams & viewParams, std::span<AttachmentObject*> objects, const DrawDataOffsets & offsets, const void * external = nullptr);
+    void drawDebug(const ViewParams & viewParams, std::span<AttachmentObject*> objects);
     DispatchResult dispatch(rhi::runtime::CommandListPtr & commandList, uint8_t frame, std::span<AttachmentObject*> objects, const DrawDataOffsets & offsets);
 
     // getters
@@ -379,28 +380,6 @@ void Scene::fillAttachmentsArray(const ViewParams & viewParams, Node * root, Con
                 if (static_cast<uint8_t>(flags) & static_cast<uint8_t>(FillAttachmentFlags::eCalculateQuality) > 0u) {
                     calculateQualityFactors(object, viewParams);
                 }
-
-                // if constexpr (kDebugDrawBounds) {
-                //     uint32_t color = 0xff'00'ff'00u;
-                //     if (object) {
-                //         switch (object->typeIndex) {
-                //         case ctti::typeIndex<AttachmentObject, Skeleton>():
-                //             color = 0xff'ff'77'00u;
-                //             break;
-                //         case ctti::typeIndex<AttachmentObject, Mesh>():
-                //             color = 0xff'77'ff'00u;
-                //             break;
-                //         case ctti::typeIndex<AttachmentObject, Sprite>():
-                //             color = 0xff'ff'77'00u;
-                //             break;
-                //         default:
-                //             break;
-                //         }
-                //         color |= std::min(std::clamp(object->animationQualityFactor, uint8_t{0u}, uint8_t{8u}) * 32u, 0xffu);
-                //     }
-
-                //     _drawHelper.drawBounds(bounds, color, viewParams.cameraTransform * worldTransform);
-                // }
             }
 
             object = object->next;

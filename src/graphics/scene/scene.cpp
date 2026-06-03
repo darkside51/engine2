@@ -1023,6 +1023,35 @@ namespace engine::scene {
         }
     }
 
+    void Scene::drawDebug(const ViewParams & viewParams, std::span<AttachmentObject*> objects) {
+        for (auto object : objects) {
+            auto * node = object->node;
+            const auto & bounds = node->bounds;
+            if (bounds.type == Bounds::Type::eNone) {
+                continue;
+            }
+
+            uint32_t color = 0xff'00'ff'00u;
+            if (object) {
+                switch (object->typeIndex) {
+                case ctti::typeIndex<AttachmentObject, Skeleton>():
+                    color = 0xff'77'ff'00u;
+                    break;
+                case ctti::typeIndex<AttachmentObject, Mesh>():
+                    color = 0xff'77'ff'00u;
+                    break;
+                case ctti::typeIndex<AttachmentObject, Sprite>():
+                    color = 0xff'ff'77'00u;
+                    break;
+                default:
+                    break;
+                }
+            }
+
+            _drawHelper.drawBounds(bounds, color, viewParams.cameraTransform * node->getWorldTransform());
+        }
+    }
+
     void Scene::draw(RenderPass pass, rhi::runtime::CommandListPtr & commandList, rhi::runtime::CommandListPtr & transferCommandList, uint8_t frame, 
         const ViewParams & viewParams, std::span<AttachmentObject*> objects, const DrawDataOffsets & offsets, const void * external) {
         if (objects.empty()) {
