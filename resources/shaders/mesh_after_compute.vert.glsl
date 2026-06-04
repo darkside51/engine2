@@ -23,9 +23,13 @@ layout (set = 1, binding = 2) readonly buffer SkeletonIds {
    uint data[];
 } in_skeleton_ids;
 
-layout (location = 0) out vec3 v_normal;
-layout (location = 1) out vec2 v_uv;
-layout (location = 2) out vec3 v_worldPosition;
+layout (set = 1, binding = 3) readonly buffer Tangents {
+   vec4 data[];
+} in_tangents;
+
+layout (location = 0) out vec2 v_uv;
+layout (location = 1) out vec3 v_worldPosition;
+layout (location = 2) out mat3 v_tbn;
 
 layout(push_constant) uniform Params {
 	vec4 color;
@@ -37,10 +41,14 @@ layout(push_constant) uniform Params {
 void main() {
 	const uint vertexId = gl_VertexIndex + in_skeleton_ids.data[gl_InstanceIndex + push.offset.x];//a_skeleton_ids;
 	gl_Position = u_viewParams.viewProjection * in_positions.data[vertexId];
-	v_normal = in_normals.data[vertexId].xyz;
 	v_uv = a_uv;
 
 	v_worldPosition = in_positions.data[vertexId].xyz;
-	mat3 normalMatrix = transpose(inverse(mat3(u_viewParams.view)));
-	v_normal = normalMatrix * v_normal;
+	const mat3 normalMatrix = transpose(inverse(mat3(u_viewParams.view)));
+	
+	const vec3 normal = in_normals.data[vertexId].xyz;
+	const vec4 tangent = in_tangents.data[vertexId];
+	const vec3 binormal = cross(normal, tangent.xyz) * tangent.w;
+
+	v_tbn = normalMatrix * mat3(tangent.xyz, binormal, normal);
 }

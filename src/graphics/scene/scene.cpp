@@ -154,6 +154,7 @@ namespace engine::scene {
 
         _computedVertices = nullptr;
         _computedNormals = nullptr;
+        _computedTangents= nullptr;
         
         _staging = nullptr;
         _graphicsPipelines.clear();
@@ -355,9 +356,15 @@ namespace engine::scene {
             };
 
             // reserve 2u * kMeshComputeVerticesBufferBytesCount mb gpu memory for calculate skinnig all vertices of all meshes 
-            // maybe calculate and change this size dynamically is better way
+            // maybe calculate and change this size dynamically is better way - 100%
+
+            // _computedVertices - data vec4 - r32g32b32a32 or use texelbuffer
+            // _computedNormals - data vec4 - r32g32b32a32 or use texelbuffer
+            // _computedTangents - data vec4 - r32g32b32a32 or use texelbuffer
+
             _computedVertices = api.createBuffer(device, computeVerticesInfo, kMeshComputeVerticesBufferBytesCount);
             _computedNormals = api.createBuffer(device, computeVerticesInfo, kMeshComputeVerticesBufferBytesCount);
+            _computedTangents = api.createBuffer(device, computeVerticesInfo, kMeshComputeVerticesBufferBytesCount);
         }
     }
 
@@ -823,6 +830,7 @@ namespace engine::scene {
         commandList->bindPipeline(pipeline);
         commandList->bindBuffer(0u, _computedVertices, 0u, 0u);
         commandList->bindBuffer(1u, _computedNormals, 0u, 0u);
+        commandList->bindBuffer(2u, _computedTangents, 0u, 0u);
         commandList->bindBuffer(0u, (*_meshSkeletalTransforms)(frame), 1u, 0u);
 
         commandList->bindBuffer(1u, (*_meshTransformIndices)(frame), 1u, 0u/*sizeof(uint32_t) * transformIndex*/);
@@ -835,6 +843,7 @@ namespace engine::scene {
             commandList->bindTexelBuffer(2u, mesh.getAttribute(mesh::Semantic::eNormal).buffer, rhi::Format::eR8G8B8A8_Snorm, 2u);
             commandList->bindTexelBuffer(3u, mesh.getAttribute(mesh::Semantic::eJoints).buffer, rhi::Format::eR8G8B8A8_Unorm, 2u);
             commandList->bindTexelBuffer(4u, mesh.getAttribute(mesh::Semantic::eWeights).buffer, rhi::Format::eR16G16B16A16_Sfloat, 2u);
+            commandList->bindTexelBuffer(5u, mesh.getAttribute(mesh::Semantic::eTangent).buffer, rhi::Format::eR8G8B8A8_Snorm, 2u);
         }
 
         for (; it != end; ++it, ++i) {
@@ -889,6 +898,7 @@ namespace engine::scene {
                     commandList->bindTexelBuffer(2u, mesh2.getAttribute(mesh::Semantic::eNormal).buffer, rhi::Format::eR8G8B8A8_Snorm, 2u);
                     commandList->bindTexelBuffer(3u, mesh2.getAttribute(mesh::Semantic::eJoints).buffer, rhi::Format::eR8G8B8A8_Unorm, 2u);
                     commandList->bindTexelBuffer(4u, mesh2.getAttribute(mesh::Semantic::eWeights).buffer, rhi::Format::eR16G16B16A16_Sfloat, 2u);
+                    commandList->bindTexelBuffer(5u, mesh.getAttribute(mesh::Semantic::eTangent).buffer, rhi::Format::eR8G8B8A8_Snorm, 2u);
                 }
             } else {
                 ++count;
@@ -1399,14 +1409,14 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
             const auto & image3 = textures[static_cast<uint8_t>(graphics::PbrTextureId::eMetallicRoughness)];
             assert(image3 != nullptr);
 
-            // const auto & image4 = textures[static_cast<uint8_t>(graphics::PbrTextureId::eNormal)];
-            // assert(image4 != nullptr);
+            const auto & image4 = textures[static_cast<uint8_t>(graphics::PbrTextureId::eNormal)];
+            assert(image4 != nullptr);
 
             // textures change more often than storage buffers - setId #2u used
             commandList->bindImage(0u, image->image, _linearSampler, 2u); 
             commandList->bindImage(1u, image2->image, _linearSampler, 2u);
             commandList->bindImage(2u, image3->image, _linearSampler, 2u);
-            //commandList->bindImage(3u, image4->image, _linearSampler, 2u);
+            commandList->bindImage(3u, image4->image, _linearSampler, 2u);
             uniform.color = material.baseColorFactor;
             uniform.emissive = vec4f{material.emissiveFactor, 0.0f};
             uniform.metalicRoughness = vec4f(material.metallicFactor, material.roughnessFactor, 0.0f, 1.0f);
@@ -1424,6 +1434,7 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
             commandList->bindBuffer(0u, _computedVertices, 1u, 0u);
             commandList->bindBuffer(1u, _computedNormals, 1u, 0u);
             commandList->bindBuffer(2u, (*_skeletonIds)(frame), 1u, 0u);
+            commandList->bindBuffer(3u, _computedTangents, 1u, 0u);
         } else {
             commandList->bindBuffer(0u, (*_meshTransforms)(frame), 1u, 0u);
             commandList->bindBuffer(1u, (*_meshTransformIndices)(frame), 1u, 0u);
@@ -1483,6 +1494,7 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
                         commandList->bindBuffer(0u, _computedVertices, 1u, 0u);
                         commandList->bindBuffer(1u, _computedNormals, 1u, 0u);
                         commandList->bindBuffer(2u, (*_skeletonIds)(frame), 1u, 0u);
+                        commandList->bindBuffer(3u, _computedTangents, 1u, 0u);
                     } else {
                         commandList->bindBuffer(0u, (*_meshTransforms)(frame), 1u, 0u);
                         commandList->bindBuffer(1u, (*_meshTransformIndices)(frame), 1u, 0u);
@@ -1668,6 +1680,7 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
         if (_currentPass != RenderPass::eShadow) {
             commandList->bindVertexBuffer(binding_v++, mesh.getAttribute(mesh::Semantic::eNormal).buffer, 0u);
             commandList->bindVertexBuffer(binding_v++, mesh.getAttribute(mesh::Semantic::eUv0).buffer, 0u);
+            commandList->bindVertexBuffer(binding_v++, mesh.getAttribute(mesh::Semantic::eTangent).buffer, 0u);
         }
 
         if (skeletal) { // skeletalMesh

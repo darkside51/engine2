@@ -17,14 +17,14 @@ layout(push_constant) uniform Params {
 	uvec4 offset;
 } push;
 
-layout (location = 0) in vec3 v_normal;
-layout (location = 1) in vec2 v_uv;
-layout (location = 2) in vec3 v_worldPosition;
+layout (location = 0) in vec2 v_uv;
+layout (location = 1) in vec3 v_worldPosition;
+layout (location = 2) in mat3 v_tbn;
 
 layout(set = 2, binding = 0) uniform sampler2D u_texture_color;
 layout(set = 2, binding = 1) uniform sampler2D u_texture_emissive;
 layout(set = 2, binding = 2) uniform sampler2D u_texture_metalicRoughness;
-//layout(set = 2, binding = 3) uniform sampler2D u_texture_normal;
+layout(set = 2, binding = 3) uniform sampler2D u_texture_normal;
 
 layout (location = 0) out float out_position;
 layout (location = 1) out vec4 out_normal;
@@ -33,11 +33,19 @@ layout (location = 3) out vec4 out_emissive;
 layout (location = 4) out vec2 out_metalicRoughness;
 
 void main() {
+	out_albedo = texture(u_texture_color, v_uv) * push.color;
+	//if (out_albedo.a < 0.9) {
+	//	discard;
+	//	return;
+	//}
 	const float depthLinear = linearDepth(gl_FragCoord.z, u_viewParams.nearFarPlanes.x, u_viewParams.nearFarPlanes.y);
 	out_position = depthLinear;
 
-	out_normal = vec4(normalize(v_normal) * 0.5f + 0.5f, 1.0f);
-	out_albedo = texture(u_texture_color, v_uv) * push.color;
+	vec3 tangentNormal = texture(u_texture_normal, v_uv).xyz * 2.0f - 1.0f;
+	out_normal = vec4(normalize(v_tbn * tangentNormal) * 0.5f + 0.5f, 1.0f);
+
+	//out_normal = vec4(normalize(v_normal) * 0.5f + 0.5f, 1.0f);
+	
 	out_emissive = vec4(texture(u_texture_emissive, v_uv).rgb * push.emissive.rgb, 1.0f);
 	out_metalicRoughness = vec2(texture(u_texture_metalicRoughness, v_uv).bg * push.metalicRoughness.xy);
 }

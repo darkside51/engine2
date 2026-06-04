@@ -11,6 +11,10 @@ layout (set = 0, binding = 1) writeonly buffer OutNormals {
    vec4 data[];
 } out_normals;
 
+layout (set = 0, binding = 2) writeonly buffer OutTangents {
+   vec4 data[];
+} out_tangents;
+
 // storage buffers
 layout (set = 1, binding = 0) readonly buffer SkinTransformations {
    mat3x4 transforms[];
@@ -33,6 +37,7 @@ layout(set = 2, binding = 1) uniform textureBuffer u_positions;
 layout(set = 2, binding = 2) uniform textureBuffer u_normals;
 layout(set = 2, binding = 3) uniform textureBuffer u_joints;
 layout(set = 2, binding = 4) uniform textureBuffer u_weights;
+layout(set = 2, binding = 5) uniform textureBuffer u_tangents;
 
 layout(push_constant) uniform Data {
 	uint firstObject;
@@ -102,4 +107,5 @@ void main() {
 	const uint resultOffset = vertexId + skeleton_ids.data[objectId + push.firstObject + push.skeletonsOffset];
 	out_positions.data[resultOffset] = vec4(texelFetch(u_positions, vertexId).xyz, 1.0) * skin;
 	out_normals.data[resultOffset] = normalize((texelFetch(u_normals, vertexId) * skin));
+	out_tangents.data[resultOffset] = normalize((texelFetch(u_tangents, vertexId) * skin));
 }

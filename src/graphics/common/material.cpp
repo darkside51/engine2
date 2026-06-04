@@ -81,9 +81,9 @@ namespace engine::graphics {
 
             material.cullMode = srcMaterial.doubleSided ? rhi::CullMode::eNone : rhi::CullMode::eBack;
 
-            const auto getTexture = [&layout, &textureManager, &texturesToLoad, materialIndex](TextureLoadInfo loadingInfo, uint16_t index, std::string_view name) -> ImageHandler* {
+            const auto getTexture = [&layout, &textureManager, &texturesToLoad, materialIndex](TextureLoadInfo loadingInfo, uint16_t index, std::string_view name, ImageHandler* defaultHandler) -> ImageHandler* {
                 if (index == models::kInvalidValue) {
-                    return textureManager.getWhiteImageHandler();
+                    return defaultHandler;
                 }
 
                 const auto & texture = layout.textures[index];
@@ -106,11 +106,11 @@ namespace engine::graphics {
                 return textureManager.getDefaultImageHandler();
             };
 
-            material.textures[static_cast<uint8_t>(PbrTextureId::eBaseColor)] = getTexture(loadingInfoColor, srcMaterial.pbrMetallicRoughness.baseColorTexture.index, name);
-            material.textures[static_cast<uint8_t>(PbrTextureId::eEmissive)] = getTexture(loadingInfoColor, srcMaterial.emissiveTexture.index, name);
-            material.textures[static_cast<uint8_t>(PbrTextureId::eNormal)] = getTexture(loadingInfoCommon, srcMaterial.normalTexture.index, name);
-            material.textures[static_cast<uint8_t>(PbrTextureId::eMetallicRoughness)] = getTexture(loadingInfoCommon, srcMaterial.pbrMetallicRoughness.metallicRoughnessTexture.index, name);
-            material.textures[static_cast<uint8_t>(PbrTextureId::eOccolusion)] = getTexture(loadingInfoCommon, srcMaterial.occlusionTexture.index, name);
+            material.textures[static_cast<uint8_t>(PbrTextureId::eBaseColor)] = getTexture(loadingInfoColor, srcMaterial.pbrMetallicRoughness.baseColorTexture.index, name, textureManager.getWhiteImageHandler());
+            material.textures[static_cast<uint8_t>(PbrTextureId::eEmissive)] = getTexture(loadingInfoColor, srcMaterial.emissiveTexture.index, name, textureManager.getWhiteImageHandler());
+            material.textures[static_cast<uint8_t>(PbrTextureId::eNormal)] = getTexture(loadingInfoCommon, srcMaterial.normalTexture.index, name, textureManager.getWhiteImageHandler());
+            material.textures[static_cast<uint8_t>(PbrTextureId::eMetallicRoughness)] = getTexture(loadingInfoCommon, srcMaterial.pbrMetallicRoughness.metallicRoughnessTexture.index, name, textureManager.getWhiteImageHandler());
+            material.textures[static_cast<uint8_t>(PbrTextureId::eOccolusion)] = getTexture(loadingInfoCommon, srcMaterial.occlusionTexture.index, name, textureManager.getTransparentImageHandler());
 
             ++materialIndex;
         }

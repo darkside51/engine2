@@ -606,7 +606,18 @@ namespace engine::graphics::models {
         //         snorm_to_float(src8t[idx * 4u + 3u], 8u)
         // };
 
-        // vertexBuffersData[1] = std::move(tangents2);
+        if (vertexBuffersData[2u].empty()) { // generate tangents
+            auto src16p = std::span(reinterpret_cast<const uint16_t*>(vertexBuffersData[0u].data()), vertexBuffersData[0u].size() / sizeof(uint16_t));
+            auto src8n = std::span(reinterpret_cast<const int8_t*>(vertexBuffersData[1u].data()), vertexBuffersData[1u].size() / sizeof(int8_t));
+            auto src16uv = std::span(reinterpret_cast<const uint16_t*>(vertexBuffersData[3u].data()), vertexBuffersData[3u].size() / sizeof(uint16_t));
+            auto tangents2 = generateTangentsCompressed(
+                src16p,
+                src8n,
+                src16uv,
+                indexBufferData
+            );
+            vertexBuffersData[2u] = std::move(tangents2);
+        }
 
         ////
         for (auto & vertexBuffer : vertexBuffersData) {

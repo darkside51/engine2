@@ -246,6 +246,7 @@ namespace engine::rhi::runtime {
 
         if constexpr (kStatisticsEnable) {
             ++_statistics.dispatchCalls;
+            _statistics.dispatchGroups += groupCountX * groupCountY * groupCountZ;
         }
         ++_commandsCount;
     }

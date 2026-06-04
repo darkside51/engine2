@@ -278,7 +278,8 @@ namespace example {
         float cpuFrameTime = 0.0f;
         float gpuFrameTime = 0.0f;
         uint8_t inFlightFramesCount = 1u;
-        uint16_t drawCalls = 0u;
+        uint32_t drawCalls = 0u;
+        uint32_t dispatchCalls = 0u;
         uint16_t fps = 0u;
     };
 
@@ -1168,6 +1169,37 @@ namespace example {
             }});
         }
 
+        {
+            auto const modelIdx = modelManager->addModel2("windmill.glb").first;
+            tasks.emplace_back(threads::WorkerTask{[this, modelIdx]() mutable {
+                auto const modelBytes = _fileManager.readFile("assets/models/windmill/scene.gltf");
+                auto modelLayout = engine::graphics::models::loadModelLayout(modelBytes, _fileManager, "assets/models/windmill/");
+                auto buffers = modelManager->loadModel(modelIdx, "windmill.glb", modelLayout);
+
+                _renderThread->emplaceTasks(stl::make_vector(threads::WorkerTask{[this, modelIdx, buffers = std::move(buffers), modelLayout = std::move(modelLayout)]() mutable {
+                    modelManager->setBuffers(modelIdx, std::move(buffers));
+                    auto texturesToLoad = modelManager->prepareMaterials("windmill.glb", modelIdx, modelLayout, *textureManager);
+
+                    gpuTasks.emplace_back(BgThread::GpuTask{[this, texturesToLoad = std::move(texturesToLoad), modelLayout = std::move(modelLayout)](engine::rhi::runtime::CommandList & commandList, std::vector<threads::WorkerTask> & callbacks) mutable {
+                        materialManager.createMaterialTextures(modelLayout, texturesToLoad, _fileManager, *textureManager, commandList);
+
+                        callbacks.emplace_back([texturesToLoad = std::move(texturesToLoad)](){
+                            for (auto & t : texturesToLoad) {
+                                t.imageHandler->image = t.image;
+                            }
+                        });
+                    }});
+
+                    const auto & modelData = modelManager->getModelData(modelIdx);
+                    uint8_t i = 0u;
+                    for (const auto & animation : modelData.animations) {
+                        animationManager.registerAnimation(engine::fmt_string("windmill_anim%d", i), engine::scene::SkeletalAnimation(animation));
+                        ++i;
+                    }
+                }}));
+            }});
+        }
+
         textureManager->generateGpuData(tmpCommandList);
         //
 
@@ -1660,6 +1692,11 @@ namespace example {
             if (ImGui::MenuItem(str)) {
                 // todo: show graph
             }
+
+            str = engine::fmt_string("dispatch calls: %d\t", gStats.dispatchCalls);
+            if (ImGui::MenuItem(str)) {
+                // todo: show graph
+            }
             
             ImGui::EndMainMenuBar();
         }
@@ -1888,6 +1925,31 @@ namespace example {
             }
         }
 
+        static bool meshLoaded7 = false;
+        if (!meshLoaded7) {
+            const auto modelIndex = modelManager->getModelDataIdx("windmill.glb");
+            if (modelManager->isDataReady(modelIndex)) {
+                meshLoaded7 = true;
+                engine::scene::MeshPipelines pipelines = {
+                    .commonPipeline = 1u, 
+                    .skeletalPipeline = scene->isComputeSkinningEnabled() ? 2u : 1u
+                };
+                auto * meshRoot = engine::scene::createNodeWithSkeletalMesh(*scene, *modelManager, modelIndex, 
+                    engine::scene::Bounds::Type::eCube, pipelines,
+                    {.size = {3.5f, 3.5f, 3.5f}, .type = engine::scene::ObjectSizeLayout::Type::eMin});
+
+                if (auto * skeleton = static_cast<engine::scene::Skeleton *>(meshRoot->getAttachment())) {
+                    auto const animId = animationManager.getAnimationIndex("windmill_anim0");
+                    auto * anim = scene->createAnimInfo<engine::scene::SkeletalAnimation>(animId, engine::common::random(0.25f, 1.7f));
+                    scene->destroyAnimInfo(skeleton->setAnimation(anim));
+                }
+
+                meshRoot->setRotation(engine::vec3f(1.57f, 0.0f, 0.0f));
+                meshRoot->setPosition(engine::vec3f(-7.0f, 2.0f, -0.1f));
+                sceneWorldRoot->addChild(meshRoot);
+            }
+        }
+
         commandList->begin(rhi::CommandBufferUsageFlags::eOne_Time_Submit);
 
         commandList->resetQueryPool(_queryPool.get(), frameId * 2u, 2u); // must be reset after use and after create too!
@@ -1950,7 +2012,7 @@ namespace example {
 
         //const auto result0 = scene->dispatch(commandList, frameId, shadowObjects, offsets0);
         const auto result1 = scene->dispatch(commandList, frameId, objects, offsets1);
-    
+        //printf("computeSkinVerticesOffset %d\n", result1);
     
         // const auto result = scene->dispatch(commandList, frameId, o0, offsets0);
         // offsets1.computeSkinVerticesOffset = result.computeSkinVerticesOffset;
@@ -2248,9 +2310,12 @@ namespace example {
         auto const presentResult = _renderQueue->present(_swapchain.get(), imageIndex, signalSemaphores);
 
         gStats.drawCalls = 0u;
+        gStats.dispatchCalls = 0u;
         gStats.cpuFrameTime = static_cast<float>(frameTimer.elapsed<engine::time::microseconds>()) * 0.001f;
         gStats.drawCalls = commandList->getStats().drawCalls;
         gStats.drawCalls += transferCommandList->getStats().drawCalls;
+        gStats.dispatchCalls = commandList->getStats().dispatchCalls;
+        gStats.dispatchCalls += transferCommandList->getStats().dispatchCalls;
     }
 
 }

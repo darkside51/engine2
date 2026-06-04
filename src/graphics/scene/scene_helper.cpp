@@ -45,7 +45,7 @@ void loadNodes(Scene & scene, const graphics::ModelManager::ModelBuffers & gpuBu
             uint8_t bufferId = 0u;
             mesh->setAttribute({gpuBuffers.vertexBuffers[bufferId++]}, engine::scene::mesh::Semantic::ePosition);
             mesh->setAttribute({gpuBuffers.vertexBuffers[bufferId++]}, engine::scene::mesh::Semantic::eNormal);
-            // mesh->setAttribute({gpuBuffers.vertexBuffers[bufferId++]}, engine::scene::mesh::Semantic::eTangent);
+            mesh->setAttribute({gpuBuffers.vertexBuffers[bufferId++]}, engine::scene::mesh::Semantic::eTangent);
             mesh->setAttribute({gpuBuffers.vertexBuffers[bufferId++]}, engine::scene::mesh::Semantic::eUv0);
 
             if (createSkeletalMesh) {

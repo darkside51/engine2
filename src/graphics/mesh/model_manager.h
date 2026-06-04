@@ -61,14 +61,14 @@ public:
 
     std::pair<uint32_t, bool> addModel(std::string_view name, models::Layout && layout, 
         GraphicsService & graphicsService, const FileManager & fileManager,
-        std::span<const graphics::models::AttributeSemantic> attributes = kDefaultSemantics);
+        std::span<const graphics::models::AttributeSemantic> attributes = kDefaultSemantics2);
 
     std::pair<uint32_t, bool> addModel2(std::string_view name);    
 
     void setBuffers(uint32_t index, models::MeshBuffersData && buffers);
 
     models::MeshBuffersData loadModel(uint32_t index, std::string_view name, const models::Layout & layout, 
-        std::span<const graphics::models::AttributeSemantic> attributes = kDefaultSemantics);
+        std::span<const graphics::models::AttributeSemantic> attributes = kDefaultSemantics2);
 
     std::vector<MaterialTextureLoadingData> prepareMaterials(
         std::string_view name, uint32_t index, 

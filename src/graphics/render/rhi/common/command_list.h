@@ -67,6 +67,7 @@ namespace engine::rhi::runtime {
 
             uint32_t drawCalls = 0u;
             uint32_t dispatchCalls = 0u;
+            uint32_t dispatchGroups = 0u;
             uint16_t binPipelines = 0u;
             uint16_t renderPasses = 0u;
             uint16_t updateBuffers = 0u;
