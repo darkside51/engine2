@@ -548,7 +548,7 @@ namespace engine::graphics::models {
         //     }
         // }
 
-        // restore vertex data as floats
+        // // restore vertex data as floats
         // const auto src16p = std::span(reinterpret_cast<const uint16_t*>(vertexBuffersData[0u].data()), vertexBuffersData[0u].size() / sizeof(uint16_t));
         // const auto src8n = std::span(reinterpret_cast<const int8_t*>(vertexBuffersData[1u].data()), vertexBuffersData[0u].size() / sizeof(int8_t));
         // const auto src16uv = std::span(reinterpret_cast<const uint16_t*>(vertexBuffersData[2u/*3u*/].data()), vertexBuffersData[0u].size() / sizeof(uint16_t));
@@ -580,7 +580,14 @@ namespace engine::graphics::models {
         //         uint16_to_float(src16uv[j + 1u])
         //     );
         // }
-        // restore vertex data as floats
+        // // restore vertex data as floats
+        // // generate tangents
+        // auto tangents = generateTangents(
+        //     positions,
+        //     normals,
+        //     uvs,
+        //     indexBufferData
+        // );
 
         ////
         for (auto & vertexBuffer : vertexBuffersData) {
