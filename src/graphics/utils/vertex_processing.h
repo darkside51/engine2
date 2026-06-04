@@ -4,6 +4,7 @@
 #include "meshoptimizer.h"
 
 #include <array>
+#include <cstddef>
 #include <cstdint>
 #include <span>
 #include <vector>
@@ -68,6 +69,13 @@ std::vector<vec4f> generateTangents(
     std::span<const vec3f> positions,
     std::span<const vec3f> normals,
     std::span<const vec2f> uvs,
+    std::span<const uint32_t> indices
+);
+
+std::vector<std::byte> generateTangentsCompressed(
+    std::span<const uint16_t> positions,
+    std::span<const int8_t> normals,
+    std::span<const uint16_t> uvs,
     std::span<const uint32_t> indices
 );
 
