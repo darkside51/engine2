@@ -548,65 +548,9 @@ namespace engine::graphics::models {
         //     }
         // }
 
-        // restore vertex data as floats
-        // auto src16p = std::span(reinterpret_cast<const uint16_t*>(vertexBuffersData[0u].data()), vertexBuffersData[0u].size() / sizeof(uint16_t));
-        // auto src8n = std::span(reinterpret_cast<const int8_t*>(vertexBuffersData[1u].data()), vertexBuffersData[0u].size() / sizeof(int8_t));
-        // auto src16uv = std::span(reinterpret_cast<const uint16_t*>(vertexBuffersData[2u/*3u*/].data()), vertexBuffersData[0u].size() / sizeof(uint16_t));
-        
-        // std::vector<vec3f> positions;
-        // std::vector<vec3f> normals;
-        // std::vector<vec2f> uvs;
+        const bool useTangents = std::find(allowedAttributes.begin(), allowedAttributes.end(), AttributeSemantic::eTangent) != allowedAttributes.end();
 
-        // const auto count = src16p.size() / 4u;
-        // positions.reserve(count);
-        // normals.reserve(count);
-        // uvs.reserve(count);
-
-        // for (uint32_t i = 0u, j = 0u; i < src16p.size(); i += 4u, j += 2u) {
-        //     positions.emplace_back(
-        //         uint16_to_float(src16p[i + 0u]),
-        //         uint16_to_float(src16p[i + 1u]),
-        //         uint16_to_float(src16p[i + 2u])
-        //     );
-
-        //     normals.emplace_back(
-        //         snorm_to_float(src8n[i + 0u], 8u), 
-        //         snorm_to_float(src8n[i + 1u], 8u), 
-        //         snorm_to_float(src8n[i + 2u], 8u)
-        //     );
-
-        //     uvs.emplace_back(
-        //         uint16_to_float(src16uv[j + 0u]), 
-        //         uint16_to_float(src16uv[j + 1u])
-        //     );
-        // }
-        // // restore vertex data as floats
-        // // generate tangents
-        // auto tangents = generateTangents(
-        //     positions,
-        //     normals,
-        //     uvs,
-        //     indexBufferData
-        // );
-
-        // auto tangents2 = generateTangentsCompressed(
-        //     src16p,
-        //     src8n,
-        //     src16uv,
-        //     indexBufferData
-        // );
-
-        // auto src8t = std::span(reinterpret_cast<const int8_t*>(tangents2.data()), tangents2.size() / sizeof(int8_t));
-
-        // uint8_t idx = 4u;
-        // auto t0 = vec4f{
-        //         snorm_to_float(src8t[idx * 4u + 0u], 8u),
-        //         snorm_to_float(src8t[idx * 4u + 1u], 8u),
-        //         snorm_to_float(src8t[idx * 4u + 2u], 8u),
-        //         snorm_to_float(src8t[idx * 4u + 3u], 8u)
-        // };
-
-        if (vertexBuffersData[2u].empty()) { // generate tangents
+        if (useTangents && vertexBuffersData[2u].empty()) { // generate tangents
             auto src16p = std::span(reinterpret_cast<const uint16_t*>(vertexBuffersData[0u].data()), vertexBuffersData[0u].size() / sizeof(uint16_t));
             auto src8n = std::span(reinterpret_cast<const int8_t*>(vertexBuffersData[1u].data()), vertexBuffersData[1u].size() / sizeof(int8_t));
             auto src16uv = std::span(reinterpret_cast<const uint16_t*>(vertexBuffersData[3u].data()), vertexBuffersData[3u].size() / sizeof(uint16_t));
