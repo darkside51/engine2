@@ -121,6 +121,7 @@ namespace example {
         eDebugCascades = 9u
     };
 
+    float sceneAnimationSpeed = 1.0f;
     float ssaoEnable = 1.0f;
     bool ssaoBlur = true;
     bool showBboxes = false;
@@ -149,7 +150,7 @@ namespace example {
     float saturation = 1.0f;
 
     void optionsWindow() {
-        ImGui::SetNextWindowSize(ImVec2(540, 770), ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowSize(ImVec2(540, 810), ImGuiCond_FirstUseEver);
         if (!ImGui::Begin("options", &showOptions, 0)) {
             // early out if the window is collapsed, as an optimization.
             ImGui::End();
@@ -197,6 +198,9 @@ namespace example {
         ImGui::NewLine();
         ImGui::DragFloat("saturation", &saturation, 0.01f, 0.0f, 10.0f);
         ImGui::DragFloat("vignette", &vignetteExtent, 0.01f, 0.0f, 1.0f);
+
+        ImGui::NewLine();
+        ImGui::DragFloat("animation speed", &sceneAnimationSpeed, 0.01f, -4.0f, 4.0f);
 
         ImGui::NewLine();
         if (ImGui::RadioButton("composite", debugShow == DebugShow::eCommon)) { 
@@ -1999,7 +2003,7 @@ namespace example {
 
         engine::scene::Scene::sortObjectsForDraw(shadowObjects);
 
-        scene->animate(now, delta, objects, animationManager); // after fillAttachmentsArrays and after beginFrame for correct
+        scene->animate(now, delta, objects, animationManager, sceneAnimationSpeed); // after fillAttachmentsArrays and after beginFrame for correct
 
         // auto o0 = std::span<engine::scene::AttachmentObject*>{objects.begin(), objects.begin() + objects.size() / 2};
         // auto o1 = std::span<engine::scene::AttachmentObject*>{objects.begin() + objects.size() / 2, objects.end()};

@@ -181,7 +181,7 @@ public:
     DrawDataOffsets prepareDrawData(std::span<AttachmentObject*> objects, uint8_t frame) noexcept;
 
     void animate(std::chrono::time_point<std::chrono::steady_clock> now, float delta, std::span<AttachmentObject*> objects, 
-        const AnimationManager & animationManager);
+        const AnimationManager & animationManager, float speed = 1.0f);
     void draw(RenderPass pass, rhi::runtime::CommandListPtr & commandList, rhi::runtime::CommandListPtr & transferCommandList, uint8_t frame, 
         const ViewParams & viewParams, std::span<AttachmentObject*> objects, const DrawDataOffsets & offsets, const void * external = nullptr);
     void drawDebug(const ViewParams & viewParams, std::span<AttachmentObject*> objects);

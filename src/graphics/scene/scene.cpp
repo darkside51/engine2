@@ -437,7 +437,7 @@ namespace engine::scene {
     }
 
     void Scene::animate(std::chrono::time_point<std::chrono::steady_clock> now, float delta, std::span<AttachmentObject*> objects, 
-        const AnimationManager & animationManager) {
+        const AnimationManager & animationManager, float speed) {
         //return;
         if (objects.empty()) {
             return;
@@ -478,7 +478,7 @@ namespace engine::scene {
         }
 
         const std::chrono::duration<float> nowDuration = now.time_since_epoch();
-        const float nowTimeCount = nowDuration.count();
+        const float nowTimeCount = nowDuration.count() * speed;
 
         if (!_animations.skeletalAnimations.empty()) { // skeletal animations
             auto begin = _animations.skeletalAnimations.begin() + skeletalAnimationsCountOnStart;
