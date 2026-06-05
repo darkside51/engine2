@@ -43,9 +43,6 @@ void main() {
 
 	vec3 tangentNormal = texture(u_texture_normal, v_uv).xyz * 2.0f - 1.0f;
 	out_normal = vec4(normalize(v_tbn * tangentNormal) * 0.5f + 0.5f, 1.0f);
-
-	//out_normal = vec4(normalize(v_normal) * 0.5f + 0.5f, 1.0f);
-	
 	out_emissive = vec4(texture(u_texture_emissive, v_uv).rgb * push.emissive.rgb, 1.0f);
 	out_metalicRoughness = vec2(texture(u_texture_metalicRoughness, v_uv).bg * push.metalicRoughnessAlphaCut.xy);
 }

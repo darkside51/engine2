@@ -71,6 +71,9 @@ namespace example {
     constexpr uint8_t kMeshShadowProgram = 10u;
     constexpr uint8_t kMeshAfterComputeShadowProgram = 11u;
 
+    constexpr uint8_t kMeshInstancedProgramNoPbr = 12u;
+    constexpr uint8_t kMeshAfterComputeProgramNoPbr = 13u;
+
     constexpr uint8_t kPostEffectPipeline = 0u;
     constexpr uint8_t kSsaoPipeline = 1u;
     constexpr uint8_t kEmissiveBlurPipeline = 2u;
@@ -913,6 +916,25 @@ namespace example {
             const auto & vsModule = _shaderModulesManager->registerModule("mesh_after_compute_shadow.vert", *_device, engine::rhi::shaders::Stages::eVertex, vBytes);
             _programs.emplace_back(_api->createProgram(*_device, std::array{vsModule.getView()}));
         }
+
+        { // kMeshInstancedProgramNoPbr
+            auto const vBytes = _fileManager.readFile("shaders/mesh_instanced2.vert.spv");
+            auto const fBytes = _fileManager.readFile("shaders/mesh2.frag.spv");
+
+            const auto & vsModule = _shaderModulesManager->registerModule("mesh_instanced2.vert", *_device, engine::rhi::shaders::Stages::eVertex, vBytes);
+            const auto & fsModule = _shaderModulesManager->registerModule("mesh2.frag", *_device, engine::rhi::shaders::Stages::eFragment, fBytes);
+
+            _programs.emplace_back(_api->createProgram(*_device, std::array{vsModule.getView(), fsModule.getView()}));
+        }
+
+        { // kMeshAfterComputeProgramNoPbr
+            auto const vBytes = _fileManager.readFile("shaders/mesh_after_compute2.vert.spv");
+
+            const auto & vsModule = _shaderModulesManager->registerModule("mesh_after_compute2.vert", *_device, engine::rhi::shaders::Stages::eVertex, vBytes);
+            const auto & fsModule = _shaderModulesManager->registerModule("mesh2.frag", *_device, engine::rhi::shaders::Stages::eFragment, {});
+
+            _programs.emplace_back(_api->createProgram(*_device, std::array{vsModule.getView(), fsModule.getView()}));
+        }
     }
     
     void Example::createPipelines() {
@@ -960,12 +982,14 @@ namespace example {
         // mesh
         const GraphicsPipelineStatesInfo info5 = engine::parseGraphicsPipelineInfo(json["mesh"]);
         scene->registerGraphicsPipeline(_api->createGraphicsPipeline(*_device, _renderPasses[kGbufferRenderPass], _programs[kMeshInstancedProgram], info5, 0u));
+        scene->registerGraphicsPipeline(_api->createGraphicsPipeline(*_device, _renderPasses[kGbufferRenderPass], _programs[kMeshInstancedProgramNoPbr], info5, 0u));
 
         // compute
         scene->registerComputePipeline(_api->createComputePipeline(*_device, _programs[kComputeProgram]));
 
         const GraphicsPipelineStatesInfo info6 = engine::parseGraphicsPipelineInfo(json["mesh_skeletal_computed"]);
         scene->registerGraphicsPipeline(_api->createGraphicsPipeline(*_device, _renderPasses[kGbufferRenderPass], _programs[kMeshAfterComputeProgram], info6, 0u));
+        scene->registerGraphicsPipeline(_api->createGraphicsPipeline(*_device, _renderPasses[kGbufferRenderPass], _programs[kMeshAfterComputeProgramNoPbr], info6, 0u));
 
         // shadow
         shadowMap = std::make_unique<engine::graphics::CascadeShadowMap>(*_api, *_device, 4096u, 2u, 24u, kNearFarPlane.x, kNearFarPlane.y);
@@ -1778,7 +1802,7 @@ namespace example {
                 meshLoaded = true;
                 engine::scene::MeshPipelines pipelines = {
                     .commonPipeline = 1u, 
-                    .skeletalPipeline = scene->isComputeSkinningEnabled() ? 2u : 1u
+                    .skeletalPipeline = 3u
                 };
 
                 auto const animId = animationManager.getAnimationIndex("skeletal_mesh_anim0");
@@ -1817,8 +1841,8 @@ namespace example {
             if (modelManager->isDataReady(modelIndex)) {
                 meshLoaded2 = true;
                 engine::scene::MeshPipelines pipelines = {
-                    .commonPipeline = 1u, 
-                    .skeletalPipeline = scene->isComputeSkinningEnabled() ? 2u : 1u
+                    .commonPipeline = 2u, 
+                    .skeletalPipeline = 4u
                 };
 
                 auto * meshRoot = engine::scene::createNodeWithSkeletalMesh(*scene, *modelManager, modelIndex, 
@@ -1837,8 +1861,8 @@ namespace example {
             if (modelManager->isDataReady(modelIndex)) {
                 meshLoaded3 = true;
                 engine::scene::MeshPipelines pipelines = {
-                    .commonPipeline = 1u, 
-                    .skeletalPipeline = scene->isComputeSkinningEnabled() ? 2u : 1u
+                    .commonPipeline = 2u, 
+                    .skeletalPipeline = 4u
                 };
                 auto * meshRoot = engine::scene::createNodeWithSkeletalMesh(*scene, *modelManager, modelIndex, 
                     engine::scene::Bounds::Type::eCube, pipelines,
@@ -1863,7 +1887,7 @@ namespace example {
                 meshLoaded4 = true;
                 engine::scene::MeshPipelines pipelines = {
                     .commonPipeline = 1u, 
-                    .skeletalPipeline = scene->isComputeSkinningEnabled() ? 2u : 1u
+                    .skeletalPipeline = 3u
                 };
                 auto const animId = animationManager.getAnimationIndex("buster_anim0");
                 for (uint8_t i = 0u; i < 20u; ++i) {
@@ -1890,7 +1914,7 @@ namespace example {
                 meshLoaded5 = true;
                 engine::scene::MeshPipelines pipelines = {
                     .commonPipeline = 1u, 
-                    .skeletalPipeline = scene->isComputeSkinningEnabled() ? 2u : 1u
+                    .skeletalPipeline = 3u
                 };
                 auto const animId = animationManager.getAnimationIndex("chaman_anim1");
                 for (uint16_t i = 0u; i < 500u; ++i) {
@@ -1916,8 +1940,8 @@ namespace example {
             if (modelManager->isDataReady(modelIndex)) {
                 meshLoaded6 = true;
                 engine::scene::MeshPipelines pipelines = {
-                    .commonPipeline = 1u, 
-                    .skeletalPipeline = scene->isComputeSkinningEnabled() ? 2u : 1u
+                    .commonPipeline = 2u, 
+                    .skeletalPipeline = 4u
                 };
                 auto * meshRoot = engine::scene::createNodeWithSkeletalMesh(*scene, *modelManager, modelIndex, 
                     engine::scene::Bounds::Type::eCube, pipelines,
@@ -1936,7 +1960,7 @@ namespace example {
                 meshLoaded7 = true;
                 engine::scene::MeshPipelines pipelines = {
                     .commonPipeline = 1u, 
-                    .skeletalPipeline = scene->isComputeSkinningEnabled() ? 2u : 1u
+                    .skeletalPipeline = 3u
                 };
                 auto * meshRoot = engine::scene::createNodeWithSkeletalMesh(*scene, *modelManager, modelIndex, 
                     engine::scene::Bounds::Type::eCube, pipelines,

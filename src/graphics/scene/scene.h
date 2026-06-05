@@ -109,6 +109,8 @@ public:
         enum class Type : uint8_t {
             eMeshShadow = 0u,
             eMeshSkinnedShadow = 1u,
+            eMesh = 2u,
+            eMeshSkinned = 3u,
             eCount
         };
         std::array<uint32_t, std::to_underlying(Type::eCount)> pipelines;

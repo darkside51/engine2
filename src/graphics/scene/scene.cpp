@@ -1362,7 +1362,7 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
                     commandList->bindPipeline(pipeline);
                 }
 
-                if (currentSkeletal != skeletal) {
+                if (currentSkeletal != skeletal || pipelineChanged) {
                     if (currentSkeletal) {
                         //commandList->bindBuffer(0u, _computedVertices[frame], 1u, 0u);
                         commandList->bindTexelBuffer(0u, _computedVertices[frame], rhi::Format::eR32G32B32A32_Sfloat, 1u, 0u);
@@ -1521,7 +1521,7 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
                     commandList->pushConstants(rhi::shaders::Stages::eVertex | rhi::shaders::Stages::eFragment, 48u, sizeof(vec4u), &uniform.offset);
                 }
 
-                if (currentSkeletal != skeletal) {
+                if (currentSkeletal != skeletal || pipelineChanged) {
                     if (currentSkeletal) {
                         // commandList->bindBuffer(0u, _computedVertices[frame], 1u, 0u);
                         // commandList->bindBuffer(1u, _computedNormals[frame], 1u, 0u);
@@ -1664,7 +1664,7 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
                     commandList->pushConstants(rhi::shaders::Stages::eVertex | rhi::shaders::Stages::eFragment, 0u, sizeof(Uniform), &uniform);
                 }
 
-                if (currentSkeletal != skeletal) {
+                if (currentSkeletal != skeletal || pipelineChanged) {
                     if (currentSkeletal) {
                         commandList->bindBuffer(0u, (*_meshSkeletalTransforms)(frame), 1u, 0u);
                     } else {
