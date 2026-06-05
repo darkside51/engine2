@@ -332,9 +332,13 @@ private:
 
     uint32_t _computedVerticesSizeInFrame = 0u; // need resize buffers functional!
     uint32_t _lastFramesComputedVerticesSize = 0u;
-    rhi::runtime::BufferPtr _computedVertices = nullptr;
-    rhi::runtime::BufferPtr _computedNormals = nullptr;
-    rhi::runtime::BufferPtr _computedTangents = nullptr;
+
+    // rhi::runtime::BufferPtr _computedVertices = nullptr;
+    // rhi::runtime::BufferPtr _computedNormals = nullptr;
+    // rhi::runtime::BufferPtr _computedTangents = nullptr;
+    std::vector<rhi::runtime::BufferPtr> _computedVertices = {};
+    std::vector<rhi::runtime::BufferPtr> _computedNormals = {};
+    std::vector<rhi::runtime::BufferPtr> _computedTangents = {};
 
     // async animation calculation:
     // need use stop sources?

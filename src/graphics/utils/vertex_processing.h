@@ -64,7 +64,7 @@ inline std::array<uint16_t, 3u> to_vec3u16(float x, float y, float z) noexcept {
     return {float_to_uint16(x), float_to_uint16(y), float_to_uint16(z)};
 }
 
-//
+// generates 4D tangents Lengyel's algorithm
 std::vector<vec4f> generateTangents(
     std::span<const vec3f> positions,
     std::span<const vec3f> normals,

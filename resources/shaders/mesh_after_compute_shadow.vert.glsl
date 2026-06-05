@@ -8,10 +8,12 @@ layout (set = 0, binding = 0) uniform UniformBuffer {
 	mat4 cascades[shadowCascades];
 } u_viewParams;
 
-layout (set = 1, binding = 0) readonly buffer Positions {
-   vec4 data[];
-} in_positions;
+//layout (set = 1, binding = 0) readonly buffer Positions {
+//   vec4 data[];
+//} in_positions;
 
+
+layout(set = 1, binding = 0, rgba32f) readonly uniform imageBuffer in_positions;
 
 layout (set = 1, binding = 1) readonly buffer SkeletonIds {
    uint data[];
@@ -26,6 +28,6 @@ void main() {
 	const uint offset = push.offset_and_count.x;
 	const uint count = push.offset_and_count.y;
 	const uint vertexId = gl_VertexIndex + in_skeleton_ids.data[gl_InstanceIndex % count + offset];
-	gl_Position = u_viewParams.cascades[gl_InstanceIndex / count] * in_positions.data[vertexId];
+	gl_Position = u_viewParams.cascades[gl_InstanceIndex / count] * imageLoad(in_positions, int(vertexId));//in_positions.data[vertexId];
 	gl_Layer = int(gl_InstanceIndex / count);
 }

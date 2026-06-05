@@ -3,17 +3,23 @@
 layout (local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
 
 // out data
-layout (set = 0, binding = 0) writeonly buffer OutPositions {
-   vec4 data[];
-} out_positions;
+//layout (set = 0, binding = 0) writeonly buffer OutPositions {
+//   vec4 data[];
+//} out_positions;
 
-layout (set = 0, binding = 1) writeonly buffer OutNormals {
-   vec4 data[];
-} out_normals;
+//layout (set = 0, binding = 1) writeonly buffer OutNormals {
+//   vec4 data[];
+//} out_normals;
 
-layout (set = 0, binding = 2) writeonly buffer OutTangents {
-   vec4 data[];
-} out_tangents;
+//layout (set = 0, binding = 2) writeonly buffer OutTangents {
+//   vec4 data[];
+//} out_tangents;
+
+
+// Syntax: layout(set = X, binding = Y, format_qualifier) writeonly uniform imageBuffer variableName;
+layout(set = 0, binding = 0, rgba32f) writeonly uniform imageBuffer out_positions;
+layout(set = 0, binding = 1, rgba8_snorm) writeonly uniform imageBuffer out_normals;
+layout(set = 0, binding = 2, rgba8_snorm) writeonly uniform imageBuffer out_tangents;
 
 // storage buffers
 layout (set = 1, binding = 0) readonly buffer SkinTransformations {
@@ -105,7 +111,11 @@ void main() {
 	//const uint resultOffset = vertexId + skeletonId * vertexCount;
 
 	const uint resultOffset = vertexId + skeleton_ids.data[objectId + push.firstObject + push.skeletonsOffset];
-	out_positions.data[resultOffset] = vec4(texelFetch(u_positions, vertexId).xyz, 1.0) * skin;
-	out_normals.data[resultOffset] = normalize((texelFetch(u_normals, vertexId) * skin));
-	out_tangents.data[resultOffset] = normalize((texelFetch(u_tangents, vertexId) * skin));
+	//out_positions.data[resultOffset] = vec4(texelFetch(u_positions, vertexId).xyz, 1.0) * skin;
+	//out_normals.data[resultOffset] = normalize((texelFetch(u_normals, vertexId) * skin));
+	//out_tangents.data[resultOffset] = normalize((texelFetch(u_tangents, vertexId) * skin));
+
+	imageStore(out_positions, int(resultOffset), vec4(texelFetch(u_positions, vertexId).xyz, 1.0) * skin);
+	imageStore(out_normals, int(resultOffset), normalize((texelFetch(u_normals, vertexId) * skin)));
+	imageStore(out_tangents, int(resultOffset), normalize((texelFetch(u_tangents, vertexId) * skin)));
 }
