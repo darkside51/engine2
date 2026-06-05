@@ -1385,14 +1385,14 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
         struct Uniform {
             vec4f color;
             vec4f emissive;
-            vec4f metalicRoughness;
+            vec4f metalicRoughnessAlphaCut;
             vec4u offset;
         };
 
         Uniform uniform {
             .color = vec4f{1.0f},
             .emissive = vec4f{0.0f},
-            .metalicRoughness = vec4f{0.0f},
+            .metalicRoughnessAlphaCut = vec4f{0.0f},
             .offset = vec4u{0u}
         };
 
@@ -1419,7 +1419,7 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
             commandList->bindImage(3u, image4->image, _linearSampler, 2u);
             uniform.color = material.baseColorFactor;
             uniform.emissive = vec4f{material.emissiveFactor, 0.0f};
-            uniform.metalicRoughness = vec4f(material.metallicFactor, material.roughnessFactor, 0.0f, 1.0f);
+            uniform.metalicRoughnessAlphaCut = vec4f(material.metallicFactor, material.roughnessFactor, material.alphaCutoff, 1.0f);
         };
 
         uint32_t count = 1u;

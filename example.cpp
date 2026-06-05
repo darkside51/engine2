@@ -1872,8 +1872,8 @@ namespace example {
                         scene->destroyAnimInfo(skeleton->setAnimation(anim));
                     }
 
-                    meshRoot->setRotation(engine::vec3f(1.57f, 0.0f, engine::common::random(-3.14f, 3.14f)));
-                    meshRoot->setPosition(engine::vec3f(-5.5f + i % 2 * 1.5f, 0.0f - i / 2 * 1.5f, 0.42f));
+                    meshRoot->setRotation(engine::vec3f(engine::pi2, 0.0f, engine::common::random(-3.14f, 3.14f)));
+                    meshRoot->setPosition(engine::vec3f(-5.5f + i % 2 * 1.5f, 0.0f - i / 2 * 1.5f, 0.4126f));
                     sceneWorldRoot->addChild(meshRoot);
                 }
             }
