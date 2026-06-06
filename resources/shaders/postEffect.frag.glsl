@@ -131,7 +131,7 @@ void main() {
 
 	// 4. gamma
 	vec3 color = pow(baseColor, vec3(0.4545f)); // gamma correction 1.0f / 2.2f = 0.4545f
-	color = mix(color, vec3(1.0f), step(0.0f, viewPosition.z));
+	color = mix(color, albedo.rgb, step(0.0f, viewPosition.z));
 
 	// vignette
 	if (push.options.w > 0.0f) {

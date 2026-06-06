@@ -145,20 +145,34 @@ namespace example {
 
     float vignetteExtent = 0.1f;
 
-    engine::vec4f ambientColor = {1.0f, 1.0f, 1.0f, 0.5f};
-    engine::vec4f directionalLightColor = {1.0f, 1.0f, 1.0f, 1.0f};
+    uint32_t clearColor = 0xb9'b9'b9'ffu;
+    engine::vec4f ambientColor = {1.0f, 1.0f, 1.0f, 0.2f};
+    engine::vec4f directionalLightColor = {1.0f, 1.0f, 1.0f, 2.5f};
     engine::vec3f lightDir = {0.26f, 0.15f, -0.75f};
     engine::vec4f shadowsOptions = {0.2f, 0.0f, 0.0f, 0.0f};
     bool lightDirty = false;
     float saturation = 1.0f;
 
     void optionsWindow() {
-        ImGui::SetNextWindowSize(ImVec2(540, 810), ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowSize(ImVec2(540, 840), ImGuiCond_FirstUseEver);
         if (!ImGui::Begin("options", &showOptions, 0)) {
             // early out if the window is collapsed, as an optimization.
             ImGui::End();
             return;
         }
+
+        static float color[3u] = {
+            static_cast<float>(0xffu & (clearColor >> 24u)) / 255.0f, 
+            static_cast<float>(0xffu & (clearColor >> 16u)) / 255.0f,
+            static_cast<float>(0xffu & (clearColor >> 8u)) / 255.0f
+        };
+        if (ImGui::ColorEdit3("clear color", &color[0u])) {
+            clearColor = static_cast<uint32_t>(color[0u] * 255u) << 24u | 
+                         static_cast<uint32_t>(color[1u] * 255u) << 16u |
+                         static_cast<uint32_t>(color[2u] * 255u) << 8u | 
+                         255u;
+        }
+        ImGui::NewLine();
 
         bool enableSsao = ssaoEnable > 0.0f;
         ImGui::Checkbox("ssao", &enableSsao);
@@ -190,6 +204,7 @@ namespace example {
             lightDir.z = std::min(lightDir.z, -0.01f);
             lightDirty = true;
         }
+        
         ImGui::ColorEdit3("ambient color", &ambientColor[0u]);
         ImGui::DragFloat("ambient factor", &ambientColor[3u], 0.01f, 0.0f, 1.0f);
         ImGui::ColorEdit3("directional light color", &directionalLightColor[0u]);
@@ -1542,9 +1557,9 @@ namespace example {
                     gpuTasks.emplace_back(BgThread::GpuTask{[this](engine::rhi::runtime::CommandList & commandList, std::vector<threads::WorkerTask> & callbacks) mutable {
 
                         // const auto imageBytes = _fileManager.readFile("assets/vulkan_11_rgba.ktx");
-                        // const auto imageBytes = _fileManager.readFile("assets/2d_bc7.ktx2");
+                        const auto imageBytes = _fileManager.readFile("assets/2d_bc7.ktx2");
                         // const auto imageBytes = _fileManager.readFile("assets/asphalt-7.jpg");
-                        const auto imageBytes = _fileManager.readFile("assets/grass3.png");
+                        // const auto imageBytes = _fileManager.readFile("assets/asphalt-2.jpg");
                         auto textureData = engine::graphics::parseTextureData(imageBytes, {
                                 .flags = engine::graphics::TextureFlags::eAllowSrgbColorSpace | engine::graphics::TextureFlags::eUseMipMaps
                             }
@@ -2054,10 +2069,11 @@ namespace example {
         shadowMap->endRenderPass(*commandList);
 
         // draw scene
-        constexpr auto gBufferClearValues = std::array{
+        // constexpr auto gBufferClearValues = std::array{
+        const auto gBufferClearValues = std::array{
             rhi::ClearValue{0x00'00'00'00u},    // position
             rhi::ClearValue{0x00'00'00'00u},    // normal
-            rhi::ClearValue{0xff'ff'ff'ffu},    // albedo
+            rhi::ClearValue{clearColor},        // albedo
             rhi::ClearValue{0x00'00'00'00u},    // emissive
             rhi::ClearValue{0x00'00'00'00u},    // metallicRoughness
             rhi::ClearValue{0.0f, 0u}           // depth
