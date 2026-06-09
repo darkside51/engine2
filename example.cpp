@@ -1008,7 +1008,7 @@ namespace example {
 
         // shadow
         shadowMap = std::make_unique<engine::graphics::CascadeShadowMap>(*_api, *_device, 4096u, 2u, 24u, kNearFarPlane.x, kNearFarPlane.y);
-        shadowMap->initCascadeSplits({1.2f, -87.0f});
+        shadowMap->initCascadeSplits({0.75f, 0.25f, -87.0f});
         shadowMap->createRenderData();
         shadowMap->setDirection(glm::normalize(lightDir));
 
@@ -1557,9 +1557,9 @@ namespace example {
                     gpuTasks.emplace_back(BgThread::GpuTask{[this](engine::rhi::runtime::CommandList & commandList, std::vector<threads::WorkerTask> & callbacks) mutable {
 
                         // const auto imageBytes = _fileManager.readFile("assets/vulkan_11_rgba.ktx");
-                        const auto imageBytes = _fileManager.readFile("assets/2d_bc7.ktx2");
+                        // const auto imageBytes = _fileManager.readFile("assets/2d_bc7.ktx2");
                         // const auto imageBytes = _fileManager.readFile("assets/asphalt-7.jpg");
-                        // const auto imageBytes = _fileManager.readFile("assets/asphalt-2.jpg");
+                        const auto imageBytes = _fileManager.readFile("assets/grass3.png");
                         auto textureData = engine::graphics::parseTextureData(imageBytes, {
                                 .flags = engine::graphics::TextureFlags::eAllowSrgbColorSpace | engine::graphics::TextureFlags::eUseMipMaps
                             }
@@ -2038,7 +2038,7 @@ namespace example {
             }
             return true; 
         }, objects, engine::scene::FillAttachmentFlags::eCalculateQuality);
-        // printf("1: %d\n", timer.elapsed<engine::time::microseconds>());
+        // printf("fillAttachmentsArray time: %d\n", timer.elapsed<engine::time::microseconds>());
 
         engine::scene::Scene::sortObjectsForDraw(shadowObjects);
 

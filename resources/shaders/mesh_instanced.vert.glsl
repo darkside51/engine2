@@ -57,6 +57,6 @@ void main() {
 		const vec3 tangent = normalize((vec4(a_tangent.xyz, 0.0f) * model).xyz);
 		const vec3 binormal = cross(normal, tangent) * a_tangent.w;
 		
-		v_tbn = normalMatrix * mat3(tangent, binormal, normal);
+		v_tbn = mat3(normalMatrix * tangent, normalMatrix * binormal, normalMatrix * normal);
 	}
 }

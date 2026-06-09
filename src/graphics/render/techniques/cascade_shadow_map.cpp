@@ -154,9 +154,10 @@ namespace engine::graphics {
         _device.evaluateSampler(_sampler);
     }
 
-    void CascadeShadowMap::initCascadeSplits(vec2f nearFarOffsets) noexcept {
-        const float minZ = _near + nearFarOffsets.x;
-		const float maxZ = _far + nearFarOffsets.y;
+    void CascadeShadowMap::initCascadeSplits(vec3f splitNearFarOffsets) noexcept {
+        _cascadeSplitLambda = splitNearFarOffsets.x;
+        const float minZ = _near + splitNearFarOffsets.y;
+		const float maxZ = _far + splitNearFarOffsets.z;
 
 		const float range = maxZ - minZ;
 		const float ratio = maxZ / minZ;

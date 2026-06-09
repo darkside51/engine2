@@ -55,5 +55,5 @@ void main() {
 	const vec4 tangent = imageLoad(in_tangents, int(vertexId));//in_tangents.data[vertexId];
 	const vec3 binormal = cross(normal, tangent.xyz) * tangent.w;
 
-	v_tbn = normalMatrix * mat3(tangent.xyz, binormal, normal);
+	v_tbn = mat3(normalMatrix * tangent.xyz, normalMatrix * binormal, normalMatrix * normal);
 }
