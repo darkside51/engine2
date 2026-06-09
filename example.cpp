@@ -2225,6 +2225,11 @@ namespace example {
         );
         commandList->bindBuffer(7u, (*shadowMapUniformBuffer)(frameId), 0u, 0u);
 
+        // commandList->bindImage(
+        //     0u, textureManager->testCubeImage, nearestSampler, 1u, 
+        //     rhi::ImageAspectFlags::eColor, rhi::ImageViewType::eType_Cube 
+        // );
+
         commandList->pushConstants(rhi::shaders::Stages::eVertex | rhi::shaders::Stages::eFragment, 0u, sizeof(PostParams), &postParams);
         commandList->drawIndexed(6u);
 

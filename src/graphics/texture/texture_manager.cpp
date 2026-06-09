@@ -22,6 +22,8 @@ namespace engine::graphics {
         _whiteImage = nullptr;
         _blackImage = nullptr;
         _transparentImage = nullptr;
+
+        // testCubeImage = nullptr;
     }
 
     void TextureManager::createDefaultResources(const rhi::runtime::CommandListPtr & commandList) {
@@ -78,6 +80,32 @@ namespace engine::graphics {
         staging.flush();
         staging.unmap();
         
+        // const TextureMetaInfo cubeMetaInfo {
+        //     .size = {1u, 1u, 1u},
+        //     .bytesPerRow = 4u,
+        //     .format = Format::eR8G8B8A8_Unorm,
+        //     .bitsPerPixel = 32u,
+        //     .numLevels = 1u,
+        //     .hasPalette = false,
+        //     .parserType = TextureLoaderType::eRaw,
+        //     .flags = TextureFlags::eNone
+        // };
+
+        // std::vector<TextureLayerData> layers(6u);
+        // size_t i = 1u;
+        // for (auto & layer : layers) {
+        //     layer.resize(1u);
+        //     layer[0].resize(4u);
+
+        //     layer[0][0] = std::byte{0xffu / i}; layer[0][1] = std::byte{0xffu / i};
+        //     layer[0][2] = std::byte{0xffu / i}; layer[0][3] = std::byte{0xffu};
+        //     ++i;
+        // }
+
+        // testCubeImage = generateImage(cubeMetaInfo, layers, 
+        //     rhi::ImageCreateFlags::eCube_Compatible, *commandList);
+
+
         commandList->copyBuffer2Image(staging.getBuffer(), _defaultImage, 
             {
                 .bufferOffset = defaultImgOffset,
@@ -307,22 +335,22 @@ namespace engine::graphics {
         _tmpTexturesData.clear();
     }
 
-    rhi::runtime::ImagePtr TextureManager::generateImage(TextureCreateInfo && textureData, rhi::runtime::CommandList & commandList) const {
+    rhi::runtime::ImagePtr TextureManager::generateImage(const TextureMetaInfo & info, std::span<TextureLayerData> layersData, 
+        rhi::ImageCreateFlags createFlags, rhi::runtime::CommandList & commandList) const {
         using namespace rhi;
 
-        bool useMipMaps = (textureData.metaInfo.flags & TextureFlags::eUseMipMaps) != TextureFlags::eNone;
-
-        uint8_t mipLevels = textureData.data.size();
-
-        const auto formatBlitSupport = _device.isFormatSupported(textureData.metaInfo.format, 
+        bool useMipMaps = (info.flags & TextureFlags::eUseMipMaps) != TextureFlags::eNone;
+        const auto formatBlitSupport = _device.isFormatSupported(info.format, 
             engine::rhi::FormatFeatureFlags::eFormatFeature_BLit_Dst);
-
         const bool blitAvailable = formatBlitSupport.features != 0u;
+
+        uint8_t mipLevels = layersData[0u].size();
+        const uint8_t layersCount = layersData.size();
 
         if (useMipMaps && mipLevels == 1u && blitAvailable) {
             mipLevels = static_cast<uint8_t>(
                             std::floor(
-                                std::log2(std::max(textureData.metaInfo.size.x, textureData.metaInfo.size.y))
+                                std::log2(std::max(info.size.x, info.size.y))
                             )
                         ) + 1u;
             useMipMaps = mipLevels > 1u;
@@ -334,102 +362,124 @@ namespace engine::graphics {
 
         const auto imageInfo = ImageInfo{
             usage,
-            textureData.metaInfo.format, 
-            {textureData.metaInfo.size.x, textureData.metaInfo.size.y, textureData.metaInfo.size.z},
-            ImageAspectFlags::eColor, ImageType::eType_2D, mipLevels
+            info.format, 
+            {info.size.x, info.size.y, info.size.z},
+            ImageAspectFlags::eColor, ImageType::eType_2D, mipLevels, layersCount, 1u,ImageTiling::eOptimal, createFlags
         };
 
         auto image = _api.createImage(_device, imageInfo);
 
         auto stagingSize = 0u;
-        for (const auto & textureMipMapLevelData : textureData.data) {
-            stagingSize += textureMipMapLevelData.size();
+        for (const auto & layer : layersData) {
+            for (const auto & textureMipMapLevelData : layer) {
+                stagingSize += textureMipMapLevelData.size();
+            }
         }
-        engine::graphics::StagingBuffer staging{_api, _device, stagingSize};
+        
+        engine::graphics::StagingBuffer staging{_api, _device, stagingSize}; // use general InflightStagingBuffer ?
 
         auto * memory = staging.map();
-        const auto readyMipLevels = textureData.data.size();
+        const auto readyMipLevels = layersData[0u].size();
 
         std::vector<std::byte*> imgData;
         std::vector<uint32_t> mipOffsets;
-        imgData.resize(readyMipLevels);
-        mipOffsets.resize(readyMipLevels);
+        imgData.resize(layersCount * readyMipLevels);
+        mipOffsets.resize(layersCount * readyMipLevels);
 
-        for (uint8_t i = 0u; i < readyMipLevels; ++i) {
-            mipOffsets[i] = staging.requestBytes(textureData.data[i].size());
-            imgData[i] = memory + mipOffsets[i];
-            std::memcpy(imgData[i], textureData.data[i].data(), textureData.data[i].size());
+        uint8_t j = 0u;
+        for (const auto & layer : layersData) {
+            for (uint8_t i = 0u; i < readyMipLevels; ++i) {
+                const size_t dstIndex = i + j * readyMipLevels;
+                mipOffsets[dstIndex] = staging.requestBytes(layer[i].size());
+                imgData[dstIndex] = memory + mipOffsets[dstIndex];
+                std::memcpy(imgData[dstIndex], layer[i].data(), layer[i].size());
+            }
+            ++j;
         }
                     
         staging.flush();
 
-        auto extent = image->getExtent();
-        for (uint8_t i = 0u; i < readyMipLevels; ++i) {
-            commandList.copyBuffer2Image(staging.getBuffer(), image, 
-                {
-                    .bufferOffset = mipOffsets[i],
-                    .bufferRowLength = 0u,
-                    .bufferImageHeight = 0u,
-                    .imageSubresource = {
-                        .aspectMask = engine::rhi::ImageAspectFlags::eColor,
-                        .mipLevel = i,
-                        .baseArrayLayer = 0u,
-                        .layerCount = 1u
-                    },
-                    .imageOffset = {0u, 0u, 0u},
-                    .imageExtent = extent
-                }
-            );
-            extent.width = std::max(extent.width >> 1u, 1u);
-            extent.height = std::max(extent.height >> 1u, 1u);
+        j = 0u;
+        for (const auto & layer : layersData) {
+            auto extent = image->getExtent();
+            for (uint8_t i = 0u; i < readyMipLevels; ++i) {
+                const size_t srcIndex = i + j * readyMipLevels;
+                commandList.copyBuffer2Image(staging.getBuffer(), image, 
+                    {
+                        .bufferOffset = mipOffsets[srcIndex],
+                        .bufferRowLength = 0u,
+                        .bufferImageHeight = 0u,
+                        .imageSubresource = {
+                            .aspectMask = engine::rhi::ImageAspectFlags::eColor,
+                            .mipLevel = i,
+                            .baseArrayLayer = j,
+                            .layerCount = 1u
+                        },
+                        .imageOffset = {0u, 0u, 0u},
+                        .imageExtent = extent
+                    }
+                );
+                extent.width = std::max(extent.width >> 1u, 1u);
+                extent.height = std::max(extent.height >> 1u, 1u);
+            }
+            ++j;
         }
 
-        if (readyMipLevels > 1u) {
+        if (!useMipMaps || readyMipLevels > 1u) {
             return image;
         }
 
-        if (useMipMaps && blitAvailable) {
-            auto mipWidth = static_cast<int32_t>(textureData.metaInfo.size.x);
-            auto mipHeight = static_cast<int32_t>(textureData.metaInfo.size.y);
-
+        if (blitAvailable) { // useMipMaps is true
             std::array<ImageBlit, 8u> regions;
-            ImageBlit & region = regions[0u];
 
-            for (uint8_t i = 1u; i < mipLevels; ++i) {
-                region.srcOffsets[0u] = { 0, 0, 0 };
-                region.srcOffsets[1u] = { mipWidth, mipHeight, 1};
-                region.srcSubresource = ImageSubresourceLayers{
-                    .aspectMask = ImageAspectFlags::eColor,
-                    .mipLevel = static_cast<uint8_t>(i - 1u),
-                    .baseArrayLayer = 0u,
-                    .layerCount = 1u,
-                };
+            j = 0u;
+            for (const auto & layer : layersData) {
+                ImageBlit & region = regions[0u];
 
-                region.dstOffsets[0u] = { 0, 0, 0 };
-                region.dstOffsets[1u] = { mipWidth > 1 ? mipWidth >> 1 : 1, mipHeight > 1 ? mipHeight >> 1 : 1, 1 };
-                region.dstSubresource = ImageSubresourceLayers{
-                    .aspectMask = ImageAspectFlags::eColor,
-                    .mipLevel = i,
-                    .baseArrayLayer = 0u,
-                    .layerCount = 1u,
-                };
+                auto mipWidth = static_cast<int32_t>(info.size.x);
+                auto mipHeight = static_cast<int32_t>(info.size.y);
 
-                BlitImageInfo blitInfo {
-                    .srcImageLayout = ImageLayout::eTransfer_Src_Optimal,
-                    .dstImageLayout = ImageLayout::eTransfer_Dst_Optimal,
-                    .regions = regions,
-                    .regionsCount = 1u,
-                    .filter = FilterMode::eLinear
-                };
+                for (uint8_t i = 1u; i < mipLevels; ++i) {
+                    region.srcOffsets[0u] = { 0, 0, 0 };
+                    region.srcOffsets[1u] = { mipWidth, mipHeight, 1};
+                    region.srcSubresource = ImageSubresourceLayers{
+                        .aspectMask = ImageAspectFlags::eColor,
+                        .mipLevel = static_cast<uint8_t>(i - 1u),
+                        .baseArrayLayer = j,
+                        .layerCount = 1u,
+                    };
 
-                commandList.blitImage(image, image, blitInfo);
+                    region.dstOffsets[0u] = { 0, 0, 0 };
+                    region.dstOffsets[1u] = { mipWidth > 1 ? mipWidth >> 1 : 1, mipHeight > 1 ? mipHeight >> 1 : 1, 1 };
+                    region.dstSubresource = ImageSubresourceLayers{
+                        .aspectMask = ImageAspectFlags::eColor,
+                        .mipLevel = i,
+                        .baseArrayLayer = j,
+                        .layerCount = 1u,
+                    };
 
-                mipWidth = std::max(mipWidth >> 1, 1);
-                mipHeight = std::max(mipHeight >> 1, 1);
+                    BlitImageInfo blitInfo {
+                        .srcImageLayout = ImageLayout::eTransfer_Src_Optimal,
+                        .dstImageLayout = ImageLayout::eTransfer_Dst_Optimal,
+                        .regions = regions,
+                        .regionsCount = 1u,
+                        .filter = FilterMode::eLinear
+                    };
+
+                    commandList.blitImage(image, image, blitInfo);
+
+                    mipWidth = std::max(mipWidth >> 1, 1);
+                    mipHeight = std::max(mipHeight >> 1, 1);
+                }
+                ++j;
             }
         }
 
         return image;
+    }
+
+    rhi::runtime::ImagePtr TextureManager::generateImage(TextureCreateInfo && textureData, rhi::runtime::CommandList & commandList) const {
+        return generateImage(textureData.metaInfo, std::span{&textureData.data, 1u}, rhi::ImageCreateFlags::eNone, commandList);
     }
 
 }

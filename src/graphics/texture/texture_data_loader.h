@@ -46,9 +46,12 @@ struct PaletteData {
     rhi::Format format;
 };
 
+using TextureLevelData = std::vector<std::byte>;
+using TextureLayerData = std::vector<TextureLevelData>;
+
 struct TextureCreateInfo {
     TextureMetaInfo metaInfo;
-    std::vector<std::vector<std::byte>> data;
+    TextureLayerData data;
 };
 
 struct TextureLoadInfo {

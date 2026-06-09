@@ -89,6 +89,10 @@ public:
     ImageHandler * getTransparentImageHandler() noexcept { return _images[3u].get(); }
 
     rhi::runtime::ImagePtr generateImage(TextureCreateInfo && info, rhi::runtime::CommandList & commandList) const;
+    rhi::runtime::ImagePtr generateImage(const TextureMetaInfo & info, std::span<TextureLayerData> layersData, 
+        rhi::ImageCreateFlags createFlags, rhi::runtime::CommandList & commandList) const;
+
+    // rhi::runtime::ImagePtr testCubeImage = nullptr;
 
 private:
     using ImageFramesMap = std::unordered_map<std::string, ImageFrame2D, hash::String_hash, std::equal_to<>>;
