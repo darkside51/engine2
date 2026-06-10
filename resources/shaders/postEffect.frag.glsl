@@ -70,7 +70,7 @@ void main() {
 	
 	// pbr
 	const vec3 N = normal; // in view space
-    const vec3 V = normalize(-viewPosition); // in view space
+    const vec3 V = normalize(-v_rayDirView); // in view space
     const vec3 L = normalize(-push.light.xyz); // in view space
 
     // per-light calculation (Loop for multiple lights)
@@ -106,8 +106,10 @@ void main() {
 
     const vec3 numerator = D * G * F;
     const float denominator = 4.0f * dotNV * dotNL + 0.0001f; // avoid division by zero
-    const vec3 specular = numerator / denominator;
-
+    //const 
+    vec3 specular = numerator / denominator;
+	specular *= step(0.5f, shadowValue); // no specular in shadow
+    
     // energy conservation: diffuse must equal remaining non-reflected energy
     const vec3 kS = F;
     vec3 kD = vec3(1.0f) - kS;
