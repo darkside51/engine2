@@ -23,7 +23,7 @@ namespace engine::graphics {
         _blackImage = nullptr;
         _transparentImage = nullptr;
 
-        // testCubeImage = nullptr;
+        _defaultCubeMapImage = nullptr;
     }
 
     void TextureManager::createDefaultResources(const rhi::runtime::CommandListPtr & commandList) {
@@ -80,32 +80,6 @@ namespace engine::graphics {
         staging.flush();
         staging.unmap();
         
-        // const TextureMetaInfo cubeMetaInfo {
-        //     .size = {1u, 1u, 1u},
-        //     .bytesPerRow = 4u,
-        //     .format = Format::eR8G8B8A8_Unorm,
-        //     .bitsPerPixel = 32u,
-        //     .numLevels = 1u,
-        //     .hasPalette = false,
-        //     .parserType = TextureLoaderType::eRaw,
-        //     .flags = TextureFlags::eNone
-        // };
-
-        // std::vector<TextureLayerData> layers(6u);
-        // size_t i = 1u;
-        // for (auto & layer : layers) {
-        //     layer.resize(1u);
-        //     layer[0].resize(4u);
-
-        //     layer[0][0] = std::byte{0xffu / i}; layer[0][1] = std::byte{0xffu / i};
-        //     layer[0][2] = std::byte{0xffu / i}; layer[0][3] = std::byte{0xffu};
-        //     ++i;
-        // }
-
-        // testCubeImage = generateImage(cubeMetaInfo, layers, 
-        //     rhi::ImageCreateFlags::eCube_Compatible, *commandList);
-
-
         commandList->copyBuffer2Image(staging.getBuffer(), _defaultImage, 
             {
                 .bufferOffset = defaultImgOffset,
@@ -149,6 +123,35 @@ namespace engine::graphics {
                 .imageExtent = _transparentImage->getExtent()
             }
         );
+
+        std::array<TextureLayerData, 6u> layers;
+
+        layers[0u] = {{
+            std::byte{0xaau}, std::byte{0xaau}, std::byte{0xaau}, std::byte{0xffu}
+        }};
+
+        layers[1u] = {{
+            std::byte{0x55u}, std::byte{0x55u}, std::byte{0x55u}, std::byte{0xffu}
+        }};
+
+        layers[2u] = {{
+            std::byte{0x22u}, std::byte{0x22u}, std::byte{0x22u}, std::byte{0xffu}
+        }};
+
+        layers[3u] = {{
+            std::byte{0xffu}, std::byte{0xffu}, std::byte{0xffu}, std::byte{0xffu}
+        }};
+
+        layers[4u] = {{
+            std::byte{0x77u}, std::byte{0x77u}, std::byte{0x77u}, std::byte{0xffu}
+        }};
+
+        layers[5u] = {{
+            std::byte{0x33u}, std::byte{0x33u}, std::byte{0x33u}, std::byte{0xffu}
+        }};
+
+        _defaultCubeMapImage = generateImage(Format::eR8G8B8A8_Unorm, {1u, 1u, 1u}, TextureFlags::eNone, layers, 
+            rhi::ImageCreateFlags::eCube_Compatible, *commandList);
     }
 
     const ImageFrame2D & TextureManager::addFrame(std::string_view name, TextureCreateInfo && info, const Frame2D & frame) {
@@ -335,12 +338,12 @@ namespace engine::graphics {
         _tmpTexturesData.clear();
     }
 
-    rhi::runtime::ImagePtr TextureManager::generateImage(const TextureMetaInfo & info, std::span<TextureLayerData> layersData, 
+    rhi::runtime::ImagePtr TextureManager::generateImage(rhi::Format format, const vec3u & size, TextureFlags flags, std::span<TextureLayerData> layersData, 
         rhi::ImageCreateFlags createFlags, rhi::runtime::CommandList & commandList) const {
         using namespace rhi;
 
-        bool useMipMaps = (info.flags & TextureFlags::eUseMipMaps) != TextureFlags::eNone;
-        const auto formatBlitSupport = _device.isFormatSupported(info.format, 
+        bool useMipMaps = (flags & TextureFlags::eUseMipMaps) != TextureFlags::eNone;
+        const auto formatBlitSupport = _device.isFormatSupported(format, 
             engine::rhi::FormatFeatureFlags::eFormatFeature_BLit_Dst);
         const bool blitAvailable = formatBlitSupport.features != 0u;
 
@@ -350,7 +353,7 @@ namespace engine::graphics {
         if (useMipMaps && mipLevels == 1u && blitAvailable) {
             mipLevels = static_cast<uint8_t>(
                             std::floor(
-                                std::log2(std::max(info.size.x, info.size.y))
+                                std::log2(std::max(size.x, size.y))
                             )
                         ) + 1u;
             useMipMaps = mipLevels > 1u;
@@ -362,8 +365,8 @@ namespace engine::graphics {
 
         const auto imageInfo = ImageInfo{
             usage,
-            info.format, 
-            {info.size.x, info.size.y, info.size.z},
+            format, 
+            {size.x, size.y, size.z},
             ImageAspectFlags::eColor, ImageType::eType_2D, mipLevels, layersCount, 1u,ImageTiling::eOptimal, createFlags
         };
 
@@ -436,8 +439,8 @@ namespace engine::graphics {
             for (const auto & layer : layersData) {
                 ImageBlit & region = regions[0u];
 
-                auto mipWidth = static_cast<int32_t>(info.size.x);
-                auto mipHeight = static_cast<int32_t>(info.size.y);
+                auto mipWidth = static_cast<int32_t>(size.x);
+                auto mipHeight = static_cast<int32_t>(size.y);
 
                 for (uint8_t i = 1u; i < mipLevels; ++i) {
                     region.srcOffsets[0u] = { 0, 0, 0 };
@@ -479,7 +482,8 @@ namespace engine::graphics {
     }
 
     rhi::runtime::ImagePtr TextureManager::generateImage(TextureCreateInfo && textureData, rhi::runtime::CommandList & commandList) const {
-        return generateImage(textureData.metaInfo, std::span{&textureData.data, 1u}, rhi::ImageCreateFlags::eNone, commandList);
+        return generateImage(textureData.metaInfo.format, textureData.metaInfo.size, textureData.metaInfo.flags, 
+            std::span{&textureData.data, 1u}, rhi::ImageCreateFlags::eNone, commandList);
     }
 
 }

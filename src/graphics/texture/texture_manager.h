@@ -76,6 +76,7 @@ public:
     const rhi::runtime::ImagePtr & getWhiteImage() const noexcept { return _whiteImage; }
     const rhi::runtime::ImagePtr & getBlackImage() const noexcept { return _blackImage; }
     const rhi::runtime::ImagePtr & getTransparentImage() const noexcept { return _transparentImage; }
+    const rhi::runtime::ImagePtr & getDefaultCubeMapImage() const noexcept { return _defaultCubeMapImage; }
 
     void generateGpuData(rhi::runtime::CommandListPtr & commandList);
 
@@ -89,10 +90,8 @@ public:
     ImageHandler * getTransparentImageHandler() noexcept { return _images[3u].get(); }
 
     rhi::runtime::ImagePtr generateImage(TextureCreateInfo && info, rhi::runtime::CommandList & commandList) const;
-    rhi::runtime::ImagePtr generateImage(const TextureMetaInfo & info, std::span<TextureLayerData> layersData, 
+    rhi::runtime::ImagePtr generateImage(rhi::Format format, const vec3u & size, TextureFlags flags, std::span<TextureLayerData> layersData, 
         rhi::ImageCreateFlags createFlags, rhi::runtime::CommandList & commandList) const;
-
-    // rhi::runtime::ImagePtr testCubeImage = nullptr;
 
 private:
     using ImageFramesMap = std::unordered_map<std::string, ImageFrame2D, hash::String_hash, std::equal_to<>>;
@@ -108,6 +107,7 @@ private:
     rhi::runtime::ImagePtr _whiteImage;
     rhi::runtime::ImagePtr _blackImage;
     rhi::runtime::ImagePtr _transparentImage;
+    rhi::runtime::ImagePtr _defaultCubeMapImage;
 
     ImageFrame2D _defaultFrame;
 

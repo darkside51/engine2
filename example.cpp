@@ -108,6 +108,9 @@ namespace example {
         engine::vec4f options;
     };
 
+    //
+    engine::rhi::runtime::ImagePtr skyBoxCubeMapImage = nullptr;
+
     // options
     bool showOptions = true;
     
@@ -458,6 +461,8 @@ namespace example {
 
         shadowMapUniformBuffer = nullptr;
         shadowMap = nullptr;
+
+        skyBoxCubeMapImage = nullptr;
         
         _pipelines.clear();
         _programs.clear();
@@ -1038,6 +1043,63 @@ namespace example {
 
         // textureManager resources
         textureManager->createDefaultResources(tmpCommandList);
+
+        ////
+        // test cubemap
+        const auto imageBytes0 = _fileManager.readFile("assets/skybox/back.jpg");
+        auto textureData0 = engine::graphics::parseTextureData(imageBytes0, {
+                .flags = engine::graphics::TextureFlags::eAllowSrgbColorSpace
+            }
+        );
+
+        const auto imageBytes1 = _fileManager.readFile("assets/skybox/front.jpg");
+        auto textureData1 = engine::graphics::parseTextureData(imageBytes1, {
+                .flags = engine::graphics::TextureFlags::eAllowSrgbColorSpace
+            }
+        );
+
+        const auto imageBytes2 = _fileManager.readFile("assets/skybox/right.jpg");
+        auto textureData2 = engine::graphics::parseTextureData(imageBytes2, {
+                .flags = engine::graphics::TextureFlags::eAllowSrgbColorSpace
+            }
+        );
+
+        const auto imageBytes3 = _fileManager.readFile("assets/skybox/left.jpg");
+        auto textureData3 = engine::graphics::parseTextureData(imageBytes3, {
+                .flags = engine::graphics::TextureFlags::eAllowSrgbColorSpace
+            }
+        );
+
+        const auto imageBytes4 = _fileManager.readFile("assets/skybox/up.jpg");
+        auto textureData4 = engine::graphics::parseTextureData(imageBytes4, {
+                .flags = engine::graphics::TextureFlags::eAllowSrgbColorSpace
+            }
+        );
+
+        const auto imageBytes5 = _fileManager.readFile("assets/skybox/down.jpg");
+        auto textureData5 = engine::graphics::parseTextureData(imageBytes5, {
+                .flags = engine::graphics::TextureFlags::eAllowSrgbColorSpace
+            }
+        );
+
+        engine::graphics::convertTextureDataFormat(engine::rhi::Format::eR8G8B8A8_Srgb, textureData0);
+        engine::graphics::convertTextureDataFormat(engine::rhi::Format::eR8G8B8A8_Srgb, textureData1);
+        engine::graphics::convertTextureDataFormat(engine::rhi::Format::eR8G8B8A8_Srgb, textureData2);
+        engine::graphics::convertTextureDataFormat(engine::rhi::Format::eR8G8B8A8_Srgb, textureData3);
+        engine::graphics::convertTextureDataFormat(engine::rhi::Format::eR8G8B8A8_Srgb, textureData4);
+        engine::graphics::convertTextureDataFormat(engine::rhi::Format::eR8G8B8A8_Srgb, textureData5);
+
+        std::array<engine::graphics::TextureLayerData, 6u> layers;
+        layers[0u] = std::move(textureData0.data);
+        layers[1u] = std::move(textureData1.data);
+        layers[2u] = std::move(textureData2.data);
+        layers[3u] = std::move(textureData3.data);
+        layers[4u] = std::move(textureData4.data);
+        layers[5u] = std::move(textureData5.data);
+
+        skyBoxCubeMapImage = textureManager->generateImage(engine::rhi::Format::eR8G8B8A8_Srgb, textureData0.metaInfo.size, engine::graphics::TextureFlags::eNone, layers, 
+            engine::rhi::ImageCreateFlags::eCube_Compatible, *tmpCommandList);
+        ////
 
         //
         {
@@ -2225,10 +2287,10 @@ namespace example {
         );
         commandList->bindBuffer(7u, (*shadowMapUniformBuffer)(frameId), 0u, 0u);
 
-        // commandList->bindImage(
-        //     0u, textureManager->testCubeImage, nearestSampler, 1u, 
-        //     rhi::ImageAspectFlags::eColor, rhi::ImageViewType::eType_Cube 
-        // );
+        commandList->bindImage(
+            0u, skyBoxCubeMapImage, linearSampler, 1u, 
+            rhi::ImageAspectFlags::eColor, rhi::ImageViewType::eType_Cube 
+        );
 
         commandList->pushConstants(rhi::shaders::Stages::eVertex | rhi::shaders::Stages::eFragment, 0u, sizeof(PostParams), &postParams);
         commandList->drawIndexed(6u);
