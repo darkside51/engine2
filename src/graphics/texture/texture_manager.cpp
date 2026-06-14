@@ -152,6 +152,8 @@ namespace engine::graphics {
 
         _defaultCubeMapImage = generateImage(Format::eR8G8B8A8_Unorm, {1u, 1u, 1u}, TextureFlags::eNone, layers, 
             rhi::ImageCreateFlags::eCube_Compatible, *commandList);
+
+        _images.emplace_back(rhi::runtime::sh_ptr<engine::graphics::ImageHandler>::make(_defaultCubeMapImage));
     }
 
     const ImageFrame2D & TextureManager::addFrame(std::string_view name, TextureCreateInfo && info, const Frame2D & frame) {

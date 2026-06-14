@@ -31,7 +31,7 @@ namespace {
         static_assert(sizeof(AttachmentObject) == 40u);
         static_assert(sizeof(Dummy) == 40u);
         static_assert(sizeof(Mesh) == 200u);
-        static_assert(sizeof(Sprite) == 88u);
+        static_assert(sizeof(Sprite) == 136u);
 
         #ifdef SIMD_MATH
         static_assert(sizeof(Node) == 272u);
@@ -94,7 +94,7 @@ namespace engine::scene {
     //     std::array<float, 2u> uv;
     // };
 
-     struct SpriteVertex {
+    struct SpriteVertex {
         std::array<float, 3u> position;
         std::array<uint16_t, 2u> uv;
         std::array<uint8_t, 4u> color;
@@ -1276,6 +1276,16 @@ namespace engine::scene {
             commandList->bindVertexBuffer(0u, vertexBuffer, 0u);
             commandList->bindIndexBuffer(indexBuffer, 0u, rhi::IndexType::eU32);
             commandList->bindImage(1u, image, sprite.getFilter() == SpriteTextureFilter::eLinear ? _linearSampler : _nearestSampler);
+
+            uint8_t imageSlot = 1u;
+            for (const auto & [imgHandler, viewType] : sprite.getSubImages()) {
+                if (imgHandler == nullptr) {
+                    break;
+                }
+                commandList->bindImage(++imageSlot, imgHandler->image, 
+                    sprite.getFilter() == SpriteTextureFilter::eLinear ? _linearSampler : _nearestSampler, 
+                    0u, rhi::ImageAspectFlags::eColor, viewType);
+            }
 
             commandList->bindBuffer(0u, (*_viewParamsUniformBuffer)(frame), 0u, _currentViewParamsBufferOffset);
             //commandList->pushConstants(rhi::shaders::Stages::eVertex, 0u, sizeof(mat4f), &viewParams.cameraTransform);

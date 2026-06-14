@@ -88,6 +88,7 @@ public:
     ImageHandler * getWhiteImageHandler() noexcept { return _images[1u].get(); }
     ImageHandler * getBlackImageHandler() noexcept { return _images[2u].get(); }
     ImageHandler * getTransparentImageHandler() noexcept { return _images[3u].get(); }
+    ImageHandler * getDefaultCubeImageHandler() noexcept { return _images[4u].get(); }
 
     rhi::runtime::ImagePtr generateImage(TextureCreateInfo && info, rhi::runtime::CommandList & commandList) const;
     rhi::runtime::ImagePtr generateImage(rhi::Format format, const vec3u & size, TextureFlags flags, std::span<TextureLayerData> layersData, 

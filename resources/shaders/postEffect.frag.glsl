@@ -23,7 +23,7 @@ layout (set = 0, binding = 7) uniform shadowsUniformBuffer {
 	vec4 options;
 } u_shadow;
 
-layout(set = 1, binding = 0) uniform samplerCube textureCubeMap;
+//layout(set = 1, binding = 0) uniform samplerCube textureCubeMap;
 
 layout (location = 0) in vec2 v_uv;
 layout (location = 1) in vec3 v_rayDirWorld;
@@ -136,12 +136,12 @@ void main() {
 	baseColor = baseColor / (baseColor + vec3(1.0f)); // Reinhard Tonemapping to map
 
 	// skybox
-	const vec3 cubeColor = texture(textureCubeMap, v_rayDirWorld).rgb;
-	baseColor = mix(baseColor, cubeColor, step(0.0f, viewPosition.z));
+	//const vec3 cubeColor = texture(textureCubeMap, v_rayDirWorld).rgb;
+	//baseColor = mix(baseColor, cubeColor, step(0.0f, viewPosition.z));
 
 	// 4. gamma
 	vec3 color = pow(baseColor, vec3(0.4545f)); // gamma correction 1.0f / 2.2f = 0.4545f
-	//color = mix(color, albedo.rgb, step(0.0f, viewPosition.z));
+	color = mix(color, albedo.rgb, step(0.0f, viewPosition.z));
 
 	// vignette
 	if (push.options.w > 0.0f) {

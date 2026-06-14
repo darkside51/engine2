@@ -41,12 +41,22 @@ namespace engine::scene {
         void setEmissive(float emissive) noexcept { _emissive = emissive; }
         float getEmissive() const noexcept { return _emissive; }
 
+        void setSubImage(const graphics::ImageHandler * image, uint8_t slot, rhi::ImageViewType viewType = rhi::ImageViewType::eType_2D) {
+            _subImages[slot] = {image, viewType};
+        }
+
+        std::span<std::pair<const graphics::ImageHandler *, rhi::ImageViewType> const> getSubImages() const noexcept {
+            return _subImages;
+        }
+        
     private:
         graphics::ImageFrame2D _frame;
         uint32_t _pipeline = 0u;
         vec2f _size = vec2f{std::numeric_limits<float>::max()};
         float _emissive = 0.0f;
         SpriteTextureFilter _filter = SpriteTextureFilter::eLinear;
+
+        std::array<std::pair<const graphics::ImageHandler *, rhi::ImageViewType>, 3u> _subImages;
     };
 
 }

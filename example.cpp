@@ -78,6 +78,8 @@ namespace example {
     constexpr uint8_t kSsaoPipeline = 1u;
     constexpr uint8_t kEmissiveBlurPipeline = 2u;
 
+    constexpr uint8_t kSpritesProgram2 = 14u;
+
     constexpr uint8_t kSsaoKernelSize = 32u;
     constexpr uint8_t kSsaoNoiseDim = 4u;
 
@@ -955,6 +957,16 @@ namespace example {
 
             _programs.emplace_back(_api->createProgram(*_device, std::array{vsModule.getView(), fsModule.getView()}));
         }
+
+        { // kSpritesProgram2
+            auto const vBytes = _fileManager.readFile("shaders/sprite.vert.spv");
+            auto const fBytes = _fileManager.readFile("shaders/sprite2.frag.spv");
+
+            const auto & vsModule = _shaderModulesManager->registerModule("sprite.vert", *_device, engine::rhi::shaders::Stages::eVertex, vBytes);
+            const auto & fsModule = _shaderModulesManager->registerModule("sprite2.frag", *_device, engine::rhi::shaders::Stages::eFragment, fBytes);
+
+            _programs.emplace_back(_api->createProgram(*_device, std::array{vsModule.getView(), fsModule.getView()}));
+        }
     }
     
     void Example::createPipelines() {
@@ -994,7 +1006,7 @@ namespace example {
         // scene pipelines
         const GraphicsPipelineStatesInfo info2 = engine::parseGraphicsPipelineInfo(json["sprite_common"]);
         scene->registerGraphicsPipeline(_api->createGraphicsPipeline(*_device, _renderPasses[kGbufferRenderPass], _programs[kSpritesProgram], info2, 0u));
-
+        
         // skeletal mesh
         // const GraphicsPipelineStatesInfo info4 = engine::parseGraphicsPipelineInfo(json["mesh_skeletal"]);
         // scene->registerGraphicsPipeline(_api->createGraphicsPipeline(*_device, _renderPasses[kSceneRenderPass], _programs[kMeshSkeletalInstancedProgram], info4, 0u));
@@ -1024,6 +1036,9 @@ namespace example {
         const GraphicsPipelineStatesInfo info8 = engine::parseGraphicsPipelineInfo(json["mesh_skin_shadows"]);
         const uint32_t meshSkinShadowPipeline = scene->registerGraphicsPipeline(_api->createGraphicsPipeline(*_device, shadowMap->getRenderPass(), _programs[kMeshAfterComputeShadowProgram], info8, 0u));
         scene->assignCommonPipeline(meshSkinShadowPipeline, engine::scene::Scene::CommonPipeline::Type::eMeshSkinnedShadow);
+
+        // sprite2
+        scene->registerGraphicsPipeline(_api->createGraphicsPipeline(*_device, _renderPasses[kGbufferRenderPass], _programs[kSpritesProgram2], info2, 0u));
     }
 
     void Example::createDefaultResources() {
@@ -1046,37 +1061,43 @@ namespace example {
 
         ////
         // test cubemap
-        const auto imageBytes0 = _fileManager.readFile("assets/skybox/back.jpg");
+        // const auto imageBytes0 = _fileManager.readFile("assets/skybox/back.jpg");
+        const auto imageBytes0 = _fileManager.readFile("assets/interrior/2.jpg");
         auto textureData0 = engine::graphics::parseTextureData(imageBytes0, {
                 .flags = engine::graphics::TextureFlags::eAllowSrgbColorSpace
             }
         );
 
-        const auto imageBytes1 = _fileManager.readFile("assets/skybox/front.jpg");
+        // const auto imageBytes1 = _fileManager.readFile("assets/skybox/front.jpg");
+        const auto imageBytes1 = _fileManager.readFile("assets/interrior/0.jpg");
         auto textureData1 = engine::graphics::parseTextureData(imageBytes1, {
                 .flags = engine::graphics::TextureFlags::eAllowSrgbColorSpace
             }
         );
 
-        const auto imageBytes2 = _fileManager.readFile("assets/skybox/right.jpg");
+        // const auto imageBytes2 = _fileManager.readFile("assets/skybox/right.jpg");
+        const auto imageBytes2 = _fileManager.readFile("assets/interrior/6.jpg");
         auto textureData2 = engine::graphics::parseTextureData(imageBytes2, {
                 .flags = engine::graphics::TextureFlags::eAllowSrgbColorSpace
             }
         );
 
-        const auto imageBytes3 = _fileManager.readFile("assets/skybox/left.jpg");
+        // const auto imageBytes3 = _fileManager.readFile("assets/skybox/left.jpg");
+        const auto imageBytes3 = _fileManager.readFile("assets/interrior/5.jpg");
         auto textureData3 = engine::graphics::parseTextureData(imageBytes3, {
                 .flags = engine::graphics::TextureFlags::eAllowSrgbColorSpace
             }
         );
 
-        const auto imageBytes4 = _fileManager.readFile("assets/skybox/up.jpg");
+        // const auto imageBytes4 = _fileManager.readFile("assets/skybox/up.jpg");
+        const auto imageBytes4 = _fileManager.readFile("assets/interrior/4.jpg");
         auto textureData4 = engine::graphics::parseTextureData(imageBytes4, {
                 .flags = engine::graphics::TextureFlags::eAllowSrgbColorSpace
             }
         );
 
-        const auto imageBytes5 = _fileManager.readFile("assets/skybox/down.jpg");
+        // const auto imageBytes5 = _fileManager.readFile("assets/skybox/down.jpg");
+        const auto imageBytes5 = _fileManager.readFile("assets/interrior/3.jpg");
         auto textureData5 = engine::graphics::parseTextureData(imageBytes5, {
                 .flags = engine::graphics::TextureFlags::eAllowSrgbColorSpace
             }
@@ -1099,6 +1120,9 @@ namespace example {
 
         skyBoxCubeMapImage = textureManager->generateImage(engine::rhi::Format::eR8G8B8A8_Srgb, textureData0.metaInfo.size, engine::graphics::TextureFlags::eNone, layers, 
             engine::rhi::ImageCreateFlags::eCube_Compatible, *tmpCommandList);
+
+        const auto & [imageHandler, isNew] = textureManager->addImage("skyBoxCubeMapImage");
+        textureManager->getImageHandler("skyBoxCubeMapImage")->image = skyBoxCubeMapImage;
         ////
 
         //
@@ -1622,6 +1646,7 @@ namespace example {
                         // const auto imageBytes = _fileManager.readFile("assets/2d_bc7.ktx2");
                         // const auto imageBytes = _fileManager.readFile("assets/asphalt-7.jpg");
                         const auto imageBytes = _fileManager.readFile("assets/grass3.png");
+                        // const auto imageBytes = _fileManager.readFile("assets/sand1.jpg");
                         auto textureData = engine::graphics::parseTextureData(imageBytes, {
                                 .flags = engine::graphics::TextureFlags::eAllowSrgbColorSpace | engine::graphics::TextureFlags::eUseMipMaps
                             }
@@ -1645,7 +1670,61 @@ namespace example {
                         });
                     }});
                 }
+            }
 
+            { // test
+
+                auto * node = scene->createNode();
+                node->setPosition(engine::vec3f{20.0f, 20.0f, 0.0f});
+                node->setRotation(engine::vec3f{engine::pi2, 0.0f, -0.35f});
+
+                const auto & [imageHandler, isNew] = textureManager->addImage("bricks");
+                const auto & [imageHandler1, _] = textureManager->addImage("bricks_normal");
+
+                const auto frame = engine::graphics::ImageFrame2D{
+                    imageHandler, 
+                    engine::graphics::Frame2D{.uvMin = {0.0f, 0.0f}, .uvMax = {10.5f, 6.0f}}
+                };
+
+                auto * sprite = scene->createObject<engine::scene::Sprite>(frame, 7u);
+                sprite->setSubImage(imageHandler1, 0u);
+                sprite->setSubImage(textureManager->getImageHandler("skyBoxCubeMapImage"), 1u, engine::rhi::ImageViewType::eType_Cube);
+                sprite->setSubImage(textureManager->getImageHandler("skyBoxCubeMapImage"), 2u, engine::rhi::ImageViewType::eType_2D_Array);
+                // sprite->setSubImage(textureManager->getDefaultCubeImageHandler(), 1u, engine::rhi::ImageViewType::eType_Cube);
+                //sprite->setFilter(engine::scene::SpriteTextureFilter::eNearest);
+
+                sprite->setSize({7.0f, 4.0f});
+                engine::scene::attachObjectToNode(*sprite, *node);
+                sprite->setOrder(0);
+
+                sceneWorldRoot->addChild(node);
+
+                if (isNew) {
+                    gpuTasks.emplace_back(BgThread::GpuTask{[this](engine::rhi::runtime::CommandList & commandList, std::vector<threads::WorkerTask> & callbacks) mutable {
+                        const auto imageBytes0 = _fileManager.readFile("assets/154.jpg");
+                        const auto imageBytes1 = _fileManager.readFile("assets/154_norm.jpg");
+                        auto textureData0 = engine::graphics::parseTextureData(imageBytes0, {
+                                .flags = engine::graphics::TextureFlags::eAllowSrgbColorSpace | engine::graphics::TextureFlags::eUseMipMaps
+                            }
+                        );
+
+                        auto textureData1 = engine::graphics::parseTextureData(imageBytes1, {
+                                .flags = engine::graphics::TextureFlags::eUseMipMaps
+                            }
+                        );
+
+                        convertTextureDataFormat(rhi::Format::eR8G8B8A8_Srgb, textureData0);
+                        convertTextureDataFormat(rhi::Format::eR8G8B8A8_Unorm, textureData1);
+
+                        auto image0 = textureManager->generateImage(std::move(textureData0), commandList);
+                        auto image1 = textureManager->generateImage(std::move(textureData1), commandList);
+
+                        callbacks.emplace_back([image0 = std::move(image0), image1 = std::move(image1)](){
+                            textureManager->getImageHandler("bricks")->image = std::move(image0);
+                            textureManager->getImageHandler("bricks_normal")->image = std::move(image1);
+                        });
+                    }});
+                }
             }
         }
 
@@ -2287,10 +2366,10 @@ namespace example {
         );
         commandList->bindBuffer(7u, (*shadowMapUniformBuffer)(frameId), 0u, 0u);
 
-        commandList->bindImage(
-            0u, skyBoxCubeMapImage, linearSampler, 1u, 
-            rhi::ImageAspectFlags::eColor, rhi::ImageViewType::eType_Cube 
-        );
+        // commandList->bindImage(
+        //     0u, skyBoxCubeMapImage, linearSampler, 1u, 
+        //     rhi::ImageAspectFlags::eColor, rhi::ImageViewType::eType_Cube 
+        // );
 
         commandList->pushConstants(rhi::shaders::Stages::eVertex | rhi::shaders::Stages::eFragment, 0u, sizeof(PostParams), &postParams);
         commandList->drawIndexed(6u);
