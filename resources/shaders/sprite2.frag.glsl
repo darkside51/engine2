@@ -37,13 +37,15 @@ vec4 calculateUntexturedRoomsColour
 	mat3 m = mat3(-normal.y, normal.x, 0.0f,
 				  -normal.x, -normal.y, 0.0f,
 				  0.0f, 0.0f, 1.0f);
-
-	vec3 direction = normalize(normalize(position - cameraPosition) * m);
-	cameraPosition.xyz = position - direction;
-	cameraPosition.y -= position.y - floor(position.y);
+    position = position * m;
+    cameraPosition = cameraPosition * m;
 
 	//get the vector from camera to surface
-	//vec3 direction = position - cameraPosition;
+	vec3 direction = normalize(position - cameraPosition);
+
+	//vec3 direction = normalize(position - cameraPosition) * m;
+	cameraPosition.xyz = position - direction;
+	cameraPosition.y -= position.y - floor(position.y);
 
 	//calculate wall locations
 	vec3 walls = (floor(position * wallFrequencies) + step(vec3(0.0f), direction)) / wallFrequencies;
@@ -123,7 +125,7 @@ vec4 calculateRoomCube(
 	//return vec4(interiorNormal, 1.0f);
 
 	const float lightStrength = dot(interiorNormal, normalize(vec3(0.2f, 0.3f, -1.0f)));
-	const vec4 interiorLight = clamp(lightStrength, 0.0f, 1.0f) + vec4(0.75f, 0.75f, 0.75f, 1.0f);
+	const vec4 interiorLight = clamp(lightStrength, 0.0f, 1.0f) + vec4(1.0f);
 
 	return interiorLight * texture(textureCubeMap, direction);
 }
@@ -151,16 +153,13 @@ void main() {
 		//out_albedo = calculateUntexturedRoomsColour(v_worldPosition - normal * bias, vec3(1.0f, 1.0f, 1.0f), u_viewParams.cameraPosition, normal);
 
 		out_albedo = calculateRoomCube(v_worldPosition, u_viewParams.cameraPosition, normal, v_uv, 0.5f);
-
-		out_normal = vec4(normalize(normal) * 0.5 + 0.5, 1.0);
+		out_normal = vec4(normalize(-normal.xzy) * 0.5 + 0.5, 1.0);
 
 		//vec3 direction = normalize(v_worldPosition - u_viewParams.cameraPosition);
 		//out_albedo = mix(out_albedo, texture(textureCubeMap, -direction) * vec4(0.92f, 0.92f, 1.0f, 1.0f), 0.3f);
-
 		//out_albedo = mix(out_albedo, vec4(0.67f, 0.82f, 1.0f, 1.0f), 0.3f);
 
 		out_albedo = mix(out_albedo, 2.0f * window, s);
-
 		out_metalicRoughness = vec2(0.7f, 0.3f);
 	} else {
 		out_albedo = texture(texture0, v_uv);

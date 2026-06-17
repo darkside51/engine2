@@ -1683,7 +1683,7 @@ namespace example {
 
                 const auto frame = engine::graphics::ImageFrame2D{
                     imageHandler, 
-                    engine::graphics::Frame2D{.uvMin = {0.0f, 0.0f}, .uvMax = {10.5f, 6.0f}}
+                    engine::graphics::Frame2D{.uvMin = {0.0f, 0.0f}, .uvMax = {8.0f, 4.0f}}
                 };
 
                 auto * sprite = scene->createObject<engine::scene::Sprite>(frame, 7u);
@@ -1693,7 +1693,7 @@ namespace example {
                 // sprite->setSubImage(textureManager->getDefaultCubeImageHandler(), 1u, engine::rhi::ImageViewType::eType_Cube);
                 //sprite->setFilter(engine::scene::SpriteTextureFilter::eNearest);
 
-                sprite->setSize({7.0f, 4.0f});
+                sprite->setSize({8.0f, 4.0f});
                 engine::scene::attachObjectToNode(*sprite, *node);
                 sprite->setOrder(0);
 
