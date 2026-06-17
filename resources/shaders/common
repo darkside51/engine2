@@ -25,3 +25,25 @@ vec3 createRay(vec4 postProjectiveSpacePosition, vec3 camBasisUp, vec3 camBasisS
 vec3 reconstructPosition(vec3 rayDir, vec3 cameraPosition, float linearDepth) {
    return cameraPosition + rayDir * linearDepth;
 }
+
+mat2 buildRotationMatrix(vec2 from, vec2 to) {
+	const float c = from.x * to.x + from.y * to.y;
+	const float s = from.x * to.y - from.y * to.x;
+
+	return mat2(
+		c,	s,
+		-s,	c
+	);
+}
+
+mat3 buildRotationMatrix(vec3 from, vec3 to) {
+	const vec3 v = cross(to, from);
+    const float c = dot(to, from);
+
+    const float k = 1.0f / (1.0f + c);
+    return mat3(
+	    v.x * v.x * k + c, 		v.y * v.x * k - v.z, 	v.z * v.x * k + v.y,
+        v.x * v.y * k + v.z, 	v.y * v.y * k + c, 		v.z * v.y * k - v.x,
+        v.x * v.z * k - v.y, 	v.y * v.z * k + v.x, 	v.z * v.z * k + c
+    );
+}

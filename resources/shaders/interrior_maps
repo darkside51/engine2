@@ -1,0 +1,130 @@
+
+// common impl
+vec4 calculateRooms (
+		in sampler2D textureMap,
+		vec3 position,			//object space
+		vec3 wallFrequencies,
+	    vec3 cameraPosition,	//object space
+	    inout vec3 normal
+	) {
+	mat3 m = mat3(-normal.y, normal.x, 0.0f,
+				  -normal.x, -normal.y, 0.0f,
+				  0.0f, 0.0f, 1.0f);
+	// ????
+    //position = position * m;
+    //cameraPosition = cameraPosition * m;
+
+	//get the vector from camera to surface
+	vec3 direction = normalize(position - cameraPosition);
+
+	//vec3 direction = normalize(position - cameraPosition) * m;
+	//?????
+	//cameraPosition.xyz = position - direction;
+	//cameraPosition.y -= position.y - floor(position.y);
+
+	//calculate wall locations
+	vec3 walls = (floor(position * wallFrequencies) + step(vec3(0.0f), direction)) / wallFrequencies;
+
+	//how much of the ray is needed to get from the cameraPosition to each of the walls
+	vec3 rayFractions = (walls - cameraPosition) / direction;
+
+	//texture-coordinates of intersections with walls
+	vec2 intersectionX = 2.0f * (cameraPosition + rayFractions.x * direction).yz;
+	vec2 intersectionY = 2.0f * (cameraPosition + rayFractions.y * direction).xz;
+	vec2 intersectionZ = 2.0f * (cameraPosition + rayFractions.z * direction).xy;
+
+	//choose normals for each of the three possible walls
+	//(this depends on whether we are looking in positive or negative directions)
+	vec3 signs = step(direction, vec3(0.0f)) * 2.0f - 1.0f;
+	vec3 normalX = vec3(1.0f, 0.0f, 0.0f) * signs.x;
+	vec3 normalY = vec3(0.0f, -1.0f, 0.0f) * signs.y;
+	vec3 normalZ = vec3(0.0f, 0.0f, 1.0f) * signs.z;
+
+	//choose the closest of these walls for the normal for the lighting
+	float xVSy = step(rayFractions.x, rayFractions.y);
+	float rayFraction_xVSy = mix(rayFractions.y, rayFractions.x, xVSy);
+	vec2 intersection = mix(intersectionY, intersectionX, xVSy);
+
+	vec3 interiorNormal = mix(normalY, normalX, xVSy);
+	
+	float xyVSz = step(rayFraction_xVSy, rayFractions.z);
+	interiorNormal = mix(normalZ, interiorNormal, xyVSz);
+	intersection = mix(intersectionZ, intersection, xyVSz);
+
+	//return vec4(interiorNormal, 1.0);
+	
+	//float4 wallColour = tex2D(uniformTexture, 10 * intersection);
+
+	float lightStrength = dot(interiorNormal, vec3(0.5f, 0.33166f, 0.f));
+	vec4 interiorLight = clamp(lightStrength, 0.0f, 1.0f) * vec4(1.0f, 1.0f, 0.9f, 1.0f) + vec4(0.3f, 0.3f, 0.4f, 1.0f);
+	
+	normal = interiorNormal.xzy;
+
+	return interiorLight * vec4(1.0f - texture(textureMap, intersection).rgb, 1.0f);
+}
+
+// cubemap imp
+vec3 calculateCubeDirection(
+	vec3 position,
+	vec3 cameraPosition,
+    vec3 normal,
+    vec2 uv,
+    vec3 dimensions) {
+    // https://github.com/kylebakerio/aframe-interior-parallax-mapping
+    uv = fract(uv * 1.0f / vec2(dimensions.x, dimensions.z));
+	const vec3 pos = vec3(uv.x * 2.0f - 1.0f, -1.0f, -uv.y * 2.0f + 1.0f);
+
+	const mat3 m = mat3(-normal.y,  normal.x, 	0.0f,
+				  		-normal.x, -normal.y, 	0.0f,
+				  		0.0f, 		0.0f, 		1.0f);
+
+	const vec3 direction = (normalize(position - cameraPosition) * m) / dimensions;
+	const vec3 viewInv = 1.0f / direction;
+	const float fmin = min3(abs(viewInv) - viewInv * pos);
+
+	return direction * fmin + pos;
+}
+
+vec4 calculateInteriorLight(vec3 direction, vec3 lightDir, vec4 ambient) {
+	const vec3 absDir = abs(direction);
+	const vec3 interiorNormal = normalize(vec3(
+		step(absDir.y, absDir.x) * step(absDir.z, absDir.x),
+		step(absDir.x, absDir.y) * step(absDir.z, absDir.y),
+		step(absDir.x, absDir.z) * step(absDir.y, absDir.z)
+	) * direction);
+
+	const float lightStrength = dot(interiorNormal, lightDir);
+	return clamp(lightStrength, 0.0f, 1.0f) + ambient;
+}
+
+vec4 calculateRoomCube(
+	in samplerCube cubeMap,
+	vec3 position,
+	vec3 cameraPosition,
+    vec3 normal,
+    vec2 uv,
+    vec3 dimensions,
+    vec4 ambient) {
+	const vec3 direction = calculateCubeDirection(position, cameraPosition, normal, uv, dimensions);
+	const vec4 interiorLight = calculateInteriorLight(direction, normalize(vec3(0.2f, 0.3f, -1.0f)), ambient);
+	return interiorLight * texture(cubeMap, direction);
+}
+
+vec4 calculateRoomCube(
+	in samplerCube cubeMap,
+	vec3 position,
+	vec3 cameraPosition,
+    vec3 normal,
+    vec2 uv,
+    vec3 dimensions,
+    vec4 ambient,
+    vec3 orientation) {
+
+	vec3 direction = calculateCubeDirection(position, cameraPosition, normal, uv, dimensions);
+	const vec4 interiorLight = calculateInteriorLight(direction, normalize(vec3(0.2f, 0.3f, -1.0f)), ambient);
+
+	direction.xy = direction.xy * buildRotationMatrix(normal.xy, orientation.xy);
+	//direction = direction * buildRotationMatrix(normal, orientation);
+	return interiorLight * texture(cubeMap, direction);
+}
+
