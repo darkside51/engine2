@@ -52,6 +52,26 @@ namespace engine::scene {
             return std::less<const rhi::runtime::Image*>{}(_frame.getImage().get(), other._frame.getImage().get());
         }
 
+        // compare subImages
+        size_t i = 0u;
+        for (const auto & [img, view] : _subImages) {
+            const auto & [img2, view2] = other._subImages[i];
+            if (img == nullptr && img2 == nullptr) {
+                break;
+            }
+
+            if (img && img2) {
+                if (img->image.get() != img2->image.get()) {
+                    return std::less<const rhi::runtime::Image*>{}(img->image.get(), img2->image.get());
+                }
+            } else if (img) {
+                return true;
+            } else if (img2) {
+                return false;
+            }
+            ++i;
+        }
+
         // do not touch _emissive here
 
         return _filter < other._filter;
