@@ -1674,30 +1674,59 @@ namespace example {
 
             { // test
 
-                auto * node = scene->createNode();
-                node->setPosition(engine::vec3f{20.0f, 20.0f, 0.0f});
-                node->setRotation(engine::vec3f{engine::pi2, 0.0f, -0.35f});
+                {
+                    auto * node = scene->createNode();
+                    node->setPosition(engine::vec3f{17.165f, 12.2f, 0.0f});
+                    node->setRotation(engine::vec3f{engine::pi2, 0.0f, -0.35f});
 
-                const auto & [imageHandler, isNew] = textureManager->addImage("bricks");
-                const auto & [imageHandler1, _] = textureManager->addImage("bricks_normal");
+                    const auto & [imageHandler, isNew] = textureManager->addImage("bricks");
+                    const auto & [imageHandler1, _] = textureManager->addImage("bricks_normal");
 
-                const auto frame = engine::graphics::ImageFrame2D{
-                    imageHandler, 
-                    engine::graphics::Frame2D{.uvMin = {0.0f, 0.0f}, .uvMax = {8.0f, 4.0f}}
-                };
+                    const auto frame = engine::graphics::ImageFrame2D{
+                        imageHandler, 
+                        engine::graphics::Frame2D{.uvMin = {0.0f, 0.0f}, .uvMax = {8.3f, 4.0f}}
+                    };
 
-                auto * sprite = scene->createObject<engine::scene::Sprite>(frame, 7u);
-                sprite->setSubImage(imageHandler1, 0u);
-                sprite->setSubImage(textureManager->getImageHandler("skyBoxCubeMapImage"), 1u, engine::rhi::ImageViewType::eType_Cube);
-                sprite->setSubImage(textureManager->getImageHandler("skyBoxCubeMapImage"), 2u, engine::rhi::ImageViewType::eType_2D_Array);
-                // sprite->setSubImage(textureManager->getDefaultCubeImageHandler(), 1u, engine::rhi::ImageViewType::eType_Cube);
-                //sprite->setFilter(engine::scene::SpriteTextureFilter::eNearest);
+                    auto * sprite = scene->createObject<engine::scene::Sprite>(frame, 7u);
+                    sprite->setSubImage(imageHandler1, 0u);
+                    sprite->setSubImage(textureManager->getImageHandler("skyBoxCubeMapImage"), 1u, engine::rhi::ImageViewType::eType_Cube);
+                    sprite->setSubImage(textureManager->getImageHandler("skyBoxCubeMapImage"), 2u, engine::rhi::ImageViewType::eType_2D_Array);
+                    // sprite->setSubImage(textureManager->getDefaultCubeImageHandler(), 1u, engine::rhi::ImageViewType::eType_Cube);
+                    //sprite->setFilter(engine::scene::SpriteTextureFilter::eNearest);
 
-                sprite->setSize({8.0f, 4.0f});
-                engine::scene::attachObjectToNode(*sprite, *node);
-                sprite->setOrder(0);
+                    sprite->setSize({8.3f, 4.0f});
+                    engine::scene::attachObjectToNode(*sprite, *node);
+                    sprite->setOrder(2);
 
-                sceneWorldRoot->addChild(node);
+                    sceneWorldRoot->addChild(node);
+                }
+
+                {
+                    auto * node = scene->createNode();
+                    node->setPosition(engine::vec3f{20.0f, 20.0f, 0.0f});
+                    node->setRotation(engine::vec3f{engine::pi2, 0.0f, -0.35f - 1.57f});
+
+                    const auto & [imageHandler, isNew] = textureManager->addImage("bricks");
+                    const auto & [imageHandler1, _] = textureManager->addImage("bricks_normal");
+
+                    const auto frame = engine::graphics::ImageFrame2D{
+                        imageHandler, 
+                        engine::graphics::Frame2D{.uvMin = {0.0f, 0.0f}, .uvMax = {8.3f, 4.0f}}
+                    };
+
+                    auto * sprite = scene->createObject<engine::scene::Sprite>(frame, 7u);
+                    sprite->setSubImage(imageHandler1, 0u);
+                    sprite->setSubImage(textureManager->getImageHandler("skyBoxCubeMapImage"), 1u, engine::rhi::ImageViewType::eType_Cube);
+                    sprite->setSubImage(textureManager->getImageHandler("skyBoxCubeMapImage"), 2u, engine::rhi::ImageViewType::eType_2D_Array);
+                    // sprite->setSubImage(textureManager->getDefaultCubeImageHandler(), 1u, engine::rhi::ImageViewType::eType_Cube);
+                    //sprite->setFilter(engine::scene::SpriteTextureFilter::eNearest);
+
+                    sprite->setSize({8.3f, 4.0f});
+                    engine::scene::attachObjectToNode(*sprite, *node);
+                    sprite->setOrder(2);
+
+                    sceneWorldRoot->addChild(node);
+                }
 
                 if (isNew) {
                     gpuTasks.emplace_back(BgThread::GpuTask{[this](engine::rhi::runtime::CommandList & commandList, std::vector<threads::WorkerTask> & callbacks) mutable {

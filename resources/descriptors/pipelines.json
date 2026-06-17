@@ -86,7 +86,7 @@
 		"depthStencilState": {
 			"depth": {
 				"depthTestEnable": true,
-				"depthWriteEnable": false,
+				"depthWriteEnable": true,
 				"depthCompareOp": "eGreater"
 			}
 		},

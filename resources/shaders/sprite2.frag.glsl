@@ -135,13 +135,7 @@ void main() {
 	out_position = depthLinear;
 
 	vec3 normal = -normalize(cross(dFdx(v_normalAndEmissive.xyz), dFdy(v_normalAndEmissive.xyz)));
-	const vec3 tangent = vec3(-1.0f, 0.0f, 0.0f);
-	const vec3 binormal = (gl_FrontFacing ? 1.0f : -1.0f) * cross(normal, tangent);
-		
-	const mat3 tbn = mat3(v_normalMatrix * tangent, v_normalMatrix * binormal, v_normalMatrix * normal);
-	const vec3 tangentNormal = texture(texture_normal, v_uv).xyz * 2.0f - 1.0f;
-	out_normal = vec4(normalize(tbn * tangentNormal) * 0.5f + 0.5f, 1.0f);
-
+	
 	vec2 fract_uv = fract(v_uv);
 
 	vec4 window = texture(textureCubeMapArr, vec3(v_uv * vec2(1.0f, 2.0f) + vec2(0.0f, 0.5f), 3.0f));
@@ -153,7 +147,7 @@ void main() {
 		//out_albedo = calculateUntexturedRoomsColour(v_worldPosition - normal * bias, vec3(1.0f, 1.0f, 1.0f), u_viewParams.cameraPosition, normal);
 
 		out_albedo = calculateRoomCube(v_worldPosition, u_viewParams.cameraPosition, normal, v_uv, 0.5f);
-		out_normal = vec4(normalize(-normal.xzy) * 0.5 + 0.5, 1.0);
+		out_normal = vec4(normalize(v_normalMatrix * normal) * 0.5f + 0.5f, 1.0f);
 
 		//vec3 direction = normalize(v_worldPosition - u_viewParams.cameraPosition);
 		//out_albedo = mix(out_albedo, texture(textureCubeMap, -direction) * vec4(0.92f, 0.92f, 1.0f, 1.0f), 0.3f);
@@ -162,8 +156,16 @@ void main() {
 		out_albedo = mix(out_albedo, 2.0f * window, s);
 		out_metalicRoughness = vec2(0.7f, 0.3f);
 	} else {
-		out_albedo = texture(texture0, v_uv);
+		const vec3 tangent = vec3(-1.0f, 0.0f, 0.0f);
+		const vec3 binormal = (gl_FrontFacing ? 1.0f : -1.0f) * cross(normal, tangent);
+		const mat3 tbn = mat3(v_normalMatrix * tangent, v_normalMatrix * binormal, v_normalMatrix * normal);
+
+		vec2 uv = v_uv * 2.0f;
+		out_albedo = texture(texture0, uv);
 		out_metalicRoughness = vec2(0.0f, 1.0f);
+
+		const vec3 tangentNormal = texture(texture_normal, uv).xyz * 2.0f - 1.0f;
+		out_normal = vec4(normalize(tbn * tangentNormal) * 0.5f + 0.5f, 1.0f);
 	}
 	out_emissive = vec4(0.0f);
 }
