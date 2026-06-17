@@ -37,15 +37,17 @@ vec4 calculateUntexturedRoomsColour
 	mat3 m = mat3(-normal.y, normal.x, 0.0f,
 				  -normal.x, -normal.y, 0.0f,
 				  0.0f, 0.0f, 1.0f);
-    position = position * m;
-    cameraPosition = cameraPosition * m;
+	// ????
+    //position = position * m;
+    //cameraPosition = cameraPosition * m;
 
 	//get the vector from camera to surface
 	vec3 direction = normalize(position - cameraPosition);
 
 	//vec3 direction = normalize(position - cameraPosition) * m;
-	cameraPosition.xyz = position - direction;
-	cameraPosition.y -= position.y - floor(position.y);
+	//?????
+	//cameraPosition.xyz = position - direction;
+	//cameraPosition.y -= position.y - floor(position.y);
 
 	//calculate wall locations
 	vec3 walls = (floor(position * wallFrequencies) + step(vec3(0.0f), direction)) / wallFrequencies;
@@ -88,33 +90,28 @@ vec4 calculateUntexturedRoomsColour
 	return interiorLight * vec4(1.0f - texture(texture0, intersection).rgb, 1.0f);
 }
 
-float min3(vec3 v) {
-	return min(min(v.x, v.y), v.z);
-}
-
 vec4 calculateRoomCube(
+	in samplerCube cubeMap,
 	vec3 position,
 	vec3 cameraPosition,
     vec3 normal,
     vec2 uv,
-    float aspect) {
+    vec3 dimensions,
+    vec4 ambient,
+    vec2 dir) {
 	
-	uv = fract(uv * vec2(aspect, 1.0f));
+	uv = fract(uv * 1.0f / vec2(dimensions.x, dimensions.z));
+	const vec3 pos = vec3(uv.x * 2.0f - 1.0f, -1.0f, -uv.y * 2.0f + 1.0f);
 
-	const mat3 m = mat3(-normal.y, normal.x, 0.0f,
-				  -normal.x, -normal.y, 0.0f,
-				  0.0f, 0.0f, 1.0f);
+	const mat3 m = mat3(-normal.y,  normal.x, 	0.0f,
+				  		-normal.x, -normal.y, 	0.0f,
+				  		0.0f, 		0.0f, 		1.0f);
 
-	vec3 direction = normalize(v_worldPosition - u_viewParams.cameraPosition) * m;
-
-  	direction *= vec3(aspect, -1.0f, -1.0f);
-	const vec3 viewInv = 1.0f / direction;
-
-	const vec3 pos = vec3(uv.x * 2.0f - 1.0f, 1.0f, uv.y * 2.0f - 1.0f);
+	vec3 direction = (normalize(v_worldPosition - u_viewParams.cameraPosition) * m) / dimensions;
+	const vec3 viewInv = 1.0f / (direction + vec3(0.00001f));
 
 	const float fmin = min3(abs(viewInv) - viewInv * pos);
 	direction = direction * fmin + pos;
-	direction.yz *= -1.0f;
 
 	const vec3 absDir = abs(direction);
 	const vec3 interiorNormal = normalize(vec3(
@@ -125,9 +122,10 @@ vec4 calculateRoomCube(
 	//return vec4(interiorNormal, 1.0f);
 
 	const float lightStrength = dot(interiorNormal, normalize(vec3(0.2f, 0.3f, -1.0f)));
-	const vec4 interiorLight = clamp(lightStrength, 0.0f, 1.0f) + vec4(1.0f);
+	const vec4 interiorLight = clamp(lightStrength, 0.0f, 1.0f) + ambient;
 
-	return interiorLight * texture(textureCubeMap, direction);
+	direction.xy = direction.xy * mat2(dir.x, dir.y, -dir.y, dir.x);
+	return interiorLight * texture(cubeMap, normalize(direction));
 }
 
 void main() {
@@ -146,7 +144,11 @@ void main() {
 		//const float bias = 0.00001f;
 		//out_albedo = calculateUntexturedRoomsColour(v_worldPosition - normal * bias, vec3(1.0f, 1.0f, 1.0f), u_viewParams.cameraPosition, normal);
 
-		out_albedo = calculateRoomCube(v_worldPosition, u_viewParams.cameraPosition, normal, v_uv, 0.5f);
+		// save wall directions:
+		//const float cosa = dot(normal, vec3(0.0f, -1.0f, 0.0f));
+		//out_albedo = calculateRoomCube(textureCubeMap, v_worldPosition, u_viewParams.cameraPosition, normal, v_uv, vec3(2.0f, 2.0f, 1.0f), vec4(1.0f), vec2(cosa, sqrt(1.0f - cosa*cosa)));
+		//
+		out_albedo = calculateRoomCube(textureCubeMap, v_worldPosition, u_viewParams.cameraPosition, normal, v_uv, vec3(2.0f, 1.5f, 1.0f), vec4(1.0f), vec2(1.0f, 0.0f));
 		out_normal = vec4(normalize(v_normalMatrix * normal) * 0.5f + 0.5f, 1.0f);
 
 		//vec3 direction = normalize(v_worldPosition - u_viewParams.cameraPosition);
@@ -157,7 +159,7 @@ void main() {
 		out_metalicRoughness = vec2(0.7f, 0.3f);
 	} else {
 		const vec3 tangent = vec3(-1.0f, 0.0f, 0.0f);
-		const vec3 binormal = (gl_FrontFacing ? 1.0f : -1.0f) * cross(normal, tangent);
+		const vec3 binormal = (gl_FrontFacing ? 1.0f : -1.0f) * cross(normal, tangent) * sign(dot(normal, tangent));
 		const mat3 tbn = mat3(v_normalMatrix * tangent, v_normalMatrix * binormal, v_normalMatrix * normal);
 
 		vec2 uv = v_uv * 2.0f;

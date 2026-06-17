@@ -1,3 +1,6 @@
+float min3(vec3 v) {
+	return min(min(v.x, v.y), v.z);
+}
 
 float linearDepth(float depth, float nearPlane, float farPlane) {
    return ((nearPlane / (nearPlane-farPlane)) * farPlane) / (depth - (farPlane / (farPlane-nearPlane)));

@@ -1605,7 +1605,7 @@ namespace example {
                     for (size_t j = 0u; j < 10u; ++j) {
                         auto * node5 = scene->createNode();
                         node5->setScale(engine::vec3f{0.0025f});
-                        node5->setPosition(engine::vec3f{-14.0f + static_cast<float>(i) * 0.75f, -1.0f - static_cast<float>(j) * 0.75f, 0.0f});
+                        node5->setPosition(engine::vec3f{-14.0f + static_cast<float>(i) * 0.75f, -1.0f - static_cast<float>(j) * 0.75f, 0.001f});
 
                         const auto & frame3 = textureManager->findFrame("explosion_33");
                         auto * sprite3 = scene->createObject<engine::scene::Sprite>(frame3, 0u);
@@ -1684,7 +1684,7 @@ namespace example {
 
                     const auto frame = engine::graphics::ImageFrame2D{
                         imageHandler, 
-                        engine::graphics::Frame2D{.uvMin = {0.0f, 0.0f}, .uvMax = {8.3f, 4.0f}}
+                        engine::graphics::Frame2D{.uvMin = {0.0f, 0.0f}, .uvMax = {8.0f, 4.0f}}
                     };
 
                     auto * sprite = scene->createObject<engine::scene::Sprite>(frame, 7u);
@@ -1711,7 +1711,7 @@ namespace example {
 
                     const auto frame = engine::graphics::ImageFrame2D{
                         imageHandler, 
-                        engine::graphics::Frame2D{.uvMin = {0.0f, 0.0f}, .uvMax = {8.3f, 4.0f}}
+                        engine::graphics::Frame2D{.uvMin = {0.0f, 0.0f}, .uvMax = {8.0f, 4.0f}}
                     };
 
                     auto * sprite = scene->createObject<engine::scene::Sprite>(frame, 7u);
