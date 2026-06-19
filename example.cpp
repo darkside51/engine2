@@ -42,6 +42,7 @@
 #include "graphics/common/background_command_context.h"
 #include "graphics/render/techniques/cascade_shadow_map.h"
 
+#include <deque>
 #include <optional>
 
 // https://www.saschawillems.de/blog/2018/07/19/vulkan-input-attachments-and-sub-passes/
@@ -114,7 +115,7 @@ namespace example {
     engine::rhi::runtime::ImagePtr skyBoxCubeMapImage = nullptr;
 
     // options
-    bool showOptions = true;
+    bool showOptions = false;
     
     enum class DebugShow : uint8_t {
         eCommon = 0u,
@@ -265,7 +266,7 @@ namespace example {
         using Task = threads::WorkerTask;
 
         BgThread(engine::rhi::runtime::Rhi * api, engine::rhi::runtime::Device * device) : 
-            _commandContext(&_worker, *api, *device, device->inFlightFramesCount()) {
+            _commandContext(&_worker, *api, *device, 1u + device->inFlightFramesCount()) {
             _worker.run();
         }
 
@@ -295,7 +296,8 @@ namespace example {
     };
 
     std::optional<BgThread> bgWorker;
-    std::vector<BgThread::GpuTask> gpuTasks;
+    //std::vector<BgThread::GpuTask> gpuTasks;
+    std::deque<BgThread::GpuTask> gpuTasks;
     std::vector<BgThread::Task> tasks;
 
     engine::scene::ViewParams viewParams;
@@ -414,11 +416,12 @@ namespace example {
         addInputObserver(&_imgui);
         addInputObserver(&sceneEventHandler);
 
-        controller.setDistance(5.0f);
+        controller.setDistance(8.0f);
         controller.setMinMaxDistance(0.01f, 30.0f);
+        controller.setRotation({-1.3f, 0.0f, 0.5f});
 
         // camera.makePerspective(std::numbers::pi_v<float> / 3.0f, 1024.0f / 768.0f, 0.001f, 100.0f);
-        camera.makePerspective(std::numbers::pi_v<float> / 3.0f, 1024.0f / 768.0f, kNearFarPlane.x, kNearFarPlane.y); // reverse depth;
+        camera.makePerspective(std::numbers::pi_v<float> / 3.0f, 1920.0f / 1080.0f, kNearFarPlane.x, kNearFarPlane.y); // reverse depth;
     }
 
     Example::~Example() = default;
@@ -1137,9 +1140,10 @@ namespace example {
                     modelManager->setBuffers(modelIdx, std::move(buffers));
                     auto texturesToLoad = modelManager->prepareMaterials("model.glb", modelIdx, modelLayout, *textureManager);
 
-                    gpuTasks.emplace_back(BgThread::GpuTask{[this, texturesToLoad = std::move(texturesToLoad), modelLayout = std::move(modelLayout)](engine::rhi::runtime::CommandList & commandList, std::vector<threads::WorkerTask> & callbacks) mutable {
+                    gpuTasks.emplace_back(BgThread::GpuTask{
+                        [this, texturesToLoad = std::move(texturesToLoad), modelLayout = std::move(modelLayout)]
+                            (engine::rhi::runtime::CommandList & commandList, std::vector<threads::WorkerTask> & callbacks) mutable {
                         materialManager.createMaterialTextures(modelLayout, texturesToLoad, _fileManager, *textureManager, commandList);
-
                         callbacks.emplace_back([texturesToLoad = std::move(texturesToLoad)](){
                             for (auto & t : texturesToLoad) {
                                 t.imageHandler->image = t.image;
@@ -1168,7 +1172,9 @@ namespace example {
                     modelManager->setBuffers(modelIdx, std::move(buffers));
                     auto texturesToLoad = modelManager->prepareMaterials("scene.gltf", modelIdx, modelLayout, *textureManager);
 
-                    gpuTasks.emplace_back(BgThread::GpuTask{[this, texturesToLoad = std::move(texturesToLoad), modelLayout = std::move(modelLayout)](engine::rhi::runtime::CommandList & commandList, std::vector<threads::WorkerTask> & callbacks) mutable {
+                    gpuTasks.emplace_back(BgThread::GpuTask{
+                        [this, texturesToLoad = std::move(texturesToLoad), modelLayout = std::move(modelLayout)]
+                            (engine::rhi::runtime::CommandList & commandList, std::vector<threads::WorkerTask> & callbacks) mutable {
                         materialManager.createMaterialTextures(modelLayout, texturesToLoad, _fileManager, *textureManager, commandList);
 
                         callbacks.emplace_back([texturesToLoad = std::move(texturesToLoad)](){
@@ -1192,9 +1198,10 @@ namespace example {
                     modelManager->setBuffers(modelIdx, std::move(buffers));
                     auto texturesToLoad = modelManager->prepareMaterials("wheel.glb", modelIdx, modelLayout, *textureManager);
 
-                    gpuTasks.emplace_back(BgThread::GpuTask{[this, texturesToLoad = std::move(texturesToLoad), modelLayout = std::move(modelLayout)](engine::rhi::runtime::CommandList & commandList, std::vector<threads::WorkerTask> & callbacks) mutable {
+                    gpuTasks.emplace_back(BgThread::GpuTask{
+                        [this, texturesToLoad = std::move(texturesToLoad), modelLayout = std::move(modelLayout)]
+                            (engine::rhi::runtime::CommandList & commandList, std::vector<threads::WorkerTask> & callbacks) mutable {
                         materialManager.createMaterialTextures(modelLayout, texturesToLoad, _fileManager, *textureManager, commandList);
-
                         callbacks.emplace_back([texturesToLoad = std::move(texturesToLoad)](){
                             for (auto & t : texturesToLoad) {
                                 t.imageHandler->image = t.image;
@@ -1223,9 +1230,10 @@ namespace example {
                     modelManager->setBuffers(modelIdx, std::move(buffers));
                     auto texturesToLoad = modelManager->prepareMaterials("buster_drone.glb", modelIdx, modelLayout, *textureManager);
 
-                    gpuTasks.emplace_back(BgThread::GpuTask{[this, texturesToLoad = std::move(texturesToLoad), modelLayout = std::move(modelLayout)](engine::rhi::runtime::CommandList & commandList, std::vector<threads::WorkerTask> & callbacks) mutable {
+                    gpuTasks.emplace_back(BgThread::GpuTask{
+                        [this, texturesToLoad = std::move(texturesToLoad), modelLayout = std::move(modelLayout)]
+                            (engine::rhi::runtime::CommandList & commandList, std::vector<threads::WorkerTask> & callbacks) mutable {
                         materialManager.createMaterialTextures(modelLayout, texturesToLoad, _fileManager, *textureManager, commandList);
-
                         callbacks.emplace_back([texturesToLoad = std::move(texturesToLoad)](){
                             for (auto & t : texturesToLoad) {
                                 t.imageHandler->image = t.image;
@@ -1253,10 +1261,10 @@ namespace example {
                 _renderThread->emplaceTasks(stl::make_vector(threads::WorkerTask{[this, modelIdx, buffers = std::move(buffers), modelLayout = std::move(modelLayout)]() mutable {
                     modelManager->setBuffers(modelIdx, std::move(buffers));
                     auto texturesToLoad = modelManager->prepareMaterials("chaman.gltf", modelIdx, modelLayout, *textureManager);
-
-                    gpuTasks.emplace_back(BgThread::GpuTask{[this, texturesToLoad = std::move(texturesToLoad), modelLayout = std::move(modelLayout)](engine::rhi::runtime::CommandList & commandList, std::vector<threads::WorkerTask> & callbacks) mutable {
+                    gpuTasks.emplace_back(BgThread::GpuTask{
+                        [this, texturesToLoad = std::move(texturesToLoad), modelLayout = std::move(modelLayout)]
+                            (engine::rhi::runtime::CommandList & commandList, std::vector<threads::WorkerTask> & callbacks) mutable {
                         materialManager.createMaterialTextures(modelLayout, texturesToLoad, _fileManager, *textureManager, commandList);
-
                         callbacks.emplace_back([texturesToLoad = std::move(texturesToLoad)](){
                             for (auto & t : texturesToLoad) {
                                 t.imageHandler->image = t.image;
@@ -1285,9 +1293,10 @@ namespace example {
                     modelManager->setBuffers(modelIdx, std::move(buffers));
                     auto texturesToLoad = modelManager->prepareMaterials("cathedral.glb", modelIdx, modelLayout, *textureManager);
 
-                    gpuTasks.emplace_back(BgThread::GpuTask{[this, texturesToLoad = std::move(texturesToLoad), modelLayout = std::move(modelLayout)](engine::rhi::runtime::CommandList & commandList, std::vector<threads::WorkerTask> & callbacks) mutable {
+                    gpuTasks.emplace_back(BgThread::GpuTask{
+                        [this, texturesToLoad = std::move(texturesToLoad), modelLayout = std::move(modelLayout)]
+                            (engine::rhi::runtime::CommandList & commandList, std::vector<threads::WorkerTask> & callbacks) mutable {
                         materialManager.createMaterialTextures(modelLayout, texturesToLoad, _fileManager, *textureManager, commandList);
-
                         callbacks.emplace_back([texturesToLoad = std::move(texturesToLoad)](){
                             for (auto & t : texturesToLoad) {
                                 t.imageHandler->image = t.image;
@@ -1308,10 +1317,10 @@ namespace example {
                 _renderThread->emplaceTasks(stl::make_vector(threads::WorkerTask{[this, modelIdx, buffers = std::move(buffers), modelLayout = std::move(modelLayout)]() mutable {
                     modelManager->setBuffers(modelIdx, std::move(buffers));
                     auto texturesToLoad = modelManager->prepareMaterials("windmill.glb", modelIdx, modelLayout, *textureManager);
-
-                    gpuTasks.emplace_back(BgThread::GpuTask{[this, texturesToLoad = std::move(texturesToLoad), modelLayout = std::move(modelLayout)](engine::rhi::runtime::CommandList & commandList, std::vector<threads::WorkerTask> & callbacks) mutable {
+                    gpuTasks.emplace_back(BgThread::GpuTask{
+                        [this, texturesToLoad = std::move(texturesToLoad), modelLayout = std::move(modelLayout)]
+                            (engine::rhi::runtime::CommandList & commandList, std::vector<threads::WorkerTask> & callbacks) mutable {
                         materialManager.createMaterialTextures(modelLayout, texturesToLoad, _fileManager, *textureManager, commandList);
-
                         callbacks.emplace_back([texturesToLoad = std::move(texturesToLoad)](){
                             for (auto & t : texturesToLoad) {
                                 t.imageHandler->image = t.image;
@@ -1931,7 +1940,22 @@ namespace example {
 
         if (!gpuTasks.empty() && _readyToSubmitExternal) {
             _readyToSubmitExternal = false;
-            bgWorker->submit(std::move(gpuTasks), [this](engine::rhi::runtime::CommandList * commandList, std::vector<threads::WorkerTask> && callbacks) mutable {
+
+            constexpr size_t kGrabbTaskCount = 3u;
+            auto grabbTaskCount = std::min(kGrabbTaskCount, gpuTasks.size());
+
+            auto tasks = std::vector<engine::graphics::BackgroundCommandContext::Command>{};
+            tasks.reserve(grabbTaskCount);
+
+            while (grabbTaskCount > 0u) {
+                tasks.emplace_back(std::move(gpuTasks.front()));
+                gpuTasks.pop_front();
+                --grabbTaskCount;
+            }
+            
+            bgWorker->submit(std::move(tasks), [this](
+                engine::rhi::runtime::CommandList * commandList, std::vector<threads::WorkerTask> && callbacks
+            ) mutable {
                 _renderThread->emplaceTasks(stl::make_vector(threads::WorkerTask{[
                     this,
                     commandList,
