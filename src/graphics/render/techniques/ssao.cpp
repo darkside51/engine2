@@ -7,6 +7,36 @@
 
 namespace engine::graphics {
 
+    void Ssao::createRenderPass(rhi::runtime::Rhi & api, rhi::runtime::Device & device) {
+        using namespace rhi;
+        // renderpass
+        std::array attachment = {
+            rhi::AttachmentDescription {
+                .format = format(),
+                .loadStoreOp = AttachmentLoadStoreOp{AttachmentLoadOp::eClear, AttachmentStoreOp::eStore},
+                .stencilLoadStoreOp = AttachmentLoadStoreOp{AttachmentLoadOp::eDont_Care, AttachmentStoreOp::eDont_Care},
+                .initialLayout = ImageLayout::eColor_Attachment_Optimal, // ImageLayout::eUndefined
+                .finalLayout = ImageLayout::eShader_Read_Only_Optimal,
+                .samples = 1u
+            }
+        };
+
+        std::array subpass  = {
+            SubpassDescription {
+                .pNext = {nullptr, 0u},
+                .colorAttachments = {{
+                    .pNext = {nullptr, 0u},
+                    .attachment = 0u,
+                    .layout = ImageLayout::eColor_Attachment_Optimal,
+                    .aspectMask = ImageAspectFlags::eColor
+                }}
+            }
+        };
+
+        const RenderPassDescription description{attachment, subpass, {}};
+        _renderPass = api.getRenderPass(device, description);
+    }
+
     void Ssao::createConstResources(rhi::runtime::Rhi & api, rhi::runtime::Device & device, 
         rhi::runtime::CommandList & commandList, Params params) {
         // kernel
@@ -83,8 +113,7 @@ namespace engine::graphics {
         }
     }
 
-    void Ssao::resize(rhi::runtime::Rhi & api, rhi::runtime::Device & device, 
-        const rhi::runtime::RenderPass & renderPass, uint8_t framesCount, uint32_t width, uint32_t height) {
+    void Ssao::resize(rhi::runtime::Rhi & api, rhi::runtime::Device & device, uint8_t framesCount, uint32_t width, uint32_t height) {
         _images.clear();
         _images.reserve(framesCount);
         _frameBuffers.clear();
@@ -102,8 +131,20 @@ namespace engine::graphics {
             std::vector<rhi::FrameBufferAttachment> fbAttachemnts{1u};
             fbAttachemnts[0u].image = image.get();
             fbAttachemnts[0u].imageSize = {image->getExtent().width, image->getExtent().height};
-            _frameBuffers.emplace_back(api.createFrameBuffer(device, std::move(fbAttachemnts), renderPass));
+            _frameBuffers.emplace_back(api.createFrameBuffer(device, std::move(fbAttachemnts), _renderPass));
         }
+    }
+
+    void Ssao::beginRenderPass(rhi::runtime::CommandList & commandList, uint8_t frameId) noexcept{
+        constexpr auto clearValues = std::array{
+            rhi::ClearValue{0x00'00'00'ffu},
+        };
+        const auto & extent = _images[frameId]->getExtent();
+        commandList.beginRenderPass(_renderPass, _frameBuffers[frameId], clearValues, {{0, 0}, {extent.width, extent.height}});
+    }
+
+    void Ssao::endRenderPass(rhi::runtime::CommandList & commandList) const noexcept {
+        commandList.endRenderPass();
     }
 
     void Ssao::destroy() noexcept {

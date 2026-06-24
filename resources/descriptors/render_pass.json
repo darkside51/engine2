@@ -117,25 +117,6 @@
 			}
 		]
 	},
-	"ssao" : {
-		"attachments" : [
-			{
-				"loadStoreOp" : ["eClear", "eStore"],
-				"stencilLoadStoreOp" : ["eDont_Care", "eDont_Care"],
-				"finalLayout" : "eShader_Read_Only_Optimal"
-			}
-		],
-		"subpasses" : [
-			{
-				"colorAttachments": [
-					{
-						"attachment": 0,
-						"layout": "eColor_Attachment_Optimal"
-					}
-				]
-			}
-		]
-	},
 	"blur" : {
 		"attachments" : [
 			{

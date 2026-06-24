@@ -56,8 +56,7 @@ namespace example {
     constexpr uint8_t kScreenRenderPass = 0u;
     constexpr uint8_t kSceneRenderPass = 1u;
     constexpr uint8_t kGbufferRenderPass = 2u;
-    constexpr uint8_t kSsaoRenderPass = 3u;
-    constexpr uint8_t kBlurRenderPass = 4u;
+    constexpr uint8_t kBlurRenderPass = 3u;
 
     constexpr uint8_t kImguiProgram = 0u;
     constexpr uint8_t kPostEffectProgram = 1u;
@@ -645,7 +644,7 @@ namespace example {
         }
 
         // ssao:
-        ssao.resize(*_api, *_device, _renderPasses[kSsaoRenderPass], framesCount, size.width, size.height);
+        ssao.resize(*_api, *_device, framesCount, size.width, size.height);
 
         // gBuffer attachments
         _gBufferAttachments.clear();
@@ -793,14 +792,14 @@ namespace example {
                 };
 
             _renderPasses.emplace_back(_api->getRenderPass(*_device, engine::parseRenderPass(json["gBuffer"], formatsGBuffer))); // kGbufferRenderPass
-            _renderPasses.emplace_back(_api->getRenderPass(*_device, engine::parseRenderPass(json["ssao"], ssao.formatsArray()))); // kSsaoRenderPass
         }
 
         { // blur
             const auto formatsEmissiveBlur = std::array{engine::rhi::Format::eR8G8B8A8_Unorm};
             _renderPasses.emplace_back(_api->getRenderPass(*_device, engine::parseRenderPass(json["blur"], formatsEmissiveBlur))); // kBlurRenderPass
         }
-        
+
+        ssao.createRenderPass(*_api, *_device);
     }
 
     void Example::loadShaders() {
@@ -981,7 +980,7 @@ namespace example {
         _pipelines.emplace_back(_api->createGraphicsPipeline(*_device, _renderPasses[kScreenRenderPass], _programs[kPostEffectProgram], info0, 0u));
 
         // kSsaoPipeline
-        _pipelines.emplace_back(_api->createGraphicsPipeline(*_device, _renderPasses[kSsaoRenderPass], _programs[kSsaoProgram], info0, 0u));
+        _pipelines.emplace_back(_api->createGraphicsPipeline(*_device, ssao.getRenderPass(), _programs[kSsaoProgram], info0, 0u));
 
         // kEmissiveBlurPipeline
         _pipelines.emplace_back(_api->createGraphicsPipeline(*_device, _renderPasses[kBlurRenderPass], _programs[kEmissiveBlurProgram], info0, 0u));
@@ -1569,8 +1568,8 @@ namespace example {
                         // const auto imageBytes = _fileManager.readFile("assets/vulkan_11_rgba.ktx");
                         // const auto imageBytes = _fileManager.readFile("assets/2d_bc7.ktx2");
                         // const auto imageBytes = _fileManager.readFile("assets/asphalt-7.jpg");
-                        const auto imageBytes = _fileManager.readFile("assets/grass3.png");
-                        // const auto imageBytes = _fileManager.readFile("assets/sand1.jpg");
+                        // const auto imageBytes = _fileManager.readFile("assets/grass3.png");
+                        const auto imageBytes = _fileManager.readFile("assets/images.png");
                         auto textureData = engine::graphics::parseTextureData(imageBytes, {
                                 .flags = engine::graphics::TextureFlags::eAllowSrgbColorSpace | engine::graphics::TextureFlags::eUseMipMaps
                             }
@@ -2241,7 +2240,7 @@ namespace example {
             .options = {ssaoRadius, ssaoBias, ssaoRangeDepth, static_cast<float>(ssaoRangeMethod)}
         };
 
-        commandList->beginRenderPass(_renderPasses[kSsaoRenderPass], ssao.getFrameBuffer(frameId), clearValues, {{0, 0}, {width, height}});
+        ssao.beginRenderPass(*commandList, frameId);
 
         commandList->bindPipeline(_pipelines[kSsaoPipeline]);
         commandList->bindVertexBuffer(0u, _postPositions);
@@ -2254,7 +2253,7 @@ namespace example {
         commandList->pushConstants(engine::rhi::shaders::Stages::eVertex | engine::rhi::shaders::Stages::eFragment, 0u, sizeof(SsaoParams), &ssaoParams);
         commandList->drawIndexed(6u);
 
-        commandList->endRenderPass();
+        ssao.endRenderPass(*commandList);
 
         if (emissiveBlur) { // emissive blur
             engine::vec4f blurUniform{emissiveBlurScale, emissiveBlurStrength, 1.0f, 0.0f};
