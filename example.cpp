@@ -297,6 +297,108 @@ namespace example {
     std::deque<BackgroundWorker::GpuJob> gpuTasks;
     std::deque<BackgroundWorker::CpuJob> cpuTasks;
 
+    auto loadImageAsync(
+        engine::rhi::runtime::Device & device, 
+        engine::FileManager & fileManager, 
+        engine::graphics::TextureManager & textureManager, 
+        std::string imageKey, 
+        std::string path, 
+        engine::graphics::TextureFlags flags
+    ) -> engine::graphics::ImageHandler * {
+        using namespace engine;
+        const auto & [imageHandler, isNew] = textureManager.addImage(imageKey);
+
+        if (isNew) {
+            gpuTasks.emplace_back(BackgroundWorker::GpuJob{[&device, &fileManager, &textureManager, imageKey = std::move(imageKey), path = std::move(path), flags]
+                (engine::rhi::runtime::CommandList & commandList, std::vector<threads::WorkerTask> & callbacks) mutable {
+
+                const auto imageBytes = fileManager.readFile(path);
+                auto textureData = engine::graphics::parseTextureData(imageBytes, {
+                        .flags = flags
+                    }
+                );
+
+                const auto formatSupport = device.isFormatSupported(
+                    textureData.metaInfo.format, 
+                    rhi::FormatFeatureFlags::eFormatFeature_Sampled_Image
+                );
+
+                const bool sampledSupport = formatSupport.checkBit(rhi::FormatFeatureAccess::Bit::eOptimalTilingFeaturesBit);
+
+                if (!sampledSupport) {
+                    const bool srgb = static_cast<uint8_t>(flags & engine::graphics::TextureFlags::eAllowSrgbColorSpace) != 0u;
+                    convertTextureDataFormat(srgb ? rhi::Format::eR8G8B8A8_Srgb : rhi::Format::eR8G8B8A8_Unorm, textureData);
+                }
+
+                auto image = textureManager.generateImage(std::move(textureData), commandList);
+
+                callbacks.emplace_back([&textureManager, image = std::move(image), imageKey = std::move(imageKey)](){
+                    textureManager.getImageHandler(imageKey)->image = std::move(image);
+                });
+            }});
+        }
+
+        return imageHandler;
+    };
+
+    uint32_t loadModelAsync(
+        threads::ExecutionContext * renderThread,
+        engine::FileManager & fileManager,
+        engine::graphics::TextureManager & textureManager,
+        std::string key, 
+        std::string folder,
+        std::string file
+    ) {
+        auto const [modelIdx, isNew] = modelManager->addModel2(key);
+        if (isNew) {
+            cpuTasks.emplace_back(threads::WorkerTask{[
+                renderThread, &fileManager, &textureManager, 
+                modelIdx, 
+                key = std::move(key),
+                folder = std::move(folder),
+                file = std::move(file)
+            ]() mutable {
+                auto const modelBytes = fileManager.readFile(engine::fmt_string("%s%s", folder.c_str(), file.c_str()));
+                auto modelLayout = engine::graphics::models::loadModelLayout(modelBytes, fileManager, folder);
+                auto buffers = modelManager->loadModel(modelIdx, key, modelLayout);
+
+                renderThread->emplaceTasks(stl::make_vector(threads::WorkerTask{[
+                    modelIdx, &fileManager, &textureManager, 
+                    buffers = std::move(buffers), 
+                    modelLayout = std::move(modelLayout),
+                    key = std::move(key)
+                ]() mutable {
+                    modelManager->setBuffers(modelIdx, std::move(buffers));
+                    auto texturesToLoad = modelManager->prepareMaterials(key, modelIdx, modelLayout, textureManager);
+
+                    gpuTasks.emplace_back(BackgroundWorker::GpuJob{
+                        [&fileManager, &textureManager, texturesToLoad = std::move(texturesToLoad), modelLayout = std::move(modelLayout)]
+                            (engine::rhi::runtime::CommandList & commandList, std::vector<threads::WorkerTask> & callbacks) mutable {
+                        materialManager.createMaterialTextures(modelLayout, texturesToLoad, fileManager, textureManager, commandList);
+                        callbacks.emplace_back([texturesToLoad = std::move(texturesToLoad)](){
+                            for (auto & t : texturesToLoad) {
+                                t.imageHandler->image = t.image;
+                            }
+                        });
+                    }});
+
+                    const auto & modelData = modelManager->getModelData(modelIdx);
+                    uint8_t i = 0u;
+                    for (const auto & animation : modelData.animations) {
+                        animationManager.registerAnimation(
+                            engine::fmt_string("%s_anim%d", key.c_str(), i), 
+                            engine::scene::SkeletalAnimation(animation)
+                        );
+                        ++i;
+                    }
+                }}));
+            }});
+        }
+
+        return modelIdx;
+    }
+
+
     engine::scene::ViewParams viewParams;
     bool viewParamsUpdated = false;
 
@@ -307,6 +409,8 @@ namespace example {
         uint32_t drawCalls = 0u;
         uint32_t dispatchCalls = 0u;
         uint16_t fps = 0u;
+        uint16_t width = 0u;
+        uint16_t height = 0u;
     };
 
     Stats gStats;
@@ -760,6 +864,8 @@ namespace example {
 
         gStats.inFlightFramesCount = _swapchain->getImagesCount();
         gStats.inFlightFramesCount = _device->inFlightFramesCount();
+        gStats.width = w;
+        gStats.height = h;
     }
 
     void Example::createRenderPasses() {
@@ -1104,212 +1210,80 @@ namespace example {
 
         //
         {
-            auto const modelIdx = modelManager->addModel2("model.glb").first;
-            cpuTasks.emplace_back(threads::WorkerTask{[this, modelIdx]() mutable {
-                auto const modelBytes = _fileManager.readFile("assets/models/model.glb");
-                auto modelLayout = engine::graphics::models::loadModelLayout(modelBytes, _fileManager, "assets/models/");
-                auto buffers = modelManager->loadModel(modelIdx, "model.glb", modelLayout);
-
-                _renderThread->emplaceTasks(stl::make_vector(threads::WorkerTask{[this, modelIdx, buffers = std::move(buffers), modelLayout = std::move(modelLayout)]() mutable {
-                    modelManager->setBuffers(modelIdx, std::move(buffers));
-                    auto texturesToLoad = modelManager->prepareMaterials("model.glb", modelIdx, modelLayout, *textureManager);
-
-                    gpuTasks.emplace_back(BackgroundWorker::GpuJob{
-                        [this, texturesToLoad = std::move(texturesToLoad), modelLayout = std::move(modelLayout)]
-                            (engine::rhi::runtime::CommandList & commandList, std::vector<threads::WorkerTask> & callbacks) mutable {
-                        materialManager.createMaterialTextures(modelLayout, texturesToLoad, _fileManager, *textureManager, commandList);
-                        callbacks.emplace_back([texturesToLoad = std::move(texturesToLoad)](){
-                            for (auto & t : texturesToLoad) {
-                                t.imageHandler->image = t.image;
-                            }
-                        });
-                    }});
-
-                    const auto & modelData = modelManager->getModelData(modelIdx);
-                    uint8_t i = 0u;
-                    for (const auto & animation : modelData.animations) {
-                        animationManager.registerAnimation(engine::fmt_string("skeletal_mesh_anim%d", i), engine::scene::SkeletalAnimation(animation));
-                        ++i;
-                    }
-                }}));
-            }});
+            auto const modelIdx = loadModelAsync(
+                    _renderThread,
+                    _fileManager,
+                    *textureManager,
+                    "model", 
+                    "assets/models/",
+                    "model.glb"
+            );
         }
 
         {
-            auto const modelIdx = modelManager->addModel2("scene.gltf").first;
-            cpuTasks.emplace_back(threads::WorkerTask{[this, modelIdx]() mutable {
-                auto const modelBytes = _fileManager.readFile("assets/models/1/scene.gltf");
-                auto modelLayout = engine::graphics::models::loadModelLayout(modelBytes, _fileManager, "assets/models/1/");
-                auto buffers = modelManager->loadModel(modelIdx, "scene.gltf", modelLayout);
-
-                _renderThread->emplaceTasks(stl::make_vector(threads::WorkerTask{[this, modelIdx, buffers = std::move(buffers), modelLayout = std::move(modelLayout)]() mutable {
-                    modelManager->setBuffers(modelIdx, std::move(buffers));
-                    auto texturesToLoad = modelManager->prepareMaterials("scene.gltf", modelIdx, modelLayout, *textureManager);
-
-                    gpuTasks.emplace_back(BackgroundWorker::GpuJob{
-                        [this, texturesToLoad = std::move(texturesToLoad), modelLayout = std::move(modelLayout)]
-                            (engine::rhi::runtime::CommandList & commandList, std::vector<threads::WorkerTask> & callbacks) mutable {
-                        materialManager.createMaterialTextures(modelLayout, texturesToLoad, _fileManager, *textureManager, commandList);
-
-                        callbacks.emplace_back([texturesToLoad = std::move(texturesToLoad)](){
-                            for (auto & t : texturesToLoad) {
-                                t.imageHandler->image = t.image;
-                            }
-                        });
-                    }});
-                }}));
-            }});
+            auto const modelIdx = loadModelAsync(
+                    _renderThread,
+                    _fileManager,
+                    *textureManager,
+                    "scene", 
+                    "assets/models/1/",
+                    "scene.gltf"
+            );
         }
 
         {
-            auto const modelIdx = modelManager->addModel2("wheel.glb").first;
-            cpuTasks.emplace_back(threads::WorkerTask{[this, modelIdx]() mutable {
-                auto const modelBytes = _fileManager.readFile("assets/models/Minsk_wheel.glb");
-                auto modelLayout = engine::graphics::models::loadModelLayout(modelBytes, _fileManager, "assets/models/");
-                auto buffers = modelManager->loadModel(modelIdx, "wheel.glb", modelLayout);
-
-                _renderThread->emplaceTasks(stl::make_vector(threads::WorkerTask{[this, modelIdx, buffers = std::move(buffers), modelLayout = std::move(modelLayout)]() mutable {
-                    modelManager->setBuffers(modelIdx, std::move(buffers));
-                    auto texturesToLoad = modelManager->prepareMaterials("wheel.glb", modelIdx, modelLayout, *textureManager);
-
-                    gpuTasks.emplace_back(BackgroundWorker::GpuJob{
-                        [this, texturesToLoad = std::move(texturesToLoad), modelLayout = std::move(modelLayout)]
-                            (engine::rhi::runtime::CommandList & commandList, std::vector<threads::WorkerTask> & callbacks) mutable {
-                        materialManager.createMaterialTextures(modelLayout, texturesToLoad, _fileManager, *textureManager, commandList);
-                        callbacks.emplace_back([texturesToLoad = std::move(texturesToLoad)](){
-                            for (auto & t : texturesToLoad) {
-                                t.imageHandler->image = t.image;
-                            }
-                        });
-                    }});
-
-                    const auto & modelData = modelManager->getModelData(modelIdx);
-                    uint8_t i = 0u;
-                    for (const auto & animation : modelData.animations) {
-                        animationManager.registerAnimation(engine::fmt_string("wheel_anim%d", i), engine::scene::SkeletalAnimation(animation));
-                        ++i;
-                    }
-                }}));
-            }});
+            auto const modelIdx = loadModelAsync(
+                    _renderThread,
+                    _fileManager,
+                    *textureManager,
+                    "wheel", 
+                    "assets/models/",
+                    "Minsk_wheel.glb"
+            );
         }
 
         {
-            auto const modelIdx = modelManager->addModel2("buster_drone.glb").first;
-            cpuTasks.emplace_back(threads::WorkerTask{[this, modelIdx]() mutable {
-                auto const modelBytes = _fileManager.readFile("assets/models/buster_drone.glb");
-                auto modelLayout = engine::graphics::models::loadModelLayout(modelBytes, _fileManager, "assets/models/");
-                auto buffers = modelManager->loadModel(modelIdx, "buster_drone.glb", modelLayout);
-
-                _renderThread->emplaceTasks(stl::make_vector(threads::WorkerTask{[this, modelIdx, buffers = std::move(buffers), modelLayout = std::move(modelLayout)]() mutable {
-                    modelManager->setBuffers(modelIdx, std::move(buffers));
-                    auto texturesToLoad = modelManager->prepareMaterials("buster_drone.glb", modelIdx, modelLayout, *textureManager);
-
-                    gpuTasks.emplace_back(BackgroundWorker::GpuJob{
-                        [this, texturesToLoad = std::move(texturesToLoad), modelLayout = std::move(modelLayout)]
-                            (engine::rhi::runtime::CommandList & commandList, std::vector<threads::WorkerTask> & callbacks) mutable {
-                        materialManager.createMaterialTextures(modelLayout, texturesToLoad, _fileManager, *textureManager, commandList);
-                        callbacks.emplace_back([texturesToLoad = std::move(texturesToLoad)](){
-                            for (auto & t : texturesToLoad) {
-                                t.imageHandler->image = t.image;
-                            }
-                        });
-                    }});
-
-                    const auto & modelData = modelManager->getModelData(modelIdx);
-                    uint8_t i = 0u;
-                    for (const auto & animation : modelData.animations) {
-                        animationManager.registerAnimation(engine::fmt_string("buster_anim%d", i), engine::scene::SkeletalAnimation(animation));
-                        ++i;
-                    }
-                }}));
-            }});
+            auto const modelIdx = loadModelAsync(
+                    _renderThread,
+                    _fileManager,
+                    *textureManager,
+                    "buster_drone", 
+                    "assets/models/",
+                    "buster_drone.glb"
+            );
         }
 
         {
-            auto const modelIdx = modelManager->addModel2("chaman.gltf").first;
-            cpuTasks.emplace_back(threads::WorkerTask{[this, modelIdx]() mutable {
-                auto const modelBytes = _fileManager.readFile("assets/models/chaman/scene.gltf");
-                auto modelLayout = engine::graphics::models::loadModelLayout(modelBytes, _fileManager, "assets/models/chaman/");
-                auto buffers = modelManager->loadModel(modelIdx, "chaman.gltf", modelLayout);
-
-                _renderThread->emplaceTasks(stl::make_vector(threads::WorkerTask{[this, modelIdx, buffers = std::move(buffers), modelLayout = std::move(modelLayout)]() mutable {
-                    modelManager->setBuffers(modelIdx, std::move(buffers));
-                    auto texturesToLoad = modelManager->prepareMaterials("chaman.gltf", modelIdx, modelLayout, *textureManager);
-                    gpuTasks.emplace_back(BackgroundWorker::GpuJob{
-                        [this, texturesToLoad = std::move(texturesToLoad), modelLayout = std::move(modelLayout)]
-                            (engine::rhi::runtime::CommandList & commandList, std::vector<threads::WorkerTask> & callbacks) mutable {
-                        materialManager.createMaterialTextures(modelLayout, texturesToLoad, _fileManager, *textureManager, commandList);
-                        callbacks.emplace_back([texturesToLoad = std::move(texturesToLoad)](){
-                            for (auto & t : texturesToLoad) {
-                                t.imageHandler->image = t.image;
-                            }
-                        });
-                    }});
-
-                    const auto & modelData = modelManager->getModelData(modelIdx);
-                    uint8_t i = 0u;
-                    for (const auto & animation : modelData.animations) {
-                        animationManager.registerAnimation(engine::fmt_string("chaman_anim%d", i), engine::scene::SkeletalAnimation(animation));
-                        ++i;
-                    }
-                }}));
-            }});
+            auto const modelIdx = loadModelAsync(
+                    _renderThread,
+                    _fileManager,
+                    *textureManager,
+                    "chaman", 
+                    "assets/models/chaman/",
+                    "scene.gltf"
+            );
         }
 
         {
-            auto const modelIdx = modelManager->addModel2("cathedral.glb").first;
-            cpuTasks.emplace_back(threads::WorkerTask{[this, modelIdx]() mutable {
-                auto const modelBytes = _fileManager.readFile("assets/models/St_Basils_Cathedral.glb");
-                auto modelLayout = engine::graphics::models::loadModelLayout(modelBytes, _fileManager, "assets/models/");
-                auto buffers = modelManager->loadModel(modelIdx, "cathedral.glb", modelLayout);
-
-                _renderThread->emplaceTasks(stl::make_vector(threads::WorkerTask{[this, modelIdx, buffers = std::move(buffers), modelLayout = std::move(modelLayout)]() mutable {
-                    modelManager->setBuffers(modelIdx, std::move(buffers));
-                    auto texturesToLoad = modelManager->prepareMaterials("cathedral.glb", modelIdx, modelLayout, *textureManager);
-
-                    gpuTasks.emplace_back(BackgroundWorker::GpuJob{
-                        [this, texturesToLoad = std::move(texturesToLoad), modelLayout = std::move(modelLayout)]
-                            (engine::rhi::runtime::CommandList & commandList, std::vector<threads::WorkerTask> & callbacks) mutable {
-                        materialManager.createMaterialTextures(modelLayout, texturesToLoad, _fileManager, *textureManager, commandList);
-                        callbacks.emplace_back([texturesToLoad = std::move(texturesToLoad)](){
-                            for (auto & t : texturesToLoad) {
-                                t.imageHandler->image = t.image;
-                            }
-                        });
-                    }});
-                }}));
-            }});
+            auto const modelIdx = loadModelAsync(
+                    _renderThread,
+                    _fileManager,
+                    *textureManager,
+                    "cathedral", 
+                    "assets/models/",
+                    "St_Basils_Cathedral.glb"
+            );
         }
 
         {
-            auto const modelIdx = modelManager->addModel2("windmill.glb").first;
-            cpuTasks.emplace_back(threads::WorkerTask{[this, modelIdx]() mutable {
-                auto const modelBytes = _fileManager.readFile("assets/models/windmill/scene.gltf");
-                auto modelLayout = engine::graphics::models::loadModelLayout(modelBytes, _fileManager, "assets/models/windmill/");
-                auto buffers = modelManager->loadModel(modelIdx, "windmill.glb", modelLayout);
-
-                _renderThread->emplaceTasks(stl::make_vector(threads::WorkerTask{[this, modelIdx, buffers = std::move(buffers), modelLayout = std::move(modelLayout)]() mutable {
-                    modelManager->setBuffers(modelIdx, std::move(buffers));
-                    auto texturesToLoad = modelManager->prepareMaterials("windmill.glb", modelIdx, modelLayout, *textureManager);
-                    gpuTasks.emplace_back(BackgroundWorker::GpuJob{
-                        [this, texturesToLoad = std::move(texturesToLoad), modelLayout = std::move(modelLayout)]
-                            (engine::rhi::runtime::CommandList & commandList, std::vector<threads::WorkerTask> & callbacks) mutable {
-                        materialManager.createMaterialTextures(modelLayout, texturesToLoad, _fileManager, *textureManager, commandList);
-                        callbacks.emplace_back([texturesToLoad = std::move(texturesToLoad)](){
-                            for (auto & t : texturesToLoad) {
-                                t.imageHandler->image = t.image;
-                            }
-                        });
-                    }});
-
-                    const auto & modelData = modelManager->getModelData(modelIdx);
-                    uint8_t i = 0u;
-                    for (const auto & animation : modelData.animations) {
-                        animationManager.registerAnimation(engine::fmt_string("windmill_anim%d", i), engine::scene::SkeletalAnimation(animation));
-                        ++i;
-                    }
-                }}));
-            }});
+            auto const modelIdx = loadModelAsync(
+                    _renderThread,
+                    _fileManager,
+                    *textureManager,
+                    "windmill", 
+                    "assets/models/windmill/",
+                    "scene.gltf"
+            );
         }
 
         textureManager->generateGpuData(tmpCommandList);
@@ -1542,7 +1516,14 @@ namespace example {
                 auto * node = scene->createNode();
                 node->setPosition(engine::vec3f{-30.0f, -30.0f, 0.0f});
 
-                const auto & [imageHandler, isNew] = textureManager->addImage("asyncTest");
+                // "assets/vulkan_11_rgba.ktx"
+                // "assets/2d_bc7.ktx2"
+                // "assets/asphalt-7.jpg"
+                // "assets/grass3.png"
+                // "assets/images.png"
+
+                const auto * imageHandler = loadImageAsync(*_device, _fileManager, *textureManager, "asyncTest", "assets/images.png", 
+                    engine::graphics::TextureFlags::eAllowSrgbColorSpace | engine::graphics::TextureFlags::eUseMipMaps);
 
                 const auto frame = engine::graphics::ImageFrame2D{
                     imageHandler, 
@@ -1556,38 +1537,6 @@ namespace example {
                 sprite->setOrder(0);
 
                 sceneWorldRoot->addChild(node);
-
-                if (isNew) {
-                    gpuTasks.emplace_back(BackgroundWorker::GpuJob{[this](engine::rhi::runtime::CommandList & commandList, std::vector<threads::WorkerTask> & callbacks) mutable {
-
-                        // const auto imageBytes = _fileManager.readFile("assets/vulkan_11_rgba.ktx");
-                        // const auto imageBytes = _fileManager.readFile("assets/2d_bc7.ktx2");
-                        // const auto imageBytes = _fileManager.readFile("assets/asphalt-7.jpg");
-                        // const auto imageBytes = _fileManager.readFile("assets/grass3.png");
-                        const auto imageBytes = _fileManager.readFile("assets/images.png");
-                        auto textureData = engine::graphics::parseTextureData(imageBytes, {
-                                .flags = engine::graphics::TextureFlags::eAllowSrgbColorSpace | engine::graphics::TextureFlags::eUseMipMaps
-                            }
-                        );
-
-                        const auto formatSupport = _device->isFormatSupported(
-                            textureData.metaInfo.format, 
-                            rhi::FormatFeatureFlags::eFormatFeature_Sampled_Image
-                        );
-
-                        const bool sampledSupport = formatSupport.checkBit(rhi::FormatFeatureAccess::Bit::eOptimalTilingFeaturesBit);
-
-                        if (!sampledSupport) {
-                            convertTextureDataFormat(rhi::Format::eR8G8B8A8_Srgb, textureData); // ??
-                        }
-
-                        auto image = textureManager->generateImage(std::move(textureData), commandList);
-
-                        callbacks.emplace_back([image = std::move(image)](){
-                            textureManager->getImageHandler("asyncTest")->image = std::move(image);
-                        });
-                    }});
-                }
             }
 
             { // test
@@ -1597,8 +1546,11 @@ namespace example {
                     node->setPosition(engine::vec3f{17.165f, 12.2f, 0.0f});
                     node->setRotation(engine::vec3f{engine::pi2, 0.0f, -0.35f});
 
-                    const auto & [imageHandler, isNew] = textureManager->addImage("bricks");
-                    const auto & [imageHandler1, _] = textureManager->addImage("bricks_normal");
+                    const auto * imageHandler = loadImageAsync(*_device, _fileManager, *textureManager, "bricks", "assets/154.jpg", 
+                        engine::graphics::TextureFlags::eAllowSrgbColorSpace | engine::graphics::TextureFlags::eUseMipMaps);
+
+                    const auto * imageHandler1 = loadImageAsync(*_device, _fileManager, *textureManager, "bricks_normal", "assets/154_norm.jpg", 
+                        engine::graphics::TextureFlags::eUseMipMaps);
 
                     const auto frame = engine::graphics::ImageFrame2D{
                         imageHandler, 
@@ -1624,8 +1576,11 @@ namespace example {
                     node->setPosition(engine::vec3f{20.0f, 20.0f, 0.0f});
                     node->setRotation(engine::vec3f{engine::pi2, 0.0f, -0.35f - 1.57f});
 
-                    const auto & [imageHandler, isNew] = textureManager->addImage("bricks");
-                    const auto & [imageHandler1, _] = textureManager->addImage("bricks_normal");
+                    const auto * imageHandler = loadImageAsync(*_device, _fileManager, *textureManager, "bricks", "assets/154.jpg", 
+                        engine::graphics::TextureFlags::eAllowSrgbColorSpace | engine::graphics::TextureFlags::eUseMipMaps);
+
+                    const auto * imageHandler1 = loadImageAsync(*_device, _fileManager, *textureManager, "bricks_normal", "assets/154_norm.jpg", 
+                        engine::graphics::TextureFlags::eUseMipMaps);
 
                     const auto frame = engine::graphics::ImageFrame2D{
                         imageHandler, 
@@ -1646,32 +1601,6 @@ namespace example {
                     sceneWorldRoot->addChild(node);
                 }
 
-                if (isNew) {
-                    gpuTasks.emplace_back(BackgroundWorker::GpuJob{[this](engine::rhi::runtime::CommandList & commandList, std::vector<threads::WorkerTask> & callbacks) mutable {
-                        const auto imageBytes0 = _fileManager.readFile("assets/154.jpg");
-                        const auto imageBytes1 = _fileManager.readFile("assets/154_norm.jpg");
-                        auto textureData0 = engine::graphics::parseTextureData(imageBytes0, {
-                                .flags = engine::graphics::TextureFlags::eAllowSrgbColorSpace | engine::graphics::TextureFlags::eUseMipMaps
-                            }
-                        );
-
-                        auto textureData1 = engine::graphics::parseTextureData(imageBytes1, {
-                                .flags = engine::graphics::TextureFlags::eUseMipMaps
-                            }
-                        );
-
-                        convertTextureDataFormat(rhi::Format::eR8G8B8A8_Srgb, textureData0);
-                        convertTextureDataFormat(rhi::Format::eR8G8B8A8_Unorm, textureData1);
-
-                        auto image0 = textureManager->generateImage(std::move(textureData0), commandList);
-                        auto image1 = textureManager->generateImage(std::move(textureData1), commandList);
-
-                        callbacks.emplace_back([image0 = std::move(image0), image1 = std::move(image1)](){
-                            textureManager->getImageHandler("bricks")->image = std::move(image0);
-                            textureManager->getImageHandler("bricks_normal")->image = std::move(image1);
-                        });
-                    }});
-                }
             }
         }
 
@@ -1792,6 +1721,7 @@ namespace example {
                 ImGui::EndMenu();
             }
 
+            ImGui::Text("resolution: %dx%d\t", gStats.width, gStats.height);
             ImGui::Text("frames inflight: %d\t", gStats.inFlightFramesCount);
             static float gDelta = 0.0f;
             static uint16_t gFps = 0u;
@@ -1826,7 +1756,7 @@ namespace example {
             if (ImGui::MenuItem(str)) {
                 // todo: show graph
             }
-            
+
             ImGui::EndMainMenuBar();
         }
 
@@ -1925,7 +1855,7 @@ namespace example {
 
         static bool meshLoaded = false;
         if (!meshLoaded) {
-            const auto modelIndex = modelManager->getModelDataIdx("model.glb");
+            const auto modelIndex = modelManager->getModelDataIdx("model");
             if (modelManager->isDataReady(modelIndex)) {
                 meshLoaded = true;
                 engine::scene::MeshPipelines pipelines = {
@@ -1933,7 +1863,7 @@ namespace example {
                     .skeletalPipeline = 3u
                 };
 
-                auto const animId = animationManager.getAnimationIndex("skeletal_mesh_anim0");
+                auto const animId = animationManager.getAnimationIndex("model_anim0");
                 for (size_t i = 0u; i < 500u; ++i) {
                     auto * meshRoot = engine::scene::createNodeWithSkeletalMesh(*scene, *modelManager, modelIndex, 
                         engine::scene::Bounds::Type::eCube, pipelines, 
@@ -1965,7 +1895,7 @@ namespace example {
 
         static bool meshLoaded2 = false;
         if (!meshLoaded2) {
-            const auto modelIndex = modelManager->getModelDataIdx("scene.gltf");
+            const auto modelIndex = modelManager->getModelDataIdx("scene");
             if (modelManager->isDataReady(modelIndex)) {
                 meshLoaded2 = true;
                 engine::scene::MeshPipelines pipelines = {
@@ -1985,7 +1915,7 @@ namespace example {
 
         static bool meshLoaded3 = false;
         if (!meshLoaded3) {
-            const auto modelIndex = modelManager->getModelDataIdx("wheel.glb");
+            const auto modelIndex = modelManager->getModelDataIdx("wheel");
             if (modelManager->isDataReady(modelIndex)) {
                 meshLoaded3 = true;
                 engine::scene::MeshPipelines pipelines = {
@@ -2010,14 +1940,14 @@ namespace example {
 
         static bool meshLoaded4 = false;
         if (!meshLoaded4) {
-            const auto modelIndex = modelManager->getModelDataIdx("buster_drone.glb");
+            const auto modelIndex = modelManager->getModelDataIdx("buster_drone");
             if (modelManager->isDataReady(modelIndex)) {
                 meshLoaded4 = true;
                 engine::scene::MeshPipelines pipelines = {
                     .commonPipeline = 1u, 
                     .skeletalPipeline = 3u
                 };
-                auto const animId = animationManager.getAnimationIndex("buster_anim0");
+                auto const animId = animationManager.getAnimationIndex("buster_drone_anim0");
                 for (uint8_t i = 0u; i < 20u; ++i) {
                     auto * meshRoot = engine::scene::createNodeWithSkeletalMesh(*scene, *modelManager, modelIndex, 
                         engine::scene::Bounds::Type::eCube, pipelines, 
@@ -2037,7 +1967,7 @@ namespace example {
 
         static bool meshLoaded5 = false;
         if (!meshLoaded5) {
-            const auto modelIndex = modelManager->getModelDataIdx("chaman.gltf");
+            const auto modelIndex = modelManager->getModelDataIdx("chaman");
             if (modelManager->isDataReady(modelIndex)) {
                 meshLoaded5 = true;
                 engine::scene::MeshPipelines pipelines = {
@@ -2064,7 +1994,7 @@ namespace example {
 
         static bool meshLoaded6 = false;
         if (!meshLoaded6) {
-            const auto modelIndex = modelManager->getModelDataIdx("cathedral.glb");
+            const auto modelIndex = modelManager->getModelDataIdx("cathedral");
             if (modelManager->isDataReady(modelIndex)) {
                 meshLoaded6 = true;
                 engine::scene::MeshPipelines pipelines = {
@@ -2083,7 +2013,7 @@ namespace example {
 
         static bool meshLoaded7 = false;
         if (!meshLoaded7) {
-            const auto modelIndex = modelManager->getModelDataIdx("windmill.glb");
+            const auto modelIndex = modelManager->getModelDataIdx("windmill");
             if (modelManager->isDataReady(modelIndex)) {
                 meshLoaded7 = true;
                 engine::scene::MeshPipelines pipelines = {
