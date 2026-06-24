@@ -34,6 +34,11 @@ layout (location = 4) out vec2 out_metalicRoughness;
 
 void main() {
 	out_albedo = texture(u_texture_color, v_uv) * push.color;
+
+	//if (gl_FragCoord.x > 100.0f && gl_FragCoord.x < 500.0f) {
+	//	out_albedo *= vec4(1.0f, 0.0f, 0.0f, 1.0f);
+	//}
+
 	if (out_albedo.a < push.metalicRoughnessAlphaCut.z) {
 		discard;
 		return;

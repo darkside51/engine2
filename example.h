@@ -77,15 +77,8 @@ private:
     std::vector<engine::rhi::runtime::FrameBufferPtr> _mainFrameBuffers;
     std::vector<engine::rhi::runtime::FrameBufferPtr> _sceneFrameBuffers;
 
-    // ssao
-    engine::rhi::runtime::BufferPtr _ssaoKernelBuffer;
-    engine::rhi::runtime::ImagePtr _ssaoNoise;
-
     std::vector<GBufferAttachments> _gBufferAttachments;
-    std::vector<engine::rhi::runtime::ImagePtr> _ssaoImages;
-    std::vector<engine::rhi::runtime::ImagePtr> _ssaoBluredImages;
     std::vector<engine::rhi::runtime::FrameBufferPtr> _gBuffers;
-    std::vector<engine::rhi::runtime::FrameBufferPtr> _ssaoBuffers;
     std::vector<engine::rhi::runtime::FrameBufferPtr> _emissiveBluredBuffers;
 
     engine::rhi::runtime::QueuePtr _renderQueue;

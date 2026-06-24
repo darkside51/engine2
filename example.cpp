@@ -41,6 +41,7 @@
 #include "graphics/common/material.h"
 #include "graphics/common/background_command_context.h"
 #include "graphics/render/techniques/cascade_shadow_map.h"
+#include "graphics/render/techniques/ssao.h"
 
 #include <deque>
 #include <optional>
@@ -110,6 +111,8 @@ namespace example {
         engine::vec4f splits;
         engine::vec4f options;
     };
+
+    engine::graphics::Ssao ssao;
 
     //
     engine::rhi::runtime::ImagePtr skyBoxCubeMapImage = nullptr;
@@ -461,8 +464,7 @@ namespace example {
         materialManager.destroy();
         textureManager->destroy();
 
-        _ssaoKernelBuffer = {};
-        _ssaoNoise = {};
+        ssao.destroy();
 
         shadowMapUniformBuffer = nullptr;
         shadowMap = nullptr;
@@ -643,12 +645,11 @@ namespace example {
         }
 
         // ssao:
-        // ssao attachments
+        ssao.resize(*_api, *_device, _renderPasses[kSsaoRenderPass], framesCount, size.width, size.height);
+
+        // gBuffer attachments
         _gBufferAttachments.clear();
         _gBufferAttachments.reserve(framesCount);
-
-        _ssaoImages.clear();
-        _ssaoImages.reserve(framesCount);
 
         auto positionImageInfo = engine::rhi::ImageInfo{
             engine::rhi::ImageUsageFlags::eColor_Attachment | engine::rhi::ImageUsageFlags::eSampled,
@@ -669,12 +670,6 @@ namespace example {
         depthImageInfo.memoryFlags = engine::rhi::MemoryPropertyFlags::eDeviceLocal | engine::rhi::MemoryPropertyFlags::eLazilyAllocated;
         depthImageInfo.memoryExtFlags = engine::rhi::MemoryExtendedFlags::eDedicated;
 
-        auto ssaoImageInfo = engine::rhi::ImageInfo{
-            engine::rhi::ImageUsageFlags::eColor_Attachment | engine::rhi::ImageUsageFlags::eSampled,
-            engine::rhi::Format::eR8_Unorm, {size.width, size.height, 1u}
-        };
-        ssaoImageInfo.memoryExtFlags = engine::rhi::MemoryExtendedFlags::eDedicated;
-
         auto metallicRoughnessColorImageInfo = engine::rhi::ImageInfo{
             engine::rhi::ImageUsageFlags::eColor_Attachment | engine::rhi::ImageUsageFlags::eSampled,
             engine::rhi::Format::eR8G8_Unorm, {size.width, size.height, 1u}
@@ -691,16 +686,11 @@ namespace example {
                 _api->createImage(*_device, depthImageInfo), // depth
                 _api->createImage(*_device, metallicRoughnessColorImageInfo) // metallicRoughness
             );
-
-            _ssaoImages.emplace_back(_api->createImage(*_device, ssaoImageInfo));
         }
 
-        // ssao framebuffers
+        // gBuffer framebuffers
         _gBuffers.clear();
         _gBuffers.reserve(framesCount);
-
-        _ssaoBuffers.clear();
-        _ssaoBuffers.reserve(framesCount);
 
         for (uint32_t i = 0u; i < framesCount; ++i) {
             {
@@ -737,15 +727,6 @@ namespace example {
                 fbAttachemnts[5u].aspect = engine::rhi::ImageAspectFlags::eDepth;
 
                 _gBuffers.emplace_back(_api->createFrameBuffer(*_device, std::move(fbAttachemnts), _renderPasses[kGbufferRenderPass]));
-            }
-
-            {
-                std::vector<engine::rhi::FrameBufferAttachment> fbAttachemnts{1u};
-                auto & image = _ssaoImages[i];
-                fbAttachemnts[0u].image = image.get();
-                fbAttachemnts[0u].imageSize = {image->getExtent().width, image->getExtent().height};
-
-                _ssaoBuffers.emplace_back(_api->createFrameBuffer(*_device, std::move(fbAttachemnts), _renderPasses[kSsaoRenderPass]));
             }
         }
 
@@ -810,10 +791,9 @@ namespace example {
                 engine::rhi::Format::eR8G8_Unorm,
                 depthFormat
                 };
-            const auto formatsSsao = std::array{engine::rhi::Format::eR8_Unorm};
 
             _renderPasses.emplace_back(_api->getRenderPass(*_device, engine::parseRenderPass(json["gBuffer"], formatsGBuffer))); // kGbufferRenderPass
-            _renderPasses.emplace_back(_api->getRenderPass(*_device, engine::parseRenderPass(json["ssao"], formatsSsao))); // kSsaoRenderPass
+            _renderPasses.emplace_back(_api->getRenderPass(*_device, engine::parseRenderPass(json["ssao"], ssao.formatsArray()))); // kSsaoRenderPass
         }
 
         { // blur
@@ -1434,77 +1414,12 @@ namespace example {
         }
 
         //
-        // ssao kenel
-        constexpr auto lerp = [](float a, float b, float f) noexcept {
-            return a + f * (b - a);
-        };
-
-        std::vector<engine::vec4f> ssaoKernel(kSsaoKernelSize);
-		for (uint8_t i = 0u; i < kSsaoKernelSize; ++i) {
-			engine::vec3f sample{engine::common::random(-1.0f, 1.0f), engine::common::random(-1.0f, 1.0f), engine::common::random(0.0f, 1.0f)};
-			sample = glm::normalize(sample);
-			sample *= engine::common::random(0.0f, 1.0f);
-			float scale = float(i) / float(kSsaoKernelSize);
-			scale = lerp(0.1f, 1.0f, scale * scale);
-			ssaoKernel[i] = {sample * scale, 0.0f};
-		}
-        BufferInfo kernelBufferInfo {
-            BufferUsageFlags::eUniform_Buffer | BufferUsageFlags::eTransfer_Dst,
-            MemoryPropertyFlags::eDeviceLocal
-        };
-
-        _ssaoKernelBuffer = _api->createBuffer(*_device, kernelBufferInfo, ssaoKernel.size() * sizeof(engine::vec4f));
-
-        // ssao noise
-        std::vector<engine::vec2f> noiseValues(kSsaoNoiseDim * kSsaoNoiseDim);
-		for (size_t i = 0u; i < noiseValues.size(); ++i) {
-			noiseValues[i] = {engine::common::random(-1.0f, 1.0f), engine::common::random(-1.0f, 1.0f)};
-            // noiseValues[i] = {
-            //     static_cast<float>(engine::common::random(-32'767, 32'767)) / 32'767.0f, 
-            //     static_cast<float>(engine::common::random(-32'767, 32'767)) / 32'767.0f
-            // };
-		}
-
-        const auto noiseImageInfo = ImageInfo{
-            ImageUsageFlags::eSampled | ImageUsageFlags::eTransfer_Dst,
-            Format::eR32G32_Sfloat, {kSsaoNoiseDim, kSsaoNoiseDim, 1u}
-        };
-
-        _ssaoNoise = _api->createImage(*_device, noiseImageInfo);
-
-        { // fill ssao data
-            const auto kernelDataSize = kSsaoKernelSize * sizeof(decltype(ssaoKernel)::value_type);
-            const auto noiseDataSize = noiseValues.size() * sizeof(decltype(noiseValues)::value_type);
-            const auto stagingSize = kernelDataSize + noiseDataSize;
-
-            engine::graphics::StagingBuffer staging{*_api, *_device, stagingSize};
-            
-            std::byte * memory = staging.map();
-            const auto kernelOffset = staging.requestBytes(kernelDataSize);
-            const auto noiseOffset = staging.requestBytes(noiseDataSize);
-
-            auto * kernelData = (memory + kernelOffset);
-            auto * noiseData = (memory + noiseOffset);
-
-            std::memcpy(kernelData, ssaoKernel.data(), kernelDataSize);
-            std::memcpy(noiseData, noiseValues.data(), noiseDataSize);
-            staging.flush();
-
-            tmpCommandList->copyBuffer2Buffer(staging.getBuffer(), _ssaoKernelBuffer, 
-                {.srcOffset = kernelOffset, .dstOffset = 0u, .size = kernelDataSize}
-            );
-
-            tmpCommandList->copyBuffer2Image(staging.getBuffer(), _ssaoNoise, 
-                {
-                    .bufferOffset = noiseOffset,
-                    .bufferRowLength = 0u,
-                    .bufferImageHeight = 0u,
-                    .imageSubresource = {.aspectMask = engine::rhi::ImageAspectFlags::eColor},
-                    .imageOffset = {0u, 0u, 0u},
-                    .imageExtent = _ssaoNoise->getExtent()
-                }
-            );
-        }
+        ssao.createConstResources(*_api, *_device, *tmpCommandList, 
+            {
+                .kernelSize = kSsaoKernelSize,
+                .noiseDim = kSsaoNoiseDim
+            }
+        );
         //
 
         // create post buffers and default image
@@ -2326,7 +2241,7 @@ namespace example {
             .options = {ssaoRadius, ssaoBias, ssaoRangeDepth, static_cast<float>(ssaoRangeMethod)}
         };
 
-        commandList->beginRenderPass(_renderPasses[kSsaoRenderPass], _ssaoBuffers[frameId], clearValues, {{0, 0}, {width, height}});
+        commandList->beginRenderPass(_renderPasses[kSsaoRenderPass], ssao.getFrameBuffer(frameId), clearValues, {{0, 0}, {width, height}});
 
         commandList->bindPipeline(_pipelines[kSsaoPipeline]);
         commandList->bindVertexBuffer(0u, _postPositions);
@@ -2334,8 +2249,8 @@ namespace example {
 
         commandList->bindImage(0u, _gBufferAttachments[frameId].position, nearestSampler);
         commandList->bindImage(1u, _gBufferAttachments[frameId].normal, nearestSampler);
-        commandList->bindImage(2u, _ssaoNoise, rhi::SamplerValue{});
-        commandList->bindBuffer(3u, _ssaoKernelBuffer);
+        commandList->bindImage(2u, ssao.getNoiseImage(), rhi::SamplerValue{});
+        commandList->bindBuffer(3u, ssao.getKernelBuffer());
         commandList->pushConstants(engine::rhi::shaders::Stages::eVertex | engine::rhi::shaders::Stages::eFragment, 0u, sizeof(SsaoParams), &ssaoParams);
         commandList->drawIndexed(6u);
 
@@ -2407,7 +2322,7 @@ namespace example {
         commandList->bindIndexBuffer(_postIndices, 0u, rhi::IndexType::eU16);
         //commandList->bindImage(0u, _colorAttachmentImages[frameId], rhi::SamplerValue{});
 
-        commandList->bindImage(0u, _ssaoImages[frameId], linearSampler);
+        commandList->bindImage(0u, ssao.getImage(frameId), linearSampler);
         commandList->bindImage(1u, _gBufferAttachments[frameId].normal, nearestSampler);
         commandList->bindImage(2u, _gBufferAttachments[frameId].albedo, nearestSampler);
         commandList->bindImage(3u, _gBufferAttachments[frameId].emissive, linearSampler);

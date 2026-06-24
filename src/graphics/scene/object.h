@@ -16,7 +16,7 @@ namespace engine::scene {
     }
 
     struct AttachmentObject /*: IntrusiveListNode<Object>*/ {
-        inline static uint32_t gUID = 0u;
+        inline static uint32_t gUID = 0xff'ff'ff'ffu; // max value, first add set id 0u
         struct Flags {
             uint8_t flags = 0u;
 
@@ -43,7 +43,7 @@ namespace engine::scene {
         uint8_t animationQualityFactor = 0u;
         uint8_t qualityLevelsId = 0xffu;
 
-        AttachmentObject(uint16_t typeIndex) : id(gUID++), typeIndex(typeIndex) {}
+        AttachmentObject(uint16_t typeIndex) : id(++gUID), typeIndex(typeIndex) {}
         /*virtual*/ ~AttachmentObject() = default; // call typed, virtual not need
 
         // void setLayer(uint16_t l) noexcept { layer = l; }
