@@ -552,12 +552,11 @@ namespace example {
         addInputObserver(&_imgui);
         addInputObserver(&sceneEventHandler);
 
-        controller.setDistance(8.0f);
+        controller.setDistance(10.0f);
         controller.setMinMaxDistance(0.01f, 30.0f);
         controller.setRotation({-1.3f, 0.0f, 0.5f});
 
-        // camera.makePerspective(std::numbers::pi_v<float> / 3.0f, 1024.0f / 768.0f, 0.001f, 100.0f);
-        camera.makePerspective(std::numbers::pi_v<float> / 3.0f, 1920.0f / 1080.0f, kNearFarPlane.x, kNearFarPlane.y); // reverse depth;
+        camera.makePerspective(std::numbers::pi_v<float> / 3.0f, 16.0f / 9.0f, kNearFarPlane.x, kNearFarPlane.y);
     }
 
     Example::~Example() = default;
