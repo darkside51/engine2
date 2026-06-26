@@ -99,6 +99,8 @@ set(
 	input
 	log
 	math
+
+	network
 	
 	threads
 	threads/thread_pool
@@ -279,6 +281,17 @@ set(
 	sail-c++
 	)
 message("sail library end")
+
+# curl
+message("curl library begin")
+add_3rdparty_project (${CMAKE_CURRENT_SOURCE_DIR}/../3rd_party/curl ${CMAKE_BINARY_DIR}/3rd_party/curl)
+target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../3rd_party/curl/include)
+target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_BINARY_DIR}/3rd_party/curl/include/curl)
+set(
+	USED_FRAMEWORKS ${USED_FRAMEWORKS}
+	libcurl
+	)
+message("curl library end")
 
 target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../3rd_party/glm)
 target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../3rd_party/imgui)
