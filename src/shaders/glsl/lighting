@@ -1,3 +1,5 @@
+#ifndef LIGHTING_HEADER
+#define LIGHTING_HEADER
 
 float textureProj(in sampler2DArrayShadow shadowTex, vec4 shadowCoord, vec2 offset, uint cascadeIndex, float bias, float ambient) {
 	if (shadowCoord.z > 0.0f && shadowCoord.z < 1.0f) {
@@ -35,3 +37,5 @@ float filterPCF(in sampler2DArray shadowTex, vec4 sc, uint cascadeIndex, float b
 	}
 	return shadowFactor / count;
 }
+
+#endif

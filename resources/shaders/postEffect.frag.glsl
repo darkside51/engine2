@@ -1,10 +1,10 @@
 #version 450
 
-#import common
-#import lighting
-#import blur
-#import colors
-#import pbr
+#include "common"
+#include "lighting"
+#include "blur"
+#include "colors"
+#include "pbr"
 
 layout (constant_id = 0) const uint shadowCascades = 2;
 

@@ -1,3 +1,6 @@
+#ifndef PBR_HEADER
+#define PBR_HEADER
+
 const float PI = 3.14159265359f;
 // Trowbridge-Reitz GGX Normal Distribution Function
 float distributionGGX(float dotNH, float roughness) {
@@ -26,3 +29,5 @@ float geometrySmith(float dotNV, float dotNL, float roughness) {
 vec3 fresnelSchlick(float cosTheta, vec3 F0) {
     return F0 + (1.0f - F0) * pow(1.0f - cosTheta, 5.0f);
 }
+
+#endif

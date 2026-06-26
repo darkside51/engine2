@@ -187,6 +187,11 @@ namespace engine {
         return (T(0) < val) - (val < T(0));
     }
 
+    template<typename T>
+    inline float fract(T && x) noexcept {
+        return x - std::floor(x);
+    }
+
     template<typename V>
     inline bool compare(const V & v1, const V & v2, typename V::value_type eps) noexcept {
         for (typename V::length_type i = 0U; i < V::length(); ++i) {

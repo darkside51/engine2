@@ -1,3 +1,6 @@
+#ifndef COMMON_HEADER
+#define COMMON_HEADER
+
 float min3(vec3 v) {
 	return min(min(v.x, v.y), v.z);
 }
@@ -47,3 +50,5 @@ mat3 buildRotationMatrix(vec3 from, vec3 to) {
         v.x * v.z * k - v.y, 	v.y * v.z * k + v.x, 	v.z * v.z * k + c
     );
 }
+
+#endif

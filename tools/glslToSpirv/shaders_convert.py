@@ -11,19 +11,20 @@ def convert(inDir, fileName, outDir, glslcPath):
     fileData=""
     file = open(inDir + fileName, 'r')
     for line in file:
-        if line.find('#import') == 0:
-            includeFileName = line.replace('#import ', '')
-            includeFileName = includeFileName.replace('\n', '')
-            file2 = open(inDir + includeFileName, 'r')
-            fileData2 = file2.read()
-            fileData = fileData + fileData2
-            file2.close()
-        else:
-            fileData = fileData + line
+        fileData = fileData + line
+        #if line.find('#import') == 0:
+        #    includeFileName = line.replace('#import ', '')
+        #    includeFileName = includeFileName.replace('\n', '')
+        #    file2 = open(inDir + includeFileName, 'r')
+        #    fileData2 = file2.read()
+        #    fileData = fileData + fileData2
+        #    file2.close()
+        #else:
+        #    fileData = fileData + line
             
     file.close();
 
-    tmpFileName = inDir + '/tmp/' + fileName
+    tmpFileName = inDir + 'tmp/' + fileName
     tmpFileName = tmpFileName.replace('.glsl', '')
 
     file3 = open(tmpFileName, 'w')
@@ -31,7 +32,9 @@ def convert(inDir, fileName, outDir, glslcPath):
     file3.close()
 
     outFile = outDir + fileName.replace('.glsl', '.spv')
-    subprocess.run(['glslc', '-O', tmpFileName, '-o', outFile])
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    include_dir =  script_dir + '/../../src/shaders/glsl/'
+    subprocess.run(['glslc', '-I', include_dir, '-O', tmpFileName, '-o', outFile])
     os.remove(tmpFileName)
 
 def checkIsShaderFile(fileName):

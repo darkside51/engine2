@@ -1,3 +1,5 @@
+#ifndef INTERRIOR_MAP_HEADER
+#define INTERRIOR_MAP_HEADER
 
 // common impl
 vec4 calculateRooms (
@@ -128,3 +130,4 @@ vec4 calculateRoomCube(
 	return interiorLight * texture(cubeMap, direction);
 }
 
+#endif

@@ -84,6 +84,9 @@ namespace engine::scene {
     // quality
     constexpr std::array kDefaultQualityLevels = {2.0f, 4.0f, 16.0f, 36.0f, 64.0f, 100.0f, 144.0f};
 
+    // shaders time
+    constexpr float kShaderTimeMultiplier = 0.001f;
+
     // struct ColoredVertex {
     //     std::array<float, 3u> coord;
     //     uint32_t color;
@@ -1104,6 +1107,7 @@ namespace engine::scene {
             {
                 auto * uniform = _viewParamsUniformBuffer->memory2<std::byte>() + _currentViewParamsBufferOffset;
                 memcpy(uniform , &viewParams, sizeof(ViewParams));
+                reinterpret_cast<ViewParams*>(uniform)->time = _shadersTime;
                 _viewParamsUniformBuffer->modify(sizeof(ViewParams), _currentViewParamsBufferOffset);
             }
                 break;
@@ -1850,6 +1854,9 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
         _uniqueSkeletons = 0u;
 
         completeAnimations();
+
+        const std::chrono::duration<float> nowDuration = now.time_since_epoch();
+        _shadersTime = fract(nowDuration.count() * kShaderTimeMultiplier);
 
         ++_frameNumber;
     }

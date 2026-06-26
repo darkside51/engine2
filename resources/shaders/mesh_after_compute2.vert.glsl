@@ -9,6 +9,7 @@ layout (set = 0, binding = 0) uniform UniformBuffer {
 	mat4 viewProjection;
 	vec3 cameraPosition;
 	vec2 nearFarPlanes;
+	float time;
 } u_viewParams;
 
 //layout (set = 1, binding = 0) readonly buffer Positions {

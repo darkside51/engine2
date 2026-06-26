@@ -1,6 +1,6 @@
 #version 450
 
-#import common
+#include "common"
 
 layout (constant_id = 0) const int kSsaoKernelSize = 32;
 //layout (constant_id = 1) const float kSsaoRadius = 0.2f;

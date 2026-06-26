@@ -77,6 +77,7 @@ struct ViewParams {
     mat4f cameraTransform;
     vec3f cameraPosition;
     vec2f nearFarPlanes;
+    float time = 0.0f;
 };
 
 struct ShadowViewParams {
@@ -199,8 +200,9 @@ public:
         });
     }
 
+    float getShadersTime() const noexcept { return _shadersTime; }
+
 private:
-    
     // attachments
     static bool compareAttachmentsForDraw(const AttachmentObject & a, const AttachmentObject & b) noexcept;
     void calculateQualityFactors(engine::scene::AttachmentObject* object, const ViewParams & viewParams) noexcept;
@@ -244,6 +246,7 @@ private:
     using AnimationInfosAllocator = allocators::PoolAllocatorChain<sizeof(AnimationInfoChain), alignof(AnimationInfoChain), false, false>;
     AnimationInfosAllocator _animationInfosAllocator{512u, 256u};
 
+    float _shadersTime = 0.0f;
     uint32_t _frameNumber = 0u;
     Node * _rootNode = nullptr;
 

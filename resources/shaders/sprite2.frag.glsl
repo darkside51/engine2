@@ -1,7 +1,7 @@
 #version 450
 
-#import common
-#import interrior_maps
+#include "common"
+#include "interrior_maps"
 
 layout(set = 0, binding = 1) uniform sampler2D texture0;
 layout(set = 0, binding = 2) uniform sampler2D texture_normal;
@@ -25,6 +25,7 @@ layout (set = 0, binding = 0) uniform UniformBuffer {
 	mat4 viewProjection;
 	vec3 cameraPosition;
 	vec2 nearFarPlanes;
+	float time;
 } u_viewParams;
 
 void main() {
@@ -55,6 +56,9 @@ void main() {
 
 		out_albedo = mix(out_albedo, window, s);
 		out_metalicRoughness = vec2(0.7f, 0.3f);
+
+		//float rnd = noise2(20.0f * v_uv * 0.5f + 0.5f);
+    	//out_albedo = vec4(vec3(rnd),1.0);
 	} else {
 		const vec3 tangent = vec3(-1.0f, 0.0f, 0.0f);
 		const vec3 binormal = (gl_FrontFacing ? 1.0f : -1.0f) * cross(normal, tangent) * sign(dot(normal, tangent));

@@ -1,3 +1,5 @@
+#ifndef BLUR_HEADER
+#define BLUR_HEADER
 
 float radialBlur(in sampler2D tex, vec2 uv, int blurRange) {
 	int n = 0;
@@ -12,3 +14,5 @@ float radialBlur(in sampler2D tex, vec2 uv, int blurRange) {
 	}
 	return result / float(n);
 }
+
+#endif

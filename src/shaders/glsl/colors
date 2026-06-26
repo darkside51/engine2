@@ -1,3 +1,5 @@
+#ifndef COLOR_HEADER
+#define COLOR_HEADER
 
 vec3 rgb2hsv(vec3 c) {
     vec4 K = vec4(0.0f, -1.0f / 3.0f, 2.0f / 3.0f, -1.0f);
@@ -19,3 +21,5 @@ vec3 saturate(vec3 c, float s) {
 	c.g *= s;
 	return hsv2rgb(c.rgb);
 }
+
+#endif

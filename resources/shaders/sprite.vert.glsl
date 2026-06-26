@@ -22,6 +22,7 @@ layout (set = 0, binding = 0) uniform UniformBuffer {
 	mat4 viewProjection;
 	vec3 cameraPosition;
 	vec2 nearFarPlanes;
+	float time;
 } u_viewParams;
 
 void main() {
