@@ -147,7 +147,100 @@ namespace engine::graphics {
         return false;
     }
 
-    void ModelManager::generateGpuBuffers(rhi::runtime::Rhi & api, rhi::runtime::Device & device, rhi::runtime::CommandListPtr & commandList) {
+    void ModelManager::generateGpuBuffers(
+        uint32_t index, 
+        models::MeshBuffersData && buffers,
+        rhi::runtime::Rhi & api, 
+        rhi::runtime::Device & device,
+        rhi::runtime::CommandList & commandList
+    ) {
+        using namespace rhi;
+        using namespace graphics;
+
+        //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        const BufferInfo verticesBufferInfo {
+            BufferUsageFlags::eVertex_Buffer | rhi::BufferUsageFlags::eUniform_Texel_Buffer | BufferUsageFlags::eTransfer_Dst,
+            MemoryPropertyFlags::eDeviceLocal
+        };
+
+        const BufferInfo indicesBufferInfo {
+            BufferUsageFlags::eIndex_Buffer | BufferUsageFlags::eTransfer_Dst,
+            MemoryPropertyFlags::eDeviceLocal
+        };
+
+        const BufferInfo uniqueIndicesBufferInfo {
+            rhi::BufferUsageFlags::eStorage_Buffer | BufferUsageFlags::eTransfer_Dst,
+            MemoryPropertyFlags::eDeviceLocal
+        };
+
+        uint32_t allDataSize = 0u;
+
+        const auto & [vertices, indices, uIndices] = buffers;
+        auto & gpuData = _gpuData[index];
+        gpuData.indexBuffer = api.createBuffer(device, indicesBufferInfo, sizeof(uint32_t) * indices.size());
+        allDataSize += sizeof(uint32_t) * indices.size();
+
+        gpuData.uniqueIndicesBuffer = api.createBuffer(device, uniqueIndicesBufferInfo, sizeof(uint32_t) * uIndices.size());
+        allDataSize += sizeof(uint32_t) * uIndices.size();
+
+        gpuData.vertexBuffers.reserve(vertices.size());
+
+        for (const auto & vb : vertices) {
+            if (const auto size = vb.size()) {
+                gpuData.vertexBuffers.emplace_back(api.createBuffer(device, verticesBufferInfo, size));
+                allDataSize += size;
+            } else {
+                gpuData.vertexBuffers.emplace_back(nullptr);
+            }
+        }
+
+        StagingBuffer staging{api, device, allDataSize};
+        auto & stagingBuffer = staging.getBuffer();
+        std::byte * memory = staging.map();
+
+        // indices
+        auto const sizeInBytes = gpuData.indexBuffer->sizeInBytes();
+        const auto indexBufferOffset = staging.requestBytes(sizeInBytes);
+        auto * idxData = (memory + indexBufferOffset);
+        std::memcpy(idxData, indices.data(), sizeInBytes);
+
+        commandList.copyBuffer2Buffer(stagingBuffer, gpuData.indexBuffer, 
+            {.srcOffset = indexBufferOffset, .dstOffset = 0u, .size = sizeInBytes});
+
+        // uIndices - need only for compute skinning!
+        auto const sizeInBytes2 = gpuData.uniqueIndicesBuffer->sizeInBytes();
+        const auto indexBufferOffset2 = staging.requestBytes(sizeInBytes2);
+        auto * idxData2 = (memory + indexBufferOffset2);
+        std::memcpy(idxData2, uIndices.data(), sizeInBytes2);
+
+        commandList.copyBuffer2Buffer(stagingBuffer, gpuData.uniqueIndicesBuffer, 
+            {.srcOffset = indexBufferOffset2, .dstOffset = 0u, .size = sizeInBytes2});
+
+        // vertices
+        size_t i = 0u;
+        for (auto & vb : gpuData.vertexBuffers) {
+            if (vb == nullptr) {
+                ++i;
+                continue;
+            }
+            if (auto const sizeInBytes = vb->sizeInBytes(); sizeInBytes > 0u) {
+                const auto bufferOffset = staging.requestBytes(sizeInBytes);
+                auto * data = (memory + bufferOffset);
+                std::memcpy(data, vertices[i].data(), sizeInBytes);
+
+                commandList.copyBuffer2Buffer(stagingBuffer, vb, 
+                    {.srcOffset = bufferOffset, .dstOffset = 0u, .size = sizeInBytes});
+            }
+            ++i;
+        }
+
+        staging.flush();
+        staging.unmap();
+
+        // _models[index].second = true;
+    }
+
+    void ModelManager::generateGpuBuffers(rhi::runtime::Rhi & api, rhi::runtime::Device & device, rhi::runtime::CommandList & commandList) {
         using namespace rhi;
         using namespace graphics;
         
@@ -208,7 +301,7 @@ namespace engine::graphics {
             auto * idxData = (memory + indexBufferOffset);
             std::memcpy(idxData, indices.data(), sizeInBytes);
 
-            commandList->copyBuffer2Buffer(stagingBuffer, gpuData.indexBuffer, 
+            commandList.copyBuffer2Buffer(stagingBuffer, gpuData.indexBuffer, 
                 {.srcOffset = indexBufferOffset, .dstOffset = 0u, .size = sizeInBytes});
 
             // uIndices - need only for compute skinning!
@@ -217,7 +310,7 @@ namespace engine::graphics {
             auto * idxData2 = (memory + indexBufferOffset2);
             std::memcpy(idxData2, uIndices.data(), sizeInBytes2);
 
-            commandList->copyBuffer2Buffer(stagingBuffer, gpuData.uniqueIndicesBuffer, 
+            commandList.copyBuffer2Buffer(stagingBuffer, gpuData.uniqueIndicesBuffer, 
                 {.srcOffset = indexBufferOffset2, .dstOffset = 0u, .size = sizeInBytes2});
 
             // vertices
@@ -232,7 +325,7 @@ namespace engine::graphics {
                     auto * data = (memory + bufferOffset);
                     std::memcpy(data, vertices[i].data(), sizeInBytes);
 
-                    commandList->copyBuffer2Buffer(stagingBuffer, vb, 
+                    commandList.copyBuffer2Buffer(stagingBuffer, vb, 
                         {.srcOffset = bufferOffset, .dstOffset = 0u, .size = sizeInBytes});
                 }
                 ++i;

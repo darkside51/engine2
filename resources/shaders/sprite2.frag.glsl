@@ -53,7 +53,7 @@ void main() {
 		//out_albedo = mix(out_albedo, texture(textureCubeMap, -direction) * vec4(0.92f, 0.92f, 1.0f, 1.0f), 0.3f);
 		//out_albedo = mix(out_albedo, vec4(0.67f, 0.82f, 1.0f, 1.0f), 0.3f);
 
-		out_albedo = mix(out_albedo, 2.0f * window, s);
+		out_albedo = mix(out_albedo, window, s);
 		out_metalicRoughness = vec2(0.7f, 0.3f);
 	} else {
 		const vec3 tangent = vec3(-1.0f, 0.0f, 0.0f);

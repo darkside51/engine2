@@ -94,7 +94,19 @@ public:
         return _gpuData[idx];
     }
 
-    void generateGpuBuffers(rhi::runtime::Rhi & api, rhi::runtime::Device & device, rhi::runtime::CommandListPtr & commandList);
+    void generateGpuBuffers(
+        rhi::runtime::Rhi & api, 
+        rhi::runtime::Device & device, 
+        rhi::runtime::CommandList & commandList
+    );
+
+    void generateGpuBuffers(
+        uint32_t index, 
+        models::MeshBuffersData && buffers,
+        rhi::runtime::Rhi & api, 
+        rhi::runtime::Device & device,
+        rhi::runtime::CommandList & commandList
+    );
 
     bool isDataReady(uint32_t idx) const noexcept {
         if (idx >= _models.size()) {
@@ -102,6 +114,12 @@ public:
         }
         
         return _models[idx].second;
+    }
+
+    void setDataReady(uint32_t idx, bool ready) noexcept {
+        if (idx < _models.size()) {
+            _models[idx].second = ready;
+        }
     }
 
 private:
