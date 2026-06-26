@@ -218,6 +218,9 @@ namespace engine {
                 }
             } else {
                 switch (key) {
+                    case GLFW_KEY_BACKSPACE:
+                        k = KeyboardKey::eBackSpace;
+                        break;
                     case GLFW_KEY_SPACE:
                         k = KeyboardKey::eSpace;
                         break;

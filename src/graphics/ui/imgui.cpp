@@ -351,6 +351,7 @@ namespace engine {
         _keyMap[static_cast<uint8_t>(KeyboardKey::eDown)] = {20u, 20u};
         _keyMap[static_cast<uint8_t>(KeyboardKey::eMinus)] = {45u, 95u};
         _keyMap[static_cast<uint8_t>(KeyboardKey::eSlash)] = {47u, 47u};
+        _keyMap[static_cast<uint8_t>(KeyboardKey::ePeriod)] = {46u, 46u};
         _keyMap[static_cast<uint8_t>(KeyboardKey::e0)] = {48u, 41u};
         _keyMap[static_cast<uint8_t>(KeyboardKey::e1)] = {49u, 33u};
         _keyMap[static_cast<uint8_t>(KeyboardKey::e2)] = {50u, 64u};
