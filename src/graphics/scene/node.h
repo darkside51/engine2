@@ -21,8 +21,8 @@ constexpr uint8_t kDefaultState = 1u << kDirtyTransformBit |
 
 struct AttachmentObject;
 
-struct Node {
-    inline static constexpr uint16_t kUnknownId = 0xff'ff;
+struct alignas(32) Node {
+    inline static constexpr uint32_t kUnknownId = 0xff'ff;
     struct State {
         uint8_t state = kDefaultState;
 
@@ -79,15 +79,17 @@ struct Node {
     Node * next = nullptr; // other childrens in parent (brothers)
     Node * firstChild = nullptr; // children begin
     AttachmentObject * attachment = nullptr;
+
     mat4f transform{1.0F};
     mat4f worldTransform{1.0F};
     Transformation transformation{};
     Bounds bounds{};
-    uint16_t id = kUnknownId;
+
+    uint32_t id = kUnknownId;
     State state{kDefaultState};
 
-    uint16_t getId() const noexcept { return id; }
-    void setId(uint16_t nodeId) noexcept { id = nodeId; }
+    uint32_t getId() const noexcept { return id; }
+    void setId(uint32_t nodeId) noexcept { id = nodeId; }
 
     void setTransform(const mat4f & m) noexcept;
     bool calculateWorldTransform(bool recalculate) noexcept;
@@ -149,9 +151,9 @@ struct Node {
     bool removeChild(Node * child) noexcept;
     bool removeFromParent() noexcept;
 
-    Node * getChild(uint16_t nodeId) const noexcept;
-    Node * findChildInHierarchy(uint16_t nodeId) const noexcept;
-    Node * childAt(uint16_t index) const noexcept;
+    Node * getChild(uint32_t nodeId) const noexcept;
+    Node * findChildInHierarchy(uint32_t nodeId) const noexcept;
+    Node * childAt(uint32_t index) const noexcept;
 
     // transformation
     quatf getRotation() const noexcept { return transformation.getRotation(); }

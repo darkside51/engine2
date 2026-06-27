@@ -42,9 +42,20 @@ namespace mesh {
 
         uint16_t skinMatricesCount() const noexcept;
 
-        Node *& node(uint16_t idx) noexcept {
+        Node * node(uint16_t idx) noexcept {
             assert(idx < _nodes.size());
             return _nodes[idx];
+        }
+
+        const Node * node(uint16_t idx) const noexcept {
+            assert(idx < _nodes.size());
+            return _nodes[idx];
+        }
+
+        Node * setNode(uint16_t idx, Node * node) noexcept {
+            assert(idx < _nodes.size());
+            std::swap(_nodes[idx], node);
+            return node;
         }
 
         const graphics::models::MeshData & meshData() const noexcept {

@@ -30,9 +30,9 @@ namespace engine::scene {
         for (const auto & skin : _meshData.skins) {
 			const auto numJoints = skin.joints.size();
             for (uint32_t i = 0u; i < numJoints; ++i) {
-                const auto & node = _nodes[skin.joints[i]];
-                const auto tr = node->getWorldTransform() * skin.inverseBindMatrices[i];
-                target[n] = glm::transpose(tr);
+                target[n] = glm::transpose(
+                    _nodes[skin.joints[i]]->getWorldTransform() * skin.inverseBindMatrices[i]
+                );
                 ++n;
             }
 		}

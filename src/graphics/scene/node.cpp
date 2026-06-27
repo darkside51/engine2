@@ -24,7 +24,7 @@ namespace engine::scene {
         return false;
     }
 
-    Node * Node::getChild(uint16_t nodeId) const noexcept {
+    Node * Node::getChild(uint32_t nodeId) const noexcept {
         if (firstChild == nullptr) {
             return nullptr;
         }
@@ -40,7 +40,7 @@ namespace engine::scene {
         return nullptr;
     }
 
-    Node * Node::findChildInHierarchy(uint16_t nodeId) const noexcept {
+    Node * Node::findChildInHierarchy(uint32_t nodeId) const noexcept {
         auto * result = getChild(nodeId);
         if (result == nullptr) {
             Node * n = firstChild;
@@ -54,9 +54,9 @@ namespace engine::scene {
         return result;
     }
 
-    Node * Node::childAt(uint16_t index) const noexcept {
+    Node * Node::childAt(uint32_t index) const noexcept {
         auto * result = firstChild;
-        uint16_t current = 0u;
+        uint32_t current = 0u;
         while (result && current < index) {
             result = result->next;
             ++current;

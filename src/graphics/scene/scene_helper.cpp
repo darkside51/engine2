@@ -21,7 +21,7 @@ void loadNodes(Scene & scene, const graphics::ModelManager::ModelBuffers & gpuBu
     }
 
     if (skeleton) {
-        skeleton->node(nodeId) = current;
+        skeleton->setNode(nodeId, current);
     }
 
     const auto & node = meshData.nodes[nodeId];

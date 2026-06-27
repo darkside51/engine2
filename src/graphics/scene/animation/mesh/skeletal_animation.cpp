@@ -238,7 +238,7 @@ namespace engine::scene {
             const auto defaultPosition = vec3f{defaultNode.translation.x, defaultNode.translation.y, defaultNode.translation.z};
             const auto defaultQuat = quatf{defaultNode.rotation.w, defaultNode.rotation.x, defaultNode.rotation.y, defaultNode.rotation.z};
 
-            auto & target = skeleton.node(i);
+            auto * target = skeleton.node(i);
             if ((transform.mask & TransformChangeFlags::eScale) != TransformChangeFlags::eNone) {
                 target->setScale(transform.scale);
             } else {

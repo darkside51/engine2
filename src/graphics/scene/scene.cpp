@@ -23,6 +23,7 @@
 
 namespace {
     consteval void _() noexcept {
+        using namespace engine;
         using namespace engine::scene;
 
         static_assert(sizeof(AnimationInfo) == 12u);
@@ -34,9 +35,14 @@ namespace {
         static_assert(sizeof(Sprite) == 136u);
 
         #ifdef SIMD_MATH
-        static_assert(sizeof(Node) == 272u);
+        static_assert(sizeof(Node) == 288u);
         static_assert(sizeof(Bounds) == 48u);
         static_assert(sizeof(Transformation) == 48u);
+        static_assert(alignof(Node) == 32u);
+        static_assert(alignof(void*) == 8u);
+        static_assert(alignof(mat4f) == 16u);
+        static_assert(alignof(Bounds) == 16u);
+        static_assert(alignof(Transformation) == 16u);
         #else
         static_assert(sizeof(Node) == 232u);
         static_assert(sizeof(Bounds) == 28u);
