@@ -43,6 +43,8 @@
 #include "graphics/render/techniques/cascade_shadow_map.h"
 #include "graphics/render/techniques/ssao.h"
 
+#include "network/network_loader_curl.h"
+
 #include <deque>
 #include <optional>
 
@@ -160,6 +162,8 @@ namespace example {
     engine::vec4f shadowsOptions = {0.2f, 0.0f, 0.0f, 0.0f};
     bool lightDirty = false;
     float saturation = 1.0f;
+
+    engine::network::CurlNetworkLoader curlNetworkLoader;
 
     void optionsWindow() {
         ImGui::SetNextWindowSize(ImVec2(540, 840), ImGuiCond_FirstUseEver);
@@ -536,6 +540,9 @@ namespace example {
         }
 
         bool onInpuKeyEvent(const engine::KeyEvent & event, const engine::InputKeyMod & mod) override {
+            if (event.state == engine::InputEventState::ePress && event.key == engine::KeyboardKey::eK) {
+                curlNetworkLoader.sendRequest("https://www.google.com");
+            }
             return false;
         }
 

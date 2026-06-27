@@ -102,7 +102,12 @@ namespace threads {
     template <typename T>
     class Executor : public ExecutionContext {
     public:
-        Executor(T && job, float frameTime) : _job(std::move(job)), _frameTime(frameTime) {}
+        Executor(T && job, float desiredFrameTime) : 
+            _job(std::move(job)), 
+            _desiredFrameTime(desiredFrameTime) 
+        {
+            
+        }
 
         inline void run() {
             _running.test_and_set(std::memory_order_relaxed);
@@ -120,7 +125,7 @@ namespace threads {
                     const std::chrono::duration<float> duration = time - _time; // as default in seconds
 				    const auto delta = duration.count();
 
-                    const float t = _frameTime - delta;
+                    const float t = _desiredFrameTime - delta;
 
                     if (t > 0.0f) {
                         std::this_thread::sleep_for(std::chrono::duration<float>(t));
@@ -144,7 +149,7 @@ namespace threads {
             }
         }
 
-        float _frameTime = 0.0f;
+        float _desiredFrameTime = 0.0f;
         std::chrono::steady_clock::time_point _time{};
 
         T _job;
