@@ -23,7 +23,7 @@ public:
             return;
         }
 
-        _worker->emplaceTasks(stl::make_vector(threads::WorkerTask{[this, grabber = std::move(grabber), commands = std::move(commands)]() mutable {
+        _worker->emplaceTask(threads::WorkerTask{[this, grabber = std::move(grabber), commands = std::move(commands)]() mutable {
             std::vector<threads::WorkerTask> callbacks;
             callbacks.reserve(commands.size());
 
@@ -38,9 +38,8 @@ public:
 
             grabber(&commandList, std::move(callbacks));
 
-            ++_frameIndex;
-            _commandLists[_frameIndex()]->begin(engine::rhi::CommandBufferUsageFlags::eOne_Time_Submit);
-        }}));
+            _commandLists[++_frameIndex]->begin(engine::rhi::CommandBufferUsageFlags::eOne_Time_Submit);
+        }});
         commands.clear();
     }
 

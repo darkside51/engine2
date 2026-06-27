@@ -20,9 +20,9 @@ namespace engine::graphics {
 
     void BackgroundCommandContext::destroy() {
         if (_worker) {
-            _worker->emplaceTasks(stl::make_vector(threads::WorkerTask{[this]() mutable {
+            _worker->emplaceTask(threads::WorkerTask{[this]() mutable {
                 _commandLists.clear();
-            }}));
+            }});
             _worker = nullptr;
         }
     }

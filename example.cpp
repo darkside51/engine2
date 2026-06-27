@@ -376,7 +376,7 @@ namespace example {
                 auto modelLayout = engine::graphics::models::loadModelLayout(modelBytes, fileManager, folder);
                 auto buffers = modelManager.loadModel(modelIdx, key, modelLayout);
 
-                renderThread->emplaceTasks(stl::make_vector(threads::WorkerTask{[
+                renderThread->emplaceTask(threads::WorkerTask{[
                     &api, &device, modelIdx, 
                     &fileManager, 
                     &modelManager,
@@ -431,7 +431,7 @@ namespace example {
                         );
                         ++i;
                     }
-                }}));
+                }});
             }});
         }
 
@@ -1877,7 +1877,7 @@ namespace example {
 
     void Example::deviceProcess() {
         if (controller.calculateTransform() && _renderThread) {
-            _renderThread->emplaceTasks(stl::make_vector(threads::WorkerTask{[
+            _renderThread->emplaceTask(threads::WorkerTask{[
                 transform = camera.getTransform(), 
                 view = camera.getView(), 
                 projection = camera.getProjection(),
@@ -1889,7 +1889,7 @@ namespace example {
                 viewParams.cameraPosition = cameraPos; 
                 viewParams.nearFarPlanes = kNearFarPlane;
                 viewParamsUpdated = true;
-            }}), 0u);
+            }}, 0u);
         }
     }
 

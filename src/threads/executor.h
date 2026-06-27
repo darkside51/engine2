@@ -52,6 +52,11 @@ namespace threads {
             std::move(tasks.begin(), tasks.end(), std::back_inserter(_tasks[id].tasks));
         }
 
+        inline void emplaceTask(WorkerTask && task, uint8_t id = 0u) {
+            SpinLock lock(_tasks[id].lockTasks);
+            _tasks[id].tasks.emplace_back(std::move(task));
+        }
+
         void performTasks(uint8_t id = 0u) {
             assert(std::this_thread::get_id() == _threadId);
             WorkerTasks tasks;

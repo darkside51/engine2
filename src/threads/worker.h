@@ -58,6 +58,14 @@ namespace threads {
             _condition.notify_one();
         }
 
+        inline void emplaceTask(WorkerTask && task) {
+            {
+                SpinLock lock(_lockTasks);
+                _tasks.emplace_back(std::move(task));
+            }
+            _condition.notify_one();
+        }
+
         inline void emplaceLoopTasks(WorkerLoopTasks && tasks) {
             {
                 SpinLock lock(_lockTasks);

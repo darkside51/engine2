@@ -40,9 +40,9 @@ int main() {
 
             example.setRenderThread(&renderThread);
 
-            renderThread.emplaceTasks(stl::make_vector(threads::WorkerTask{[&](){
+            renderThread.emplaceTask(threads::WorkerTask{[&](){
                 example.prepare();
-            }}));
+            }});
 
             threads::ExecutionContext mainThreadContext;
             mainThreadContext.identifyThreadId();
@@ -70,9 +70,9 @@ int main() {
             });
 
             window0.setOnResize([&](uint16_t w, uint16_t h) {
-                renderThread.emplaceTasks(stl::make_vector(threads::WorkerTask{[&example, w, h]() mutable {
+                renderThread.emplaceTask(threads::WorkerTask{[&example, w, h]() mutable {
                     example.resize(w, h);
-                }}), 0u);
+                }}, 0u);
                 // renderThread.pause();
                 // example.resize(w, h);
                 // renderThread.resume();
