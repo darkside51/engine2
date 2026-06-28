@@ -25,8 +25,8 @@ CurlContextsStorage::~CurlContextsStorage() {
 
 CURL * CurlContextsStorage::receiveContext() {
     while (!_contexts.empty()) {
-        auto * context = _contexts.front();
-        _contexts.pop_front();
+        auto * context = _contexts.back();
+        _contexts.pop_back();
 
         long socket;
         const CURLcode code = curl_easy_getinfo(context, CURLINFO_ACTIVESOCKET, &socket);
@@ -69,7 +69,7 @@ struct RequestTask {
 };
 
 // Callback для записи данных
-size_t WriteCallback(void * contents, size_t size, size_t nmemb, void * userp) {
+size_t writeCallback(void * contents, size_t size, size_t nmemb, void * userp) {
     const size_t totalSize = size * nmemb;
     auto * response = static_cast<std::string *>(userp);
     response->append(static_cast<char*>(contents), totalSize);
@@ -80,7 +80,7 @@ size_t WriteCallback(void * contents, size_t size, size_t nmemb, void * userp) {
 bool addNewUrlToPool(
     CURLM * multiHandle, 
     std::string_view url,
-    uint64_t timeout, // 5000L
+    uint64_t timeout,
     CurlContextsStorage & contexts, 
     std::vector<std::unique_ptr<RequestTask>> & activeTasks
 ) {
@@ -91,7 +91,7 @@ bool addNewUrlToPool(
     }
 
     curl_easy_setopt(task->easyHandle, CURLOPT_URL, task->url.c_str());
-    curl_easy_setopt(task->easyHandle, CURLOPT_WRITEFUNCTION, WriteCallback);
+    curl_easy_setopt(task->easyHandle, CURLOPT_WRITEFUNCTION, writeCallback);
     curl_easy_setopt(task->easyHandle, CURLOPT_WRITEDATA, &(task->response));
     
     // Передаем указатель на саму структуру task, чтобы найти её при завершении
@@ -106,49 +106,50 @@ bool addNewUrlToPool(
     return true;
 }
 
-void process(
-    CurlContextsStorage & contexts, 
-    CURLM * multiHandle, 
-    std::queue<std::string> & discoveryQueue, 
-    std::vector<std::unique_ptr<RequestTask>> & activeTasks) {
+CurlNetworkLoader::CurlNetworkLoader() {
+    curl_global_init(CURL_GLOBAL_ALL);
+    _multiHandle = curl_multi_init();
+    curl_multi_setopt(_multiHandle, CURLMOPT_MAX_TOTAL_CONNECTIONS, kMaxParallelConnections);
+
+    _executor = std::unique_ptr<threads::ExecutionContext>{
+        new threads::Executor([&](auto & executionContext, threads::ExecutionTimePoint now, float delta) {
+            executionContext.performTasks(0u);
+            process();
+    }, 0.05f, true)};
+}
+
+CurlNetworkLoader::~CurlNetworkLoader() {
+    _executor->stop();
+    curl_multi_cleanup(_multiHandle);
+    curl_global_cleanup();
+}
+
+void CurlNetworkLoader::process() {
+    // 2. Делаем шаг сетевого обмена данных
     int still_running = 0;
-    bool initial_load = true;
+    CURLMcode mc = curl_multi_perform(_multiHandle, &still_running);
+    if (mc != CURLM_OK) {
+        return;
+    }
 
-    // Цикл работает, пока cURL что-то качает ИЛИ пока у нас есть новые нераспарсенные ссылки в очереди
-    while (still_running > 0 || !discoveryQueue.empty() || initial_load) {
-        initial_load = false;
-
-        // 1. Извлекаем ссылки из очереди и сразу же бросаем их в работу cURL
-        while (!discoveryQueue.empty()) {
-            std::string nextUrl = std::move(discoveryQueue.front());
-            discoveryQueue.pop();
+    // 3. Проверяем, завершился ли какой-нибудь запрос
+    int msgs_left;
+    CURLMsg * msg;
+    while ((msg = curl_multi_info_read(_multiHandle, &msgs_left))) {
+        if (msg->msg == CURLMSG_DONE) {
+            CURL * easy_handle = msg->easy_handle;
             
-            //std::cout << "[Очередь] Добавляем новый URL: " << next_url << std::endl;
-            addNewUrlToPool(multiHandle, nextUrl, 5000L, contexts, activeTasks);
-        }
+            // Получаем контекст нашей задачи через CURLOPT_PRIVATE
+            RequestTask * completed_task = nullptr;
+            curl_easy_getinfo(easy_handle, CURLINFO_PRIVATE, &completed_task);
 
-        // 2. Делаем шаг сетевого обмена данных
-        CURLMcode mc = curl_multi_perform(multiHandle, &still_running);
-        if (mc != CURLM_OK) break;
+            if (completed_task) {
+                long response_code = 0;
+                curl_easy_getinfo(easy_handle, CURLINFO_RESPONSE_CODE, &response_code);
 
-        // 3. Проверяем, завершился ли какой-нибудь запрос
-        int msgs_left;
-        CURLMsg * msg;
-        while ((msg = curl_multi_info_read(multiHandle, &msgs_left))) {
-            if (msg->msg == CURLMSG_DONE) {
-                CURL * easy_handle = msg->easy_handle;
-                
-                // Получаем контекст нашей задачи через CURLOPT_PRIVATE
-                RequestTask * completed_task = nullptr;
-                curl_easy_getinfo(easy_handle, CURLINFO_PRIVATE, &completed_task);
-
-                if (completed_task) {
-                    long response_code = 0;
-                    curl_easy_getinfo(easy_handle, CURLINFO_RESPONSE_CODE, &response_code);
-
-                    if (msg->data.result == CURLE_OK) {
-                        printf("download complete!!!!\n");
-                    }
+                if (msg->data.result == CURLE_OK) {
+                    printf("download complete!!!!\n");
+                }
 
 // HTTP Status Codes (From the Server)
 // These are standard three-digit codes sent by a web server indicating if a request succeeded or failed. 
@@ -159,58 +160,27 @@ void process(
 // 4xx (Client Error): The request contains bad syntax or cannot be fulfilled (e.g., 404 Not Found, 401 Unauthorized).
 // 5xx (Server Error): The server failed to fulfill an apparently valid request (e.g., 500 Internal Server Error).
 
-                    printf("url: %s response code: %ld\n", completed_task->url.c_str(), response_code);
-                    // std::cout << "[Готово] Скачан: " << completed_task->url << " (HTTP " << response_code << ")" << std::endl;
+                printf("url: %s response code: %ld\n", completed_task->url.c_str(), response_code);
+            }
 
-                    // // --- ИМИТАЦИЯ ПАРСИНГА СТРАНИЦЫ ---
-                    // // В реальном коде здесь должна быть библиотека вроде Gumbo HTML или regex.
-                    // // Если мы скачали стартовую страницу, "находим" на ней еще две новые ссылки.
-                    // if (completed_task->url == "https://httpbin.org" && msg->data.result == CURLE_OK) {
-                    //     std::cout << "[Парсер] Найдена ссылка -> page=sub_link_A" << std::endl;
-                    //     discovery_queue.push("https://httpbin.org");
-                        
-                    //     std::cout << "[Парсер] Найдена ссылка -> page=sub_link_B" << std::endl;
-                    //     discovery_queue.push("https://httpbin.org");
-                    // }
-                    // ----------------------------------
-                }
-
-                // Удаляем отработавший дескриптор из multi-обработки
-                curl_multi_remove_handle(multiHandle, easy_handle);
-                
-                // Удаляем задачу из вектора active_tasks, чтобы освободить оперативную память
-                for (auto it = activeTasks.begin(); it != activeTasks.end(); ++it) {
-                    if (it->get() == completed_task) {
-                        activeTasks.erase(it);
-                        break; 
-                    }
+            // Удаляем отработавший дескриптор из multi-обработки
+            curl_multi_remove_handle(_multiHandle, easy_handle);
+            
+            // Удаляем задачу из вектора active_tasks, чтобы освободить оперативную память
+            for (auto it = _activeTasks.begin(); it != _activeTasks.end(); ++it) {
+                if (it->get() == completed_task) {
+                    _activeTasks.erase(it);
+                    break; 
                 }
             }
-        }
-
-        // 4. Спим, ожидая сетевых событий.
-        // ВАЖНО: Ставим маленький таймаут (например, 50-100мс), чтобы цикл быстро возвращался 
-        // к проверке discovery_queue, если сеть временно молчит, но появились локальные задачи.
-        if (still_running > 0) {
-            curl_multi_poll(multiHandle, NULL, 0, 50, NULL);
         }
     }
 }
 
-CurlNetworkLoader::CurlNetworkLoader() {
-    curl_global_init(CURL_GLOBAL_ALL);
-    _multiHandle = curl_multi_init();
-    curl_multi_setopt(_multiHandle, CURLMOPT_MAX_TOTAL_CONNECTIONS, kMaxParallelConnections);  
-}
-
-CurlNetworkLoader::~CurlNetworkLoader() {
-    curl_multi_cleanup(_multiHandle);
-    curl_global_cleanup();
-}
-
 void CurlNetworkLoader::sendRequest(std::string_view url) {
-    _queue.emplace(url);
-    process(_contextStorage, _multiHandle, _queue, _activeTasks);
+    _executor->emplaceTask({[this, s = std::string{url}]() {
+        addNewUrlToPool(_multiHandle, s, 5000L, _contextStorage, _activeTasks);
+    }}, 0u);
 }
 
 }

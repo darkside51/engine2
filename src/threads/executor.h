@@ -107,11 +107,13 @@ namespace threads {
     template <typename T>
     class Executor : public ExecutionContext {
     public:
-        Executor(T && job, float desiredFrameTime) : 
+        Executor(T && job, float desiredFrameTime, bool immidiateRun = false) : 
             _job(std::move(job)), 
             _desiredFrameTime(desiredFrameTime) 
         {
-            
+            if(immidiateRun) {
+                run();
+            }
         }
 
         inline void run() {

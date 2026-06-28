@@ -1,5 +1,7 @@
 #pragma once
 
+#include "threads/executor.h"
+
 #include <list>
 #include <memory>
 #include <queue>
@@ -29,13 +31,14 @@ public:
     void sendRequest(std::string_view url);
 
 private:
+    void process();
     // threads::StopSource2 stop;
-    // threads::Worker _worker; // & worker / sh_ptr<Worker> ??
+    std::unique_ptr<threads::ExecutionContext> _executor;
+
     void * _multiHandle;
     CurlContextsStorage _contextStorage;
 
     std::vector<std::unique_ptr<RequestTask>> _activeTasks;
-    std::queue<std::string> _queue;
 };
 
 }
