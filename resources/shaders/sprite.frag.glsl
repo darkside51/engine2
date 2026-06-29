@@ -15,7 +15,7 @@ layout (location = 3) in mat3 v_normalMatrix;
 
 layout (location = 0) out float out_position;
 //layout (location = 1) out vec4 out_world_position;
-layout (location = 1) out vec3 out_normal;
+layout (location = 1) out vec4 out_normal;
 layout (location = 2) out vec4 out_albedo;
 layout (location = 3) out vec4 out_emissive;
 layout (location = 4) out vec2 out_metalicRoughness;
@@ -44,7 +44,7 @@ void main() {
 
 	vec3 normal = v_normalMatrix * -normalize(cross(dFdx(v_normalAndEmissive.xyz), dFdy(v_normalAndEmissive.xyz)));
 
-	out_normal = normalize(normal) * 0.5 + 0.5;
+	out_normal = vec4(normalize(normal) * 0.5 + 0.5, 0.0f);
 	out_albedo = albedo;
 	//out_albedo = texture(texture0, v_uv);
 	//out_emissive = vec4(0.0, 0.0, 0.0, 0.0);

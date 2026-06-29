@@ -14,7 +14,7 @@ layout (location = 2) in vec4 v_normalAndEmissive;
 layout (location = 3) in mat3 v_normalMatrix;
 
 layout (location = 0) out float out_position;
-layout (location = 1) out vec3 out_normal;
+layout (location = 1) out vec4 out_normal;
 layout (location = 2) out vec4 out_albedo;
 layout (location = 3) out vec4 out_emissive;
 layout (location = 4) out vec2 out_metalicRoughness;
@@ -48,7 +48,7 @@ void main() {
 		//out_albedo = calculateRoomCube(textureCubeMap, v_worldPosition, u_viewParams.cameraPosition, normal, v_uv, vec3(2.0f, 2.0f, 1.0f), vec4(1.0f), vec3(cos(angle), sin(angle), 0.0f));
 		//
 		out_albedo = calculateRoomCube(textureCubeMap, v_worldPosition, u_viewParams.cameraPosition, normal, v_uv, vec3(2.0f, 1.25f, 1.0f), vec4(1.0f));
-		out_normal = normalize(v_normalMatrix * normal) * 0.5f + 0.5f;
+		out_normal = vec4(normalize(v_normalMatrix * normal) * 0.5f + 0.5f, 0.0f);
 
 		//vec3 direction = normalize(v_worldPosition - u_viewParams.cameraPosition);
 		//out_albedo = mix(out_albedo, texture(textureCubeMap, -direction) * vec4(0.92f, 0.92f, 1.0f, 1.0f), 0.3f);
@@ -69,7 +69,7 @@ void main() {
 		out_metalicRoughness = vec2(0.0f, 1.0f);
 
 		const vec3 tangentNormal = texture(texture_normal, uv).xyz * 2.0f - 1.0f;
-		out_normal = normalize(tbn * tangentNormal) * 0.5f + 0.5f;
+		out_normal = vec4(normalize(tbn * tangentNormal) * 0.5f + 0.5f, 0.0f);
 	}
 	out_emissive = vec4(0.0f);
 }

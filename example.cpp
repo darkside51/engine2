@@ -824,7 +824,7 @@ namespace example {
         for (uint32_t i = 0u; i < framesCount; ++i) {
             _gBufferAttachments.emplace_back(
                 _api->createImage(*_device, positionImageInfo),                 // position linear depth
-                _api->createImage(*_device, colorImageInfo565),                 // normal
+                _api->createImage(*_device, colorImageInfo8888),                // normal
                 _api->createImage(*_device, colorImageInfo8888),                // albedo
                 _api->createImage(*_device, colorImageInfo8888),                // emissive
                 _api->createImage(*_device, colorImageInfo8888),                // emissive2
@@ -932,7 +932,7 @@ namespace example {
         { // gbuffer
             const auto formatsGBuffer = std::array {
                 engine::rhi::Format::eR32_Sfloat,           // position linear depth
-                engine::rhi::Format::eR5G6B5_Unorm_Pack16,  // normal
+                engine::rhi::Format::eR8G8B8A8_Unorm,  // normal
                 engine::rhi::Format::eR8G8B8A8_Unorm,       // albedo
                 engine::rhi::Format::eR8G8B8A8_Unorm,       // emissive
                 engine::rhi::Format::eR8G8_Unorm,           // metalicRoughness
