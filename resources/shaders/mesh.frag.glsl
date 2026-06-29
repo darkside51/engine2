@@ -28,7 +28,7 @@ layout(set = 2, binding = 2) uniform sampler2D u_texture_metalicRoughness;
 layout(set = 2, binding = 3) uniform sampler2D u_texture_normal;
 
 layout (location = 0) out float out_position;
-layout (location = 1) out vec4 out_normal;
+layout (location = 1) out vec3 out_normal;
 layout (location = 2) out vec4 out_albedo;
 layout (location = 3) out vec4 out_emissive;
 layout (location = 4) out vec2 out_metalicRoughness;
@@ -48,7 +48,7 @@ void main() {
 	out_position = depthLinear;
 
 	vec3 tangentNormal = texture(u_texture_normal, v_uv).xyz * 2.0f - 1.0f;
-	out_normal = vec4(normalize(v_tbn * tangentNormal) * 0.5f + 0.5f, 1.0f);
+	out_normal = normalize(v_tbn * tangentNormal) * 0.5f + 0.5f;
 	out_emissive = vec4(texture(u_texture_emissive, v_uv).rgb * push.emissive.rgb, 1.0f);
 	out_metalicRoughness = vec2(texture(u_texture_metalicRoughness, v_uv).bg * push.metalicRoughnessAlphaCut.xy);
 }

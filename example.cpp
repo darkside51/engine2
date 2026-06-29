@@ -796,11 +796,17 @@ namespace example {
         };
         positionImageInfo.memoryExtFlags = engine::rhi::MemoryExtendedFlags::eDedicated;
 
-        auto otherColorImageInfo = engine::rhi::ImageInfo{
+        auto colorImageInfo565 = engine::rhi::ImageInfo{
+            engine::rhi::ImageUsageFlags::eColor_Attachment | engine::rhi::ImageUsageFlags::eSampled,
+            engine::rhi::Format::eR5G6B5_Unorm_Pack16, {size.width, size.height, 1u}
+        };
+        colorImageInfo565.memoryExtFlags = engine::rhi::MemoryExtendedFlags::eDedicated;
+
+        auto colorImageInfo8888 = engine::rhi::ImageInfo{
             engine::rhi::ImageUsageFlags::eColor_Attachment | engine::rhi::ImageUsageFlags::eSampled,
             engine::rhi::Format::eR8G8B8A8_Unorm, {size.width, size.height, 1u}
         };
-        otherColorImageInfo.memoryExtFlags = engine::rhi::MemoryExtendedFlags::eDedicated;
+        colorImageInfo8888.memoryExtFlags = engine::rhi::MemoryExtendedFlags::eDedicated;
 
         auto depthImageInfo = engine::rhi::ImageInfo{
             engine::rhi::ImageUsageFlags::eDepth_Stencil_Attachment | engine::rhi::ImageUsageFlags::eTransient_Attachment,
@@ -817,13 +823,13 @@ namespace example {
 
         for (uint32_t i = 0u; i < framesCount; ++i) {
             _gBufferAttachments.emplace_back(
-                _api->createImage(*_device, positionImageInfo), // position
-                _api->createImage(*_device, otherColorImageInfo), // normal
-                _api->createImage(*_device, otherColorImageInfo), // albedo
-                _api->createImage(*_device, otherColorImageInfo), // emissive
-                _api->createImage(*_device, otherColorImageInfo), // emissive2
-                _api->createImage(*_device, depthImageInfo), // depth
-                _api->createImage(*_device, metallicRoughnessColorImageInfo) // metallicRoughness
+                _api->createImage(*_device, positionImageInfo),                 // position linear depth
+                _api->createImage(*_device, colorImageInfo565),                 // normal
+                _api->createImage(*_device, colorImageInfo8888),                // albedo
+                _api->createImage(*_device, colorImageInfo8888),                // emissive
+                _api->createImage(*_device, colorImageInfo8888),                // emissive2
+                _api->createImage(*_device, depthImageInfo),                    // depth
+                _api->createImage(*_device, metallicRoughnessColorImageInfo)    // metallicRoughness
             );
         }
 
@@ -924,14 +930,14 @@ namespace example {
         _renderPasses.emplace_back(_api->getRenderPass(*_device, engine::parseRenderPass(json["scene"], formats1))); // kScenePass
 
         { // gbuffer
-            const auto formatsGBuffer = std::array{
-                engine::rhi::Format::eR32_Sfloat,
-                engine::rhi::Format::eR8G8B8A8_Unorm, 
-                engine::rhi::Format::eR8G8B8A8_Unorm,
-                engine::rhi::Format::eR8G8B8A8_Unorm,
-                engine::rhi::Format::eR8G8_Unorm,
+            const auto formatsGBuffer = std::array {
+                engine::rhi::Format::eR32_Sfloat,           // position linear depth
+                engine::rhi::Format::eR5G6B5_Unorm_Pack16,  // normal
+                engine::rhi::Format::eR8G8B8A8_Unorm,       // albedo
+                engine::rhi::Format::eR8G8B8A8_Unorm,       // emissive
+                engine::rhi::Format::eR8G8_Unorm,           // metalicRoughness
                 depthFormat
-                };
+            };
 
             _renderPasses.emplace_back(_api->getRenderPass(*_device, engine::parseRenderPass(json["gBuffer"], formatsGBuffer))); // kGbufferRenderPass
         }

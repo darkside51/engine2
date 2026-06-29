@@ -28,7 +28,7 @@ layout(set = 2, binding = 2) uniform sampler2D u_texture_metalicRoughness;
 layout(set = 2, binding = 3) uniform sampler2D u_texture_normal;
 
 layout (location = 0) out float out_position;
-layout (location = 1) out vec4 out_normal;
+layout (location = 1) out vec3 out_normal;
 layout (location = 2) out vec4 out_albedo;
 layout (location = 3) out vec4 out_emissive;
 layout (location = 4) out vec2 out_metalicRoughness;
@@ -38,7 +38,7 @@ void main() {
 	const float depthLinear = linearDepth(gl_FragCoord.z, u_viewParams.nearFarPlanes.x, u_viewParams.nearFarPlanes.y);
 	out_position = depthLinear;
 
-	out_normal = vec4(normalize(v_normal) * 0.5f + 0.5f, 1.0f);	
+	out_normal = normalize(v_normal) * 0.5f + 0.5f;	
 	out_emissive = vec4(texture(u_texture_emissive, v_uv).rgb * push.emissive.rgb, 1.0f);
 	out_metalicRoughness = vec2(texture(u_texture_metalicRoughness, v_uv).bg * push.metalicRoughnessAlphaCut.xy);
 }

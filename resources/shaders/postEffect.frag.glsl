@@ -42,7 +42,7 @@ const float biases[4] = float[](0.0001f, 0.0004f, 0.0001f, 0.0002f); // count = 
 
 void main() {
 	const float occlusion = push.options.x > 0.0f ? radialBlur(textureSsao, v_uv, int(push.options.x - 1.0f)) : 1.0f;
-	const vec3 normal = texture(textureNormal, v_uv).rgb * 2.0f - 1.0f;
+	const vec3 normal = normalize(texture(textureNormal, v_uv).rgb * 2.0f - 1.0f);
 
 	const vec2 metallicRoughness = texture(textureMetallicRoughness, v_uv).rg;
 
