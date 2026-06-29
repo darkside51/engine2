@@ -1,6 +1,7 @@
 #pragma once
 
 #include "threads.h"
+#include "lock_free_queue.h"
 
 #include <array>
 #include <cassert>
@@ -25,6 +26,7 @@ namespace threads {
                     _thread.join();
                 }
                 printf("worker stopped\n");
+                gThreadsCount.fetch_sub(1u, std::memory_order_release);
             }
         }
 
@@ -47,28 +49,34 @@ namespace threads {
             return _threadId;
         }
 
-        inline void emplaceTasks(WorkerTasks && tasks, uint8_t id = 0u) {
-            SpinLock lock(_tasks[id].lockTasks);
-            std::move(tasks.begin(), tasks.end(), std::back_inserter(_tasks[id].tasks));
-        }
+        // inline void emplaceTasks(WorkerTasks && tasks, uint8_t id = 0u) {
+        //     SpinLock lock(_tasks[id].lockTasks);
+        //     std::move(tasks.begin(), tasks.end(), std::back_inserter(_tasks[id].tasks));
+        // }
 
         inline void emplaceTask(WorkerTask && task, uint8_t id = 0u) {
-            SpinLock lock(_tasks[id].lockTasks);
-            _tasks[id].tasks.emplace_back(std::move(task));
+            // SpinLock lock(_tasks[id].lockTasks);
+            // _tasks[id].tasks.emplace_back(std::move(task));
+            _tasks[id].enqueue(std::move(task));
         }
 
         void performTasks(uint8_t id = 0u) {
             assert(std::this_thread::get_id() == _threadId);
-            WorkerTasks tasks;
-            {
-                SpinLock lock(_tasks[id].lockTasks);
-                tasks = std::move(_tasks[id].tasks);
-                _tasks[id].tasks.clear();
-            }
 
-            for (auto & task : tasks) {
+            WorkerTask task = nullptr;
+            while (_tasks[id].dequeue(task)) {
                 task();
             }
+            // WorkerTasks tasks;
+            // {
+            //     SpinLock lock(_tasks[id].lockTasks);
+            //     tasks = std::move(_tasks[id].tasks);
+            //     _tasks[id].tasks.clear();
+            // }
+
+            // for (auto & task : tasks) {
+            //     task();
+            // }
         }
 
         void identifyThreadId() noexcept {
@@ -96,11 +104,13 @@ namespace threads {
         std::atomic_flag _paused;
         std::atomic_flag _stop;
 
-        struct Tasks {
-            std::atomic_flag lockTasks = ATOMIC_FLAG_INIT;
-            WorkerTasks tasks;
-        };
+        // struct Tasks {
+        //     std::atomic_flag lockTasks = ATOMIC_FLAG_INIT;
+        //     WorkerTasks tasks;
+        // };
 
+        inline static constexpr uint32_t kTasksCapacity = 128u; 
+        using Tasks = BoundedQueue<WorkerTask, kTasksCapacity>;
         std::array<Tasks, kTaskFamiliesCount> _tasks;
     };
 
@@ -120,6 +130,7 @@ namespace threads {
             _running.test_and_set(std::memory_order_relaxed);
             _time = std::chrono::steady_clock::now();
             _thread = std::thread(&Executor::loop, this);
+            gThreadsCount.fetch_add(1u, std::memory_order_release);
         }
 
     private:

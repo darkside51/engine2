@@ -17,6 +17,7 @@ namespace threads {
             _running.test_and_set(std::memory_order_relaxed);
             _time = std::chrono::steady_clock::now();
             _thread = std::thread(&Worker::loop, this);
+            gThreadsCount.fetch_add(1u, std::memory_order_release);
         }
 
         inline void stop() noexcept {
@@ -26,6 +27,7 @@ namespace threads {
                     _thread.join();
                 }
                 printf("worker stopped\n");
+                gThreadsCount.fetch_add(1u, std::memory_order_release);
             }
         }
 

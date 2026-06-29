@@ -65,7 +65,7 @@ namespace threads {
             return static_cast<size_t>(b >= t ? b - t : 0);
         }
 
-        constexpr size_t capacity() const {
+        constexpr size_t capacity() const noexcept {
             return static_cast<size_t>(kBufferSize - 1);
         }
 
@@ -135,7 +135,7 @@ namespace threads {
             std::atomic_thread_fence(std::memory_order_seq_cst);
             const int64_t b = _bottom.load(std::memory_order_acquire);
   
-            T item{nullptr};
+            T item {nullptr};
 
             if (t < b) {
                 item = _buffer[t & kBufferMask].load(std::memory_order_relaxed);

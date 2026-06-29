@@ -450,6 +450,7 @@ namespace example {
         uint16_t fps = 0u;
         uint16_t width = 0u;
         uint16_t height = 0u;
+        uint8_t activeThreads = 0u;
     };
 
     Stats gStats;
@@ -913,6 +914,7 @@ namespace example {
         gStats.inFlightFramesCount = _device->inFlightFramesCount();
         gStats.width = w;
         gStats.height = h;
+        gStats.activeThreads = threads::gThreadsCount.load(std::memory_order_acquire);
     }
 
     void Example::createRenderPasses() {
@@ -1931,6 +1933,7 @@ namespace example {
                 ImGui::EndMenu();
             }
 
+            ImGui::Text("active threads: %d\t", gStats.activeThreads + 1u); // +1 it's main thread
             ImGui::Text("resolution: %dx%d\t", gStats.width, gStats.height);
             ImGui::Text("frames inflight: %d\t", gStats.inFlightFramesCount);
             static float gDelta = 0.0f;
@@ -2015,7 +2018,7 @@ namespace example {
             backgroundgWorker->submit(std::move(tasks), [this](
                 engine::rhi::runtime::CommandList * commandList, std::vector<threads::WorkerTask> && callbacks
             ) mutable {
-                _renderThread->emplaceTasks(stl::make_vector(threads::WorkerTask{[
+                _renderThread->emplaceTask(threads::WorkerTask{[
                     this,
                     commandList,
                     callbacks = std::move(callbacks)
@@ -2025,7 +2028,7 @@ namespace example {
                         callback();
                     }
                     _readyToSubmitExternal = true;
-                }}), 1u);
+                }}, 1u);
             });
         }
 

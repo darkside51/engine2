@@ -10,6 +10,8 @@
 #include <stop_token>
 		
 namespace threads {
+    inline std::atomic<uint32_t> gThreadsCount = {0u};
+
     struct TTAS_Spinlock {
         std::atomic<bool> locked{false};
 

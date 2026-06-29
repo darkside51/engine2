@@ -34,6 +34,7 @@ namespace threads {
             _taskPool {poolCapacity, poolsCount} {
                 assert(n > 0u);
                 spawn(n);
+                gThreadsCount.fetch_add(n, std::memory_order_release);
         }
     #else
     explicit ThreadPool(size_t n = std::thread::hardware_concurrency()) :
@@ -45,12 +46,14 @@ namespace threads {
             _freelist   (n) {
                 assert(n > 0u);
                 spawn(n);
+                gThreadsCount.fetch_add(n, std::memory_order_release);
         }
     #endif
 
         ~ThreadPool() noexcept {
             cancelTasks();
             stop();
+            gThreadsCount.fetch_sub(_threads.size(), std::memory_order_release);
         }
 
         template <typename... Args>

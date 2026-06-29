@@ -26,9 +26,6 @@ int main() {
             example.createRenderPasses();
             example.createPipelines();
 
-            auto const [width, height] = window0.getSize();
-            example.resize(width, height);
-
             constexpr float inputCheckTime = 1.0f / 60.0f;
             constexpr float redrawTime = 1.0f / 60.0f;
 
@@ -40,7 +37,9 @@ int main() {
 
             example.setRenderThread(&renderThread);
 
+            auto const [width, height] = window0.getSize();
             renderThread.emplaceTask(threads::WorkerTask{[&](){
+                example.resize(width, height);
                 example.prepare();
             }});
 
