@@ -154,7 +154,7 @@ namespace engine {
         return t * t * (T(3) - T(2) * t);
     }
 
-    inline float inv_sqrt(const float x) { // "инверсный(1.0f / sqrt) квадратный корень Кармака"
+    inline constexpr float inv_sqrt(const float x) { // "инверсный(1.0f / sqrt) квадратный корень Кармака"
         const float xhalf = 0.5f * x;
         union {
             float x = 0.0f;
@@ -166,11 +166,11 @@ namespace engine {
         return u.x * (1.5f - xhalf * u.x * u.x);
     }
 
-    inline bool is_pow2(uint32_t n) noexcept {
-        return (n > 0u) && (!(n & (n - 1u)));
+    inline constexpr bool is_pow2(uint32_t n) noexcept {
+        return !(n & (n - 1u));
     }
 
-    inline uint32_t next_pow2(uint32_t v) noexcept {
+    inline constexpr uint32_t next_pow2(uint32_t v) noexcept {
         if (v == 0u) return 1u;
         --v;
         v |= v >> 1u;
@@ -183,12 +183,12 @@ namespace engine {
     }
 
     template<typename T>
-    inline int32_t sign(T && val) noexcept {
+    inline constexpr int32_t sign(T && val) noexcept {
         return (T(0) < val) - (val < T(0));
     }
 
     template<typename T>
-    inline float fract(T && x) noexcept {
+    inline constexpr float fract(T && x) noexcept {
         return x - std::floor(x);
     }
 

@@ -8,7 +8,7 @@ namespace threads {
 template <typename T, uint32_t kCapacity>
 class BoundedQueue {
     // capacity must be a power of two for the bitwise modulo optimization
-    static_assert((kCapacity & (kCapacity - 1)) == 0, "Capacity must be a power of 2");
+    static_assert((kCapacity & (kCapacity - 1)) == 0, "capacity must be a power of 2");
     static constexpr uint32_t kBufferMask = kCapacity - 1;
 
 public:
