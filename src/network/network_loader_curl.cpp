@@ -52,7 +52,6 @@ void CurlContextsStorage::returnContext (CURL * curl) {
     _contexts.push_back(curl);
 }
 
-// callback для записи данных
 size_t writeCallback(void * data, size_t size, size_t nmemb, void * userp) {
     const size_t totalSize = size * nmemb;
     auto * payload = static_cast<CurlNetworkLoader::Payload *>(userp);
@@ -70,7 +69,7 @@ size_t progressCallback(void * userp, curl_off_t dltotal,curl_off_t dlnow,
     return 0;
 }
 
-CurlNetworkLoader::CurlNetworkLoader() {
+CurlNetworkLoader::CurlNetworkLoader(size_t payloadPoolCapacity) : _payloadAllocator{payloadPoolCapacity} {
     curl_global_init(CURL_GLOBAL_ALL);
     _multiHandle = curl_multi_init();
     curl_multi_setopt(_multiHandle, CURLMOPT_MAX_TOTAL_CONNECTIONS, kMaxParallelConnections);
@@ -110,7 +109,8 @@ void CurlNetworkLoader::process() {
             if (completedTask) {
                 auto * payload = static_cast<Payload*>(completedTask);
                 if (payload->stopToken.stop_requested()) {
-                    std::unique_ptr<Payload>{payload};
+                    // std::unique_ptr<Payload>{payload};
+                    _payloadAllocator.destroy(payload);
                 } else {
                     long response_code = 0;
                     curl_easy_getinfo(handle, CURLINFO_RESPONSE_CODE, &response_code);
@@ -141,13 +141,15 @@ void CurlNetworkLoader::process() {
     }
 }
 
-void CurlNetworkLoader::setupHandle(std::unique_ptr<Payload> && payloadPtr, http::Request && request) {
+// void CurlNetworkLoader::setupHandle(std::unique_ptr<Payload> && payloadPtr, http::Request && request) {
+void CurlNetworkLoader::setupHandle(Payload * payload, http::Request && request) {
     auto handle = _contextStorage.receiveContext();
     if (!handle) {
+        _payloadAllocator.destroy(payload);
         return;
     }
 
-    auto * payload = payloadPtr.release();
+    // auto * payload = payloadPtr.release();
     
     curl_easy_setopt(handle, CURLOPT_WRITEFUNCTION, writeCallback);
     curl_easy_setopt(handle, CURLOPT_WRITEDATA, payload);
@@ -184,12 +186,6 @@ void CurlNetworkLoader::setupHandle(std::unique_ptr<Payload> && payloadPtr, http
         curl_easy_setopt(handle, CURLOPT_CAINFO, request.certificate.c_str());
     }
     
-    if (payload->stopToken.stop_requested()) {
-        _contextStorage.returnContext(handle);
-        std::unique_ptr<Payload>{payload};
-        return;
-    }
-
     switch (request.method) {
         case http::Method::eGet: 
         {
@@ -214,6 +210,13 @@ void CurlNetworkLoader::setupHandle(std::unique_ptr<Payload> && payloadPtr, http
             break;
     }
 
+     if (payload->stopToken.stop_requested()) {
+        _contextStorage.returnContext(handle);
+        _payloadAllocator.destroy(payload);
+        // std::unique_ptr<Payload>{payload};
+        return;
+    }
+    
     // Добавляем в multi-пакет прямо во время работы цикла
     curl_multi_add_handle(_multiHandle, handle);
 }

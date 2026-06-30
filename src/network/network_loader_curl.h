@@ -1,5 +1,6 @@
 #pragma once
 
+#include "allocators/pool_allocator.h"
 #include "http.h"
 #include "threads/executor.h"
 
@@ -32,7 +33,7 @@ public:
         std::move_only_function<void(Payload *, std::vector<std::byte> &&)> callback;
     };
 
-    CurlNetworkLoader();
+    CurlNetworkLoader(size_t payloadPoolCapacity = 256u);
     ~CurlNetworkLoader();
 
     template <typename T>
@@ -42,10 +43,12 @@ public:
                 return;
             }
 
-            auto payload = std::make_unique<Payload>(std::move(stopToken));
-            payload->callback = [callback = std::move(callback)](Payload * payload, std::vector<std::byte> && response) {
-                std::unique_ptr<Payload>{payload};
+            // auto payload = std::make_unique<Payload>(std::move(stopToken));
+            auto payload = _payloadAllocator.create<Payload>(std::move(stopToken));
+            payload->callback = [this, callback = std::move(callback)](Payload * payload, std::vector<std::byte> && response) {
+                //std::unique_ptr<Payload>{payload};
                 callback(std::move(response));
+                _payloadAllocator.destroy(payload);
             };
 
             setupHandle(std::move(payload), std::move(request));
@@ -53,7 +56,11 @@ public:
     }
 
 private:
-    void setupHandle(std::unique_ptr<Payload> && payloadPtr, http::Request && request);
+    using Allocator = allocators::PoolAllocator<sizeof(Payload), alignof(Payload), false>;
+    Allocator _payloadAllocator;
+
+    // void setupHandle(std::unique_ptr<Payload> && payloadPtr, http::Request && request);
+    void setupHandle(Payload* payload, http::Request && request);
     void process();
 
     std::unique_ptr<threads::ExecutionContext> _executor;
