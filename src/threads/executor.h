@@ -79,6 +79,15 @@ namespace threads {
             // }
         }
 
+        void performOneTask(uint8_t id = 0u) {
+            assert(std::this_thread::get_id() == _threadId);
+
+            WorkerTask task = nullptr;
+            if (_tasks[id].dequeue(task)) {
+                task();
+            }
+        }
+
         void identifyThreadId() noexcept {
             _threadId = std::this_thread::get_id();
         }

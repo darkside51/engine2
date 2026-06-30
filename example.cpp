@@ -542,7 +542,12 @@ namespace example {
 
         bool onInpuKeyEvent(const engine::KeyEvent & event, const engine::InputKeyMod & mod) override {
             if (event.state == engine::InputEventState::ePress && event.key == engine::KeyboardKey::eK) {
-                curlNetworkLoader.sendRequest("https://www.google.com");
+                // threads::StopSource2 stopSource;
+                curlNetworkLoader.sendRequest(engine::network::http::Request{"https://www.google.com"}, [](std::vector<std::byte> && response) {
+                    std::string_view str{reinterpret_cast<char*>(response.data()), response.size()};
+                    printf("resonse: %s\n", str.data());
+                }, {}/*stopSource.get_token()*/);
+                /*stopSource.request_stop();*/
             }
             return false;
         }

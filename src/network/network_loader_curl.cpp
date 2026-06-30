@@ -1,4 +1,5 @@
 #include "network_loader_curl.h"
+#include "utils/format_string.h"
 
 #include <curl/curl.h>
 
@@ -15,6 +16,7 @@
 namespace engine::network {
     
 constexpr uint64_t kMaxParallelConnections = 10u;
+constexpr uint32_t kBufferSize = 1024u * 1024u;  // 1Mb
 
 CurlContextsStorage::~CurlContextsStorage() {
     for (auto * context : _contexts) {
@@ -50,60 +52,22 @@ void CurlContextsStorage::returnContext (CURL * curl) {
     _contexts.push_back(curl);
 }
 
-
-// Структура для управления контекстом каждого запроса
-struct RequestTask {
-    CurlContextsStorage & contexts;
-    CURL * easyHandle = nullptr;
-    std::string url;
-    std::string response;
-
-    RequestTask(CurlContextsStorage & contexts, std::string_view targetUrl) : 
-        contexts(contexts),
-        easyHandle(contexts.receiveContext()),
-        url(targetUrl) {}
-    
-    ~RequestTask() {
-        contexts.returnContext(easyHandle);
-    }
-};
-
-// Callback для записи данных
-size_t writeCallback(void * contents, size_t size, size_t nmemb, void * userp) {
+// callback для записи данных
+size_t writeCallback(void * data, size_t size, size_t nmemb, void * userp) {
     const size_t totalSize = size * nmemb;
-    auto * response = static_cast<std::string *>(userp);
-    response->append(static_cast<char*>(contents), totalSize);
+    auto * payload = static_cast<CurlNetworkLoader::Payload *>(userp);
+    auto const * bytes = reinterpret_cast<std::byte const *>(data);
+    payload->response.insert(payload->response.end(), bytes, bytes + totalSize);
     return totalSize;
 }
 
-// Функция для создания и настройки нового easy-дескриптора
-bool addNewUrlToPool(
-    CURLM * multiHandle, 
-    std::string_view url,
-    uint64_t timeout,
-    CurlContextsStorage & contexts, 
-    std::vector<std::unique_ptr<RequestTask>> & activeTasks
-) {
-    // Создаем задачу в куче (heap), чтобы ее адрес в памяти не менялся
-    auto task = std::make_unique<RequestTask>(contexts, url);
-    if (!task->easyHandle) {
-        return false;
+size_t progressCallback(void * userp, curl_off_t dltotal,curl_off_t dlnow, 
+    curl_off_t ultotal, curl_off_t ulnow) {
+    const auto * payload = static_cast<const CurlNetworkLoader::Payload *>(userp);
+    if (payload->stopToken.stop_requested()) {
+        return 1; // cancel
     }
-
-    curl_easy_setopt(task->easyHandle, CURLOPT_URL, task->url.c_str());
-    curl_easy_setopt(task->easyHandle, CURLOPT_WRITEFUNCTION, writeCallback);
-    curl_easy_setopt(task->easyHandle, CURLOPT_WRITEDATA, &(task->response));
-    
-    // Передаем указатель на саму структуру task, чтобы найти её при завершении
-    curl_easy_setopt(task->easyHandle, CURLOPT_PRIVATE, task.get());
-    curl_easy_setopt(task->easyHandle, CURLOPT_TIMEOUT_MS, timeout);
-
-    // Добавляем в multi-пакет прямо во время работы цикла
-    curl_multi_add_handle(multiHandle, task->easyHandle);
-    
-    // Сохраняем умный указатель в векторе, чтобы контролировать время жизни объекта
-    activeTasks.push_back(std::move(task));
-    return true;
+    return 0;
 }
 
 CurlNetworkLoader::CurlNetworkLoader() {
@@ -137,18 +101,25 @@ void CurlNetworkLoader::process() {
     CURLMsg * msg;
     while ((msg = curl_multi_info_read(_multiHandle, &msgs_left))) {
         if (msg->msg == CURLMSG_DONE) {
-            CURL * easy_handle = msg->easy_handle;
+            CURL * handle = msg->easy_handle;
             
             // Получаем контекст нашей задачи через CURLOPT_PRIVATE
-            RequestTask * completed_task = nullptr;
-            curl_easy_getinfo(easy_handle, CURLINFO_PRIVATE, &completed_task);
+            void * completedTask = nullptr;
+            curl_easy_getinfo(handle, CURLINFO_PRIVATE, &completedTask);
 
-            if (completed_task) {
-                long response_code = 0;
-                curl_easy_getinfo(easy_handle, CURLINFO_RESPONSE_CODE, &response_code);
+            if (completedTask) {
+                auto * payload = static_cast<Payload*>(completedTask);
+                if (payload->stopToken.stop_requested()) {
+                    std::unique_ptr<Payload>{payload};
+                } else {
+                    long response_code = 0;
+                    curl_easy_getinfo(handle, CURLINFO_RESPONSE_CODE, &response_code);
 
-                if (msg->data.result == CURLE_OK) {
-                    printf("download complete!!!!\n");
+                    if (msg->data.result == CURLE_OK) {
+                        printf("download complete!!!!\n");
+                    }
+
+                    std::move(payload->callback)(payload, std::move(payload->response));
                 }
 
 // HTTP Status Codes (From the Server)
@@ -160,27 +131,91 @@ void CurlNetworkLoader::process() {
 // 4xx (Client Error): The request contains bad syntax or cannot be fulfilled (e.g., 404 Not Found, 401 Unauthorized).
 // 5xx (Server Error): The server failed to fulfill an apparently valid request (e.g., 500 Internal Server Error).
 
-                printf("url: %s response code: %ld\n", completed_task->url.c_str(), response_code);
+                //printf("url: %s response code: %ld\n", completed_task->url.c_str(), response_code);
             }
 
             // Удаляем отработавший дескриптор из multi-обработки
-            curl_multi_remove_handle(_multiHandle, easy_handle);
-            
-            // Удаляем задачу из вектора active_tasks, чтобы освободить оперативную память
-            for (auto it = _activeTasks.begin(); it != _activeTasks.end(); ++it) {
-                if (it->get() == completed_task) {
-                    _activeTasks.erase(it);
-                    break; 
-                }
-            }
+            curl_multi_remove_handle(_multiHandle, handle);
+            _contextStorage.returnContext(handle);
         }
     }
 }
 
-void CurlNetworkLoader::sendRequest(std::string_view url) {
-    _executor->emplaceTask({[this, s = std::string{url}]() {
-        addNewUrlToPool(_multiHandle, s, 5000L, _contextStorage, _activeTasks);
-    }}, 0u);
+void CurlNetworkLoader::setupHandle(std::unique_ptr<Payload> && payloadPtr, http::Request && request) {
+    auto handle = _contextStorage.receiveContext();
+    if (!handle) {
+        return;
+    }
+
+    auto * payload = payloadPtr.release();
+    
+    curl_easy_setopt(handle, CURLOPT_WRITEFUNCTION, writeCallback);
+    curl_easy_setopt(handle, CURLOPT_WRITEDATA, payload);
+
+    curl_easy_setopt(handle, CURLOPT_NOPROGRESS, 0); // for use progress callback
+    curl_easy_setopt(handle, CURLOPT_XFERINFOFUNCTION, progressCallback);
+    curl_easy_setopt(handle, CURLOPT_XFERINFODATA, payload);
+    
+    // Передаем указатель на саму структуру payload, чтобы найти её при завершении
+    curl_easy_setopt(handle, CURLOPT_PRIVATE, payload);
+    curl_easy_setopt(handle, CURLOPT_TIMEOUT_MS, request.timeout);
+    curl_easy_setopt(handle, CURLOPT_CONNECTTIMEOUT_MS, request.connectTimeout);
+    curl_easy_setopt(handle, CURLOPT_LOW_SPEED_LIMIT, 1);
+    curl_easy_setopt(handle, CURLOPT_LOW_SPEED_TIME, _speedLimitTimeout);
+
+    curl_easy_setopt(handle, CURLOPT_BUFFERSIZE, kBufferSize);
+
+    // Disable the Nagle algorithm (Send packets immediately)
+    curl_easy_setopt(handle, CURLOPT_TCP_NODELAY, 1);
+
+    curl_easy_setopt(handle, CURLOPT_NOSIGNAL, 0);
+
+    //curl_easy_setopt(handle, CURLOPT_FAILONERROR, 1);
+
+    // enable redirections
+    curl_easy_setopt(handle, CURLOPT_FOLLOWLOCATION, 1);
+
+    if (!request.proxy.empty()) {
+        curl_easy_setopt(handle, CURLOPT_PROXY, request.proxy.c_str());
+    }
+
+    // SSL/TLS-сертификат
+    if (!request.certificate.empty()) {
+        curl_easy_setopt(handle, CURLOPT_CAINFO, request.certificate.c_str());
+    }
+    
+    if (payload->stopToken.stop_requested()) {
+        _contextStorage.returnContext(handle);
+        std::unique_ptr<Payload>{payload};
+        return;
+    }
+
+    switch (request.method) {
+        case http::Method::eGet: 
+        {
+            curl_easy_setopt(handle, CURLOPT_HTTPGET, 1);
+            if (request.str.empty()) {
+                curl_easy_setopt(handle, CURLOPT_URL, request.url.c_str());
+            } else {
+                curl_easy_setopt(handle, CURLOPT_URL, fmt_string("%s?%s", request.url.c_str(), request.str.c_str()));
+            }
+        }
+        break;
+        case http::Method::ePost:
+        {
+            curl_easy_setopt(handle, CURLOPT_POST, 1);
+            curl_easy_setopt(handle, CURLOPT_POSTFIELDSIZE, request.str.size());
+            curl_easy_setopt(handle, CURLOPT_COPYPOSTFIELDS, request.str.c_str());
+            curl_easy_setopt(handle, CURLOPT_URL, request.url.c_str());
+        }
+        break;
+        default: // unsupported method!
+            assert(false);
+            break;
+    }
+
+    // Добавляем в multi-пакет прямо во время работы цикла
+    curl_multi_add_handle(_multiHandle, handle);
 }
 
 }
