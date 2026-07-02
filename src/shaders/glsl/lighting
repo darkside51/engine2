@@ -1,6 +1,19 @@
 #ifndef LIGHTING_HEADER
 #define LIGHTING_HEADER
 
+float calculateAnisotropicBias(ivec2 texSize, vec3 viewSpacePos, float minBias, float maxBias) {
+    const vec3 dpdx = dFdx(viewSpacePos);
+	const vec3 dpdy = dFdy(viewSpacePos);
+
+	const vec2 dz_duv = vec2(
+    	dpdx.z * texSize.x, 
+    	dpdy.z * texSize.y
+	);
+
+	const float slopeBias = clamp(max(abs(dz_duv.x), abs(dz_duv.y)), 0.0f, maxBias);
+	return minBias + slopeBias;
+}
+
 float textureProj(in sampler2DArrayShadow shadowTex, vec4 shadowCoord, vec2 offset, uint cascadeIndex, float bias, float ambient) {
 	if (shadowCoord.z > 0.0f && shadowCoord.z < 1.0f) {
 		const float dist = texture(shadowTex, vec4(shadowCoord.xy + offset, cascadeIndex, shadowCoord.z + bias));
@@ -36,6 +49,48 @@ float filterPCF(in sampler2DArray shadowTex, vec4 sc, uint cascadeIndex, float b
 		}
 	}
 	return shadowFactor / count;
+}
+
+
+// use hardware assisted PCF + 3x3 gaussian filter
+float filterPCF_Low(
+	in sampler2DArrayShadow map,
+	ivec2 texSize,
+	vec3 shadowPosition,
+    uint layer,
+    float bias
+) {
+    const vec2 size = texSize;
+    const vec2 texelSize = 1.0f / size;
+
+    // note: shadowPosition.z is in the [1, 0] range (reversed Z)
+    // Castaño, 2013, "Shadow Mapping Summary Part 1"
+    shadowPosition.xy = clamp(shadowPosition.xy, vec2(-1.0f), vec2(2.0f));
+
+    const vec2 offset = vec2(0.5f);
+    const vec2 uv = (shadowPosition.xy * size) + offset;
+    const vec2 base = (floor(uv) - offset) * texelSize;
+    const vec2 st = fract(uv);
+    const vec2 uw = vec2(3.0f - 2.0f * st.x, 1.0f + 2.0f * st.x);
+    const vec2 vw = vec2(3.0f - 2.0f * st.y, 1.0f + 2.0f * st.y);
+    const vec2 u = vec2((2.0f - st.x) / uw.x - 1.0f, st.x / uw.y + 1.0f) * texelSize.x;
+    const vec2 v = vec2((2.0f - st.y) / vw.x - 1.0f, st.y / vw.y + 1.0f) * texelSize.y;
+
+    const float w0 = uw.x * vw.x;
+    const float w1 = uw.y * vw.x;
+    const float w2 = uw.x * vw.y;
+    const float w3 = uw.y * vw.y;
+    const vec2 uv0 = base + vec2(u.x, v.x);
+    const vec2 uv1 = base + vec2(u.y, v.x);
+    const vec2 uv2 = base + vec2(u.x, v.y);
+    const vec2 uv3 = base + vec2(u.y, v.y);
+
+    float sum = 0.0f;
+    sum += w0 * texture(map, vec4(uv0, layer, shadowPosition.z + bias));
+    sum += w1 * texture(map, vec4(uv1, layer, shadowPosition.z + bias));
+    sum += w2 * texture(map, vec4(uv2, layer, shadowPosition.z + bias));
+    sum += w3 * texture(map, vec4(uv3, layer, shadowPosition.z + bias));
+    return sum * 0.0625f;
 }
 
 #endif

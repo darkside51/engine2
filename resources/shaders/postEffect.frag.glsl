@@ -14,8 +14,8 @@ layout(set = 0, binding = 2) uniform sampler2D textureAlbedo;
 layout(set = 0, binding = 3) uniform sampler2D textureEmissive;
 layout(set = 0, binding = 4) uniform sampler2D texturePositionDepth;
 layout(set = 0, binding = 5) uniform sampler2D textureMetallicRoughness;
-//layout(set = 0, binding = 6) uniform sampler2DArrayShadow textureShadowMap;
-layout(set = 0, binding = 6) uniform sampler2DArray textureShadowMap;
+layout(set = 0, binding = 6) uniform sampler2DArrayShadow textureShadowMap;
+//layout(set = 0, binding = 6) uniform sampler2DArray textureShadowMap;
 
 layout (set = 0, binding = 7) uniform shadowsUniformBuffer {
 	mat4 cascades[shadowCascades];
@@ -38,7 +38,7 @@ layout(push_constant) uniform Params {
 	vec4 options;
 } push;
 
-const float biases[4] = float[](0.0001f, 0.0004f, 0.0001f, 0.0002f); // count = shadowCascades * 2
+const float biases[4] = float[](0.0015f, 0.00275f, 0.001f, 0.00175f); // count = shadowCascades * 2
 
 void main() {
 	const float occlusion = push.options.x > 0.0f ? radialBlur(textureSsao, v_uv, int(push.options.x - 1.0f)) : 1.0f;
@@ -65,9 +65,18 @@ void main() {
 	}
 
 	vec4 shadowCoord = u_shadow.cascades[cascade] * worldPosition;
-	shadowCoord = shadowCoord / shadowCoord.w;
+	shadowCoord = shadowCoord * (1.0f / shadowCoord.w);
+	//const float bias = max(biases[2 * cascade + 1] * (1.0f - abs(dotNL)), biases[2 * cascade]);
+	//const float bias = max(0.005f * (1.0f - abs(dotNL)), 0.0005f);
+	//const float bias = calculateAnisotropicBias(shadowCoord.xyz, 0.003f, 0.01f);
+	const ivec2 texSize = textureSize(textureShadowMap, 0).xy;
+	const float bias = calculateAnisotropicBias(texSize, viewPosition, biases[2 * cascade], biases[2 * cascade + 1]);
 	shadowCoord.xy = shadowCoord.xy * 0.5f + 0.5f;
-	
+
+	//const float shadowValue = textureProj(textureShadowMap, shadowCoord, vec2(0.0f), cascade, bias, u_shadow.options.x); // hardware pcf if use sampler2DArrayShadow
+	//const float shadowValue = filterPCF(textureShadowMap, shadowCoord, cascade, bias, u_shadow.options.x);
+	const float shadowValue = clamp(filterPCF_Low(textureShadowMap, texSize, shadowCoord.xyz, cascade, bias), u_shadow.options.x, 1.0f);
+
 	// pbr
 	const vec3 N = normal; // in view space
     const vec3 V = normalize(-v_rayDirView); // in view space
@@ -80,10 +89,6 @@ void main() {
     const float dotNV = max(dot(N, V), 0.0f);
     const float dotNH = max(dot(N, H), 0.0f);
     const float dotHV = max(dot(H, V), 0.0f);
-
-    const float bias = max(biases[2 * cascade + 1] * (1.0f - abs(dotNL)), biases[2 * cascade]);
-	////const float shadowValue = textureProj(textureShadowMap, shadowCoord, vec2(0.0f), cascade, bias, u_shadow.options.x); // hardware pcf if use sampler2DArrayShadow
-	const float shadowValue = filterPCF(textureShadowMap, shadowCoord, cascade, bias, u_shadow.options.x);
 
 	const float metallic = metallicRoughness.x;
 	const float roughness = metallicRoughness.y;
@@ -161,8 +166,8 @@ void main() {
 		out_color = mix(out_color, vec4(normal * 0.5f + 0.5f, 1.0f), step(5.1f, push.options.y) * step(push.options.y, 6.1f));
 
 		if (push.options.y > 6.0f && push.options.y < 10.0f) {
-			const float shadowDepth = texture(textureShadowMap, vec3(v_uv, clamp(int(push.options.y - 7.0f), 0.0f, 2.0f))).r;
-			//const float shadowDepth = texture(textureShadowMap, vec4(v_uv, clamp(int(push.options.y - 7.0f), 0.0f, 2.0f), 0.0f));
+			//const float shadowDepth = texture(textureShadowMap, vec3(v_uv, clamp(int(push.options.y - 7.0f), 0.0f, 2.0f))).r;
+			const float shadowDepth = texture(textureShadowMap, vec4(v_uv, clamp(int(push.options.y - 7.0f), 0.0f, 2.0f), 0.0f));
 			out_color = mix(out_color, vec4(shadowDepth, shadowDepth, shadowDepth, 1.0f), step(6.1f, push.options.y) * step(push.options.y, 8.9f));
 		}
 
