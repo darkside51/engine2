@@ -43,7 +43,7 @@
 #include "graphics/render/techniques/cascade_shadow_map.h"
 #include "graphics/render/techniques/ssao.h"
 
-#include "network/network_loader_curl.h"
+#include "network/network_service_curl.h"
 
 #include <deque>
 #include <optional>
@@ -163,7 +163,7 @@ namespace example {
     bool lightDirty = false;
     float saturation = 1.0f;
 
-    engine::network::CurlNetworkLoader curlNetworkLoader;
+    engine::network::CurlNetworkService curlNetworkLoader;
 
     void optionsWindow() {
         ImGui::SetNextWindowSize(ImVec2(540, 840), ImGuiCond_FirstUseEver);

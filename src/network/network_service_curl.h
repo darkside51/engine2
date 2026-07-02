@@ -15,17 +15,19 @@
 namespace engine::network {
 
 // reusing curl contexts is recommended practice
-class CurlContextsStorage {
+class CurlContextsStorage2 {
 public:
-    ~CurlContextsStorage();
+    CurlContextsStorage2(uint16_t size);
+    ~CurlContextsStorage2();
     void * receiveContext();
     void returnContext (void * curl);
 
 private:
-    std::list<void*> _contexts;
+    std::vector<void*> _contexts;
+    uint16_t _current = 0u;
 };
     
-class CurlNetworkLoader {
+class CurlNetworkService {
 public:
     struct Payload {
         threads::StopToken stopToken;
@@ -33,8 +35,8 @@ public:
         std::move_only_function<void(Payload *, std::vector<std::byte> &&)> callback;
     };
 
-    CurlNetworkLoader(size_t payloadPoolCapacity = 256u);
-    ~CurlNetworkLoader();
+    CurlNetworkService(size_t payloadPoolCapacity = 256u);
+    ~CurlNetworkService();
 
     template <typename T>
     void sendRequest(http::Request && request, T && callback, threads::StopToken && stopToken) {
@@ -43,10 +45,8 @@ public:
                 return;
             }
 
-            // auto payload = std::make_unique<Payload>(std::move(stopToken));
             auto payload = _payloadAllocator.create<Payload>(std::move(stopToken));
             payload->callback = [this, callback = std::move(callback)](Payload * payload, std::vector<std::byte> && response) {
-                //std::unique_ptr<Payload>{payload};
                 callback(std::move(response));
                 _payloadAllocator.destroy(payload);
             };
@@ -59,16 +59,15 @@ private:
     using Allocator = allocators::PoolAllocator<sizeof(Payload), alignof(Payload), false>;
     Allocator _payloadAllocator;
 
-    // void setupHandle(std::unique_ptr<Payload> && payloadPtr, http::Request && request);
-    void setupHandle(Payload* payload, http::Request && request);
+    void setupHandle(Payload * payload, http::Request && request);
     void process();
 
     std::unique_ptr<threads::ExecutionContext> _executor;
 
-    void * _multiHandle;
-    CurlContextsStorage _contextStorage;
+    void * _multiHandle = nullptr;
+    CurlContextsStorage2 _contextStorage;
 
-    uint32_t _speedLimitTimeout = 100; // 10 seconds
+    uint32_t _speedLimitTimeout = 20u; // 20 seconds
 };
 
 }

@@ -1,9 +1,10 @@
-#include "network_loader_curl.h"
+#include "network_service_curl.h"
 #include "utils/format_string.h"
 
 #include <curl/curl.h>
 
 #include <cassert>
+#include <chrono>
 #include <cstdint>
 #include <cstdio>
 #include <list>
@@ -18,18 +19,18 @@ namespace engine::network {
 constexpr uint64_t kMaxParallelConnections = 10u;
 constexpr uint32_t kBufferSize = 1024u * 1024u;  // 1Mb
 
-CurlContextsStorage::~CurlContextsStorage() {
+CurlContextsStorage2::CurlContextsStorage2(uint16_t size) : _contexts(size) {}
+CurlContextsStorage2::~CurlContextsStorage2() {
     for (auto * context : _contexts) {
         curl_easy_cleanup(context);
     }
     _contexts.clear();
 }
 
-CURL * CurlContextsStorage::receiveContext() {
-    while (!_contexts.empty()) {
-        auto * context = _contexts.back();
-        _contexts.pop_back();
-
+void * CurlContextsStorage2::receiveContext() {
+    auto *& context = _contexts[_current];
+    ++_current;
+    if (context) {
         long socket;
         const CURLcode code = curl_easy_getinfo(context, CURLINFO_ACTIVESOCKET, &socket);
 
@@ -40,21 +41,20 @@ CURL * CurlContextsStorage::receiveContext() {
 
         curl_easy_cleanup(context);
     }
-
-    auto * context = curl_easy_init();
+    context = curl_easy_init();
     assert(context != nullptr);
     return context;
 }
 
-void CurlContextsStorage::returnContext (CURL * curl) {
+void CurlContextsStorage2::returnContext (void * curl) {
     assert(curl != nullptr);
     curl_easy_reset(curl);
-    _contexts.push_back(curl);
+    _contexts[--_current] = curl;
 }
 
 size_t writeCallback(void * data, size_t size, size_t nmemb, void * userp) {
     const size_t totalSize = size * nmemb;
-    auto * payload = static_cast<CurlNetworkLoader::Payload *>(userp);
+    auto * payload = static_cast<CurlNetworkService::Payload *>(userp);
     auto const * bytes = reinterpret_cast<std::byte const *>(data);
     payload->response.insert(payload->response.end(), bytes, bytes + totalSize);
     return totalSize;
@@ -62,14 +62,19 @@ size_t writeCallback(void * data, size_t size, size_t nmemb, void * userp) {
 
 size_t progressCallback(void * userp, curl_off_t dltotal,curl_off_t dlnow, 
     curl_off_t ultotal, curl_off_t ulnow) {
-    const auto * payload = static_cast<const CurlNetworkLoader::Payload *>(userp);
+    const auto * payload = static_cast<const CurlNetworkService::Payload *>(userp);
     if (payload->stopToken.stop_requested()) {
-        return 1; // cancel
+        return 1u; // cancel
     }
-    return 0;
+    return 0u;
 }
 
-CurlNetworkLoader::CurlNetworkLoader(size_t payloadPoolCapacity) : _payloadAllocator{payloadPoolCapacity} {
+CurlNetworkService::CurlNetworkService(size_t payloadPoolCapacity) : 
+    _payloadAllocator{payloadPoolCapacity},
+    _contextStorage(payloadPoolCapacity) {
+    constexpr auto kMmilliseconds = std::chrono::milliseconds{50};
+    constexpr float kExecutionTimeDeltaSeconds = std::chrono::duration<float>(kMmilliseconds).count();
+
     curl_global_init(CURL_GLOBAL_ALL);
     _multiHandle = curl_multi_init();
     curl_multi_setopt(_multiHandle, CURLMOPT_MAX_TOTAL_CONNECTIONS, kMaxParallelConnections);
@@ -78,16 +83,16 @@ CurlNetworkLoader::CurlNetworkLoader(size_t payloadPoolCapacity) : _payloadAlloc
         new threads::Executor([&](auto & executionContext, threads::ExecutionTimePoint now, float delta) {
             executionContext.performTasks(0u);
             process();
-    }, 0.05f, true)};
+    }, kExecutionTimeDeltaSeconds, true)};
 }
 
-CurlNetworkLoader::~CurlNetworkLoader() {
+CurlNetworkService::~CurlNetworkService() {
     _executor->stop();
     curl_multi_cleanup(_multiHandle);
     curl_global_cleanup();
 }
 
-void CurlNetworkLoader::process() {
+void CurlNetworkService::process() {
     // 2. Делаем шаг сетевого обмена данных
     int still_running = 0;
     CURLMcode mc = curl_multi_perform(_multiHandle, &still_running);
@@ -109,7 +114,6 @@ void CurlNetworkLoader::process() {
             if (completedTask) {
                 auto * payload = static_cast<Payload*>(completedTask);
                 if (payload->stopToken.stop_requested()) {
-                    // std::unique_ptr<Payload>{payload};
                     _payloadAllocator.destroy(payload);
                 } else {
                     long response_code = 0;
@@ -141,8 +145,8 @@ void CurlNetworkLoader::process() {
     }
 }
 
-// void CurlNetworkLoader::setupHandle(std::unique_ptr<Payload> && payloadPtr, http::Request && request) {
-void CurlNetworkLoader::setupHandle(Payload * payload, http::Request && request) {
+// void CurlNetworkService::setupHandle(std::unique_ptr<Payload> && payloadPtr, http::Request && request) {
+void CurlNetworkService::setupHandle(Payload * payload, http::Request && request) {
     auto handle = _contextStorage.receiveContext();
     if (!handle) {
         _payloadAllocator.destroy(payload);
