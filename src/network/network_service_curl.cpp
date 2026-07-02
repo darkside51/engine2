@@ -17,7 +17,7 @@
 namespace engine::network {
     
 constexpr uint64_t kMaxParallelConnections = 10u;
-constexpr uint32_t kBufferSize = 1024u * 1024u;  // 1Mb
+constexpr uint32_t kBufferSize = 1024u * 1024u; // 1Mb
 
 CurlContextsStorage2::CurlContextsStorage2(uint16_t size) : _contexts(size) {}
 CurlContextsStorage2::~CurlContextsStorage2() {
