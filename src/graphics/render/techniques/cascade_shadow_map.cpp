@@ -23,6 +23,9 @@ namespace engine::graphics {
     void CascadeShadowMap::createRenderData() {
         using namespace rhi;
         const auto format = _device.getSupportedDepthFormat(_bits, false, true);
+        const ImageAspectFlags aspectFlags = isDepthStencilFormat(format) ? 
+                                                ImageAspectFlags::eDepthStencil : 
+                                                ImageAspectFlags::eDepth;
 
         // renderpass
         std::array attachment = {
@@ -43,7 +46,7 @@ namespace engine::graphics {
                     .pNext = {nullptr, 0u},
                     .attachment = 0u,
                     .layout = ImageLayout::eDepth_Stencil_Attachment_Optimal, //eDepth_Stencil_Attachment_Optimal, // eDepth_Attachment_Optimal - maybe?
-                    .aspectMask = ImageAspectFlags::eDepthStencil
+                    .aspectMask = aspectFlags
                 }
             }
         };
@@ -81,7 +84,7 @@ namespace engine::graphics {
         // image
         const auto imageInfo = ImageInfo {
             ImageUsageFlags::eSampled | ImageUsageFlags::eDepth_Stencil_Attachment, format, {_size, _size, 1u},
-            ImageAspectFlags::eDepthStencil,
+            aspectFlags,
             ImageType::eType_2D,
             1u,
             _cascadesCount,
@@ -104,7 +107,7 @@ namespace engine::graphics {
                     FrameBufferAttachment{
                         .image = framebuffer.image.get(),
                         .imageSize = {_size, _size},
-                        .aspect = ImageAspectFlags::eDepth,
+                        .aspect = ImageAspectFlags::eDepth, // eDepth - is true here
                         .layer = 0u,
                         .level = 0u,
                         .layersCount = _cascadesCount,
@@ -120,7 +123,7 @@ namespace engine::graphics {
                         FrameBufferAttachment{
                             .image = framebuffer.image.get(),
                             .imageSize = {_size, _size},
-                            .aspect = ImageAspectFlags::eDepth,
+                            .aspect = ImageAspectFlags::eDepth, // eDepth - is true here
                             .layer = j,
                             .level = 0u,
                             .layersCount = 1u,

@@ -1162,7 +1162,7 @@ namespace example {
         scene->registerGraphicsPipeline(_api->createGraphicsPipeline(*_device, _renderPasses[kGbufferRenderPass], _programs[kMeshAfterComputeProgramNoPbr], info6, 0u));
 
         // shadow
-        shadowMap = std::make_unique<engine::graphics::CascadeShadowMap>(*_api, *_device, 4096u, 2u, 24u, kNearFarPlane.x, kNearFarPlane.y);
+        shadowMap = std::make_unique<engine::graphics::CascadeShadowMap>(*_api, *_device, 4096u, 2u, 16u, kNearFarPlane.x, kNearFarPlane.y);
         shadowMap->initCascadeSplits({0.75f, 0.25f, -87.0f});
         shadowMap->createRenderData();
         shadowMap->setDirection(glm::normalize(lightDir));
