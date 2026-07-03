@@ -1,5 +1,6 @@
 #include "network_service_curl.h"
 #include "utils/format_string.h"
+#include "log/log.h"
 
 #include <curl/curl.h>
 
@@ -108,44 +109,45 @@ void CurlNetworkService::process() {
             CURL * handle = msg->easy_handle;
             
             // Получаем контекст нашей задачи через CURLOPT_PRIVATE
-            void * completedTask = nullptr;
-            curl_easy_getinfo(handle, CURLINFO_PRIVATE, &completedTask);
+            void * request = nullptr;
+            curl_easy_getinfo(handle, CURLINFO_PRIVATE, &request);
 
-            if (completedTask) {
-                auto * payload = static_cast<Payload*>(completedTask);
+            if (request) {
+                auto * payload = static_cast<Payload*>(request);
                 if (payload->stopToken.stop_requested()) {
+                    std::move(payload->callback)(payload, {}, NetworkResult::eCancelled);
                     _payloadAllocator.destroy(payload);
                 } else {
-                    long response_code = 0;
-                    curl_easy_getinfo(handle, CURLINFO_RESPONSE_CODE, &response_code);
-
                     if (msg->data.result == CURLE_OK) {
-                        printf("download complete!!!!\n");
+                        long response_code = 0;
+                        curl_easy_getinfo(handle, CURLINFO_RESPONSE_CODE, &response_code);
+                        if (response_code == 200) {
+                            std::move(payload->callback)(payload, std::move(payload->response), NetworkResult::eSuccess);
+                        } else {
+                            std::move(payload->callback)(payload, std::move(payload->response), NetworkResult::eHttpError);
+                        }
+                    } else if (msg->data.result == CURLE_HTTP_RETURNED_ERROR) {
+                        long response_code = 0;
+                        curl_easy_getinfo(handle, CURLINFO_RESPONSE_CODE, &response_code);
+                        LOG_E("request: %s, curl http error, code: %ld", payload->url.c_str(), response_code);
+                        std::move(payload->callback)(payload, {}, NetworkResult::eHttpError);
+                    } else {
+                        LOG_E("request: %s, curl error, result: %s", payload->url.c_str(), curl_easy_strerror(msg->data.result));
+                        std::move(payload->callback)(payload, {}, NetworkResult::eUndefined);
                     }
-
-                    std::move(payload->callback)(payload, std::move(payload->response));
                 }
-
-// HTTP Status Codes (From the Server)
-// These are standard three-digit codes sent by a web server indicating if a request succeeded or failed. 
-// curl does not treat 4xx or 5xx server errors as command failures unless you explicitly use the -f / --fail flag.
-// 1xx (Informational): Request received, continuing process.
-// 2xx (Success): The action was successfully received and accepted (e.g., 200 OK).
-// 3xx (Redirection): Further action needs to be taken to complete the request (e.g., 301 or 302 redirects).
-// 4xx (Client Error): The request contains bad syntax or cannot be fulfilled (e.g., 404 Not Found, 401 Unauthorized).
-// 5xx (Server Error): The server failed to fulfill an apparently valid request (e.g., 500 Internal Server Error).
-
-                //printf("url: %s response code: %ld\n", completed_task->url.c_str(), response_code);
             }
 
             // Удаляем отработавший дескриптор из multi-обработки
             curl_multi_remove_handle(_multiHandle, handle);
             _contextStorage.returnContext(handle);
+        } else {
+            LOG_E("curl error, message: %d", std::to_underlying(msg->msg));
+            return;
         }
     }
 }
 
-// void CurlNetworkService::setupHandle(std::unique_ptr<Payload> && payloadPtr, http::Request && request) {
 void CurlNetworkService::setupHandle(Payload * payload, http::Request && request) {
     auto handle = _contextStorage.receiveContext();
     if (!handle) {
@@ -153,8 +155,6 @@ void CurlNetworkService::setupHandle(Payload * payload, http::Request && request
         return;
     }
 
-    // auto * payload = payloadPtr.release();
-    
     curl_easy_setopt(handle, CURLOPT_WRITEFUNCTION, writeCallback);
     curl_easy_setopt(handle, CURLOPT_WRITEDATA, payload);
 
@@ -217,7 +217,6 @@ void CurlNetworkService::setupHandle(Payload * payload, http::Request && request
      if (payload->stopToken.stop_requested()) {
         _contextStorage.returnContext(handle);
         _payloadAllocator.destroy(payload);
-        // std::unique_ptr<Payload>{payload};
         return;
     }
     

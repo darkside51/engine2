@@ -14,6 +14,13 @@
 
 namespace engine::network {
 
+enum class NetworkResult : uint8_t {
+    eSuccess = 0u,
+    eHttpError = 1u,
+    eCancelled = 2u,
+    eUndefined
+};
+
 // reusing curl contexts is recommended practice
 class CurlContextsStorage2 {
 public:
@@ -31,8 +38,12 @@ class CurlNetworkService {
 public:
     struct Payload {
         threads::StopToken stopToken;
-        std::vector<std::byte> response;
-        std::move_only_function<void(Payload *, std::vector<std::byte> &&)> callback;
+        std::string url;
+        std::vector<std::byte> response = {};
+        std::move_only_function<void(Payload *, std::vector<std::byte> &&, NetworkResult)> callback = {};
+
+        Payload(threads::StopToken && token, std::string_view url) : 
+            stopToken(std::move(token)), url(url) {}
     };
 
     CurlNetworkService(size_t payloadPoolCapacity = 256u);
@@ -45,9 +56,9 @@ public:
                 return;
             }
 
-            auto payload = _payloadAllocator.create<Payload>(std::move(stopToken));
-            payload->callback = [this, callback = std::move(callback)](Payload * payload, std::vector<std::byte> && response) {
-                callback(std::move(response));
+            auto payload = _payloadAllocator.create<Payload>(std::move(stopToken), request.url);
+            payload->callback = [this, callback = std::move(callback)](Payload * payload, std::vector<std::byte> && response, NetworkResult result) {
+                callback(std::move(response), result);
                 _payloadAllocator.destroy(payload);
             };
 

@@ -88,6 +88,7 @@ namespace example {
 
     engine::graphics::DrawHelper drawHelper;
     
+    engine::FileManager fileManager;
     engine::graphics::MaterialManager materialManager;
     engine::scene::AnimationManager animationManager;
     std::optional<engine::graphics::ModelManager> modelManager;
@@ -163,7 +164,7 @@ namespace example {
     bool lightDirty = false;
     float saturation = 1.0f;
 
-    engine::network::CurlNetworkService curlNetworkLoader;
+    engine::network::CurlNetworkService curlNetworkService;
 
     void optionsWindow() {
         ImGui::SetNextWindowSize(ImVec2(540, 840), ImGuiCond_FirstUseEver);
@@ -543,9 +544,13 @@ namespace example {
         bool onInpuKeyEvent(const engine::KeyEvent & event, const engine::InputKeyMod & mod) override {
             if (event.state == engine::InputEventState::ePress && event.key == engine::KeyboardKey::eK) {
                 // threads::StopSource2 stopSource;
-                curlNetworkLoader.sendRequest(engine::network::http::Request{"https://www.google.com"}, [](std::vector<std::byte> && response) {
-                    std::string_view str{reinterpret_cast<char*>(response.data()), response.size()};
-                    printf("resonse: %s\n", str.data());
+                curlNetworkService.sendRequest(
+                    engine::network::http::Request{"https://i.pinimg.com/originals/97/3e/fd/973efd74e4edfa29b2e939c6a8774c4e.jpg"}, 
+                    [](std::vector<std::byte> && response, engine::network::NetworkResult resultCode) {
+                        fileManager.getFileSystem("common_fs0")->writeFile("download/image.jpg", response.data(), response.size());
+                        printf("result code %d\n", static_cast<uint8_t>(resultCode));
+                        //std::string_view str{reinterpret_cast<char*>(response.data()), response.size()};
+                        //printf("resonse: %s\n", str.data());
                 }, {}/*stopSource.get_token()*/);
                 /*stopSource.request_stop();*/
             }
@@ -560,7 +565,7 @@ namespace example {
     Example::Example() {
         using namespace engine;
         
-        _fileManager.createFileSystem<CommonFileSystem>("common_fs0", CommonFileSystem::getCurrentDirectory() + "./resources/");
+        fileManager.createFileSystem<CommonFileSystem>("common_fs0", CommonFileSystem::getCurrentDirectory() + "./resources/");
 
         addInputObserver(&_imgui);
         addInputObserver(&sceneEventHandler);
@@ -923,7 +928,7 @@ namespace example {
     }
 
     void Example::createRenderPasses() {
-        const auto bytes = _fileManager.readFile("descriptors/render_pass.json");
+        const auto bytes = fileManager.readFile("descriptors/render_pass.json");
 
         engine::json::Json json{};
         std::string_view input(reinterpret_cast<const char*>(bytes.data()), bytes.size());
@@ -962,8 +967,8 @@ namespace example {
         _shaderModulesManager = _api->createShaderModulesManager();
 
         { // kImguiProgram
-            auto const vBytes = _fileManager.readFile("shaders/imgui.vert.spv");
-            auto const fBytes = _fileManager.readFile("shaders/imgui.frag.spv");
+            auto const vBytes = fileManager.readFile("shaders/imgui.vert.spv");
+            auto const fBytes = fileManager.readFile("shaders/imgui.frag.spv");
 
             const auto & vsModule = _shaderModulesManager->registerModule("imgui.vert", *_device, engine::rhi::shaders::Stages::eVertex, vBytes);
             const auto & fsModule = _shaderModulesManager->registerModule("imgui.frag", *_device, engine::rhi::shaders::Stages::eFragment, fBytes);
@@ -971,8 +976,8 @@ namespace example {
             _programs.emplace_back(_api->createProgram(*_device, std::array{vsModule.getView(), fsModule.getView()}));
         }
         { // kPostEffectProgram
-            auto const vBytes = _fileManager.readFile("shaders/postEffect.vert.spv");
-            auto const fBytes = _fileManager.readFile("shaders/postEffect.frag.spv");
+            auto const vBytes = fileManager.readFile("shaders/postEffect.vert.spv");
+            auto const fBytes = fileManager.readFile("shaders/postEffect.frag.spv");
 
             const auto & vsModule = _shaderModulesManager->registerModule("postEffect.vert", *_device, engine::rhi::shaders::Stages::eVertex, vBytes);
             const auto & fsModule = _shaderModulesManager->registerModule("postEffect.frag", *_device, engine::rhi::shaders::Stages::eFragment, fBytes);
@@ -981,8 +986,8 @@ namespace example {
         }
 
         { // kDebugProgram
-            auto const vBytes = _fileManager.readFile("shaders/debug.vert.spv");
-            auto const fBytes = _fileManager.readFile("shaders/debug.frag.spv");
+            auto const vBytes = fileManager.readFile("shaders/debug.vert.spv");
+            auto const fBytes = fileManager.readFile("shaders/debug.frag.spv");
 
             const auto & vsModule = _shaderModulesManager->registerModule("debug.vert", *_device, engine::rhi::shaders::Stages::eVertex, vBytes);
             const auto & fsModule = _shaderModulesManager->registerModule("debug.frag", *_device, engine::rhi::shaders::Stages::eFragment, fBytes);
@@ -991,8 +996,8 @@ namespace example {
         }
 
         { // kSpritesProgram
-            auto const vBytes = _fileManager.readFile("shaders/sprite.vert.spv");
-            auto const fBytes = _fileManager.readFile("shaders/sprite.frag.spv");
+            auto const vBytes = fileManager.readFile("shaders/sprite.vert.spv");
+            auto const fBytes = fileManager.readFile("shaders/sprite.frag.spv");
 
             const auto & vsModule = _shaderModulesManager->registerModule("sprite.vert", *_device, engine::rhi::shaders::Stages::eVertex, vBytes);
             const auto & fsModule = _shaderModulesManager->registerModule("sprite.frag", *_device, engine::rhi::shaders::Stages::eFragment, fBytes);
@@ -1001,8 +1006,8 @@ namespace example {
         }
 
         { // kMeshProgram
-            auto const vBytes = _fileManager.readFile("shaders/mesh.vert.spv");
-            auto const fBytes = _fileManager.readFile("shaders/mesh.frag.spv");
+            auto const vBytes = fileManager.readFile("shaders/mesh.vert.spv");
+            auto const fBytes = fileManager.readFile("shaders/mesh.frag.spv");
 
             const auto & vsModule = _shaderModulesManager->registerModule("mesh.vert", *_device, engine::rhi::shaders::Stages::eVertex, vBytes);
             const auto & fsModule = _shaderModulesManager->registerModule("mesh.frag", *_device, engine::rhi::shaders::Stages::eFragment, fBytes);
@@ -1011,8 +1016,8 @@ namespace example {
         }
 
         // { // kMeshSkeletalInstancedProgram
-        //     auto const vBytes = _fileManager.readFile("shaders/mesh_skeletal_instanced.vert.spv");
-        //     auto const fBytes = _fileManager.readFile("shaders/mesh.frag.spv");
+        //     auto const vBytes = fileManager.readFile("shaders/mesh_skeletal_instanced.vert.spv");
+        //     auto const fBytes = fileManager.readFile("shaders/mesh.frag.spv");
 
         //     const auto & vsModule = _shaderModulesManager->registerModule("mesh_skeletal_instanced.vert", *_device, engine::rhi::shaders::Stages::eVertex, vBytes);
         //     const auto & fsModule = _shaderModulesManager->registerModule("mesh.frag", *_device, engine::rhi::shaders::Stages::eFragment, fBytes);
@@ -1021,8 +1026,8 @@ namespace example {
         // }
 
         { // kMeshInstancedProgram
-            auto const vBytes = _fileManager.readFile("shaders/mesh_instanced.vert.spv");
-            auto const fBytes = _fileManager.readFile("shaders/mesh.frag.spv");
+            auto const vBytes = fileManager.readFile("shaders/mesh_instanced.vert.spv");
+            auto const fBytes = fileManager.readFile("shaders/mesh.frag.spv");
 
             const auto & vsModule = _shaderModulesManager->registerModule("mesh_instanced.vert", *_device, engine::rhi::shaders::Stages::eVertex, vBytes);
             const auto & fsModule = _shaderModulesManager->registerModule("mesh.frag", *_device, engine::rhi::shaders::Stages::eFragment, fBytes);
@@ -1031,13 +1036,13 @@ namespace example {
         }
 
         { // kComputeProgram
-            auto const cBytes = _fileManager.readFile("shaders/mesh_skin_compute.comp.spv");
+            auto const cBytes = fileManager.readFile("shaders/mesh_skin_compute.comp.spv");
             const auto & compModule = _shaderModulesManager->registerModule("mesh_skin_compute.comp", *_device, engine::rhi::shaders::Stages::eCompute, cBytes);
             _programs.emplace_back(_api->createProgram(*_device, std::array{compModule.getView()}));
         }
 
         { // kMeshAfterComputeProgram
-            auto const vBytes = _fileManager.readFile("shaders/mesh_after_compute.vert.spv");
+            auto const vBytes = fileManager.readFile("shaders/mesh_after_compute.vert.spv");
 
             const auto & vsModule = _shaderModulesManager->registerModule("mesh_after_compute.vert", *_device, engine::rhi::shaders::Stages::eVertex, vBytes);
             const auto & fsModule = _shaderModulesManager->registerModule("mesh.frag", *_device, engine::rhi::shaders::Stages::eFragment, {});
@@ -1046,8 +1051,8 @@ namespace example {
         }
 
         { // kSsaoProgram
-            auto const vBytes = _fileManager.readFile("shaders/ssao.vert.spv");
-            auto const fBytes = _fileManager.readFile("shaders/ssao.frag.spv");
+            auto const vBytes = fileManager.readFile("shaders/ssao.vert.spv");
+            auto const fBytes = fileManager.readFile("shaders/ssao.frag.spv");
 
             const auto & vsModule = _shaderModulesManager->registerModule("ssao.vert", *_device, engine::rhi::shaders::Stages::eVertex, vBytes);
             const auto & fsModule = _shaderModulesManager->registerModule("ssao.frag", *_device, engine::rhi::shaders::Stages::eFragment, fBytes);
@@ -1056,8 +1061,8 @@ namespace example {
         }
 
         { // kEmissiveBlurProgram
-            auto const vBytes = _fileManager.readFile("shaders/gaussblur.vert.spv");
-            auto const fBytes = _fileManager.readFile("shaders/gaussblur.frag.spv");
+            auto const vBytes = fileManager.readFile("shaders/gaussblur.vert.spv");
+            auto const fBytes = fileManager.readFile("shaders/gaussblur.frag.spv");
 
             const auto & vsModule = _shaderModulesManager->registerModule("gaussblur.vert", *_device, engine::rhi::shaders::Stages::eVertex, vBytes);
             const auto & fsModule = _shaderModulesManager->registerModule("gaussblur.frag", *_device, engine::rhi::shaders::Stages::eFragment, fBytes);
@@ -1066,20 +1071,20 @@ namespace example {
         }
 
         { // kMeshShadowProgram
-            auto const vBytes = _fileManager.readFile("shaders/mesh_instanced_shadow.vert.spv");
+            auto const vBytes = fileManager.readFile("shaders/mesh_instanced_shadow.vert.spv");
             const auto & vsModule = _shaderModulesManager->registerModule("mesh_instanced_shadow.vert", *_device, engine::rhi::shaders::Stages::eVertex, vBytes);
             _programs.emplace_back(_api->createProgram(*_device, std::array{vsModule.getView()}));
         }
 
         { // kMeshAfterComputeShadowProgram
-            auto const vBytes = _fileManager.readFile("shaders/mesh_after_compute_shadow.vert.spv");
+            auto const vBytes = fileManager.readFile("shaders/mesh_after_compute_shadow.vert.spv");
             const auto & vsModule = _shaderModulesManager->registerModule("mesh_after_compute_shadow.vert", *_device, engine::rhi::shaders::Stages::eVertex, vBytes);
             _programs.emplace_back(_api->createProgram(*_device, std::array{vsModule.getView()}));
         }
 
         { // kMeshInstancedProgramNoPbr
-            auto const vBytes = _fileManager.readFile("shaders/mesh_instanced2.vert.spv");
-            auto const fBytes = _fileManager.readFile("shaders/mesh2.frag.spv");
+            auto const vBytes = fileManager.readFile("shaders/mesh_instanced2.vert.spv");
+            auto const fBytes = fileManager.readFile("shaders/mesh2.frag.spv");
 
             const auto & vsModule = _shaderModulesManager->registerModule("mesh_instanced2.vert", *_device, engine::rhi::shaders::Stages::eVertex, vBytes);
             const auto & fsModule = _shaderModulesManager->registerModule("mesh2.frag", *_device, engine::rhi::shaders::Stages::eFragment, fBytes);
@@ -1088,7 +1093,7 @@ namespace example {
         }
 
         { // kMeshAfterComputeProgramNoPbr
-            auto const vBytes = _fileManager.readFile("shaders/mesh_after_compute2.vert.spv");
+            auto const vBytes = fileManager.readFile("shaders/mesh_after_compute2.vert.spv");
 
             const auto & vsModule = _shaderModulesManager->registerModule("mesh_after_compute2.vert", *_device, engine::rhi::shaders::Stages::eVertex, vBytes);
             const auto & fsModule = _shaderModulesManager->registerModule("mesh2.frag", *_device, engine::rhi::shaders::Stages::eFragment, {});
@@ -1097,8 +1102,8 @@ namespace example {
         }
 
         { // kSpritesProgram2
-            auto const vBytes = _fileManager.readFile("shaders/sprite.vert.spv");
-            auto const fBytes = _fileManager.readFile("shaders/sprite2.frag.spv");
+            auto const vBytes = fileManager.readFile("shaders/sprite.vert.spv");
+            auto const fBytes = fileManager.readFile("shaders/sprite2.frag.spv");
 
             const auto & vsModule = _shaderModulesManager->registerModule("sprite.vert", *_device, engine::rhi::shaders::Stages::eVertex, vBytes);
             const auto & fsModule = _shaderModulesManager->registerModule("sprite2.frag", *_device, engine::rhi::shaders::Stages::eFragment, fBytes);
@@ -1126,7 +1131,7 @@ namespace example {
             2u, // colorAttachmentIdx
             0u, true);
 
-        const auto bytes = _fileManager.readFile("descriptors/pipelines.json");
+        const auto bytes = fileManager.readFile("descriptors/pipelines.json");
         std::string_view input(reinterpret_cast<const char*>(bytes.data()), bytes.size());
         engine::json::Json json{};
         const auto err = engine::json::read_json(json, input);
@@ -1199,43 +1204,43 @@ namespace example {
 
         ////
         // test cubemap
-        // const auto imageBytes0 = _fileManager.readFile("assets/skybox/back.jpg");
-        const auto imageBytes0 = _fileManager.readFile("assets/interrior/2.jpg");
+        // const auto imageBytes0 = fileManager.readFile("assets/skybox/back.jpg");
+        const auto imageBytes0 = fileManager.readFile("assets/interrior/2.jpg");
         auto textureData0 = engine::graphics::parseTextureData(imageBytes0, {
                 .flags = engine::graphics::TextureFlags::eAllowSrgbColorSpace
             }
         );
 
-        // const auto imageBytes1 = _fileManager.readFile("assets/skybox/front.jpg");
-        const auto imageBytes1 = _fileManager.readFile("assets/interrior/0.jpg");
+        // const auto imageBytes1 = fileManager.readFile("assets/skybox/front.jpg");
+        const auto imageBytes1 = fileManager.readFile("assets/interrior/0.jpg");
         auto textureData1 = engine::graphics::parseTextureData(imageBytes1, {
                 .flags = engine::graphics::TextureFlags::eAllowSrgbColorSpace
             }
         );
 
-        // const auto imageBytes2 = _fileManager.readFile("assets/skybox/right.jpg");
-        const auto imageBytes2 = _fileManager.readFile("assets/interrior/6.jpg");
+        // const auto imageBytes2 = fileManager.readFile("assets/skybox/right.jpg");
+        const auto imageBytes2 = fileManager.readFile("assets/interrior/6.jpg");
         auto textureData2 = engine::graphics::parseTextureData(imageBytes2, {
                 .flags = engine::graphics::TextureFlags::eAllowSrgbColorSpace
             }
         );
 
-        // const auto imageBytes3 = _fileManager.readFile("assets/skybox/left.jpg");
-        const auto imageBytes3 = _fileManager.readFile("assets/interrior/5.jpg");
+        // const auto imageBytes3 = fileManager.readFile("assets/skybox/left.jpg");
+        const auto imageBytes3 = fileManager.readFile("assets/interrior/5.jpg");
         auto textureData3 = engine::graphics::parseTextureData(imageBytes3, {
                 .flags = engine::graphics::TextureFlags::eAllowSrgbColorSpace
             }
         );
 
-        // const auto imageBytes4 = _fileManager.readFile("assets/skybox/up.jpg");
-        const auto imageBytes4 = _fileManager.readFile("assets/interrior/4.jpg");
+        // const auto imageBytes4 = fileManager.readFile("assets/skybox/up.jpg");
+        const auto imageBytes4 = fileManager.readFile("assets/interrior/4.jpg");
         auto textureData4 = engine::graphics::parseTextureData(imageBytes4, {
                 .flags = engine::graphics::TextureFlags::eAllowSrgbColorSpace
             }
         );
 
-        // const auto imageBytes5 = _fileManager.readFile("assets/skybox/down.jpg");
-        const auto imageBytes5 = _fileManager.readFile("assets/interrior/3.jpg");
+        // const auto imageBytes5 = fileManager.readFile("assets/skybox/down.jpg");
+        const auto imageBytes5 = fileManager.readFile("assets/interrior/3.jpg");
         auto textureData5 = engine::graphics::parseTextureData(imageBytes5, {
                 .flags = engine::graphics::TextureFlags::eAllowSrgbColorSpace
             }
@@ -1268,7 +1273,7 @@ namespace example {
             auto const modelIdx = loadModelAsync(
                 *_api, *_device,
                 _renderThread,
-                _fileManager,
+                fileManager,
                 *modelManager,
                 *textureManager,
                 animationManager,
@@ -1316,7 +1321,7 @@ namespace example {
             auto const modelIdx = loadModelAsync(
                 *_api, *_device,
                 _renderThread,
-                _fileManager,
+                fileManager,
                 *modelManager,
                 *textureManager,
                 animationManager,
@@ -1344,7 +1349,7 @@ namespace example {
             auto const modelIdx = loadModelAsync(
                 *_api, *_device,
                 _renderThread,
-                _fileManager,
+                fileManager,
                 *modelManager,
                 *textureManager,
                 animationManager,
@@ -1377,7 +1382,7 @@ namespace example {
             auto const modelIdx = loadModelAsync(
                 *_api, *_device,
                 _renderThread,
-                _fileManager,
+                fileManager,
                 *modelManager,
                 *textureManager,
                 animationManager,
@@ -1412,7 +1417,7 @@ namespace example {
             auto const modelIdx = loadModelAsync(
                 *_api, *_device,
                 _renderThread,
-                _fileManager,
+                fileManager,
                 *modelManager,
                 *textureManager,
                 animationManager,
@@ -1447,7 +1452,7 @@ namespace example {
             auto const modelIdx = loadModelAsync(
                 *_api, *_device,
                 _renderThread,
-                _fileManager,
+                fileManager,
                 *modelManager,
                 *textureManager,
                 animationManager,
@@ -1474,7 +1479,7 @@ namespace example {
             auto const modelIdx = loadModelAsync(
                 *_api, *_device,
                 _renderThread,
-                _fileManager,
+                fileManager,
                 *modelManager,
                 *textureManager,
                 animationManager,
@@ -1508,7 +1513,7 @@ namespace example {
 
         {
             // atlas test
-            const auto imageBytes = _fileManager.readFile("assets/atlases/hero-pma.png");
+            const auto imageBytes = fileManager.readFile("assets/atlases/hero-pma.png");
             const auto textureData = engine::graphics::parseTextureData(imageBytes, {
                                 .flags = engine::graphics::TextureFlags::eAllowSrgbColorSpace
                             });
@@ -1538,7 +1543,7 @@ namespace example {
                 }
             );
 
-            auto const atlasBytes = _fileManager.readFile("assets/atlases/hero-pma.atlas");
+            auto const atlasBytes = fileManager.readFile("assets/atlases/hero-pma.atlas");
             auto frames = engine::graphics::FramesParser::loadFramesSpine(atlasBytes, {0u, 0u}, "hero_");
 
             textureManager->addFrames(frames, image);
@@ -1546,8 +1551,8 @@ namespace example {
 
         if (1) {
             // atlas test2
-            // auto const imageBytes = _fileManager.readFile("assets/atlases/fire2.png");
-            const auto imageBytes = _fileManager.readFile("assets/atlases/explosion2.png");
+            // auto const imageBytes = fileManager.readFile("assets/atlases/fire2.png");
+            const auto imageBytes = fileManager.readFile("assets/atlases/explosion2.png");
             const auto textureData = engine::graphics::parseTextureData(imageBytes, {
                                 .flags = engine::graphics::TextureFlags::eAllowSrgbColorSpace
                             }
@@ -1739,7 +1744,7 @@ namespace example {
                 // "assets/grass3.png"
                 // "assets/images.png"
 
-                const auto * imageHandler = loadImageAsync(*_device, _fileManager, *textureManager, "asyncTest", "assets/images.png", 
+                const auto * imageHandler = loadImageAsync(*_device, fileManager, *textureManager, "asyncTest", "assets/images.png", 
                     engine::graphics::TextureFlags::eAllowSrgbColorSpace | engine::graphics::TextureFlags::eUseMipMaps);
 
                 const auto frame = engine::graphics::ImageFrame2D{
@@ -1763,10 +1768,10 @@ namespace example {
                     node->setPosition(engine::vec3f{17.165f, 12.2f, 0.0f});
                     node->setRotation(engine::vec3f{engine::pi2, 0.0f, -0.35f});
 
-                    const auto * imageHandler = loadImageAsync(*_device, _fileManager, *textureManager, "bricks", "assets/154.jpg", 
+                    const auto * imageHandler = loadImageAsync(*_device, fileManager, *textureManager, "bricks", "assets/154.jpg", 
                         engine::graphics::TextureFlags::eAllowSrgbColorSpace | engine::graphics::TextureFlags::eUseMipMaps);
 
-                    const auto * imageHandler1 = loadImageAsync(*_device, _fileManager, *textureManager, "bricks_normal", "assets/154_norm.jpg", 
+                    const auto * imageHandler1 = loadImageAsync(*_device, fileManager, *textureManager, "bricks_normal", "assets/154_norm.jpg", 
                         engine::graphics::TextureFlags::eUseMipMaps);
 
                     const auto frame = engine::graphics::ImageFrame2D{
@@ -1793,10 +1798,10 @@ namespace example {
                     node->setPosition(engine::vec3f{20.0f, 20.0f, 0.0f});
                     node->setRotation(engine::vec3f{engine::pi2, 0.0f, -0.35f - 1.57f});
 
-                    const auto * imageHandler = loadImageAsync(*_device, _fileManager, *textureManager, "bricks", "assets/154.jpg", 
+                    const auto * imageHandler = loadImageAsync(*_device, fileManager, *textureManager, "bricks", "assets/154.jpg", 
                         engine::graphics::TextureFlags::eAllowSrgbColorSpace | engine::graphics::TextureFlags::eUseMipMaps);
 
-                    const auto * imageHandler1 = loadImageAsync(*_device, _fileManager, *textureManager, "bricks_normal", "assets/154_norm.jpg", 
+                    const auto * imageHandler1 = loadImageAsync(*_device, fileManager, *textureManager, "bricks_normal", "assets/154_norm.jpg", 
                         engine::graphics::TextureFlags::eUseMipMaps);
 
                     const auto frame = engine::graphics::ImageFrame2D{
