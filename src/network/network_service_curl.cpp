@@ -8,9 +8,6 @@
 #include <chrono>
 #include <cstdint>
 #include <cstdio>
-#include <list>
-#include <memory>
-#include <queue>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -19,6 +16,8 @@ namespace engine::network {
     
 constexpr uint64_t kMaxParallelConnections = 10u;
 constexpr uint32_t kBufferSize = 1024u * 1024u; // 1Mb
+constexpr auto kMmilliseconds = std::chrono::milliseconds{50};
+constexpr float kExecutionTimeDeltaSeconds = std::chrono::duration<float>(kMmilliseconds).count();
 
 CurlContextsStorage2::CurlContextsStorage2(uint16_t size) : _contexts(size) {}
 CurlContextsStorage2::~CurlContextsStorage2() {
@@ -73,8 +72,6 @@ size_t progressCallback(void * userp, curl_off_t dltotal,curl_off_t dlnow,
 CurlNetworkService::CurlNetworkService(size_t payloadPoolCapacity) : 
     _payloadAllocator{payloadPoolCapacity},
     _contextStorage(payloadPoolCapacity) {
-    constexpr auto kMmilliseconds = std::chrono::milliseconds{50};
-    constexpr float kExecutionTimeDeltaSeconds = std::chrono::duration<float>(kMmilliseconds).count();
 
     curl_global_init(CURL_GLOBAL_ALL);
     _multiHandle = curl_multi_init();

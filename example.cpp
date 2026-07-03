@@ -547,7 +547,9 @@ namespace example {
                 curlNetworkService.sendRequest(
                     engine::network::http::Request{"https://i.pinimg.com/originals/97/3e/fd/973efd74e4edfa29b2e939c6a8774c4e.jpg"}, 
                     [](std::vector<std::byte> && response, engine::network::NetworkResult resultCode) {
-                        fileManager.getFileSystem("common_fs0")->writeFile("download/image.jpg", response.data(), response.size());
+                        if (resultCode == engine::network::NetworkResult::eSuccess) {
+                            fileManager.getFileSystem("common_fs0")->writeFile("download/image.jpg", response.data(), response.size());
+                        }
                         printf("result code %d\n", static_cast<uint8_t>(resultCode));
                         //std::string_view str{reinterpret_cast<char*>(response.data()), response.size()};
                         //printf("resonse: %s\n", str.data());
