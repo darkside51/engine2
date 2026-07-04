@@ -293,6 +293,17 @@ set(
 	)
 message("curl library end")
 
+# zlib
+message("zlib library begin")
+add_3rdparty_project (${CMAKE_CURRENT_SOURCE_DIR}/../3rd_party/zlib ${CMAKE_BINARY_DIR}/3rd_party/zlib)
+target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../3rd_party/zlib)
+set(
+	USED_FRAMEWORKS ${USED_FRAMEWORKS}
+	zlibstatic
+	)
+message("zlib library end")
+
+
 target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../3rd_party/glm)
 target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../3rd_party/imgui)
 

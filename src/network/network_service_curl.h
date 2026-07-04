@@ -14,7 +14,7 @@
 
 namespace engine::network {
 
-enum class NetworkResult : uint8_t {
+enum class RequestResult : uint8_t {
     eSuccess = 0u,
     eHttpError = 1u,
     eCancelled = 2u,
@@ -40,7 +40,7 @@ public:
         threads::StopToken stopToken;
         std::string url;
         std::vector<std::byte> response = {};
-        std::move_only_function<void(Payload *, std::vector<std::byte> &&, NetworkResult)> callback = {};
+        std::move_only_function<void(Payload *, std::vector<std::byte> &&, RequestResult)> callback = {};
 
         Payload(threads::StopToken && token, std::string_view url) : 
             stopToken(std::move(token)), url(url) {}
@@ -57,7 +57,7 @@ public:
             }
 
             auto payload = _payloadAllocator.create<Payload>(std::move(stopToken), request.url);
-            payload->callback = [this, callback = std::move(callback)](Payload * payload, std::vector<std::byte> && response, NetworkResult result) {
+            payload->callback = [this, callback = std::move(callback)](Payload * payload, std::vector<std::byte> && response, RequestResult result) {
                 callback(std::move(response), result);
                 _payloadAllocator.destroy(payload);
             };

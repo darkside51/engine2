@@ -112,25 +112,25 @@ void CurlNetworkService::process() {
             if (request) {
                 auto * payload = static_cast<Payload*>(request);
                 if (payload->stopToken.stop_requested()) {
-                    std::move(payload->callback)(payload, {}, NetworkResult::eCancelled);
+                    std::move(payload->callback)(payload, {}, RequestResult::eCancelled);
                     _payloadAllocator.destroy(payload);
                 } else {
                     if (msg->data.result == CURLE_OK) {
                         long response_code = 0;
                         curl_easy_getinfo(handle, CURLINFO_RESPONSE_CODE, &response_code);
                         if (response_code == 200) {
-                            std::move(payload->callback)(payload, std::move(payload->response), NetworkResult::eSuccess);
+                            std::move(payload->callback)(payload, std::move(payload->response), RequestResult::eSuccess);
                         } else {
-                            std::move(payload->callback)(payload, std::move(payload->response), NetworkResult::eHttpError);
+                            std::move(payload->callback)(payload, std::move(payload->response), RequestResult::eHttpError);
                         }
                     } else if (msg->data.result == CURLE_HTTP_RETURNED_ERROR) {
                         long response_code = 0;
                         curl_easy_getinfo(handle, CURLINFO_RESPONSE_CODE, &response_code);
                         LOG_E("request: %s, curl http error, code: %ld", payload->url.c_str(), response_code);
-                        std::move(payload->callback)(payload, {}, NetworkResult::eHttpError);
+                        std::move(payload->callback)(payload, {}, RequestResult::eHttpError);
                     } else {
                         LOG_E("request: %s, curl error, result: %s", payload->url.c_str(), curl_easy_strerror(msg->data.result));
-                        std::move(payload->callback)(payload, {}, NetworkResult::eUndefined);
+                        std::move(payload->callback)(payload, {}, RequestResult::eUndefined);
                     }
                 }
             }

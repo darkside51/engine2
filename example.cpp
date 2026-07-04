@@ -544,16 +544,32 @@ namespace example {
         bool onInpuKeyEvent(const engine::KeyEvent & event, const engine::InputKeyMod & mod) override {
             if (event.state == engine::InputEventState::ePress && event.key == engine::KeyboardKey::eK) {
                 // threads::StopSource2 stopSource;
+                // https://maptiler.com/{z}/{x}/{y}.pbf?key=YOUR_API_KEY
                 curlNetworkService.sendRequest(
-                    engine::network::http::Request{"https://i.pinimg.com/originals/97/3e/fd/973efd74e4edfa29b2e939c6a8774c4e.jpg"}, 
-                    [](std::vector<std::byte> && response, engine::network::NetworkResult resultCode) {
-                        if (resultCode == engine::network::NetworkResult::eSuccess) {
-                            fileManager.getFileSystem("common_fs0")->writeFile("download/image.jpg", response.data(), response.size());
+                    //engine::network::http::Request{"https://i.pinimg.com/originals/97/3e/fd/973efd74e4edfa29b2e939c6a8774c4e.jpg"},
+                    // {z}/{x}/{y}
+                    engine::network::http::Request{"https://api.maptiler.com/tiles/terrain-rgb/0/0/0.png?key=6ks89yREYo9GEfWO2i8h"},
+                    [](std::vector<std::byte> && response, engine::network::RequestResult resultCode) {
+                        if (resultCode == engine::network::RequestResult::eSuccess) {
+                            // fileManager.getFileSystem("common_fs0")->writeFile("download/image.jpg", response.data(), response.size());
+                            fileManager.getFileSystem("common_fs0")->writeFile("download/tile_0_0_0.png", response.data(), response.size());
                         }
                         printf("result code %d\n", static_cast<uint8_t>(resultCode));
                         //std::string_view str{reinterpret_cast<char*>(response.data()), response.size()};
                         //printf("resonse: %s\n", str.data());
                 }, {}/*stopSource.get_token()*/);
+
+                curlNetworkService.sendRequest(
+                    engine::network::http::Request{"https://api.maptiler.com/tiles/v4/0/0/0.pbf?key=6ks89yREYo9GEfWO2i8h"},
+                    [](std::vector<std::byte> && response, engine::network::RequestResult resultCode) {
+                        if (resultCode == engine::network::RequestResult::eSuccess) {
+                            fileManager.getFileSystem("common_fs0")->writeFile("download/tile_0_0_0.pbf", response.data(), response.size());
+                        }
+                        printf("result code %d\n", static_cast<uint8_t>(resultCode));
+                }, {}/*stopSource.get_token()*/);
+
+
+
                 /*stopSource.request_stop();*/
             }
             return false;
