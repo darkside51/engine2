@@ -58,6 +58,7 @@ public:
 
             auto payload = _payloadAllocator.create<Payload>(std::move(stopToken), request.url);
             payload->callback = [this, callback = std::move(callback)](Payload * payload, std::vector<std::byte> && response, RequestResult result) {
+                // call callback on some selected thread, no use curl thread for it!!!!
                 callback(std::move(response), result);
                 _payloadAllocator.destroy(payload);
             };
