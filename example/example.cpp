@@ -45,6 +45,10 @@
 
 #include "network/network_service_curl.h"
 
+#include "utils/stl_helper.h"
+#include <vtzero/vector_tile.hpp>
+#include <vtzero/property_value.hpp>
+
 #include <deque>
 #include <optional>
 
@@ -563,6 +567,54 @@ namespace example {
                     engine::network::http::Request{"https://api.maptiler.com/tiles/v4/0/0/0.pbf?key=6ks89yREYo9GEfWO2i8h"},
                     [](std::vector<std::byte> && response, engine::network::RequestResult resultCode) {
                         if (resultCode == engine::network::RequestResult::eSuccess) {
+                            //!!! data can be compressed !!! - need uncompress
+                            std::string str{reinterpret_cast<char*>(response.data()), response.size()};
+                            vtzero::vector_tile tile{str};
+
+                            // define a variant covering the valid Vector Tile property types
+                            using variant_type = std::variant<std::string, float, double, int64_t, uint64_t, bool>;
+                            auto stringify = [](vtzero::property_value pvalue)->std::string {
+                                variant_type v = vtzero::convert_property_value<variant_type>(pvalue);
+                                return variant::visit(
+                                    v, 
+                                    [](std::string & value) { return value; },
+                                    [](auto && value) { return std::to_string(value); }
+                                );
+                            };
+
+                            struct GeometryHandler {
+                                void points_begin(uint32_t count) { printf("Points [%d]", count); }
+                                void points_point(const vtzero::point p) { printf("(%d, %d), ", p.x, p.y); }
+                                void points_end() { printf("\n"); }
+
+                                void linestring_begin(uint32_t count) { printf("Line [%d]", count); }
+                                void linestring_point(const vtzero::point p) { printf("(%d, %d), ", p.x, p.y); }
+                                void linestring_end() { printf("\n"); }
+
+                                void ring_begin(uint32_t count) { printf("Polygon Ring [%d]", count); }
+                                void ring_point(const vtzero::point p) { printf("(%d, %d), ", p.x, p.y); }
+                                void ring_end(vtzero::ring_type) { printf("\n"); }
+                            };
+
+                            while (auto layer = tile.next_layer()) { //
+                                printf("Layer: %s\n", layer.name().to_string().c_str());
+
+                                // 5. Iterate over features within the layer
+                                while (auto feature = layer.next_feature()) { //
+                                    printf("Feature ID: %lu\n", feature.id());
+
+                                    // 6. Read Feature Tags (Metadata attributes)
+                                    printf("Properties:\n");
+                                    while (auto property = feature.next_property()) {
+                                         printf("%s = %s\n",property.key().to_string().c_str(), stringify(property.value()).c_str());
+                                    }
+
+                                    // 7. Decode Geometries (Points, Lines, or Polygons)
+                                    GeometryHandler handler;
+                                    vtzero::decode_geometry(feature.geometry(), handler);
+                                }
+                            }
+                            
                             fileManager.getFileSystem("common_fs0")->writeFile("download/tile_0_0_0.pbf", response.data(), response.size());
                         }
                         printf("result code %d\n", static_cast<uint8_t>(resultCode));

@@ -19,7 +19,15 @@ if (MSVC)
 endif()
 
 ########## собираем engine
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../src ${CMAKE_CURRENT_BINARY_DIR}/engine)
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/engine/src ${CMAKE_CURRENT_BINARY_DIR}/engine)
+
+######### vtzero
+set(PROTOZERO_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/3rd_party/protozero/include)
+set(VTZERO_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/3rd_party/vtzero/include)
+
+#set(BUILD_EXAMPLES OFF)
+#set(BUILD_TESTING OFF)
+#add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/3rd_party/libosmium ${CMAKE_CURRENT_BINARY_DIR}/libosmium)
 
 #### flags
 if (CMAKE_BUILD_TYPE MATCHES Debug)
@@ -39,6 +47,9 @@ target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/en
 ########## подключаем engine
 target_link_libraries(${PROJECT_NAME} engine)
 include_directories(engine/src)
+
+######## vtzero
+include_directories(${PROJECT_NAME} ${PROTOZERO_INCLUDE_DIR} ${VTZERO_INCLUDE_DIR})
 
 ########## ресурсы
 set(resources_src_dir "${CMAKE_CURRENT_SOURCE_DIR}/resources")
