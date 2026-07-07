@@ -1,51 +1,51 @@
 #include "example.h"
 
-#include "threads/executor.h"
-#include "threads/worker.h"
-#include "file/common_file_system.h"
-#include "common/random.h"
-#include "graphics/render/rhi/vulkan/runtime.h"
-#include "graphics/render/rhi/common/command_list.h"
-#include "graphics/render/rhi/common/pipeline.h"
+#include "engine/src/threads/executor.h"
+#include "engine/src/threads/worker.h"
+#include "engine/src/file/common_file_system.h"
+#include "engine/src/common/random.h"
+#include "engine/src/graphics/render/rhi/vulkan/runtime.h"
+#include "engine/src/graphics/render/rhi/common/command_list.h"
+#include "engine/src/graphics/render/rhi/common/pipeline.h"
 
-#include "graphics/render/staging_buffer.h"
+#include "engine/src/graphics/render/staging_buffer.h"
 
-#include "math/math.h"
-#include "math/geometry.h"
+#include "engine/src/math/math.h"
+#include "engine/src/math/geometry.h"
 
-#include "graphics/scene/camera_controller.h"
+#include "engine/src/graphics/scene/camera_controller.h"
 
-#include "graphics/texture/texture_data_loader.h"
-#include "graphics/texture/texture_manager.h"
-#include "graphics/mesh/gltf_loader.h"
-#include "graphics/mesh/mesh_data.h"
+#include "engine/src/graphics/texture/texture_data_loader.h"
+#include "engine/src/graphics/texture/texture_manager.h"
+#include "engine/src/graphics/mesh/gltf_loader.h"
+#include "engine/src/graphics/mesh/mesh_data.h"
+
+#include "engine/src/utils/parsers/renderpass_json_parser.h"
+#include "engine/src/utils/parsers/graphics_pipeline_json_parser.h"
+
+#include "engine/src/common/type_id.h"
+#include "engine/src/graphics/scene/node.h"
+#include "engine/src/graphics/scene/scene.h"
+#include "engine/src/graphics/scene/transform.h"
+
+#include "engine/src/graphics/common/graphics_service.h"
+#include "engine/src/graphics/common/draw_helper.h"
+#include "engine/src/graphics/texture/atlas.h"
+#include "engine/src/graphics/scene/animation/texture/frame_sequence_animation.h"
+#include "engine/src/graphics/scene/animation/mesh/skeletal_animation.h"
+#include "engine/src/graphics/scene/animation_manager.h"
+#include "engine/src/graphics/scene/scene_helper.h"
+#include "engine/src/graphics/mesh/model_manager.h"
+#include "engine/src/graphics/common/material.h"
+#include "engine/src/graphics/common/background_command_context.h"
+#include "engine/src/graphics/render/techniques/cascade_shadow_map.h"
+#include "engine/src/graphics/render/techniques/ssao.h"
+
+#include "engine/src/network/network_service_curl.h"
+
+#include "engine/src/utils/stl_helper.h"
 
 #include <imgui.h>
-
-#include "utils/parsers/renderpass_json_parser.h"
-#include "utils/parsers/graphics_pipeline_json_parser.h"
-
-#include "common/type_id.h"
-#include "graphics/scene/node.h"
-#include "graphics/scene/scene.h"
-#include "graphics/scene/transform.h"
-
-#include "graphics/common/graphics_service.h"
-#include "graphics/common/draw_helper.h"
-#include "graphics/texture/atlas.h"
-#include "graphics/scene/animation/texture/frame_sequence_animation.h"
-#include "graphics/scene/animation/mesh/skeletal_animation.h"
-#include "graphics/scene/animation_manager.h"
-#include "graphics/scene/scene_helper.h"
-#include "graphics/mesh/model_manager.h"
-#include "graphics/common/material.h"
-#include "graphics/common/background_command_context.h"
-#include "graphics/render/techniques/cascade_shadow_map.h"
-#include "graphics/render/techniques/ssao.h"
-
-#include "network/network_service_curl.h"
-
-#include "utils/stl_helper.h"
 #include <vtzero/vector_tile.hpp>
 #include <vtzero/property_value.hpp>
 

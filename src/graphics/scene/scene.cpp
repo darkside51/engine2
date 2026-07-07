@@ -72,7 +72,7 @@ namespace engine::scene {
     constexpr uint32_t kSsboSkeletalTransformSize = sizeof(SsboTransform) * kDefaultSkeletoneBonesCount;
 
     constexpr uint8_t kSkeletalAnimationCountToEnableMultyThreading = 32u;
-    constexpr uint8_t kAnimationCalculationPoolsCount = 4u;
+    constexpr uint8_t kAnimationCalculationThreadsCount = 2u;
 
     // compute skinning
     constexpr bool kComputeSkinningAvailable = true;
@@ -84,8 +84,8 @@ namespace engine::scene {
     FramesSequenceAnimator gSequenceAnimator{1.0f / 30.0f};
     SkeletalAnimator gSkeletalAnimator{};
 
-    threads::ThreadPool gThreadPool{kAnimationCalculationPoolsCount};
-    std::array<SkeletalAnimator, kAnimationCalculationPoolsCount> gSkeletalAnimatorsMT;
+    threads::ThreadPool gThreadPool{kAnimationCalculationThreadsCount};
+    std::array<SkeletalAnimator, kAnimationCalculationThreadsCount> gSkeletalAnimatorsMT;
 
     // quality
     constexpr std::array kDefaultQualityLevels = {2.0f, 4.0f, 16.0f, 36.0f, 64.0f, 100.0f, 144.0f};

@@ -1,11 +1,11 @@
-#include "utils/profile/leaks.h"
+#include "engine/src/utils/profile/leaks.h"
 
 /////////
-#include "threads/executor.h"
-#include "device/glfw/device.h"
-#include "log/log.h"
 #include "example.h"
-#include "utils/json.h"
+#include "engine/src/threads/executor.h"
+#include "engine/src/device/glfw/device.h"
+#include "engine/src/log/log.h"
+#include "engine/src/utils/json.h"
 
 int main() {
     engine::GLFWModule glfwModule;

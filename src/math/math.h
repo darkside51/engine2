@@ -34,7 +34,10 @@
 
 namespace engine {
     
-    constexpr auto pi = std::numbers::pi_v<float>;
+    template <typename T>
+    constexpr auto pi_v = std::numbers::pi_v<T>;
+
+    constexpr auto pi = pi_v<float>;
     constexpr auto pi2 = pi / 2.0f;
 
     template <typename T>

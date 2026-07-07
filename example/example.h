@@ -1,14 +1,14 @@
 #pragma once
 
-#include "file/file_manager.h"
-#include "graphics/render/rhi/common/runtime.h"
-#include "graphics/render/rhi/common/utils.h"
-#include "graphics/render/inflight_buffer.h"
-#include "threads/executor.h"
+#include "engine/src/file/file_manager.h"
+#include "engine/src/graphics/render/rhi/common/runtime.h"
+#include "engine/src/graphics/render/rhi/common/utils.h"
+#include "engine/src/graphics/render/inflight_buffer.h"
+#include "engine/src/threads/executor.h"
 
-#include "input/input.h"
+#include "engine/src/input/input.h"
 
-#include "graphics/ui/imgui.h"
+#include "engine/src/graphics/ui/imgui.h"
 
 #include <vector>
 

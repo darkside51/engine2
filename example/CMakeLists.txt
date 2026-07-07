@@ -25,9 +25,6 @@ add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/engine/src ${CMAKE_CURRENT_BINARY_D
 set(PROTOZERO_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/3rd_party/protozero/include)
 set(VTZERO_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/3rd_party/vtzero/include)
 
-#set(BUILD_EXAMPLES OFF)
-#set(BUILD_TESTING OFF)
-#add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/3rd_party/libosmium ${CMAKE_CURRENT_BINARY_DIR}/libosmium)
 
 #### flags
 if (CMAKE_BUILD_TYPE MATCHES Debug)
@@ -37,7 +34,47 @@ else()
 	add_definitions(-DNDEBUG)
 endif(CMAKE_BUILD_TYPE MATCHES Debug)
 
-add_executable(${PROJECT_NAME} main.cpp example.cpp)
+
+# sources
+set(EXAMPLE_SRC_DIRS)
+set(EXAMPLE_HEADERS)
+set(EXAMPLE_SOURCES)
+
+set(
+	EXAMPLE_SRC_DIRS ${EXAMPLE_SRC_DIRS}
+	
+	./
+	map
+)
+
+foreach (DIR ${EXAMPLE_SRC_DIRS})
+	message("DIR:" ${DIR})
+
+	file(GLOB
+		HEADERS
+		${CMAKE_CURRENT_SOURCE_DIR}/${DIR}/*.h
+		${CMAKE_CURRENT_SOURCE_DIR}/${DIR}/*.hpp
+	)
+
+	file(GLOB
+		SOURCES
+		${CMAKE_CURRENT_SOURCE_DIR}/${DIR}/*.c
+		${CMAKE_CURRENT_SOURCE_DIR}/${DIR}/*.cpp
+	)
+
+	list(APPEND EXAMPLE_HEADERS ${HEADERS})
+	list(APPEND EXAMPLE_SOURCES ${SOURCES})
+
+endforeach(DIR)
+
+list(REMOVE_DUPLICATES EXAMPLE_HEADERS)
+list(REMOVE_DUPLICATES EXAMPLE_SOURCES)
+
+add_executable(
+	${PROJECT_NAME} 
+	${EXAMPLE_SOURCES}
+	${EXAMPLE_HEADERS}
+)
 
 target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/engine/3rd_party/imgui)
 
@@ -46,7 +83,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/en
 
 ########## подключаем engine
 target_link_libraries(${PROJECT_NAME} engine)
-include_directories(engine/src)
+include_directories(./)
 
 ######## vtzero
 include_directories(${PROJECT_NAME} ${PROTOZERO_INCLUDE_DIR} ${VTZERO_INCLUDE_DIR})
