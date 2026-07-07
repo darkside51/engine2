@@ -297,6 +297,8 @@ namespace example {
             _commandContext.submit(std::move(tasks), std::forward<decltype(executor)>(executor));
         }
 
+        threads::Worker & getScheduler() noexcept { return _worker; }
+
     private:
         threads::Worker _worker;
         engine::graphics::BackgroundCommandContext _commandContext;
@@ -549,7 +551,7 @@ namespace example {
             if (event.state == engine::InputEventState::ePress && event.key == engine::KeyboardKey::eK) {
                 // threads::StopSource2 stopSource;
                 // https://maptiler.com/{z}/{x}/{y}.pbf?key=YOUR_API_KEY
-                curlNetworkService.sendRequest(
+                curlNetworkService.sendRequest(backgroundgWorker->getScheduler(),
                     //engine::network::http::Request{"https://i.pinimg.com/originals/97/3e/fd/973efd74e4edfa29b2e939c6a8774c4e.jpg"},
                     // {z}/{x}/{y}
                     engine::network::http::Request{"https://api.maptiler.com/tiles/terrain-rgb/0/0/0.png?key=6ks89yREYo9GEfWO2i8h"},
@@ -563,7 +565,7 @@ namespace example {
                         //printf("resonse: %s\n", str.data());
                 }, {}/*stopSource.get_token()*/);
 
-                curlNetworkService.sendRequest(
+                curlNetworkService.sendRequest(backgroundgWorker->getScheduler(),
                     engine::network::http::Request{"https://api.maptiler.com/tiles/v4/0/0/0.pbf?key=6ks89yREYo9GEfWO2i8h"},
                     [](std::vector<std::byte> && response, engine::network::RequestResult resultCode) {
                         if (resultCode == engine::network::RequestResult::eSuccess) {

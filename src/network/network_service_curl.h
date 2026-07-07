@@ -49,17 +49,19 @@ public:
     CurlNetworkService(size_t payloadPoolCapacity = 256u);
     ~CurlNetworkService();
 
-    template <typename T>
-    void sendRequest(http::Request && request, T && callback, threads::StopToken && stopToken) {
-        _executor->emplaceTask({[this, request = std::move(request), callback = std::move(callback), stopToken = std::move(stopToken)]() mutable {
+    template <typename S, typename T>
+    void sendRequest(S & scheduler, http::Request && request, T && callback, threads::StopToken && stopToken) {
+        _executor->emplaceTask({[this, &scheduler, request = std::move(request), callback = std::move(callback), stopToken = std::move(stopToken)]() mutable {
             if (stopToken.stop_requested()) {
                 return;
             }
 
             auto payload = _payloadAllocator.create<Payload>(std::move(stopToken), request.url);
-            payload->callback = [this, callback = std::move(callback)](Payload * payload, std::vector<std::byte> && response, RequestResult result) {
-                // call callback on some selected thread, no use curl thread for it!!!!
-                callback(std::move(response), result);
+            payload->callback = [this, &scheduler, callback = std::move(callback)]
+                                    (Payload * payload, std::vector<std::byte> && response, RequestResult result) mutable {
+                scheduler.emplaceTask([callback = std::move(callback), response = std::move(response), result]() mutable {
+                    callback(std::move(response), result);
+                });
                 _payloadAllocator.destroy(payload);
             };
 

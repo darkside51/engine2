@@ -61,6 +61,11 @@ namespace threads {
             run(createTask(std::forward<Args>(args)...));
         }
 
+        template <typename... Args>
+        inline void emplaceTask(Args &&... args) {
+            execute(std::forward<Args>(args)...);
+        }
+
         inline void run(Task * task) {
             auto * worker = for_each_thread::worker;
             worker ? schedule(*worker, task) : schedule(task);
