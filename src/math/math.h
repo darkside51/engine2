@@ -157,7 +157,7 @@ namespace engine {
         return t * t * (T(3) - T(2) * t);
     }
 
-    inline constexpr float inv_sqrt(const float x) { // "инверсный(1.0f / sqrt) квадратный корень Кармака"
+    inline constexpr float inv_sqrt(const float x) noexcept { // "инверсный(1.0f / sqrt) квадратный корень Кармака"
         const float xhalf = 0.5f * x;
         union {
             float x = 0.0f;
@@ -214,7 +214,7 @@ namespace engine {
         eZYX = 5u
     };
 
-    inline void rotateMatrix_x(mat4f& m, float angle) noexcept {
+    inline void rotateMatrix_x(mat4f & m, float angle) noexcept {
         if (angle == 0.0f) return;
 
         const float c = cosf(angle);
@@ -225,7 +225,7 @@ namespace engine {
         m[1] = tmpV;
     }
 
-    inline void rotateMatrix_y(mat4f& m, float angle) noexcept {
+    inline void rotateMatrix_y(mat4f & m, float angle) noexcept {
         if (angle == 0.0f) return;
 
         const float c = cosf(angle);
@@ -236,7 +236,7 @@ namespace engine {
         m[2] = tmpV;
     }
 
-    inline void rotateMatrix_z(mat4f& m, float angle) noexcept {
+    inline void rotateMatrix_z(mat4f & m, float angle) noexcept {
         if (angle == 0.0f) return;
 
         const float c = cosf(angle);
@@ -247,77 +247,77 @@ namespace engine {
         m[0] = tmpV;
     }
 
-    inline void directMatrix_yz(mat4f& m, float c, float s) noexcept {
+    inline void directMatrix_yz(mat4f & m, float c, float s) noexcept {
         const vec4f tmpV = m[1] * c + m[2] * s;
         m[2] = -m[1] * s + m[2] * c;
         m[1] = tmpV;
     }
 
-    inline void directMatrix_xz(mat4f& m, float c, float s) noexcept {
+    inline void directMatrix_xz(mat4f & m, float c, float s) noexcept {
         const vec4f tmpV = m[2] * c + m[0] * s;
         m[0] = -m[2] * s + m[0] * c;
         m[2] = tmpV;
     }
 
-    inline void directMatrix_xy(mat4f& m, float c, float s) noexcept {
+    inline void directMatrix_xy(mat4f & m, float c, float s) noexcept {
         const vec4f tmpV = m[0] * c + m[1] * s;
         m[1] = -m[0] * s + m[1] * c;
         m[0] = tmpV;
     }
 
-    inline void scaleMatrix(mat4f& matrix, const vec3f& scale) noexcept {
+    inline void scaleMatrix(mat4f & matrix, const vec3f& scale) noexcept {
         matrix[0] *= scale[0];
         matrix[1] *= scale[1];
         matrix[2] *= scale[2];
     }
 
-    inline void translateMatrixTo(mat4f& matrix, const vec3f& translate) noexcept {
+    inline void translateMatrixTo(mat4f & matrix, const vec3f& translate) noexcept {
         matrix[3][0] = translate.x;
         matrix[3][1] = translate.y;
         matrix[3][2] = translate.z;
     }
 
-    inline void translateMatrix(mat4f& matrix, const vec3f& translate) noexcept {
+    inline void translateMatrix(mat4f & matrix, const vec3f& translate) noexcept {
         matrix[3] = matrix[0] * translate[0] + matrix[1] * translate[1] + matrix[2] * translate[2] + matrix[3];
     }
 
-    inline void rotateMatrix_xyz(mat4f& transform, const vec3f& v) noexcept {
+    inline void rotateMatrix_xyz(mat4f & transform, const vec3f& v) noexcept {
         rotateMatrix_x(transform, v.x);
         rotateMatrix_y(transform, v.y);
         rotateMatrix_z(transform, v.z);
     }
 
-    inline void rotateMatrix_xzy(mat4f& transform, const vec3f& v) noexcept {
+    inline void rotateMatrix_xzy(mat4f & transform, const vec3f& v) noexcept {
         rotateMatrix_x(transform, v.x);
         rotateMatrix_z(transform, v.z);
         rotateMatrix_y(transform, v.y);
     }
 
-    inline void rotateMatrix_yxz(mat4f& transform, const vec3f& v) noexcept {
+    inline void rotateMatrix_yxz(mat4f & transform, const vec3f& v) noexcept {
         rotateMatrix_y(transform, v.y);
         rotateMatrix_x(transform, v.x);
         rotateMatrix_z(transform, v.z);
     }
 
-    inline void rotateMatrix_yzx(mat4f& transform, const vec3f& v) noexcept {
+    inline void rotateMatrix_yzx(mat4f & transform, const vec3f& v) noexcept {
         rotateMatrix_y(transform, v.y);
         rotateMatrix_z(transform, v.z);
         rotateMatrix_x(transform, v.x);
     }
 
-    inline void rotateMatrix_zxy(mat4f& transform, const vec3f& v) noexcept {
+    inline void rotateMatrix_zxy(mat4f & transform, const vec3f& v) noexcept {
         rotateMatrix_z(transform, v.z);
         rotateMatrix_x(transform, v.x);
         rotateMatrix_y(transform, v.y);
     }
 
-    inline void rotateMatrix_zyx(mat4f& transform, const vec3f& v) noexcept {
+    inline void rotateMatrix_zyx(mat4f & transform, const vec3f& v) noexcept {
         rotateMatrix_z(transform, v.z);
         rotateMatrix_y(transform, v.y);
         rotateMatrix_x(transform, v.x);
     }
 
-    inline void rotateMatrix_byOrder(mat4f& transform, const vec3f& v, RotationsOrder r) noexcept {
+    inline void rotateMatrix_byOrder(mat4f & transform, const vec3f& v, RotationsOrder r) noexcept {
         switch (r) {
             case RotationsOrder::eXYZ:
                 rotateMatrix_xyz(transform, v);
@@ -343,10 +343,10 @@ namespace engine {
     }
 
     inline void decomposeMatrix(
-        const mat4f& m,
-        vec3f& s,
-        quatf& r,
-        vec3f& t
+        const mat4f & m,
+        vec3f & s,
+        quatf & r,
+        vec3f & t
     ) noexcept {
         s.x = glm::length(vec3f(m[0]));
         s.y = glm::length(vec3f(m[1]));
