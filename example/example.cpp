@@ -45,6 +45,8 @@
 
 #include "engine/src/utils/stl_helper.h"
 
+#include "engine/src/stl/vector.h"
+
 #include <imgui.h>
 #include <vtzero/vector_tile.hpp>
 #include <vtzero/property_value.hpp>
@@ -647,6 +649,9 @@ namespace example {
         controller.setRotation({-1.3f, 0.0f, 0.5f});
 
         camera.makePerspective(std::numbers::pi_v<float> / 3.0f, 16.0f / 9.0f, kNearFarPlane.x, kNearFarPlane.y);
+
+        engine::stl::vector<int> vvv;
+        vvv.push_back(22);
     }
 
     Example::~Example() = default;

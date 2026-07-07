@@ -102,6 +102,8 @@ set(
 
 	network
 	
+	stl
+
 	threads
 	threads/thread_pool
 
@@ -305,6 +307,16 @@ message("zlib library end")
 
 # earcut
 target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../3rd_party/earcut/include/mapbox)
+
+# eastl
+message("eastl library begin")
+add_3rdparty_project (${CMAKE_CURRENT_SOURCE_DIR}/../3rd_party/eastl ${CMAKE_BINARY_DIR}/3rd_party/eastl)
+target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../3rd_party/eastl/include)
+set(
+	USED_FRAMEWORKS ${USED_FRAMEWORKS}
+	EASTL
+	)
+message("eastl library end")
 
 target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../3rd_party/glm)
 target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../3rd_party/imgui)
