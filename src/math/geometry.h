@@ -1,6 +1,9 @@
 #pragma once
 
 #include "math.h"
+#include "earcut.hpp"
+
+#include <span>
 
 namespace engine {
     inline vec3f projection(const vec3f & a, const vec3f & b) noexcept { // project a to b
@@ -8,12 +11,12 @@ namespace engine {
         return axis * glm::dot(axis, a);
     }
 
-    inline void normalizePlane(vec4f & plane) { // plane normalization
+    inline void normalizePlane(vec4f & plane) noexcept { // plane normalization
         const float invSqrt = inv_sqrt(plane.x * plane.x + plane.y * plane.y + plane.z * plane.z);
         plane *= invSqrt;
     }
 
-    inline vec4f planeForm(const vec3f & p1, const vec3f & p2, const vec3f & p3) { // general plane equation with 3 points
+    inline vec4f planeForm(const vec3f & p1, const vec3f & p2, const vec3f & p3) noexcept { // general plane equation with 3 points
         const float a = p2.x - p1.x;
         const float b = p2.y - p1.y;
         const float c = p2.z - p1.z;
@@ -30,21 +33,21 @@ namespace engine {
         return { pA, pB, pC, pD };
     }
 
-    inline vec4f planeForm(const vec3f & normal, const vec3f & point) { // general plane equation with normal and point
+    inline vec4f planeForm(const vec3f & normal, const vec3f & point) noexcept { // general plane equation with normal and point
         return { normal.x, normal.y, normal.z, -glm::dot(normal, point) };
     }
 
-     inline float lenFromPointToLine(const vec3f & begin, const vec3f & end, const vec3f & p) {
+     inline float lenFromPointToLine(const vec3f & begin, const vec3f & end, const vec3f & p) noexcept {
         const vec3f direction = glm::normalize(end - begin);
         const vec3f directionToVec = p - begin;
         return glm::length(glm::cross(direction, directionToVec));
     }
 
-    inline float lenFromPointToPlane(const vec4f & plane, const vec3f & p) {
+    inline float lenFromPointToPlane(const vec4f & plane, const vec3f & p) noexcept {
         return plane.x * p.x + plane.y * p.y + plane.z * p.z + plane.w;
     }
 
-    inline float lenFromLineToLine(const vec3f & begin, const vec3f & end, const vec3f & begin2, const vec3f & end2) {
+    inline float lenFromLineToLine(const vec3f & begin, const vec3f & end, const vec3f & begin2, const vec3f & end2) noexcept {
         // http://www.cleverstudents.ru/line_and_plane/distance_between_skew_lines.html
 
         const vec3f direction = glm::normalize(end - begin); // line0 direction
@@ -60,7 +63,7 @@ namespace engine {
         return len;
     }
 
-    inline vec3f reflectPointWithPlane(const vec4f& plane, const vec3f& p, const bool planeIsNormalized) {
+    inline vec3f reflectPointWithPlane(const vec4f & plane, const vec3f & p, const bool planeIsNormalized) noexcept {
         const vec3f planeNormal(plane.x, plane.y, plane.z);
         const float len = lenFromPointToPlane(plane, p);
 
@@ -68,22 +71,70 @@ namespace engine {
         return p - planeNormal * (normalizer * len);
     }
 
-    inline vec3f intersectionLinePlane(const vec3f& a, const vec3f& b, const vec4f& plane) {
+    inline vec3f intersectionLinePlane(const vec3f & a, const vec3f & b, const vec4f & plane) noexcept {
         const vec3f d = glm::normalize(b - a);
         const float t = -(plane.x * a.x + plane.y * a.y + plane.z * a.z + plane.w) / (plane.x * d.x + plane.y * d.y + plane.z * d.z);
         return { a.x + d.x * t, a.y + d.y * t, a.z + d.z * t };
     }
 
-    inline vec3f crossingLinesPoint(const vec3f& a, const vec3f& b, const vec3f& c, const vec3f& d, const float eps) {
+    inline vec3f crossingLinesPoint(const vec3f & a, const vec3f & b, const vec3f & c, const vec3f & d, const float eps) noexcept {
         const vec3f v_v = c + glm::cross(d - c, b - a);
         const vec4f pl = planeForm(c, d, v_v);
         const vec3f crossing = intersectionLinePlane(a, b, pl);
         return lenFromPointToLine(c, d, crossing) <= eps ? crossing : vec3f(std::numeric_limits<float>::max());
     }
 
-    inline float triangleSquare(const float a, const float b, const float c) { // Heron's formula
+    inline float triangleSquare(float a, float b, float c) noexcept { // Heron's formula
         const float p = (a + b + c) * 0.5f;
         const float sqrtv = 1.0f / inv_sqrt(p * (p - a) * (p - b) * (p - c));
         return sqrtv;
+    }
+
+    template <typename VEC>
+    bool isPointInPolygon2D(const VEC & p, std::span<const VEC> points) noexcept {
+        // https://gamedev.ru/code/forum/?id=42313
+        const size_t psz = points.size();
+        if (psz < 3u) {
+            return false;
+        }
+
+        bool result = false;
+        VEC last = points.back();
+        for (auto const & pt : points) {
+            if ((pt.y > p.y) ^ (last.y > p.y)) {
+                auto const t = static_cast<VEC::value_type>(p.y - last.y) / (pt.y - last.y);
+                auto const x = static_cast<VEC::value_type>(last.x) + t * (pt.x - last.x);
+                if (x > p.x) {
+                    result = !result;
+                }
+            }
+            last = pt;
+        }
+        return result;
+    }
+
+    template<typename T>
+    void calculateNormals(std::span<T> vertices, std::span<const uint32_t> indices) noexcept {
+        for (auto & v : vertices) {
+            v.normal = vec3f(0.0F);
+        }
+
+        for (auto i = 0u; i < indices.size(); i += 3u) {
+            auto const idx0 = indices[i + 0u];
+            auto const idx1 = indices[i + 1u];
+            auto const idx2 = indices[i + 2u];
+
+            auto const v02 = glm::normalize(vertices[idx0].position - vertices[idx2].position);
+            auto const v10 = glm::normalize(vertices[idx1].position - vertices[idx0].position);
+            auto const v21 = glm::normalize(vertices[idx2].position - vertices[idx1].position);
+
+            vertices[idx0].normal += glm::normalize(glm::cross(v02, v10));
+            vertices[idx1].normal += glm::normalize(glm::cross(v10, v21));
+            vertices[idx2].normal += glm::normalize(glm::cross(v21, v02));
+        }
+
+        for (auto & v : vertices) {
+            v.normal = glm::normalize(v.normal);
+        }
     }
 }
