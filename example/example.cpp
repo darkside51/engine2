@@ -109,8 +109,8 @@ namespace example {
     engine::scene::Node * sceneWorldRoot = nullptr;
     engine::scene::Node * swordNode = nullptr;
 
-    std::vector<engine::scene::AttachmentObject*> shadowObjects(1024u);
-    std::vector<engine::scene::AttachmentObject*> objects(1024u);
+    engine::stl::vector<engine::scene::AttachmentObject*> shadowObjects(1024u);
+    engine::stl::vector<engine::scene::AttachmentObject*> objects(1024u);
 
     std::unique_ptr<engine::graphics::CascadeShadowMap> shadowMap = nullptr;
     std::unique_ptr<engine::graphics::InflightBuffer> shadowMapUniformBuffer = nullptr;
@@ -649,9 +649,6 @@ namespace example {
         controller.setRotation({-1.3f, 0.0f, 0.5f});
 
         camera.makePerspective(std::numbers::pi_v<float> / 3.0f, 16.0f / 9.0f, kNearFarPlane.x, kNearFarPlane.y);
-
-        engine::stl::vector<int> vvv;
-        vvv.push_back(22);
     }
 
     Example::~Example() = default;

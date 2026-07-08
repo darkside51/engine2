@@ -72,8 +72,10 @@ list(REMOVE_DUPLICATES EXAMPLE_SOURCES)
 
 add_executable(
 	${PROJECT_NAME} 
-	${EXAMPLE_SOURCES}
-	${EXAMPLE_HEADERS}
+	main.cpp
+	example.cpp
+	#${EXAMPLE_SOURCES}
+	#${EXAMPLE_HEADERS}
 )
 
 target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/engine/3rd_party/imgui)

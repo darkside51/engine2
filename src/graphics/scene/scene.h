@@ -13,15 +13,16 @@
 #include "register.h"
 #include "threads/threads.h"
 
-#include <array>
+#include "stl/array.h"
+#include "stl/span.h"
+#include "stl/unordered_map.h"
+#include "stl/utility.h"
+#include "stl/vector.h"
+
 #include <cassert>
 #include <chrono>
 #include <cstdint>
 #include <memory>
-#include <span>
-#include <unordered_map>
-#include <utility>
-#include <vector>
 
 namespace engine {
 
@@ -81,7 +82,7 @@ struct ViewParams {
 };
 
 struct ShadowViewParams {
-    std::span<const mat4f> cascadeMatrices;
+    stl::span<const mat4f> cascadeMatrices;
 };
 
 enum class FillAttachmentFlags : uint8_t {
@@ -95,7 +96,7 @@ enum class RenderPass : uint8_t {
 };
 
 class Scene {
-    using AttachmentsIterator = std::span<AttachmentObject*>::iterator;
+    using AttachmentsIterator = stl::span<AttachmentObject*>::iterator;
     
     struct DrawDataOffsets {
         uint32_t meshesDrawOffset = 0u;
@@ -114,7 +115,7 @@ public:
             eMeshSkinned = 3u,
             eCount
         };
-        std::array<uint32_t, std::to_underlying(Type::eCount)> pipelines;
+        stl::array<uint32_t, std::to_underlying(Type::eCount)> pipelines;
     };
 
     struct DispatchResult {
@@ -156,11 +157,11 @@ public:
     bool destroyAnimInfo(AnimationInfoChain * info) noexcept;
 
     // quality levels
-    void insertQualityLevels(std::vector<float> && levels) {
+    void insertQualityLevels(stl::vector<float> && levels) {
         _qualityLevels.emplace_back(std::move(levels));
     }
 
-    std::span<const float> getQualityLevels(uint16_t idx) const noexcept;
+    stl::span<const float> getQualityLevels(uint16_t idx) const noexcept;
 
     // render & compute
     uint32_t registerGraphicsPipeline(rhi::runtime::PipelinePtr && pipeline);
@@ -180,21 +181,21 @@ public:
 
     template <typename Condition>
     void fillAttachmentsArray(const ViewParams & viewParams, Node * root, Condition && condition, 
-        std::vector<AttachmentObject*> & objects, FillAttachmentFlags flags);
-    DrawDataOffsets prepareDrawData(std::span<AttachmentObject*> objects, uint8_t frame) noexcept;
+        stl::vector<AttachmentObject*> & objects, FillAttachmentFlags flags);
+    DrawDataOffsets prepareDrawData(stl::span<AttachmentObject*> objects, uint8_t frame) noexcept;
 
-    void animate(std::chrono::time_point<std::chrono::steady_clock> now, float delta, std::span<AttachmentObject*> objects, 
+    void animate(std::chrono::time_point<std::chrono::steady_clock> now, float delta, stl::span<AttachmentObject*> objects, 
         const AnimationManager & animationManager, float speed = 1.0f);
     void draw(RenderPass pass, rhi::runtime::CommandListPtr & commandList, rhi::runtime::CommandListPtr & transferCommandList, uint8_t frame, 
-        const ViewParams & viewParams, std::span<AttachmentObject*> objects, const DrawDataOffsets & offsets, const void * external = nullptr);
-    void drawDebug(const ViewParams & viewParams, std::span<AttachmentObject*> objects);
-    DispatchResult dispatch(rhi::runtime::CommandListPtr & commandList, uint8_t frame, std::span<AttachmentObject*> objects, const DrawDataOffsets & offsets);
+        const ViewParams & viewParams, stl::span<AttachmentObject*> objects, const DrawDataOffsets & offsets, const void * external = nullptr);
+    void drawDebug(const ViewParams & viewParams, stl::span<AttachmentObject*> objects);
+    DispatchResult dispatch(rhi::runtime::CommandListPtr & commandList, uint8_t frame, stl::span<AttachmentObject*> objects, const DrawDataOffsets & offsets);
 
     // getters
     bool isComputeSkinningEnabled() const noexcept;
 
     // attachments
-    static void sortObjectsForDraw(std::vector<AttachmentObject*> & objects) noexcept {
+    static void sortObjectsForDraw(stl::vector<AttachmentObject*> & objects) noexcept {
         std::sort(objects.begin(), objects.end(), [](const AttachmentObject * a, const AttachmentObject * b) noexcept {
             return compareAttachmentsForDraw(*a, *b);
         });
@@ -250,14 +251,14 @@ private:
     uint32_t _frameNumber = 0u;
     Node * _rootNode = nullptr;
 
-    std::unordered_map<size_t, std::unique_ptr<ObjectsCollection>> _objectCollections;
+    stl::unordered_map<size_t, std::unique_ptr<ObjectsCollection>> _objectCollections;
 
     // animation
     // static thread_local std::vector<animation::AnimatedObject> _sequences; //
     // can use threads::unique_t<animation::AnimatedObject>::id() - if want to create AnimatedObjects on some threads!
     struct AnimationCollection {
-        std::vector<animation::AnimatedObject> skeletalAnimations;
-        std::vector<animation::AnimatedObject> sequences;
+        stl::vector<animation::AnimatedObject> skeletalAnimations;
+        stl::vector<animation::AnimatedObject> sequences;
 
         void clear() noexcept {
             skeletalAnimations.clear();
@@ -281,14 +282,14 @@ private:
     } _animations;
 
     void completeAnimations() noexcept;
-    std::vector<std::vector<float>> _qualityLevels;
+    stl::vector<stl::vector<float>> _qualityLevels;
     
     // render
     rhi::runtime::Rhi * _api = nullptr;
     rhi::runtime::Device * _device = nullptr;
 
-    std::vector<rhi::runtime::PipelinePtr> _graphicsPipelines;
-    std::vector<rhi::runtime::PipelinePtr> _computesPipelines;
+    stl::vector<rhi::runtime::PipelinePtr> _graphicsPipelines;
+    stl::vector<rhi::runtime::PipelinePtr> _computesPipelines;
     std::unique_ptr<graphics::InflightStagingBuffer> _staging = nullptr;
 
     const graphics::GraphicsService & _graphicsService;
@@ -314,8 +315,8 @@ private:
         uint32_t skeletonId = kUnknownTransformIndex;
     };
 
-    std::unordered_map<const AttachmentObject*, MeshTransformsIndices> _meshTransformIndicesMap;
-    std::vector<std::pair<const AttachmentObject*, MeshTransformsIndices>> _tmpUniqueMeshes;
+    stl::unordered_map<const AttachmentObject*, MeshTransformsIndices> _meshTransformIndicesMap;
+    stl::vector<stl::pair<const AttachmentObject*, MeshTransformsIndices>> _tmpUniqueMeshes;
     
     uint32_t _meshesDrawInFrame = 0u;
     uint32_t _lastFramesUsedMeshesDraw = 0u;
@@ -341,14 +342,14 @@ private:
     // rhi::runtime::BufferPtr _computedVertices = nullptr;
     // rhi::runtime::BufferPtr _computedNormals = nullptr;
     // rhi::runtime::BufferPtr _computedTangents = nullptr;
-    std::vector<rhi::runtime::BufferPtr> _computedVertices = {};
-    std::vector<rhi::runtime::BufferPtr> _computedNormals = {};
-    std::vector<rhi::runtime::BufferPtr> _computedTangents = {};
+    stl::vector<rhi::runtime::BufferPtr> _computedVertices = {};
+    stl::vector<rhi::runtime::BufferPtr> _computedNormals = {};
+    stl::vector<rhi::runtime::BufferPtr> _computedTangents = {};
 
     // async animation calculation:
     // need use stop sources?
-    std::array<threads::WaitSource, 128u> _calculationWaiters;
-    std::vector<threads::WaitSource*> _calculationWaiterPtrs;
+    stl::array<threads::WaitSource, 128u> _calculationWaiters;
+    stl::vector<threads::WaitSource*> _calculationWaiterPtrs;
 
     // samplers:
     rhi::SamplerValue _nearestSampler;
@@ -364,7 +365,7 @@ private:
 
 template <typename Condition>
 void Scene::fillAttachmentsArray(const ViewParams & viewParams, Node * root, Condition && condition, 
-    std::vector<AttachmentObject*> & objects, FillAttachmentFlags flags) {
+    stl::vector<AttachmentObject*> & objects, FillAttachmentFlags flags) {
     const Frustum frustum(viewParams.cameraTransform);
     const auto currentSize = static_cast<uint32_t>(objects.size()); 
     objects.clear();

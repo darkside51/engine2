@@ -19,8 +19,6 @@
 #include <algorithm>
 #include <cassert>
 
-#include <unordered_map>
-
 namespace {
     consteval void _() noexcept {
         using namespace engine;
@@ -85,10 +83,10 @@ namespace engine::scene {
     SkeletalAnimator gSkeletalAnimator{};
 
     threads::ThreadPool gThreadPool{kAnimationCalculationThreadsCount};
-    std::array<SkeletalAnimator, kAnimationCalculationThreadsCount> gSkeletalAnimatorsMT;
+    stl::array<SkeletalAnimator, kAnimationCalculationThreadsCount> gSkeletalAnimatorsMT;
 
     // quality
-    constexpr std::array kDefaultQualityLevels = {2.0f, 4.0f, 16.0f, 36.0f, 64.0f, 100.0f, 144.0f};
+    constexpr stl::array kDefaultQualityLevels = {2.0f, 4.0f, 16.0f, 36.0f, 64.0f, 100.0f, 144.0f};
 
     // shaders time
     constexpr float kShaderTimeMultiplier = 0.001f;
@@ -104,9 +102,9 @@ namespace engine::scene {
     // };
 
     struct SpriteVertex {
-        std::array<float, 3u> position;
-        std::array<uint16_t, 2u> uv;
-        std::array<uint8_t, 4u> color;
+        stl::array<float, 3u> position;
+        stl::array<uint16_t, 2u> uv;
+        stl::array<uint8_t, 4u> color;
     };
 
     constexpr uint32_t kSpriteVertexSize = sizeof(SpriteVertex);
@@ -424,7 +422,7 @@ namespace engine::scene {
         return false;
     }
 
-    std::span<const float> Scene::getQualityLevels(uint16_t idx) const noexcept {
+    stl::span<const float> Scene::getQualityLevels(uint16_t idx) const noexcept {
         if (idx < _qualityLevels.size()) {
             return _qualityLevels[idx];
         }
@@ -445,7 +443,7 @@ namespace engine::scene {
         }
     }
 
-    void Scene::animate(std::chrono::time_point<std::chrono::steady_clock> now, float delta, std::span<AttachmentObject*> objects, 
+    void Scene::animate(std::chrono::time_point<std::chrono::steady_clock> now, float delta, stl::span<AttachmentObject*> objects, 
         const AnimationManager & animationManager, float speed) {
         //return;
         if (objects.empty()) {
@@ -505,7 +503,7 @@ namespace engine::scene {
                 size_t i = 0u;
                 while (animationsCount > 0u) {
                     const auto count = (i == numWorkers - 1u) ? animationsCount : taskPerThread;
-                    const auto animations = std::span{it, it + count};
+                    const auto animations = stl::span{it, it + count};
                     it += count;
                     
                     const auto w8Id = _calculationWaiterPtrs.size();
@@ -564,7 +562,7 @@ namespace engine::scene {
             auto animId = kUndefinedAnimId;
             const FramesSequence * currentAnim = nullptr;
             
-            const auto animations = std::span{begin, _animations.sequences.end()};
+            const auto animations = stl::span{begin, _animations.sequences.end()};
             for (const auto & [animInfo, object] : animations) {
                 if (animInfo->animationId != animId) {
                     animId = animInfo->animationId;
@@ -578,7 +576,7 @@ namespace engine::scene {
         }
     }
 
-    Scene::DrawDataOffsets Scene::prepareDrawData(std::span<AttachmentObject*> objects, uint8_t frame) noexcept {
+    Scene::DrawDataOffsets Scene::prepareDrawData(stl::span<AttachmentObject*> objects, uint8_t frame) noexcept {
         // resize buffers
         const auto spritesVertexesCount = _spritesVertexesCount;
         const auto spritesIndicesCount = _spritesIndicesCount;
@@ -590,8 +588,8 @@ namespace engine::scene {
         auto skeletalTransformsInFrame = _skeletalTransformsInFrame;
         _tmpUniqueMeshes.reserve(kInitialmeshTransformsInFrameMax);
 
-        auto addSkeletonToMap = [&](const Skeleton* skeleton)-> std::pair<uint32_t, uint32_t> {
-            const auto result =  std::pair{skeletalTransformsInFrame, _uniqueSkeletons};
+        auto addSkeletonToMap = [&](const Skeleton* skeleton)-> stl::pair<uint32_t, uint32_t> {
+            const auto result =  stl::pair{skeletalTransformsInFrame, _uniqueSkeletons};
             const auto [it, success] = _meshTransformIndicesMap.emplace(skeleton, 
                         MeshTransformsIndices{
                             .transformIndex = kUnknownTransformIndex,
@@ -818,7 +816,7 @@ namespace engine::scene {
         auto dataIndex = mesh.dataIndex();
         auto materialIndex = mesh.materialIndex();
           
-        std::array<uint32_t, kMaxSkeletonsDispatchPack> skeletonMeshesVerticesCounts{};
+        stl::array<uint32_t, kMaxSkeletonsDispatchPack> skeletonMeshesVerticesCounts{};
 
         const auto startOffset = offsets.meshesDrawOffset;
         const auto startSkeletonOffset = offsets.skeletonOffset;
@@ -1007,7 +1005,7 @@ namespace engine::scene {
         }
     }
 
-    Scene::DispatchResult Scene::dispatch(rhi::runtime::CommandListPtr & commandList, uint8_t frame, std::span<AttachmentObject*> objects, const DrawDataOffsets & offsets) {
+    Scene::DispatchResult Scene::dispatch(rhi::runtime::CommandListPtr & commandList, uint8_t frame, stl::span<AttachmentObject*> objects, const DrawDataOffsets & offsets) {
         if constexpr (!kComputeSkinningAvailable) {
             return {};
         }
@@ -1067,7 +1065,7 @@ namespace engine::scene {
         }
     }
 
-    void Scene::drawDebug(const ViewParams & viewParams, std::span<AttachmentObject*> objects) {
+    void Scene::drawDebug(const ViewParams & viewParams, stl::span<AttachmentObject*> objects) {
         for (auto object : objects) {
             auto * node = object->node;
             const auto & bounds = node->bounds;
@@ -1097,7 +1095,7 @@ namespace engine::scene {
     }
 
     void Scene::draw(RenderPass pass, rhi::runtime::CommandListPtr & commandList, rhi::runtime::CommandListPtr & transferCommandList, uint8_t frame, 
-        const ViewParams & viewParams, std::span<AttachmentObject*> objects, const DrawDataOffsets & offsets, const void * external) {
+        const ViewParams & viewParams, stl::span<AttachmentObject*> objects, const DrawDataOffsets & offsets, const void * external) {
         if (objects.empty()) {
             return;
         }
@@ -1226,7 +1224,7 @@ namespace engine::scene {
             const auto & model = sprite.node->getWorldTransform();
 
             const auto em8 = static_cast<uint8_t>(float_to_unorm(sprite.getEmissive(), 8u));
-            const std::array<uint8_t, 4u> color = {em8, 0u, 0u, 0u};
+            const stl::array<uint8_t, 4u> color = {em8, 0u, 0u, 0u};
 
             const vec2f corner0 = {0.0f, 0.0f};
             const vec2f corner1 = sprite.getSize();
