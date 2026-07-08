@@ -7,6 +7,8 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 include (${CMAKE_CURRENT_SOURCE_DIR}/../tools/cmake/utils.cmake)
 
+#add_compile_options(-fno-exceptions)
+
 #### system
 message("SYSTEM_NAME: ${CMAKE_SYSTEM_NAME}")
 
@@ -202,6 +204,7 @@ add_library(
 	${ENGINE_HEADERS}
 )
 
+target_compile_options(${PROJECT_NAME} PRIVATE -fno-exceptions)
 target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/)
 
 if (VULKAN_AVAILABLE) #### vulkan lib
@@ -282,6 +285,7 @@ set(
 	USED_FRAMEWORKS ${USED_FRAMEWORKS}
 	sail-c++
 	)
+#target_compile_options(sail-c++ PRIVATE -fexceptions)
 message("sail library end")
 
 # curl
@@ -311,6 +315,9 @@ target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/..
 # eastl
 message("eastl library begin")
 add_3rdparty_project (${CMAKE_CURRENT_SOURCE_DIR}/../3rd_party/eastl ${CMAKE_BINARY_DIR}/3rd_party/eastl)
+target_compile_definitions(EASTL PRIVATE EASTL_EXCEPTIONS=0)
+target_compile_options(EASTL PRIVATE -fno-exceptions)
+
 target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../3rd_party/eastl/include)
 set(
 	USED_FRAMEWORKS ${USED_FRAMEWORKS}

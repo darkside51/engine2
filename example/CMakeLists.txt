@@ -18,6 +18,8 @@ if (MSVC)
 	set(CMAKE_C_FLAGS "/utf-8")
 endif()
 
+#add_compile_options(-fno-exceptions)
+
 ########## собираем engine
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/engine/src ${CMAKE_CURRENT_BINARY_DIR}/engine)
 
@@ -39,6 +41,11 @@ endif(CMAKE_BUILD_TYPE MATCHES Debug)
 set(EXAMPLE_SRC_DIRS)
 set(EXAMPLE_HEADERS)
 set(EXAMPLE_SOURCES)
+
+set(
+	EXAMPLE_SOURCES ${EXAMPLE_SOURCES}
+	main.cpp
+)
 
 set(
 	EXAMPLE_SRC_DIRS ${EXAMPLE_SRC_DIRS}
@@ -72,12 +79,11 @@ list(REMOVE_DUPLICATES EXAMPLE_SOURCES)
 
 add_executable(
 	${PROJECT_NAME} 
-	main.cpp
-	example.cpp
-	#${EXAMPLE_SOURCES}
+	${EXAMPLE_SOURCES}
 	#${EXAMPLE_HEADERS}
 )
 
+#target_compile_options(${PROJECT_NAME} PRIVATE -fno-exceptions)
 target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/engine/3rd_party/imgui)
 
 target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/engine/3rd_party/sail/src)

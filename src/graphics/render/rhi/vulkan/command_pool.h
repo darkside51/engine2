@@ -4,7 +4,7 @@
 #include "graphics/render/rhi/common/runtime.h"
 #include "threads/utils.h"
 
-#include <vulkan/vulkan.hpp>
+#include <vulkan/vulkan.h>
 
 #include <array>
 #include <optional>

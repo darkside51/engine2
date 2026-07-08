@@ -38,7 +38,7 @@ layout(push_constant) uniform Params {
 	vec4 options;
 } push;
 
-const float biases[4] = float[](0.0015f, 0.00275f, 0.001f, 0.00175f); // count = shadowCascades * 2
+const float biases[4] = float[](0.0015f, 0.0025f, 0.0009f, 0.0015f); // count = shadowCascades * 2
 
 void main() {
 	const float occlusion = push.options.x > 0.0f ? radialBlur(textureSsao, v_uv, int(push.options.x - 1.0f)) : 1.0f;
