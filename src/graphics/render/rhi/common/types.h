@@ -586,7 +586,7 @@ namespace engine::rhi {
         uint8_t mipLevels = 1u;
         uint8_t arrayLayers = 1u;
         uint8_t samples = 1u;
-        std::vector<uint32_t> queueFamilyIndices = {};
+        stl::vector<uint32_t> queueFamilyIndices = {};
 
         ImageInfo(ImageUsageFlags usage, Format format, Extent3D extent) : 
             usage(usage),
@@ -606,7 +606,7 @@ namespace engine::rhi {
             SharingMode sharing = SharingMode::eExclusive,
             MemoryPropertyFlags memoryFlags = MemoryPropertyFlags::eDeviceLocal,
             MemoryExtendedFlags memoryExtFlags = MemoryExtendedFlags::eNone,
-            std::vector<uint32_t> queueFamilyIndices = {}
+            stl::vector<uint32_t> queueFamilyIndices = {}
         ) : 
             type(type),
             usage(usage),
@@ -660,13 +660,13 @@ namespace engine::rhi {
         MemoryExtendedFlags memoryExtFlags = MemoryExtendedFlags::eNone;
         BufferCreateFlags flags = BufferCreateFlags::eNone;
         SharingMode sharing = SharingMode::eExclusive;
-        std::vector<uint32_t> queueFamilyIndices = {}; // It is ignored if sharingMode is not eConcurrent.
+        stl::vector<uint32_t> queueFamilyIndices = {}; // It is ignored if sharingMode is not eConcurrent.
 
         BufferInfo(BufferUsageFlags usage, MemoryPropertyFlags memoryFlags, 
             MemoryExtendedFlags memoryExtFlags = MemoryExtendedFlags::eNone,
             BufferCreateFlags flags = BufferCreateFlags::eNone,
             SharingMode sharing = SharingMode::eExclusive,
-            std::vector<uint32_t> queueFamilyIndices = {}) : 
+            stl::vector<uint32_t> queueFamilyIndices = {}) : 
             usage(usage),
             memoryFlags(memoryFlags),
             memoryExtFlags(memoryExtFlags),

@@ -17,8 +17,8 @@ class PhysicalDevice;
 
 struct SurfaceSupportDetails {
     VkSurfaceCapabilitiesKHR capabilities;
-    std::vector<VkSurfaceFormatKHR> formats;
-    std::vector<VkPresentModeKHR> presentModes;
+    stl::vector<VkSurfaceFormatKHR> formats;
+    stl::vector<VkPresentModeKHR> presentModes;
 };
 
 struct PhysicalDeviceExtFeatures {
@@ -33,7 +33,7 @@ SurfaceSupportDetails getSurfaceSupportDetails(const PhysicalDevice & gpu, const
 
 class PhysicalDevice final : public rhi::runtime::PhysicalDevice {
 public:
-    static std::vector<PhysicalDevice> getSuitableDevices(const Instance & instance, const rhi::PhysicalDeviceRequirements & info);
+    static stl::vector<PhysicalDevice> getSuitableDevices(const Instance & instance, const rhi::PhysicalDeviceRequirements & info);
 
     PhysicalDevice(PhysicalDevice &&) noexcept = default;
     PhysicalDevice(const Instance & instance, VkPhysicalDevice device, const rhi::PhysicalDeviceRequirements & info);
@@ -49,10 +49,10 @@ public:
     inline const VkPhysicalDeviceFeatures2 & deviceFeatures() const noexcept { return _features; }
     inline const PhysicalDeviceExtFeatures & deviceFeatures2Ext() const noexcept {return _features2Ext; }
     inline PhysicalDeviceExtFeatures copyDeviceFeatures2Ext() const noexcept {return _features2Ext; }
-    inline const std::vector<const char*> & deviceExtensions() const noexcept { return _extensions; }
+    inline const stl::vector<const char*> & deviceExtensions() const noexcept { return _extensions; }
     
-    inline std::vector<rhi::QueueFamily> & queues() noexcept { return _queues; }
-    inline const std::vector<rhi::QueueFamily> & queues() const noexcept { return _queues; }
+    inline stl::vector<rhi::QueueFamily> & queues() noexcept { return _queues; }
+    inline const stl::vector<rhi::QueueFamily> & queues() const noexcept { return _queues; }
 
     bool checkSurfaceSupport(const rhi::runtime::Surface & surface) noexcept override;
 
@@ -82,8 +82,8 @@ private:
     VkPhysicalDeviceProperties _properties;
     VkPhysicalDeviceFeatures2 _features = {};
     PhysicalDeviceExtFeatures _features2Ext = {};
-    std::vector<const char*> _extensions;
-    std::vector<rhi::QueueFamily> _queues;
+    stl::vector<const char*> _extensions;
+    stl::vector<rhi::QueueFamily> _queues;
 };
 
 }

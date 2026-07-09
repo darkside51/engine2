@@ -18,7 +18,7 @@ public:
     inline VkInstance vkInstance() const noexcept { return _instance; }
     inline const VkAllocationCallbacks * getAllocationCallbacks() const noexcept { return _allocationCallbacks; }
     
-    inline const std::vector<const char*> & getLayers() const noexcept { return _instanceLayers; }
+    inline const stl::vector<const char*> & getLayers() const noexcept { return _instanceLayers; }
 
     inline uint32_t getApiVersion() const noexcept { return _apiVersion; }
 
@@ -27,7 +27,7 @@ private:
     VkInstance _instance = VK_NULL_HANDLE;
     const VkAllocationCallbacks * _allocationCallbacks = nullptr;
     VkDebugUtilsMessengerEXT _debugMessenger = VK_NULL_HANDLE;
-    std::vector<const char*> _instanceLayers;
+    stl::vector<const char*> _instanceLayers;
 };
 
 }

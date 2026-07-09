@@ -7,7 +7,7 @@
 
 namespace engine {
 
-    void round(const std::filesystem::path& path, std::vector<std::string>& files, size_t rootLen, bool recursive) {
+    void round(const std::filesystem::path& path, stl::vector<std::string>& files, size_t rootLen, bool recursive) {
 		for (const auto & entry : std::filesystem::directory_iterator(path)) {
 			if (std::filesystem::is_directory(entry.status()) && recursive) {
 				round(entry, files, rootLen, recursive);
@@ -61,8 +61,8 @@ namespace engine {
     }
 
 	//
-    std::vector<std::string> CommonFileSystem::getFiles(bool recursive) const {
-        std::vector<std::string> files;
+    stl::vector<std::string> CommonFileSystem::getFiles(bool recursive) const {
+        stl::vector<std::string> files;
         round(std::filesystem::path(_root), files, _root.length(), recursive);
 		return files;
     }
@@ -86,13 +86,13 @@ namespace engine {
 		return 0;
     }
 
-	std::vector<std::byte> CommonFileSystem::readFile(std::string_view path) const {
+	stl::vector<std::byte> CommonFileSystem::readFile(std::string_view path) const {
         const std::string full_path = fullPath(path);
 		const auto size = fileSize(full_path, true);
 		if (size == 0u) return {};
 
 		if (File* file = file_open(full_path.c_str(), "rb")) {
-            std::vector<std::byte> data;
+            stl::vector<std::byte> data;
             data.resize(size);
 
 			if (file_read(file, size, 1, data.data())) {
@@ -106,7 +106,7 @@ namespace engine {
 		return {};
     }
 
-	bool CommonFileSystem::readFile(std::string_view path, std::vector<std::byte>& data) const {
+	bool CommonFileSystem::readFile(std::string_view path, stl::vector<std::byte>& data) const {
         const std::string full_path = fullPath(path);
 		const size_t size = fileSize(full_path, true);
 		if (size == 0u) return false;

@@ -109,7 +109,7 @@ namespace engine::graphics::models {
     };
 
     template <typename T, typename F, typename... Args>
-	void parseArray(std::vector<T>& arr, F && f, std::string_view name, const json::Json & js, Args &&... args) {
+	void parseArray(stl::vector<T>& arr, F && f, std::string_view name, const json::Json & js, Args &&... args) {
 		if (auto * target = json::findChild(js, name)) {
             const auto & array = target->get_array();
 			const size_t count = array.size();
@@ -133,7 +133,7 @@ namespace engine::graphics::models {
         node.weights = json::getArray<float>(object, "weights"); // ?
         node.children = json::getArray<uint16_t>(object, "children");
 
-        const std::vector<float>  matrixArray = json::getArray<float>(object, "matrix");
+        const stl::vector<float>  matrixArray = json::getArray<float>(object, "matrix");
         if (!matrixArray.empty()) {
             mat4f matrix = glm::make_mat4(matrixArray.data());
             vec3f scale;
@@ -179,7 +179,7 @@ namespace engine::graphics::models {
 
             auto & meshPrimitive = mesh.primitives.emplace_back(
                 // std::map<AttributeSemantic, uint16_t>{}, 
-                std::vector<std::pair<AttributeSemantic, uint16_t>>{},
+                stl::vector<std::pair<AttributeSemantic, uint16_t>>{},
                 indices, 
                 material, 
                 static_cast<PrimitiveMode>(mode)
@@ -394,7 +394,7 @@ namespace engine::graphics::models {
         }
 	}
 
-    Layout loadModelLayout(std::span<std::byte const> bytes, const FileManager & fileManager, std::string_view path) {
+    Layout loadModelLayout(stl::span<std::byte const> bytes, const FileManager & fileManager, std::string_view path) {
         const std::byte * binData = nullptr;
         size_t binSize = 0u;
 

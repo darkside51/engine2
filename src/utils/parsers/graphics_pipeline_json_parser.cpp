@@ -472,8 +472,8 @@ namespace engine {
         };
     }
 
-    std::vector<rhi::EncodedBlendMode> parseBlendModes(const engine::json::Array & array) noexcept {
-        std::vector<rhi::EncodedBlendMode> modes;
+    stl::vector<rhi::EncodedBlendMode> parseBlendModes(const engine::json::Array & array) noexcept {
+        stl::vector<rhi::EncodedBlendMode> modes;
         modes.reserve(array.size());
         for (const auto & value : array) {
             modes.emplace_back(parseBlendMode(value));
@@ -508,7 +508,7 @@ namespace engine {
             .inputAssemblyState = json.contains("inputAssemblyState") ?  parseInputAssemblyStateInfo(json["inputAssemblyState"]) : rhi::GraphicsPipelineStatesInfo::InputAssemblyStateInfo{},
             .depthStencilState  = json.contains("depthStencilState") ?  parseDepthStencilStateInfo(json["depthStencilState"]) : rhi::GraphicsPipelineStatesInfo::DepthStencilStateInfo{},
             .tessellationState  = json.contains("tessellationState") ?  parseTessellationStateInfo(json["tessellationState"]) : rhi::GraphicsPipelineStatesInfo::TessellationStateInfo{},
-            .blendModes = json.contains("blendModes") ?  parseBlendModes(json["blendModes"].get_array()) : std::vector<rhi::EncodedBlendMode>{},
+            .blendModes = json.contains("blendModes") ?  parseBlendModes(json["blendModes"].get_array()) : stl::vector<rhi::EncodedBlendMode>{},
             .vertexInputState = json.contains("vertexInputState") ?  parsevertexInputStateInfo(json["vertexInputState"]) : rhi::GraphicsPipelineStatesInfo::VertexInputStateInfo{}
         };
     }

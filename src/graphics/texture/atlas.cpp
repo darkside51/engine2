@@ -10,7 +10,7 @@
 #include <cstdint>
 
 namespace engine::graphics {
-    FramesParser::Result FramesParser::loadFrames(std::span<const std::byte> rawBytes, vec2u size, std::string_view prefix, AtlasFormat format) {
+    FramesParser::Result FramesParser::loadFrames(stl::span<const std::byte> rawBytes, vec2u size, std::string_view prefix, AtlasFormat format) {
         switch (format) {
         case AtlasFormat::eUnknown:
         { // parse format from file content
@@ -34,11 +34,11 @@ namespace engine::graphics {
         return {};
     }
 
-    FramesParser::Result FramesParser::loadFramesCommon(std::span<const std::byte> rawBytes, vec2u size, std::string_view prefix) {
+    FramesParser::Result FramesParser::loadFramesCommon(stl::span<const std::byte> rawBytes, vec2u size, std::string_view prefix) {
         return {};
     }
 
-    FramesParser::Result FramesParser::loadFramesSpine(std::span<const std::byte> rawBytes, vec2u size, std::string_view prefix) {
+    FramesParser::Result FramesParser::loadFramesSpine(stl::span<const std::byte> rawBytes, vec2u size, std::string_view prefix) {
         auto readLine = [](std::string_view data, size_t & begin) noexcept -> std::string_view {
             auto end = data.find('\n', begin);
             if (end != std::string_view::npos) {
@@ -151,15 +151,15 @@ namespace engine::graphics {
         return result;
     }
 
-    FramesParser::Result FramesParser::loadFramesGodot(std::span<const std::byte> rawBytes, vec2u size, std::string_view prefix) {
+    FramesParser::Result FramesParser::loadFramesGodot(stl::span<const std::byte> rawBytes, vec2u size, std::string_view prefix) {
         return {};
     }
 
-    FramesParser::Result FramesParser::loadFramesPixiJs(std::span<const std::byte> rawBytes, vec2u size, std::string_view prefix) {
+    FramesParser::Result FramesParser::loadFramesPixiJs(stl::span<const std::byte> rawBytes, vec2u size, std::string_view prefix) {
         return {};
     }
 
-    FramesParser::Result FramesParser::loadFramesMapBox(std::span<const std::byte> rawBytes, vec2u size, std::string_view prefix) {
+    FramesParser::Result FramesParser::loadFramesMapBox(stl::span<const std::byte> rawBytes, vec2u size, std::string_view prefix) {
         return {};
     }
 

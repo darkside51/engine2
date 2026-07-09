@@ -25,13 +25,13 @@ namespace engine::graphics {
         }
     }
 
-    std::vector<uint32_t> MaterialManager::prepareMaterials(
+    stl::vector<uint32_t> MaterialManager::prepareMaterials(
         std::string_view name, 
         const models::Layout & layout, 
         TextureManager & textureManager,
-        std::vector<MaterialTextureLoadingData> & texturesToLoad
+        stl::vector<MaterialTextureLoadingData> & texturesToLoad
     ) { // render thread
-        std::vector<uint32_t> materialsRemap;
+        stl::vector<uint32_t> materialsRemap;
         materialsRemap.reserve(layout.materials.size());
 
         texturesToLoad.reserve(layout.materials.size() * kCommonMaterialTexturesCount);
@@ -120,7 +120,7 @@ namespace engine::graphics {
 
     void MaterialManager::createMaterialTextures(
         const models::Layout & layout, 
-        std::vector<MaterialTextureLoadingData> & texturesToLoad, 
+        stl::vector<MaterialTextureLoadingData> & texturesToLoad, 
         const FileManager & fileManager,
         const TextureManager & textureManager,
         rhi::runtime::CommandList & commandList
@@ -164,13 +164,13 @@ namespace engine::graphics {
 
     }
 
-    std::vector<uint32_t> MaterialManager::loadMaterials(
+    stl::vector<uint32_t> MaterialManager::loadMaterials(
         std::string_view name, 
         const models::Layout & layout, 
         const FileManager & fileManager, 
         TextureManager & textureManager
     ) {
-        std::vector<uint32_t> materialsRemap;
+        stl::vector<uint32_t> materialsRemap;
         materialsRemap.reserve(layout.materials.size());
 
         const TextureLoadInfo loadingInfoColor{
@@ -192,7 +192,7 @@ namespace engine::graphics {
             const auto getTexture = [&layout, &fileManager, &textureManager](const TextureLoadInfo & loadingInfo, uint16_t index, std::string_view name) -> const ImageHandler* {
 
                 const auto createTexture = [&textureManager, loadingInfo](
-                    std::string_view name, const rhi::runtime::Device & device, std::span<const std::byte> bytes, const TextureLoadInfo & info = {}
+                    std::string_view name, const rhi::runtime::Device & device, stl::span<const std::byte> bytes, const TextureLoadInfo & info = {}
                 ) {
                     auto textureData = parseTextureData(bytes, info);
 

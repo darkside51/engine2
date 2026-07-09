@@ -277,7 +277,7 @@ namespace ktx_format {
                             .parserType = TextureLoaderType::eKtx,
                             .flags = info.flags
                         },
-                        .data = std::vector<std::vector<std::byte>>{texture2->numLevels}
+                        .data = stl::vector<stl::vector<std::byte>>{texture2->numLevels}
                     };
                     ktxTexture2_IterateLevels(texture2, getMipLevelData, &result);
                     return result;
@@ -298,7 +298,7 @@ namespace ktx_format {
                     .parserType = TextureLoaderType::eKtx,
                     .flags = info.flags
                 },
-                .data = std::vector<std::vector<std::byte>>{texture->numLevels}
+                .data = stl::vector<stl::vector<std::byte>>{texture->numLevels}
             };
 
             ktxTexture_IterateLevels(texture, getMipLevelData, &result);
@@ -428,7 +428,7 @@ namespace sail_format {
         return SailPixelFormat::SAIL_PIXEL_FORMAT_UNKNOWN;
     }
 
-    TextureCreateInfo parseTextureData(std::span<const std::byte> bytes, const TextureLoadInfo & info) {
+    TextureCreateInfo parseTextureData(stl::span<const std::byte> bytes, const TextureLoadInfo & info) {
         sail::image_input imageInput(bytes.data(), bytes.size());
         sail::image image = imageInput.next_frame();
 
@@ -446,8 +446,8 @@ namespace sail_format {
             if (image.can_convert(targetFormat)) {
                 if (image.convert(targetFormat) == SAIL_OK) {
 
-                    std::span data{static_cast<std::byte*>(image.pixels()), image.pixels_size()};
-                    std::vector<std::vector<std::byte>> mipLevelsData{1u};
+                    stl::span data{static_cast<std::byte*>(image.pixels()), image.pixels_size()};
+                    stl::vector<stl::vector<std::byte>> mipLevelsData{1u};
                     mipLevelsData[0u] = {data.begin(), data.end()};
 
                     return {
@@ -467,8 +467,8 @@ namespace sail_format {
             }
         }
 
-        std::span data{static_cast<std::byte*>(image.pixels()), image.pixels_size()}; 
-        std::vector<std::vector<std::byte>> mipLevelsData{1u};
+        stl::span data{static_cast<std::byte*>(image.pixels()), image.pixels_size()}; 
+        stl::vector<stl::vector<std::byte>> mipLevelsData{1u};
         mipLevelsData[0u] = {data.begin(), data.end()};
         return {
             .metaInfo = {
@@ -485,7 +485,7 @@ namespace sail_format {
         };
     }
 
-    TextureMetaInfo parseTextureMetaInfoOnly(std::span<const std::byte> bytes, const TextureLoadInfo & info) {
+    TextureMetaInfo parseTextureMetaInfoOnly(stl::span<const std::byte> bytes, const TextureLoadInfo & info) {
         sail::image_input imageInput(bytes.data(), bytes.size());
         auto [image, _] = imageInput.probe();
 
@@ -520,8 +520,8 @@ namespace sail_format {
                 info.metaInfo.bitsPerPixel = image.bits_per_pixel();
                 info.metaInfo.numLevels = 1u;
                 info.metaInfo.bytesPerRow = image.bytes_per_line();
-                std::span data{static_cast<std::byte*>(image.pixels()), image.pixels_size()};
-                std::vector<std::vector<std::byte>> mipLevelsData{1u};
+                stl::span data{static_cast<std::byte*>(image.pixels()), image.pixels_size()};
+                stl::vector<stl::vector<std::byte>> mipLevelsData{1u};
                 mipLevelsData[0u] = {data.begin(), data.end()};
                 info.data = std::move(mipLevelsData);
                 return true;
@@ -541,7 +541,7 @@ namespace sail_format {
         ktxTexture * texture = nullptr;
     };
 
-    TextureCreateInfo parseTextureData(std::span<const std::byte> bytes, const TextureLoadInfo & info) {
+    TextureCreateInfo parseTextureData(stl::span<const std::byte> bytes, const TextureLoadInfo & info) {
         sail::log::set_barrier(SAIL_LOG_LEVEL_WARNING);
 		KtxTextureHandler textureHandler;
         // if data is no ktx - no load data, only check header, it is correct!
@@ -561,7 +561,7 @@ namespace sail_format {
         return {};
     }
 
-    TextureMetaInfo parseTextureMetaInfoOnly(std::span<const std::byte> bytes, const TextureLoadInfo & info) {
+    TextureMetaInfo parseTextureMetaInfoOnly(stl::span<const std::byte> bytes, const TextureLoadInfo & info) {
         KtxTextureHandler textureHandler;
         // if data is no ktx - no load data, only check header, it is correct!
         const auto flags = ktxTextureCreateFlagBits::KTX_TEXTURE_CREATE_SKIP_KVDATA_BIT;

@@ -56,7 +56,7 @@ namespace engine::rhi::runtime {
     }
 
     void CommandList::beginRenderPass(RenderPass renderPass, FrameBufferPtr & framebuffer, 
-        std::span<const ClearValue> clearValues, const Rect2D & area) noexcept {
+        stl::span<const ClearValue> clearValues, const Rect2D & area) noexcept {
         _resources.push_back(framebuffer);
         _commands->create<BeginRenderPassCommand>(renderPass, framebuffer, clearValues, area);
         
@@ -75,8 +75,8 @@ namespace engine::rhi::runtime {
     }
 
     void CommandList::nextSubpass(SubpassContents contents,
-        std::span<ImageTransitionInfo> imageTransitionInfo,
-        std::span<BufferTransitionInfo> bufferTransitionInfo) noexcept {
+        stl::span<ImageTransitionInfo> imageTransitionInfo,
+        stl::span<BufferTransitionInfo> bufferTransitionInfo) noexcept {
         _commands->create<NextSubpassCommand>(contents, imageTransitionInfo, bufferTransitionInfo);
 
         if constexpr (kStatisticsEnable) {
@@ -87,7 +87,7 @@ namespace engine::rhi::runtime {
         ++_commandsCount;
     }
 
-    void CommandList::executeCommands(std::span<const CommandList*> secondaryCommandLists) noexcept {
+    void CommandList::executeCommands(stl::span<const CommandList*> secondaryCommandLists) noexcept {
         _commands->create<ExecuteCommandsCommand>(secondaryCommandLists);
         ++_commandsCount;
     }

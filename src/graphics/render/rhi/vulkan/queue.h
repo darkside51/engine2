@@ -26,21 +26,21 @@ namespace engine::vulkan {
         bool waitIdle() noexcept override;
         
         bool waitSubmitComplete(uint8_t frameIdx, uint64_t timeout = UINT64_MAX, VkFence f = VK_NULL_HANDLE) noexcept;
-        VkSubmitInfo submitInfo(std::span<const VkCommandBuffer> commandBuffers, const SubmitSyncInfo & syncInfo) noexcept;
-        VkResult submit(std::span<const VkSubmitInfo> submitInfos, uint8_t frameIdx, VkFence f = VK_NULL_HANDLE) noexcept;
+        VkSubmitInfo submitInfo(stl::span<const VkCommandBuffer> commandBuffers, const SubmitSyncInfo & syncInfo) noexcept;
+        VkResult submit(stl::span<const VkSubmitInfo> submitInfos, uint8_t frameIdx, VkFence f = VK_NULL_HANDLE) noexcept;
 
-        VkResult present(std::span<const VkSwapchainKHR> swapchains, std::span<const uint32_t> imageIdxs, std::span<const VkSemaphore> waitSemaphores) noexcept;
+        VkResult present(stl::span<const VkSwapchainKHR> swapchains, stl::span<const uint32_t> imageIdxs, stl::span<const VkSemaphore> waitSemaphores) noexcept;
         
-        VkResult flushCommandBuffers(std::span<const VkCommandBuffer> commandBuffers, VkFence extenalFence = VK_NULL_HANDLE) noexcept;
+        VkResult flushCommandBuffers(stl::span<const VkCommandBuffer> commandBuffers, VkFence extenalFence = VK_NULL_HANDLE) noexcept;
 
         // overrides
         bool waitSubmit(uint8_t frameIdx, uint64_t timeout = UINT64_MAX, rhi::runtime::Fence f = nullptr) noexcept override;
-        bool submit(uint8_t frameIdx, std::span<const rhi::runtime::Queue::SubmitInfo> submitInfos, rhi::runtime::Fence f = nullptr) noexcept override;
+        bool submit(uint8_t frameIdx, stl::span<const rhi::runtime::Queue::SubmitInfo> submitInfos, rhi::runtime::Fence f = nullptr) noexcept override;
         bool present(const rhi::runtime::Swapchain * swapchains, uint32_t imageIdx, 
-            std::span<const rhi::runtime::Semaphore> waitSemaphores) noexcept override;
+            stl::span<const rhi::runtime::Semaphore> waitSemaphores) noexcept override;
 
     private:
-        std::vector<VkFence> _submitCompleteFences;
+        stl::vector<VkFence> _submitCompleteFences;
         VkQueue _queue = VK_NULL_HANDLE;
         const Device & _device;
     };

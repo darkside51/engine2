@@ -1,14 +1,15 @@
 #pragma once
 
+#include "stl/span.h"
+#include "stl/vector.h"
+
 #include <array>
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
 #include <initializer_list>
-#include <span>
 #include <type_traits>
 #include <variant>
-#include <vector>
 
 namespace engine {
 
@@ -16,7 +17,7 @@ template <typename T, size_t Max>
 struct dynamic_array {
     inline static consteval size_t maxArrayCount() noexcept { return Max; }
 
-    std::variant<std::array<T, Max>, std::vector<T>> value;
+    std::variant<std::array<T, Max>, stl::vector<T>> value;
     uint32_t capacity = 0u;
 
     dynamic_array() = default;
@@ -26,7 +27,7 @@ struct dynamic_array {
             // value = std::array<T, Max>{};
             std::copy(list.begin(), list.end(), std::get<std::array<T, Max>>(value).data());
         } else {
-            value = std::vector<T>(list);
+            value = stl::vector<T>(list);
         } 
     }
 
@@ -34,15 +35,15 @@ struct dynamic_array {
         if (capacity <= Max) { [[likely]];
             // value = std::array<T, Max>{};
         } else {
-            value = std::vector<T>(capacity);
+            value = stl::vector<T>(capacity);
         } 
     }
 
-    explicit dynamic_array(std::span<const T> s) : capacity(s.size()) {
+    explicit dynamic_array(stl::span<const T> s) : capacity(s.size()) {
         if (capacity <= Max) { [[likely]];
     //         value = std::array<T, Max>{};
         } else {
-            value = std::vector<T>(capacity);
+            value = stl::vector<T>(capacity);
         }
 
         uint32_t i = 0u;
@@ -61,7 +62,7 @@ struct dynamic_array {
         if (size <= Max) { [[likely]];
             //value = std::array<T, Max>{}; // already array as default
         } else {
-            std::vector<T> v;
+            stl::vector<T> v;
             v.resize(size);
             value = std::move(v);
         }
@@ -72,7 +73,7 @@ struct dynamic_array {
         if (size <= Max) { [[likely]];
             //value = std::array<T, Max>{}; // already array as default
         } else {
-            std::vector<T> v;
+            stl::vector<T> v;
             v.reserve(size);
             value = std::move(v);
         }
@@ -85,7 +86,7 @@ struct dynamic_array {
         if (auto * arr = std::get_if<std::array<T, Max>>(&value)) { [[likely]];
             return (*arr == std::get<std::array<T, Max>>(other.value));
         } else {
-            return std::get<std::vector<T>>(value) == std::get<std::vector<T>>(other.value);
+            return std::get<stl::vector<T>>(value) == std::get<stl::vector<T>>(other.value);
         }
     }
 
@@ -93,23 +94,23 @@ struct dynamic_array {
         if (auto * arr = std::get_if<std::array<T, Max>>(&value)) { [[likely]];
             return arr->data();
         } else {
-            return std::get<std::vector<T>>(value).data();
+            return std::get<stl::vector<T>>(value).data();
         }
     }
 
-    std::span<T> view() noexcept {
+    stl::span<T> view() noexcept {
         if (auto * arr = std::get_if<std::array<T, Max>>(&value)) { [[likely]];
             return {arr->begin(), arr->begin() + capacity};
         } else {
-            return std::get<std::vector<T>>(value);
+            return std::get<stl::vector<T>>(value);
         }
     }
 
-    std::span<const T> view() const noexcept {
+    stl::span<const T> view() const noexcept {
         if (auto * arr = std::get_if<std::array<T, Max>>(&value)) { [[likely]];
             return {arr->begin(), arr->begin() + capacity};
         } else {
-            return std::get<std::vector<T>>(value);
+            return std::get<stl::vector<T>>(value);
         }
     }
 
@@ -125,17 +126,17 @@ struct dynamic_array {
                 }
                 return result;
             } else {
-                std::vector<T> newValue;
+                stl::vector<T> newValue;
                 newValue.reserve(capacity * 2u);
                 std::move((*arr).begin(), (*arr).end(), std::back_inserter(newValue));
                 value = std::move(newValue);
 
                 ++capacity;
-                return std::get<std::vector<T>>(value).emplace_back(std::forward<U>(v));
+                return std::get<stl::vector<T>>(value).emplace_back(std::forward<U>(v));
             }
         } else {
             ++capacity;
-            return std::get<std::vector<T>>(value).emplace_back(std::forward<U>(v));
+            return std::get<stl::vector<T>>(value).emplace_back(std::forward<U>(v));
         }
     }
 
@@ -147,17 +148,17 @@ struct dynamic_array {
                 new(&result) T{std::forward<Args>(args)...};
                 return result;
             } else {
-                std::vector<T> newValue;
+                stl::vector<T> newValue;
                 newValue.reserve(capacity * 2u);
                 std::move((*arr).begin(), (*arr).end(), std::back_inserter(newValue));
                 value = std::move(newValue);
 
                 ++capacity;
-                return std::get<std::vector<T>>(value).emplace_back(std::forward<Args>(args)...);
+                return std::get<stl::vector<T>>(value).emplace_back(std::forward<Args>(args)...);
             }
         } else {
             ++capacity;
-            return std::get<std::vector<T>>(value).emplace_back(std::forward<Args>(args)...);
+            return std::get<stl::vector<T>>(value).emplace_back(std::forward<Args>(args)...);
         }
     }
 
@@ -173,7 +174,7 @@ struct dynamic_array {
         capacity = 0u;
         if (auto * arr = std::get_if<std::array<T, Max>>(&value)) { [[likely]];
         } else {
-            std::get<std::vector<T>>(value).clear();
+            std::get<stl::vector<T>>(value).clear();
         }
     }
 };

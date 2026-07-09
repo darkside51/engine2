@@ -21,10 +21,10 @@ struct ModuleReflection {
     };
 
     ModuleReflection() = default;
-    ModuleReflection(rhi::shaders::Stages stage, std::span<const std::byte> code);
-    std::vector<InValue> in;
-    std::vector<std::pair<rhi::shaders::BindingSetLayout, uint8_t>> sets; // pair of BindingSetLayout and set id
-    std::vector<VkPushConstantRange> pushConstants;
+    ModuleReflection(rhi::shaders::Stages stage, stl::span<const std::byte> code);
+    stl::vector<InValue> in;
+    stl::vector<std::pair<rhi::shaders::BindingSetLayout, uint8_t>> sets; // pair of BindingSetLayout and set id
+    stl::vector<VkPushConstantRange> pushConstants;
     rhi::shaders::Stages stage = rhi::shaders::Stages::eNone;
 };
 
@@ -36,7 +36,7 @@ public:
     };
 
     ShaderModule() = default;
-    ShaderModule(const Device & device, rhi::shaders::Stages stage, std::span<const std::byte> code);
+    ShaderModule(const Device & device, rhi::shaders::Stages stage, stl::span<const std::byte> code);
     ~ShaderModule();
 
     ShaderModule(const ShaderModule &) = delete;
@@ -78,16 +78,16 @@ private:
 
 class GpuProgram final : public rhi::runtime::GpuProgram {
 public:
-    GpuProgram(Device & device, std::span<const ShaderModule::View> moduleViews, rhi::shaders::SpecializationInfo && specializationInfo = {});
+    GpuProgram(Device & device, stl::span<const ShaderModule::View> moduleViews, rhi::shaders::SpecializationInfo && specializationInfo = {});
     ~GpuProgram();
 
-    std::span<const VkPipelineShaderStageCreateInfo> stages() const noexcept {
+    stl::span<const VkPipelineShaderStageCreateInfo> stages() const noexcept {
         return _shaderStages;
     }
 
     const rhi::shaders::BindingSetLayout * getLayout(uint8_t setId) const noexcept;
     uint32_t setsCount() const noexcept { return _sets.size(); }
-    std::span<const std::pair<rhi::shaders::BindingSetLayout, uint8_t>> setsView() const noexcept {
+    stl::span<const std::pair<rhi::shaders::BindingSetLayout, uint8_t>> setsView() const noexcept {
         return _sets;
     }
 
@@ -99,8 +99,8 @@ public:
     void destroy() noexcept;
 
 private:
-    std::vector<std::pair<rhi::shaders::BindingSetLayout, uint8_t>> _sets;
-    std::vector<VkPipelineShaderStageCreateInfo> _shaderStages;
+    stl::vector<std::pair<rhi::shaders::BindingSetLayout, uint8_t>> _sets;
+    stl::vector<VkPipelineShaderStageCreateInfo> _shaderStages;
     Device * _device = nullptr; 
     VkPipelineLayout _pipelineLayout = VK_NULL_HANDLE;
     uint64_t _id = 0u;

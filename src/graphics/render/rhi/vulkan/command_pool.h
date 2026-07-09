@@ -31,7 +31,7 @@ private:
     VkCommandPool _pool = VK_NULL_HANDLE;
     const Device & _device;
     rhi::CommandPoolCreateFlags _flags = rhi::CommandPoolCreateFlags::eReset_Command_Buffer;
-    std::array<std::vector<VkCommandBuffer>, 2u> _freeBuffers; // for primary ans secondary buffers
+    std::array<stl::vector<VkCommandBuffer>, 2u> _freeBuffers; // for primary ans secondary buffers
 };
 
 class CommandPoolManager {
@@ -73,7 +73,7 @@ public:
 
 private:
     const Device & _device;
-    std::vector<std::optional<CommandPool>> _pools;
+    stl::vector<std::optional<CommandPool>> _pools;
 };
 
 }

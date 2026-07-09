@@ -18,20 +18,20 @@ namespace scene {
     class FramesSequence : public Animation {
     public:
         ~FramesSequence() = default;
-        explicit FramesSequence(std::vector<graphics::ImageFrame2D> frames);
+        explicit FramesSequence(stl::vector<graphics::ImageFrame2D> frames);
 
         FramesSequence(const graphics::TextureManager & textureManager, 
-            std::span<std::string const> frames);
+            stl::span<std::string const> frames);
 
         FramesSequence(FramesSequence&&) = default;
         FramesSequence& operator= (FramesSequence&&) = default;
 
-        std::span<graphics::ImageFrame2D const> frames() const noexcept {
+        stl::span<graphics::ImageFrame2D const> frames() const noexcept {
             return _frames;
         }
 
     private:
-        std::vector<graphics::ImageFrame2D> _frames;  
+        stl::vector<graphics::ImageFrame2D> _frames;  
     };
 
     class FramesSequenceAnimator {

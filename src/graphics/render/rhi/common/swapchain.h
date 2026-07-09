@@ -13,7 +13,7 @@ struct SwapchainCreateInfo {
   Format format = Format::eB8G8R8A8_Unorm;
   ColorSpace colorSpace = ColorSpace::eSRGB_Nonlinear;
   uint32_t imagesCount = 1u;
-  std::vector<uint32_t> queueFamilies;
+  stl::vector<uint32_t> queueFamilies;
 };
 
 }

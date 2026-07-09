@@ -37,8 +37,8 @@ public:
 private:
     rhi::runtime::BufferPtr _kernelBuffer;
     rhi::runtime::ImagePtr _noise;
-    std::vector<rhi::runtime::ImagePtr> _images;
-    std::vector<rhi::runtime::FrameBufferPtr> _frameBuffers;
+    stl::vector<rhi::runtime::ImagePtr> _images;
+    stl::vector<rhi::runtime::FrameBufferPtr> _frameBuffers;
     rhi::runtime::RenderPass _renderPass;
 };
     

@@ -1,9 +1,9 @@
 #pragma once
 
 #include "math/math.h"
+#include "stl/vector.h"
 
 #include <cstdint>
-#include <vector>
 
 namespace engine::scene {
 
@@ -109,7 +109,7 @@ private:
 
     mat4f _projection{1.0f};
 
-    std::vector<ICameraObserver*> _observers;
+    stl::vector<ICameraObserver*> _observers;
 };
 
 }

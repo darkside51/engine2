@@ -19,7 +19,7 @@ public:
     inline VkQueryPool operator ()() const noexcept { return _pool; }
     inline explicit operator bool() const noexcept { return _pool != VK_NULL_HANDLE; }
 
-    bool getResults(uint16_t firstQuery, uint16_t queryCount, std::span<std::byte> target, 
+    bool getResults(uint16_t firstQuery, uint16_t queryCount, stl::span<std::byte> target, 
         size_t stride, rhi::QueryResultFlags flags) const noexcept override;
 
 private:

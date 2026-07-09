@@ -42,12 +42,12 @@ struct TextureMetaInfo {
 };
 
 struct PaletteData {
-    std::vector<std::byte> data;
+    stl::vector<std::byte> data;
     rhi::Format format;
 };
 
-using TextureLevelData = std::vector<std::byte>;
-using TextureLayerData = std::vector<TextureLevelData>;
+using TextureLevelData = stl::vector<std::byte>;
+using TextureLayerData = stl::vector<TextureLevelData>;
 
 struct TextureCreateInfo {
     TextureMetaInfo metaInfo;
@@ -58,7 +58,7 @@ struct TextureLoadInfo {
     TextureFlags flags = TextureFlags::eNone;
 };
 
-TextureCreateInfo parseTextureData(std::span<const std::byte> bytes, const TextureLoadInfo & info = {});
-TextureMetaInfo parseTextureMetaInfoOnly(std::span<const std::byte> bytes, const TextureLoadInfo & info = {});
+TextureCreateInfo parseTextureData(stl::span<const std::byte> bytes, const TextureLoadInfo & info = {});
+TextureMetaInfo parseTextureMetaInfoOnly(stl::span<const std::byte> bytes, const TextureLoadInfo & info = {});
 bool convertTextureDataFormat(rhi::Format format, TextureCreateInfo & info);
 }

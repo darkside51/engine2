@@ -450,7 +450,7 @@ namespace engine::scene {
             return;
         }
 
-        // static thread_local std::vector<animation::AnimatedObject> sequences; // todo: remove static
+        // static thread_local stl::vector<animation::AnimatedObject> sequences; // todo: remove static
         
         const auto skeletalAnimationsCountOnStart = _animations.skeletalAnimations.size();
         const auto sequenceAnimationsCountOnStart = _animations.sequences.size();

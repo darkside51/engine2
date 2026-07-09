@@ -7,17 +7,18 @@
 #include "graphics/common/material.h"
 #include "graphics/render/rhi/common/runtime.h"
 
-#include <array>
+#include "stl/array.h"
+#include "stl/span.h"
+#include "stl/vector.h"
+
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
-#include <span>
 #include <string>
 #include <string_view>
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
-#include <vector>
 
 namespace engine {
     class FileManager;
@@ -50,7 +51,7 @@ class ModelManager {
 
 public:
     struct ModelBuffers {
-        std::vector<rhi::runtime::BufferPtr> vertexBuffers;
+        stl::vector<rhi::runtime::BufferPtr> vertexBuffers;
         rhi::runtime::BufferPtr indexBuffer = nullptr;
         rhi::runtime::BufferPtr uniqueIndicesBuffer = nullptr;
     };
@@ -61,16 +62,16 @@ public:
 
     std::pair<uint32_t, bool> addModel(std::string_view name, models::Layout && layout, 
         GraphicsService & graphicsService, const FileManager & fileManager,
-        std::span<const graphics::models::AttributeSemantic> attributes = kDefaultSemantics2);
+        stl::span<const graphics::models::AttributeSemantic> attributes = kDefaultSemantics2);
 
     std::pair<uint32_t, bool> addModel2(std::string_view name);    
 
     void setBuffers(uint32_t index, models::MeshBuffersData && buffers);
 
     models::MeshBuffersData loadModel(uint32_t index, std::string_view name, const models::Layout & layout, 
-        std::span<const graphics::models::AttributeSemantic> attributes = kDefaultSemantics2);
+        stl::span<const graphics::models::AttributeSemantic> attributes = kDefaultSemantics2);
 
-    std::vector<MaterialTextureLoadingData> prepareMaterials(
+    stl::vector<MaterialTextureLoadingData> prepareMaterials(
         std::string_view name, uint32_t index, 
         const models::Layout & layout, 
         TextureManager & textureManager);
@@ -125,14 +126,14 @@ public:
 private:
     using Allocator = allocators::PoolAllocator<sizeof(models::MeshData), alignof(models::MeshData), false>;
     using ModelsMap = std::unordered_map<std::string, uint32_t, hash::String_hash, std::equal_to<>>;
-    using Models = std::vector<std::pair<models::MeshData*, bool>>;
+    using Models = stl::vector<std::pair<models::MeshData*, bool>>;
 
     MaterialManager & _materialManager;
     Allocator _allocator{1024u};
     ModelsMap _modelsMap;
     Models _models;
-    std::vector<ModelBuffers> _gpuData;
-    std::vector<std::pair<uint32_t, models::MeshBuffersData>> _tmpData;
+    stl::vector<ModelBuffers> _gpuData;
+    stl::vector<std::pair<uint32_t, models::MeshBuffersData>> _tmpData;
 };
 
 }

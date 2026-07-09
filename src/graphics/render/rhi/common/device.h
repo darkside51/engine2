@@ -108,7 +108,7 @@ struct PhysicalDeviceFeatureRequest {
 
 struct PhysicalDeviceRequirements {
     const PhysicalDeviceFeatureRequest & featureRequest;
-    std::vector<const char*> requiredExtensions;
+    stl::vector<const char*> requiredExtensions;
     std::optional<DeviceType> requiredDeviceType;
     uint8_t requiredQueueFlags = queue_flags::graphics | queue_flags::present;
 };
@@ -118,10 +118,10 @@ struct DeviceCreateInfo {
     struct QueueFamilyInfo {
         uint32_t index = 0u;
         uint32_t queueCount = 0u;
-        std::vector<float> priorities = {};
+        stl::vector<float> priorities = {};
         uint8_t flags = 0u;
     };
-    std::vector<QueueFamilyInfo> queueFamilies;
+    stl::vector<QueueFamilyInfo> queueFamilies;
     uint32_t largeHeapBlockSize = 256u * 1024u * 1024u; // 256Mb
     uint8_t commandPoolThreadsCount = 1u;
     uint8_t inFlightFramesCount = 3u;

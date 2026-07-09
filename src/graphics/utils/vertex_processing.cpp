@@ -2,17 +2,17 @@
 
 namespace engine::graphics {
 
-std::vector<vec4f> generateTangents(
-    std::span<const vec3f> positions,
-    std::span<const vec3f> normals,
-    std::span<const vec2f> uvs,
-    std::span<const uint32_t> indices) {
+stl::vector<vec4f> generateTangents(
+    stl::span<const vec3f> positions,
+    stl::span<const vec3f> normals,
+    stl::span<const vec2f> uvs,
+    stl::span<const uint32_t> indices) {
     const size_t vertexCount = positions.size();
     const size_t indexCount = indices.size();
     
     // temporary accumulation arrays
-    std::vector<vec3f> tan1(vertexCount, {0.0f, 0.0f, 0.0f});
-    std::vector<vec3f> tan2(vertexCount, {0.0f, 0.0f, 0.0f});
+    stl::vector<vec3f> tan1(vertexCount, {0.0f, 0.0f, 0.0f});
+    stl::vector<vec3f> tan2(vertexCount, {0.0f, 0.0f, 0.0f});
 
     // step 1: calculate face tangents and accumulate per vertex
     for (size_t i = 0u; i < indexCount; i += 3u) {
@@ -65,7 +65,7 @@ std::vector<vec4f> generateTangents(
         tan2[i3] = tan2[i3] + tdir;
     }
 
-    std::vector<vec4f> tangents{vertexCount};
+    stl::vector<vec4f> tangents{vertexCount};
 
     // step 2: orthogonalize and calculate handedness (w)
     for (size_t i = 0u; i < vertexCount; ++i) {
@@ -87,18 +87,18 @@ std::vector<vec4f> generateTangents(
     return tangents;
 }
 
-std::vector<std::byte> generateTangentsCompressed(
-    std::span<const uint16_t> positions,
-    std::span<const int8_t> normals,
-    std::span<const uint16_t> uvs,
-    std::span<const uint32_t> indices
+stl::vector<std::byte> generateTangentsCompressed(
+    stl::span<const uint16_t> positions,
+    stl::span<const int8_t> normals,
+    stl::span<const uint16_t> uvs,
+    stl::span<const uint32_t> indices
 ) {
     const size_t vertexCount = positions.size() / 4u;
     const size_t indexCount = indices.size();
 
     // temporary accumulation arrays
-    std::vector<vec3f> tan1(vertexCount, {0.0f, 0.0f, 0.0f});
-    std::vector<vec3f> tan2(vertexCount, {0.0f, 0.0f, 0.0f});
+    stl::vector<vec3f> tan1(vertexCount, {0.0f, 0.0f, 0.0f});
+    stl::vector<vec3f> tan2(vertexCount, {0.0f, 0.0f, 0.0f});
 
     // step 1: calculate face tangents and accumulate per vertex
     for (size_t i = 0u; i < indexCount; i += 3u) {
@@ -176,7 +176,7 @@ std::vector<std::byte> generateTangentsCompressed(
         tan2[i3] = tan2[i3] + tdir;
     }
 
-    std::vector<std::byte> tangents{vertexCount * 4u};
+    stl::vector<std::byte> tangents{vertexCount * 4u};
 
     // step 2: orthogonalize and calculate handedness (w)
     for (size_t i = 0u; i < vertexCount; ++i) {

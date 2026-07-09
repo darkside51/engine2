@@ -37,26 +37,26 @@ namespace models {
 	};
 
     struct MeshGeometry {
-		std::vector<Primitive> primitives;
+		stl::vector<Primitive> primitives;
 		// uint16_t nodeIndex = kInvalidValue;
         // uint16_t skinIndex = kInvalidValue;
 	};
 
     struct MeshSkin {
 		uint16_t skeletonRoot = kInvalidValue;
-		std::vector<mat4f> inverseBindMatrices;
-		std::vector<uint16_t> joints;
+		stl::vector<mat4f> inverseBindMatrices;
+		stl::vector<uint16_t> joints;
 	};
 
     struct MeshAnimation {
 		std::string name;
 		// maybe move all animation data to special storges in animation manager for cache locallity?
-        std::vector<float> samplerInputs;
-		std::vector<vec4f> samplerOutputs;
+        stl::vector<float> samplerInputs;
+		stl::vector<vec4f> samplerOutputs;
 
         struct AnimationSampler {
-			std::span<const float> inputs; // animation times
-			std::span<const vec4f> outputs; // values
+			stl::span<const float> inputs; // animation times
+			stl::span<const vec4f> outputs; // values
 			Interpolation interpolation = Interpolation::eLinear;
 		};
 
@@ -66,8 +66,8 @@ namespace models {
 			AnimationChannelPath path = AnimationChannelPath::eTranslation;
 		};
 
-		std::vector<AnimationChannel> channels;
-		std::vector<AnimationSampler> samplers;
+		stl::vector<AnimationChannel> channels;
+		stl::vector<AnimationSampler> samplers;
 		float start = std::numeric_limits<float>::max();
 		float end = std::numeric_limits<float>::lowest();
 		float duration = 0.0f;
@@ -95,9 +95,9 @@ namespace models {
 	// };
 
 	struct MeshBuffersData {
-		std::vector<std::vector<std::byte>> vertexBuffersData;
-		std::vector<uint32_t> indexBufferData;
-		std::vector<uint32_t> uniqueIndexBufferData;
+		stl::vector<stl::vector<std::byte>> vertexBuffersData;
+		stl::vector<uint32_t> indexBufferData;
+		stl::vector<uint32_t> uniqueIndexBufferData;
 	};
 
     struct MeshData {
@@ -109,23 +109,23 @@ namespace models {
 		MeshData & operator= (const MeshData &&) = delete;
 		MeshData & operator= (MeshData &&) noexcept = default;
 
-        std::vector<uint16_t> sceneNodes;
-		std::vector<MeshSkin> skins;
-		std::vector<MeshAnimation> animations;
-		std::vector<MeshGeometry> meshes;
-        std::vector<Node> nodes;
-		// std::vector<MeshMaterial> materials;
-		std::vector<uint16_t> primitiveBegins;
+        stl::vector<uint16_t> sceneNodes;
+		stl::vector<MeshSkin> skins;
+		stl::vector<MeshAnimation> animations;
+		stl::vector<MeshGeometry> meshes;
+        stl::vector<Node> nodes;
+		// stl::vector<MeshMaterial> materials;
+		stl::vector<uint16_t> primitiveBegins;
 
 		uint32_t skinMatricesCount = 0u;
 
 		void loadSkins(const Layout & layout);
 		void loadAnimations(const Layout & layout);
-    	MeshBuffersData loadMeshes(const Layout & layout, std::span<const AttributeSemantic> allowedAttributes);
+    	MeshBuffersData loadMeshes(const Layout & layout, stl::span<const AttributeSemantic> allowedAttributes);
 		void loadNodes(const Layout & layout);
 		// void loadMaterials(const Layout & layout, const FileManager & fileManager, TextureManager & textureManager, std::string_view name);
 
-		void optimizeBuffers(std::span<std::vector<std::byte>> vertexBuffersData, std::vector<uint32_t> & indexBufferData, std::span<const AttributeSemantic> allowedAttributes);
+		void optimizeBuffers(stl::span<stl::vector<std::byte>> vertexBuffersData, stl::vector<uint32_t> & indexBufferData, stl::span<const AttributeSemantic> allowedAttributes);
 	};
 }
 

@@ -74,7 +74,7 @@ namespace engine::graphics {
             uint32_t lastDirtyByte = 0u;
             uint32_t offset = 0xff'ff'ff'ffu;
         };
-        std::vector<Data> _buffers;
+        stl::vector<Data> _buffers;
         std::unique_ptr<std::byte[]> _tmpMemory = nullptr;
         uint32_t _size = 0u;
         rhi::BufferInfo _bufferInfo;

@@ -1,10 +1,11 @@
 #pragma once
 
+#include "stl/vector.h"
+
 #include <cstddef>
 #include <cstdint>
 #include <string>
 #include <string_view>
-#include <vector>
 
 namespace engine {
 
@@ -33,12 +34,12 @@ namespace engine {
 		virtual uint64_t file_tell(File* f) const = 0;
 
 		//
-		virtual std::vector<std::string> getFiles(bool recursive) const = 0;
+		virtual stl::vector<std::string> getFiles(bool recursive) const = 0;
 		virtual bool hasFile(std::string_view path) const noexcept = 0;
 		virtual size_t fileSize(std::string_view path) const noexcept = 0;
 
-		virtual std::vector<std::byte> readFile(std::string_view path) const = 0;
-		virtual bool readFile(std::string_view path, std::vector<std::byte>& data) const = 0;
+		virtual stl::vector<std::byte> readFile(std::string_view path) const = 0;
+		virtual bool readFile(std::string_view path, stl::vector<std::byte>& data) const = 0;
 		virtual bool writeFile(std::string_view path, const void* data, size_t sz, const char* mode = "wb") const = 0;
 		virtual bool removeFile(std::string_view path) const = 0;
 

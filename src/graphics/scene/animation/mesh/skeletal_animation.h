@@ -55,7 +55,7 @@ namespace engine::scene {
         
         void update2(float time, const SkeletalAnimation & animation) noexcept;
 
-        std::span<const Transform> getTransforms() const noexcept { return _transforms; }
+        stl::span<const Transform> getTransforms() const noexcept { return _transforms; }
 
         // mix values from 2 animators
         void mix(const SkeletalAnimator & animator0, const SkeletalAnimator & animator1,
@@ -64,6 +64,6 @@ namespace engine::scene {
         void apply2(Skeleton & skeleton) const noexcept;
 
     private:
-        std::vector<Transform> _transforms;
+        stl::vector<Transform> _transforms;
     };
 }

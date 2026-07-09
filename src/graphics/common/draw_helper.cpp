@@ -66,12 +66,12 @@ namespace engine::graphics {
         info.inputAssemblyState = {rhi::PrimitiveTopology::eLines, false};
 
         info.vertexInputState = {
-            std::vector{rhi::VertexInputBinding{
+            stl::vector{rhi::VertexInputBinding{
                 .stride = kVertexSize,
                 .binding = 0u,
                 .inputRate = rhi::VertexInputRate::eVertex
             }},
-            std::vector{
+            stl::vector{
                 rhi::VertexInputAttribute{ // position
                     .location = 0u,
                     .binding = 0u,
@@ -248,7 +248,7 @@ namespace engine::graphics {
         _verticesCount = 0u;
     }
 
-    void DrawHelper::drawLines(std::span<const vec3f> linesVtxs, uint32_t color, const mat4f & transform) {
+    void DrawHelper::drawLines(stl::span<const vec3f> linesVtxs, uint32_t color, const mat4f & transform) {
         const auto vSize = static_cast<uint32_t>((_verticesCount + linesVtxs.size()) * kVertexSize);
         if (_vertices->sizeInBytes() <= vSize) {
             _vertices->resize(std::max(_vertices->sizeInBytes() * 2u, vSize));

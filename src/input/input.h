@@ -1,5 +1,7 @@
 #pragma once
 
+#include "stl/vector.h"
+
 #include <algorithm>
 #include <cstdint>
 #include <unordered_map>
@@ -269,6 +271,6 @@ namespace engine {
 
 	private:
 		InputKeyMod _mask;
-		std::vector<InputObserver*> _observers;
+		stl::vector<InputObserver*> _observers;
 	};
 }

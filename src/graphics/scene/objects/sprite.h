@@ -45,7 +45,7 @@ namespace engine::scene {
             _subImages[slot] = {image, viewType};
         }
 
-        std::span<std::pair<const graphics::ImageHandler *, rhi::ImageViewType> const> getSubImages() const noexcept {
+        stl::span<std::pair<const graphics::ImageHandler *, rhi::ImageViewType> const> getSubImages() const noexcept {
             return _subImages;
         }
         

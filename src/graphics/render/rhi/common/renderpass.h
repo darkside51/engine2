@@ -60,18 +60,18 @@ struct SubpassDependency {
 
 class RenderPassDescription {
 public:
-    RenderPassDescription(std::vector<AttachmentDescription> && attachments, 
-            std::vector<SubpassDescription> && subpasses,
-            std::vector<SubpassDependency> && subpassDependencies) :
+    RenderPassDescription(stl::vector<AttachmentDescription> && attachments, 
+            stl::vector<SubpassDescription> && subpasses,
+            stl::vector<SubpassDependency> && subpassDependencies) :
             _attachments(std::move(attachments)), 
             _subpasses(std::move(subpasses)), 
             _subpassDependencies(std::move(subpassDependencies)) {
                 calculateHash();
             }
 
-    RenderPassDescription(std::span<AttachmentDescription> attachments, 
-            std::span<SubpassDescription> subpasses,
-            std::span<SubpassDependency> subpassDependencies) :
+    RenderPassDescription(stl::span<AttachmentDescription> attachments, 
+            stl::span<SubpassDescription> subpasses,
+            stl::span<SubpassDependency> subpassDependencies) :
             _attachments{attachments.begin(), attachments.end()}, 
             _subpasses{subpasses.begin(), subpasses.end()}, 
             _subpassDependencies{subpassDependencies.begin(), subpassDependencies.end()} {
@@ -112,16 +112,16 @@ public:
         return _hash;
     }
 
-    std::span<const AttachmentDescription> getAttachments() const noexcept { return _attachments; }
-    std::span<const SubpassDescription> getSubpasses() const noexcept { return _subpasses; }
-    std::span<const SubpassDependency> getDependencies() const noexcept { return _subpassDependencies; }
+    stl::span<const AttachmentDescription> getAttachments() const noexcept { return _attachments; }
+    stl::span<const SubpassDescription> getSubpasses() const noexcept { return _subpasses; }
+    stl::span<const SubpassDependency> getDependencies() const noexcept { return _subpassDependencies; }
 
 private:
     void calculateHash() noexcept;
 
-    std::vector<AttachmentDescription> _attachments;
-    std::vector<SubpassDescription> _subpasses;
-    std::vector<SubpassDependency> _subpassDependencies;
+    stl::vector<AttachmentDescription> _attachments;
+    stl::vector<SubpassDescription> _subpasses;
+    stl::vector<SubpassDependency> _subpassDependencies;
     //std::pair<ResolveModeFlags, ResolveModeFlags> _depthStencilResolve;
     size_t _hash = 0u;
 };

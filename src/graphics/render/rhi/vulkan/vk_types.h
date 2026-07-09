@@ -1606,7 +1606,7 @@ inline auto convert2vk(const std::array<rhi::VertexInputBinding, N> & array) noe
 }
 
 template<size_t N>
-inline auto convert2vk(std::span<const rhi::VertexInputBinding> array) {
+inline auto convert2vk(stl::span<const rhi::VertexInputBinding> array) {
     dynamic_array<VkVertexInputBindingDescription, N> result;
     result.resize(array.size());
     auto view = result.view();
@@ -1635,7 +1635,7 @@ inline auto convert2vk(const std::array<rhi::VertexInputAttribute, N> & array) n
 }
 
 template<size_t N>
-inline auto convert2vk(std::span<const rhi::VertexInputAttribute> array) {
+inline auto convert2vk(stl::span<const rhi::VertexInputAttribute> array) {
     dynamic_array<VkVertexInputAttributeDescription, N> result;
     result.resize(array.size());
     auto view = result.view();

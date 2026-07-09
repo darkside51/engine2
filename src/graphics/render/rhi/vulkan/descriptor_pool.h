@@ -15,7 +15,7 @@ namespace engine::vulkan {
 
     class DescriptorPool {
     public:
-        DescriptorPool(Device & device, std::span<const std::pair<rhi::shaders::ResourceType, uint32_t>> resources, 
+        DescriptorPool(Device & device, stl::span<const std::pair<rhi::shaders::ResourceType, uint32_t>> resources, 
             rhi::shaders::DescriptorPoolFlags f = rhi::shaders::DescriptorPoolFlags::eNone, uint32_t maxSets = 64u);
 
         ~DescriptorPool();
@@ -55,7 +55,7 @@ namespace engine::vulkan {
 
         // allocateDescriptorSets, freeDescriptorSets, and resetDescriptorPool 
         void reset() noexcept;
-        bool freeDescriptorSets(std::span<const VkDescriptorSet> sets) noexcept;
+        bool freeDescriptorSets(stl::span<const VkDescriptorSet> sets) noexcept;
         bool freeDescriptorSet(const DescriptorSet & set) noexcept;
         DescriptorSet allocateDescriptorSet(const rhi::shaders::BindingSetLayout & layout) noexcept;
         

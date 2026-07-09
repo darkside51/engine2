@@ -5,6 +5,8 @@
 #include "texture.h"
 #include "texture_data_loader.h"
 
+#include "stl/vector.h"
+
 #include <cstddef>
 #include <cstdint>
 #include <span>
@@ -13,7 +15,6 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
-#include <vector>
 
 namespace engine::rhi::runtime {
     class Rhi;
@@ -66,7 +67,7 @@ public:
 
     const ImageFrame2D & addFrame(std::string_view name, TextureCreateInfo && info, const Frame2D & frame = {});
     const ImageFrame2D & addFrame(std::string_view name, const rhi::runtime::ImagePtr & image, const Frame2D & frame = {});
-    void addFrames(std::span<std::pair<std::string, Frame2D>> frames, const rhi::runtime::ImagePtr & image);
+    void addFrames(stl::span<std::pair<std::string, Frame2D>> frames, const rhi::runtime::ImagePtr & image);
     bool removeFrame(std::string_view name) noexcept;
     
     const rhi::runtime::ImagePtr & getImage(uint32_t idx) const noexcept;
@@ -91,12 +92,12 @@ public:
     ImageHandler * getDefaultCubeImageHandler() noexcept { return _images[4u].get(); }
 
     rhi::runtime::ImagePtr generateImage(TextureCreateInfo && info, rhi::runtime::CommandList & commandList) const;
-    rhi::runtime::ImagePtr generateImage(rhi::Format format, const vec3u & size, TextureFlags flags, std::span<TextureLayerData> layersData, 
+    rhi::runtime::ImagePtr generateImage(rhi::Format format, const vec3u & size, TextureFlags flags, stl::span<TextureLayerData> layersData, 
         rhi::ImageCreateFlags createFlags, rhi::runtime::CommandList & commandList) const;
 
 private:
     using ImageFramesMap = std::unordered_map<std::string, ImageFrame2D, hash::String_hash, std::equal_to<>>;
-    using Images = std::vector<ImageHandlerPtr>;
+    using Images = stl::vector<ImageHandlerPtr>;
     using ImagesSet = std::unordered_set<ImageHolder, hash::ImageHolder_hash, graphics::ImageHolderEqualTo>;
 
     ImageHandlerPtr & getImageHandler(uint32_t idx) noexcept;
@@ -116,7 +117,7 @@ private:
     ImagesSet _imagesSet;
     ImageFramesMap _frames2D;
 
-    std::vector<std::pair<rhi::runtime::ImagePtr, TextureCreateInfo>> _tmpTexturesData;
+    stl::vector<std::pair<rhi::runtime::ImagePtr, TextureCreateInfo>> _tmpTexturesData;
 };
 
 }

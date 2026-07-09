@@ -218,7 +218,7 @@ namespace engine::graphics {
         return imageFrame->second;
     }
 
-    void TextureManager::addFrames(std::span<std::pair<std::string, Frame2D>> frames, const rhi::runtime::ImagePtr & image) {
+    void TextureManager::addFrames(stl::span<std::pair<std::string, Frame2D>> frames, const rhi::runtime::ImagePtr & image) {
         if (frames.empty() || image == nullptr) {
             return;
         }
@@ -252,7 +252,7 @@ namespace engine::graphics {
             if (auto it1 = _imagesSet.find(image); it1 != _imagesSet.end()) {
                 if (--const_cast<ImageHolder&>(*it1).count == 0u) {
                     _imagesSet.erase(it1);
-                    std::erase_if(_images, [image](const ImageHandlerPtr & img) noexcept {
+                    eastl::erase_if(_images, [image](const ImageHandlerPtr & img) noexcept {
                         return img->image.get() == image;
                     });
                 }
@@ -340,7 +340,7 @@ namespace engine::graphics {
         _tmpTexturesData.clear();
     }
 
-    rhi::runtime::ImagePtr TextureManager::generateImage(rhi::Format format, const vec3u & size, TextureFlags flags, std::span<TextureLayerData> layersData, 
+    rhi::runtime::ImagePtr TextureManager::generateImage(rhi::Format format, const vec3u & size, TextureFlags flags, stl::span<TextureLayerData> layersData, 
         rhi::ImageCreateFlags createFlags, rhi::runtime::CommandList & commandList) const {
         using namespace rhi;
 
@@ -386,8 +386,8 @@ namespace engine::graphics {
         auto * memory = staging.map();
         const auto readyMipLevels = layersData[0u].size();
 
-        std::vector<std::byte*> imgData;
-        std::vector<uint32_t> mipOffsets;
+        stl::vector<std::byte*> imgData;
+        stl::vector<uint32_t> mipOffsets;
         imgData.resize(layersCount * readyMipLevels);
         mipOffsets.resize(layersCount * readyMipLevels);
 
@@ -485,7 +485,7 @@ namespace engine::graphics {
 
     rhi::runtime::ImagePtr TextureManager::generateImage(TextureCreateInfo && textureData, rhi::runtime::CommandList & commandList) const {
         return generateImage(textureData.metaInfo.format, textureData.metaInfo.size, textureData.metaInfo.flags, 
-            std::span{&textureData.data, 1u}, rhi::ImageCreateFlags::eNone, commandList);
+            stl::span{&textureData.data, 1u}, rhi::ImageCreateFlags::eNone, commandList);
     }
 
 }

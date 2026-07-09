@@ -48,13 +48,13 @@ namespace engine::vulkan {
     }
 
     VkPipelineColorBlendStateCreateInfo pipelineColorBlendStateCreateInfo(
-        std::span<const VkPipelineColorBlendAttachmentState> blendStates) noexcept;
+        stl::span<const VkPipelineColorBlendAttachmentState> blendStates) noexcept;
 
     VkPipelineTessellationStateCreateInfo pipelineTessellationStateInfo(uint32_t patchControlPoints) noexcept;
 
     VkPipelineVertexInputStateCreateInfo pipelineVertexInputStateInfo(
-        std::span<const VkVertexInputBindingDescription> inputBindings,
-        std::span<const VkVertexInputAttributeDescription> attributes
+        stl::span<const VkVertexInputBindingDescription> inputBindings,
+        stl::span<const VkVertexInputAttributeDescription> attributes
     ) noexcept;
 
     VkComputePipelineCreateInfo computePipelineCreateInfo(
@@ -134,11 +134,11 @@ namespace engine::vulkan {
         GraphicsPipelineInfo & tessellationStateInfo(uint32_t patchControlPoints) noexcept;
 
         GraphicsPipelineInfo & colorBlendStateCreateInfo(
-            std::span<const rhi::EncodedBlendMode> blendModes) noexcept;
+            stl::span<const rhi::EncodedBlendMode> blendModes) noexcept;
 
         GraphicsPipelineInfo & vertexInputStateInfo(
-            std::span<const rhi::VertexInputBinding> inputBindings,
-            std::span<const rhi::VertexInputAttribute> attributes
+            stl::span<const rhi::VertexInputBinding> inputBindings,
+            stl::span<const rhi::VertexInputAttribute> attributes
         ) noexcept;
 
         VkGraphicsPipelineCreateInfo create(

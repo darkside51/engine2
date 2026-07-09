@@ -1,6 +1,8 @@
 #pragma once
 
 #include "common/hash.h"
+#include "stl/span.h"
+#include "stl/vector.h"
 
 #include <vulkan/vulkan.h>
 
@@ -13,8 +15,8 @@ namespace engine::vulkan {
 
 class PipelineBarriers {
     struct Barriers {
-        std::vector<VkBufferMemoryBarrier> bufferBarriers;
-        std::vector<VkImageMemoryBarrier> imageBarriers;
+        stl::vector<VkBufferMemoryBarrier> bufferBarriers;
+        stl::vector<VkImageMemoryBarrier> imageBarriers;
     };
 
     struct BarrierStage {

@@ -254,7 +254,7 @@ private:
     stl::unordered_map<size_t, std::unique_ptr<ObjectsCollection>> _objectCollections;
 
     // animation
-    // static thread_local std::vector<animation::AnimatedObject> _sequences; //
+    // static thread_local stl::vector<animation::AnimatedObject> _sequences; //
     // can use threads::unique_t<animation::AnimatedObject>::id() - if want to create AnimatedObjects on some threads!
     struct AnimationCollection {
         stl::vector<animation::AnimatedObject> skeletalAnimations;

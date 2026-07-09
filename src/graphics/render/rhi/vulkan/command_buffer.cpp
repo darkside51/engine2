@@ -71,7 +71,7 @@ namespace engine::vulkan {
     }
 
     void CommandBuffer::beginRenderPass(VkRenderPass renderPass, const FrameBuffer & framebuffer, 
-        std::span<VkClearValue> clearValues, const rhi::Rect2D & area/*, rhi::SubpassContents contents*/) const noexcept {
+        stl::span<VkClearValue> clearValues, const rhi::Rect2D & area/*, rhi::SubpassContents contents*/) const noexcept {
         const VkRenderPassBeginInfo renderPassBeginInfo = {
             .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
             .pNext = nullptr,
@@ -95,12 +95,12 @@ namespace engine::vulkan {
         vkCmdUpdateBuffer(_commandBuffer, dst(), dstOffset, dataSize, pData);
     }
 
-    void CommandBuffer::copyBuffer2Buffer(const Buffer & src, const Buffer & dst, std::span<VkBufferCopy> copyInfo) const noexcept {
+    void CommandBuffer::copyBuffer2Buffer(const Buffer & src, const Buffer & dst, stl::span<VkBufferCopy> copyInfo) const noexcept {
         // vkCmdCopyBuffer2(); // ?
         vkCmdCopyBuffer(_commandBuffer, src(), dst(), copyInfo.size(), copyInfo.data());
     }
 
-    void CommandBuffer::copyBuffer2Image(const Buffer & src, const Image & dst, std::span<VkBufferImageCopy> copyInfo) const noexcept {
+    void CommandBuffer::copyBuffer2Image(const Buffer & src, const Image & dst, stl::span<VkBufferImageCopy> copyInfo) const noexcept {
         // vkCmdCopyBufferToImage2; // ?
 
         const auto info = dst.getInfo();
@@ -111,7 +111,7 @@ namespace engine::vulkan {
         vkCmdCopyBufferToImage(_commandBuffer, src(), dst(), baseLayout, copyInfo.size(), copyInfo.data());
     }
 
-    void CommandBuffer::blitImage(const Image & src, const Image & dst, VkImageLayout srcImageLayout, VkImageLayout dstImageLayout, std::span<VkImageBlit> info, VkFilter filter) const noexcept {
+    void CommandBuffer::blitImage(const Image & src, const Image & dst, VkImageLayout srcImageLayout, VkImageLayout dstImageLayout, stl::span<VkImageBlit> info, VkFilter filter) const noexcept {
         vkCmdBlitImage(_commandBuffer, src(), srcImageLayout, dst(), dstImageLayout, info.size(), info.data(), filter);
     }
 
@@ -127,7 +127,7 @@ namespace engine::vulkan {
         vkCmdBindVertexBuffers(_commandBuffer, binding, 1u, &buffer, &offset);
     }
 
-    void CommandBuffer::bindVertexBuffers(std::span<const VkBuffer> buffers, std::span<const VkDeviceSize> offsets, uint32_t firstBinding) noexcept {
+    void CommandBuffer::bindVertexBuffers(stl::span<const VkBuffer> buffers, stl::span<const VkDeviceSize> offsets, uint32_t firstBinding) noexcept {
         vkCmdBindVertexBuffers(_commandBuffer, firstBinding, buffers.size(), buffers.data(), offsets.data());
     }
 
@@ -135,7 +135,7 @@ namespace engine::vulkan {
         vkCmdBindIndexBuffer(_commandBuffer, buffer, static_cast<VkDeviceSize>(offset), utils::convert2vk(type));
     }
 
-    void CommandBuffer::bindDescriptorSets(std::span<const VkDescriptorSet> sets, std::span<const uint32_t> dynamicOffsets, uint32_t firstSet) noexcept {
+    void CommandBuffer::bindDescriptorSets(stl::span<const VkDescriptorSet> sets, stl::span<const uint32_t> dynamicOffsets, uint32_t firstSet) noexcept {
         vkCmdBindDescriptorSets(
             _commandBuffer, 
             _pipeline.bindPoint,

@@ -12,7 +12,7 @@ namespace engine::graphics {
 
     struct CascadeFrameBuffer {
         rhi::runtime::ImagePtr image;
-        std::vector<rhi::runtime::FrameBufferPtr> frameBuffers;
+        stl::vector<rhi::runtime::FrameBufferPtr> frameBuffers;
     };
 
     class CascadeShadowMap {
@@ -33,24 +33,24 @@ namespace engine::graphics {
         const vec3f & getDirection() const noexcept { return _direction; }
         bool setDirection(const vec3f & direction, float eps = 1e-5f) noexcept;
 
-        std::span<const mat4f> getCascadeMatrices() const noexcept { return _cascadeMatrices; }
+        stl::span<const mat4f> getCascadeMatrices() const noexcept { return _cascadeMatrices; }
         rhi::runtime::RenderPass getRenderPass() const noexcept { return _renderPass; }
 
-        std::span<const float> getCascadeSplitDepths() const noexcept { return _splitDepths; }
+        stl::span<const float> getCascadeSplitDepths() const noexcept { return _splitDepths; }
 
         const rhi::SamplerValue & getSampler() const noexcept { return _sampler; }
 
     private:
-        std::vector<CascadeFrameBuffer> _framebuffers; // inflight frames count
+        stl::vector<CascadeFrameBuffer> _framebuffers; // inflight frames count
         rhi::runtime::RenderPass _renderPass;
         rhi::SamplerValue _sampler;
 
         rhi::runtime::Rhi & _api;
         rhi::runtime::Device & _device;
 
-        std::vector<mat4f> _cascadeMatrices;
-        std::vector<float> _splitDepths;
-        std::vector<float> _cascadeSplits;
+        stl::vector<mat4f> _cascadeMatrices;
+        stl::vector<float> _splitDepths;
+        stl::vector<float> _cascadeSplits;
 
 		vec3f _direction = vec3f{0.0f, 0.0f, -1.0f};
         float _clipRange;

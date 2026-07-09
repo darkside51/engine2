@@ -102,7 +102,7 @@ namespace engine::rhi::runtime {
         rhi::Rect2D area{};
         BeginRenderPassCommand(
             RenderPass renderPass, FrameBufferPtr & framebuffer, 
-            std::span<const ClearValue> clearValues, const Rect2D & area
+            stl::span<const ClearValue> clearValues, const Rect2D & area
         ) : 
             Command(CommandType::eBeginRenderPass, sizeof(BeginRenderPassCommand)),
             renderPass(renderPass),
@@ -117,11 +117,11 @@ namespace engine::rhi::runtime {
 
     struct NextSubpassCommand : Command {
         SubpassContents contents;
-        std::span<ImageTransitionInfo> imageTransitionInfo;
-        std::span<BufferTransitionInfo> bufferTransitionInfo;
+        stl::span<ImageTransitionInfo> imageTransitionInfo;
+        stl::span<BufferTransitionInfo> bufferTransitionInfo;
         NextSubpassCommand(SubpassContents contents,
-            std::span<ImageTransitionInfo> imageTransitionInfo = {},
-            std::span<BufferTransitionInfo> bufferTransitionInfo = {}) : 
+            stl::span<ImageTransitionInfo> imageTransitionInfo = {},
+            stl::span<BufferTransitionInfo> bufferTransitionInfo = {}) : 
             Command(CommandType::eNextSubpass, sizeof(NextSubpassCommand)),
             contents(contents),
             imageTransitionInfo(imageTransitionInfo),
@@ -129,7 +129,7 @@ namespace engine::rhi::runtime {
     };
 
     struct ExecuteCommandsCommand : Command { // todo!
-        ExecuteCommandsCommand(std::span<const CommandList*> secondaryCommandLists) : 
+        ExecuteCommandsCommand(stl::span<const CommandList*> secondaryCommandLists) : 
             Command(CommandType::eExecuteCommands, sizeof(ExecuteCommandsCommand)) {}
     };
 

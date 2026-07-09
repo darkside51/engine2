@@ -143,17 +143,17 @@ public:
 class Queue {
 public:
     struct SubmitInfo {
-        std::span<const Semaphore> w8Semaphores;
-        std::span<const rhi::PipelineStageFlags> w8DstStages;
-        std::span<const Semaphore> signalSemaphores;
-        std::span<CommandList *> lists;
+        stl::span<const Semaphore> w8Semaphores;
+        stl::span<const rhi::PipelineStageFlags> w8DstStages;
+        stl::span<const Semaphore> signalSemaphores;
+        stl::span<CommandList *> lists;
     };
 
     virtual ~Queue() = default;
     virtual bool waitSubmit(uint8_t frameIdx, uint64_t timeout = UINT64_MAX, Fence f = nullptr) noexcept = 0;
-    virtual bool submit(uint8_t frameIdx, std::span<const SubmitInfo> submitInfos, Fence f = nullptr) noexcept = 0;
+    virtual bool submit(uint8_t frameIdx, stl::span<const SubmitInfo> submitInfos, Fence f = nullptr) noexcept = 0;
     virtual bool present(const Swapchain * swapchain, 
-        uint32_t imageIdx, std::span<const rhi::runtime::Semaphore> waitSemaphores) noexcept = 0;
+        uint32_t imageIdx, stl::span<const rhi::runtime::Semaphore> waitSemaphores) noexcept = 0;
     virtual bool waitIdle() noexcept = 0;
 };
 
@@ -172,7 +172,7 @@ class ShaderModulesManager {
 public:
     virtual ~ShaderModulesManager() = default;
     virtual const ShaderModule & registerModule(std::string key, const Device & device, 
-        rhi::shaders::Stages stage, std::span<const std::byte> code) = 0;
+        rhi::shaders::Stages stage, stl::span<const std::byte> code) = 0;
     virtual const ShaderModule * getModule(std::string_view key) const noexcept = 0;
 };
 
@@ -209,7 +209,7 @@ public:
 class QueryPool {
 public:
     virtual ~QueryPool() = default;
-    virtual bool getResults(uint16_t firstQuery, uint16_t queryCount, std::span<std::byte> target, 
+    virtual bool getResults(uint16_t firstQuery, uint16_t queryCount, stl::span<std::byte> target, 
         size_t stride, QueryResultFlags flags) const noexcept = 0;
 };
 
@@ -236,7 +236,7 @@ public:
 
     virtual SurfacePtr createSurface(const SurfaceCreateInfo & info) const = 0;
 
-    virtual std::vector<PysicalDevicePtr> enumerateDevices(const PhysicalDeviceRequirements & info) const = 0;
+    virtual stl::vector<PysicalDevicePtr> enumerateDevices(const PhysicalDeviceRequirements & info) const = 0;
     virtual DevicePtr createDevice(PysicalDevicePtr & gpu, const DeviceCreateInfo & info) const = 0;
 
     virtual SwapchainPtr createSwapchain(const Device & device, const Surface & surface, const SwapchainCreateInfo & info) const = 0;
@@ -245,7 +245,7 @@ public:
             
     virtual RenderPass getRenderPass(Device & device, const RenderPassDescription & description) const noexcept = 0;
 
-    virtual FrameBufferPtr createFrameBuffer(const Device & device,  std::vector<FrameBufferAttachment> && attachemnts, 
+    virtual FrameBufferPtr createFrameBuffer(const Device & device,  stl::vector<FrameBufferAttachment> && attachemnts, 
         const RenderPass & renderPass) const noexcept = 0;
 
     virtual QueuePtr getQueue(const Device & device, queue_flags::flags familyFlags, uint8_t queueIdx, uint8_t framesCount) const = 0;
@@ -266,7 +266,7 @@ public:
 
     virtual ShaderModulesManagerPtr createShaderModulesManager() const = 0;
 
-    virtual GpuProgramPtr createProgram(Device & device, std::span<const ShaderModuleView> moduleViews, 
+    virtual GpuProgramPtr createProgram(Device & device, stl::span<const ShaderModuleView> moduleViews, 
         shaders::SpecializationInfo && specializationInfo = {}) const = 0;
 
     virtual PipelinePtr createComputePipeline(Device & device, const GpuProgramPtr & program) const = 0;

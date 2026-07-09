@@ -39,9 +39,9 @@ namespace engine::vulkan {
         inline explicit operator bool() const noexcept { return _layout != nullptr; }
         inline bool isValid() const noexcept { return _layout != nullptr; }
 
-        void updateBuffers(std::span<const std::pair<Buffer*, uint32_t>> bufferBindings) noexcept;
-        void updateImages(std::span<const std::tuple<VkSampler, VkImageView, VkImageLayout, uint32_t>> imageBindings) noexcept;
-        void updatetexelBuffers(std::span<const std::tuple<Buffer*, rhi::Format, uint32_t>> texelBufferBindings) noexcept;
+        void updateBuffers(stl::span<const std::pair<Buffer*, uint32_t>> bufferBindings) noexcept;
+        void updateImages(stl::span<const std::tuple<VkSampler, VkImageView, VkImageLayout, uint32_t>> imageBindings) noexcept;
+        void updatetexelBuffers(stl::span<const std::tuple<Buffer*, rhi::Format, uint32_t>> texelBufferBindings) noexcept;
 
         BufferUpdateResult updateBuffer(const Buffer* buffer, uint32_t binding, 
             uint64_t offset = 0u, uint64_t range = rhi::kWholeSize64, bool dynamic = false) noexcept;

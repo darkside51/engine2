@@ -45,6 +45,7 @@
 
 #include "engine/src/utils/stl_helper.h"
 
+#include "engine/src/stl/span.h"
 #include "engine/src/stl/vector.h"
 
 #include <imgui.h>
@@ -291,11 +292,11 @@ namespace example {
             _commandContext.destroy();
         }
 
-        void execute(std::vector<CpuJob> && tasks) {
+        void execute(engine::stl::vector<CpuJob> && tasks) {
             _worker.emplaceTasks(std::move(tasks));
         }
 
-        void submit(std::vector<GpuJob> && tasks, auto && executor) {
+        void submit(engine::stl::vector<GpuJob> && tasks, auto && executor) {
             _commandContext.submit(std::move(tasks), std::forward<decltype(executor)>(executor));
         }
 
@@ -323,7 +324,7 @@ namespace example {
 
         if (isNew) {
             gpuTasks.emplace_back(BackgroundWorker::GpuJob{[&device, &fileManager, &textureManager, imageKey = std::move(imageKey), path = std::move(path), flags]
-                (engine::rhi::runtime::CommandList & commandList, std::vector<threads::WorkerTask> & callbacks) mutable {
+                (engine::rhi::runtime::CommandList & commandList, engine::stl::vector<threads::WorkerTask> & callbacks) mutable {
 
                 const auto imageBytes = fileManager.readFile(path);
                 auto textureData = engine::graphics::parseTextureData(imageBytes, {
@@ -411,7 +412,7 @@ namespace example {
                             loadCallback = std::move(loadCallback)
                         ](
                             engine::rhi::runtime::CommandList & commandList, 
-                            std::vector<threads::WorkerTask> & callbacks
+                            engine::stl::vector<threads::WorkerTask> & callbacks
                         ) mutable {
                         materialManager.createMaterialTextures(modelLayout, texturesToLoad, fileManager, textureManager, commandList);
                         modelManager.generateGpuBuffers(modelIdx, std::move(buffers), api, device, commandList); // ??
@@ -557,7 +558,7 @@ namespace example {
                     //engine::network::http::Request{"https://i.pinimg.com/originals/97/3e/fd/973efd74e4edfa29b2e939c6a8774c4e.jpg"},
                     // {z}/{x}/{y}
                     engine::network::http::Request{"https://api.maptiler.com/tiles/terrain-rgb/0/0/0.png?key=6ks89yREYo9GEfWO2i8h"},
-                    [](std::vector<std::byte> && response, engine::network::RequestResult resultCode) {
+                    [](engine::stl::vector<std::byte> && response, engine::network::RequestResult resultCode) {
                         if (resultCode == engine::network::RequestResult::eSuccess) {
                             // fileManager.getFileSystem("common_fs0")->writeFile("download/image.jpg", response.data(), response.size());
                             fileManager.getFileSystem("common_fs0")->writeFile("download/tile_0_0_0.png", response.data(), response.size());
@@ -569,7 +570,7 @@ namespace example {
 
                 curlNetworkService.sendRequest(backgroundgWorker->getScheduler(),
                     engine::network::http::Request{"https://api.maptiler.com/tiles/v4/0/0/0.pbf?key=6ks89yREYo9GEfWO2i8h"},
-                    [](std::vector<std::byte> && response, engine::network::RequestResult resultCode) {
+                    [](engine::stl::vector<std::byte> && response, engine::network::RequestResult resultCode) {
                         if (resultCode == engine::network::RequestResult::eSuccess) {
                             //!!! data can be compressed !!! - need uncompress
                             std::string str{reinterpret_cast<char*>(response.data()), response.size()};
@@ -709,19 +710,19 @@ namespace example {
 
         #ifndef NDEBUG
             bool const kUseApiDebugMessages = true;
-            std::vector<std::string_view> extensions = {"VK_KHR_surface", "VK_KHR_win32_surface", 
+            engine::stl::vector<std::string_view> extensions = {"VK_KHR_surface", "VK_KHR_win32_surface", 
                 "VK_KHR_xcb_surface", "VK_KHR_xlib_surface", 
                 "VK_KHR_wayland_surface", "VK_MVK_macos_surface", "VK_QNX_screen_surface", 
                 Api::kDebugUtilExtName // for validation
             };
-            std::vector<std::string_view> layers = {Api::kLayerValidationKHR};
+            engine::stl::vector<std::string_view> layers = {Api::kLayerValidationKHR};
         #else
             bool const kUseApiDebugMessages = false;
-            std::vector<std::string_view> extensions = {"VK_KHR_surface", "VK_KHR_win32_surface", 
+            engine::stl::vector<std::string_view> extensions = {"VK_KHR_surface", "VK_KHR_win32_surface", 
                 "VK_KHR_xcb_surface", "VK_KHR_xlib_surface", 
                 "VK_KHR_wayland_surface", "VK_MVK_macos_surface", "VK_QNX_screen_surface"
             };
-            std::vector<std::string_view> layers = {};
+            engine::stl::vector<std::string_view> layers = {};
         #endif
         // auto const vkVersion = VK_HEADER_VERSION_COMPLETE; // version from vulkan_core.h
         // engine::common::Version{VK_VERSION_MAJOR(vkVersion), VK_VERSION_MINOR(vkVersion), VK_VERSION_PATCH(vkVersion)};
@@ -841,7 +842,7 @@ namespace example {
         _sceneFrameBuffers.clear();
         _sceneFrameBuffers.reserve(framesCount);
         for (uint32_t i = 0u; i < framesCount; ++i) {
-            std::vector<engine::rhi::FrameBufferAttachment> fbAttachemnts{2u};
+            engine::stl::vector<engine::rhi::FrameBufferAttachment> fbAttachemnts{2u};
 
             auto & colorImage = _colorAttachmentImages[i];
             fbAttachemnts[0u].image = colorImage.get();
@@ -861,7 +862,7 @@ namespace example {
         for (uint32_t i = 0u; i < swapchainImagesCount; ++i) {
             auto & image = _swapchain->getImage(i);
 
-            std::vector<engine::rhi::FrameBufferAttachment> fbAttachemnts{1u};
+            engine::stl::vector<engine::rhi::FrameBufferAttachment> fbAttachemnts{1u};
             fbAttachemnts[0u].image = &image;
             fbAttachemnts[0u].imageSize = {image.getExtent().width, image.getExtent().height};
 
@@ -924,7 +925,7 @@ namespace example {
 
         for (uint32_t i = 0u; i < framesCount; ++i) {
             {
-                std::vector<engine::rhi::FrameBufferAttachment> fbAttachemnts{6u};
+                engine::stl::vector<engine::rhi::FrameBufferAttachment> fbAttachemnts{6u};
 
                 auto & positionImage = _gBufferAttachments[i].position;
                 fbAttachemnts[0u].image = positionImage.get();
@@ -963,7 +964,7 @@ namespace example {
         _emissiveBluredBuffers.clear();
         _emissiveBluredBuffers.reserve(framesCount * 2u);
         for (uint32_t i = 0u; i < framesCount; ++i) {
-            std::vector<engine::rhi::FrameBufferAttachment> fbAttachemnts{1u};
+            engine::stl::vector<engine::rhi::FrameBufferAttachment> fbAttachemnts{1u};
             auto & image = _gBufferAttachments[i].emissive;
             fbAttachemnts[0u].image = image.get();
             fbAttachemnts[0u].imageSize = {image->getExtent().width, image->getExtent().height};
@@ -972,7 +973,7 @@ namespace example {
         }
 
         for (uint32_t i = 0u; i < framesCount; ++i) {
-            std::vector<engine::rhi::FrameBufferAttachment> fbAttachemnts{1u};
+            engine::stl::vector<engine::rhi::FrameBufferAttachment> fbAttachemnts{1u};
             auto & image = _gBufferAttachments[i].emissive2;
             fbAttachemnts[0u].image = image.get();
             fbAttachemnts[0u].imageSize = {image->getExtent().width, image->getExtent().height};
@@ -1662,7 +1663,7 @@ namespace example {
             textureManager->addFrames(frames, image);
 
             {
-                std::vector<std::string> animFrames;
+                engine::stl::vector<std::string> animFrames;
                 animFrames.reserve(48u);
                 for (size_t i = 0u; i < 48u; ++i) {
                     animFrames.emplace_back(engine::fmt_string("explosion_%d", i));
@@ -1987,7 +1988,7 @@ namespace example {
 
     void Example::update(threads::ExecutionTimePoint now, float delta) {
         if (_mainThread) {
-            // _mainThread->emplaceTasks(stl::make_vector(threads::WorkerTask{[](){
+            // _mainThread->emplaceTasks(engine::stl::make_vector(threads::WorkerTask{[](){
             //     LOG_D("test main thread task");
             // }}));
         }
@@ -2073,7 +2074,7 @@ namespace example {
         if (!cpuTasks.empty()) {
             auto grabbTaskCount = std::min(kGrabbTaskCount, cpuTasks.size());
 
-            auto tasks = std::vector<BackgroundWorker::CpuJob>{};
+            auto tasks = engine::stl::vector<BackgroundWorker::CpuJob>{};
             tasks.reserve(grabbTaskCount);
 
             while (grabbTaskCount > 0u) {
@@ -2090,7 +2091,7 @@ namespace example {
 
             auto grabbTaskCount = std::min(kGrabbTaskCount, gpuTasks.size());
 
-            auto tasks = std::vector<BackgroundWorker::GpuJob>{};
+            auto tasks = engine::stl::vector<BackgroundWorker::GpuJob>{};
             tasks.reserve(grabbTaskCount);
 
             while (grabbTaskCount > 0u) {
@@ -2100,7 +2101,7 @@ namespace example {
             }
             
             backgroundgWorker->submit(std::move(tasks), [this](
-                engine::rhi::runtime::CommandList * commandList, std::vector<threads::WorkerTask> && callbacks
+                engine::rhi::runtime::CommandList * commandList, engine::stl::vector<threads::WorkerTask> && callbacks
             ) mutable {
                 _renderThread->emplaceTask(threads::WorkerTask{[
                     this,
@@ -2202,8 +2203,8 @@ namespace example {
 
         scene->animate(now, delta, objects, animationManager, sceneAnimationSpeed); // after fillAttachmentsArrays and after beginFrame for correct
 
-        // auto o0 = std::span<engine::scene::AttachmentObject*>{objects.begin(), objects.begin() + objects.size() / 2};
-        // auto o1 = std::span<engine::scene::AttachmentObject*>{objects.begin() + objects.size() / 2, objects.end()};
+        // auto o0 = engine::stl::span<engine::scene::AttachmentObject*>{objects.begin(), objects.begin() + objects.size() / 2};
+        // auto o1 = engine::stl::span<engine::scene::AttachmentObject*>{objects.begin() + objects.size() / 2, objects.end()};
 
         //const auto offsets0 = scene->prepareDrawData(shadowObjects, frameId);
         const auto offsets1 = scene->prepareDrawData(objects, frameId);
@@ -2408,7 +2409,7 @@ namespace example {
         // render frame
 
         // query pool results
-        auto results = std::span{reinterpret_cast<std::byte*>(_queryResults[frameId].data()), 
+        auto results = engine::stl::span{reinterpret_cast<std::byte*>(_queryResults[frameId].data()), 
             _queryResults[frameId].size() * sizeof(uint64_t)};
 
         _queryPool->getResults(frameId * 2u, 2u, results, 2u * sizeof(uint64_t), 

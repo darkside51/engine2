@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../../utils/system.h"
+#include "stl/vector.h"
 
 #include <atomic>
 #include <cstdint>
@@ -205,7 +206,7 @@ namespace threads {
     alignas(2 * kCachelineSize) std::atomic<int64_t> _top;
     alignas(2 * kCachelineSize) std::atomic<int64_t> _bottom;
     std::atomic<Array*> _array;
-    std::vector<Array*> _garbage;
+    engine::stl::vector<Array*> _garbage;
 
   public:
     explicit UnboundedTaskQueue(int64_t LogSize = kDefaultUnBoundedTaskQueueLogSize) {

@@ -51,9 +51,9 @@ private:
     VkSwapchainKHR _swapchain = VK_NULL_HANDLE;
     const Device & _device;
     const Surface & _surface;
-    std::vector<Image> _images;
-    std::vector<VkImageView> _imageViews;
-    std::vector<VkSemaphore> _imageAvailableSemaphores;
+    stl::vector<Image> _images;
+    stl::vector<VkImageView> _imageViews;
+    stl::vector<VkSemaphore> _imageAvailableSemaphores;
     VkFence _imageAvailableFence = VK_NULL_HANDLE;
 
     rhi::SwapchainCreateInfo _info;

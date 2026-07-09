@@ -97,7 +97,7 @@ namespace engine::vulkan {
     }
 
     VkPipelineColorBlendStateCreateInfo pipelineColorBlendStateCreateInfo(
-        std::span<const VkPipelineColorBlendAttachmentState> blendStates) noexcept {
+        stl::span<const VkPipelineColorBlendAttachmentState> blendStates) noexcept {
             return {
                 .sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
                 .pNext = nullptr,
@@ -120,8 +120,8 @@ namespace engine::vulkan {
         }
 
         VkPipelineVertexInputStateCreateInfo pipelineVertexInputStateInfo(
-            std::span<const VkVertexInputBindingDescription> inputBindings,
-            std::span<const VkVertexInputAttributeDescription> attributes
+            stl::span<const VkVertexInputBindingDescription> inputBindings,
+            stl::span<const VkVertexInputAttributeDescription> attributes
         ) noexcept {
 
             // can used dinamyc with command if has extensions or vulkan 1.3 :
@@ -265,7 +265,7 @@ namespace engine::vulkan {
         }
 
         GraphicsPipelineInfo & GraphicsPipelineInfo::colorBlendStateCreateInfo(
-            std::span<const rhi::EncodedBlendMode> blendModes) noexcept {
+            stl::span<const rhi::EncodedBlendMode> blendModes) noexcept {
                 _blendAttachmentState.resize(blendModes.size());
                 auto view = _blendAttachmentState.view();
                 size_t i = 0u;
@@ -279,8 +279,8 @@ namespace engine::vulkan {
         }
 
         GraphicsPipelineInfo & GraphicsPipelineInfo::vertexInputStateInfo(
-            std::span<const rhi::VertexInputBinding> inputBindings,
-            std::span<const rhi::VertexInputAttribute> attributes
+            stl::span<const rhi::VertexInputBinding> inputBindings,
+            stl::span<const rhi::VertexInputAttribute> attributes
             ) noexcept {
             _vertexBindings = utils::convert2vk<decltype(_vertexBindings)::maxArrayCount()>(inputBindings);
             _vertexAttributes = utils::convert2vk<decltype(_vertexAttributes)::maxArrayCount()>(attributes);

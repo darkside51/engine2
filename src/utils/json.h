@@ -36,9 +36,9 @@ namespace engine::json {
     }
 
     template <typename T>
-    inline std::vector<T> getArray(const Json & js, std::string_view name) noexcept {
+    inline stl::vector<T> getArray(const Json & js, std::string_view name) noexcept {
         if (auto * array = findChild(js, name)) {
-            std::vector<T> result;
+            stl::vector<T> result;
             result.reserve(array->size());
             for (const auto & node : array->get_array()) {
                 result.emplace_back(node.as<T>());

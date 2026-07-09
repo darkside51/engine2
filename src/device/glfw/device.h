@@ -1,14 +1,14 @@
 #pragma once
 
 #include "input/input.h"
+#include "stl/span.h"
+#include "stl/vector.h"
 
 #include <cstdint>
 #include <functional>
 #include <memory>
-#include <span>
 #include <string_view>
 #include <utility>
-#include <vector>
 
 struct GLFWwindow;
 
@@ -29,7 +29,7 @@ namespace rhi {
         void pointerEvent(int button, int action, float x, float y);
         void wheel(float x, float y);
         void keyEvent(int key, int action);
-        void dragAndDrop(std::span<std::string_view> paths);
+        void dragAndDrop(stl::span<std::string_view> paths);
 
         GLFWDevice(GLFWDevice&& d) noexcept;
         GLFWDevice& operator=(GLFWDevice&& d) noexcept;
@@ -64,7 +64,7 @@ namespace rhi {
             _onKeyEvent = std::move(callback);
         }
 
-        void setOnDragAndDrop(std::function<void(std::span<std::string_view> paths)> && callback) noexcept {
+        void setOnDragAndDrop(std::function<void(stl::span<std::string_view> paths)> && callback) noexcept {
             _onDragAndDrop = std::move(callback);
         }
 
@@ -81,7 +81,7 @@ namespace rhi {
         std::function<void(PointerEvent && event)> _onPointerEvent{};
         std::function<void(float dx, float dy)> _onWheelEvent{};
         std::function<void(KeyEvent && evt, uint8_t mask)> _onKeyEvent{};
-        std::function<void(std::span<std::string_view> paths)> _onDragAndDrop{};
+        std::function<void(stl::span<std::string_view> paths)> _onDragAndDrop{};
     };
 
     class GLFWModule {
@@ -95,6 +95,6 @@ namespace rhi {
         void stop();
 
     private:
-        std::vector<std::unique_ptr<GLFWDevice>> _devices;
+        stl::vector<std::unique_ptr<GLFWDevice>> _devices;
     };
 }

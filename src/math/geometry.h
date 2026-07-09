@@ -91,7 +91,7 @@ namespace engine {
     }
 
     template <typename VEC>
-    bool isPointInPolygon2D(const VEC & p, std::span<const VEC> points) noexcept {
+    bool isPointInPolygon2D(const VEC & p, stl::span<const VEC> points) noexcept {
         // https://gamedev.ru/code/forum/?id=42313
         const size_t psz = points.size();
         if (psz < 3u) {
@@ -114,7 +114,7 @@ namespace engine {
     }
 
     template<typename T>
-    void calculateNormals(std::span<T> vertices, std::span<const uint32_t> indices) noexcept {
+    void calculateNormals(stl::span<T> vertices, stl::span<const uint32_t> indices) noexcept {
         for (auto & v : vertices) {
             v.normal = vec3f(0.0F);
         }

@@ -23,7 +23,7 @@ namespace engine::vulkan {
         return _useGlobalPool ? _pools[frameIdx + 1u] : _pools[frameIdx];
     }
 
-    DescriptorPool & DescriptorPoolManager::createPool(std::span<const std::pair<rhi::shaders::ResourceType, uint32_t>> resources, 
+    DescriptorPool & DescriptorPoolManager::createPool(stl::span<const std::pair<rhi::shaders::ResourceType, uint32_t>> resources, 
         uint8_t frameIdx, rhi::shaders::DescriptorPoolFlags f, uint32_t maxSets) {
         engine::vulkan::DescriptorPoolMask mask;
         for (const auto & [type, _] : resources) {
@@ -88,7 +88,7 @@ namespace engine::vulkan {
         };
 
         const auto createNewPoolResources = [&]() {
-            std::vector<std::pair<rhi::shaders::ResourceType, uint32_t>> setResources;
+            stl::vector<std::pair<rhi::shaders::ResourceType, uint32_t>> setResources;
             setResources.reserve(std::to_underlying(rhi::shaders::ResourceType::eCount));
             for (size_t i = 0u; i < std::to_underlying(rhi::shaders::ResourceType::eCount); ++i) {
                 if (resources[i] > 0u) {

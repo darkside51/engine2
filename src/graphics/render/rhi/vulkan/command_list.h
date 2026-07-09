@@ -23,7 +23,7 @@ namespace engine::vulkan::runtime {
 
     private:
         void resetState() noexcept;
-        void applyBarriers(const rhi::runtime::Pass & pass, RenderPass* renderPass, std::span<rhi::FrameBufferAttachment> attachments);
+        void applyBarriers(const rhi::runtime::Pass & pass, RenderPass* renderPass, stl::span<rhi::FrameBufferAttachment> attachments);
 
         CommandPool * _pool = nullptr;
         CommandBuffer _commandbuffer;

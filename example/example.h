@@ -9,8 +9,7 @@
 #include "engine/src/input/input.h"
 
 #include "engine/src/graphics/ui/imgui.h"
-
-#include <vector>
+#include "engine/src/stl/vector.h"
 
 namespace example {
 
@@ -59,8 +58,8 @@ private:
     // engine::FileManager _fileManager;
     engine::rhi::runtime::ShaderModulesManagerPtr _shaderModulesManager;
 
-    std::vector<engine::rhi::runtime::GpuProgramPtr> _programs;
-    std::vector<engine::rhi::runtime::PipelinePtr> _pipelines;
+    engine::stl::vector<engine::rhi::runtime::GpuProgramPtr> _programs;
+    engine::stl::vector<engine::rhi::runtime::PipelinePtr> _pipelines;
 
     std::unique_ptr<engine::rhi::runtime::Rhi> _api;
     engine::rhi::runtime::SurfacePtr _surface;
@@ -70,23 +69,23 @@ private:
     engine::rhi::runtime::DevicePtr _device;
 
     engine::rhi::runtime::SwapchainPtr _swapchain;
-    std::vector<engine::rhi::runtime::ImagePtr> _colorAttachmentImages;
-    std::vector<engine::rhi::runtime::ImagePtr> _depthImages;
+    engine::stl::vector<engine::rhi::runtime::ImagePtr> _colorAttachmentImages;
+    engine::stl::vector<engine::rhi::runtime::ImagePtr> _depthImages;
 
-    std::vector<engine::rhi::runtime::RenderPass> _renderPasses;
-    std::vector<engine::rhi::runtime::FrameBufferPtr> _mainFrameBuffers;
-    std::vector<engine::rhi::runtime::FrameBufferPtr> _sceneFrameBuffers;
+    engine::stl::vector<engine::rhi::runtime::RenderPass> _renderPasses;
+    engine::stl::vector<engine::rhi::runtime::FrameBufferPtr> _mainFrameBuffers;
+    engine::stl::vector<engine::rhi::runtime::FrameBufferPtr> _sceneFrameBuffers;
 
-    std::vector<GBufferAttachments> _gBufferAttachments;
-    std::vector<engine::rhi::runtime::FrameBufferPtr> _gBuffers;
-    std::vector<engine::rhi::runtime::FrameBufferPtr> _emissiveBluredBuffers;
+    engine::stl::vector<GBufferAttachments> _gBufferAttachments;
+    engine::stl::vector<engine::rhi::runtime::FrameBufferPtr> _gBuffers;
+    engine::stl::vector<engine::rhi::runtime::FrameBufferPtr> _emissiveBluredBuffers;
 
     engine::rhi::runtime::QueuePtr _renderQueue;
-    std::vector<engine::rhi::runtime::Semaphore> _readyToPresentSemaphores;
-    std::vector<engine::rhi::runtime::Semaphore> _transfersCompleteSemaphores;
-    std::vector<engine::rhi::runtime::CommandListPtr> _commandLists;
-    std::vector<engine::rhi::runtime::CommandListPtr> _transferCommandLists;
-    std::vector<engine::rhi::runtime::CommandList*> _externalCommandLists;
+    engine::stl::vector<engine::rhi::runtime::Semaphore> _readyToPresentSemaphores;
+    engine::stl::vector<engine::rhi::runtime::Semaphore> _transfersCompleteSemaphores;
+    engine::stl::vector<engine::rhi::runtime::CommandListPtr> _commandLists;
+    engine::stl::vector<engine::rhi::runtime::CommandListPtr> _transferCommandLists;
+    engine::stl::vector<engine::rhi::runtime::CommandList*> _externalCommandLists;
     bool _readyToSubmitExternal = true;
 
     engine::rhi::FrameIndex _frameIndex;
@@ -99,7 +98,7 @@ private:
 
     //queryPool
     engine::rhi::runtime::QueryPoolPtr _queryPool = nullptr;
-    std::vector<std::vector<uint64_t>> _queryResults;
+    engine::stl::vector<engine::stl::vector<uint64_t>> _queryResults;
 
     //
     threads::ExecutionContext * _renderThread = nullptr;

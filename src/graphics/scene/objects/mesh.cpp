@@ -23,7 +23,7 @@ namespace engine::scene {
         return std::less<const graphics::models::MeshData*>{}(&_meshData, &other._meshData);
     }
 
-    void Skeleton::fillSkinMatrices2(std::span<mat3x4f> target) const noexcept {
+    void Skeleton::fillSkinMatrices2(stl::span<mat3x4f> target) const noexcept {
         assert(target.size() >= _meshData.skinMatricesCount);
 
         uint32_t n = 0u;
@@ -86,7 +86,7 @@ namespace engine::scene {
     void Mesh::attachToNode(Node * node) noexcept {
 
         // sizeof(Mesh);
-        // sizeof(std::span<graphics::models::MeshMaterial>);
+        // sizeof(stl::span<graphics::models::MeshMaterial>);
 
         if (node) {
             vec3f minCorner{std::numeric_limits<float>::max()};

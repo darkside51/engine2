@@ -37,11 +37,11 @@ namespace engine::rhi {
             uint32_t patchControlPoints = 0u;
         } tessellationState {};
     
-        std::vector<rhi::EncodedBlendMode> blendModes;
+        stl::vector<rhi::EncodedBlendMode> blendModes;
     
         struct VertexInputStateInfo {
-            std::vector<rhi::VertexInputBinding> inputBindings;
-            std::vector<rhi::VertexInputAttribute> attributes;
+            stl::vector<rhi::VertexInputBinding> inputBindings;
+            stl::vector<rhi::VertexInputAttribute> attributes;
         } vertexInputState;
     };
 

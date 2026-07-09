@@ -16,7 +16,7 @@ class Device;
 
 class FrameBuffer final : public rhi::runtime::FrameBuffer {
 public:
-    FrameBuffer(const Device & device, std::vector<rhi::FrameBufferAttachment> && attachemnts, VkRenderPass renderPass);
+    FrameBuffer(const Device & device, stl::vector<rhi::FrameBufferAttachment> && attachemnts, VkRenderPass renderPass);
     ~FrameBuffer();
 
     inline VkFramebuffer operator ()() const noexcept { return _framebuffer; }
@@ -25,14 +25,14 @@ public:
     VkRenderPass getRenderPass() const noexcept { return _renderPass; }
     rhi::Extent2D getSize() const noexcept { return _size; }
 
-    std::span<rhi::FrameBufferAttachment> attachments() noexcept {
+    stl::span<rhi::FrameBufferAttachment> attachments() noexcept {
         return _attachments;
     }
 
 private:
     const Device & _device;
     rhi::Extent2D _size = {0u, 0u};
-    std::vector<rhi::FrameBufferAttachment> _attachments;
+    stl::vector<rhi::FrameBufferAttachment> _attachments;
     VkRenderPass _renderPass = VK_NULL_HANDLE;
     VkFramebuffer _framebuffer = VK_NULL_HANDLE;
 };

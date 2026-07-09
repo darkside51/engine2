@@ -115,8 +115,8 @@ public:
 private:
     using AnimationNamesMap = std::unordered_map<std::string, std::pair<uint16_t, uint16_t>, hash::String_hash, std::equal_to<>>;
     // use vector of vectors?
-    std::vector<SkeletalAnimation> _skeletalAnimations;
-    std::vector<FramesSequence> _sequences;
+    stl::vector<SkeletalAnimation> _skeletalAnimations;
+    stl::vector<FramesSequence> _sequences;
     AnimationNamesMap _animationNames;
 };
 

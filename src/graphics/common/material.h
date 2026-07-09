@@ -54,17 +54,17 @@ struct MaterialTextureLoadingData {
 
 class MaterialManager {
     using Allocator = allocators::PoolAllocator<sizeof(Material), alignof(Material), false>;
-    using Materials = std::vector<Material*>;
+    using Materials = stl::vector<Material*>;
 
 public:
     void destroy();
-    std::vector<uint32_t> prepareMaterials(std::string_view name, const models::Layout & layout, 
-        TextureManager & textureManager, std::vector<MaterialTextureLoadingData> & texturesToLoad);
+    stl::vector<uint32_t> prepareMaterials(std::string_view name, const models::Layout & layout, 
+        TextureManager & textureManager, stl::vector<MaterialTextureLoadingData> & texturesToLoad);
 
-    void createMaterialTextures(const models::Layout & layout, std::vector<MaterialTextureLoadingData> & texturesToLoad, 
+    void createMaterialTextures(const models::Layout & layout, stl::vector<MaterialTextureLoadingData> & texturesToLoad, 
         const FileManager & fileManager, const TextureManager & textureManager, rhi::runtime::CommandList & commandList);
 
-    std::vector<uint32_t> loadMaterials(std::string_view name, const models::Layout & layout, const FileManager & fileManager, TextureManager & textureManager);
+    stl::vector<uint32_t> loadMaterials(std::string_view name, const models::Layout & layout, const FileManager & fileManager, TextureManager & textureManager);
     const Material & getMaterial(uint32_t idx) const noexcept { return *_materials[idx];/*return reinterpret_cast<const Material*>(_allocator.memory())[idx];*/ }
 
     void removeMaterial(uint32_t idx) noexcept;

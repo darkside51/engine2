@@ -25,13 +25,13 @@ namespace engine {
 		size_t file_write(File* f, size_t size, size_t count, const void* ptr) const override;
 		uint64_t file_tell(File* f) const override;
 
-		std::vector<std::string> getFiles(bool recursive) const override;
+		stl::vector<std::string> getFiles(bool recursive) const override;
 		bool hasFile(std::string_view path) const noexcept override;
 		size_t fileSize(std::string_view path) const noexcept override;
 		size_t fileSize(std::string_view path, bool isFullPath) const noexcept;
 
-		std::vector<std::byte> readFile(std::string_view path) const override;
-		bool readFile(std::string_view path, std::vector<std::byte>& data) const override;
+		stl::vector<std::byte> readFile(std::string_view path) const override;
+		bool readFile(std::string_view path, stl::vector<std::byte>& data) const override;
 
 		bool writeFile(std::string_view path, const void* data, size_t sz, const char* mode = "wb") const override;
 

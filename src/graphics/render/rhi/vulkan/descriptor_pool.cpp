@@ -9,10 +9,10 @@
 
 namespace engine::vulkan {
 
-    DescriptorPool::DescriptorPool(Device & device, std::span<const std::pair<rhi::shaders::ResourceType, uint32_t>> resources,
+    DescriptorPool::DescriptorPool(Device & device, stl::span<const std::pair<rhi::shaders::ResourceType, uint32_t>> resources,
         rhi::shaders::DescriptorPoolFlags f, uint32_t maxSets) : _device(device), _flags(f) {
 
-        std::vector<VkDescriptorPoolSize> poolSizes;
+        stl::vector<VkDescriptorPoolSize> poolSizes;
         poolSizes.reserve(resources.size());
         uint32_t sets = 0u;
         for (const auto [type, count] : resources) {
@@ -55,7 +55,7 @@ namespace engine::vulkan {
         }
     }
 
-    bool DescriptorPool::freeDescriptorSets(std::span<const VkDescriptorSet> sets) noexcept {
+    bool DescriptorPool::freeDescriptorSets(stl::span<const VkDescriptorSet> sets) noexcept {
         if (!std::to_underlying(_flags & rhi::shaders::DescriptorPoolFlags::eFree_Descriptor_Set)) {
             return false;
         }

@@ -43,7 +43,7 @@ private:
     bool _inited = false;
 };
 
-bool isDataCompressed(std::span<const std::byte> source) noexcept {
+bool isDataCompressed(stl::span<const std::byte> source) noexcept {
     return source.size() > 2u
         && (
                // zlib
@@ -58,7 +58,7 @@ bool isDataCompressed(std::span<const std::byte> source) noexcept {
             );
 }
 
-std::vector<std::byte> decompress(std::span<const std::byte> source) {
+stl::vector<std::byte> decompress(stl::span<const std::byte> source) {
     ZstreamHolder zs;
     // The windowBits parameter is the base two logarithm of the window size (the size of the
     // history buffer). It should be in the range 8..15 for this version of the library. Larger
@@ -72,7 +72,7 @@ std::vector<std::byte> decompress(std::span<const std::byte> source) {
 
     auto result = zs.initInflate(windowBits);
     if (result == Z_OK) {
-        std::vector<std::byte> destination;
+        stl::vector<std::byte> destination;
         zs->next_in = reinterpret_cast<Bytef *>(const_cast<std::byte *>(source.data()));
         zs->avail_in = static_cast<uInt>(source.size());
 

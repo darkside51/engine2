@@ -113,7 +113,7 @@ namespace engine::vulkan {
 
         void resetPools(uint8_t frameIdx) noexcept;
 
-        DescriptorPool & createPool(std::span<const std::pair<rhi::shaders::ResourceType, uint32_t>> resources, uint8_t frameIdx = kGlobalPoolsIndex,
+        DescriptorPool & createPool(stl::span<const std::pair<rhi::shaders::ResourceType, uint32_t>> resources, uint8_t frameIdx = kGlobalPoolsIndex,
             rhi::shaders::DescriptorPoolFlags f = rhi::shaders::DescriptorPoolFlags::eNone, uint32_t maxSets = kDefaultMaxSets);
 
         DescriptorPool & getCompatiblePool(const rhi::shaders::BindingSetLayout & layout, uint8_t frameIdx = kGlobalPoolsIndex,
@@ -129,7 +129,7 @@ namespace engine::vulkan {
         DescriptorPools & poolsForFrame(uint8_t frameIdx) noexcept;
 
         Device & _device;
-        std::vector<DescriptorPools> _pools; // can use threads::unique_t<PoolList>::id() - if want to create pools on some threads!
+        stl::vector<DescriptorPools> _pools; // can use threads::unique_t<PoolList>::id() - if want to create pools on some threads!
         bool _useGlobalPool = false;
     };
 

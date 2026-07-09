@@ -30,7 +30,7 @@ public:
     void returnContext (void * curl);
 
 private:
-    std::vector<void*> _contexts;
+    stl::vector<void*> _contexts;
     uint16_t _current = 0u;
 };
     
@@ -39,8 +39,8 @@ public:
     struct Payload {
         threads::StopToken stopToken;
         std::string url;
-        std::vector<std::byte> response = {};
-        std::move_only_function<void(Payload *, std::vector<std::byte> &&, RequestResult)> callback = {};
+        stl::vector<std::byte> response = {};
+        std::move_only_function<void(Payload *, stl::vector<std::byte> &&, RequestResult)> callback = {};
 
         Payload(threads::StopToken && token, std::string_view url) : 
             stopToken(std::move(token)), url(url) {}
@@ -58,7 +58,7 @@ public:
 
             auto payload = _payloadAllocator.create<Payload>(std::move(stopToken), request.url);
             payload->callback = [this, &scheduler, callback = std::move(callback)]
-                                    (Payload * payload, std::vector<std::byte> && response, RequestResult result) mutable {
+                                    (Payload * payload, stl::vector<std::byte> && response, RequestResult result) mutable {
                 scheduler.emplaceTask([callback = std::move(callback), response = std::move(response), result]() mutable {
                     callback(std::move(response), result);
                 });

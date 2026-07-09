@@ -20,7 +20,7 @@ namespace engine::vulkan {
         _descriptorPoolManager(*this),
         _samplerManager(*this) {
 
-        std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
+        stl::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
         queueCreateInfos.reserve(info.queueFamilies.size());
         for (const auto & family : info.queueFamilies) {
             VkDeviceQueueCreateInfo queueCreateInfo = {};

@@ -15,7 +15,11 @@ namespace engine::tests {
             new double();
 
             for (size_t i = 0; i < 10; ++i) {
+                #ifdef ENABLE_TASK_POOL
                 threads::ThreadPool tp(4u, 2048u, 64u);
+                #else
+                threads::ThreadPool tp(4u);
+                #endif
                 int c = 0;
                 std::atomic<uint32_t> a_counter = 0;
                 engine::profiler::ExecutionTime ex("thread pool ex");

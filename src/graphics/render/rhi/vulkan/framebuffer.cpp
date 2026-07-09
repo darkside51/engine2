@@ -11,12 +11,12 @@
 
 namespace engine::vulkan {
 
-FrameBuffer::FrameBuffer(const Device & device, std::vector<rhi::FrameBufferAttachment> && fbAttachemnts, VkRenderPass renderPass) :
+FrameBuffer::FrameBuffer(const Device & device, stl::vector<rhi::FrameBufferAttachment> && fbAttachemnts, VkRenderPass renderPass) :
     _device(device),
     _attachments(std::move(fbAttachemnts)),
     _renderPass(renderPass) {
 
-    std::vector<VkImageView> attachments;
+    stl::vector<VkImageView> attachments;
     attachments.reserve(_attachments.size());
     uint8_t layersCount = 1u;
     for (auto & attachment : _attachments) {

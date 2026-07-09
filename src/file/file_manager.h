@@ -113,14 +113,14 @@ namespace engine {
 			return "";
 		}
 
-        std::vector<std::byte> readFile(std::string_view path) const {
+        stl::vector<std::byte> readFile(std::string_view path) const {
             if (const auto * fs = getFileSystemByFile(path)) {
 				return fs->readFile(path);
 			}
             return {};
         }
 
-		bool readFile(std::string_view path, std::vector<std::byte>& data) const {
+		bool readFile(std::string_view path, stl::vector<std::byte>& data) const {
             if (const auto * fs = getFileSystemByFile(path)) {
 				return fs->readFile(path, data);
 			}
@@ -137,7 +137,7 @@ namespace engine {
     private:
 		mutable std::atomic<int32_t> _rwLock = {0};
         Systems _fileSystems;
-        std::unordered_map<std::string, std::vector<const IFileSystem*>, hash::String_hash, std::equal_to<>> _mappedFiles;
+        std::unordered_map<std::string, stl::vector<const IFileSystem*>, hash::String_hash, std::equal_to<>> _mappedFiles;
     };
 
 }

@@ -63,7 +63,7 @@ namespace engine::graphics {
         }
 
     private:
-        std::vector<StagingBuffer> _buffers;
+        stl::vector<StagingBuffer> _buffers;
 
         uint8_t _currentFrame = 0u;
         std::byte* _mappedMemory = nullptr;

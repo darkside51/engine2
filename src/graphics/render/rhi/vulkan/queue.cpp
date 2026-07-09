@@ -44,7 +44,7 @@ namespace engine::vulkan {
         return true;
     }
 
-    VkSubmitInfo Queue::submitInfo(std::span<const VkCommandBuffer> commandBuffers, const SubmitSyncInfo & syncInfo) noexcept {
+    VkSubmitInfo Queue::submitInfo(stl::span<const VkCommandBuffer> commandBuffers, const SubmitSyncInfo & syncInfo) noexcept {
         return VkSubmitInfo{
             .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
             .pNext = nullptr,
@@ -58,12 +58,12 @@ namespace engine::vulkan {
         };
     }
 
-    VkResult Queue::submit(std::span<const VkSubmitInfo> submitInfos, uint8_t frameIdx, VkFence f) noexcept {
+    VkResult Queue::submit(stl::span<const VkSubmitInfo> submitInfos, uint8_t frameIdx, VkFence f) noexcept {
         const auto & fence = (f == VK_NULL_HANDLE ? _submitCompleteFences[frameIdx] : f);
         return vkQueueSubmit(_queue, submitInfos.size(), submitInfos.data(), fence);
     }
 
-    VkResult Queue::flushCommandBuffers(std::span<const VkCommandBuffer> commandBuffers, VkFence extenalFence) noexcept {
+    VkResult Queue::flushCommandBuffers(stl::span<const VkCommandBuffer> commandBuffers, VkFence extenalFence) noexcept {
         auto fence = (extenalFence == VK_NULL_HANDLE ? _device.createFence(engine::rhi::FenceCreateFlags::eUnsignaled) : extenalFence);
 
         const std::array submitInfos = {
@@ -86,7 +86,7 @@ namespace engine::vulkan {
         return result;
     }
 
-    VkResult Queue::present(std::span<const VkSwapchainKHR> swapchains, std::span<const uint32_t> imageIdxs, std::span<const VkSemaphore> waitSemaphores) noexcept {
+    VkResult Queue::present(stl::span<const VkSwapchainKHR> swapchains, stl::span<const uint32_t> imageIdxs, stl::span<const VkSemaphore> waitSemaphores) noexcept {
         VkPresentInfoKHR presentInfo = {
             .sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
 		    .pNext = nullptr,
@@ -106,7 +106,7 @@ namespace engine::vulkan {
         return waitSubmitComplete(frameIdx, timeout, f ? static_cast<VkFence>(f): VK_NULL_HANDLE);
     }
 
-    bool Queue::submit(uint8_t frameIdx, std::span<const rhi::runtime::Queue::SubmitInfo> submitInfos, rhi::runtime::Fence f) noexcept {
+    bool Queue::submit(uint8_t frameIdx, stl::span<const rhi::runtime::Queue::SubmitInfo> submitInfos, rhi::runtime::Fence f) noexcept {
         const auto & fence = (f == nullptr ? _submitCompleteFences[frameIdx] : static_cast<VkFence>(f));
 
         struct SubmitTmpData {
@@ -159,7 +159,7 @@ namespace engine::vulkan {
     }
 
     bool Queue::present(const rhi::runtime::Swapchain * swapchain, uint32_t imageIdx, 
-        std::span<const rhi::runtime::Semaphore> waitSemaphores) noexcept {
+        stl::span<const rhi::runtime::Semaphore> waitSemaphores) noexcept {
 
         VkPresentInfoKHR presentInfo = {
             .sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,

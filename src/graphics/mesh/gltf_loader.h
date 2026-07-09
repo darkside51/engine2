@@ -6,16 +6,17 @@
 
 #include "types.h"
 
-#include <array>
+#include "stl/array.h"
+#include "stl/span.h"
+#include "stl/vector.h"
+
 #include <cstddef>
 #include <cstdint>
 #include <map>
 #include <optional>
-#include <span>
 #include <string>
 #include <string_view>
 #include <utility>
-#include <vector>
 
 namespace engine {
     class FileManager;
@@ -70,7 +71,7 @@ namespace graphics::models {
     // structs:
     struct Scene {
 		std::string name;
-		std::vector<uint16_t> nodes;
+		stl::vector<uint16_t> nodes;
 	};
 
     struct Node {
@@ -80,13 +81,13 @@ namespace graphics::models {
 		vec3 scale = {1.0f, 1.0f, 1.0f};
 		vec3 translation = {0.0f, 0.0f, 0.0f};
 		vec4 rotation = {0.0f, 0.0f, 0.0f, 1.0f};
-		std::vector<float> weights;
-		std::vector<uint16_t> children;
+		stl::vector<float> weights;
+		stl::vector<uint16_t> children;
 	};
 
     struct Primitives {
 		// std::map<AttributeSemantic, uint16_t> attributes;
-		std::vector<std::pair<AttributeSemantic, uint16_t>> attributes;
+		stl::vector<std::pair<AttributeSemantic, uint16_t>> attributes;
 		uint16_t indices = kInvalidValue;
 		uint16_t material = kInvalidValue;
 		PrimitiveMode mode = PrimitiveMode::eTriangles;
@@ -94,13 +95,13 @@ namespace graphics::models {
 
     struct Mesh {
 		std::string name;
-		std::vector<Primitives> primitives;
-		std::vector<float> weights;
+		stl::vector<Primitives> primitives;
+		stl::vector<float> weights;
 	};
 
     struct Buffer {
 		std::string name;
-		std::vector<std::byte> data;
+		stl::vector<std::byte> data;
 		uint32_t byteLength = 0u;
 
 		Buffer() = default;
@@ -142,8 +143,8 @@ namespace graphics::models {
 		AccessorComponentType componentType;
 		bool normalized = false;
 		AccessorType type;
-		std::vector<float> min; // [1 - 16] it can be 1, 2, 3, 4, 9, or 16
-		std::vector<float> max; // [1 - 16] it can be 1, 2, 3, 4, 9, or 16
+		stl::vector<float> min; // [1 - 16] it can be 1, 2, 3, 4, 9, or 16
+		stl::vector<float> max; // [1 - 16] it can be 1, 2, 3, 4, 9, or 16
 		std::optional<AccessorSparse> sparse = std::nullopt; // no required
 
 		~Accessor() = default;
@@ -186,8 +187,8 @@ namespace graphics::models {
 
     struct Animation {
 		std::string name;
-		std::vector<AnimationChannel> channels;
-		std::vector<AnimationSampler> samplers;
+		stl::vector<AnimationChannel> channels;
+		stl::vector<AnimationSampler> samplers;
 	};
 
     struct Image {
@@ -234,7 +235,7 @@ namespace graphics::models {
 		std::string name;
 		uint16_t inverseBindMatrices = kInvalidValue; // The index of the accessor containing the floating-point 4x4 inverse-bind matrices.
 		uint16_t skeleton = kInvalidValue; // The index of the node used as a skeleton root.
-		std::vector<uint16_t> joints; // Indices of skeleton nodes, used as joints in this skin.
+		stl::vector<uint16_t> joints; // Indices of skeleton nodes, used as joints in this skin.
 	};
 
     struct Texture {
@@ -244,18 +245,18 @@ namespace graphics::models {
 	};
 
     struct Layout {
-		std::vector<Accessor> accessors;
-		std::vector<Animation> animations;
-		std::vector<Buffer> buffers;
-		std::vector<BufferView> bufferViews;
-		std::vector<Image> images;
-		std::vector<Material> materials;
-		std::vector<Mesh> meshes;
-		std::vector<Node> nodes;
-		std::vector<Sampler> samplers;
-		std::vector<Scene> scenes;
-		std::vector<Skin> skins;
-		std::vector<Texture> textures;
+		stl::vector<Accessor> accessors;
+		stl::vector<Animation> animations;
+		stl::vector<Buffer> buffers;
+		stl::vector<BufferView> bufferViews;
+		stl::vector<Image> images;
+		stl::vector<Material> materials;
+		stl::vector<Mesh> meshes;
+		stl::vector<Node> nodes;
+		stl::vector<Sampler> samplers;
+		stl::vector<Scene> scenes;
+		stl::vector<Skin> skins;
+		stl::vector<Texture> textures;
 		uint16_t scene = kInvalidValue;
 		Asset asset;
 
@@ -267,6 +268,6 @@ namespace graphics::models {
         Layout& operator= (const Layout&) = delete;
 	};
 
-    Layout loadModelLayout(std::span<std::byte const> bytes, const FileManager & fileManager, std::string_view path = {});
+    Layout loadModelLayout(stl::span<std::byte const> bytes, const FileManager & fileManager, std::string_view path = {});
 }
 }

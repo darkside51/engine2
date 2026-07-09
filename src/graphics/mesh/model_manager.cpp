@@ -28,7 +28,7 @@ namespace engine::graphics {
     models::MeshBuffersData ModelManager::loadModel(
         uint32_t index, std::string_view name, 
         const models::Layout & layout, 
-        std::span<const graphics::models::AttributeSemantic> attributes) {
+        stl::span<const graphics::models::AttributeSemantic> attributes) {
 
         auto * meshData = _models[index].first;
         meshData->loadNodes(layout);
@@ -42,9 +42,9 @@ namespace engine::graphics {
         uint32_t uniqueOffset = 0u;
         for (auto & mesh : meshData->meshes) {
             for (auto & primitive : mesh.primitives) {
-                const std::span<uint32_t> indices = {&buffers.indexBufferData[primitive.firstIndex], primitive.indexCount};
+                const stl::span<uint32_t> indices = {&buffers.indexBufferData[primitive.firstIndex], primitive.indexCount};
                 
-                std::vector<uint32_t> uIdxs = {indices.begin(), indices.end()};
+                stl::vector<uint32_t> uIdxs = {indices.begin(), indices.end()};
                 std::sort(uIdxs.begin(), uIdxs.end());
                 auto last = std::unique(uIdxs.begin(), uIdxs.end());
                 const auto size = last - uIdxs.begin();
@@ -58,8 +58,8 @@ namespace engine::graphics {
         return buffers;        
     }
 
-    std::vector<MaterialTextureLoadingData> ModelManager::prepareMaterials(std::string_view name, uint32_t index, const models::Layout & layout, TextureManager & textureManager) {
-        std::vector<MaterialTextureLoadingData> texturesToLoad;
+    stl::vector<MaterialTextureLoadingData> ModelManager::prepareMaterials(std::string_view name, uint32_t index, const models::Layout & layout, TextureManager & textureManager) {
+        stl::vector<MaterialTextureLoadingData> texturesToLoad;
         auto materialsRemap = _materialManager.prepareMaterials(name, layout, textureManager, texturesToLoad);
         auto * meshData = _models[index].first;
         for (auto & mesh : meshData->meshes) {
@@ -99,7 +99,7 @@ namespace engine::graphics {
         models::Layout && layout, 
         GraphicsService & graphicsService, 
         const FileManager & fileManager, 
-        std::span<const graphics::models::AttributeSemantic> attributes
+        stl::span<const graphics::models::AttributeSemantic> attributes
     ) {
         if (const auto idx = getModelDataIdx(name); idx != kUnknownDataIndex) {
             return {idx, false};
@@ -138,7 +138,7 @@ namespace engine::graphics {
             _allocator.destroy(modelData);
             _gpuData[idx] = {};
             _models[idx] = {nullptr, false};
-            std::erase_if(_tmpData, [idx](const auto & tmp) noexcept { return tmp.first == idx; });
+            eastl::erase_if(_tmpData, [idx](const auto & tmp) noexcept { return tmp.first == idx; });
 
             _modelsMap.erase(it);
             return true;

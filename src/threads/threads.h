@@ -1,5 +1,6 @@
 #pragma once
 
+#include "stl/vector.h"
 #include "../utils/stl_helper.h"
 
 #include <atomic>
@@ -230,7 +231,7 @@ namespace threads {
     using function = std::move_only_function<R>;
 
     using WorkerTask = function<void()>;
-    using WorkerTasks = std::vector<WorkerTask>;
+    using WorkerTasks = engine::stl::vector<WorkerTask>;
 
     struct WorkerLoopTask {
         using Task = function<void(float)>;
@@ -248,7 +249,7 @@ namespace threads {
             return *this;
         }
     };
-    using WorkerLoopTasks = std::vector<WorkerLoopTask>;
+    using WorkerLoopTasks = engine::stl::vector<WorkerLoopTask>;
 
     template <typename F>
     WorkerTask makeTask(F && f, const StopSource & source) {

@@ -61,15 +61,15 @@ namespace engine::vulkan {
         return surfaceSupportDetails;
     }
 
-    std::vector<PhysicalDevice> PhysicalDevice::getSuitableDevices(const Instance & instance, const rhi::PhysicalDeviceRequirements & info) {
-        std::vector<VkPhysicalDevice> devices;
+    stl::vector<PhysicalDevice> PhysicalDevice::getSuitableDevices(const Instance & instance, const rhi::PhysicalDeviceRequirements & info) {
+        stl::vector<VkPhysicalDevice> devices;
         helper::getVulkanPhysicalDevices(instance.vkInstance(), devices);
 
         if (devices.empty()) {
             return {};
         }
 
-        std::vector<PhysicalDevice> result;
+        stl::vector<PhysicalDevice> result;
         result.reserve(devices.size());
 
         for (auto & device : devices) {
@@ -105,7 +105,7 @@ namespace engine::vulkan {
         bool suitableDevice = true;
 
         // check queues
-        std::vector<VkQueueFamilyProperties> deviceQueueFamilyProperties;
+        stl::vector<VkQueueFamilyProperties> deviceQueueFamilyProperties;
         helper::getVulkanPhysicalDeviceQueueFamilyProperties(device, deviceQueueFamilyProperties);
 
         uint8_t queueFlags = 0u;
@@ -162,7 +162,7 @@ namespace engine::vulkan {
         }
 
         // check extensions
-        std::vector<VkExtensionProperties> deviceExtensions;
+        stl::vector<VkExtensionProperties> deviceExtensions;
         helper::getVulkanPhysicalDeviceExtensionProperties(device, deviceExtensions);
 
         for (const auto & reqExt : info.requiredExtensions) {
@@ -269,8 +269,8 @@ namespace engine::vulkan {
 		}
 
 		const auto formats = withStencil ? 
-			std::span<const VkFormat>{depthStencilFormats.begin() + i, depthStencilFormats.size() - i} :
-			std::span<const VkFormat>{depthFormats.begin() + i,  depthFormats.size() - i};
+			stl::span<const VkFormat>{depthStencilFormats.begin() + i, depthStencilFormats.size() - i} :
+			stl::span<const VkFormat>{depthFormats.begin() + i,  depthFormats.size() - i};
 
         auto result = VkFormat::VK_FORMAT_UNDEFINED;
         for (const auto f : formats) {

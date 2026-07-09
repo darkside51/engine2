@@ -8,5 +8,5 @@ namespace engine::stl {
     using span = eastl::span<T, Extent>;
 
     // template <typename T, size_t Extent = std::dynamic_extent>
-    // using span = std::span<T, Extent>;
+    // using span = stl::span<T, Extent>;
 }

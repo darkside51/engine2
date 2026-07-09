@@ -79,7 +79,7 @@ namespace {
 
 namespace engine::vulkan {
     
-    ModuleReflection::ModuleReflection(rhi::shaders::Stages stage, std::span<const std::byte> code) : 
+    ModuleReflection::ModuleReflection(rhi::shaders::Stages stage, stl::span<const std::byte> code) : 
         stage(stage) {
         SpvReflectShaderModule reflectedModule;
 		SpvReflectResult result = spvReflectCreateShaderModule(code.size(), code.data(), &reflectedModule);
@@ -90,7 +90,7 @@ namespace engine::vulkan {
         // input attributes
         uint32_t attributesCount = 0u;
         spvReflectEnumerateInputVariables(&reflectedModule, &attributesCount, nullptr);
-        std::vector<SpvReflectInterfaceVariable*> reflectAttributes(attributesCount);
+        stl::vector<SpvReflectInterfaceVariable*> reflectAttributes(attributesCount);
         spvReflectEnumerateInputVariables(&reflectedModule, &attributesCount, reflectAttributes.data());
 
         in.reserve(attributesCount);
@@ -101,7 +101,7 @@ namespace engine::vulkan {
         // descriptor sets
 		uint32_t setsCount = 0u;
 		spvReflectEnumerateDescriptorSets(&reflectedModule, &setsCount, nullptr);
-		std::vector<SpvReflectDescriptorSet*> reflectSets(setsCount);
+		stl::vector<SpvReflectDescriptorSet*> reflectSets(setsCount);
 		spvReflectEnumerateDescriptorSets(&reflectedModule, &setsCount, reflectSets.data());
 
         sets.reserve(setsCount);
@@ -127,7 +127,7 @@ namespace engine::vulkan {
         // push constatns
         uint32_t pushConstantsCount = 0u;
         spvReflectEnumeratePushConstantBlocks(&reflectedModule, &pushConstantsCount, nullptr);
-        std::vector<SpvReflectBlockVariable*> reflectPushConstants(pushConstantsCount);
+        stl::vector<SpvReflectBlockVariable*> reflectPushConstants(pushConstantsCount);
         spvReflectEnumeratePushConstantBlocks(&reflectedModule, &pushConstantsCount, reflectPushConstants.data());
 
         pushConstants.reserve(pushConstantsCount);
@@ -140,7 +140,7 @@ namespace engine::vulkan {
     }
 
     //
-    ShaderModule::ShaderModule(const Device & device, rhi::shaders::Stages stage, std::span<const std::byte> code) : 
+    ShaderModule::ShaderModule(const Device & device, rhi::shaders::Stages stage, stl::span<const std::byte> code) : 
         _device(&device), 
         _reflection(stage, code) {
         const VkShaderModuleCreateInfo createInfo{
@@ -170,7 +170,7 @@ namespace engine::vulkan {
     }
 
     ///////////////////////////
-    GpuProgram::GpuProgram(Device & device, std::span<const ShaderModule::View> moduleViews, 
+    GpuProgram::GpuProgram(Device & device, stl::span<const ShaderModule::View> moduleViews, 
         rhi::shaders::SpecializationInfo && specializationInfo) : _device(&device) {
         uint32_t setsCount = 0u;
         uint32_t pushConstantsCount = 0u;
@@ -204,7 +204,7 @@ namespace engine::vulkan {
 
         _sets.reserve(setsCount);
 
-        std::vector<VkPushConstantRange> pushConstants; // vector?
+        stl::vector<VkPushConstantRange> pushConstants; // vector?
         pushConstants.reserve(pushConstantsCount); 
         
         for (const auto & view : moduleViews) {
@@ -259,7 +259,7 @@ namespace engine::vulkan {
         });
 
         // create pipeline layout
-        std::vector<VkDescriptorSetLayout> vkSetLayouts; // vector?
+        stl::vector<VkDescriptorSetLayout> vkSetLayouts; // vector?
         vkSetLayouts.reserve(_sets.size());
 
         auto & descriptorSetLayoutManager = _device->getDescriptorSetLayoutManager();

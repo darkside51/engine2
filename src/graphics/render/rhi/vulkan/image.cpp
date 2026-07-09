@@ -214,7 +214,7 @@ void Image::transition(PipelineBarriers & barriers, VkImageLayout dstLayout,
         };
 
         struct LayerInfo {
-            std::vector<LevelsInfo> levels;
+            stl::vector<LevelsInfo> levels;
             uint8_t start;
             uint8_t count = 1u;
 
@@ -222,7 +222,7 @@ void Image::transition(PipelineBarriers & barriers, VkImageLayout dstLayout,
             LayerInfo(LayerInfo && ) noexcept = default;
         };
 
-        using LayersInfo = std::vector<LayerInfo>;
+        using LayersInfo = stl::vector<LayerInfo>;
         LayersInfo layers;
 
         for (size_t i = baseLayer; i < baseLayer + layersCount; ++i) {
@@ -310,7 +310,7 @@ void Image::transition(PipelineBarriers & barriers, VkImageLayout dstLayout,
     }
 }
 
-// std::vector<ImageMemoryBarrierInfo> Image::transition(VkImageLayout dstLayout, 
+// stl::vector<ImageMemoryBarrierInfo> Image::transition(VkImageLayout dstLayout, 
 //                         VkPipelineStageFlags srcStage,
 //                         VkPipelineStageFlags dstStage, 
 //                         VkAccessFlags srcAccessFlags, VkAccessFlags dstAccessFlags,
@@ -331,7 +331,7 @@ void Image::transition(PipelineBarriers & barriers, VkImageLayout dstLayout,
 //     VkImageSubresourceRange & subresourceRange = barrier.subresourceRange;
 //     subresourceRange.aspectMask = utils::convert2vk(_info.aspectFlags);
 
-//     std::vector<ImageMemoryBarrierInfo> barriers;
+//     stl::vector<ImageMemoryBarrierInfo> barriers;
 
 //     if (_imageStatesIdentical) {
 //         auto & subState = _imageSubStates[0u];
@@ -367,7 +367,7 @@ void Image::transition(PipelineBarriers & barriers, VkImageLayout dstLayout,
 //         };
 
 //         struct LayerInfo {
-//             std::vector<LevelsInfo> levels;
+//             stl::vector<LevelsInfo> levels;
 //             uint8_t start;
 //             uint8_t count = 1u;
 
@@ -375,7 +375,7 @@ void Image::transition(PipelineBarriers & barriers, VkImageLayout dstLayout,
 //             LayerInfo(LayerInfo && ) noexcept = default;
 //         };
 
-//         using LayersInfo = std::vector<LayerInfo>;
+//         using LayersInfo = stl::vector<LayerInfo>;
 //         LayersInfo layers;
 
 //         size_t barriersCount = 0u;

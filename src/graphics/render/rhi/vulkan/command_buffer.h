@@ -18,11 +18,11 @@ namespace engine::vulkan {
 
     struct SubmitSyncInfo {
         struct Wait {
-            std::span<const VkSemaphore> semaphores;
-            std::span<const VkPipelineStageFlags> dstStages;
+            stl::span<const VkSemaphore> semaphores;
+            stl::span<const VkPipelineStageFlags> dstStages;
         };
         Wait wait;
-        std::span<const VkSemaphore> signalSemaphores;
+        stl::span<const VkSemaphore> signalSemaphores;
     };
 
     class CommandBuffer {
@@ -61,7 +61,7 @@ namespace engine::vulkan {
         }
 
         void beginRenderPass(VkRenderPass renderPass, const FrameBuffer & framebuffer, 
-            std::span<VkClearValue> clearValues, const rhi::Rect2D & area/*, 
+            stl::span<VkClearValue> clearValues, const rhi::Rect2D & area/*, 
             rhi::SubpassContents contents = rhi::SubpassContents::ePrimaryBufferInline*/) const noexcept;
 
         inline void endRenderPass() const noexcept {
@@ -70,7 +70,7 @@ namespace engine::vulkan {
 
         void nextSubpass(rhi::SubpassContents contents) const noexcept;
 
-        void executeCommands(std::span<const VkCommandBuffer> secondaryCommandBuffers) const noexcept {
+        void executeCommands(stl::span<const VkCommandBuffer> secondaryCommandBuffers) const noexcept {
             vkCmdExecuteCommands(_commandBuffer, secondaryCommandBuffers.size(), secondaryCommandBuffers.data());
         }
         
@@ -78,14 +78,14 @@ namespace engine::vulkan {
         void setScissorRect(const rhi::Rect2D & area, uint32_t scessorIdx = 0u) noexcept;
 
         void updateBuffer(const Buffer & dst, uint32_t dstOffset, uint32_t dataSize, const void* pData) const noexcept;
-        void copyBuffer2Buffer(const Buffer & src, const Buffer & dst, std::span<VkBufferCopy> copyInfo) const noexcept;
-        void copyBuffer2Image(const Buffer & src, const Image & dst, std::span<VkBufferImageCopy> copyInfo) const noexcept;
-        void blitImage(const Image & src, const Image & dst, VkImageLayout srcImageLayout, VkImageLayout dstImageLayout, std::span<VkImageBlit> info, VkFilter filter) const noexcept;
+        void copyBuffer2Buffer(const Buffer & src, const Buffer & dst, stl::span<VkBufferCopy> copyInfo) const noexcept;
+        void copyBuffer2Image(const Buffer & src, const Image & dst, stl::span<VkBufferImageCopy> copyInfo) const noexcept;
+        void blitImage(const Image & src, const Image & dst, VkImageLayout srcImageLayout, VkImageLayout dstImageLayout, stl::span<VkImageBlit> info, VkFilter filter) const noexcept;
 
         static SubmitSyncInfo createSubmitSyncInfo(
-            std::span<const VkPipelineStageFlags> waitStages,
-            std::span<const VkSemaphore> waitSemaphores,
-            std::span<const VkSemaphore> signalSemaphores
+            stl::span<const VkPipelineStageFlags> waitStages,
+            stl::span<const VkSemaphore> waitSemaphores,
+            stl::span<const VkSemaphore> signalSemaphores
         ) noexcept {
             return {
                 .wait {
@@ -99,9 +99,9 @@ namespace engine::vulkan {
         // bind commands
         void bindPipeline(Pipeline const & pipeline) noexcept;
         void bindVertexBuffer(uint32_t binding, const VkBuffer buffer, VkDeviceSize offset = 0u) noexcept;
-        void bindVertexBuffers(std::span<const VkBuffer> buffers, std::span<const VkDeviceSize> offsets, uint32_t firstBinding = 0u) noexcept;
+        void bindVertexBuffers(stl::span<const VkBuffer> buffers, stl::span<const VkDeviceSize> offsets, uint32_t firstBinding = 0u) noexcept;
         void bindIndexBuffer(VkBuffer buffer, uint32_t offset = 0u, rhi::IndexType type = rhi::IndexType::eU32) noexcept;
-        void bindDescriptorSets(std::span<const VkDescriptorSet> sets, std::span<const uint32_t> dynamicOffsets = {}, uint32_t firstSet = 0u) noexcept;
+        void bindDescriptorSets(stl::span<const VkDescriptorSet> sets, stl::span<const uint32_t> dynamicOffsets = {}, uint32_t firstSet = 0u) noexcept;
 
         // draw commands
         void draw(uint32_t vertexCount, uint32_t instanceCount = 1u, uint32_t firstVertex = 0u, uint32_t firstInstance = 0u) const noexcept;

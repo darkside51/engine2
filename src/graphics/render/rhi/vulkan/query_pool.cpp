@@ -38,7 +38,7 @@ namespace engine::vulkan {
         }
     }
 
-    bool QueryPool::getResults(uint16_t firstQuery, uint16_t queryCount, std::span<std::byte> target, 
+    bool QueryPool::getResults(uint16_t firstQuery, uint16_t queryCount, stl::span<std::byte> target, 
         size_t stride, rhi::QueryResultFlags flags) const noexcept {
         auto result = vkGetQueryPoolResults(_device(), _pool, firstQuery, queryCount, 
             target.size_bytes(), target.data(), static_cast<VkDeviceSize>(stride),

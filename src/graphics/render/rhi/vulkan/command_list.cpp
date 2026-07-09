@@ -32,7 +32,7 @@ namespace engine::vulkan::runtime {
         _barriers.reset();
     }
 
-    void CommandList::applyBarriers(const rhi::runtime::Pass & pass, RenderPass* renderPass, std::span<rhi::FrameBufferAttachment> attachments) {
+    void CommandList::applyBarriers(const rhi::runtime::Pass & pass, RenderPass* renderPass, stl::span<rhi::FrameBufferAttachment> attachments) {
         { // attachments barriers
             uint8_t attachmentIdx = 0u;
             for (const auto & attachment : attachments) {
@@ -260,7 +260,7 @@ namespace engine::vulkan::runtime {
                 } 
                 
                 if (firstSet != 0xffu && !changeDynamicOffset && !changeSet) {
-                    _commandbuffer.bindDescriptorSets(std::span{descriptorSets.begin() + firstSet, descriptorSets.begin() + set},
+                    _commandbuffer.bindDescriptorSets(stl::span{descriptorSets.begin() + firstSet, descriptorSets.begin() + set},
                         dynamicOffsets.view(), firstSet);
                     firstSet = 0xffu;
                     dynamicOffsets.clear();
@@ -268,7 +268,7 @@ namespace engine::vulkan::runtime {
             }
 
             if (firstSet != 0xffu) {
-                _commandbuffer.bindDescriptorSets(std::span{descriptorSets.begin() + firstSet, descriptorSets.end()}, 
+                _commandbuffer.bindDescriptorSets(stl::span{descriptorSets.begin() + firstSet, descriptorSets.end()}, 
                     dynamicOffsets.view(), firstSet);
             }
 

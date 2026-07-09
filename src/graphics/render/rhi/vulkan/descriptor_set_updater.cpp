@@ -104,7 +104,7 @@ namespace engine::vulkan {
         }
     }
 
-    void DescriptorSetUpdater::updateBuffers(std::span<const std::pair<Buffer*, uint32_t>> bufferBindings) noexcept {
+    void DescriptorSetUpdater::updateBuffers(stl::span<const std::pair<Buffer*, uint32_t>> bufferBindings) noexcept {
         if (!isValid()) { 
             return; 
         }
@@ -128,7 +128,7 @@ namespace engine::vulkan {
         }
     }
 
-    void DescriptorSetUpdater::updateImages(std::span<const std::tuple<VkSampler, VkImageView, VkImageLayout, uint32_t>> imageBindings) noexcept {
+    void DescriptorSetUpdater::updateImages(stl::span<const std::tuple<VkSampler, VkImageView, VkImageLayout, uint32_t>> imageBindings) noexcept {
         if (!isValid()) { 
             return; 
         }
@@ -151,7 +151,7 @@ namespace engine::vulkan {
         }
     }
 
-    void DescriptorSetUpdater::updatetexelBuffers(std::span<const std::tuple<Buffer*, rhi::Format, uint32_t>> texelBufferBindings) noexcept {
+    void DescriptorSetUpdater::updatetexelBuffers(stl::span<const std::tuple<Buffer*, rhi::Format, uint32_t>> texelBufferBindings) noexcept {
         if (!isValid()) { 
             return; 
         }

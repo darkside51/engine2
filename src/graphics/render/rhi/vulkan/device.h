@@ -22,7 +22,7 @@ class PhysicalDevice;
 
 struct DeviceQueueFamily {
     uint32_t index = 0u;
-    std::vector<VkQueue> queues;
+    stl::vector<VkQueue> queues;
     uint8_t flags = 0u;
 };
 
@@ -51,7 +51,7 @@ public:
 
     rhi::Format getSupportedDepthFormat(uint8_t desiredBpp, bool withStencil, bool samplingSupport = false) const noexcept override;
 
-    const std::vector<DeviceQueueFamily> & getQueueFamilies() const noexcept { return _queueFamilies; }
+    const stl::vector<DeviceQueueFamily> & getQueueFamilies() const noexcept { return _queueFamilies; }
     const DeviceQueueFamily * findQueueFamily(rhi::queue_flags::flags flags, uint32_t start = 0u) const noexcept;
     
     const GPUMemoryAllocator & getMemoryAllocator() const noexcept { return _memoryAllocator; }
@@ -126,7 +126,7 @@ private:
 
     VkDevice _device = VK_NULL_HANDLE;
     const PhysicalDevice & _gpu;
-    std::vector<DeviceQueueFamily> _queueFamilies;
+    stl::vector<DeviceQueueFamily> _queueFamilies;
     uint8_t _inFlightFramesCount = 3u;
 
     GPUMemoryAllocator _memoryAllocator;

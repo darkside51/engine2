@@ -1,17 +1,18 @@
 #pragma once
 
-#include <array>
+#include "stl/array.h"
+#include "stl/vector.h"
+
 #include <cstddef>
 #include <cstdint>
 #include <utility>
-#include <vector>
 #include <variant>
 
-namespace stl {
+namespace engine::stl {
     template<class T, std::size_t N>
-    auto make_vector(std::array<T, N> && a)-> std::vector<T> {
-    return {std::make_move_iterator(std::begin(a)),
-            std::make_move_iterator(std::end(a))};
+    auto make_vector(std::array<T, N> && a)-> stl::vector<T> {
+    return {eastl::make_move_iterator(a.begin()),
+            eastl::make_move_iterator(a.end())};
     }
 
     template<class... T>

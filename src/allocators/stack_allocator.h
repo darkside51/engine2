@@ -1,16 +1,17 @@
 #pragma once
 
-#include <array>
+#include "stl/array.h"
+#include "stl/span.h"
+
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
-#include <span>
 
 namespace allocators {
     template<size_t sizeInBytes, bool top_down = true>
     class StackAllocatorImpl final {
     public:
-        explicit StackAllocatorImpl(std::span<std::byte> memory) : _memory(memory) { clear(); }
+        explicit StackAllocatorImpl(engine::stl::span<std::byte> memory) : _memory(memory) { clear(); }
 
         StackAllocatorImpl(StackAllocatorImpl &&allocator) = delete;
         StackAllocatorImpl(const StackAllocatorImpl &allocator) = delete;
@@ -84,7 +85,7 @@ namespace allocators {
             return (ptr + mask) & ~mask;
         }
 
-        std::span<std::byte> _memory;
+        engine::stl::span<std::byte> _memory;
         size_t _head = 0u;
     };
 
@@ -96,8 +97,8 @@ namespace allocators {
         inline type &stack() noexcept { return _stack; }
         inline type* operator->() noexcept { return &_stack; }
 
-        inline std::span<const std::byte> memory() const noexcept { return _memory; }
-        inline std::span<std::byte> memory() noexcept { return _memory; }
+        inline engine::stl::span<const std::byte> memory() const noexcept { return _memory; }
+        inline engine::stl::span<std::byte> memory() noexcept { return _memory; }
 
     private:
         std::array<std::byte, sizeInBytes> _memory;
@@ -109,7 +110,7 @@ namespace allocators {
         using top_stack_type = StackAllocatorImpl<sizeInBytes / 2u, true>;
         using bottom_stack_type = StackAllocatorImpl<sizeInBytes - sizeInBytes / 2u, false>;
     public:
-        DualStackAllocator() : _topStack(std::span<std::byte>{_memory.begin() + sizeInBytes / 2u, _memory.end()}),
+        DualStackAllocator() : _topStack(engine::stl::span<std::byte>{_memory.begin() + sizeInBytes / 2u, _memory.end()}),
                                _bottomStack(_memory) {}
 
         inline top_stack_type &top() noexcept { return _topStack; }

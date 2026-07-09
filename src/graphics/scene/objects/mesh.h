@@ -64,11 +64,11 @@ namespace mesh {
 
         bool cmp(const Skeleton &) const noexcept;
 
-        void fillSkinMatrices2(std::span<mat3x4f> target) const noexcept;
+        void fillSkinMatrices2(stl::span<mat3x4f> target) const noexcept;
 
     private:
         const graphics::models::MeshData & _meshData;
-        std::vector<Node *> _nodes;
+        stl::vector<Node *> _nodes;
     };
 
     class Mesh : public AttachmentObject {

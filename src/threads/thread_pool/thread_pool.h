@@ -6,10 +6,12 @@
 #include "free_list.h"
 #include "notifier.h"
 
+#include "stl/allocator.h"
+#include "stl/vector.h"
+
 #include <atomic>
 #include <cassert>
 #include <latch>
-#include <list>
 #include <mutex>
 #include <stop_token>
 #include <thread>
@@ -236,8 +238,8 @@ namespace threads {
 
         const size_t _maxSteals;
 
-        std::vector<std::thread> _threads;
-        std::vector<PoolWorker> _workers;
+        engine::stl::vector<std::thread> _threads;
+        engine::stl::vector<PoolWorker, engine::stl::aligned_allocator<alignof(PoolWorker)>> _workers;
 
         Notifier _notifier;
 

@@ -64,7 +64,7 @@ namespace engine::graphics::models {
         2u, // eUv4
     };
 
-    MeshBuffersData MeshData::loadMeshes(const Layout & layout, std::span<const AttributeSemantic> allowedAttributes) {
+    MeshBuffersData MeshData::loadMeshes(const Layout & layout, stl::span<const AttributeSemantic> allowedAttributes) {
         meshes.reserve(layout.meshes.size());
 
         MeshBuffersData result;
@@ -88,8 +88,8 @@ namespace engine::graphics::models {
                 primitive.material = srcPrimitive.material;
                 primitive.primitiveMode = srcPrimitive.mode;
 
-                // std::vector<uint32_t> indices;
-                // std::vector<std::vector<std::byte>> vertices(allowedAttributes.size());
+                // stl::vector<uint32_t> indices;
+                // stl::vector<stl::vector<std::byte>> vertices(allowedAttributes.size());
 
                 { // indices
                     const Accessor & accessor = layout.accessors[srcPrimitive.indices];
@@ -173,7 +173,7 @@ namespace engine::graphics::models {
                         // vbData.resize(targetDataSize);
 
                         const BufferView & view = layout.bufferViews[accessor.bufferView];
-                        std::span<const std::byte> bufferViewData = {&layout.buffers[view.buffer].data[accessor.offset + view.offset], count}; // const vector<byte> &
+                        stl::span<const std::byte> bufferViewData = {&layout.buffers[view.buffer].data[accessor.offset + view.offset], count}; // const vector<byte> &
 
                         const auto componentType = accessor.componentType;
                         const auto acessorType = accessor.type;
@@ -378,9 +378,9 @@ namespace engine::graphics::models {
         return result;
     }
 
-    void MeshData::optimizeBuffers(std::span<std::vector<std::byte>> vertexBuffersData, std::vector<uint32_t> & indexBufferData, std::span<const AttributeSemantic> allowedAttributes) {
+    void MeshData::optimizeBuffers(stl::span<stl::vector<std::byte>> vertexBuffersData, stl::vector<uint32_t> & indexBufferData, stl::span<const AttributeSemantic> allowedAttributes) {
         // mesh optimizer
-        std::vector<meshopt_Stream> streams;
+        stl::vector<meshopt_Stream> streams;
         streams.reserve(vertexBuffersData.size());
 
         size_t j = 0U;
@@ -399,7 +399,7 @@ namespace engine::graphics::models {
         const auto indexCount = indexBufferData.size();
         const auto baseVertexCount = vertexBuffersData[0u].size() / streams[0u].size;
         
-        std::vector<uint32_t> remap;
+        stl::vector<uint32_t> remap;
         remap.resize(std::max(indexCount, baseVertexCount));
         const auto vertexCount = meshopt_generateVertexRemapMulti(remap.data(), indexBufferData.data(), indexCount, baseVertexCount, streams.data(), streams.size());
         
@@ -410,13 +410,13 @@ namespace engine::graphics::models {
             if (vertexBuffer.empty()) {
                 continue;
             }
-            std::vector<std::byte> vertices(vertexCount * streams[j].size);
+            stl::vector<std::byte> vertices(vertexCount * streams[j].size);
             meshopt_remapVertexBuffer(vertices.data(), vertexBuffer.data(), baseVertexCount, streams[j].size, remap.data());
             std::swap(vertices, vertexBuffer);
             ++j;
         }
         
-        std::vector<uint32_t> tmp(indexCount);
+        stl::vector<uint32_t> tmp(indexCount);
         meshopt_optimizeVertexCache(tmp.data(), indexBufferData.data(), indexCount, vertexCount);
         meshopt_optimizeVertexFetchRemap(remap.data(), tmp.data(), indexCount, vertexCount);
         
@@ -442,7 +442,7 @@ namespace engine::graphics::models {
         //     if (allowedAttributes[i] == AttributeSemantic::ePosition) {
         //         constexpr auto quantizePositionSemanticSize = 8u; // eR16G16B16A16_Sfloat // for 4 bytes align
         //         constexpr auto defaultPositionSemanticSize = kDefaultSemanticsSizeBytes[0u];
-        //         std::vector<std::byte> vertices(vertexCount * quantizePositionSemanticSize);
+        //         stl::vector<std::byte> vertices(vertexCount * quantizePositionSemanticSize);
         //         auto & vb = vertexBuffersData[i];
         //         if (vb.empty()) {
         //             continue;
@@ -463,7 +463,7 @@ namespace engine::graphics::models {
         //     if (allowedAttributes[i] == AttributeSemantic::eNormal) {
         //         constexpr auto quantizeNormalSemanticSize = 4u; // eR8G8B8A8_Snorm // for 4 bytes align
         //         constexpr auto defaultNormalSemanticSize = kDefaultSemanticsSizeBytes[1u];
-        //         std::vector<std::byte> vertices(vertexCount * quantizeNormalSemanticSize);
+        //         stl::vector<std::byte> vertices(vertexCount * quantizeNormalSemanticSize);
         //         auto & vb = vertexBuffersData[i];
         //         if (vb.empty()) {
         //             continue;
@@ -483,7 +483,7 @@ namespace engine::graphics::models {
         //     if (allowedAttributes[i] == AttributeSemantic::eUv0) {
         //         constexpr auto quantizeUvSemanticSize = 4u; // eR16G16_Sfloat
         //         constexpr auto defaultUvSemanticSize = kDefaultSemanticsSizeBytes[9u];
-        //         std::vector<std::byte> vertices(vertexCount * quantizeUvSemanticSize);
+        //         stl::vector<std::byte> vertices(vertexCount * quantizeUvSemanticSize);
         //         auto & vb = vertexBuffersData[i];
         //         if (vb.empty()) {
         //             continue;
@@ -508,7 +508,7 @@ namespace engine::graphics::models {
         //     if (allowedAttributes[i] == AttributeSemantic::eJoints) { // support 256 bones max if it enabled!
         //         constexpr auto quantizeSemanticSize = 4u; // eR8G8B8A8_Uint
         //         constexpr auto defaultSemanticSize = kDefaultSemanticsSizeBytes[7u];
-        //          std::vector<std::byte> vertices(vertexCount * quantizeSemanticSize);
+        //          stl::vector<std::byte> vertices(vertexCount * quantizeSemanticSize);
         //         auto & vb = vertexBuffersData[i];
         //         if (vb.empty()) {
         //             continue;
@@ -529,7 +529,7 @@ namespace engine::graphics::models {
         //     if (allowedAttributes[i] == AttributeSemantic::eWeights) {
         //         constexpr auto quantizeSemanticSize = 8u; // eR16G16B16A16_Sfloat
         //         constexpr auto defaultSemanticSize = kDefaultSemanticsSizeBytes[8u];
-        //          std::vector<std::byte> vertices(vertexCount * quantizeSemanticSize);
+        //          stl::vector<std::byte> vertices(vertexCount * quantizeSemanticSize);
         //         auto & vb = vertexBuffersData[i];
         //         if (vb.empty()) {
         //             continue;
@@ -551,9 +551,9 @@ namespace engine::graphics::models {
         const bool useTangents = std::find(allowedAttributes.begin(), allowedAttributes.end(), AttributeSemantic::eTangent) != allowedAttributes.end();
 
         if (useTangents && vertexBuffersData[2u].empty()) { // generate tangents
-            auto src16p = std::span(reinterpret_cast<const uint16_t*>(vertexBuffersData[0u].data()), vertexBuffersData[0u].size() / sizeof(uint16_t));
-            auto src8n = std::span(reinterpret_cast<const int8_t*>(vertexBuffersData[1u].data()), vertexBuffersData[1u].size() / sizeof(int8_t));
-            auto src16uv = std::span(reinterpret_cast<const uint16_t*>(vertexBuffersData[3u].data()), vertexBuffersData[3u].size() / sizeof(uint16_t));
+            auto src16p = stl::span(reinterpret_cast<const uint16_t*>(vertexBuffersData[0u].data()), vertexBuffersData[0u].size() / sizeof(uint16_t));
+            auto src8n = stl::span(reinterpret_cast<const int8_t*>(vertexBuffersData[1u].data()), vertexBuffersData[1u].size() / sizeof(int8_t));
+            auto src16uv = stl::span(reinterpret_cast<const uint16_t*>(vertexBuffersData[3u].data()), vertexBuffersData[3u].size() / sizeof(uint16_t));
             vertexBuffersData[2u] = generateTangentsCompressed(
                 src16p,
                 src8n,

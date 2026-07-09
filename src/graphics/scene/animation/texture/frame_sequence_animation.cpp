@@ -6,12 +6,12 @@
 
 namespace engine::scene {
     
-    FramesSequence::FramesSequence(std::vector<graphics::ImageFrame2D> frames) : 
+    FramesSequence::FramesSequence(stl::vector<graphics::ImageFrame2D> frames) : 
         Animation(ctti::typeIndex<Animation, FramesSequence>()), 
         _frames(std::move(frames)) {}
 
     FramesSequence::FramesSequence(const graphics::TextureManager & textureManager, 
-        std::span<std::string const> frames) : Animation(ctti::typeIndex<Animation, FramesSequence>()) {
+        stl::span<std::string const> frames) : Animation(ctti::typeIndex<Animation, FramesSequence>()) {
         _frames.reserve(frames.size());
         for (auto frameName : frames) {
             _frames.emplace_back(textureManager.findFrame(frameName));

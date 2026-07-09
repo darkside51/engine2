@@ -174,7 +174,7 @@ namespace engine::vulkan {
             destroy(oldSwapchain);
         }
 
-        std::vector<VkImage> images;
+        stl::vector<VkImage> images;
         helper::getVulkanSwapchainImages(_device(), _swapchain, images);
 
         const auto realImagesCount = images.size();

@@ -44,7 +44,7 @@ namespace engine::graphics {
             return a + f * (b - a);
         };
 
-        std::vector<vec4f> ssaoKernel(params.kernelSize);
+        stl::vector<vec4f> ssaoKernel(params.kernelSize);
 		for (uint8_t i = 0u; i < params.kernelSize; ++i) {
 			vec3f sample{common::random(-1.0f, 1.0f), common::random(-1.0f, 1.0f), common::random(0.0f, 1.0f)};
 			sample = glm::normalize(sample);
@@ -62,7 +62,7 @@ namespace engine::graphics {
         _kernelBuffer = api.createBuffer(device, kernelBufferInfo, ssaoKernel.size() * sizeof(vec4f));
 
         // noise
-        std::vector<vec2f> noiseValues(params.noiseDim * params.noiseDim);
+        stl::vector<vec2f> noiseValues(params.noiseDim * params.noiseDim);
 		for (size_t i = 0u; i < noiseValues.size(); ++i) {
 			noiseValues[i] = {engine::common::random(-1.0f, 1.0f), engine::common::random(-1.0f, 1.0f)};
             // noiseValues[i] = {
@@ -128,7 +128,7 @@ namespace engine::graphics {
         for (uint32_t i = 0u; i < framesCount; ++i) {
             auto & image = _images.emplace_back(api.createImage(device, ssaoImageInfo));
 
-            std::vector<rhi::FrameBufferAttachment> fbAttachemnts{1u};
+            stl::vector<rhi::FrameBufferAttachment> fbAttachemnts{1u};
             fbAttachemnts[0u].image = image.get();
             fbAttachemnts[0u].imageSize = {image->getExtent().width, image->getExtent().height};
             _frameBuffers.emplace_back(api.createFrameBuffer(device, std::move(fbAttachemnts), _renderPass));

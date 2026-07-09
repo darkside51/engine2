@@ -28,10 +28,10 @@ namespace engine::vulkan::runtime {
         return std::make_unique<Api::Surface>(_instance, info);
     }
 
-    std::vector<rhi::runtime::PysicalDevicePtr> Rhi::enumerateDevices(const rhi::PhysicalDeviceRequirements & info) const {
+    stl::vector<rhi::runtime::PysicalDevicePtr> Rhi::enumerateDevices(const rhi::PhysicalDeviceRequirements & info) const {
         auto apiPhysicalDevices = Api::PhysicalDevice::getSuitableDevices(_instance, info);
         
-        std::vector<rhi::runtime::PysicalDevicePtr> physicalDevices;
+        stl::vector<rhi::runtime::PysicalDevicePtr> physicalDevices;
         physicalDevices.reserve(physicalDevices.size());
         for (auto & d : apiPhysicalDevices) {
             physicalDevices.emplace_back(std::make_unique<Api::PhysicalDevice>(std::move(d)));
@@ -62,7 +62,7 @@ namespace engine::vulkan::runtime {
 
     rhi::runtime::FrameBufferPtr Rhi::createFrameBuffer(
         const rhi::runtime::Device & device, 
-        std::vector<rhi::FrameBufferAttachment> && attachemnts, 
+        stl::vector<rhi::FrameBufferAttachment> && attachemnts, 
         const rhi::runtime::RenderPass & renderPass) const noexcept {
 
         return rhi::runtime::sh_ptr<Api::FrameBuffer>::make(static_cast<const Api::Device &>(device), 
@@ -121,7 +121,7 @@ namespace engine::vulkan::runtime {
 
     rhi::runtime::GpuProgramPtr Rhi::createProgram(
         rhi::runtime::Device & device, 
-        std::span<const rhi::runtime::ShaderModuleView> moduleViews,
+        stl::span<const rhi::runtime::ShaderModuleView> moduleViews,
         rhi::shaders::SpecializationInfo && specializationInfo
     ) const {
         std::array<Api::ShaderModule::View, rhi::shaders::kStagesCount> apiModules;
@@ -134,7 +134,7 @@ namespace engine::vulkan::runtime {
         }
 
         return std::make_unique<Api::GpuProgram>(static_cast<Api::Device &>(device), 
-            std::span{apiModules.begin(), apiModules.begin() + moduleViews.size()}, std::move(specializationInfo));
+            stl::span{apiModules.begin(), apiModules.begin() + moduleViews.size()}, std::move(specializationInfo));
     }
 
     engine::rhi::runtime::PipelinePtr Rhi::createComputePipeline(

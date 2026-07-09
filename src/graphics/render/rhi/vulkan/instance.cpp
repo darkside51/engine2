@@ -42,13 +42,13 @@ namespace engine::vulkan {
 		applicationInfo.engineVersion        = VK_MAKE_VERSION(1, 0, 0);
 		applicationInfo.apiVersion           = _apiVersion;
 
-        std::vector<VkExtensionProperties> supportedExtensions;
+        stl::vector<VkExtensionProperties> supportedExtensions;
         helper::getVulkanInstanceExtensions(supportedExtensions);
 
-        std::vector<VkLayerProperties> supportedLayers;
+        stl::vector<VkLayerProperties> supportedLayers;
 		helper::getVulkanInstanceLayers(supportedLayers);
 
-        std::vector<const char*> instanceExtensions;
+        stl::vector<const char*> instanceExtensions;
 
         const auto addInstanceExtension = [&instanceExtensions, &supportedExtensions](const char* extName) -> bool {
 			if (std::find_if(supportedExtensions.begin(), supportedExtensions.end(), [extName](const VkExtensionProperties& ext) { return std::strcmp(ext.extensionName, extName) == 0; }) != supportedExtensions.end()) {

@@ -111,7 +111,7 @@ public:
     void assignLayout(VkImageLayout dstLayout, uint8_t baseLayer, uint8_t baseLevel, 
         uint8_t layersCount = 0u, uint8_t levelsCount = 0u) noexcept;
 
-    std::span<const ImageSubState> getSubStates() const noexcept { return _imageSubStates; }
+    stl::span<const ImageSubState> getSubStates() const noexcept { return _imageSubStates; }
 
     VkImageLayout getLayout(uint8_t layer, uint8_t level) const noexcept;
 
@@ -127,7 +127,7 @@ private:
     MemoryAllocation _allocation;
 
     ImageViewMap _imageViews;
-    std::vector<ImageSubState> _imageSubStates; // size must be _layers * _mipLevels
+    stl::vector<ImageSubState> _imageSubStates; // size must be _layers * _mipLevels
     bool _imageStatesIdentical = true;
     bool _externalImage = false;
 };

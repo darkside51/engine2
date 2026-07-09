@@ -68,18 +68,18 @@ inline stl::array<uint16_t, 3u> to_vec3u16(float x, float y, float z) noexcept {
 }
 
 // generates 4D tangents Lengyel's algorithm
-std::vector<vec4f> generateTangents(
-    std::span<const vec3f> positions,
-    std::span<const vec3f> normals,
-    std::span<const vec2f> uvs,
-    std::span<const uint32_t> indices
+stl::vector<vec4f> generateTangents(
+    stl::span<const vec3f> positions,
+    stl::span<const vec3f> normals,
+    stl::span<const vec2f> uvs,
+    stl::span<const uint32_t> indices
 );
 
-std::vector<std::byte> generateTangentsCompressed(
-    std::span<const uint16_t> positions,
-    std::span<const int8_t> normals,
-    std::span<const uint16_t> uvs,
-    std::span<const uint32_t> indices
+stl::vector<std::byte> generateTangentsCompressed(
+    stl::span<const uint16_t> positions,
+    stl::span<const int8_t> normals,
+    stl::span<const uint16_t> uvs,
+    stl::span<const uint32_t> indices
 );
 
 }

@@ -72,14 +72,14 @@ namespace engine::vulkan {
         }
 
         const auto attachmentsSrc = description.getAttachments();
-        std::vector<VkAttachmentDescription> attachments;
+        stl::vector<VkAttachmentDescription> attachments;
         attachments.reserve(attachmentsSrc.size());
         for (auto const & description : attachmentsSrc) {
             attachments.emplace_back(convert2vk(description));
         }
 
         const auto dependenciesSrc = description.getDependencies();
-        std::vector<VkSubpassDependency> dependencies;
+        stl::vector<VkSubpassDependency> dependencies;
         dependencies.reserve(dependenciesSrc.size());
         for (auto const & dependency : dependenciesSrc) {
             dependencies.emplace_back(convert2vk(dependency));
@@ -87,21 +87,21 @@ namespace engine::vulkan {
 
         ////
         const auto subpassesSrc = description.getSubpasses();
-        std::vector<VkSubpassDescription> subpasses;
+        stl::vector<VkSubpassDescription> subpasses;
         subpasses.reserve(subpassesSrc.size());
 
         using VkAttachmentsCollection = dynamic_array<VkAttachmentReference, rhi::SubpassDescription::kMaxAttachemts>;
 
-        std::vector<VkAttachmentsCollection> inputAttachmentReferencesVec;
+        stl::vector<VkAttachmentsCollection> inputAttachmentReferencesVec;
         inputAttachmentReferencesVec.reserve(subpassesSrc.size());
 
-        std::vector<VkAttachmentsCollection> colorAttachmentReferencesVec;
+        stl::vector<VkAttachmentsCollection> colorAttachmentReferencesVec;
         colorAttachmentReferencesVec.reserve(subpassesSrc.size());
 
-        std::vector<VkAttachmentsCollection> resolveAttachmentReferencesVec;
+        stl::vector<VkAttachmentsCollection> resolveAttachmentReferencesVec;
         resolveAttachmentReferencesVec.reserve(subpassesSrc.size());
 
-        std::vector<VkAttachmentReference> depthStencilAttachmentsVec;
+        stl::vector<VkAttachmentReference> depthStencilAttachmentsVec;
         depthStencilAttachmentsVec.reserve(subpassesSrc.size());
 
         for (auto const & subpass : subpassesSrc) {

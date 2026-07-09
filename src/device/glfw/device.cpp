@@ -82,7 +82,7 @@ namespace engine {
 
     void glfwOnDragAndDrop(GLFWwindow* window, int count, const char** paths) {
         auto * device = static_cast<GLFWDevice*>(glfwGetWindowUserPointer(window));
-        static std::vector<std::string_view> views;
+        static stl::vector<std::string_view> views;
         views.reserve(count);
         for (int i = 0; i < count; ++i) {
             views.emplace_back(paths[i]);
@@ -280,7 +280,7 @@ namespace engine {
         }
     }
 
-    void GLFWDevice::dragAndDrop(std::span<std::string_view> paths) {
+    void GLFWDevice::dragAndDrop(stl::span<std::string_view> paths) {
         if (_onDragAndDrop) {
             _onDragAndDrop(paths);
         }
