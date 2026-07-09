@@ -55,28 +55,6 @@ void main() {
 	const vec4 worldPosition = vec4(reconstructPosition(v_rayDirWorld, cameraPosition, linearDepth), 1.0f);
 	const vec3 viewPosition = reconstructPosition(v_rayDirView, vec3(0.0f), linearDepth);
 
-	// shadows
-	// get cascade index for the current fragment's view position
-	uint cascade = 0;
-	for (uint i = 0; i < shadowCascades - 1; ++i) {
-		if (viewPosition.z < u_shadow.splits[i]) {	
-			cascade = i + 1;
-		}
-	}
-
-	vec4 shadowCoord = u_shadow.cascades[cascade] * worldPosition;
-	shadowCoord = shadowCoord * (1.0f / shadowCoord.w);
-	//const float bias = max(biases[2 * cascade + 1] * (1.0f - abs(dotNL)), biases[2 * cascade]);
-	//const float bias = max(0.005f * (1.0f - abs(dotNL)), 0.0005f);
-	//const float bias = calculateAnisotropicBias(shadowCoord.xyz, 0.003f, 0.01f);
-	const ivec2 texSize = textureSize(textureShadowMap, 0).xy;
-	const float bias = calculateAnisotropicBias(texSize, viewPosition, biases[2 * cascade], biases[2 * cascade + 1]);
-	shadowCoord.xy = shadowCoord.xy * 0.5f + 0.5f;
-
-	//const float shadowValue = textureProj(textureShadowMap, shadowCoord, vec2(0.0f), cascade, bias, u_shadow.options.x); // hardware pcf if use sampler2DArrayShadow
-	//const float shadowValue = filterPCF(textureShadowMap, shadowCoord, cascade, bias, u_shadow.options.x);
-	const float shadowValue = clamp(filterPCF_Low(textureShadowMap, texSize, shadowCoord.xyz, cascade, bias), u_shadow.options.x, 1.0f);
-
 	// pbr
 	const vec3 N = normal; // in view space
     const vec3 V = normalize(-v_rayDirView); // in view space
@@ -113,7 +91,7 @@ void main() {
     const float denominator = 4.0f * dotNV * dotNL + 0.0001f; // avoid division by zero
     //const 
     vec3 specular = numerator / denominator;
-	specular *= step(0.5f, shadowValue); // no specular in shadow
+	//specular *= step(0.5f, shadowValue); // no specular in shadow
     
     // energy conservation: diffuse must equal remaining non-reflected energy
     const vec3 kS = F;
@@ -126,6 +104,30 @@ void main() {
     //const vec3 ambient = mix(vec3(0.25, 1.0, 0.0), vec3(1.0, 1.0, 1.0), clamp(worldPosition.z * 6.2f, 0.0f, 1.0f)) * push.ambient.xyz * push.ambient.w * albedo.rgb * occlusion;
     const vec3 ambient = push.ambient.xyz * push.ambient.w * albedo.rgb * occlusion;
     vec3 baseColor = ambient + Lo;
+
+	// shadows
+	// get cascade index for the current fragment's view position
+	uint cascade = 0;
+	for (uint i = 0; i < shadowCascades - 1; ++i) {
+		if (viewPosition.z < u_shadow.splits[i]) {	
+			cascade = i + 1;
+		}
+	}
+
+	vec4 shadowCoord = u_shadow.cascades[cascade] * worldPosition;
+	shadowCoord.xy = shadowCoord.xy * 0.5f + 0.5f;
+	shadowCoord = shadowCoord * (1.0f / shadowCoord.w);
+	//const float bias = max(biases[2 * cascade + 1] * (1.0f - abs(dotNL)), biases[2 * cascade]);
+	//const float bias = max(0.0025f * (1.0f - abs(dotNL)), 0.0005f);
+	//const float bias = calculateAnisotropicBias(shadowCoord.xyz, 0.003f, 0.01f);
+	const ivec2 texSize = textureSize(textureShadowMap, 0).xy;
+	const float bias = calculateAnisotropicBias(texSize, viewPosition, biases[2 * cascade], biases[2 * cascade + 1]);
+	
+	//const float shadowValue = textureProj(textureShadowMap, shadowCoord, vec2(0.0f), cascade, bias, u_shadow.options.x); // hardware pcf if use sampler2DArrayShadow
+	//const float shadowValue = filterPCF(textureShadowMap, shadowCoord, cascade, bias, u_shadow.options.x);
+	//const float shadowValue = clamp(filterPCF_Low2(textureShadowMap, texSize, shadowCoord.xyz, cascade, bias, 1.5f, 4), u_shadow.options.x, 1.0f);
+	const float shadowValue = clamp(filterPCF_Low(textureShadowMap, texSize, shadowCoord.xyz, cascade, bias), u_shadow.options.x, 1.0f);
+
     baseColor *= shadowValue;
     baseColor += emissive.rgb;
 	//

@@ -51,34 +51,35 @@ namespace engine::graphics {
             }
         };
 
-        std::array<SubpassDependency, 2u> dependency;
-        dependency[0u] = {
-            .stages = {
-                .src = {
-                    .stage = PipelineStageFlags::eFragment_Shader,
-                    .accessMask = AccessFlags::eShader_Read
-                },
-                .dst = {
-                    .stage = PipelineStageFlags::eEarly_Fragment_Tests,
-                    .accessMask = AccessFlags::eDepth_Stencil_Attachment_Write
-                }
-            }
-        };
+        // std::array<SubpassDependency, 2u> dependency;
+        // dependency[0u] = {
+        //     .stages = {
+        //         .src = {
+        //             .stage = PipelineStageFlags::eFragment_Shader,
+        //             .accessMask = AccessFlags::eShader_Read
+        //         },
+        //         .dst = {
+        //             .stage = PipelineStageFlags::eEarly_Fragment_Tests,
+        //             .accessMask = AccessFlags::eDepth_Stencil_Attachment_Write
+        //         }
+        //     }
+        // };
 
-        dependency[1u] = {
-            .stages = {
-                .src = {
-                    .stage = PipelineStageFlags::eLate_Fragment_Tests,
-                    .accessMask = AccessFlags::eDepth_Stencil_Attachment_Write
-                },
-                .dst = {
-                    .stage = PipelineStageFlags::eFragment_Shader,
-                    .accessMask = AccessFlags::eShader_Read
-                }
-            }
-        };
+        // dependency[1u] = {
+        //     .stages = {
+        //         .src = {
+        //             .stage = PipelineStageFlags::eLate_Fragment_Tests,
+        //             .accessMask = AccessFlags::eDepth_Stencil_Attachment_Write
+        //         },
+        //         .dst = {
+        //             .stage = PipelineStageFlags::eFragment_Shader,
+        //             .accessMask = AccessFlags::eShader_Read
+        //         }
+        //     }
+        // };
 
-        const RenderPassDescription description{attachment, subpass, dependency};
+        // const RenderPassDescription description{attachment, subpass, dependency};
+        const RenderPassDescription description{attachment, subpass, {}};
         _renderPass = _api.getRenderPass(_device, description);
 
         // image
@@ -222,13 +223,25 @@ namespace engine::graphics {
 
             const float radius = glm::length(frustumCorners[7u] - frustumCenter);
             const mat4f lightViewMatrix = glm::lookAtRH(frustumCenter - _direction * radius, frustumCenter, vec3f{0.0f, 1.0f, 0.0f});
-            const mat4f lightOrthoMatrix = _reversedDepth ? 
+            mat4f lightOrthoMatrix = _reversedDepth ? 
                 glm::orthoRH_ZO(-radius, radius, -radius, radius, 2.0f * radius, 0.0f) : 
                 glm::orthoRH_ZO(-radius, radius, -radius, radius, 0.0f, 2.0f * radius);
 			
+            { // shimmering / aliasing fix
+                const auto shadowMatrix = lightOrthoMatrix * lightViewMatrix;
+                const auto shadowOrigin = vec2f(shadowMatrix[3u]) * (_size * 0.5f);
+
+                // floor (pixel snapping)
+                const vec2f roundedOrigin = glm::round(shadowOrigin);
+                const vec2f roundOffset = (roundedOrigin - shadowOrigin) * (2.0f / _size);
+
+                // adjust the projection matrix by the texel offset value
+                lightOrthoMatrix[3u] += vec4f{roundOffset, 0.0f, 0.0f};
+            }
+
             // store split distance and matrix in cascade
             _splitDepths[i] = (_near + splitDist * _clipRange) * -1.0f;
-			_cascadeMatrices[i] = lightOrthoMatrix * lightViewMatrix;
+            _cascadeMatrices[i] = lightOrthoMatrix * lightViewMatrix;
 
             lastSplitDist = _cascadeSplits[i];
         }

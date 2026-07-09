@@ -1818,18 +1818,18 @@ namespace example {
                 // "assets/grass3.png"
                 // "assets/images.png"
 
-                const auto * imageHandler = loadImageAsync(*_device, fileManager, *textureManager, "asyncTest", "assets/images.png", 
-                    engine::graphics::TextureFlags::eAllowSrgbColorSpace | engine::graphics::TextureFlags::eUseMipMaps);
+                // const auto * imageHandler = loadImageAsync(*_device, fileManager, *textureManager, "asyncTest", "assets/ground0.jpg", 
+                //     engine::graphics::TextureFlags::eAllowSrgbColorSpace | engine::graphics::TextureFlags::eUseMipMaps);
 
                 const auto frame = engine::graphics::ImageFrame2D{
-                    imageHandler, 
+                    textureManager->getDefaultImageHandler(), 
                     engine::graphics::Frame2D{.uvMin = {0.0f, 0.0f}, .uvMax = {60.0f, 60.0f}}
                 };
 
                 auto * sprite = scene->createObject<engine::scene::Sprite>(frame, 0u);
                 sprite->setSize({60.0f, 60.0f});
                 engine::scene::attachObjectToNode(*sprite, *node);
-                //sprite->setFilter(engine::scene::SpriteTextureFilter::eNearest);
+                sprite->setFilter(engine::scene::SpriteTextureFilter::eNearest);
                 sprite->setOrder(0);
 
                 sceneWorldRoot->addChild(node);

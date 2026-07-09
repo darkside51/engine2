@@ -1,6 +1,8 @@
 #ifndef LIGHTING_HEADER
 #define LIGHTING_HEADER
 
+#include "noise"
+
 float calculateAnisotropicBias(ivec2 texSize, vec3 viewSpacePos, float minBias, float maxBias) {
     const vec3 dpdx = dFdx(viewSpacePos);
 	const vec3 dpdy = dFdy(viewSpacePos);
@@ -92,6 +94,51 @@ float filterPCF_Low(
     sum += w2 * texture(map, vec4(uv2, layer, shadowPosition.z + bias));
     sum += w3 * texture(map, vec4(uv3, layer, shadowPosition.z + bias));
     return sum * 0.0625f;
+}
+
+float filterPCF_Low2(
+	in sampler2DArrayShadow map,
+	ivec2 texSize,
+	vec3 shadowPosition,
+    uint layer,
+    float bias,
+    float force,
+    int steps
+) {
+	// Poisson disk point set
+	const vec2 poissonDisk[16] = vec2[](
+	    vec2(-0.94201624, -0.39906216),
+	    vec2(0.94558609, -0.76890725),
+	    vec2(-0.09418410, -0.92938870),
+	    vec2(0.34495938, 0.29387760),
+	    vec2(-0.91588581, 0.45771432),
+	    vec2(-0.81544232, -0.87922460),
+	    vec2(-0.38277543, 0.27676845),
+	    vec2(0.97484398, 0.75648379),
+	    vec2(0.44323325, -0.97511554),
+	    vec2(0.53742981, -0.47373420),
+	    vec2(-0.26496911, -0.41893023),
+	    vec2(0.79197514, 0.19090188),
+	    vec2(-0.24188840, 0.99706507),
+	    vec2(-0.81409955, 0.09143855),
+	    vec2(0.19984126, 0.78641367),
+	    vec2(0.14383161, -0.14100790)
+	);
+
+    const float texelSize = 1.0f / texSize.x / float(layer + 1.0f);
+    const float filterRadius = texelSize * force; // blur radius
+
+    const float angle = random(gl_FragCoord.xy) * 6.28318530718;
+    const float s = sin(angle);
+    const float c = cos(angle);
+    const mat2 rotationMatrix = mat2(c, -s, s, c);
+
+    float shadowFactor = 0.0;
+    for (int i = 0; i < steps; i++) {
+        const vec2 offset = (rotationMatrix * poissonDisk[i]) * filterRadius;
+        shadowFactor += texture(map, vec4(shadowPosition.xy + offset, layer, shadowPosition.z + bias));
+    }
+    return shadowFactor / float(steps);
 }
 
 #endif
