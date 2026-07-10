@@ -24,8 +24,8 @@ TileID latLonToTileID(double lat, double lon, uint8_t zoom) noexcept {
 TileID normalizedMercatorToTileId(engine::vec2d mercator, uint8_t zoom) noexcept {
     const uint32_t tilesPerAxis = 1u << zoom;
     return {
-        .x = static_cast<int>(mercator.x * tilesPerAxis),
-        .y = static_cast<int>(mercator.y * tilesPerAxis),
+        .x = static_cast<uint32_t>(mercator.x * tilesPerAxis),
+        .y = static_cast<uint32_t>(mercator.y * tilesPerAxis),
         .z = zoom
     };
 }

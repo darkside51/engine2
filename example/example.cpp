@@ -48,6 +48,8 @@
 #include "engine/src/stl/span.h"
 #include "engine/src/stl/vector.h"
 
+#include "map/tile_id.h"
+
 #include <imgui.h>
 #include <vtzero/vector_tile.hpp>
 #include <vtzero/property_value.hpp>
@@ -551,6 +553,17 @@ namespace example {
         }
 
         bool onInpuKeyEvent(const engine::KeyEvent & event, const engine::InputKeyMod & mod) override {
+            if (event.state == engine::InputEventState::ePress && event.key == engine::KeyboardKey::eM) {
+                const map::TileID tid {
+                    .x = 15u, .y = 25u, .z = 7u
+                };
+                const auto encoded = map::encode(tid);
+                const map::TileID tid2 = map::decode(encoded);
+
+                printf("tid [x: %d, y: %d, z: %d] \n", tid.x, tid.y, tid.z);
+                printf("encoded tid: %lu\n", encoded);
+                printf("tid [x: %d, y: %d, z: %d] \n", tid2.x, tid2.y, tid2.z);
+            }
             if (event.state == engine::InputEventState::ePress && event.key == engine::KeyboardKey::eK) {
                 // threads::StopSource2 stopSource;
                 // https://maptiler.com/{z}/{x}/{y}.pbf?key=YOUR_API_KEY
