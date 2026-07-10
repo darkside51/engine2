@@ -71,8 +71,8 @@ namespace engine::graphics {
         auto * blackImgData = reinterpret_cast<uint32_t*>(memory + blackImageOffset);
         auto * transparentImgData = reinterpret_cast<uint32_t*>(memory + transparentImageOffset);
 
-        defaultImgData[0] = 0xff'aa'aa'aau; defaultImgData[1] = 0xff'55'55'55u;
-        defaultImgData[2] = 0xff'55'55'55u; defaultImgData[3] = 0xff'aa'aa'aau;
+        defaultImgData[0] = 0xff'aa'aa'aau; defaultImgData[1] = 0xff'22'22'22u;
+        defaultImgData[2] = 0xff'22'22'22u; defaultImgData[3] = 0xff'aa'aa'aau;
 
         whiteImgData[0] = 0xff'ff'ff'ffu;
         blackImgData[0] = 0xff'00'00'00u;
