@@ -6,6 +6,8 @@
 #include "graphics/common/graphics_service.h"
 #include "graphics/texture/texture_manager.h"
 
+#include "stl/algorithm.h"
+
 namespace engine::graphics {
 
     ModelManager::ModelManager(MaterialManager & materialManager) : _materialManager(materialManager) {
@@ -138,7 +140,7 @@ namespace engine::graphics {
             _allocator.destroy(modelData);
             _gpuData[idx] = {};
             _models[idx] = {nullptr, false};
-            eastl::erase_if(_tmpData, [idx](const auto & tmp) noexcept { return tmp.first == idx; });
+            stl::erase_if(_tmpData, [idx](const auto & tmp) noexcept { return tmp.first == idx; });
 
             _modelsMap.erase(it);
             return true;

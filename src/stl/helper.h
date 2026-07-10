@@ -1,5 +1,6 @@
 #pragma once
 
+#include "stl/algorithm.h"
 #include "stl/array.h"
 #include "stl/vector.h"
 
@@ -9,25 +10,23 @@
 #include <variant>
 
 namespace engine::stl {
+
+    template<typename Iterator>
+    inline stl::move_iterator<Iterator> make_move_iterator(Iterator i) { 
+        return eastl::make_move_iterator<Iterator>(std::forward<Iterator>(i)); 
+    }
+
     template<class T, std::size_t N>
     auto make_vector(std::array<T, N> && a)-> stl::vector<T> {
-    return {eastl::make_move_iterator(a.begin()),
-            eastl::make_move_iterator(a.end())};
+    return {stl::make_move_iterator(a.begin()),
+            stl::make_move_iterator(a.end())};
     }
 
     template<class... T>
     auto make_vector(T && ... t) {
         return make_vector(std::to_array({std::forward<T>(t)...}));
     }
-
-    // steal data from container T, this data must be freed with delete[]
-    template <typename T>
-    inline std::pair<typename T::value_type*, size_t> steal_data(T& data) {
-        const size_t size = data.size();
-        auto *buffer = new typename T::value_type[size];
-        std::move(data.begin(), data.end(), buffer);
-        return  { buffer, size };
-    };
+    
 }
 
 namespace variant {

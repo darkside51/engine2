@@ -4,6 +4,7 @@
 #include "graphics/render/staging_buffer.h"
 #include "graphics/render/rhi/common/command_list.h"
 #include "log/log.h"
+#include "stl/algorithm.h"
 
 #include <cassert>
 
@@ -218,7 +219,7 @@ namespace engine::graphics {
         return imageFrame->second;
     }
 
-    void TextureManager::addFrames(stl::span<std::pair<std::string, Frame2D>> frames, const rhi::runtime::ImagePtr & image) {
+    void TextureManager::addFrames(stl::span<stl::pair<std::string, Frame2D>> frames, const rhi::runtime::ImagePtr & image) {
         if (frames.empty() || image == nullptr) {
             return;
         }
@@ -252,7 +253,7 @@ namespace engine::graphics {
             if (auto it1 = _imagesSet.find(image); it1 != _imagesSet.end()) {
                 if (--const_cast<ImageHolder&>(*it1).count == 0u) {
                     _imagesSet.erase(it1);
-                    eastl::erase_if(_images, [image](const ImageHandlerPtr & img) noexcept {
+                    stl::erase_if(_images, [image](const ImageHandlerPtr & img) noexcept {
                         return img->image.get() == image;
                     });
                 }
@@ -271,7 +272,7 @@ namespace engine::graphics {
         return _images[idx]->image;
     }
 
-    std::pair<ImageHandler *, bool> TextureManager::addImage(std::string_view name) {
+    stl::pair<ImageHandler *, bool> TextureManager::addImage(std::string_view name) {
         if (auto result = getImageHandler(name)) {
             return {result, false};
         }

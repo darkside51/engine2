@@ -15,6 +15,7 @@
 #include <mutex>
 #include <stop_token>
 #include <thread>
+#include <vector>
 
 #define ENABLE_TASK_POOL
 
@@ -239,7 +240,7 @@ namespace threads {
         const size_t _maxSteals;
 
         engine::stl::vector<std::thread> _threads;
-        engine::stl::vector<PoolWorker, engine::stl::aligned_allocator<alignof(PoolWorker)>> _workers;
+        std::vector<PoolWorker> _workers;
 
         Notifier _notifier;
 

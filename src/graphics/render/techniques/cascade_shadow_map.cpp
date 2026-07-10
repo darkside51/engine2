@@ -144,7 +144,7 @@ namespace engine::graphics {
         _sampler.info = {
             .magFilter = FilterMode::eLinear,
             .minFilter = FilterMode::eLinear,
-            .mipMapMode = FilterMode::eLinear,
+            .mipMapMode = FilterMode::eNearest,
             .addressModeU = SamplerAddressMode::eClamp_To_Border,
             .addressModeV = SamplerAddressMode::eClamp_To_Border,
             .addressModeW = SamplerAddressMode::eClamp_To_Border,
@@ -229,11 +229,11 @@ namespace engine::graphics {
 			
             { // shimmering / aliasing fix
                 const auto shadowMatrix = lightOrthoMatrix * lightViewMatrix;
-                const auto shadowOrigin = vec2f(shadowMatrix[3u]) * (_size * 0.5f);
+                const auto shadowOrigin = vec2f(shadowMatrix[3u]) * static_cast<float>(_size) * 0.5f;
 
                 // floor (pixel snapping)
                 const vec2f roundedOrigin = glm::round(shadowOrigin);
-                const vec2f roundOffset = (roundedOrigin - shadowOrigin) * (2.0f / _size);
+                const vec2f roundOffset = (roundedOrigin - shadowOrigin) * (2.0f / static_cast<float>(_size));
 
                 // adjust the projection matrix by the texel offset value
                 lightOrthoMatrix[3u] += vec4f{roundOffset, 0.0f, 0.0f};

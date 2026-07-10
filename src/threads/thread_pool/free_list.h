@@ -2,9 +2,6 @@
 
 #include "queue.h"
 
-#include "stl/allocator.h"
-#include "stl/vector.h"
-
 #include <mutex>
 #include <vector>
 
@@ -47,6 +44,6 @@ namespace threads {
         }
 
     private:
-        engine::stl::vector<Head, engine::stl::aligned_allocator<alignof(Head)>> _heads;
+        std::vector<Head> _heads;
     };    
 }

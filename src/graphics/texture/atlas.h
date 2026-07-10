@@ -2,12 +2,12 @@
 
 #include "image_frame.h"
 #include "math/math.h"
+#include "stl/utility.h"
+#include "stl/vector.h"
 
 #include <span>
 #include <string>
 #include <string_view>
-#include <utility>
-#include <vector>
 
 namespace engine::graphics {
 
@@ -22,7 +22,7 @@ enum class AtlasFormat : uint8_t {
 
 class FramesParser {
 public:
-    using Result = stl::vector<std::pair<std::string, Frame2D>>;
+    using Result = stl::vector<stl::pair<std::string, Frame2D>>;
 
     static Result loadFrames(stl::span<const std::byte> rawBytes, vec2u size, std::string_view prefix = "", AtlasFormat format = AtlasFormat::eUnknown);
     static Result loadFramesCommon(stl::span<const std::byte> rawBytes, vec2u size, std::string_view prefix = "");

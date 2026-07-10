@@ -43,7 +43,7 @@
 
 #include "engine/src/network/network_service_curl.h"
 
-#include "engine/src/utils/stl_helper.h"
+#include "engine/src/stl/helper.h"
 
 #include "engine/src/stl/span.h"
 #include "engine/src/stl/vector.h"
