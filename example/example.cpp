@@ -883,7 +883,7 @@ namespace example {
         }
 
         // ssao:
-        ssao.resize(*_api, *_device, framesCount, size.width, size.height);
+        ssao.resize(*_api, *_device, framesCount, size.width / 1, size.height / 1);
 
         // gBuffer attachments
         _gBufferAttachments.clear();
@@ -2318,6 +2318,9 @@ namespace example {
         commandList->drawIndexed(6u);
 
         ssao.endRenderPass(*commandList);
+
+        commandList->setViewport(0.0f, 0.0f, width, height);
+        commandList->setScissor({{0, 0}, {width, height}});
 
         if (emissiveBlur) { // emissive blur
             engine::vec4f blurUniform{emissiveBlurScale, emissiveBlurStrength, 1.0f, 0.0f};

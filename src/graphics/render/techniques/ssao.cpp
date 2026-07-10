@@ -140,6 +140,9 @@ namespace engine::graphics {
             rhi::ClearValue{0x00'00'00'ffu},
         };
         const auto & extent = _images[frameId]->getExtent();
+
+        commandList.setViewport(0.0f, 0.0f, extent.width, extent.height);
+        commandList.setScissor({{0, 0}, {extent.width, extent.height}});
         commandList.beginRenderPass(_renderPass, _frameBuffers[frameId], clearValues, {{0, 0}, {extent.width, extent.height}});
     }
 
