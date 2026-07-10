@@ -2,14 +2,15 @@
 
 #include "common/hash.h"
 #include "utils/dynamic_array.h"
+#include "stl/algorithm.h"
+#include "stl/array.h"
+#include "stl/utility.h"
+#include "stl/vector.h"
 
 #include <algorithm>
-#include <array>
 #include <cmath>
 #include <cstdint>
 #include <limits>
-#include <utility>
-#include <vector>
 
 namespace engine::rhi {
     // template <typename T>
@@ -763,15 +764,15 @@ namespace engine::rhi {
 
     struct ImageBlit {
         ImageSubresourceLayers srcSubresource;
-        std::array<Offset3D, 2u> srcOffsets;
+        stl::array<Offset3D, 2u> srcOffsets;
         ImageSubresourceLayers dstSubresource;
-        std::array<Offset3D, 2u> dstOffsets;
+        stl::array<Offset3D, 2u> dstOffsets;
     };
 
     struct BlitImageInfo {
         ImageLayout srcImageLayout = ImageLayout::eTransfer_Src_Optimal;
         ImageLayout dstImageLayout = ImageLayout::eTransfer_Dst_Optimal;
-        std::array<ImageBlit, 8u> regions;
+        stl::array<ImageBlit, 8u> regions;
         uint8_t regionsCount = 0u;
         FilterMode filter = FilterMode::eLinear;
     };
@@ -787,7 +788,7 @@ namespace engine::rhi {
     };
 
     struct AttachmentReference {
-        std::pair<const void*, size_t> pNext = {nullptr, 0u}; // value + hash(value) 
+        stl::pair<const void*, size_t> pNext = {nullptr, 0u}; // value + hash(value) 
         uint16_t attachment = 0xff'ffu; // undefined
         ImageLayout layout = ImageLayout::eUndefined;
         ImageAspectFlags aspectMask = ImageAspectFlags::eNone;
@@ -1436,7 +1437,7 @@ namespace engine::rhi {
             // BindingSetLayout() = default;
             explicit BindingSetLayout(dynamic_array<BindingLayout, kMaxBindingsInSetOnStack> && l) : layouts(std::move(l)) {
                 auto view = layouts.view();
-                std::sort(view.begin(), view.end(), [](const auto & l0, const auto & l1){ return l0.binding < l1.binding; });
+                stl::sort(view.begin(), view.end(), [](const auto & l0, const auto & l1){ return l0.binding < l1.binding; });
 
                 for (const auto & layout : view) {
                     hash::hash_combo(hashValue, layout.hash());

@@ -84,7 +84,7 @@ namespace models {
 	// };
 
 	// struct MeshMaterial {
-	// 	std::array<ImageFrame2D, 5u> textures;
+	// 	stl::array<ImageFrame2D, 5u> textures;
 	// 	vec4f baseColorFactor = {1.0f, 1.0f, 1.0f, 1.0f};
 	// 	vec3f emissiveFactor = {0.0f, 0.0f, 0.0f};
 	// 	float metallicFactor = 1.0f;

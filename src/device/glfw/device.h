@@ -2,13 +2,13 @@
 
 #include "input/input.h"
 #include "stl/span.h"
+#include "stl/utility.h"
 #include "stl/vector.h"
 
 #include <cstdint>
 #include <functional>
 #include <memory>
 #include <string_view>
-#include <utility>
 
 struct GLFWwindow;
 
@@ -40,7 +40,7 @@ namespace rhi {
 
         rhi::SurfaceCreateInfo getSurfaceCreateInfo() const noexcept;
 
-        std::pair<uint16_t, uint16_t> getSize() const noexcept {
+        stl::pair<uint16_t, uint16_t> getSize() const noexcept {
             return {_width, _height};
         }
         

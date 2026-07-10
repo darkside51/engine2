@@ -1,8 +1,8 @@
 #pragma once
 
 #include "math/math.h"
+#include "stl/array.h"
 
-#include <array>
 #include <cstdint>
 
 namespace engine::scene {
@@ -22,7 +22,7 @@ public:
     bool checkBounds(const Bounds & bounds) const noexcept;
 
 private:
-    std::array<vec4f, 6u> _frustum;
+    stl::array<vec4f, 6u> _frustum;
 };
 
 }

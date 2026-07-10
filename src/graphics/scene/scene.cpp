@@ -92,13 +92,13 @@ namespace engine::scene {
     constexpr float kShaderTimeMultiplier = 0.001f;
 
     // struct ColoredVertex {
-    //     std::array<float, 3u> coord;
+    //     stl::array<float, 3u> coord;
     //     uint32_t color;
     // };
     
     // struct TexturedVertex {
-    //     std::array<float, 3u> coord;
-    //     std::array<float, 2u> uv;
+    //     stl::array<float, 3u> coord;
+    //     stl::array<float, 2u> uv;
     // };
 
     struct SpriteVertex {
@@ -489,7 +489,7 @@ namespace engine::scene {
 
         if (!_animations.skeletalAnimations.empty()) { // skeletal animations
             auto begin = _animations.skeletalAnimations.begin() + skeletalAnimationsCountOnStart;
-            std::sort(begin, _animations.skeletalAnimations.end(), [](const auto & seq0, const auto & seq1) {
+            stl::sort(begin, _animations.skeletalAnimations.end(), [](const auto & seq0, const auto & seq1) {
                         return seq0.animInfo->animationId < seq1.animInfo->animationId;
                     });
 
@@ -555,7 +555,7 @@ namespace engine::scene {
 
         if (!_animations.sequences.empty()) { // sequences
             auto begin = _animations.sequences.begin() + sequenceAnimationsCountOnStart;
-            std::sort(begin, _animations.sequences.end(), [](const auto & seq0, const auto & seq1) {
+            stl::sort(begin, _animations.sequences.end(), [](const auto & seq0, const auto & seq1) {
                         return seq0.animInfo->animationId < seq1.animInfo->animationId;
                     });
 

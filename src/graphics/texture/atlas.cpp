@@ -49,7 +49,7 @@ namespace engine::graphics {
             return {};
         };
 
-        auto readEntry = [](std::string_view data, std::array<std::string_view, 5u> & result) noexcept -> uint8_t {
+        auto readEntry = [](std::string_view data, stl::array<std::string_view, 5u> & result) noexcept -> uint8_t {
             size_t begin = 0u;
             while (true) {
                 if (data[begin] == '\t' || data[begin] == ' ') {
@@ -84,7 +84,7 @@ namespace engine::graphics {
         };
 
         std::string_view sv(reinterpret_cast<const char*>(rawBytes.data()), rawBytes.size());
-        std::array<std::string_view, 5u> entry = {};
+        stl::array<std::string_view, 5u> entry = {};
 
         size_t pos = 0u;
         auto line = readLine(sv, pos);

@@ -87,7 +87,7 @@ namespace engine::graphics {
         return _buffers[idx].requestBytes(bytes);
      }
 
-    std::pair<rhi::runtime::BufferPtr *, std::byte*> InflightStagingBuffer::getBuffer(uint8_t idx) noexcept { 
+    stl::pair<rhi::runtime::BufferPtr *, std::byte*> InflightStagingBuffer::getBuffer(uint8_t idx) noexcept { 
         return {&_buffers[idx].getBuffer(), _mappedMemory};
     }
 }

@@ -22,7 +22,7 @@ public:
     void destroy() noexcept;
 
     rhi::Format format() const noexcept { return rhi::Format::eR8_Unorm; }
-    std::array<rhi::Format, 1u> formatsArray() const noexcept { return {format()}; }
+    stl::array<rhi::Format, 1u> formatsArray() const noexcept { return {format()}; }
 
     rhi::runtime::RenderPass getRenderPass() const noexcept { return _renderPass; }
 

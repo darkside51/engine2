@@ -116,7 +116,7 @@ namespace example {
     std::unique_ptr<engine::graphics::CascadeShadowMap> shadowMap = nullptr;
     std::unique_ptr<engine::graphics::InflightBuffer> shadowMapUniformBuffer = nullptr;
     struct ShadowMapUniforms {
-        std::array<engine::mat4f, 2u> cascades;
+        engine::stl::array<engine::mat4f, 2u> cascades;
         engine::vec4f splits;
         engine::vec4f options;
     };
@@ -1010,16 +1010,16 @@ namespace example {
         const auto err = engine::json::read_json(json, input);
 
         const auto depthFormat = _device->getSupportedDepthFormat(kDepthFormatTargetBits, false);
-        const auto formats0 = std::array{engine::rhi::Format::eB8G8R8A8_Unorm};
-        const auto formats1 = std::array{engine::rhi::Format::eR8G8B8A8_Unorm, depthFormat};
+        const auto formats0 = engine::stl::array{engine::rhi::Format::eB8G8R8A8_Unorm};
+        const auto formats1 = engine::stl::array{engine::rhi::Format::eR8G8B8A8_Unorm, depthFormat};
 
         _renderPasses.emplace_back(_api->getRenderPass(*_device, engine::parseRenderPass(json["screen"], formats0))); // kScreenPass
         _renderPasses.emplace_back(_api->getRenderPass(*_device, engine::parseRenderPass(json["scene"], formats1))); // kScenePass
 
         { // gbuffer
-            const auto formatsGBuffer = std::array {
+            const auto formatsGBuffer = engine::stl::array {
                 engine::rhi::Format::eR32_Sfloat,           // position linear depth
-                engine::rhi::Format::eR8G8B8A8_Unorm,  // normal
+                engine::rhi::Format::eR8G8B8A8_Unorm,       // normal
                 engine::rhi::Format::eR8G8B8A8_Unorm,       // albedo
                 engine::rhi::Format::eR8G8B8A8_Unorm,       // emissive
                 engine::rhi::Format::eR8G8_Unorm,           // metalicRoughness
@@ -1030,7 +1030,7 @@ namespace example {
         }
 
         { // blur
-            const auto formatsEmissiveBlur = std::array{engine::rhi::Format::eR8G8B8A8_Unorm};
+            const auto formatsEmissiveBlur = engine::stl::array{engine::rhi::Format::eR8G8B8A8_Unorm};
             _renderPasses.emplace_back(_api->getRenderPass(*_device, engine::parseRenderPass(json["blur"], formatsEmissiveBlur))); // kBlurRenderPass
         }
 
@@ -1048,7 +1048,7 @@ namespace example {
             const auto & vsModule = _shaderModulesManager->registerModule("imgui.vert", *_device, engine::rhi::shaders::Stages::eVertex, vBytes);
             const auto & fsModule = _shaderModulesManager->registerModule("imgui.frag", *_device, engine::rhi::shaders::Stages::eFragment, fBytes);
 
-            _programs.emplace_back(_api->createProgram(*_device, std::array{vsModule.getView(), fsModule.getView()}));
+            _programs.emplace_back(_api->createProgram(*_device, engine::stl::array{vsModule.getView(), fsModule.getView()}));
         }
         { // kPostEffectProgram
             auto const vBytes = fileManager.readFile("shaders/postEffect.vert.spv");
@@ -1057,7 +1057,7 @@ namespace example {
             const auto & vsModule = _shaderModulesManager->registerModule("postEffect.vert", *_device, engine::rhi::shaders::Stages::eVertex, vBytes);
             const auto & fsModule = _shaderModulesManager->registerModule("postEffect.frag", *_device, engine::rhi::shaders::Stages::eFragment, fBytes);
 
-            _programs.emplace_back(_api->createProgram(*_device, std::array{vsModule.getView(), fsModule.getView()}));
+            _programs.emplace_back(_api->createProgram(*_device, engine::stl::array{vsModule.getView(), fsModule.getView()}));
         }
 
         { // kDebugProgram
@@ -1067,7 +1067,7 @@ namespace example {
             const auto & vsModule = _shaderModulesManager->registerModule("debug.vert", *_device, engine::rhi::shaders::Stages::eVertex, vBytes);
             const auto & fsModule = _shaderModulesManager->registerModule("debug.frag", *_device, engine::rhi::shaders::Stages::eFragment, fBytes);
 
-            _programs.emplace_back(_api->createProgram(*_device, std::array{vsModule.getView(), fsModule.getView()}));
+            _programs.emplace_back(_api->createProgram(*_device, engine::stl::array{vsModule.getView(), fsModule.getView()}));
         }
 
         { // kSpritesProgram
@@ -1077,7 +1077,7 @@ namespace example {
             const auto & vsModule = _shaderModulesManager->registerModule("sprite.vert", *_device, engine::rhi::shaders::Stages::eVertex, vBytes);
             const auto & fsModule = _shaderModulesManager->registerModule("sprite.frag", *_device, engine::rhi::shaders::Stages::eFragment, fBytes);
 
-            _programs.emplace_back(_api->createProgram(*_device, std::array{vsModule.getView(), fsModule.getView()}));
+            _programs.emplace_back(_api->createProgram(*_device, engine::stl::array{vsModule.getView(), fsModule.getView()}));
         }
 
         { // kMeshProgram
@@ -1087,7 +1087,7 @@ namespace example {
             const auto & vsModule = _shaderModulesManager->registerModule("mesh.vert", *_device, engine::rhi::shaders::Stages::eVertex, vBytes);
             const auto & fsModule = _shaderModulesManager->registerModule("mesh.frag", *_device, engine::rhi::shaders::Stages::eFragment, fBytes);
 
-            _programs.emplace_back(_api->createProgram(*_device, std::array{vsModule.getView(), fsModule.getView()}));
+            _programs.emplace_back(_api->createProgram(*_device, engine::stl::array{vsModule.getView(), fsModule.getView()}));
         }
 
         // { // kMeshSkeletalInstancedProgram
@@ -1097,7 +1097,7 @@ namespace example {
         //     const auto & vsModule = _shaderModulesManager->registerModule("mesh_skeletal_instanced.vert", *_device, engine::rhi::shaders::Stages::eVertex, vBytes);
         //     const auto & fsModule = _shaderModulesManager->registerModule("mesh.frag", *_device, engine::rhi::shaders::Stages::eFragment, fBytes);
 
-        //     _programs.emplace_back(_api->createProgram(*_device, std::array{vsModule.getView(), fsModule.getView()}, {.dynamicDescriptorsMask = 0x0u}));
+        //     _programs.emplace_back(_api->createProgram(*_device, engine::stl::array{vsModule.getView(), fsModule.getView()}, {.dynamicDescriptorsMask = 0x0u}));
         // }
 
         { // kMeshInstancedProgram
@@ -1107,13 +1107,13 @@ namespace example {
             const auto & vsModule = _shaderModulesManager->registerModule("mesh_instanced.vert", *_device, engine::rhi::shaders::Stages::eVertex, vBytes);
             const auto & fsModule = _shaderModulesManager->registerModule("mesh.frag", *_device, engine::rhi::shaders::Stages::eFragment, fBytes);
 
-            _programs.emplace_back(_api->createProgram(*_device, std::array{vsModule.getView(), fsModule.getView()}));
+            _programs.emplace_back(_api->createProgram(*_device, engine::stl::array{vsModule.getView(), fsModule.getView()}));
         }
 
         { // kComputeProgram
             auto const cBytes = fileManager.readFile("shaders/mesh_skin_compute.comp.spv");
             const auto & compModule = _shaderModulesManager->registerModule("mesh_skin_compute.comp", *_device, engine::rhi::shaders::Stages::eCompute, cBytes);
-            _programs.emplace_back(_api->createProgram(*_device, std::array{compModule.getView()}));
+            _programs.emplace_back(_api->createProgram(*_device, engine::stl::array{compModule.getView()}));
         }
 
         { // kMeshAfterComputeProgram
@@ -1122,7 +1122,7 @@ namespace example {
             const auto & vsModule = _shaderModulesManager->registerModule("mesh_after_compute.vert", *_device, engine::rhi::shaders::Stages::eVertex, vBytes);
             const auto & fsModule = _shaderModulesManager->registerModule("mesh.frag", *_device, engine::rhi::shaders::Stages::eFragment, {});
 
-            _programs.emplace_back(_api->createProgram(*_device, std::array{vsModule.getView(), fsModule.getView()}));
+            _programs.emplace_back(_api->createProgram(*_device, engine::stl::array{vsModule.getView(), fsModule.getView()}));
         }
 
         { // kSsaoProgram
@@ -1132,7 +1132,7 @@ namespace example {
             const auto & vsModule = _shaderModulesManager->registerModule("ssao.vert", *_device, engine::rhi::shaders::Stages::eVertex, vBytes);
             const auto & fsModule = _shaderModulesManager->registerModule("ssao.frag", *_device, engine::rhi::shaders::Stages::eFragment, fBytes);
 
-            _programs.emplace_back(_api->createProgram(*_device, std::array{vsModule.getView(), fsModule.getView()}));
+            _programs.emplace_back(_api->createProgram(*_device, engine::stl::array{vsModule.getView(), fsModule.getView()}));
         }
 
         { // kEmissiveBlurProgram
@@ -1142,19 +1142,19 @@ namespace example {
             const auto & vsModule = _shaderModulesManager->registerModule("gaussblur.vert", *_device, engine::rhi::shaders::Stages::eVertex, vBytes);
             const auto & fsModule = _shaderModulesManager->registerModule("gaussblur.frag", *_device, engine::rhi::shaders::Stages::eFragment, fBytes);
 
-            _programs.emplace_back(_api->createProgram(*_device, std::array{vsModule.getView(), fsModule.getView()}));
+            _programs.emplace_back(_api->createProgram(*_device, engine::stl::array{vsModule.getView(), fsModule.getView()}));
         }
 
         { // kMeshShadowProgram
             auto const vBytes = fileManager.readFile("shaders/mesh_instanced_shadow.vert.spv");
             const auto & vsModule = _shaderModulesManager->registerModule("mesh_instanced_shadow.vert", *_device, engine::rhi::shaders::Stages::eVertex, vBytes);
-            _programs.emplace_back(_api->createProgram(*_device, std::array{vsModule.getView()}));
+            _programs.emplace_back(_api->createProgram(*_device, engine::stl::array{vsModule.getView()}));
         }
 
         { // kMeshAfterComputeShadowProgram
             auto const vBytes = fileManager.readFile("shaders/mesh_after_compute_shadow.vert.spv");
             const auto & vsModule = _shaderModulesManager->registerModule("mesh_after_compute_shadow.vert", *_device, engine::rhi::shaders::Stages::eVertex, vBytes);
-            _programs.emplace_back(_api->createProgram(*_device, std::array{vsModule.getView()}));
+            _programs.emplace_back(_api->createProgram(*_device, engine::stl::array{vsModule.getView()}));
         }
 
         { // kMeshInstancedProgramNoPbr
@@ -1164,7 +1164,7 @@ namespace example {
             const auto & vsModule = _shaderModulesManager->registerModule("mesh_instanced2.vert", *_device, engine::rhi::shaders::Stages::eVertex, vBytes);
             const auto & fsModule = _shaderModulesManager->registerModule("mesh2.frag", *_device, engine::rhi::shaders::Stages::eFragment, fBytes);
 
-            _programs.emplace_back(_api->createProgram(*_device, std::array{vsModule.getView(), fsModule.getView()}));
+            _programs.emplace_back(_api->createProgram(*_device, engine::stl::array{vsModule.getView(), fsModule.getView()}));
         }
 
         { // kMeshAfterComputeProgramNoPbr
@@ -1173,7 +1173,7 @@ namespace example {
             const auto & vsModule = _shaderModulesManager->registerModule("mesh_after_compute2.vert", *_device, engine::rhi::shaders::Stages::eVertex, vBytes);
             const auto & fsModule = _shaderModulesManager->registerModule("mesh2.frag", *_device, engine::rhi::shaders::Stages::eFragment, {});
 
-            _programs.emplace_back(_api->createProgram(*_device, std::array{vsModule.getView(), fsModule.getView()}));
+            _programs.emplace_back(_api->createProgram(*_device, engine::stl::array{vsModule.getView(), fsModule.getView()}));
         }
 
         { // kSpritesProgram2
@@ -1183,7 +1183,7 @@ namespace example {
             const auto & vsModule = _shaderModulesManager->registerModule("sprite.vert", *_device, engine::rhi::shaders::Stages::eVertex, vBytes);
             const auto & fsModule = _shaderModulesManager->registerModule("sprite2.frag", *_device, engine::rhi::shaders::Stages::eFragment, fBytes);
 
-            _programs.emplace_back(_api->createProgram(*_device, std::array{vsModule.getView(), fsModule.getView()}));
+            _programs.emplace_back(_api->createProgram(*_device, engine::stl::array{vsModule.getView(), fsModule.getView()}));
         }
     }
     
@@ -1328,7 +1328,7 @@ namespace example {
         engine::graphics::convertTextureDataFormat(engine::rhi::Format::eR8G8B8A8_Srgb, textureData4);
         engine::graphics::convertTextureDataFormat(engine::rhi::Format::eR8G8B8A8_Srgb, textureData5);
 
-        std::array<engine::graphics::TextureLayerData, 6u> layers;
+        engine::stl::array<engine::graphics::TextureLayerData, 6u> layers;
         layers[0u] = std::move(textureData0.data);
         layers[1u] = std::move(textureData1.data);
         layers[2u] = std::move(textureData2.data);
@@ -1693,20 +1693,20 @@ namespace example {
             MemoryPropertyFlags::eDeviceLocal
         };
 
-        _postPositions = _api->createBuffer(*_device, bufferInfo, sizeof(std::array<float, 2u>) * 4u);
+        _postPositions = _api->createBuffer(*_device, bufferInfo, sizeof(engine::stl::array<float, 2u>) * 4u);
 
         bufferInfo.usage = BufferUsageFlags::eIndex_Buffer | BufferUsageFlags::eTransfer_Dst;
         _postIndices = _api->createBuffer(*_device, bufferInfo, sizeof(uint16_t) * 6u);
 
         // staging buffer for vtx, idx, image;
-        constexpr auto stagingSize = sizeof(std::array<float, 2u>) * 4u + sizeof(uint16_t) * 6u + sizeof(uint32_t) * 4u;
+        constexpr auto stagingSize = sizeof(engine::stl::array<float, 2u>) * 4u + sizeof(uint16_t) * 6u + sizeof(uint32_t) * 4u;
         StagingBuffer staging{*_api, *_device, stagingSize};
         
         std::byte * memory = staging.map();
-        const auto vtxOffset = staging.requestBytes(sizeof(std::array<float, 2u>) * 4u);
+        const auto vtxOffset = staging.requestBytes(sizeof(engine::stl::array<float, 2u>) * 4u);
         const auto idxOffset = staging.requestBytes(sizeof(uint16_t) * 6u);
 
-        auto * vtxData = reinterpret_cast<std::array<float, 2u>*>(memory + vtxOffset);
+        auto * vtxData = reinterpret_cast<engine::stl::array<float, 2u>*>(memory + vtxOffset);
         auto * idxData = reinterpret_cast<uint16_t*>(memory + idxOffset);
 
         vtxData[0] = {-1.0, -1.0}; vtxData[1] = {-1.0, 1.0};
@@ -1727,9 +1727,9 @@ namespace example {
         tmpCommandList->end();
         tmpCommandList->record(0u);
 
-        auto lists = std::array{tmpCommandList.get()};
+        auto lists = engine::stl::array{tmpCommandList.get()};
         auto fence = _api->createFence(*_device, FenceCreateFlags::eUnsignaled);
-        bool const submitted = _renderQueue->submit(0u, std::array{
+        bool const submitted = _renderQueue->submit(0u, engine::stl::array{
             engine::rhi::runtime::Queue::SubmitInfo {
                 .w8Semaphores = {},
                 .w8DstStages = {},
@@ -2228,8 +2228,8 @@ namespace example {
         shadowMap->endRenderPass(*commandList);
 
         // draw scene
-        // constexpr auto gBufferClearValues = std::array{
-        const auto gBufferClearValues = std::array{
+        // constexpr auto gBufferClearValues = engine::stl::array{
+        const auto gBufferClearValues = engine::stl::array{
             rhi::ClearValue{0x00'00'00'00u},    // position
             rhi::ClearValue{0x00'00'00'00u},    // normal
             rhi::ClearValue{clearColor},        // albedo
@@ -2238,7 +2238,7 @@ namespace example {
             rhi::ClearValue{0.0f, 0u}           // depth
         };
 
-        constexpr auto clearValues = std::array{
+        constexpr auto clearValues = engine::stl::array{
             rhi::ClearValue{0x00'00'00'ffu},
         };
 
@@ -2331,7 +2331,7 @@ namespace example {
         }
 
         // final pass
-        // std::array images2Shaders{rhi::runtime::ImageTransitionInfo{_colorAttachmentImages[imageIndex].get()}};
+        // engine::stl::array images2Shaders{rhi::runtime::ImageTransitionInfo{_colorAttachmentImages[imageIndex].get()}};
         commandList->beginRenderPass(_renderPasses[kScreenRenderPass], _mainFrameBuffers[imageIndex], clearValues, {{0, 0}, {width, height}});
 
         // draw with postEffect
@@ -2425,12 +2425,12 @@ namespace example {
         }
 
         // submit
-        // const auto waitSemaphores = std::array{_swapchain->imageAvailableSemaphore(frameId)};
-        // const auto signalSemaphores = std::array{_readyToPresentSemaphores[frameId]};
-        // const auto waitStages = std::array{engine::rhi::PipelineStageFlags::eColor_Attachment_Output};
-        // auto lists = std::array{commandList.get()};
+        // const auto waitSemaphores = engine::stl::array{_swapchain->imageAvailableSemaphore(frameId)};
+        // const auto signalSemaphores = engine::stl::array{_readyToPresentSemaphores[frameId]};
+        // const auto waitStages = engine::stl::array{engine::rhi::PipelineStageFlags::eColor_Attachment_Output};
+        // auto lists = engine::stl::array{commandList.get()};
 
-        // bool const submitted = _renderQueue->submit(frameId, std::array{
+        // bool const submitted = _renderQueue->submit(frameId, engine::stl::array{
         //     engine::rhi::runtime::Queue::SubmitInfo {
         //         .w8Semaphores = waitSemaphores,
         //         .w8DstStages = waitStages,
@@ -2440,17 +2440,17 @@ namespace example {
         // });
 
         // draw after transfer variant
-        // const auto transferWaitSemaphores = std::array{_swapchain->imageAvailableSemaphore(frameId)};
-        // const auto transferSignalSemaphores = std::array{_transfersCompleteSemaphores[frameId]};
-        // const auto transferWaitStages = std::array{engine::rhi::PipelineStageFlags::eColor_Attachment_Output};
-        // auto transferLists = std::array{transferCommandList.get()};
+        // const auto transferWaitSemaphores = engine::stl::array{_swapchain->imageAvailableSemaphore(frameId)};
+        // const auto transferSignalSemaphores = engine::stl::array{_transfersCompleteSemaphores[frameId]};
+        // const auto transferWaitStages = engine::stl::array{engine::rhi::PipelineStageFlags::eColor_Attachment_Output};
+        // auto transferLists = engine::stl::array{transferCommandList.get()};
 
         // const auto waitSemaphores = transferSignalSemaphores;
-        // const auto signalSemaphores = std::array{_readyToPresentSemaphores[frameId]};
-        // const auto waitStages = std::array{engine::rhi::PipelineStageFlags::eTransfer};
-        // auto lists = std::array{commandList.get()};
+        // const auto signalSemaphores = engine::stl::array{_readyToPresentSemaphores[frameId]};
+        // const auto waitStages = engine::stl::array{engine::rhi::PipelineStageFlags::eTransfer};
+        // auto lists = engine::stl::array{commandList.get()};
 
-        // bool const submitted = _renderQueue->submit(frameId, std::array{
+        // bool const submitted = _renderQueue->submit(frameId, engine::stl::array{
         //     engine::rhi::runtime::Queue::SubmitInfo {
         //         .w8Semaphores = transferWaitSemaphores,
         //         .w8DstStages = transferWaitStages,
@@ -2465,17 +2465,17 @@ namespace example {
         //     }
         // });
 
-        const auto waitSemaphores = std::array{_swapchain->imageAvailableSemaphore(frameId)};
-        const auto signalSemaphores = std::array{_readyToPresentSemaphores[imageIndex]};
-        const auto waitStages = std::array{engine::rhi::PipelineStageFlags::eColor_Attachment_Output};
+        const auto waitSemaphores = engine::stl::array{_swapchain->imageAvailableSemaphore(frameId)};
+        const auto signalSemaphores = engine::stl::array{_readyToPresentSemaphores[imageIndex]};
+        const auto waitStages = engine::stl::array{engine::rhi::PipelineStageFlags::eColor_Attachment_Output};
 
-        auto transferLists = std::array{transferCommandList.get()};
-        auto lists = std::array{commandList.get()};
+        auto transferLists = engine::stl::array{transferCommandList.get()};
+        auto lists = engine::stl::array{commandList.get()};
 
         if (_externalCommandLists[frameId]) {
-            auto extLists = std::array{_externalCommandLists[frameId]};
+            auto extLists = engine::stl::array{_externalCommandLists[frameId]};
 
-            bool const submitted = _renderQueue->submit(frameId, std::array{
+            bool const submitted = _renderQueue->submit(frameId, engine::stl::array{
                 engine::rhi::runtime::Queue::SubmitInfo {
                     .w8Semaphores = {},
                     .w8DstStages = {},
@@ -2496,7 +2496,7 @@ namespace example {
                 }
             });
         } else {
-            bool const submitted = _renderQueue->submit(frameId, std::array{
+            bool const submitted = _renderQueue->submit(frameId, engine::stl::array{
                 engine::rhi::runtime::Queue::SubmitInfo {
                     .w8Semaphores = {},
                     .w8DstStages = {},

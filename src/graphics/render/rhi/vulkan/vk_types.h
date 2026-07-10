@@ -41,8 +41,8 @@ inline VkClearValue convert2vk(const rhi::ClearValue & clearValue) noexcept {
 }
 
 template<size_t N>
-inline auto convert2vk(const std::array<rhi::ClearValue, N> & array) -> std::array<VkClearValue, N> {
-    std::array<VkClearValue, N> result;
+inline auto convert2vk(const stl::array<rhi::ClearValue, N> & array) -> stl::array<VkClearValue, N> {
+    stl::array<VkClearValue, N> result;
     for (size_t i = 0u; i < N; ++i) {
         result[i] = convert2vk(array[i]);
     }
@@ -1064,8 +1064,8 @@ inline VkPipelineStageFlags convert2vk(rhi::PipelineStageFlags flags) noexcept {
 }
 
 template<size_t N>
-inline auto convert2vk(const std::array<rhi::PipelineStageFlags, N> & array) -> std::array<VkPipelineStageFlags, N> {
-    std::array<VkPipelineStageFlags, N> result;
+inline auto convert2vk(const stl::array<rhi::PipelineStageFlags, N> & array) -> stl::array<VkPipelineStageFlags, N> {
+    stl::array<VkPipelineStageFlags, N> result;
     for (size_t i = 0u; i < N; ++i) {
         result[i] = convert2vk(array[i]);
     }
@@ -1508,8 +1508,8 @@ inline VkPipelineColorBlendAttachmentState convert2vk(rhi::BlendMode mode) noexc
     };
 }
 
-inline std::pair<std::array<VkDynamicState, rhi::kDynamicStatesCount>, uint8_t> convert2vk(rhi::DynamicState states) noexcept {
-    std::pair<std::array<VkDynamicState, rhi::kDynamicStatesCount>, uint8_t> result = {};
+inline stl::pair<stl::array<VkDynamicState, rhi::kDynamicStatesCount>, uint8_t> convert2vk(rhi::DynamicState states) noexcept {
+    stl::pair<stl::array<VkDynamicState, rhi::kDynamicStatesCount>, uint8_t> result = {};
     auto & [resultStates, count] = result;
 
     if (std::to_underlying(states & rhi::DynamicState::eViewport)) {
@@ -1597,8 +1597,8 @@ inline VkVertexInputBindingDescription convert2vk(rhi::VertexInputBinding descri
 }
 
 template<size_t N>
-inline auto convert2vk(const std::array<rhi::VertexInputBinding, N> & array) noexcept -> std::array<VkVertexInputBindingDescription, N> {
-    std::array<VkVertexInputBindingDescription, N> result;
+inline auto convert2vk(const stl::array<rhi::VertexInputBinding, N> & array) noexcept -> stl::array<VkVertexInputBindingDescription, N> {
+    stl::array<VkVertexInputBindingDescription, N> result;
     for (size_t i = 0u; i < N; ++i) {
         result[i] = convert2vk(array[i]);
     }
@@ -1626,8 +1626,8 @@ inline VkVertexInputAttributeDescription convert2vk(rhi::VertexInputAttribute at
 }
 
 template<size_t N>
-inline auto convert2vk(const std::array<rhi::VertexInputAttribute, N> & array) noexcept -> std::array<VkVertexInputAttributeDescription, N> {
-    std::array<VkVertexInputAttributeDescription, N> result;
+inline auto convert2vk(const stl::array<rhi::VertexInputAttribute, N> & array) noexcept -> stl::array<VkVertexInputAttributeDescription, N> {
+    stl::array<VkVertexInputAttributeDescription, N> result;
     for (size_t i = 0u; i < N; ++i) {
         result[i] = convert2vk(array[i]);
     }

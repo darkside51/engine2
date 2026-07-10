@@ -7,8 +7,8 @@
 namespace engine::graphics {
 
 struct Frame2D {
-    std::array<float, 2u> uvMin = {0.0f, 0.0f};
-    std::array<float, 2u> uvMax = {1.0f, 1.0f};
+    stl::array<float, 2u> uvMin = {0.0f, 0.0f};
+    stl::array<float, 2u> uvMax = {1.0f, 1.0f};
 };
 
 // class ImageFrame2D {

@@ -129,7 +129,7 @@ namespace mesh {
 
         mesh::Attribute _indices;
         mesh::Attribute _uniqueIndices;
-        std::array<mesh::Attribute, static_cast<uint8_t>(mesh::Semantic::eSemanticsCount)> _attributes;
+        stl::array<mesh::Attribute, static_cast<uint8_t>(mesh::Semantic::eSemanticsCount)> _attributes;
 
         uint32_t _pipeline = 0u;
         uint32_t _dataIndex = 0xff'ff'ff'ffu;

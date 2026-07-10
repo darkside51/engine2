@@ -47,7 +47,7 @@ class PhysicalDevice {
 public:
     virtual ~PhysicalDevice() = default;
     virtual bool checkSurfaceSupport(const Surface & surface) noexcept = 0;
-    virtual std::pair<uint32_t, const QueueFamily*> getQueueFamily(queue_flags::flags flags, uint32_t start = 0u) const noexcept = 0;
+    virtual stl::pair<uint32_t, const QueueFamily*> getQueueFamily(queue_flags::flags flags, uint32_t start = 0u) const noexcept = 0;
     virtual float timestampToMilliseconds(double time) const noexcept = 0;
 };
 
@@ -116,7 +116,7 @@ class Swapchain {
 public:
     virtual ~Swapchain() = default;
     virtual void resize(uint32_t w, uint32_t h, bool vsync) = 0;
-    virtual std::pair<uint32_t, bool> acquireNextImage(uint32_t frameIndex, uint64_t timeout = UINT64_MAX) const noexcept = 0;
+    virtual stl::pair<uint32_t, bool> acquireNextImage(uint32_t frameIndex, uint64_t timeout = UINT64_MAX) const noexcept = 0;
     virtual uint32_t getImagesCount() const noexcept = 0;
     virtual const Image & getImage(uint8_t index) const noexcept = 0;
     virtual Image & getImage(uint8_t index) noexcept = 0;

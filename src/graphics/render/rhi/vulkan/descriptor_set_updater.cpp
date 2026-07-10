@@ -104,7 +104,7 @@ namespace engine::vulkan {
         }
     }
 
-    void DescriptorSetUpdater::updateBuffers(stl::span<const std::pair<Buffer*, uint32_t>> bufferBindings) noexcept {
+    void DescriptorSetUpdater::updateBuffers(stl::span<const stl::pair<Buffer*, uint32_t>> bufferBindings) noexcept {
         if (!isValid()) { 
             return; 
         }

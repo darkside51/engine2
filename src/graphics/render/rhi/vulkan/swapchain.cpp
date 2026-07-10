@@ -103,7 +103,7 @@ namespace engine::vulkan {
         // find a supported composite alpha format (not all devices support alpha opaque)
 		VkCompositeAlphaFlagBitsKHR compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
 		// select the first composite alpha format available
-		const std::array<VkCompositeAlphaFlagBitsKHR, 4> compositeAlphaFlags = {
+		const stl::array<VkCompositeAlphaFlagBitsKHR, 4> compositeAlphaFlags = {
 			VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
 			VK_COMPOSITE_ALPHA_PRE_MULTIPLIED_BIT_KHR,
 			VK_COMPOSITE_ALPHA_POST_MULTIPLIED_BIT_KHR,
@@ -215,7 +215,7 @@ namespace engine::vulkan {
         vkResetFences(_device(), 1, &_imageAvailableFence);
     }
 
-    std::pair<uint32_t, bool> Swapchain::acquireNextImage(uint32_t frameIndex, uint64_t timeout) const noexcept {
+    stl::pair<uint32_t, bool> Swapchain::acquireNextImage(uint32_t frameIndex, uint64_t timeout) const noexcept {
         uint32_t imageIndex = 0u;
         
         VkResult result = vkAcquireNextImageKHR(_device(), _swapchain, timeout, _imageAvailableSemaphores[frameIndex], 

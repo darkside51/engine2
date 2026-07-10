@@ -38,6 +38,6 @@ namespace engine::vulkan {
 
         VkDescriptorSet set = VK_NULL_HANDLE;
         DescriptorPool * pool = nullptr;
-        std::array<uint32_t, std::to_underlying(rhi::shaders::ResourceType::eCount)> resources = {};
+        stl::array<uint32_t, std::to_underlying(rhi::shaders::ResourceType::eCount)> resources = {};
     };
 }

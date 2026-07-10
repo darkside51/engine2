@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common/hash.h"
+#include "stl/unordered_map.h"
 
 #include "runtime.h"
 
@@ -12,7 +13,7 @@ namespace engine::rhi {
 
 template<typename Api>
 class ShaderModulesManager final : public runtime::ShaderModulesManager {
-    using ModulesMap = std::unordered_map<std::string, typename Api::ShaderModule, hash::String_hash, std::equal_to<>>;
+    using ModulesMap = stl::unordered_map<std::string, typename Api::ShaderModule, hash::String_hash, std::equal_to<>>;
 
 public:
     const Api::ShaderModule & registerModule(std::string key, const runtime::Device & device, 

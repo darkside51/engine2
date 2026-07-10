@@ -2,16 +2,15 @@
 
 #include "common/hash.h"
 #include "graphics/render/rhi/common/types.h"
+#include "stl/unordered_map.h"
 
 #include <vulkan/vulkan.h>
-
-#include <unordered_map>
 
 namespace engine::vulkan {
     class Device;
 
     class DescriptorSetLayoutManager {
-        using LayoutsMap = std::unordered_map<rhi::shaders::BindingSetLayout, VkDescriptorSetLayout, 
+        using LayoutsMap = stl::unordered_map<rhi::shaders::BindingSetLayout, VkDescriptorSetLayout, 
                                             hash::Hasher<rhi::shaders::BindingSetLayout>, std::equal_to<>>;
     public:
         explicit DescriptorSetLayoutManager(const Device & device) : _device(device) {}

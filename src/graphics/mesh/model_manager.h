@@ -10,14 +10,14 @@
 #include "stl/array.h"
 #include "stl/span.h"
 #include "stl/vector.h"
+#include "stl/unordered_map.h"
+#include "stl/utility.h"
 
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
 #include <string>
 #include <string_view>
-#include <unordered_map>
-#include <utility>
 
 namespace engine {
     class FileManager;
@@ -28,7 +28,7 @@ namespace engine::graphics {
 class MaterialManager;
 class GraphicsService;
 
-constexpr auto kDefaultSemantics = std::array {
+constexpr auto kDefaultSemantics = stl::array {
     models::AttributeSemantic::ePosition, 
     models::AttributeSemantic::eNormal, 
     models::AttributeSemantic::eUv0,
@@ -36,7 +36,7 @@ constexpr auto kDefaultSemantics = std::array {
     models::AttributeSemantic::eWeights
 };
 
-constexpr auto kDefaultSemantics2 = std::array {
+constexpr auto kDefaultSemantics2 = stl::array {
     models::AttributeSemantic::ePosition, 
     models::AttributeSemantic::eNormal, 
     models::AttributeSemantic::eTangent, 
@@ -59,11 +59,11 @@ public:
     ~ModelManager() { destroy(); }
     void destroy();
 
-    std::pair<uint32_t, bool> addModel(std::string_view name, models::Layout && layout, 
+    stl::pair<uint32_t, bool> addModel(std::string_view name, models::Layout && layout, 
         GraphicsService & graphicsService, const FileManager & fileManager,
         stl::span<const graphics::models::AttributeSemantic> attributes = kDefaultSemantics2);
 
-    std::pair<uint32_t, bool> addModel2(std::string_view name);    
+    stl::pair<uint32_t, bool> addModel2(std::string_view name);    
 
     void setBuffers(uint32_t index, models::MeshBuffersData && buffers);
 
@@ -124,15 +124,15 @@ public:
 
 private:
     using Allocator = allocators::PoolAllocator<sizeof(models::MeshData), alignof(models::MeshData), false>;
-    using ModelsMap = std::unordered_map<std::string, uint32_t, hash::String_hash, std::equal_to<>>;
-    using Models = stl::vector<std::pair<models::MeshData*, bool>>;
+    using ModelsMap = stl::unordered_map<std::string, uint32_t, hash::String_hash, std::equal_to<>>;
+    using Models = stl::vector<stl::pair<models::MeshData*, bool>>;
 
     MaterialManager & _materialManager;
     Allocator _allocator{1024u};
     ModelsMap _modelsMap;
     Models _models;
     stl::vector<ModelBuffers> _gpuData;
-    stl::vector<std::pair<uint32_t, models::MeshBuffersData>> _tmpData;
+    stl::vector<stl::pair<uint32_t, models::MeshBuffersData>> _tmpData;
 };
 
 }

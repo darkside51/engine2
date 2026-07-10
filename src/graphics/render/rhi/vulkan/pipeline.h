@@ -23,7 +23,7 @@ namespace engine::vulkan {
     VkPipelineViewportStateCreateInfo pipelineViewportStateInfo(uint32_t viewportCount = 1u, uint32_t scissorCount = 1u) noexcept;
 
     VkPipelineDynamicStateCreateInfo pipelineDynamicStateInfo(
-        const std::pair<std::array<VkDynamicState, rhi::kDynamicStatesCount>, uint8_t> & statesArray) noexcept;
+        const stl::pair<stl::array<VkDynamicState, rhi::kDynamicStatesCount>, uint8_t> & statesArray) noexcept;
 
     VkPipelineMultisampleStateCreateInfo pipelineMultisampleStateInfo() noexcept;
 
@@ -38,8 +38,8 @@ namespace engine::vulkan {
     VkPipelineDepthStencilStateCreateInfo pipelineDepthStencilStateInfo(const rhi::DepthState & depth, const rhi::StencilState & stencil) noexcept;
 
     template <size_t S>
-    std::array<VkPipelineColorBlendAttachmentState, S> pipelineBlendAttachmentState(const std::array<rhi::EncodedBlendMode, S> & blendModes) noexcept {
-        std::array<VkPipelineColorBlendAttachmentState, S> blendAttachmentState;
+    stl::array<VkPipelineColorBlendAttachmentState, S> pipelineBlendAttachmentState(const stl::array<rhi::EncodedBlendMode, S> & blendModes) noexcept {
+        stl::array<VkPipelineColorBlendAttachmentState, S> blendAttachmentState;
         size_t i = 0u;
         for (const auto blendValue : blendModes) {
             blendAttachmentState[i++] = utils::convert2vk(rhi::BlendMode{blendValue});
@@ -149,7 +149,7 @@ namespace engine::vulkan {
             int32_t basePipelineIndex = 0) const noexcept;
 
     private:
-        std::pair<std::array<VkDynamicState, rhi::kDynamicStatesCount>, uint8_t> _statesArray{};
+        stl::pair<stl::array<VkDynamicState, rhi::kDynamicStatesCount>, uint8_t> _statesArray{};
         dynamic_array<VkVertexInputBindingDescription, 8u> _vertexBindings;
         dynamic_array<VkVertexInputAttributeDescription, 8u> _vertexAttributes;
         dynamic_array<VkPipelineColorBlendAttachmentState, 4u> _blendAttachmentState;

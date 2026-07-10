@@ -72,7 +72,7 @@ public:
 
     uint32_t getMemoryType(uint32_t requiredTypeBits, rhi::MemoryPropertyFlags properties) const noexcept;
 
-    std::pair<uint32_t, const rhi::QueueFamily*> getQueueFamily(uint8_t flags, uint32_t start = 0u) const noexcept override;
+    stl::pair<uint32_t, const rhi::QueueFamily*> getQueueFamily(uint8_t flags, uint32_t start = 0u) const noexcept override;
     float timestampToMilliseconds(double time) const noexcept override;
 
 private:

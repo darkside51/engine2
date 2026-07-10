@@ -138,7 +138,7 @@ namespace engine::rhi::runtime {
         
         // dynamic_array<Pass, 8u> _passes = {};
         stl::vector<Pass> _passes = {};
-        // std::array<Pass, 8u> _passes = {};
+        // stl::array<Pass, 8u> _passes = {};
         // uint8_t _passId = 0u;
         Pass * _currentPass = nullptr;
         PipelineBindPoint _pipelineType = PipelineBindPoint::eCompute;
@@ -203,10 +203,10 @@ namespace engine::rhi::runtime {
 
             const Pipeline * pipeline = nullptr;
 
-            std::array<Viewport, kMaxViewports> viewport{};
-            std::array<Rect2D, kMaxViewports> scissor{};
+            stl::array<Viewport, kMaxViewports> viewport{};
+            stl::array<Rect2D, kMaxViewports> scissor{};
             BindedBuffer indexBuffer{};
-            std::array<BindedBuffer, kMaxBindVertexBuffers> vertexBuffers;
+            stl::array<BindedBuffer, kMaxBindVertexBuffers> vertexBuffers;
         } _state;
 
         stl::vector<sh_ptr<PipeLineResource>> _resources;

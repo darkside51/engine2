@@ -12,7 +12,7 @@ namespace engine::rhi {
 
 struct SubpassDescription {
     static constexpr size_t kMaxAttachemts = 8u; 
-    std::pair<const void*, size_t> pNext = {nullptr, 0u}; // value + hash(value) 
+    stl::pair<const void*, size_t> pNext = {nullptr, 0u}; // value + hash(value) 
     AttachmentReference depthStencilAttachment = {}; // undefined as default
     dynamic_array<AttachmentReference, kMaxAttachemts> inputAttachments;
     dynamic_array<AttachmentReference, kMaxAttachemts> colorAttachments; // size = colorAttachmentCount
@@ -122,7 +122,7 @@ private:
     stl::vector<AttachmentDescription> _attachments;
     stl::vector<SubpassDescription> _subpasses;
     stl::vector<SubpassDependency> _subpassDependencies;
-    //std::pair<ResolveModeFlags, ResolveModeFlags> _depthStencilResolve;
+    //stl::pair<ResolveModeFlags, ResolveModeFlags> _depthStencilResolve;
     size_t _hash = 0u;
 };
 

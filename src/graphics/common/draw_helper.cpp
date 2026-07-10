@@ -16,7 +16,7 @@ namespace engine::graphics {
     constexpr uint32_t kStaginBufferEnlargeSizeMult = 2u;
 
     struct Vertex {
-        std::array<float, 4u> coord;
+        stl::array<float, 4u> coord;
         uint32_t color;
     };
     
@@ -612,9 +612,9 @@ namespace engine::graphics {
     }
 
     void DrawHelper::drawGizmo(float size, const mat4f & transform) {
-        drawLines(std::array{engine::vec3f{0.0f, 0.0f, 0.0f}, engine::vec3f{size, 0.0f, 0.0f}}, 0xff0000ffu, transform);
-        drawLines(std::array{engine::vec3f{0.0f, 0.0f, 0.0f}, engine::vec3f{0.0f, size, 0.0f}}, 0xff00ff00u, transform);
-        drawLines(std::array{engine::vec3f{0.0f, 0.0f, 0.0f}, engine::vec3f{0.0f, 0.0f, size}}, 0xffff0000u, transform);
+        drawLines(stl::array{engine::vec3f{0.0f, 0.0f, 0.0f}, engine::vec3f{size, 0.0f, 0.0f}}, 0xff0000ffu, transform);
+        drawLines(stl::array{engine::vec3f{0.0f, 0.0f, 0.0f}, engine::vec3f{0.0f, size, 0.0f}}, 0xff00ff00u, transform);
+        drawLines(stl::array{engine::vec3f{0.0f, 0.0f, 0.0f}, engine::vec3f{0.0f, 0.0f, size}}, 0xffff0000u, transform);
     }
 
 }

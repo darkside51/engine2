@@ -125,7 +125,7 @@ namespace engine::graphics {
             }
         );
 
-        std::array<TextureLayerData, 6u> layers;
+        stl::array<TextureLayerData, 6u> layers;
 
         layers[0u] = {{
             std::byte{0xaau}, std::byte{0xaau}, std::byte{0xaau}, std::byte{0xffu}
@@ -436,7 +436,7 @@ namespace engine::graphics {
         }
 
         if (blitAvailable) { // useMipMaps is true
-            std::array<ImageBlit, 8u> regions;
+            stl::array<ImageBlit, 8u> regions;
 
             j = 0u;
             for (const auto & layer : layersData) {

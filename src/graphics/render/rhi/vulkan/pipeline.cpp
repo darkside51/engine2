@@ -22,7 +22,7 @@ namespace engine::vulkan {
     }
 
     VkPipelineDynamicStateCreateInfo pipelineDynamicStateInfo(
-        const std::pair<std::array<VkDynamicState, rhi::kDynamicStatesCount>, uint8_t> & statesArray) noexcept {
+        const stl::pair<stl::array<VkDynamicState, rhi::kDynamicStatesCount>, uint8_t> & statesArray) noexcept {
         return {
             .sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
             .pNext = nullptr,

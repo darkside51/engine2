@@ -13,6 +13,7 @@
 #include "register.h"
 #include "threads/threads.h"
 
+#include "stl/algorithm.h"
 #include "stl/array.h"
 #include "stl/span.h"
 #include "stl/unordered_map.h"
@@ -196,7 +197,7 @@ public:
 
     // attachments
     static void sortObjectsForDraw(stl::vector<AttachmentObject*> & objects) noexcept {
-        std::sort(objects.begin(), objects.end(), [](const AttachmentObject * a, const AttachmentObject * b) noexcept {
+        stl::sort(objects.begin(), objects.end(), [](const AttachmentObject * a, const AttachmentObject * b) noexcept {
             return compareAttachmentsForDraw(*a, *b);
         });
     }
@@ -410,7 +411,7 @@ void Scene::fillAttachmentsArray(const ViewParams & viewParams, Node * root, Con
         return true;
     });
 
-    std::sort(objects.begin(), objects.end(), [](const AttachmentObject * a, const AttachmentObject * b) noexcept {
+    stl::sort(objects.begin(), objects.end(), [](const AttachmentObject * a, const AttachmentObject * b) noexcept {
         return compareAttachmentsForDraw(*a, *b);
     });
 }

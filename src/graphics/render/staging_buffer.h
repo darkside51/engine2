@@ -47,7 +47,7 @@ namespace engine::graphics {
             rhi::MemoryPropertyFlags memoryFlags = rhi::MemoryPropertyFlags::eHostVisible | rhi::MemoryPropertyFlags::eHostCached);
 
         uint32_t requestBytes(uint8_t idx, uint32_t bytes) noexcept;
-        std::pair<rhi::runtime::BufferPtr *, std::byte*> getBuffer(uint8_t idx) noexcept;
+        stl::pair<rhi::runtime::BufferPtr *, std::byte*> getBuffer(uint8_t idx) noexcept;
 
         void map(uint8_t idx) noexcept;
         void unmap() noexcept;

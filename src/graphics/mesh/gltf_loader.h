@@ -9,6 +9,7 @@
 #include "stl/array.h"
 #include "stl/span.h"
 #include "stl/vector.h"
+#include "stl/utility.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -16,7 +17,6 @@
 #include <optional>
 #include <string>
 #include <string_view>
-#include <utility>
 
 namespace engine {
     class FileManager;
@@ -27,7 +27,7 @@ namespace graphics::models {
             struct {
                 float x, y, z;
             };
-            std::array<float, 3> data;
+            stl::array<float, 3> data;
         };
 
         vec3() : x(0.0f), y(0.0f), z(0.0f) {}
@@ -42,7 +42,7 @@ namespace graphics::models {
             struct {
                 float x, y, z, w;
             };
-            std::array<float, 4> data;
+            stl::array<float, 4> data;
         };
 
         vec4() : x(0.0f), y(0.0f), z(0.0f), w(0.0f) {};
@@ -53,7 +53,7 @@ namespace graphics::models {
     };
 
     struct mat4 {
-        std::array<vec4, 4> data;
+        stl::array<vec4, 4> data;
 
         mat4() = default;
         mat4(float f) : 
@@ -86,8 +86,7 @@ namespace graphics::models {
 	};
 
     struct Primitives {
-		// std::map<AttributeSemantic, uint16_t> attributes;
-		stl::vector<std::pair<AttributeSemantic, uint16_t>> attributes;
+		stl::vector<stl::pair<AttributeSemantic, uint16_t>> attributes;
 		uint16_t indices = kInvalidValue;
 		uint16_t material = kInvalidValue;
 		PrimitiveMode mode = PrimitiveMode::eTriangles;

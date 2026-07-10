@@ -1,5 +1,7 @@
 #pragma once
 
+#include "stl/array.h"
+
 #include <atomic>
 #include <cstdint>
 
@@ -78,7 +80,7 @@ private:
         T data;
     };
 
-    std::array<Cell, kCapacity> _buffer;
+    engine::stl::array<Cell, kCapacity> _buffer;
     
     // align variables to their own cache lines to prevent performance-killing false sharing
     alignas(64u) std::atomic<uint32_t> _enqueueIdx;

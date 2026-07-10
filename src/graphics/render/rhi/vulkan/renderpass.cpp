@@ -176,7 +176,7 @@ namespace engine::vulkan {
         }
 
         assert(attachments.size() <= RenderPass::kMaxAttachemts);
-        std::array<RenderPass::AttachmentInfo, RenderPass::kMaxAttachemts> attachmentInfos;
+        stl::array<RenderPass::AttachmentInfo, RenderPass::kMaxAttachemts> attachmentInfos;
         for (size_t i = 0u; i < attachments.size(); ++i) {
             attachmentInfos[i].finalLayout = attachments[i].finalLayout;
         }

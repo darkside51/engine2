@@ -13,7 +13,7 @@
 namespace engine::vulkan {
     
     namespace {
-        static constexpr std::array<uint8_t, 5> deviceTypePrioritets = {
+        static constexpr stl::array<uint8_t, 5> deviceTypePrioritets = {
             4u, // VK_PHYSICAL_DEVICE_TYPE_OTHER = 0
             1u, // VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU = 1
             0u, // VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU = 2
@@ -21,7 +21,7 @@ namespace engine::vulkan {
             2u  // VK_PHYSICAL_DEVICE_TYPE_CPU = 4
         };
 
-        static constexpr std::array<uint8_t, 4u> kAllQueueFlags = {
+        static constexpr stl::array<uint8_t, 4u> kAllQueueFlags = {
             rhi::queue_flags::graphics,
             rhi::queue_flags::compute,
             rhi::queue_flags::transfrer,
@@ -241,7 +241,7 @@ namespace engine::vulkan {
     }
 
     rhi::Format PhysicalDevice::getSupportedDepthFormat(uint8_t desiredBpp, bool withStencil, bool samplingSupport) const noexcept {
-        static constexpr std::array depthFormats = { VK_FORMAT_D16_UNORM, 
+        static constexpr stl::array depthFormats = { VK_FORMAT_D16_UNORM, 
                                                      VK_FORMAT_D16_UNORM_S8_UINT, 
                                                      VK_FORMAT_X8_D24_UNORM_PACK32, 
                                                      VK_FORMAT_D24_UNORM_S8_UINT, 
@@ -249,7 +249,7 @@ namespace engine::vulkan {
                                                      VK_FORMAT_D32_SFLOAT_S8_UINT 
                                                     };
 
-		static constexpr std::array depthStencilFormats = { VK_FORMAT_D16_UNORM_S8_UINT, 
+		static constexpr stl::array depthStencilFormats = { VK_FORMAT_D16_UNORM_S8_UINT, 
                                                             VK_FORMAT_D24_UNORM_S8_UINT, 
                                                             VK_FORMAT_D32_SFLOAT_S8_UINT 
                                                         };
@@ -320,7 +320,7 @@ namespace engine::vulkan {
 		return 0xff'ff'ff'ffu;
 	}
 
-    std::pair<uint32_t, const rhi::QueueFamily*> PhysicalDevice::getQueueFamily(uint8_t flags, uint32_t start) const noexcept {
+    stl::pair<uint32_t, const rhi::QueueFamily*> PhysicalDevice::getQueueFamily(uint8_t flags, uint32_t start) const noexcept {
         for (uint32_t i = start; i < _queues.size(); ++i) {
             if (_queues[i].supportFlags(flags)) {
                 return {i, &_queues[i]};

@@ -124,7 +124,7 @@ namespace engine::vulkan::runtime {
         stl::span<const rhi::runtime::ShaderModuleView> moduleViews,
         rhi::shaders::SpecializationInfo && specializationInfo
     ) const {
-        std::array<Api::ShaderModule::View, rhi::shaders::kStagesCount> apiModules;
+        stl::array<Api::ShaderModule::View, rhi::shaders::kStagesCount> apiModules;
         size_t i = 0u;
         for (const auto & view : moduleViews) {
             apiModules[i++] = {

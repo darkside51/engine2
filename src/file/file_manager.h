@@ -6,14 +6,16 @@
 #include "../utils/assert.h"
 #include "../utils/format_string.h"
 
+#include "stl/helper.h"
+#include "stl/vector.h"
+#include "stl/unordered_map.h"
+
 #include <memory>
-#include <unordered_map>
-#include <vector>
 
 namespace engine {
 
     class FileManager final {
-		using Systems = std::unordered_map<std::string, std::unique_ptr<IFileSystem>, hash::String_hash, std::equal_to<>>;
+		using Systems = stl::unordered_map<std::string, std::unique_ptr<IFileSystem>, hash::String_hash, std::equal_to<>>;
     public:
         template<typename T, typename... Args>
 		T* createFileSystem(std::string_view name, Args && ...args) {
@@ -36,7 +38,7 @@ namespace engine {
 
 		void removeFileSystem(const IFileSystem* fs) {
 			threads::RWSpinLock::readLock(_rwLock);
-			auto it = std::find_if(_fileSystems.begin(), _fileSystems.end(),
+			auto it = stl::find_if(_fileSystems.begin(), _fileSystems.end(),
                        [&fs](const auto & p) { return p.second.get() == fs; });
 			threads::RWSpinLock::readUnlock(_rwLock);
 			if (it != _fileSystems.end()) {
@@ -137,7 +139,7 @@ namespace engine {
     private:
 		mutable std::atomic<int32_t> _rwLock = {0};
         Systems _fileSystems;
-        std::unordered_map<std::string, stl::vector<const IFileSystem*>, hash::String_hash, std::equal_to<>> _mappedFiles;
+        stl::unordered_map<std::string, stl::vector<const IFileSystem*>, hash::String_hash, std::equal_to<>> _mappedFiles;
     };
 
 }

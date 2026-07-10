@@ -1,11 +1,11 @@
 #pragma once
 
+#include "stl/algorithm.h"
+#include "stl/unordered_map.h"
 #include "stl/vector.h"
 
 #include <algorithm>
 #include <cstdint>
-#include <unordered_map>
-#include <vector>
 
 namespace engine {
 
@@ -207,7 +207,7 @@ namespace engine {
 		void addInputObserver(InputObserver* o) {
 			_observers.push_back(o);
 			if (_observers.size() > 1u) {
-				std::sort(_observers.begin(), _observers.end(), 
+				stl::sort(_observers.begin(), _observers.end(), 
                     [](const InputObserver* o1, const InputObserver* o2) { 
                         return o1->getPriority() > o2->getPriority();
                     }

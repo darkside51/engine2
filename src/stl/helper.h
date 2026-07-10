@@ -22,6 +22,12 @@ namespace engine::stl {
             stl::make_move_iterator(a.end())};
     }
 
+    template <typename InputIterator, typename Predicate>
+	inline InputIterator
+	find_if(InputIterator first, InputIterator last, Predicate predicate) {
+		return eastl::find_if(std::forward<InputIterator>(first), std::forward<InputIterator>(last), std::forward<Predicate>(predicate));
+	}
+
     template<class... T>
     auto make_vector(T && ... t) {
         return make_vector(std::to_array({std::forward<T>(t)...}));

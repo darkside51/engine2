@@ -6,14 +6,14 @@
 
 #include "animation/mesh/skeletal_animation.h"
 #include "animation/texture/frame_sequence_animation.h"
+#include "stl/unordered_map.h"
+#include "stl/utility.h"
+#include "stl/vector.h"
 
 #include <cassert>
 #include <cstdint>
 #include <string>
 #include <string_view>
-#include <unordered_map>
-#include <utility>
-#include <vector>
 
 namespace engine::scene {
 
@@ -57,14 +57,14 @@ public:
         if constexpr (ctti::typeIndex<Animation, T>() == ctti::typeIndex<Animation, SkeletalAnimation>())  {
             auto const result = static_cast<uint16_t>(_skeletalAnimations.size());
             _skeletalAnimations.emplace_back(std::forward<SkeletalAnimation>(anim));
-            _animationNames.emplace(std::string{name}, std::pair{static_cast<uint16_t>(ctti::typeIndex<Animation, SkeletalAnimation>()), result});
+            _animationNames.emplace(std::string{name}, stl::pair{static_cast<uint16_t>(ctti::typeIndex<Animation, SkeletalAnimation>()), result});
             return result;
         }
 
         if constexpr (ctti::typeIndex<Animation, T>() == ctti::typeIndex<Animation, FramesSequence>()) {
             auto const result = static_cast<uint16_t>(_sequences.size());
             _sequences.emplace_back(std::forward<FramesSequence>(anim));
-            _animationNames.emplace(std::string{name}, std::pair{static_cast<uint16_t>(ctti::typeIndex<Animation, FramesSequence>()), result});
+            _animationNames.emplace(std::string{name}, stl::pair{static_cast<uint16_t>(ctti::typeIndex<Animation, FramesSequence>()), result});
             return result;
         }
     }
@@ -113,7 +113,7 @@ public:
     void destroy() noexcept;
 
 private:
-    using AnimationNamesMap = std::unordered_map<std::string, std::pair<uint16_t, uint16_t>, hash::String_hash, std::equal_to<>>;
+    using AnimationNamesMap = stl::unordered_map<std::string, stl::pair<uint16_t, uint16_t>, hash::String_hash, std::equal_to<>>;
     // use vector of vectors?
     stl::vector<SkeletalAnimation> _skeletalAnimations;
     stl::vector<FramesSequence> _sequences;

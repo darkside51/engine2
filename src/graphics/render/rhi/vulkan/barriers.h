@@ -3,6 +3,7 @@
 #include "common/hash.h"
 #include "stl/span.h"
 #include "stl/vector.h"
+#include "stl/unordered_map.h"
 
 #include <vulkan/vulkan.h>
 
@@ -40,7 +41,7 @@ class PipelineBarriers {
         }
     };
 
-    using BarriersMap = std::unordered_map<BarrierStage, Barriers, 
+    using BarriersMap = stl::unordered_map<BarrierStage, Barriers, 
                                             hash::Hasher<BarrierStage>, std::equal_to<>>;
 
 public:

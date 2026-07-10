@@ -45,7 +45,7 @@ namespace engine::scene {
             _subImages[slot] = {image, viewType};
         }
 
-        stl::span<std::pair<const graphics::ImageHandler *, rhi::ImageViewType> const> getSubImages() const noexcept {
+        stl::span<stl::pair<const graphics::ImageHandler *, rhi::ImageViewType> const> getSubImages() const noexcept {
             return _subImages;
         }
         
@@ -56,7 +56,7 @@ namespace engine::scene {
         float _emissive = 0.0f;
         SpriteTextureFilter _filter = SpriteTextureFilter::eLinear;
 
-        std::array<std::pair<const graphics::ImageHandler *, rhi::ImageViewType>, 3u> _subImages;
+        stl::array<stl::pair<const graphics::ImageHandler *, rhi::ImageViewType>, 3u> _subImages;
     };
 
 }

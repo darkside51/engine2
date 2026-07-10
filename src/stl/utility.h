@@ -8,5 +8,5 @@ namespace engine::stl {
     using pair = eastl::pair<T, U>;
     
     // template <typename T, typename U>
-    // using pair = std::pair<T, U>;
+    // using pair = stl::pair<T, U>;
 }

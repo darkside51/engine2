@@ -15,7 +15,7 @@ namespace engine::vulkan {
 
     class DescriptorPool {
     public:
-        DescriptorPool(Device & device, stl::span<const std::pair<rhi::shaders::ResourceType, uint32_t>> resources, 
+        DescriptorPool(Device & device, stl::span<const stl::pair<rhi::shaders::ResourceType, uint32_t>> resources, 
             rhi::shaders::DescriptorPoolFlags f = rhi::shaders::DescriptorPoolFlags::eNone, uint32_t maxSets = 64u);
 
         ~DescriptorPool();
@@ -69,7 +69,7 @@ namespace engine::vulkan {
 
         Device & _device;
         VkDescriptorPool _pool = VK_NULL_HANDLE;
-        std::array<ResourceCount, std::to_underlying(rhi::shaders::ResourceType::eCount)> _resources{};
+        stl::array<ResourceCount, std::to_underlying(rhi::shaders::ResourceType::eCount)> _resources{};
         uint32_t _allocatedSets = 0u;
         uint32_t _maxSets = 0u;
         rhi::shaders::DescriptorPoolFlags _flags = rhi::shaders::DescriptorPoolFlags::eNone;

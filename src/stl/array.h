@@ -8,5 +8,5 @@ namespace engine::stl {
     using array = eastl::array<T, N>;
 
     // template <typename T, size_t N>
-    // using array = std::array<T, N>;
+    // using array = stl::array<T, N>;
 }

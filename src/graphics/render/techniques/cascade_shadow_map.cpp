@@ -28,7 +28,7 @@ namespace engine::graphics {
                                                 ImageAspectFlags::eDepth;
 
         // renderpass
-        std::array attachment = {
+        stl::array attachment = {
             AttachmentDescription {
                 .format = format,
                 .loadStoreOp = AttachmentLoadStoreOp{AttachmentLoadOp::eClear, AttachmentStoreOp::eStore},
@@ -39,7 +39,7 @@ namespace engine::graphics {
             }
         };
 
-        std::array subpass  = {
+        stl::array subpass  = {
             SubpassDescription {
                 .pNext = {nullptr, 0u},
                 .depthStencilAttachment = {
@@ -51,7 +51,7 @@ namespace engine::graphics {
             }
         };
 
-        // std::array<SubpassDependency, 2u> dependency;
+        // stl::array<SubpassDependency, 2u> dependency;
         // dependency[0u] = {
         //     .stages = {
         //         .src = {
@@ -183,7 +183,7 @@ namespace engine::graphics {
 		for (uint8_t i = 0u; i < _cascadesCount; ++i) {
             const float splitDist = _cascadeSplits[i];
 
-            auto frustumCorners = _reversedDepth ? std::array{
+            auto frustumCorners = _reversedDepth ? stl::array{
 				vec3f{-1.0f,  1.0f, 1.0f},
 				vec3f{ 1.0f,  1.0f, 1.0f},
 				vec3f{ 1.0f, -1.0f, 1.0f},
@@ -193,7 +193,7 @@ namespace engine::graphics {
 				vec3f{ 1.0f, -1.0f, 0.0f},
 				vec3f{-1.0f, -1.0f, 0.0f}
 			} :
-            std::array{
+            stl::array{
 				vec3f{-1.0f,  1.0f, 0.0f},
 				vec3f{ 1.0f,  1.0f, 0.0f},
 				vec3f{ 1.0f, -1.0f, 0.0f},
@@ -248,7 +248,7 @@ namespace engine::graphics {
     }
 
     void CascadeShadowMap::beginRenderPass(rhi::runtime::CommandList & commandList, uint8_t frameId) noexcept {
-        const auto clearValues = std::array{
+        const auto clearValues = stl::array{
             rhi::ClearValue{_reversedDepth ? 0.0f : 1.0f, 0u},
         };
         commandList.setViewport(0.0f, 0.0f, _size, _size);

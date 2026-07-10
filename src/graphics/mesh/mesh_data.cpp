@@ -4,6 +4,7 @@
 #include "graphics/texture/texture_manager.h"
 #include "graphics/utils/vertex_processing.h"
 #include "file/file_manager.h"
+#include "stl/array.h"
 
 #include "meshoptimizer.h"
 
@@ -13,7 +14,7 @@
 
 namespace engine::graphics::models {
     
-    constexpr static auto kDefaultSemanticsSizeBytes = std::array{
+    constexpr static auto kDefaultSemanticsSizeBytes = stl::array{
         12u, // ePosition: vec3 (3 floats of 4 bytes)
         12u, // eNormal
         12u, // eTangent
@@ -30,7 +31,7 @@ namespace engine::graphics::models {
         8u, // eUv4
     };
 
-    constexpr static auto kOptimalSemanticsSizeBytes = std::array {
+    constexpr static auto kOptimalSemanticsSizeBytes = stl::array {
         8u, // ePosition: R16G16B16A16
         4u, // eNormal: R8G8B8A8
         4u, // eTangent: R8G8B8A8
@@ -47,7 +48,7 @@ namespace engine::graphics::models {
         4u, // eUv4
     };
 
-    constexpr static auto kOptimalComponentCount = std::array {
+    constexpr static auto kOptimalComponentCount = stl::array {
         4u, // ePosition: R16G16B16A16
         4u, // eNormal: R8G8B8A8
         4u, // eTangent: R8G8B8A8
@@ -317,7 +318,7 @@ namespace engine::graphics::models {
 
 ////
 
-                // std::array<std::pair<size_t, uint32_t>, std::to_underlying(AttributeSemantic::eSemanticsCount)> counts{}; 
+                // stl::array<stl::pair<size_t, uint32_t>, std::to_underlying(AttributeSemantic::eSemanticsCount)> counts{}; 
                 // for (const auto & [semantic, accessorId] : srcPrimitive.attributes) {
                 //     size_t i = 0u;
                 //     for (auto attributeSemantic : allowedAttributes) {
@@ -370,7 +371,7 @@ namespace engine::graphics::models {
                 // break;
             }
 
-            std::sort(mesh.primitives.begin(), mesh.primitives.end(), [](const auto & a, const auto & b) noexcept {
+            stl::sort(mesh.primitives.begin(), mesh.primitives.end(), [](const auto & a, const auto & b) noexcept {
                 return a.material < b.material;
             });
         }

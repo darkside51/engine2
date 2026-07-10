@@ -1,7 +1,8 @@
 #pragma once
 
+#include "stl/array.h"
+
 #include <algorithm>
-#include <array>
 #include <atomic>
 #include <cassert>
 #include <cstddef>
@@ -63,7 +64,7 @@ namespace allocators {
         }
 
     private:
-        std::array<std::byte, max_size<bytes, Types...>::value> _data;
+        engine::stl::array<std::byte, max_size<bytes, Types...>::value> _data;
     };
 }
 

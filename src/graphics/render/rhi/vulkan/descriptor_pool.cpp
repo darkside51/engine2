@@ -9,7 +9,7 @@
 
 namespace engine::vulkan {
 
-    DescriptorPool::DescriptorPool(Device & device, stl::span<const std::pair<rhi::shaders::ResourceType, uint32_t>> resources,
+    DescriptorPool::DescriptorPool(Device & device, stl::span<const stl::pair<rhi::shaders::ResourceType, uint32_t>> resources,
         rhi::shaders::DescriptorPoolFlags f, uint32_t maxSets) : _device(device), _flags(f) {
 
         stl::vector<VkDescriptorPoolSize> poolSizes;
@@ -76,7 +76,7 @@ namespace engine::vulkan {
             }
         }
 
-        freeDescriptorSets(std::array{set()});
+        freeDescriptorSets(stl::array{set()});
         --_allocatedSets;
 
         return true;
@@ -89,7 +89,7 @@ namespace engine::vulkan {
 
         ++_allocatedSets;
 
-        std::array<uint32_t, std::to_underlying(rhi::shaders::ResourceType::eCount)> resources{};
+        stl::array<uint32_t, std::to_underlying(rhi::shaders::ResourceType::eCount)> resources{};
         for (const rhi::shaders::BindingLayout & l : layout.layouts.view()) {
             resources[std::to_underlying(l.type)] += l.count;
         }

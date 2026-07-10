@@ -4,12 +4,12 @@
 #include "graphics/render/rhi/common/types.h"
 #include "graphics/render/rhi/common/runtime.h"
 #include "memory_allocator.h"
+#include "stl/unordered_map.h"
 
 #include <vulkan/vulkan.h>
 
 #include <cstdint>
 #include <string_view>
-#include <unordered_map>
 
 namespace engine::vulkan {
 
@@ -28,7 +28,7 @@ namespace engine::vulkan {
             inline bool operator == (const BufferViewKey & other) const noexcept = default;
         };
 
-        using BufferViewsMap = std::unordered_map<BufferViewKey, VkBufferView, hash::Hasher<BufferViewKey>, std::equal_to<>>;
+        using BufferViewsMap = stl::unordered_map<BufferViewKey, VkBufferView, hash::Hasher<BufferViewKey>, std::equal_to<>>;
 
     public:
         Buffer() = default;
@@ -97,7 +97,7 @@ namespace engine::vulkan {
         Device * _device = nullptr;
         VkBuffer _buffer = VK_NULL_HANDLE;
         MemoryAllocation _allocation{};
-        // std::unordered_map<rhi::Format, VkBufferView> _bufferViews;
+        // stl::unordered_map<rhi::Format, VkBufferView> _bufferViews;
         BufferViewsMap _bufferViews;
 
         uint32_t _queueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;

@@ -2,6 +2,7 @@
 
 #include "EASTL/algorithm.h"
 #include "EASTL/iterator.h"
+#include <EASTL/sort.h>
 #include "vector.h"
 
 // #include <algorithm>
@@ -16,4 +17,21 @@ typename vector<T, Allocator>::size_type erase_if(vector<T, Allocator>& c, Predi
     return eastl::erase_if(c, predicate);
 }
 
+inline constexpr struct {
+    template <typename... Args>
+    constexpr decltype(auto) operator()(Args &&... args) const {
+        return eastl::sort(std::forward<Args>(args)...);
+    }
+} sort;
+
+// template <typename... Args>
+// inline constexpr auto sort = [](Args &&... args) {
+//     eastl::sort(std::forward<Args>(args)...);
+// };
+
+// template <typename RandomAccessIterator>
+// constexpr auto&& sort = eastl::sort<RandomAccessIterator>;
+
+// template <typename RandomAccessIterator, typename Compare>
+// constexpr auto&& sort2 = eastl::sort<RandomAccessIterator, Compare>;
 }

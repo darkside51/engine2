@@ -101,7 +101,7 @@ namespace allocators {
         inline engine::stl::span<std::byte> memory() noexcept { return _memory; }
 
     private:
-        std::array<std::byte, sizeInBytes> _memory;
+        engine::stl::array<std::byte, sizeInBytes> _memory;
         type _stack;
     };
 
@@ -117,7 +117,7 @@ namespace allocators {
         inline bottom_stack_type &bottom() noexcept { return _bottomStack; }
 
     private:
-        std::array<std::byte, sizeInBytes> _memory;
+        engine::stl::array<std::byte, sizeInBytes> _memory;
         top_stack_type _topStack;
         bottom_stack_type _bottomStack;
     };

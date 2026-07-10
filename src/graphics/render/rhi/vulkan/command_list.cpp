@@ -222,11 +222,11 @@ namespace engine::vulkan::runtime {
 
         auto & device = const_cast<Device&>(_pool->getDevice()); // todo remove const_cast
         const Pipeline * currentPipeline = nullptr;
-        std::array<DescriptorSetUpdater, command_limits::kMaxDescriptorsSets> descriptorSetUpdaters;
+        stl::array<DescriptorSetUpdater, command_limits::kMaxDescriptorsSets> descriptorSetUpdaters;
 
         uint8_t changedSets = 0u;
         uint8_t changeDynamicBufferSets = 0u;
-        std::array<VkDescriptorSet, command_limits::kMaxDescriptorsSets> descriptorSets;
+        stl::array<VkDescriptorSet, command_limits::kMaxDescriptorsSets> descriptorSets;
 
         const auto applyDescriptorSets = [&]() noexcept {
             uint8_t firstSet = 0xffu;
@@ -604,7 +604,7 @@ namespace engine::vulkan::runtime {
                 }
 
                 const auto * command = static_cast<CopyBuffer2BufferCommand*>(cmd);
-                std::array copyInfos{utils::convert2vk(command->info)};
+                stl::array copyInfos{utils::convert2vk(command->info)};
 
                 const auto & vkSrcBuffer = *static_cast<const Buffer*>(command->src);
                 const auto & vkDstBuffer = *static_cast<const Buffer*>(command->dst);
@@ -623,7 +623,7 @@ namespace engine::vulkan::runtime {
                 }
 
                 const auto * command = static_cast<CopyBuffer2ImageCommand*>(cmd);
-                std::array copyInfos{utils::convert2vk(command->info)};
+                stl::array copyInfos{utils::convert2vk(command->info)};
 
                 const auto & vkSrcBuffer = *static_cast<const Buffer*>(command->src);
                 const auto & vkDstImage = *static_cast<const Image*>(command->dst);
@@ -650,7 +650,7 @@ namespace engine::vulkan::runtime {
                 const auto srcLayout = utils::convert2vk(commandBlitInfo.srcImageLayout);
                 const auto dstLayout = utils::convert2vk(commandBlitInfo.dstImageLayout);
 
-                std::array<VkImageBlit, 8u> vkBlitInfoArray;
+                stl::array<VkImageBlit, 8u> vkBlitInfoArray;
                 for (uint8_t i = 0u; i < commandBlitInfo.regionsCount; ++i) {
                     auto & vkBlitInfo = vkBlitInfoArray[i];
                     auto const & blitInfo = commandBlitInfo.regions[i];

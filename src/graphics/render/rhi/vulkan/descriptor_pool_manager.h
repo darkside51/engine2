@@ -2,14 +2,14 @@
 
 #include "graphics/render/rhi/common/types.h"
 #include "descriptor_pool.h"
+#include "stl/span.h"
+#include "stl/unordered_map.h"
+#include "stl/utility.h"
+#include "stl/vector.h"
 
 #include <vulkan/vulkan.h>
 
 #include <list>
-#include <span>
-#include <unordered_map>
-#include <vector>
-#include <utility>
 
 namespace engine::vulkan {
 
@@ -113,7 +113,7 @@ namespace engine::vulkan {
 
         void resetPools(uint8_t frameIdx) noexcept;
 
-        DescriptorPool & createPool(stl::span<const std::pair<rhi::shaders::ResourceType, uint32_t>> resources, uint8_t frameIdx = kGlobalPoolsIndex,
+        DescriptorPool & createPool(stl::span<const stl::pair<rhi::shaders::ResourceType, uint32_t>> resources, uint8_t frameIdx = kGlobalPoolsIndex,
             rhi::shaders::DescriptorPoolFlags f = rhi::shaders::DescriptorPoolFlags::eNone, uint32_t maxSets = kDefaultMaxSets);
 
         DescriptorPool & getCompatiblePool(const rhi::shaders::BindingSetLayout & layout, uint8_t frameIdx = kGlobalPoolsIndex,
@@ -124,7 +124,7 @@ namespace engine::vulkan {
             std::list<DescriptorPool> list;
             uint16_t count = 0u; // count unused in frames
         };
-        using DescriptorPools = std::unordered_map<uint32_t, PoolList>;
+        using DescriptorPools = stl::unordered_map<uint32_t, PoolList>;
 
         DescriptorPools & poolsForFrame(uint8_t frameIdx) noexcept;
 

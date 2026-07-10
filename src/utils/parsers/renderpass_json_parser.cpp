@@ -225,7 +225,7 @@ namespace engine {
         return engine::rhi::ImageLayout::eUndefined;
     }
 
-    constexpr auto parseLoadStoreOp(const std::pair<std::string_view, std::string_view> & loadStoreOp) noexcept {
+    constexpr auto parseLoadStoreOp(const stl::pair<std::string_view, std::string_view> & loadStoreOp) noexcept {
         auto loadOp = engine::rhi::AttachmentLoadOp::eNone;
         if (loadStoreOp.first == "eLoad") {
             loadOp = engine::rhi::AttachmentLoadOp::eLoad;
@@ -267,13 +267,13 @@ namespace engine {
         attachments.resize(attachmentsJson.size());
         for (const auto & js : attachmentsJson) {
             const auto & jsLoadStoreOp = js["loadStoreOp"].get_array();
-            const auto loadStoreOp = std::pair<std::string_view, std::string_view>{
+            const auto loadStoreOp = stl::pair<std::string_view, std::string_view>{
                 jsLoadStoreOp[0].as<std::string_view>(),
                 jsLoadStoreOp[1].as<std::string_view>()
             };
 
             const auto & jsStencilLoadStoreOp = js["stencilLoadStoreOp"].get_array();
-            const auto stencilLoadStoreOp = std::pair<std::string_view, std::string_view>{
+            const auto stencilLoadStoreOp = stl::pair<std::string_view, std::string_view>{
                 jsStencilLoadStoreOp[0].as<std::string_view>(),
                 jsStencilLoadStoreOp[1].as<std::string_view>()
             };

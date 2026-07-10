@@ -33,8 +33,8 @@ enum class PbrTextureId : uint8_t {
 constexpr uint8_t kCommonMaterialTexturesCount = 5u;
 
 struct Material {
-    // std::array<rhi::runtime::ImagePtr, kMaterialTexturesCount> textures;
-    std::array<const ImageHandler*, kCommonMaterialTexturesCount> textures;
+    // stl::array<rhi::runtime::ImagePtr, kMaterialTexturesCount> textures;
+    stl::array<const ImageHandler*, kCommonMaterialTexturesCount> textures;
     vec4f baseColorFactor = {1.0f, 1.0f, 1.0f, 1.0f};
     vec3f emissiveFactor = {0.0f, 0.0f, 0.0f};
     float metallicFactor = 1.0f;

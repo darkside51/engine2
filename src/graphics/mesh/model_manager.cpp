@@ -47,7 +47,7 @@ namespace engine::graphics {
                 const stl::span<uint32_t> indices = {&buffers.indexBufferData[primitive.firstIndex], primitive.indexCount};
                 
                 stl::vector<uint32_t> uIdxs = {indices.begin(), indices.end()};
-                std::sort(uIdxs.begin(), uIdxs.end());
+                stl::sort(uIdxs.begin(), uIdxs.end());
                 auto last = std::unique(uIdxs.begin(), uIdxs.end());
                 const auto size = last - uIdxs.begin();
                 std::move(uIdxs.begin(), last, std::back_inserter(buffers.uniqueIndexBufferData));
@@ -76,7 +76,7 @@ namespace engine::graphics {
         _tmpData.emplace_back(index, std::move(buffers));
     }
 
-    std::pair<uint32_t, bool> ModelManager::addModel2(std::string_view name) {
+    stl::pair<uint32_t, bool> ModelManager::addModel2(std::string_view name) {
         if (const auto idx = getModelDataIdx(name); idx != kUnknownDataIndex) {
             return {idx, false};
         }
@@ -96,7 +96,7 @@ namespace engine::graphics {
         return {result, true};
     }
 
-    std::pair<uint32_t, bool> ModelManager::addModel(
+    stl::pair<uint32_t, bool> ModelManager::addModel(
         std::string_view name, 
         models::Layout && layout, 
         GraphicsService & graphicsService, 

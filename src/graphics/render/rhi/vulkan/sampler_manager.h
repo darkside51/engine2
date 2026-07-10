@@ -2,10 +2,9 @@
 
 #include "common/hash.h"
 #include "graphics/render/rhi/common/types.h"
+#include "stl/unordered_map.h"
 
 #include <vulkan/vulkan.h>
-
-#include <unordered_map>
 
 namespace engine::vulkan {
 
@@ -20,7 +19,7 @@ namespace engine::vulkan {
         
     private:
         // need synchronisations ?
-        using Samplers = std::unordered_map<rhi::SamplerInfo, VkSampler, 
+        using Samplers = stl::unordered_map<rhi::SamplerInfo, VkSampler, 
                                             hash::Hasher<rhi::SamplerInfo>, std::equal_to<>>;
 
 

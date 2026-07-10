@@ -23,7 +23,7 @@ struct ModuleReflection {
     ModuleReflection() = default;
     ModuleReflection(rhi::shaders::Stages stage, stl::span<const std::byte> code);
     stl::vector<InValue> in;
-    stl::vector<std::pair<rhi::shaders::BindingSetLayout, uint8_t>> sets; // pair of BindingSetLayout and set id
+    stl::vector<stl::pair<rhi::shaders::BindingSetLayout, uint8_t>> sets; // pair of BindingSetLayout and set id
     stl::vector<VkPushConstantRange> pushConstants;
     rhi::shaders::Stages stage = rhi::shaders::Stages::eNone;
 };
@@ -87,7 +87,7 @@ public:
 
     const rhi::shaders::BindingSetLayout * getLayout(uint8_t setId) const noexcept;
     uint32_t setsCount() const noexcept { return _sets.size(); }
-    stl::span<const std::pair<rhi::shaders::BindingSetLayout, uint8_t>> setsView() const noexcept {
+    stl::span<const stl::pair<rhi::shaders::BindingSetLayout, uint8_t>> setsView() const noexcept {
         return _sets;
     }
 
@@ -99,7 +99,7 @@ public:
     void destroy() noexcept;
 
 private:
-    stl::vector<std::pair<rhi::shaders::BindingSetLayout, uint8_t>> _sets;
+    stl::vector<stl::pair<rhi::shaders::BindingSetLayout, uint8_t>> _sets;
     stl::vector<VkPipelineShaderStageCreateInfo> _shaderStages;
     Device * _device = nullptr; 
     VkPipelineLayout _pipelineLayout = VK_NULL_HANDLE;

@@ -10,7 +10,7 @@ namespace engine::graphics {
     void Ssao::createRenderPass(rhi::runtime::Rhi & api, rhi::runtime::Device & device) {
         using namespace rhi;
         // renderpass
-        std::array attachment = {
+        stl::array attachment = {
             rhi::AttachmentDescription {
                 .format = format(),
                 .loadStoreOp = AttachmentLoadStoreOp{AttachmentLoadOp::eClear, AttachmentStoreOp::eStore},
@@ -21,7 +21,7 @@ namespace engine::graphics {
             }
         };
 
-        std::array subpass  = {
+        stl::array subpass  = {
             SubpassDescription {
                 .pNext = {nullptr, 0u},
                 .colorAttachments = {{
@@ -136,7 +136,7 @@ namespace engine::graphics {
     }
 
     void Ssao::beginRenderPass(rhi::runtime::CommandList & commandList, uint8_t frameId) noexcept{
-        constexpr auto clearValues = std::array{
+        constexpr auto clearValues = stl::array{
             rhi::ClearValue{0x00'00'00'ffu},
         };
         const auto & extent = _images[frameId]->getExtent();

@@ -254,7 +254,7 @@ namespace engine::vulkan {
             }
         }
 
-        std::sort(_sets.begin(), _sets.end(), [](const auto & s0, const auto & s1) noexcept {
+        stl::sort(_sets.begin(), _sets.end(), [](const auto & s0, const auto & s1) noexcept {
             return s0.second < s1.second;
         });
 

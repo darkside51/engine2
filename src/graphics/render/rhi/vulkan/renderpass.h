@@ -4,6 +4,7 @@
 
 #include "common/hash.h"
 #include "graphics/render/rhi/common/renderpass.h"
+#include "stl/unordered_map.h"
 
 #include <vulkan/vulkan.h>
 
@@ -22,11 +23,11 @@ struct RenderPass {
     };
 
     VkRenderPass vkRenderPass = VK_NULL_HANDLE;
-    std::array<AttachmentInfo, kMaxAttachemts> attachments;
+    stl::array<AttachmentInfo, kMaxAttachemts> attachments;
 };
 
 class RenderPassManager {
-    using RenderPassMap = std::unordered_map<rhi::RenderPassDescription, RenderPass*, 
+    using RenderPassMap = stl::unordered_map<rhi::RenderPassDescription, RenderPass*, 
                                             hash::Hasher<rhi::RenderPassDescription>, std::equal_to<>>;
 public:
     explicit RenderPassManager(const Device & device) : _device(device) {};

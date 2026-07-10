@@ -46,7 +46,7 @@ inline stl::array<uint16_t, 2u> to_vec2u16(vec2f v) noexcept {
     return {float_to_uint16(v.x), float_to_uint16(v.y)};
 }
 
-inline stl::array<uint16_t, 2u> to_vec2u16(std::array<float, 2u> v) noexcept {
+inline stl::array<uint16_t, 2u> to_vec2u16(stl::array<float, 2u> v) noexcept {
     return {float_to_uint16(v[0u]), float_to_uint16(v[1u])};
 }
 
@@ -59,7 +59,7 @@ inline stl::array<uint16_t, 3u> to_vec3u16(vec3f v) noexcept {
     return {float_to_uint16(v.x), float_to_uint16(v.y), float_to_uint16(v.z)};
 }
 
-inline stl::array<uint16_t, 3u> to_vec3u16(std::array<float, 3u> v) noexcept {
+inline stl::array<uint16_t, 3u> to_vec3u16(stl::array<float, 3u> v) noexcept {
     return {float_to_uint16(v[0u]), float_to_uint16(v[1u]), float_to_uint16(v[2u])};
 }
 
