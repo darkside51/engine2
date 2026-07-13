@@ -24,6 +24,12 @@ inline constexpr struct {
     }
 } sort;
 
+template <typename Container>
+using back_insert_iterator = eastl::back_insert_iterator<Container>;
+
+template <typename Container>
+inline back_insert_iterator<Container> back_inserter(Container & x) { return eastl::back_inserter<Container>(x); }
+
 // template <typename... Args>
 // inline constexpr auto sort = [](Args &&... args) {
 //     eastl::sort(std::forward<Args>(args)...);

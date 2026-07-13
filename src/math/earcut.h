@@ -18,5 +18,10 @@ namespace mapbox::util {
 }
 
 namespace engine {
-    namespace earcut = mapbox::util;
+    // namespace earcut = mapbox::util;
+
+    template <typename N = uint32_t, typename Polygon>
+    auto earcut(const Polygon & poly) {
+        return mapbox::earcut<N>(poly);
+    }
 }

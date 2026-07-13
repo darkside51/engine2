@@ -43,6 +43,9 @@ public:
         commands.clear();
     }
 
+    rhi::runtime::Rhi & getApi() noexcept { return _api; }
+    rhi::runtime::Device & getDevice() noexcept { return _device; }
+
 private:
     rhi::runtime::Rhi & _api;
     rhi::runtime::Device & _device;
