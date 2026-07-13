@@ -5,11 +5,11 @@
 
 namespace map {
 
-float getHeightFromEncodedRGB(engine::vec3f rgb) noexcept {
+inline float getHeightFromEncodedRGB(engine::vec3f rgb) noexcept {
     return -10000.0f + ((rgb.x * 256.0f * 256.0f + rgb.y * 256.0f + rgb.z) * 0.1f);
 }
 
-TileID latLonToTileID(double lat, double lon, uint8_t zoom) noexcept {
+inline TileID latLonToTileID(double lat, double lon, uint8_t zoom) noexcept {
     // Переводим широту из градусов в радианы
     const double latRad = lat * engine::pi_v<double> / 180.0;
     const double n = std::pow(2.0, zoom);
@@ -21,7 +21,7 @@ TileID latLonToTileID(double lat, double lon, uint8_t zoom) noexcept {
     };
 }
 
-TileID normalizedMercatorToTileId(engine::vec2d mercator, uint8_t zoom) noexcept {
+inline TileID normalizedMercatorToTileId(engine::vec2d mercator, uint8_t zoom) noexcept {
     const uint32_t tilesPerAxis = 1u << zoom;
     return {
         .x = static_cast<uint32_t>(mercator.x * tilesPerAxis),
@@ -29,6 +29,5 @@ TileID normalizedMercatorToTileId(engine::vec2d mercator, uint8_t zoom) noexcept
         .z = zoom
     };
 }
-
 
 }

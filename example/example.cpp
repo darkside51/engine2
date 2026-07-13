@@ -49,10 +49,10 @@
 #include "engine/src/stl/vector.h"
 
 #include "map/tile_id.h"
+#include "map/geography.h"
+#include "map/vector_tile_parser.h"
 
 #include <imgui.h>
-#include <vtzero/vector_tile.hpp>
-#include <vtzero/property_value.hpp>
 
 #include <deque>
 #include <optional>
@@ -174,6 +174,13 @@ namespace example {
     float saturation = 1.0f;
 
     engine::network::CurlNetworkService curlNetworkService;
+
+    struct MapPolygonGeometry {
+        engine::rhi::runtime::BufferPtr positions;
+        engine::rhi::runtime::BufferPtr indices;
+    };
+
+    std::vector<MapPolygonGeometry> g_mapGeometry;
 
     void optionsWindow() {
         ImGui::SetNextWindowSize(ImVec2(540, 840), ImGuiCond_FirstUseEver);
@@ -303,6 +310,7 @@ namespace example {
         }
 
         threads::Worker & getScheduler() noexcept { return _worker; }
+        engine::graphics::BackgroundCommandContext & getCommandContext() noexcept { return _commandContext; }
 
     private:
         threads::Worker _worker;
@@ -567,76 +575,173 @@ namespace example {
             if (event.state == engine::InputEventState::ePress && event.key == engine::KeyboardKey::eK) {
                 // threads::StopSource2 stopSource;
                 // https://maptiler.com/{z}/{x}/{y}.pbf?key=YOUR_API_KEY
+                auto const tileId = map::latLonToTileID(68.971447, 33.074109, 14u);
                 curlNetworkService.sendRequest(backgroundgWorker->getScheduler(),
                     //engine::network::http::Request{"https://i.pinimg.com/originals/97/3e/fd/973efd74e4edfa29b2e939c6a8774c4e.jpg"},
                     // {z}/{x}/{y}
-                    engine::network::http::Request{"https://api.maptiler.com/tiles/terrain-rgb/0/0/0.png?key=6ks89yREYo9GEfWO2i8h"},
+                    // max zoom 5 on maptiler for heightmap
+                    engine::network::http::Request{"https://api.maptiler.com/tiles/terrain-rgb/5/2/2.png?key=6ks89yREYo9GEfWO2i8h"},
                     [](engine::stl::vector<std::byte> && response, engine::network::RequestResult resultCode) {
                         if (resultCode == engine::network::RequestResult::eSuccess) {
                             // fileManager.getFileSystem("common_fs0")->writeFile("download/image.jpg", response.data(), response.size());
-                            fileManager.getFileSystem("common_fs0")->writeFile("download/tile_0_0_0.png", response.data(), response.size());
+                            fileManager.getFileSystem("common_fs0")->writeFile(
+                                "download/tile_5_2_2.png", 
+                                response.data(), response.size());
                         }
                         printf("result code %d\n", static_cast<uint8_t>(resultCode));
                         //std::string_view str{reinterpret_cast<char*>(response.data()), response.size()};
                         //printf("resonse: %s\n", str.data());
                 }, {}/*stopSource.get_token()*/);
 
+
+//https://api.maptiler.com/tiles/buildings/?key=6ks89yREYo9GEfWO2i8h#14.0/47.37000/8.53000
+//https://api.maptiler.com/tiles/buildings/{z}/{x}/{y}.pbf?key=6ks89yREYo9GEfWO2i8h
+//https://maptiler.com/{z}/{x}/{y}.pbf?key=6ks89yREYo9GEfWO2i8h
+                
+// export MAPBOX_ACCESS_TOKEN=pk.eyJ1IjoibWFpbHJ1bWFwcyIsImEiOiJja2p2NXdrMDMwMXRoMndtbGc0aG5tNTdzIn0.Q7c8BRWs63n--X4nkt7QPw
+// export MLN_API_KEY=pk.eyJ1IjoibWFpbHJ1bWFwcyIsImEiOiJja2p2NXdrMDMwMXRoMndtbGc0aG5tNTdzIn0.Q7c8BRWs63n--X4nkt7QPw
+
+// https://api.protomaps.com/tiles/v4/{z}/{x}/{y}.mvt?key=1356a5e8566eb869
+
                 curlNetworkService.sendRequest(backgroundgWorker->getScheduler(),
-                    engine::network::http::Request{"https://api.maptiler.com/tiles/v4/0/0/0.pbf?key=6ks89yREYo9GEfWO2i8h"},
-                    [](engine::stl::vector<std::byte> && response, engine::network::RequestResult resultCode) {
-                        if (resultCode == engine::network::RequestResult::eSuccess) {
-                            //!!! data can be compressed !!! - need uncompress
-                            std::string str{reinterpret_cast<char*>(response.data()), response.size()};
-                            vtzero::vector_tile tile{str};
+                    engine::network::http::Request{
+                        engine::fmt_string("https://api.protomaps.com/tiles/v4/%d/%d/%d.mvt?key=1356a5e8566eb869", tileId.z, tileId.x, tileId.y)},
+                        [tileId](engine::stl::vector<std::byte> && response, engine::network::RequestResult resultCode) {
+                            if (resultCode == engine::network::RequestResult::eSuccess) {
+                                map::VectorTileParser parser;
+                                parser.parseData(std::move(response), [](map::TileParsedGeometry && geometry) {
+                                    if (!geometry.polygons.empty()) {
+                                        auto & commandContext = backgroundgWorker->getCommandContext();
+                                        auto & api = commandContext.getApi();
+                                        auto & device = commandContext.getDevice();
 
-                            // define a variant covering the valid Vector Tile property types
-                            using variant_type = std::variant<std::string, float, double, int64_t, uint64_t, bool>;
-                            auto stringify = [](vtzero::property_value pvalue)->std::string {
-                                variant_type v = vtzero::convert_property_value<variant_type>(pvalue);
-                                return variant::visit(
-                                    v, 
-                                    [](std::string & value) { return value; },
-                                    [](auto && value) { return std::to_string(value); }
-                                );
-                            };
+                                        const engine::rhi::BufferInfo vertexBufferInfo {
+                                            engine::rhi::BufferUsageFlags::eVertex_Buffer | engine::rhi::BufferUsageFlags::eTransfer_Dst,
+                                            engine::rhi::MemoryPropertyFlags::eDeviceLocal
+                                        };
 
-                            struct GeometryHandler {
-                                void points_begin(uint32_t count) { printf("Points [%d]", count); }
-                                void points_point(const vtzero::point p) { printf("(%d, %d), ", p.x, p.y); }
-                                void points_end() { printf("\n"); }
+                                        const engine::rhi::BufferInfo indexBufferInfo {
+                                            engine::rhi::BufferUsageFlags::eIndex_Buffer | engine::rhi::BufferUsageFlags::eTransfer_Dst,
+                                            engine::rhi::MemoryPropertyFlags::eDeviceLocal
+                                        };
+                                        
+                                        // struct MapPolygonGeometry {
+                                        //     engine::rhi::runtime::BufferPtr positions;
+                                        //     engine::rhi::runtime::BufferPtr indices;
+                                        // };
 
-                                void linestring_begin(uint32_t count) { printf("Line [%d]", count); }
-                                void linestring_point(const vtzero::point p) { printf("(%d, %d), ", p.x, p.y); }
-                                void linestring_end() { printf("\n"); }
+                                        std::vector<MapPolygonGeometry> mapGeometry;
 
-                                void ring_begin(uint32_t count) { printf("Polygon Ring [%d]", count); }
-                                void ring_point(const vtzero::point p) { printf("(%d, %d), ", p.x, p.y); }
-                                void ring_end(vtzero::ring_type) { printf("\n"); }
-                            };
+                                        size_t allDataSize = 0u;
 
-                            while (auto layer = tile.next_layer()) { //
-                                printf("Layer: %s\n", layer.name().to_string().c_str());
+                                        for (auto & polygon : geometry.polygons) {
+                                            const auto vtxSize = sizeof(engine::vec3f) * polygon.totalVerices.size();
+                                            const auto idxSize = sizeof(uint32_t) * polygon.totalIndices.size();
+                                            if (vtxSize == 0u || idxSize == 0u) {
+                                                continue;
+                                            }
+                                            allDataSize += vtxSize + idxSize;
 
-                                // 5. Iterate over features within the layer
-                                while (auto feature = layer.next_feature()) { //
-                                    printf("Feature ID: %lu\n", feature.id());
+                                            auto & g = mapGeometry.emplace_back();
 
-                                    // 6. Read Feature Tags (Metadata attributes)
-                                    printf("Properties:\n");
-                                    while (auto property = feature.next_property()) {
-                                         printf("%s = %s\n",property.key().to_string().c_str(), stringify(property.value()).c_str());
+                                            g.positions = api.createBuffer(
+                                                device, 
+                                                vertexBufferInfo, 
+                                                vtxSize
+                                            );
+
+                                            g.indices = api.createBuffer(
+                                                device,
+                                                indexBufferInfo, 
+                                                idxSize
+                                            );
+                                        }
+
+                                        engine::graphics::StagingBuffer staging{api, device, allDataSize};
+                                        std::byte * memory = staging.map();
+
+                                        for (auto & polygon : geometry.polygons) {
+                                            const auto vtxSize = sizeof(engine::vec3f) * polygon.totalVerices.size();
+                                            const auto idxSize = sizeof(uint32_t) * polygon.totalIndices.size();
+                                            if (vtxSize == 0u || idxSize == 0u) {
+                                                continue;
+                                            }
+
+                                            const auto vtxOffset = staging.requestBytes(vtxSize);
+                                            const auto idxOffset = staging.requestBytes(idxSize);
+
+                                            auto * vtxData = reinterpret_cast<engine::vec3f*>(memory + vtxOffset);
+                                            auto * idxData = reinterpret_cast<uint32_t*>(memory + idxOffset);
+
+                                            memcpy(vtxData, polygon.totalVerices.data(), vtxSize);
+                                            memcpy(idxData, polygon.totalIndices.data(), idxSize);
+                                        }
+
+                                        staging.flush();
+                                        staging.unmap();
+
+                                        gpuTasks.emplace_back(BackgroundWorker::GpuJob{[
+                                            staging = std::move(staging),
+                                            mapGeometry = std::move(mapGeometry)
+                                        ](
+                                            engine::rhi::runtime::CommandList & commandList, 
+                                            engine::stl::vector<threads::WorkerTask> & callbacks
+                                        ) mutable {
+                                            size_t offset = 0u;
+                                            for (auto & geometry : mapGeometry) {
+                                                commandList.copyBuffer2Buffer(staging.getBuffer(), geometry.positions, 
+                                                    {.srcOffset = offset, .dstOffset = 0u, .size = geometry.positions->sizeInBytes()});
+                                                offset += geometry.positions->sizeInBytes();
+
+                                                commandList.copyBuffer2Buffer(staging.getBuffer(), geometry.indices, 
+                                                    {.srcOffset = offset, .dstOffset = 0u, .size = geometry.indices->sizeInBytes()});
+                                                offset += geometry.indices->sizeInBytes();
+                                            }
+
+                                            callbacks.emplace_back([mapGeometry = std::move(mapGeometry)](){
+                                                g_mapGeometry = std::move(mapGeometry);
+                                            });
+                                        }});
                                     }
-
-                                    // 7. Decode Geometries (Points, Lines, or Polygons)
-                                    GeometryHandler handler;
-                                    vtzero::decode_geometry(feature.geometry(), handler);
-                                }
+                                });
+                                
+                                fileManager.getFileSystem("common_fs0")->writeFile(
+                                    engine::fmt_string("download/tile_%d_%d_%d.pbf", tileId.z, tileId.x, tileId.y), 
+                                    response.data(), response.size());
                             }
+                            printf("result code %d\n", static_cast<uint8_t>(resultCode));
+                        }, {}/*stopSource.get_token()*/);
+
+                // curlNetworkService.sendRequest(backgroundgWorker->getScheduler(),
+                //     engine::network::http::Request{
+                //         engine::fmt_string("https://api.maptiler.com/tiles/v4/%d/%d/%d.pbf?key=6ks89yREYo9GEfWO2i8h", tileId.z, tileId.x, tileId.y)},
+                //     [tileId](engine::stl::vector<std::byte> && response, engine::network::RequestResult resultCode) {
+                //         if (resultCode == engine::network::RequestResult::eSuccess) {
+                //             map::VectorTileParser parser;
+                //             parser.parseData(std::move(response));
                             
-                            fileManager.getFileSystem("common_fs0")->writeFile("download/tile_0_0_0.pbf", response.data(), response.size());
-                        }
-                        printf("result code %d\n", static_cast<uint8_t>(resultCode));
-                }, {}/*stopSource.get_token()*/);
+                //             fileManager.getFileSystem("common_fs0")->writeFile(
+                //                 engine::fmt_string("download/tile_%d_%d_%d.pbf", tileId.z, tileId.x, tileId.y), 
+                //                 response.data(), response.size());
+                //         }
+                //         printf("result code %d\n", static_cast<uint8_t>(resultCode));
+                // }, {}/*stopSource.get_token()*/);
+
+
+                // curlNetworkService.sendRequest(backgroundgWorker->getScheduler(),
+                //     engine::network::http::Request{
+                //         engine::fmt_string("https://api.maptiler.com/data/maptiler-buildings/v4/%d/%d/%d.pbf?key=6ks89yREYo9GEfWO2i8h", tileId.z, tileId.x, tileId.y)},
+                //     [tileId](engine::stl::vector<std::byte> && response, engine::network::RequestResult resultCode) {
+                //         if (resultCode == engine::network::RequestResult::eSuccess) {
+                //             map::VectorTileParser parser;
+                //             parser.parseData(std::move(response));
+                            
+                //             fileManager.getFileSystem("common_fs0")->writeFile(
+                //                 engine::fmt_string("download/tile_buildings_%d_%d_%d.pbf", tileId.z, tileId.x, tileId.y), 
+                //                 response.data(), response.size());
+                //         }
+                //         printf("result code %d\n", static_cast<uint8_t>(resultCode));
+                // }, {}/*stopSource.get_token()*/);
 
 
 
@@ -708,6 +813,8 @@ namespace example {
         shadowMap = nullptr;
 
         skyBoxCubeMapImage = nullptr;
+
+        g_mapGeometry.clear();
         
         _pipelines.clear();
         _programs.clear();
