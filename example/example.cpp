@@ -90,7 +90,10 @@ namespace example {
     constexpr uint8_t kSsaoPipeline = 1u;
     constexpr uint8_t kEmissiveBlurPipeline = 2u;
 
+    constexpr uint8_t kMapBuildingsPipeline = 3u;
+
     constexpr uint8_t kSpritesProgram2 = 14u;
+    constexpr uint8_t kMapBuildingsProgram = 15u;
 
     constexpr uint8_t kSsaoKernelSize = 32u;
     constexpr uint8_t kSsaoNoiseDim = 4u;
@@ -1305,6 +1308,16 @@ namespace example {
 
             _programs.emplace_back(_api->createProgram(*_device, engine::stl::array{vsModule.getView(), fsModule.getView()}));
         }
+
+        { // kMapBuildingsProgram
+            auto const vBytes = fileManager.readFile("shaders/building.vert.spv");
+            auto const fBytes = fileManager.readFile("shaders/building.frag.spv");
+
+            const auto & vsModule = _shaderModulesManager->registerModule("building.vert", *_device, engine::rhi::shaders::Stages::eVertex, vBytes);
+            const auto & fsModule = _shaderModulesManager->registerModule("building.frag", *_device, engine::rhi::shaders::Stages::eFragment, fBytes);
+
+            _programs.emplace_back(_api->createProgram(*_device, engine::stl::array{vsModule.getView(), fsModule.getView()}));
+        }
     }
     
     void Example::createPipelines() {
@@ -1340,6 +1353,10 @@ namespace example {
 
         // kEmissiveBlurPipeline
         _pipelines.emplace_back(_api->createGraphicsPipeline(*_device, _renderPasses[kBlurRenderPass], _programs[kEmissiveBlurProgram], info0, 0u));
+
+        // kMapBuildingsPipeline
+        const GraphicsPipelineStatesInfo info9 = engine::parseGraphicsPipelineInfo(json["map_buildings"]);
+        _pipelines.emplace_back(_api->createGraphicsPipeline(*_device, _renderPasses[kGbufferRenderPass], _programs[kMapBuildingsProgram], info9, 0u));
 
         // scene pipelines
         const GraphicsPipelineStatesInfo info2 = engine::parseGraphicsPipelineInfo(json["sprite_common"]);
@@ -2368,7 +2385,7 @@ namespace example {
         // scene pass
         commandList->beginRenderPass(_renderPasses[kGbufferRenderPass], _gBuffers[frameId], gBufferClearValues, {{0, 0}, {width, height}});
         // scene->dispatch(commandList, frameId, objects, offsets);
-        
+        const auto sceneViewParamBufferOffset = scene->getCurrentViewParamsBufferOffset();
         scene->draw(engine::scene::RenderPass::eCommon, commandList, transferCommandList, frameId, viewParams, objects, offsets1);
         // scene->draw(commandList, transferCommandList, frameId, viewParams, o1, offsets1);
         // scene->draw(commandList, transferCommandList, frameId, viewParams, o0, offsets0);   
@@ -2377,6 +2394,17 @@ namespace example {
             scene->drawDebug(viewParams, objects);
             drawHelper.prepare(*transferCommandList, frameId);
             drawHelper.draw(*commandList, frameId, now);
+        }
+
+        if (!g_mapGeometry.empty()) {
+            commandList->bindPipeline(_pipelines[kMapBuildingsPipeline]);
+            for (auto & g : g_mapGeometry) {
+                commandList->bindVertexBuffer(0u, g.positions);
+                commandList->bindIndexBuffer(g.indices, 0u, rhi::IndexType::eU32);
+                commandList->bindBuffer(0u, scene->getViewParamsUniformBuffer(frameId), 0u, sceneViewParamBufferOffset);
+                commandList->drawIndexed(g.indices->sizeInBytes() / sizeof(uint32_t));
+            }
+            
         }
 
         //commandList->nextSubpass(rhi::SubpassContents::ePrimaryBufferInline);

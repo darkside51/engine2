@@ -9,7 +9,7 @@
 namespace map {
 
     struct LayerPolygons {
-        void addGeometry(std::vector<uint32_t> indices, engine::stl::vector<engine::vec2f> vertices, float minHeight, float height);
+        void addGeometry(std::vector<uint32_t> indices, std::vector<engine::vec2f> vertices, float minHeight, float height);
         std::vector<uint32_t> totalIndices;
         engine::stl::vector<engine::vec3f> totalVerices;
     };

@@ -204,6 +204,14 @@ public:
 
     float getShadersTime() const noexcept { return _shadersTime; }
 
+    const rhi::runtime::BufferPtr & getViewParamsUniformBuffer(uint8_t frame) const noexcept {
+        return (*_viewParamsUniformBuffer)(frame);
+    }
+
+    uint32_t getCurrentViewParamsBufferOffset() const noexcept {
+        return _currentViewParamsBufferOffset;
+    }
+
 private:
     // attachments
     static bool compareAttachmentsForDraw(const AttachmentObject & a, const AttachmentObject & b) noexcept;
