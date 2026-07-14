@@ -29,7 +29,7 @@ void main() {
 	vec3 normal = v_normalMatrix * -normalize(cross(dFdx(v_position), dFdy(v_position)));
 
 	out_normal = vec4(normalize(normal) * 0.5 + 0.5, 0.0f);
-	out_albedo = vec4(1.0f, 0.0f, 0.0f, 1.0f);
+	out_albedo = vec4(0.85f, 0.85f, 0.85f, 1.0f);
 	out_emissive = vec4(0.0, 0.0, 0.0, 0.0);
 	out_metalicRoughness = vec2(0.0f, 1.0f);
 }

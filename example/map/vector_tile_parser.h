@@ -1,6 +1,7 @@
 #pragma once
 
 #include "math/math.h"
+#include "stl/array.h"
 #include "stl/vector.h"
 
 #include <cstddef>
@@ -11,13 +12,13 @@ namespace map {
     struct LayerPolygons {
         void addGeometry(
             std::vector<uint32_t> indices, 
-            std::vector<engine::vec2f> vertices, 
+            std::vector<engine::vec2i> vertices, 
             std::vector<std::pair<uint32_t, uint32_t>> rings, 
             float minHeight, 
             float height
         );
         std::vector<uint32_t> totalIndices;
-        engine::stl::vector<engine::vec3f> totalVerices;
+        engine::stl::vector<engine::stl::array<int16_t, 4u>> totalVerices;
     };
 
     struct TileParsedGeometry {

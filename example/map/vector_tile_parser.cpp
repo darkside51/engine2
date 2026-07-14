@@ -59,7 +59,7 @@ namespace map {
     class PolygonGeometryHandler {
     public:
         struct Polygon {
-            std::vector<engine::vec2f> vertices;
+            std::vector<engine::vec2i> vertices;
             std::vector<uint32_t> indices;
             std::vector<std::pair<uint32_t, uint32_t>> rings;
         };
@@ -73,7 +73,7 @@ namespace map {
         }
 
         void ring_point(const vtzero::point p) noexcept {
-            _currentRing.emplace_back(engine::vec2f{static_cast<float>(p.x), static_cast<float>(p.y)} / _extent);
+            _currentRing.emplace_back(engine::vec2i{p.x, p.y});
         }
 
         void ring_end(vtzero::ring_type type) {
@@ -91,7 +91,7 @@ namespace map {
             
             // Переворачиваем кольцо: MVT дает CW для outer и CCW для inner. 
             // Earcut требует строго обратного.
-            std::reverse(_currentRing.begin(), _currentRing.end());
+            // std::reverse(_currentRing.begin(), _currentRing.end());
 
             // Запоминаем индексы дыр для earcut
             if (type == vtzero::ring_type::inner) {
@@ -114,25 +114,27 @@ namespace map {
         float _extent{};
         Polygon _polygon;
         
-        std::vector<engine::vec2f> _currentRing;
+        std::vector<engine::vec2i> _currentRing;
         
         // Буферы для сборки одного изолированного полигона (контур + все его дыры)
-        std::vector<std::vector<engine::vec2f>> _earcutPolygonStructure;
-        std::vector<engine::vec2f> _accumulatedVertices;
+        std::vector<std::vector<engine::vec2i>> _earcutPolygonStructure;
+        std::vector<engine::vec2i> _accumulatedVertices;
         std::vector<uint32_t> _accumulatedHoleIndices;
 
         void triangulateCurrentPolygon() {
-            if (_earcutPolygonStructure.empty()) return;
+            if (_earcutPolygonStructure.empty()) {
+                return;
+            }
 
-            const auto vertexStart = _polygon.vertices.size();
+            const auto vertexStart = static_cast<uint32_t>(_polygon.vertices.size());
             
             // Нарезаем метаданные колец (нужно для построения стен в addGeometry)
-            size_t currentRingOffset = 0u;
-            for (const auto& ring : _earcutPolygonStructure) {
-                size_t ringSize = ring.size();
+            uint32_t currentRingOffset = 0u;
+            for (const auto & ring : _earcutPolygonStructure) {
+                const auto ringSize = static_cast<uint32_t>(ring.size());
                 _polygon.rings.emplace_back(std::pair{
-                    static_cast<uint32_t>(vertexStart + currentRingOffset),
-                    static_cast<uint32_t>(vertexStart + currentRingOffset + ringSize - 1u)
+                    vertexStart + currentRingOffset,
+                    vertexStart + currentRingOffset + ringSize - 1u
                 });
                 currentRingOffset += ringSize;
             }
@@ -142,12 +144,16 @@ namespace map {
 
             if (!localIndices.empty()) {
                 // Переносим вершины в глобальный контейнер фичи
-                _polygon.vertices.insert(_polygon.vertices.end(), _accumulatedVertices.begin(), _accumulatedVertices.end());
+                _polygon.vertices.insert(
+                    _polygon.vertices.end(), 
+                    std::make_move_iterator(_accumulatedVertices.begin()), 
+                    std::make_move_iterator(_accumulatedVertices.end())
+                );
 
                 // Смещаем локальные индексы earcut на vertexStart
                 _polygon.indices.reserve(_polygon.indices.size() + localIndices.size());
                 for (auto localIdx : localIndices) {
-                    _polygon.indices.emplace_back(static_cast<uint32_t>(vertexStart) + localIdx);
+                    _polygon.indices.emplace_back(vertexStart + localIdx);
                 }
             }
 
@@ -160,7 +166,7 @@ namespace map {
 
     void LayerPolygons::addGeometry(
         std::vector<uint32_t> indices, 
-        std::vector<engine::vec2f> vertices, 
+        std::vector<engine::vec2i> vertices, 
         std::vector<std::pair<uint32_t, uint32_t>> rings, 
         float minHeight, 
         float height
@@ -171,8 +177,8 @@ namespace map {
         const auto isz = indices.size();
 
         //
-        const auto hMin = metersToTileUnits(minHeight, 55.750982f, 14u, 4096.0f) / 4096.0f;
-        const auto hMax = metersToTileUnits(height, 55.750982f, 14u, 4096.0f) / 4096.0f;
+        const auto hMin = metersToTileUnits(minHeight, 55.750982f, 14u, 4096.0f);// / 4096.0f;
+        const auto hMax = metersToTileUnits(height, 55.750982f, 14u, 4096.0f);// / 4096.0f;
 
         // floor
         const auto currentVertexCount = totalVerices.size();
@@ -183,7 +189,14 @@ namespace map {
             totalIndices.emplace_back(currentVertexCount + idx);
         }
         for (auto vtx : vertices) {
-            totalVerices.emplace_back(engine::vec3f{4.0f * vtx.x, 4.0f * (1.0f - vtx.y) + 10.0f, 4.0f * hMin});
+            totalVerices.emplace_back(
+                engine::stl::array<int16_t, 4u>{
+                    static_cast<int16_t>(vtx.x), 
+                    static_cast<int16_t>(4096 - vtx.y), 
+                    static_cast<int16_t>(hMin),
+                    0
+                }
+            );
         }
 
         // roof
@@ -195,7 +208,15 @@ namespace map {
             totalIndices.emplace_back(currentVertexCount2 + idx);
         }
         for (auto vtx : vertices) {
-            totalVerices.emplace_back(engine::vec3f{4.0f * vtx.x, 4.0f * (1.0f - vtx.y) + 10.0f, 4.0f * hMax});
+            // totalVerices.emplace_back(engine::vec3f{4.0f * vtx.x, 4.0f * (1.0f - vtx.y) + 10.0f, 4.0f * hMax});
+            totalVerices.emplace_back(
+                engine::stl::array<int16_t, 4u>{
+                    static_cast<int16_t>(vtx.x), 
+                    static_cast<int16_t>(4096 - vtx.y), 
+                    static_cast<int16_t>(hMax),
+                    0
+                }
+            );
         }
 
         // faces
@@ -210,11 +231,11 @@ namespace map {
                 const auto roofNext = static_cast<uint32_t>(currentVertexCount2 + nextIdx);
 
                 totalIndices.emplace_back(floorCurrent);
-                totalIndices.emplace_back(roofCurrent);
                 totalIndices.emplace_back(floorNext);
+                totalIndices.emplace_back(roofCurrent);
                 
-                totalIndices.emplace_back(floorNext);
                 totalIndices.emplace_back(roofCurrent);
+                totalIndices.emplace_back(floorNext);
                 totalIndices.emplace_back(roofNext);
             }
         }

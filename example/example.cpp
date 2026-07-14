@@ -639,7 +639,7 @@ namespace example {
                                         size_t allDataSize = 0u;
 
                                         for (auto & polygon : geometry.polygons) {
-                                            const auto vtxSize = sizeof(engine::vec3f) * polygon.totalVerices.size();
+                                            const auto vtxSize = sizeof(int16_t) * 4u * polygon.totalVerices.size();
                                             const auto idxSize = sizeof(uint32_t) * polygon.totalIndices.size();
                                             if (vtxSize == 0u || idxSize == 0u) {
                                                 continue;
@@ -665,7 +665,7 @@ namespace example {
                                         std::byte * memory = staging.map();
 
                                         for (auto & polygon : geometry.polygons) {
-                                            const auto vtxSize = sizeof(engine::vec3f) * polygon.totalVerices.size();
+                                            const auto vtxSize = sizeof(int16_t) * 4u * polygon.totalVerices.size();
                                             const auto idxSize = sizeof(uint32_t) * polygon.totalIndices.size();
                                             if (vtxSize == 0u || idxSize == 0u) {
                                                 continue;
@@ -674,7 +674,7 @@ namespace example {
                                             const auto vtxOffset = staging.requestBytes(vtxSize);
                                             const auto idxOffset = staging.requestBytes(idxSize);
 
-                                            auto * vtxData = reinterpret_cast<engine::vec3f*>(memory + vtxOffset);
+                                            auto * vtxData = reinterpret_cast<int16_t*>(memory + vtxOffset);
                                             auto * idxData = reinterpret_cast<uint32_t*>(memory + idxOffset);
 
                                             memcpy(vtxData, polygon.totalVerices.data(), vtxSize);
