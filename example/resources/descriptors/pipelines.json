@@ -400,4 +400,71 @@
 			]
 		}
 	},
+	"map_buildings_shadows": {
+		"rasterisationState": {
+			"polygonMode": "eFill",
+			"cullmode": "eBack"
+		},
+		"depthStencilState": {
+			"depth": {
+				"depthTestEnable": true,
+				"depthWriteEnable": true,
+				"depthCompareOp": "eGreater"
+			}
+		},
+		"inputAssemblyState": {
+			"topology" : "eTriangles"
+		},
+		"vertexInputState": {
+			"inputBindings": [
+				{
+					"stride" : 8,
+					"binding" : 0,
+					"inputRate": "eVertex"
+				}
+			],
+			"attributes":[
+				{
+					"location": 0,
+                    "binding": 0,
+                    "format": "eR16G16B16A16_Sint",
+                    "offset": 0
+				}
+			]
+		}
+	},
+	"map_area": {
+		"blendModes": ["blend_none", "blend_none", "blend_none", "blend_none", "blend_none"],
+		"rasterisationState": {
+			"polygonMode": "eFill",
+			"cullmode": "eFront"
+		},
+		"depthStencilState": {
+			"depth": {
+				"depthTestEnable": true,
+				"depthWriteEnable": false,
+				"depthCompareOp": "eGreater"
+			}
+		},
+		"inputAssemblyState": {
+			"topology" : "eTriangles"
+		},
+		"vertexInputState": {
+			"inputBindings": [
+				{
+					"stride" : 8,
+					"binding" : 0,
+					"inputRate": "eVertex"
+				}
+			],
+			"attributes":[
+				{
+					"location": 0,
+                    "binding": 0,
+                    "format": "eR16G16B16A16_Sint",
+                    "offset": 0
+				}
+			]
+		}
+	}
 }

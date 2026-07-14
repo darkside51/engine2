@@ -91,6 +91,7 @@ namespace example {
     constexpr uint8_t kEmissiveBlurPipeline = 2u;
 
     constexpr uint8_t kMapBuildingsPipeline = 3u;
+    constexpr uint8_t kMapAreaPipeline = 4u;
 
     constexpr uint8_t kSpritesProgram2 = 14u;
     constexpr uint8_t kMapBuildingsProgram = 15u;
@@ -1358,6 +1359,10 @@ namespace example {
         // kMapBuildingsPipeline
         const GraphicsPipelineStatesInfo info9 = engine::parseGraphicsPipelineInfo(json["map_buildings"]);
         _pipelines.emplace_back(_api->createGraphicsPipeline(*_device, _renderPasses[kGbufferRenderPass], _programs[kMapBuildingsProgram], info9, 0u));
+        // kMapAreaPipeline
+        const GraphicsPipelineStatesInfo info10 = engine::parseGraphicsPipelineInfo(json["map_area"]);
+        _pipelines.emplace_back(_api->createGraphicsPipeline(*_device, _renderPasses[kGbufferRenderPass], _programs[kMapBuildingsProgram], info10, 0u));
+        
 
         // scene pipelines
         const GraphicsPipelineStatesInfo info2 = engine::parseGraphicsPipelineInfo(json["sprite_common"]);
@@ -2398,14 +2403,19 @@ namespace example {
         }
 
         if (!g_mapGeometry.empty()) {
-            commandList->bindPipeline(_pipelines[kMapBuildingsPipeline]);
+            uint32_t i = 0u;
             for (auto & g : g_mapGeometry) {
+                if (i == 0u) {
+                    commandList->bindPipeline(_pipelines[kMapBuildingsPipeline]);
+                } else {
+                    commandList->bindPipeline(_pipelines[kMapAreaPipeline]);
+                }
                 commandList->bindVertexBuffer(0u, g.positions);
                 commandList->bindIndexBuffer(g.indices, 0u, rhi::IndexType::eU32);
                 commandList->bindBuffer(0u, scene->getViewParamsUniformBuffer(frameId), 0u, sceneViewParamBufferOffset);
                 commandList->drawIndexed(g.indices->sizeInBytes() / sizeof(uint32_t));
+                ++i;
             }
-            
         }
 
         //commandList->nextSubpass(rhi::SubpassContents::ePrimaryBufferInline);

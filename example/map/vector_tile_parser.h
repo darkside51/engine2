@@ -15,10 +15,12 @@ namespace map {
             std::vector<engine::vec2i> vertices, 
             std::vector<std::pair<uint32_t, uint32_t>> rings, 
             float minHeight, 
-            float height
+            float height,
+            int16_t material
         );
         std::vector<uint32_t> totalIndices;
         engine::stl::vector<engine::stl::array<int16_t, 4u>> totalVerices;
+        uint32_t layer = 0u;
     };
 
     struct TileParsedGeometry {

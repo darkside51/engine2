@@ -3,7 +3,8 @@
 layout (location = 0) in ivec4 a_position;
 
 layout (location = 0) out vec3 v_position;
-layout (location = 1) out mat3 v_normalMatrix;
+layout (location = 1) flat out int v_material;
+layout (location = 2) out mat3 v_normalMatrix;
 
 layout (set = 0, binding = 0) uniform UniformBuffer {
 	mat4 view;
@@ -18,7 +19,9 @@ void main() {
 	v_position = vec3(a_position.xyz) / 4096.0f;
 	v_position *= 16.0f;
 	v_position.y += 10.0f;
+	v_position.z += 0.001f;
 	vec4 worldPosition = vec4(v_position, 1.0);
 	gl_Position = u_viewParams.viewProjection * worldPosition;
 	v_normalMatrix = transpose(inverse(mat3(u_viewParams.view)));
+	v_material = a_position.w;
 }

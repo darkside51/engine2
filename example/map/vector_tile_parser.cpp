@@ -169,7 +169,8 @@ namespace map {
         std::vector<engine::vec2i> vertices, 
         std::vector<std::pair<uint32_t, uint32_t>> rings, 
         float minHeight, 
-        float height
+        float height,
+        int16_t material
     ) {
         if (vertices.empty() || indices.empty()) return;
 
@@ -177,8 +178,8 @@ namespace map {
         const auto isz = indices.size();
 
         //
-        const auto hMin = metersToTileUnits(minHeight, 55.750982f, 14u, 4096.0f);// / 4096.0f;
-        const auto hMax = metersToTileUnits(height, 55.750982f, 14u, 4096.0f);// / 4096.0f;
+        const auto hMin = metersToTileUnits(minHeight, 55.750982f, 14u, 4096.0f);
+        const auto hMax = metersToTileUnits(height, 55.750982f, 14u, 4096.0f);
 
         // floor
         const auto currentVertexCount = totalVerices.size();
@@ -194,9 +195,13 @@ namespace map {
                     static_cast<int16_t>(vtx.x), 
                     static_cast<int16_t>(4096 - vtx.y), 
                     static_cast<int16_t>(hMin),
-                    0
+                    material
                 }
             );
+        }
+
+        if (hMax <= hMin) {
+            return;
         }
 
         // roof
@@ -214,7 +219,7 @@ namespace map {
                     static_cast<int16_t>(vtx.x), 
                     static_cast<int16_t>(4096 - vtx.y), 
                     static_cast<int16_t>(hMax),
-                    0
+                    material
                 }
             );
         }
@@ -255,17 +260,23 @@ namespace map {
             printf("layer name: %s\n", layer.name());
 
             LayerPolygons & polygons = totalPolygons.emplace_back();
+            polygons.layer = (layer.name() == "buildings") ? 0u : 1u;
+            // if (polygons.layer != 0u) {
+            //     continue;
+            // }
             while (auto feature = layer.next_feature()) { //
                 //printf("feature id: %lu\n", feature.id());
 
                 if (feature.geometry_type() != vtzero::GeomType::POLYGON) {
                     continue;
                 }
-                // read feature tags (metadata attributes)
-                //printf("Properties:\n");
+                
                 float height = 0.0f;
                 float minHeight = 0.0f;
 
+                // read feature tags (metadata attributes)
+                printf("Properties:\n");
+                int16_t materialIdx = 0;
                 while (auto property = feature.next_property()) {
                     auto str = property.key();
                     if (str == "height") {
@@ -276,10 +287,32 @@ namespace map {
                         auto value = property.value();
                         minHeight = static_cast<float>(value.double_value());
                     }
+                    if (str == "kind") {
+                        auto value = stringify(property.value());
+                        //printf("kind: %s\n", value.c_str());
+                        if (value == "building") {
+                            materialIdx = 0;
+                        } else if (value == "grass" || value == "park" || value == "grassland") {
+                            materialIdx = 1;
+                        } else if (value == "pedestrian") {
+                            materialIdx = 2;
+                        } else if (value == "wood" || value == "scrub") {
+                            materialIdx = 3;
+                        } else if (value == "industrial") {
+                            materialIdx = 4;
+                        } else if (value == "water") {
+                            materialIdx = 5;
+                        }
+                    }
+                    // if (str == "kind_detail") {
+                    //     auto value = stringify(property.value());
+                    //     int a = 0;
+                    //     printf("kind_detail: %s\n", stringify(property.value()).c_str());
+                    // }
                     //printf("%s = %s\n", property.key().to_string().c_str(), stringify(property.value()).c_str());
                 }
 
-                if (height == 0.0f) {
+                if (polygons.layer == 0u && height == 0.0f) {
                     continue;
                 }
 
@@ -297,7 +330,9 @@ namespace map {
                     std::move(polygon.vertices), 
                     std::move(polygon.rings),
                     minHeight, 
-                    height);
+                    height,
+                    materialIdx
+                );
             }
         }
 
