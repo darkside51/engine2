@@ -6,6 +6,8 @@
 #include "engine/src/utils/compression.h"
 #include "engine/src/stl/helper.h"
 
+#include "geography.h"
+
 #include "vtzero/vector_tile.hpp"
 #include "vtzero/property_value.hpp"
 
@@ -59,106 +61,163 @@ namespace map {
         struct Polygon {
             std::vector<engine::vec2f> vertices;
             std::vector<uint32_t> indices;
+            std::vector<std::pair<uint32_t, uint32_t>> rings;
         };
 
         explicit PolygonGeometryHandler(float extent) : _extent{extent} {}
 
         void ring_begin(uint32_t count) {
-            _currentVertices.reserve(_currentVertices.size() + count);
+            // Подготавливаем буфер под новые вершины кольца
+            _currentRing.clear();
+            _currentRing.reserve(count);
         }
 
         void ring_point(const vtzero::point p) noexcept {
-            _currentVertices.emplace_back(engine::vec2f{p.x, p.y} / _extent);
+            _currentRing.emplace_back(engine::vec2f{static_cast<float>(p.x), static_cast<float>(p.y)} / _extent);
         }
 
         void ring_end(vtzero::ring_type type) {
-            switch (type) {
-            case vtzero::ring_type::outer:
-                // Если это новое внешнее кольцо, значит предыдущий полигон
-                // (со всеми его дырами, если они были) полностью собран. Триангулируем его.
+            if (type == vtzero::ring_type::outer) {
+                // Если пошел очередной outer-контур, значит предыдущий полигон 
+                // в рамках MultiPolygon полностью завершен. Сначала триангулируем его.
                 triangulateCurrentPolygon();
-                break;
-            case vtzero::ring_type::inner:
-                // Если это дыра, запоминаем индекс её начала
-                _currentHoleIndices.emplace_back(static_cast<uint32_t>(_currentVertices.size()));
-                break;
             }
+
+            if (_currentRing.empty()) return;
+
+            // MVT принудительно дублирует последнюю вершину для замыкания (P_last == P_first).
+            // Для earcut этот дубликат вреден (вырождает треугольники), но для СТЕН он необходим.
+            // Оставляем вершину, но earcut скорректирует её сам, если мы правильно развернем кольцо.
+            
+            // Переворачиваем кольцо: MVT дает CW для outer и CCW для inner. 
+            // Earcut требует строго обратного.
+            std::reverse(_currentRing.begin(), _currentRing.end());
+
+            // Запоминаем индексы дыр для earcut
+            if (type == vtzero::ring_type::inner) {
+                _accumulatedHoleIndices.emplace_back(static_cast<uint32_t>(_accumulatedVertices.size()));
+            }
+
+            // Накапливаем данные для текущего полигона
+            _earcutPolygonStructure.emplace_back(_currentRing);
+            _accumulatedVertices.insert(_accumulatedVertices.end(), _currentRing.begin(), _currentRing.end());
         }
 
-        // Финализация: обрабатываем последний полигон после завершения итерации vtzero
         void finalize() {
+            // Обрабатываем самый последний полигон фичи
             triangulateCurrentPolygon();
         }
 
-        Polygon && getPolygon() noexcept { return std::move(_polygon); }
+        Polygon&& getPolygon() noexcept { return std::move(_polygon); }
 
     private:
         float _extent{};
         Polygon _polygon;
         
-        // Временные структуры для текущего полигона (включая его дыры)
-        std::vector<engine::vec2f> _currentVertices;
-        std::vector<uint32_t> _currentHoleIndices;
+        std::vector<engine::vec2f> _currentRing;
+        
+        // Буферы для сборки одного изолированного полигона (контур + все его дыры)
+        std::vector<std::vector<engine::vec2f>> _earcutPolygonStructure;
+        std::vector<engine::vec2f> _accumulatedVertices;
+        std::vector<uint32_t> _accumulatedHoleIndices;
 
         void triangulateCurrentPolygon() {
-            if (_currentVertices.empty()) {
-                return;
-            }
+            if (_earcutPolygonStructure.empty()) return;
 
-            std::vector<std::vector<engine::vec2f>> polygon;
-            
-            size_t nextHoleIdx = 0u;
-            std::vector<engine::vec2f> currentRing;
-            currentRing.reserve(1024u);
-            
-            const auto holesCount = _currentHoleIndices.size();
-
-            for (size_t i = 0u; i < _currentVertices.size(); ++i) {
-                // Если дошли до индекса дыры, закрываем текущее кольцо и начинаем новое
-                if (nextHoleIdx < holesCount && i == _currentHoleIndices[nextHoleIdx]) {
-                    polygon.emplace_back(std::move(currentRing));
-                    currentRing.clear();
-                    currentRing.reserve(1024u);
-                    ++nextHoleIdx;
-                }
-                currentRing.emplace_back(_currentVertices[i]);
-            }
-            if (!currentRing.empty()) {
-                polygon.emplace_back(std::move(currentRing));
-            }
-
-            const auto localIndices = engine::earcut<uint32_t>(polygon);
-
-            // Переносим локальные вершины в глобальный меш и корректируем индексы
             const auto vertexStart = _polygon.vertices.size();
-            _polygon.vertices.insert(_polygon.vertices.end(), _currentVertices.begin(), _currentVertices.end());
-
-            for (auto localIdx : localIndices) {
-                _polygon.indices.push_back(static_cast<uint32_t>(vertexStart + localIdx));
+            
+            // Нарезаем метаданные колец (нужно для построения стен в addGeometry)
+            size_t currentRingOffset = 0u;
+            for (const auto& ring : _earcutPolygonStructure) {
+                size_t ringSize = ring.size();
+                _polygon.rings.emplace_back(std::pair{
+                    static_cast<uint32_t>(vertexStart + currentRingOffset),
+                    static_cast<uint32_t>(vertexStart + currentRingOffset + ringSize - 1u)
+                });
+                currentRingOffset += ringSize;
             }
 
-            // Сброс буферов для следующего полигона в MultiPolygon
-            _currentVertices.clear();
-            _currentHoleIndices.clear();
+            // Вызов триангуляции (принимает вложенные векторы колец)
+            const auto localIndices = engine::earcut<uint32_t>(_earcutPolygonStructure);
+
+            if (!localIndices.empty()) {
+                // Переносим вершины в глобальный контейнер фичи
+                _polygon.vertices.insert(_polygon.vertices.end(), _accumulatedVertices.begin(), _accumulatedVertices.end());
+
+                // Смещаем локальные индексы earcut на vertexStart
+                _polygon.indices.reserve(_polygon.indices.size() + localIndices.size());
+                for (auto localIdx : localIndices) {
+                    _polygon.indices.emplace_back(static_cast<uint32_t>(vertexStart) + localIdx);
+                }
+            }
+
+            // Очищаем буферы текущего полигона для подготовки к следующему в MultiPolygon
+            _earcutPolygonStructure.clear();
+            _accumulatedVertices.clear();
+            _accumulatedHoleIndices.clear();
         }
     };
 
-    void LayerPolygons::addGeometry(std::vector<uint32_t> indices, std::vector<engine::vec2f> vertices, float minHeight, float height) {
-        // dirty
-        const auto currentVertexCount = totalVerices.size();
+    void LayerPolygons::addGeometry(
+        std::vector<uint32_t> indices, 
+        std::vector<engine::vec2f> vertices, 
+        std::vector<std::pair<uint32_t, uint32_t>> rings, 
+        float minHeight, 
+        float height
+    ) {
+        if (vertices.empty() || indices.empty()) return;
+
         const auto vsz = vertices.size();
         const auto isz = indices.size();
 
-        totalIndices.reserve(totalIndices.size() + indices.size());
+        //
+        const auto hMin = metersToTileUnits(minHeight, 55.750982f, 14u, 4096.0f) / 4096.0f;
+        const auto hMax = metersToTileUnits(height, 55.750982f, 14u, 4096.0f) / 4096.0f;
+
+        // floor
+        const auto currentVertexCount = totalVerices.size();
+        totalIndices.reserve(totalIndices.size() + isz);
+        totalVerices.reserve(totalVerices.size() + vsz);
+
         for (auto idx : indices) {
             totalIndices.emplace_back(currentVertexCount + idx);
         }
-
-        totalVerices.reserve(currentVertexCount + vertices.size());
         for (auto vtx : vertices) {
-            totalVerices.emplace_back(engine::vec3f{4.0f * vtx.x, 4.0f * (1.0f - vtx.y) + 10.0f, 0.01f});
+            totalVerices.emplace_back(engine::vec3f{4.0f * vtx.x, 4.0f * (1.0f - vtx.y) + 10.0f, 4.0f * hMin});
         }
-        // dirty
+
+        // roof
+        const auto currentVertexCount2 = totalVerices.size();
+        totalIndices.reserve(totalIndices.size() + isz);
+        totalVerices.reserve(totalVerices.size() + vsz);
+
+        for (auto idx : indices) {
+            totalIndices.emplace_back(currentVertexCount2 + idx);
+        }
+        for (auto vtx : vertices) {
+            totalVerices.emplace_back(engine::vec3f{4.0f * vtx.x, 4.0f * (1.0f - vtx.y) + 10.0f, 4.0f * hMax});
+        }
+
+        // faces
+        for (const auto & ring : rings) {
+            for (size_t i = ring.first; i <= ring.second; ++i) {
+                const auto nextIdx = (i == ring.second) ? ring.first : (i + 1u);
+
+                const auto floorCurrent = static_cast<uint32_t>(currentVertexCount + i);
+                const auto floorNext = static_cast<uint32_t>(currentVertexCount + nextIdx);
+
+                const auto roofCurrent  = static_cast<uint32_t>(currentVertexCount2 + i);
+                const auto roofNext = static_cast<uint32_t>(currentVertexCount2 + nextIdx);
+
+                totalIndices.emplace_back(floorCurrent);
+                totalIndices.emplace_back(roofCurrent);
+                totalIndices.emplace_back(floorNext);
+                
+                totalIndices.emplace_back(floorNext);
+                totalIndices.emplace_back(roofCurrent);
+                totalIndices.emplace_back(roofNext);
+            }
+        }
     }
 
     TileParsedGeometry VectorTileParser::parseGeometry(engine::stl::vector<std::byte> && parsedData) {
@@ -196,7 +255,7 @@ namespace map {
                         auto value = property.value();
                         minHeight = static_cast<float>(value.double_value());
                     }
-                    printf("%s = %s\n", property.key().to_string().c_str(), stringify(property.value()).c_str());
+                    //printf("%s = %s\n", property.key().to_string().c_str(), stringify(property.value()).c_str());
                 }
 
                 if (height == 0.0f) {
@@ -212,8 +271,12 @@ namespace map {
                 handler.finalize();
 
                 auto && polygon = handler.getPolygon();
-
-                polygons.addGeometry(std::move(polygon.indices), std::move(polygon.vertices), minHeight, height);
+                polygons.addGeometry(
+                    std::move(polygon.indices), 
+                    std::move(polygon.vertices), 
+                    std::move(polygon.rings),
+                    minHeight, 
+                    height);
             }
         }
 

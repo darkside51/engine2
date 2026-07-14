@@ -30,4 +30,29 @@ inline TileID normalizedMercatorToTileId(engine::vec2d mercator, uint8_t zoom) n
     };
 }
 
+inline engine::vec2f tileCenterToGeo(TileID tileId) noexcept {    
+    // Количество тайлов на текущем уровне зума
+    const auto n = 1 << tileId.z;
+    
+    const float centerX = tileId.x + 0.5f;
+    const float centerY = tileId.y + 0.5f;
+    
+    const float lon = centerX / n * 360.0f - 180.0f;
+    const float lat_rad = std::atan(std::sinh(engine::pi * (1.0f - 2.0f * centerY / n)));
+
+    return {lat_rad * 180.0f / engine::pi, lon};
+}
+
+inline float metersToTileUnits(float meters, float latitude, uint8_t zoom, float extent) noexcept {
+    constexpr double kEarthCircumference = 40075016.6863;
+    
+    const auto latRad = (latitude * engine::pi) / 180.0f;
+    
+    // tilesize in metters on latitude
+    const auto tileSizeInMeters = (kEarthCircumference * std::cos(latRad)) / (1u << zoom);
+    const auto unitsPerMeter = extent / tileSizeInMeters;
+
+    return static_cast<float>(meters * unitsPerMeter);
+}
+
 }

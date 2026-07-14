@@ -370,7 +370,7 @@
 		"blendModes": ["blend_none", "blend_none", "blend_none", "blend_none", "blend_none"],
 		"rasterisationState": {
 			"polygonMode": "eFill",
-			"cullmode": "eNone"
+			"cullmode": "eFront"
 		},
 		"depthStencilState": {
 			"depth": {
