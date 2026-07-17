@@ -1096,9 +1096,9 @@ namespace engine::scene {
 
     void Scene::draw(RenderPass pass, rhi::runtime::CommandListPtr & commandList, rhi::runtime::CommandListPtr & transferCommandList, uint8_t frame, 
         const ViewParams & viewParams, stl::span<AttachmentObject*> objects, const DrawDataOffsets & offsets, const void * external) {
-        if (objects.empty()) {
-            return;
-        }
+        // if (objects.empty()) { // no right variant, just for test!
+        //     return;
+        // }
 
         _currentPass = pass;
         const size_t uniformBufferOffsetAlign = _device->getUniformBufferOffsetAlignment();
@@ -1129,6 +1129,7 @@ namespace engine::scene {
             }
         }
 
+        if (!objects.empty()) { // no right variant, just for test!
         DrawDataOffsets offsets2 = offsets;
         auto currentIt = objects.begin();
         uint16_t typeIdx = (*currentIt)->typeIndex;
@@ -1143,6 +1144,7 @@ namespace engine::scene {
         }
 
         drawObjects(commandList, frame, viewParams, currentIt, objects.end(), typeIdx, offsets2);
+        }
 
         // change unifrom buffer offset
         _currentViewParamsBufferOffset += align_value(sizeof(ViewParams), uniformBufferOffsetAlign);

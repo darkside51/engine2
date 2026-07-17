@@ -273,6 +273,7 @@ namespace map {
                 
                 float height = 0.0f;
                 float minHeight = 0.0f;
+                bool skipGepmetry = false;
 
                 // read feature tags (metadata attributes)
                 printf("Properties:\n");
@@ -293,14 +294,17 @@ namespace map {
                         if (value == "building") {
                             materialIdx = 0;
                         } else if (value == "grass" || value == "park" || value == "grassland") {
+                            //skipGepmetry = true;
                             materialIdx = 1;
                         } else if (value == "pedestrian") {
                             materialIdx = 2;
                         } else if (value == "wood" || value == "scrub") {
+                            //skipGepmetry = true;
                             materialIdx = 3;
                         } else if (value == "industrial") {
                             materialIdx = 4;
                         } else if (value == "water") {
+                            //skipGepmetry = true;
                             materialIdx = 5;
                         }
                     }
@@ -312,7 +316,7 @@ namespace map {
                     //printf("%s = %s\n", property.key().to_string().c_str(), stringify(property.value()).c_str());
                 }
 
-                if (polygons.layer == 0u && height == 0.0f) {
+                if (skipGepmetry || polygons.layer == 0u && height == 0.0f) {
                     continue;
                 }
 

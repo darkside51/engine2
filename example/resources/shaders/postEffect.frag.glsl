@@ -20,6 +20,7 @@ layout(set = 0, binding = 6) uniform sampler2DArrayShadow textureShadowMap;
 layout (set = 0, binding = 7) uniform shadowsUniformBuffer {
 	mat4 cascades[shadowCascades];
 	vec4 splits;
+	vec4 texelSizes;
 	vec4 options;
 } u_shadow;
 
@@ -38,7 +39,8 @@ layout(push_constant) uniform Params {
 	vec4 options;
 } push;
 
-const float biases[4] = float[](0.0015f, 0.0025f, 0.0009f, 0.0015f); // count = shadowCascades * 2
+//const float biases[4] = float[](0.0015f, 0.0025f, 0.0009f, 0.0015f); // count = shadowCascades * 2
+const float biases[4] = float[](0.0001f, 0.0004f, 0.0001f, 0.0002f); // count = shadowCascades * 2
 
 void main() {
 	const float occlusion = push.options.x > 0.0f ? radialBlur(textureSsao, v_uv, int(push.options.x - 1.0f)) : 1.0f;
@@ -68,6 +70,58 @@ void main() {
     const float dotNH = max(dot(N, H), 0.0f);
     const float dotHV = max(dot(H, V), 0.0f);
 
+    // shadows
+	// get cascade index for the current fragment's view position
+	uint cascade = 0;
+	for (uint i = 0; i < shadowCascades - 1; ++i) {
+		if (viewPosition.z < u_shadow.splits[i]) {	
+			cascade = i + 1;
+		}
+	}
+
+float texelSize = u_shadow.texelSizes[cascade];
+
+// 1. БАЗОВЫЙ ШАГ ПО НОРМАЛИ (Для плоских поверхностей)
+// Делаем его умеренным, чтобы крыши не отрывались
+float baseNormalBias = texelSize * 0.8f; 
+
+// 2. СЧИТАЕМ СКОРОСТЬ ИЗМЕНЕНИЯ ГЛУБИНЫ НА ЭКРАНЕ (Для борьбы с артефактами размытия)
+// Функции dFdx/dFdy показывают, как быстро геометрия "удаляется" от камеры от пикселя к пикселю.
+// На ландшафтах и склонах это значение высокое (нужен большой bias).
+// На вертикальных стенах и ровных крышах коробок — оно минимальное (тень прижмется намертво!).
+float changeX = dFdx(viewPosition.z);
+float changeY = dFdy(viewPosition.z);
+float filterFactor = abs(changeX) + abs(changeY);
+
+// Ограничиваем влияние экранного фильтра, чтобы он не улетал в бесконечность на горизонтах
+filterFactor = clamp(filterFactor, 0.0, 2.0);
+
+// 3. ИТОГОВЫЙ СДВИГ ПО НОРМАЛИ
+// Мы складываем базовый сдвиг и добавку от фильтра размытия экрана
+float finalNormalFactor = baseNormalBias + (filterFactor * texelSize * 3.0);
+
+// Жестко зажимаем верхний предел (не даем смещению стать больше 3 текселей)
+finalNormalFactor = clamp(finalNormalFactor, texelSize * 0.4, texelSize * 3.0);
+
+// Смещаем позицию во View Space
+vec3 biasedViewPos = viewPosition + (normal * finalNormalFactor);
+
+// 4. УМНОЖАЕМ НА МАТРИЦУ КАСКАДА
+vec4 shadowCoord = u_shadow.cascades[cascade] * vec4(biasedViewPos, 1.0f);
+if (shadowCoord.w != 0.0) {
+    shadowCoord.xyz = shadowCoord.xyz * (1.0f / shadowCoord.w);
+}
+shadowCoord.xy = shadowCoord.xy * 0.5f + 0.5f;
+	
+	const ivec2 texSize = textureSize(textureShadowMap, 0).xy;
+	const float bias = 0.0f;
+
+	//const float shadowValue = textureProj(textureShadowMap, shadowCoord, vec2(0.0f), cascade, bias, u_shadow.options.x); // hardware pcf if use sampler2DArrayShadow
+	//const float shadowValue = filterPCF(textureShadowMap, shadowCoord, cascade, bias, u_shadow.options.x);
+	//const float shadowValue = clamp(filterPCF_Low2(textureShadowMap, texSize, shadowCoord.xyz, cascade, bias, 1.5f, 4), u_shadow.options.x, 1.0f);
+	const float shadowValue = clamp(filterPCF_Low(textureShadowMap, texSize, shadowCoord.xyz, cascade, bias), u_shadow.options.x, 1.0f);
+	// shadows
+
 	const float metallic = metallicRoughness.x;
 	const float roughness = metallicRoughness.y;
 
@@ -91,7 +145,7 @@ void main() {
     const float denominator = 4.0f * dotNV * dotNL + 0.0001f; // avoid division by zero
     //const 
     vec3 specular = numerator / denominator;
-	//specular *= step(0.5f, shadowValue); // no specular in shadow
+	specular *= step(0.5f, shadowValue); // no specular in shadow
     
     // energy conservation: diffuse must equal remaining non-reflected energy
     const vec3 kS = F;
@@ -104,29 +158,6 @@ void main() {
     //const vec3 ambient = mix(vec3(0.25, 1.0, 0.0), vec3(1.0, 1.0, 1.0), clamp(worldPosition.z * 6.2f, 0.0f, 1.0f)) * push.ambient.xyz * push.ambient.w * albedo.rgb * occlusion;
     const vec3 ambient = push.ambient.xyz * push.ambient.w * albedo.rgb * occlusion;
     vec3 baseColor = ambient + Lo;
-
-	// shadows
-	// get cascade index for the current fragment's view position
-	uint cascade = 0;
-	for (uint i = 0; i < shadowCascades - 1; ++i) {
-		if (viewPosition.z < u_shadow.splits[i]) {	
-			cascade = i + 1;
-		}
-	}
-
-	vec4 shadowCoord = u_shadow.cascades[cascade] * worldPosition;
-	shadowCoord.xy = shadowCoord.xy * 0.5f + 0.5f;
-	shadowCoord = shadowCoord * (1.0f / shadowCoord.w);
-	//const float bias = max(biases[2 * cascade + 1] * (1.0f - abs(dotNL)), biases[2 * cascade]);
-	//const float bias = max(0.0025f * (1.0f - abs(dotNL)), 0.0005f);
-	//const float bias = calculateAnisotropicBias(shadowCoord.xyz, 0.003f, 0.01f);
-	const ivec2 texSize = textureSize(textureShadowMap, 0).xy;
-	const float bias = calculateAnisotropicBias(texSize, viewPosition, biases[2 * cascade], biases[2 * cascade + 1]);
-	
-	//const float shadowValue = textureProj(textureShadowMap, shadowCoord, vec2(0.0f), cascade, bias, u_shadow.options.x); // hardware pcf if use sampler2DArrayShadow
-	//const float shadowValue = filterPCF(textureShadowMap, shadowCoord, cascade, bias, u_shadow.options.x);
-	//const float shadowValue = clamp(filterPCF_Low2(textureShadowMap, texSize, shadowCoord.xyz, cascade, bias, 1.5f, 4), u_shadow.options.x, 1.0f);
-	const float shadowValue = clamp(filterPCF_Low(textureShadowMap, texSize, shadowCoord.xyz, cascade, bias), u_shadow.options.x, 1.0f);
 
     baseColor *= shadowValue;
     baseColor += emissive.rgb;

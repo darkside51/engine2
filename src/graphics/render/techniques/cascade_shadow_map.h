@@ -37,6 +37,7 @@ namespace engine::graphics {
         rhi::runtime::RenderPass getRenderPass() const noexcept { return _renderPass; }
 
         stl::span<const float> getCascadeSplitDepths() const noexcept { return _splitDepths; }
+        stl::span<const float> getTexelSizes() const noexcept { return _texelSizes; }
 
         const rhi::SamplerValue & getSampler() const noexcept { return _sampler; }
 
@@ -51,6 +52,7 @@ namespace engine::graphics {
         stl::vector<mat4f> _cascadeMatrices;
         stl::vector<float> _splitDepths;
         stl::vector<float> _cascadeSplits;
+        stl::vector<float> _texelSizes;
 
 		vec3f _direction = vec3f{0.0f, 0.0f, -1.0f};
         float _clipRange;

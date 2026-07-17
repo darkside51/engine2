@@ -18,7 +18,7 @@ float calculateAnisotropicBias(ivec2 texSize, vec3 viewSpacePos, float minBias, 
 
 float textureProj(in sampler2DArrayShadow shadowTex, vec4 shadowCoord, vec2 offset, uint cascadeIndex, float bias, float ambient) {
 	if (shadowCoord.z > 0.0f && shadowCoord.z < 1.0f) {
-		const float dist = texture(shadowTex, vec4(shadowCoord.xy + offset, cascadeIndex, shadowCoord.z + bias));
+		const float dist = texture(shadowTex, vec4(shadowCoord.xy + offset, cascadeIndex, shadowCoord.z - bias));
 		return mix(clamp(ambient + dist, 0.0f, 1.0f), 1.0f, step(shadowCoord.w, 0.0f));
 	}
 	return 1.0f;
@@ -89,10 +89,10 @@ float filterPCF_Low(
     const vec2 uv3 = base + vec2(u.y, v.y);
 
     float sum = 0.0f;
-    sum += w0 * texture(map, vec4(uv0, layer, shadowPosition.z + bias));
-    sum += w1 * texture(map, vec4(uv1, layer, shadowPosition.z + bias));
-    sum += w2 * texture(map, vec4(uv2, layer, shadowPosition.z + bias));
-    sum += w3 * texture(map, vec4(uv3, layer, shadowPosition.z + bias));
+    sum += w0 * texture(map, vec4(uv0, layer, shadowPosition.z - bias));
+    sum += w1 * texture(map, vec4(uv1, layer, shadowPosition.z - bias));
+    sum += w2 * texture(map, vec4(uv2, layer, shadowPosition.z - bias));
+    sum += w3 * texture(map, vec4(uv3, layer, shadowPosition.z - bias));
     return sum * 0.0625f;
 }
 
@@ -136,7 +136,7 @@ float filterPCF_Low2(
     float shadowFactor = 0.0;
     for (int i = 0; i < steps; i++) {
         const vec2 offset = (rotationMatrix * poissonDisk[i]) * filterRadius;
-        shadowFactor += texture(map, vec4(shadowPosition.xy + offset, layer, shadowPosition.z + bias));
+        shadowFactor += texture(map, vec4(shadowPosition.xy + offset, layer, shadowPosition.z - bias));
     }
     return shadowFactor / float(steps);
 }

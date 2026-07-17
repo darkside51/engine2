@@ -92,9 +92,11 @@ namespace example {
 
     constexpr uint8_t kMapBuildingsPipeline = 3u;
     constexpr uint8_t kMapAreaPipeline = 4u;
+    constexpr uint8_t kMapBuildingsShadowsPipeline = 5u;
 
     constexpr uint8_t kSpritesProgram2 = 14u;
     constexpr uint8_t kMapBuildingsProgram = 15u;
+    constexpr uint8_t kMapBuildingsShadowsProgram = 16u;
 
     constexpr uint8_t kSsaoKernelSize = 32u;
     constexpr uint8_t kSsaoNoiseDim = 4u;
@@ -124,6 +126,7 @@ namespace example {
     struct ShadowMapUniforms {
         engine::stl::array<engine::mat4f, 2u> cascades;
         engine::vec4f splits;
+        engine::vec4f texelSizes;
         engine::vec4f options;
     };
 
@@ -1320,6 +1323,12 @@ namespace example {
 
             _programs.emplace_back(_api->createProgram(*_device, engine::stl::array{vsModule.getView(), fsModule.getView()}));
         }
+
+        { // kMapBuildingsShadowsProgram
+            auto const vBytes = fileManager.readFile("shaders/building_shadow.vert.spv");
+            const auto & vsModule = _shaderModulesManager->registerModule("building_shadow.vert", *_device, engine::rhi::shaders::Stages::eVertex, vBytes);
+            _programs.emplace_back(_api->createProgram(*_device, engine::stl::array{vsModule.getView()}));
+        }
     }
     
     void Example::createPipelines() {
@@ -1363,7 +1372,6 @@ namespace example {
         const GraphicsPipelineStatesInfo info10 = engine::parseGraphicsPipelineInfo(json["map_area"]);
         _pipelines.emplace_back(_api->createGraphicsPipeline(*_device, _renderPasses[kGbufferRenderPass], _programs[kMapBuildingsProgram], info10, 0u));
         
-
         // scene pipelines
         const GraphicsPipelineStatesInfo info2 = engine::parseGraphicsPipelineInfo(json["sprite_common"]);
         scene->registerGraphicsPipeline(_api->createGraphicsPipeline(*_device, _renderPasses[kGbufferRenderPass], _programs[kSpritesProgram], info2, 0u));
@@ -1400,6 +1408,10 @@ namespace example {
 
         // sprite2
         scene->registerGraphicsPipeline(_api->createGraphicsPipeline(*_device, _renderPasses[kGbufferRenderPass], _programs[kSpritesProgram2], info2, 0u));
+
+        // kMapBuildingsShadowsPipeline
+        const GraphicsPipelineStatesInfo info11 = engine::parseGraphicsPipelineInfo(json["map_buildings_shadows"]);
+        _pipelines.emplace_back(_api->createGraphicsPipeline(*_device, shadowMap->getRenderPass(), _programs[kMapBuildingsShadowsProgram], info11, 0u));
     }
 
     void Example::createDefaultResources() {
@@ -2305,13 +2317,17 @@ namespace example {
 
         if (viewParamsUpdated || lightDirty) { // viewParams has been changed
             shadowMap->setDirection(glm::normalize(lightDir));
-            shadowMap->updateCascades(glm::inverse(viewParams.cameraTransform));
+            shadowMap->updateCascades(glm::inverse(viewParams.cameraView));
 
             auto * shadowUniforms = shadowMapUniformBuffer->memory2<ShadowMapUniforms>();
             memcpy(shadowUniforms->cascades.data(), shadowMap->getCascadeMatrices().data(), sizeof(engine::mat4f) * shadowMap->getCascadeMatrices().size());
             memcpy(&shadowUniforms->splits, shadowMap->getCascadeSplitDepths().data(), shadowMap->getCascadeSplitDepths().size() * sizeof(float));
+            memcpy(&shadowUniforms->texelSizes, shadowMap->getTexelSizes().data(), shadowMap->getTexelSizes().size() * sizeof(float));
             shadowUniforms->options = shadowsOptions;
             shadowMapUniformBuffer->modify();
+
+            shadowUniforms->cascades[0] = shadowUniforms->cascades[0] * glm::inverse(viewParams.cameraView);
+            shadowUniforms->cascades[1] = shadowUniforms->cascades[1] * glm::inverse(viewParams.cameraView);
 
             viewParamsUpdated = false;
             lightDirty = false;
@@ -2366,8 +2382,19 @@ namespace example {
         shadowMap->beginRenderPass(*commandList, frameId);
         // draw shadows
         // ...
+        auto sceneViewParamBufferOffset = scene->getCurrentViewParamsBufferOffset();
         const auto cascadeMatrices = shadowMap->getCascadeMatrices();
         scene->draw(engine::scene::RenderPass::eShadow, commandList, transferCommandList, frameId, viewParams, shadowObjects, offsets1, &cascadeMatrices);
+
+        if (!g_mapGeometry.empty()) {
+            auto & g = g_mapGeometry[0u];
+            commandList->bindPipeline(_pipelines[kMapBuildingsShadowsPipeline]);
+            commandList->bindVertexBuffer(0u, g.positions);
+            commandList->bindIndexBuffer(g.indices, 0u, rhi::IndexType::eU32);
+            commandList->bindBuffer(0u, scene->getViewParamsUniformBuffer(frameId), 0u, sceneViewParamBufferOffset);
+            commandList->drawIndexed(g.indices->sizeInBytes() / sizeof(uint32_t), 2u);
+        }
+
         shadowMap->endRenderPass(*commandList);
 
         // draw scene
@@ -2391,7 +2418,7 @@ namespace example {
         // scene pass
         commandList->beginRenderPass(_renderPasses[kGbufferRenderPass], _gBuffers[frameId], gBufferClearValues, {{0, 0}, {width, height}});
         // scene->dispatch(commandList, frameId, objects, offsets);
-        const auto sceneViewParamBufferOffset = scene->getCurrentViewParamsBufferOffset();
+        sceneViewParamBufferOffset = scene->getCurrentViewParamsBufferOffset();
         scene->draw(engine::scene::RenderPass::eCommon, commandList, transferCommandList, frameId, viewParams, objects, offsets1);
         // scene->draw(commandList, transferCommandList, frameId, viewParams, o1, offsets1);
         // scene->draw(commandList, transferCommandList, frameId, viewParams, o0, offsets0);   
