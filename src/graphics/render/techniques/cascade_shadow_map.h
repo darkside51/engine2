@@ -11,8 +11,9 @@
 namespace engine::graphics {
 
     struct CascadeFrameBuffer {
-        rhi::runtime::ImagePtr image;
-        stl::vector<rhi::runtime::FrameBufferPtr> frameBuffers;
+        rhi::runtime::ImagePtr image = nullptr;
+        rhi::runtime::ImagePtr depthImage = nullptr;
+        stl::vector<rhi::runtime::FrameBufferPtr> frameBuffers = {};
     };
 
     class CascadeShadowMap {
@@ -21,6 +22,7 @@ namespace engine::graphics {
             uint16_t size, uint8_t cascades, uint8_t bits, float near, float far);
 
         void createRenderData();
+        void createRenderDataVSM();
         void prepare();
         void initCascadeSplits(vec3f splitNearFarOffsets) noexcept;
         void updateCascades(const mat4f & cameraInverse);
@@ -30,6 +32,7 @@ namespace engine::graphics {
         void endRenderPass(rhi::runtime::CommandList & commandList) const noexcept;
 
         const rhi::runtime::ImagePtr & getImage(uint8_t frameId) const noexcept;
+         const rhi::runtime::ImagePtr & getDepthImage(uint8_t frameId) const noexcept;
 
         const vec3f & getDirection() const noexcept { return _direction; }
         bool setDirection(const vec3f & direction, float eps = 1e-5f) noexcept;

@@ -3,6 +3,7 @@
 
 namespace engine::graphics {
     constexpr bool kUseInstanceDrawShadows = true;
+    constexpr bool kUseVarianceShadowMap = false;
 
     CascadeShadowMap::CascadeShadowMap(rhi::runtime::Rhi & api, rhi::runtime::Device & device, 
             uint16_t size, uint8_t cascades, uint8_t bits, float near, float far) : 
@@ -21,8 +22,144 @@ namespace engine::graphics {
             _bits(bits) {
     }
 
+    void CascadeShadowMap::createRenderDataVSM() {
+        using namespace rhi;
+
+        const auto colorFormat = rhi::Format::eR16G16_Sfloat;
+        auto access = _device.isFormatSupported(colorFormat, rhi::FormatFeatureFlags::eFormatFeature_Color_Attachment);
+        const ImageAspectFlags colorAspectFlags = ImageAspectFlags::eColor;
+
+        const auto format = _device.getSupportedDepthFormat(_bits, false, false);
+
+        const ImageAspectFlags aspectFlags = isDepthStencilFormat(format) ? 
+                                                ImageAspectFlags::eDepthStencil : 
+                                                ImageAspectFlags::eDepth;
+
+        // renderpass
+        stl::array attachments = {
+            AttachmentDescription {
+                .format = format,
+                .loadStoreOp = AttachmentLoadStoreOp{AttachmentLoadOp::eClear, AttachmentStoreOp::eStore},
+                .stencilLoadStoreOp = AttachmentLoadStoreOp{AttachmentLoadOp::eDont_Care, AttachmentStoreOp::eDont_Care},
+                .initialLayout = ImageLayout::eUndefined,
+                .finalLayout = ImageLayout::eShader_Read_Only_Optimal,
+                .samples = 1u
+            },
+            AttachmentDescription {
+                .format = format,
+                .loadStoreOp = AttachmentLoadStoreOp{AttachmentLoadOp::eClear, AttachmentStoreOp::eDont_Care},
+                .stencilLoadStoreOp = AttachmentLoadStoreOp{AttachmentLoadOp::eDont_Care, AttachmentStoreOp::eDont_Care},
+                .initialLayout = ImageLayout::eUndefined,
+                .finalLayout = ImageLayout::eDepth_Stencil_Attachment_Optimal,
+                .samples = 1u
+            }
+        };
+
+        stl::array subpass  = {
+            SubpassDescription {
+                .pNext = {nullptr, 0u},
+                .depthStencilAttachment = {
+                    .pNext = {nullptr, 0u},
+                    .attachment = 1u,
+                    .layout = ImageLayout::eDepth_Stencil_Attachment_Optimal, //eDepth_Stencil_Attachment_Optimal, // eDepth_Attachment_Optimal - maybe?
+                    .aspectMask = aspectFlags
+                },
+                .colorAttachments = {
+                    {
+                    .pNext = {nullptr, 0u},
+                    .attachment = 0u,
+                    .layout = ImageLayout::eColor_Attachment_Optimal,
+                    .aspectMask = colorAspectFlags
+                    }
+                }
+            }
+        };
+
+        const RenderPassDescription description{attachments, subpass, {}};
+        _renderPass = _api.getRenderPass(_device, description);
+
+        // image
+        const auto colorImageInfo = ImageInfo {
+            ImageUsageFlags::eSampled | ImageUsageFlags::eColor_Attachment, colorFormat, {_size, _size, 1u},
+            colorAspectFlags,
+            ImageType::eType_2D,
+            1u,
+            _cascadesCount,
+            1u,
+            ImageTiling::eOptimal
+        };
+
+        // depthImage
+        const auto imageInfo = ImageInfo {
+            ImageUsageFlags::eDepth_Stencil_Attachment, format, {_size, _size, 1u},
+            aspectFlags,
+            ImageType::eType_2D,
+            1u,
+            _cascadesCount,
+            1u,
+            ImageTiling::eOptimal
+        };
+
+        const auto frames = _device.inFlightFramesCount();
+        _framebuffers.reserve(frames);
+
+        for (uint8_t i = 0u; i < frames; ++i) {
+            CascadeFrameBuffer framebuffer = {
+                .image = _api.createImage(_device, colorImageInfo),
+                .depthImage = _api.createImage(_device, imageInfo),
+                .frameBuffers = stl::vector<runtime::FrameBufferPtr>(kUseInstanceDrawShadows ? 1u : _cascadesCount)
+            };
+
+            if constexpr (kUseInstanceDrawShadows) {
+                //create only 1 framebuffer if draw with instancing
+                stl::vector fbAttachemnts = {
+                    FrameBufferAttachment{
+                        .image = framebuffer.image.get(),
+                        .imageSize = {_size, _size},
+                        .aspect = ImageAspectFlags::eColor,
+                        .layer = 0u,
+                        .level = 0u,
+                        .layersCount = _cascadesCount,
+                        .levelsCount = 1u,
+                        .viewType = ImageViewType::eType_2D_Array
+                    },
+                    FrameBufferAttachment{
+                        .image = framebuffer.depthImage.get(),
+                        .imageSize = {_size, _size},
+                        .aspect = ImageAspectFlags::eDepth, // eDepth - is true here
+                        .layer = 0u,
+                        .level = 0u,
+                        .layersCount = _cascadesCount,
+                        .levelsCount = 1u,
+                        .viewType = ImageViewType::eType_2D_Array
+                    }, 
+                };
+
+                framebuffer.frameBuffers[0] = _api.createFrameBuffer(_device, std::move(fbAttachemnts), _renderPass);
+            } else {
+                //....
+            }
+            
+            _framebuffers.emplace_back(framebuffer);
+        }
+
+        // sampler
+        _sampler.info = {
+            .magFilter = FilterMode::eLinear,
+            .minFilter = FilterMode::eLinear,
+            .mipMapMode = FilterMode::eNearest,
+            .addressModeU = SamplerAddressMode::eClamp_To_Border,
+            .addressModeV = SamplerAddressMode::eClamp_To_Border,
+            .addressModeW = SamplerAddressMode::eClamp_To_Border,
+            .compareOp = _reversedDepth ? CompareOp::eGequal : CompareOp::eLess,
+            .borderColor = _reversedDepth ? BorderColor::eFloat_Opaque_Black : BorderColor::eFloat_Opaque_White,
+            .maxAnisotropy = 0.0f
+        };
+    }
+
     void CascadeShadowMap::createRenderData() {
         using namespace rhi;
+
         const auto format = _device.getSupportedDepthFormat(_bits, false, true);
         const ImageAspectFlags aspectFlags = isDepthStencilFormat(format) ? 
                                                 ImageAspectFlags::eDepthStencil : 
@@ -46,7 +183,7 @@ namespace engine::graphics {
                 .depthStencilAttachment = {
                     .pNext = {nullptr, 0u},
                     .attachment = 0u,
-                    .layout = ImageLayout::eDepth_Stencil_Attachment_Optimal, //eDepth_Stencil_Attachment_Optimal, // eDepth_Attachment_Optimal - maybe?
+                    .layout = ImageLayout::eDepth_Stencil_Attachment_Optimal,
                     .aspectMask = aspectFlags
                 }
             }
@@ -99,7 +236,7 @@ namespace engine::graphics {
 
         for (uint8_t i = 0u; i < frames; ++i) {
             CascadeFrameBuffer framebuffer = {
-                .image = _api.createImage(_device, imageInfo),
+                .depthImage = _api.createImage(_device, imageInfo),
                 .frameBuffers = stl::vector<runtime::FrameBufferPtr>(kUseInstanceDrawShadows ? 1u : _cascadesCount)
             };
 
@@ -107,7 +244,7 @@ namespace engine::graphics {
                 //create only 1 framebuffer if draw with instancing
                 stl::vector fbAttachemnts = {
                     FrameBufferAttachment{
-                        .image = framebuffer.image.get(),
+                        .image = framebuffer.depthImage.get(),
                         .imageSize = {_size, _size},
                         .aspect = ImageAspectFlags::eDepth, // eDepth - is true here
                         .layer = 0u,
@@ -123,7 +260,7 @@ namespace engine::graphics {
                 for (uint8_t j = 0u; j < _cascadesCount; ++j) {
                     stl::vector fbAttachemnts = {
                         FrameBufferAttachment{
-                            .image = framebuffer.image.get(),
+                            .image = framebuffer.depthImage.get(),
                             .imageSize = {_size, _size},
                             .aspect = ImageAspectFlags::eDepth, // eDepth - is true here
                             .layer = j,
@@ -333,84 +470,24 @@ namespace engine::graphics {
         }
     }
 
-// void CascadeShadowMap::updateCascades(const mat4f & cameraInverse) {
-//     float cameraFovY = 3.1415926f / 3.0f;
-//     float cameraAspect = 16.0f / 9.0f;
-//     float lastSplitDist = _near;
-//     const float halfTanFov = glm::tan(cameraFovY * 0.5f);
-
-//     for (uint8_t i = 0u; i < _cascadesCount; ++i) {
-//         const float splitDist = _near + (_cascadeSplits[i] * _clipRange);
-
-//         // 1. АНАЛИТИЧЕСКИЙ РАСЧЕТ ЦЕНТРА СФЕРЫ ВО VIEW SPACE
-//         // Центр идеальной ограничивающей сферы усеченного конуса лежит на оси Z
-//         float k = halfTanFov * cameraAspect;
-//         float num = (splitDist * splitDist - lastSplitDist * lastSplitDist) * (1.0f + halfTanFov * halfTanFov + k * k);
-//         float den = 2.0f * (splitDist - lastSplitDist);
-//         // Дистанция до центра сферы от глаза камеры вдоль оси -Z
-//         float centerZ = lastSplitDist + num / den; 
-        
-//         vec3f viewSpaceCenter{0.0f, 0.0f, -centerZ};
-
-//         // 2. АНАЛИТИЧЕСКИЙ РАСЧЕТ ИДЕАЛЬНОГО РАДИУСА СФЕРЫ
-//         // Считаем расстояние от центра до дальнего угла каскада во View Space
-//         float farHeight = splitDist * halfTanFov;
-//         float farWidth  = farHeight * cameraAspect;
-//         vec3f farCornerView{farWidth, farHeight, -splitDist};
-        
-//         // Этот радиус ТЕПЕРЬ АБСОЛЮТНО СТАТИЧЕН при движении и вращении камеры!
-//         float radius = glm::length(farCornerView - viewSpaceCenter);
-
-//         // 3. ПЕРЕВОД ЦЕНТРА СФЕРЫ В WORLD SPACE
-//         // cameraInverse — это чистая viewMatrix камеры в мировое пространство (без проекции)
-//         vec4f worldSpaceCenter = cameraInverse * vec4f{viewSpaceCenter, 1.0f};
-//         vec3f frustumCenter = vec3f{worldSpaceCenter} / worldSpaceCenter.w;
-
-//         // 4. СТРОИМ МАТРИЦУ СВЕТА (LIGHT VIEW)
-//         const vec3f lightPos = frustumCenter - _direction * radius;
-//         mat4f lightViewMatrix = glm::lookAtRH(lightPos, frustumCenter, vec3f{0.0f, 1.0f, 0.0f});
-
-//         // 5. СТРОИМ ОРТОГРАФИЧЕСКУЮ ПРОЕКЦИЮ СВЕТА
-//         mat4f lightOrthoMatrix = _reversedDepth ? 
-//             glm::orthoRH_ZO(-radius, radius, -radius, radius, 2.0f * radius, 0.0f) : 
-//             glm::orthoRH_ZO(-radius, radius, -radius, radius, 0.0f, 2.0f * radius);
-
-//         lightOrthoMatrix[1u][1u] *= -1.0f; // Инверсия Y для Vulkan/DirectX (если нужно)
-
-//         { // ЖЕЛЕЗОБЕТОННЫЙ TEXEL SNAPPING (БЕЗ ИСКАЖЕНИЯ Z)
-//             const mat4f shadowMatrix = lightOrthoMatrix * lightViewMatrix;
-            
-//             // Проецируем центр мира (0,0,0) в NDC тени и переводим в масштаб текселей
-//             vec4 shadowOrigin = shadowMatrix * vec4f{0.0f, 0.0f, 0.0f, 1.0f};
-//             shadowOrigin *= static_cast<float>(_size) * 0.5f;
-
-//             // Округляем до пиксельной сетки карты теней
-//             const vec2f roundedOrigin = glm::round(vec2f(shadowOrigin));
-//             const vec2f roundOffset = (roundedOrigin - vec2f(shadowOrigin)) * (2.0f / static_cast<float>(_size));
-
-//             // Сдвигаем строго XY сетку NDC, не трогая строки Z
-//             mat4f texelOffsetMat = mat4f(1.0f);
-//             texelOffsetMat[3u][0u] = roundOffset.x;
-//             texelOffsetMat[3u][1u] = roundOffset.y;
-
-//             // Итоговая матрица каскада
-//             _cascadeMatrices[i] = texelOffsetMat * shadowMatrix;
-//         }
-
-//         _splitDepths[i] = -splitDist;
-//         _texelSizes[i] = (2.0f * radius) / _size;
-//         lastSplitDist = splitDist;
-//     }
-// }
-
-
     void CascadeShadowMap::beginRenderPass(rhi::runtime::CommandList & commandList, uint8_t frameId) noexcept {
-        const auto clearValues = stl::array{
-            rhi::ClearValue{_reversedDepth ? 0.0f : 1.0f, 0u},
-        };
         commandList.setViewport(0.0f, 0.0f, _size, _size);
         commandList.setScissor({{0, 0}, {_size, _size}});
-        commandList.beginRenderPass(_renderPass, _framebuffers[frameId].frameBuffers[0u], clearValues, {{0, 0}, {_size, _size}});
+
+        if constexpr (kUseVarianceShadowMap) {
+            const auto clearValues = stl::array{
+                rhi::ClearValue{_reversedDepth ? 0u: 0xff'ff'ff'ffu},
+                rhi::ClearValue{_reversedDepth ? 0.0f : 1.0f, 0u},
+            };
+        
+            commandList.beginRenderPass(_renderPass, _framebuffers[frameId].frameBuffers[0u], clearValues, {{0, 0}, {_size, _size}});
+        } else {
+            const auto clearValues = stl::array{
+                rhi::ClearValue{_reversedDepth ? 0.0f : 1.0f, 0u}
+            };
+        
+            commandList.beginRenderPass(_renderPass, _framebuffers[frameId].frameBuffers[0u], clearValues, {{0, 0}, {_size, _size}});
+        }
     }
 
     void CascadeShadowMap::endRenderPass(rhi::runtime::CommandList & commandList) const noexcept {
@@ -419,6 +496,10 @@ namespace engine::graphics {
 
     const rhi::runtime::ImagePtr & CascadeShadowMap::getImage(uint8_t frameId) const noexcept {
         return _framebuffers[frameId].image;
+    }
+
+    const rhi::runtime::ImagePtr & CascadeShadowMap::getDepthImage(uint8_t frameId) const noexcept {
+        return _framebuffers[frameId].depthImage;
     }
 
     bool CascadeShadowMap::setDirection(const vec3f & direction, float eps) noexcept {

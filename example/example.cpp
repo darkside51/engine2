@@ -910,7 +910,7 @@ namespace example {
         rhi::DeviceCreateInfo deviceCreateInfo{_gpuFeatures};
         deviceCreateInfo.queueFamilies.push_back({index, 1u, {1.0f}, queueFlags});
         deviceCreateInfo.commandPoolThreadsCount = 2u;
-        deviceCreateInfo.inFlightFramesCount = 2u;
+        deviceCreateInfo.inFlightFramesCount = 1u;
 
         _device = _api->createDevice(_gpu, deviceCreateInfo);
 
@@ -2578,7 +2578,7 @@ namespace example {
         commandList->bindImage(4u, _gBufferAttachments[frameId].position, nearestSampler);
         commandList->bindImage(5u, _gBufferAttachments[frameId].metallicRoughness, linearSampler);
         commandList->bindImage(
-            6u, shadowMap->getImage(frameId), shadowMap->getSampler(), 0u, 
+            6u, shadowMap->getDepthImage(frameId), shadowMap->getSampler(), 0u, 
             rhi::ImageAspectFlags::eDepth, rhi::ImageViewType::eType_2D_Array 
         );
         commandList->bindBuffer(7u, (*shadowMapUniformBuffer)(frameId), 0u, 0u);
