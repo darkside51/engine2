@@ -24,6 +24,7 @@ namespace engine::graphics {
         void prepare();
         void initCascadeSplits(vec3f splitNearFarOffsets) noexcept;
         void updateCascades(const mat4f & cameraInverse);
+        void updateCascades(const mat4f & viewInverse, float cameraFovY, float cameraAspect);
 
         void beginRenderPass(rhi::runtime::CommandList & commandList, uint8_t frameId) noexcept;
         void endRenderPass(rhi::runtime::CommandList & commandList) const noexcept;

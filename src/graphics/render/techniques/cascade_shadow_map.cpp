@@ -178,83 +178,78 @@ namespace engine::graphics {
 		}
     }
 
-    // void CascadeShadowMap::updateCascades(const mat4f & cameraInverse) {
-    // cameraInverse — это матрица из инвертированная полная матрица камеры glm::inverse(camera.getTransform()); 
-    //     // calculate orthographic projection matrix for each cascade
-	// 	float lastSplitDist = 0.0f;
-	// 	for (uint8_t i = 0u; i < _cascadesCount; ++i) {
-    //         const float splitDist = _cascadeSplits[i];
-
-    //         auto frustumCorners = _reversedDepth ? stl::array{
-	// 			vec3f{-1.0f,  1.0f, 1.0f},
-	// 			vec3f{ 1.0f,  1.0f, 1.0f},
-	// 			vec3f{ 1.0f, -1.0f, 1.0f},
-	// 			vec3f{-1.0f, -1.0f,	1.0f},
-	// 			vec3f{-1.0f,  1.0f, 0.0f},
-	// 			vec3f{ 1.0f,  1.0f, 0.0f},
-	// 			vec3f{ 1.0f, -1.0f, 0.0f},
-	// 			vec3f{-1.0f, -1.0f, 0.0f}
-	// 		} :
-    //         stl::array{
-	// 			vec3f{-1.0f,  1.0f, 0.0f},
-	// 			vec3f{ 1.0f,  1.0f, 0.0f},
-	// 			vec3f{ 1.0f, -1.0f, 0.0f},
-	// 			vec3f{-1.0f, -1.0f,	0.0f},
-	// 			vec3f{-1.0f,  1.0f, 1.0f},
-	// 			vec3f{ 1.0f,  1.0f, 1.0f},
-	// 			vec3f{ 1.0f, -1.0f, 1.0f},
-	// 			vec3f{-1.0f, -1.0f, 1.0f}
-	// 		};
-
-    //         // project frustum corners into world space
-	// 		for (auto & corner : frustumCorners) {
-	// 			const auto invCorner = cameraInverse * vec4f{corner, 1.0f};
-	// 			corner = invCorner / invCorner.w;
-	// 		}
-
-    //         for (uint8_t j = 0u; j < 4u; ++j) {
-	// 			const auto dist = frustumCorners[j + 4u] - frustumCorners[j];
-	// 			frustumCorners[j + 4u] = frustumCorners[j] + (dist * splitDist);
-	// 			frustumCorners[j] = frustumCorners[j] + (dist * lastSplitDist);
-	// 		}
-
-    //         // get frustum center
-	// 		vec3f frustumCenter{0.0f};
-	// 		for (uint8_t j = 0u; j < 8u; ++j) { frustumCenter += frustumCorners[j]; }
-	// 		frustumCenter /= 8.0f;
-
-    //         const float radius = glm::length(frustumCorners[7u] - frustumCenter);
-    //         const mat4f lightViewMatrix = glm::lookAtRH(frustumCenter - _direction * radius, frustumCenter, vec3f{0.0f, 1.0f, 0.0f});
-    //         mat4f lightOrthoMatrix = _reversedDepth ? 
-    //             glm::orthoRH_ZO(-radius, radius, -radius, radius, 2.0f * radius, 0.0f) : 
-    //             glm::orthoRH_ZO(-radius, radius, -radius, radius, 0.0f, 2.0f * radius);
-    //         lightOrthoMatrix[1u][1u] *= -1.0f;
-			
-    //         { // shimmering / aliasing fix
-    //             const auto shadowMatrix = lightOrthoMatrix * lightViewMatrix;
-    //             const auto shadowOrigin = vec2f(shadowMatrix[3u]) * static_cast<float>(_size) * 0.5f;
-
-    //             // floor (pixel snapping)
-    //             const vec2f roundedOrigin = glm::round(shadowOrigin);
-    //             const vec2f roundOffset = (roundedOrigin - shadowOrigin) * (2.0f / static_cast<float>(_size));
-
-    //             // adjust the projection matrix by the texel offset value
-    //             lightOrthoMatrix[3u] += vec4f{roundOffset, 0.0f, 0.0f};
-    //         }
-
-    //         // store split distance and matrix in cascade
-    //         _splitDepths[i] = (_near + splitDist * _clipRange) * -1.0f;
-    //         _cascadeMatrices[i] = lightOrthoMatrix * lightViewMatrix;
-
-    //         lastSplitDist = _cascadeSplits[i];
-    //     }
-    // }
-
     void CascadeShadowMap::updateCascades(const mat4f & cameraInverse) {
-        // cameraInverse — это матрица из View Space в World Space (обычно glm::inverse(viewMatrix))
-        
-        float cameraFovY = 3.1415926f / 3.0f;
-        float cameraAspect = 16.0f / 9.0f;
+        // calculate orthographic projection matrix for each cascade
+		float lastSplitDist = 0.0f;
+		for (uint8_t i = 0u; i < _cascadesCount; ++i) {
+            const float splitDist = _cascadeSplits[i];
+
+            auto frustumCorners = _reversedDepth ? stl::array{
+				vec3f{-1.0f,  1.0f, 1.0f},
+				vec3f{ 1.0f,  1.0f, 1.0f},
+				vec3f{ 1.0f, -1.0f, 1.0f},
+				vec3f{-1.0f, -1.0f,	1.0f},
+				vec3f{-1.0f,  1.0f, 0.0f},
+				vec3f{ 1.0f,  1.0f, 0.0f},
+				vec3f{ 1.0f, -1.0f, 0.0f},
+				vec3f{-1.0f, -1.0f, 0.0f}
+			} :
+            stl::array{
+				vec3f{-1.0f,  1.0f, 0.0f},
+				vec3f{ 1.0f,  1.0f, 0.0f},
+				vec3f{ 1.0f, -1.0f, 0.0f},
+				vec3f{-1.0f, -1.0f,	0.0f},
+				vec3f{-1.0f,  1.0f, 1.0f},
+				vec3f{ 1.0f,  1.0f, 1.0f},
+				vec3f{ 1.0f, -1.0f, 1.0f},
+				vec3f{-1.0f, -1.0f, 1.0f}
+			};
+
+            // project frustum corners into world space
+			for (auto & corner : frustumCorners) {
+				const auto invCorner = cameraInverse * vec4f{corner, 1.0f};
+				corner = invCorner / invCorner.w;
+			}
+
+            for (uint8_t j = 0u; j < 4u; ++j) {
+				const auto dist = frustumCorners[j + 4u] - frustumCorners[j];
+				frustumCorners[j + 4u] = frustumCorners[j] + (dist * splitDist);
+				frustumCorners[j] = frustumCorners[j] + (dist * lastSplitDist);
+			}
+
+            // get frustum center
+			vec3f frustumCenter{0.0f};
+			for (uint8_t j = 0u; j < 8u; ++j) { frustumCenter += frustumCorners[j]; }
+			frustumCenter /= 8.0f;
+
+            const float radius = glm::length(frustumCorners[7u] - frustumCenter);
+            const mat4f lightViewMatrix = glm::lookAtRH(frustumCenter - _direction * radius, frustumCenter, vec3f{0.0f, 1.0f, 0.0f});
+            mat4f lightOrthoMatrix = _reversedDepth ? 
+                glm::orthoRH_ZO(-radius, radius, -radius, radius, 2.0f * radius, 0.0f) : 
+                glm::orthoRH_ZO(-radius, radius, -radius, radius, 0.0f, 2.0f * radius);
+            lightOrthoMatrix[1u][1u] *= -1.0f;
+			
+            { // shimmering / aliasing fix
+                const auto shadowMatrix = lightOrthoMatrix * lightViewMatrix;
+                const auto shadowOrigin = vec2f(shadowMatrix[3u]) * static_cast<float>(_size) * 0.5f;
+
+                // floor (pixel snapping)
+                const vec2f roundedOrigin = glm::round(shadowOrigin);
+                const vec2f roundOffset = (roundedOrigin - shadowOrigin) * (2.0f / static_cast<float>(_size));
+
+                // adjust the projection matrix by the texel offset value
+                lightOrthoMatrix[3u] += vec4f{roundOffset, 0.0f, 0.0f};
+            }
+
+            // store split distance and matrix in cascade
+            _splitDepths[i] = (_near + splitDist * _clipRange) * -1.0f;
+            _cascadeMatrices[i] = lightOrthoMatrix * lightViewMatrix;
+
+            lastSplitDist = _cascadeSplits[i];
+        }
+    }
+
+    void CascadeShadowMap::updateCascades(const mat4f & viewInverse, float cameraFovY, float cameraAspect) {
         float lastSplitDist = _near;
         const float halfTanFov = glm::tan(cameraFovY * 0.5f);
 
@@ -286,7 +281,7 @@ namespace engine::graphics {
 
             // 3. Переводим вершины каскада из View Space в World Space
             for (auto & corner : frustumCorners) {
-                const auto worldCorner = cameraInverse * vec4f{corner, 1.0f};
+                const auto worldCorner = viewInverse * vec4f{corner, 1.0f};
                 corner = vec3f{worldCorner} / worldCorner.w;
             }
 

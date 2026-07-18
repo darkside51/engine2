@@ -79,42 +79,13 @@ void main() {
 		}
 	}
 
-float texelSize = u_shadow.texelSizes[cascade];
-
-// 1. БАЗОВЫЙ ШАГ ПО НОРМАЛИ (Для плоских поверхностей)
-// Делаем его умеренным, чтобы крыши не отрывались
-float baseNormalBias = texelSize * 0.8f; 
-
-// 2. СЧИТАЕМ СКОРОСТЬ ИЗМЕНЕНИЯ ГЛУБИНЫ НА ЭКРАНЕ (Для борьбы с артефактами размытия)
-// Функции dFdx/dFdy показывают, как быстро геометрия "удаляется" от камеры от пикселя к пикселю.
-// На ландшафтах и склонах это значение высокое (нужен большой bias).
-// На вертикальных стенах и ровных крышах коробок — оно минимальное (тень прижмется намертво!).
-float changeX = dFdx(viewPosition.z);
-float changeY = dFdy(viewPosition.z);
-float filterFactor = abs(changeX) + abs(changeY);
-
-// Ограничиваем влияние экранного фильтра, чтобы он не улетал в бесконечность на горизонтах
-filterFactor = clamp(filterFactor, 0.0, 2.0);
-
-// 3. ИТОГОВЫЙ СДВИГ ПО НОРМАЛИ
-// Мы складываем базовый сдвиг и добавку от фильтра размытия экрана
-float finalNormalFactor = baseNormalBias + (filterFactor * texelSize * 3.0);
-
-// Жестко зажимаем верхний предел (не даем смещению стать больше 3 текселей)
-finalNormalFactor = clamp(finalNormalFactor, texelSize * 0.4, texelSize * 3.0);
-
-// Смещаем позицию во View Space
-vec3 biasedViewPos = viewPosition + (normal * finalNormalFactor);
-
-// 4. УМНОЖАЕМ НА МАТРИЦУ КАСКАДА
-vec4 shadowCoord = u_shadow.cascades[cascade] * vec4(biasedViewPos, 1.0f);
-if (shadowCoord.w != 0.0) {
-    shadowCoord.xyz = shadowCoord.xyz * (1.0f / shadowCoord.w);
-}
-shadowCoord.xy = shadowCoord.xy * 0.5f + 0.5f;
+	float texelSize = u_shadow.texelSizes[cascade];
+	vec4 shadowCoord = u_shadow.cascades[cascade] * worldPosition;//vec4(viewPosition, 1.0f);
+	shadowCoord.xyz /= shadowCoord.w;
+	shadowCoord.xy = shadowCoord.xy * 0.5f + 0.5f;
 	
 	const ivec2 texSize = textureSize(textureShadowMap, 0).xy;
-	const float bias = 0.0f;
+	const float bias = max(0.0001f * (1.0f - dotNL), 0.00001f);
 
 	//const float shadowValue = textureProj(textureShadowMap, shadowCoord, vec2(0.0f), cascade, bias, u_shadow.options.x); // hardware pcf if use sampler2DArrayShadow
 	//const float shadowValue = filterPCF(textureShadowMap, shadowCoord, cascade, bias, u_shadow.options.x);

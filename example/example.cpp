@@ -2317,7 +2317,16 @@ namespace example {
 
         if (viewParamsUpdated || lightDirty) { // viewParams has been changed
             shadowMap->setDirection(glm::normalize(lightDir));
-            shadowMap->updateCascades(glm::inverse(viewParams.cameraView));
+
+            // const auto invMatrix = glm::inverse(viewParams.cameraView);
+            // shadowMap->updateCascades(
+            //     invMatrix, 
+            //     3.1415926f / 3.0f, 
+            //     viewParams.cameraTransform[0][0] / viewParams.cameraTransform[1][1]
+            // );
+
+            const auto invMatrix = glm::inverse(viewParams.cameraTransform);
+            shadowMap->updateCascades(invMatrix);
 
             auto * shadowUniforms = shadowMapUniformBuffer->memory2<ShadowMapUniforms>();
             memcpy(shadowUniforms->cascades.data(), shadowMap->getCascadeMatrices().data(), sizeof(engine::mat4f) * shadowMap->getCascadeMatrices().size());
@@ -2326,8 +2335,9 @@ namespace example {
             shadowUniforms->options = shadowsOptions;
             shadowMapUniformBuffer->modify();
 
-            shadowUniforms->cascades[0] = shadowUniforms->cascades[0] * glm::inverse(viewParams.cameraView);
-            shadowUniforms->cascades[1] = shadowUniforms->cascades[1] * glm::inverse(viewParams.cameraView);
+            // for inv cameraView variant
+            // shadowUniforms->cascades[0] *= invMatrix;
+            // shadowUniforms->cascades[1] *= invMatrix;
 
             viewParamsUpdated = false;
             lightDirty = false;
