@@ -80,15 +80,14 @@ void main() {
 		}
 	}
 
-	float texelSize = u_shadow.texelSizes[cascade];
+	const float texelSize = u_shadow.texelSizes[cascade];
 	//vec4 shadowCoord = u_shadow.cascades[cascade] * worldPosition;
 
-	//vec3 worldNormal = normalize((u_shadow.viewInverse * vec4(normal, 0.0f)).xyz);
-
-	float factor = 0.001;
+	const float factor = 0.01f;
 	vec3 biasedViewPos = viewPosition + (normal * factor);
 	vec4 shadowCoord = u_shadow.cascades[cascade] * vec4(biasedViewPos, 1.0f);
 
+	//vec3 worldNormal = normalize((u_shadow.viewInverse * vec4(normal, 0.0f)).xyz);
 	//vec3 biasedWorldPos = worldPosition.xyz + (worldNormal * factor);
 	//vec4 shadowCoord = u_shadow.cascades[cascade] * vec4(biasedWorldPos, 1.0f);
 	
@@ -96,17 +95,17 @@ void main() {
 	shadowCoord.xy = shadowCoord.xy * 0.5f + 0.5f;
 	
 	const ivec2 texSize = textureSize(textureShadowMap, 0).xy;
+
 	//const float bias = max(0.002f * (1.0f - dotNL), 0.0002f);
 	const float bias = 0.0f;
 
-	//shadowCoord.y = shadowCoord.y + bias;
-
-	//const float shadowValue = textureProj(textureShadowMap, shadowCoord, vec2(0.0f), cascade, bias, u_shadow.options.x); // hardware pcf if use sampler2DArrayShadow
-	//const float shadowValue = filterPCF(textureShadowMap, shadowCoord, cascade, bias, u_shadow.options.x);
-	//const float shadowValue = clamp(filterPCF_Low2(textureShadowMap, texSize, shadowCoord.xyz, cascade, bias, 1.5f, 4), u_shadow.options.x, 1.0f);
+	//const float shadow = textureProj(textureShadowMap, shadowCoord, vec2(0.0f), cascade, bias); // hardware pcf if use sampler2DArrayShadow
+	//const float shadow = filterPCF(textureShadowMap, shadowCoord, cascade, bias);
+	//const float shadow = filterPCF_Low2(textureShadowMap, texSize, shadowCoord.xyz, cascade, bias, 1.5f, 4);
 	const float shadow = filterPCF_Low(textureShadowMap, texSize, shadowCoord.xyz, cascade, bias);
+	//const float shadow = textureProj2(textureShadowMap, shadowCoord, vec2(0.0f), cascade, bias);
+
 	const float shadowValue = clamp(shadow, u_shadow.options.x, 1.0f);
-	//const float shadowValue = textureProj2(textureShadowMap, shadowCoord, vec2(0.0f), cascade, bias, u_shadow.options.x);
 	// shadows
 
 	const float metallic = metallicRoughness.x;
@@ -146,7 +145,6 @@ void main() {
     const vec3 ambient = push.ambient.xyz * push.ambient.w * albedo.rgb * occlusion;
     vec3 baseColor = ambient + Lo;
 
-    //baseColor *= shadowValue;
     baseColor = clamp(baseColor * shadowValue, ambient, baseColor);
     baseColor += emissive.rgb;
 	//

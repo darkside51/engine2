@@ -16,26 +16,26 @@ float calculateAnisotropicBias(ivec2 texSize, vec3 viewSpacePos, float minBias, 
 	return minBias + slopeBias;
 }
 
-float textureProj(in sampler2DArrayShadow shadowTex, vec4 shadowCoord, vec2 offset, uint cascadeIndex, float bias, float ambient) {
+float textureProj(in sampler2DArrayShadow shadowTex, vec4 shadowCoord, vec2 offset, uint cascadeIndex, float bias) {
 	if (shadowCoord.z > 0.0f && shadowCoord.z < 1.0f) {
 		const float dist = texture(shadowTex, vec4(shadowCoord.xy + offset, cascadeIndex, shadowCoord.z - bias));
-		return mix(clamp(ambient + dist, 0.0f, 1.0f), 1.0f, step(shadowCoord.w, 0.0f));
+		return dist * step(0.0f, shadowCoord.w);
 	}
 	return 1.0f;
 }
 
-float textureProj2(in sampler2DArray shadowTex, vec4 shadowCoord, vec2 offset, uint cascadeIndex, float bias, float ambient) {
+float textureProj2(in sampler2DArray shadowTex, vec4 shadowCoord, vec2 offset, uint cascadeIndex, float bias) {
 	if (shadowCoord.z > 0.0f && shadowCoord.z < 1.0f) {
 		const vec2 uv = shadowCoord.xy + offset;
 		const float dist = texture(shadowTex, vec3(uv, cascadeIndex)).r;
 		if (dist > shadowCoord.z - bias) {
-			return mix(ambient, 1.0f, step(shadowCoord.w, 0.0f));
+			return step(0.0f, shadowCoord.w);
 		}
 	}
 	return 1.0f;
 }
 
-float filterPCF(in sampler2DArray shadowTex, vec4 sc, uint cascadeIndex, float bias, float ambient) {
+float filterPCF(in sampler2DArray shadowTex, vec4 sc, uint cascadeIndex, float bias) {
 	const ivec2 texDim = textureSize(shadowTex, 0).xy;
 	const float scale = 0.6f;
 	const float dx = scale * 1.0f / float(texDim.x);
@@ -47,7 +47,7 @@ float filterPCF(in sampler2DArray shadowTex, vec4 sc, uint cascadeIndex, float b
 	
 	for (int x = -range; x <= range; ++x) {
 		for (int y = -range; y <= range; ++y) {
-			shadowFactor += textureProj2(shadowTex, sc, vec2(dx*x, dy*y), cascadeIndex, bias, ambient);
+			shadowFactor += textureProj2(shadowTex, sc, vec2(dx*x, dy*y), cascadeIndex, bias);
 			count++;
 		}
 	}
@@ -90,7 +90,7 @@ float filterPCF_Low(
     const vec2 uv3 = base + vec2(u.y, v.y);
 
     float sum = 0.0f;
-    float depth = shadowPosition.z - bias;
+    const float depth = shadowPosition.z - bias;
     sum += w0 * texture(map, vec4(uv0, layer, depth));
     sum += w1 * texture(map, vec4(uv1, layer, depth));
     sum += w2 * texture(map, vec4(uv2, layer, depth));
