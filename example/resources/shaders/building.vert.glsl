@@ -15,12 +15,15 @@ layout (set = 0, binding = 0) uniform UniformBuffer {
 	float time;
 } u_viewParams;
 
+layout(push_constant) uniform Params {
+	mat4 transform;
+} push;
+
 void main() {
 	v_position = vec3(a_position.xyz) / 4096.0f;
-	v_position *= 16.0f;
-	v_position.y += 10.0f;
-	v_position.z += 0.001f;
-	vec4 worldPosition = vec4(v_position, 1.0);
+	vec4 worldPosition = push.transform * vec4(v_position, 1.0f);
+	v_position = worldPosition.xyz / worldPosition.w;
+
 	gl_Position = u_viewParams.viewProjection * worldPosition;
 	v_normalMatrix = transpose(inverse(mat3(u_viewParams.view)));
 	v_material = a_position.w;

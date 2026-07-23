@@ -189,6 +189,9 @@ namespace example {
     };
 
     std::vector<MapPolygonGeometry> g_mapGeometry;
+    engine::rhi::runtime::Pipeline* g_mapGeometryCommonPipeline;
+    engine::rhi::runtime::Pipeline* g_mapGeometryCommonAreaPipeline;
+    engine::rhi::runtime::Pipeline* g_mapGeometryShadowPipeline;
 
     void optionsWindow() {
         ImGui::SetNextWindowSize(ImVec2(540, 840), ImGuiCond_FirstUseEver);
@@ -709,6 +712,57 @@ namespace example {
 
                                             callbacks.emplace_back([mapGeometry = std::move(mapGeometry)](){
                                                 g_mapGeometry = std::move(mapGeometry);
+
+                                                auto * node = scene->createNode();
+                                                node->setScale(engine::vec3f{16.0f});
+                                                node->setPosition(engine::vec3f(0.0f, 10.0f, 0.001f));
+                                                node->setBounds(
+                                                    engine::scene::Bounds::createCube(
+                                                        engine::vec3f{1.0f, 1.0f, 0.0f}, 
+                                                        engine::vec3f{0.0f, 0.0f, 0.1f}
+                                                    )
+                                                );
+                                                auto * object = scene->createObject<engine::scene::CustomDrawObject>([](
+                                                    const engine::scene::Scene & scene, 
+                                                    const engine::scene::ViewParams &, 
+                                                    const engine::mat4f & worldTransform,
+                                                    engine::rhi::runtime::CommandListPtr & commandList,
+                                                    uint8_t frameId) {
+                                                    auto const sceneViewParamBufferOffset = scene.getCurrentViewParamsBufferOffset();
+                                                    switch (scene.getCurrentRenderPass()) {
+                                                        case engine::scene::RenderPass::eCommon:
+                                                        {
+                                                            uint32_t i = 0u;
+                                                            for (auto & g : g_mapGeometry) {
+                                                                if (i == 0u) {
+                                                                    commandList->bindPipeline(*g_mapGeometryCommonPipeline);
+                                                                } else {
+                                                                    commandList->bindPipeline(*g_mapGeometryCommonAreaPipeline);
+                                                                }
+                                                                commandList->bindVertexBuffer(0u, g.positions);
+                                                                commandList->bindIndexBuffer(g.indices, 0u, engine::rhi::IndexType::eU32);
+                                                                commandList->bindBuffer(0u, scene.getViewParamsUniformBuffer(frameId), 0u, sceneViewParamBufferOffset);
+                                                                commandList->pushConstants(engine::rhi::shaders::Stages::eVertex, 0u, sizeof(engine::mat4f), &worldTransform);
+                                                                commandList->drawIndexed(g.indices->sizeInBytes() / sizeof(uint32_t));
+                                                                ++i;
+                                                            }
+                                                        }
+                                                        break;
+                                                        case engine::scene::RenderPass::eShadow:
+                                                        {
+                                                            auto & g = g_mapGeometry[0u];
+                                                            commandList->bindPipeline(*g_mapGeometryShadowPipeline);
+                                                            commandList->bindVertexBuffer(0u, g.positions);
+                                                            commandList->bindIndexBuffer(g.indices, 0u, engine::rhi::IndexType::eU32);
+                                                            commandList->bindBuffer(0u, scene.getViewParamsUniformBuffer(frameId), 0u, sceneViewParamBufferOffset);
+                                                            commandList->pushConstants(engine::rhi::shaders::Stages::eVertex, 0u, sizeof(engine::mat4f), &worldTransform);
+                                                            commandList->drawIndexed(g.indices->sizeInBytes() / sizeof(uint32_t), 2u);
+                                                        }
+                                                        break;
+                                                    }
+                                                });
+                                                engine::scene::attachObjectToNode(*object, *node);
+                                                sceneWorldRoot->addChild(node);
                                             });
                                         }});
                                     }
@@ -823,6 +877,9 @@ namespace example {
 
         skyBoxCubeMapImage = nullptr;
 
+        g_mapGeometryCommonPipeline = nullptr;
+        g_mapGeometryCommonAreaPipeline = nullptr;
+        g_mapGeometryShadowPipeline = nullptr;
         g_mapGeometry.clear();
         
         _pipelines.clear();
@@ -1368,10 +1425,10 @@ namespace example {
 
         // kMapBuildingsPipeline
         const GraphicsPipelineStatesInfo info9 = engine::parseGraphicsPipelineInfo(json["map_buildings"]);
-        _pipelines.emplace_back(_api->createGraphicsPipeline(*_device, _renderPasses[kGbufferRenderPass], _programs[kMapBuildingsProgram], info9, 0u));
+        g_mapGeometryCommonPipeline = _pipelines.emplace_back(_api->createGraphicsPipeline(*_device, _renderPasses[kGbufferRenderPass], _programs[kMapBuildingsProgram], info9, 0u)).get();
         // kMapAreaPipeline
         const GraphicsPipelineStatesInfo info10 = engine::parseGraphicsPipelineInfo(json["map_area"]);
-        _pipelines.emplace_back(_api->createGraphicsPipeline(*_device, _renderPasses[kGbufferRenderPass], _programs[kMapBuildingsProgram], info10, 0u));
+        g_mapGeometryCommonAreaPipeline = _pipelines.emplace_back(_api->createGraphicsPipeline(*_device, _renderPasses[kGbufferRenderPass], _programs[kMapBuildingsProgram], info10, 0u)).get();
         
         // scene pipelines
         const GraphicsPipelineStatesInfo info2 = engine::parseGraphicsPipelineInfo(json["sprite_common"]);
@@ -1412,7 +1469,7 @@ namespace example {
 
         // kMapBuildingsShadowsPipeline
         const GraphicsPipelineStatesInfo info11 = engine::parseGraphicsPipelineInfo(json["map_buildings_shadows"]);
-        _pipelines.emplace_back(_api->createGraphicsPipeline(*_device, shadowMap->getRenderPass(), _programs[kMapBuildingsShadowsProgram], info11, 0u));
+        g_mapGeometryShadowPipeline = _pipelines.emplace_back(_api->createGraphicsPipeline(*_device, shadowMap->getRenderPass(), _programs[kMapBuildingsShadowsProgram], info11, 0u)).get();
     }
 
     void Example::createDefaultResources() {
@@ -2363,7 +2420,9 @@ namespace example {
 
         // auto timer = engine::time::Timer{};
         scene->fillAttachmentsArray(viewParams, sceneWorldRoot, [](engine::scene::AttachmentObject* object) noexcept {
-            if (object->typeIndex == ctti::typeIndex<engine::scene::AttachmentObject, engine::scene::Mesh>()) {
+            if (object->typeIndex == ctti::typeIndex<engine::scene::AttachmentObject, engine::scene::Mesh>() ||
+                object->typeIndex == ctti::typeIndex<engine::scene::AttachmentObject, engine::scene::CustomDrawObject>()
+            ) {
                 shadowObjects.emplace_back(object); // check visible with shadow matrix?
             }
             return true; 
@@ -2397,16 +2456,6 @@ namespace example {
         auto sceneViewParamBufferOffset = scene->getCurrentViewParamsBufferOffset();
         const auto cascadeMatrices = shadowMap->getCascadeMatrices();
         scene->draw(engine::scene::RenderPass::eShadow, commandList, transferCommandList, frameId, viewParams, shadowObjects, offsets1, &cascadeMatrices);
-
-        if (!g_mapGeometry.empty()) {
-            auto & g = g_mapGeometry[0u];
-            commandList->bindPipeline(_pipelines[kMapBuildingsShadowsPipeline]);
-            commandList->bindVertexBuffer(0u, g.positions);
-            commandList->bindIndexBuffer(g.indices, 0u, rhi::IndexType::eU32);
-            commandList->bindBuffer(0u, scene->getViewParamsUniformBuffer(frameId), 0u, sceneViewParamBufferOffset);
-            commandList->drawIndexed(g.indices->sizeInBytes() / sizeof(uint32_t), 2u);
-        }
-
         shadowMap->endRenderPass(*commandList);
 
         // draw scene
@@ -2439,22 +2488,6 @@ namespace example {
             scene->drawDebug(viewParams, objects);
             drawHelper.prepare(*transferCommandList, frameId);
             drawHelper.draw(*commandList, frameId, now);
-        }
-
-        if (!g_mapGeometry.empty()) {
-            uint32_t i = 0u;
-            for (auto & g : g_mapGeometry) {
-                if (i == 0u) {
-                    commandList->bindPipeline(_pipelines[kMapBuildingsPipeline]);
-                } else {
-                    commandList->bindPipeline(_pipelines[kMapAreaPipeline]);
-                }
-                commandList->bindVertexBuffer(0u, g.positions);
-                commandList->bindIndexBuffer(g.indices, 0u, rhi::IndexType::eU32);
-                commandList->bindBuffer(0u, scene->getViewParamsUniformBuffer(frameId), 0u, sceneViewParamBufferOffset);
-                commandList->drawIndexed(g.indices->sizeInBytes() / sizeof(uint32_t));
-                ++i;
-            }
         }
 
         //commandList->nextSubpass(rhi::SubpassContents::ePrimaryBufferInline);

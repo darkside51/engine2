@@ -133,6 +133,24 @@ namespace engine::rhi::runtime {
         }
     }
 
+    void CommandList::bindPipeline(const Pipeline & pipeline) noexcept {
+        if (_state.pipeline != &pipeline) {
+            _commands->create<BindPipelineCommand>(pipeline);
+            _state.pipeline = &pipeline;
+
+            if constexpr (kStatisticsEnable) {
+            ++_statistics.binPipelines;
+            }
+
+            _pipelineType = pipeline.bindPoint;
+
+            if (_currentPass == nullptr || pipeline.bindPoint == PipelineBindPoint::eCompute && _currentPass->type == Pass::Type::eTransfer) {
+                _currentPass = &_passes.emplace_back(Pass::Type::eCompute, _commandsCount);
+            }
+            ++_commandsCount;
+        }
+    }
+
     // void CommandList::bindVertexBuffer(uint32_t binding, Buffer * buffer, uint32_t offset) {
     //     _commands->create<BindVertexBufferCommand>(binding, buffer, offset);
     //     ++_commandsCount;

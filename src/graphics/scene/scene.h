@@ -212,6 +212,10 @@ public:
         return _currentViewParamsBufferOffset;
     }
 
+    RenderPass getCurrentRenderPass() const noexcept {
+        return _currentPass;
+    }
+
 private:
     // attachments
     static bool compareAttachmentsForDraw(const AttachmentObject & a, const AttachmentObject & b) noexcept;
@@ -249,6 +253,9 @@ private:
     void drawSameMeshes(rhi::runtime::CommandListPtr & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end,
         uint32_t count, bool skeletal, uint32_t startTransformIndex);
     // todo: void drawSameMeshesShadow(...);
+
+    void drawCustomObjects(AttachmentsIterator begin, AttachmentsIterator end, const ViewParams & viewParams, 
+        rhi::runtime::CommandListPtr & commandList, uint8_t frame);
 
     using NodesAllocator = allocators::PoolAllocatorChain<sizeof(Node), alignof(Node), false, false>;
     NodesAllocator _nodeAllocator{512u, 256u};

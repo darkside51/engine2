@@ -94,6 +94,7 @@ namespace engine::rhi::runtime {
         void setScissor(const rhi::Rect2D & area, uint32_t scissorIdx = 0u) noexcept;
 
         void bindPipeline(const PipelinePtr & pipeline) noexcept;
+        void bindPipeline(const Pipeline & pipeline) noexcept;
         // void bindVertexBuffer(uint32_t binding, Buffer * buffer, uint32_t offset = 0u);
         // void bindIndexBuffer(const Buffer * buffer, uint32_t offset = 0u, IndexType type = rhi::IndexType::eU32);
         // void bindBuffer(uint16_t binding, const Buffer * buffer, uint8_t setId = 0u, uint64_t offset = 0u, uint64_t range = kWholeSize64);

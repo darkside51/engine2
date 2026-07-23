@@ -306,7 +306,7 @@ namespace engine::graphics {
 
 		// calculate split depths based on view camera frustum
 		// based on method presented in https://developer.nvidia.com/gpugems/GPUGems3/gpugems3_ch10.html
-		for (uint32_t i = 0u; i < _cascadesCount; i++) {
+		for (uint32_t i = 0u; i < _cascadesCount; ++i) {
 			const float p = (i + 1u) / static_cast<float>(_cascadesCount);
 			const float log = minZ * std::pow(ratio, p);
 			const float uniform = minZ + range * p;
@@ -321,7 +321,7 @@ namespace engine::graphics {
 		for (uint8_t i = 0u; i < _cascadesCount; ++i) {
             const float splitDist = _cascadeSplits[i];
 
-            auto frustumCorners = _reversedDepth ? stl::array{
+            auto frustumCorners = _reversedDepth ? stl::array<vec3f, 8u>{
 				vec3f{-1.0f,  1.0f, 1.0f},
 				vec3f{ 1.0f,  1.0f, 1.0f},
 				vec3f{ 1.0f, -1.0f, 1.0f},
@@ -331,7 +331,7 @@ namespace engine::graphics {
 				vec3f{ 1.0f, -1.0f, 0.0f},
 				vec3f{-1.0f, -1.0f, 0.0f}
 			} :
-            stl::array{
+            stl::array<vec3f, 8u>{
 				vec3f{-1.0f,  1.0f, 0.0f},
 				vec3f{ 1.0f,  1.0f, 0.0f},
 				vec3f{ 1.0f, -1.0f, 0.0f},
@@ -391,56 +391,48 @@ namespace engine::graphics {
         const float halfTanFov = glm::tan(cameraFovY * 0.5f);
 
         for (uint8_t i = 0u; i < _cascadesCount; ++i) {
-            // Если _cascadeSplits[i] это коэффициент от 0 до 1, переводим в метры.
-            // Если это уже метры, то просто: float splitDist = _cascadeSplits[i];
             const float splitDist = _near + (_cascadeSplits[i] * _clipRange);
 
-            // 1. Считаем размеры ближней и дальней плоскостей текущего каскада во View Space
+            // считаем размеры ближней и дальней плоскостей текущего каскада во View Space
             const float nearHeight = lastSplitDist * halfTanFov;
             const float nearWidth  = nearHeight * cameraAspect;
             const float farHeight  = splitDist * halfTanFov;
             const float farWidth   = farHeight * cameraAspect;
 
-            // 2. Строим 8 вершин каскада во View Space (камера смотрит вдоль -Z)
-            // Для Reverse-Z и обычного Z во View Space координаты одинаковы, меняется только NDC.
+            // строим 8 вершин каскада во View Space (камера смотрит вдоль -Z)
+            // для Reverse-Z и обычного Z во View Space координаты одинаковы, меняется только NDC.
             stl::array<vec3f, 8> frustumCorners = {
-                // Ближняя плоскость каскада (Z = -lastSplitDist)
+                // ближняя плоскость каскада (Z = -lastSplitDist)
                 vec3f{-nearWidth,  nearHeight, -lastSplitDist},
                 vec3f{ nearWidth,  nearHeight, -lastSplitDist},
                 vec3f{ nearWidth, -nearHeight, -lastSplitDist},
                 vec3f{-nearWidth, -nearHeight, -lastSplitDist},
-                // Дальняя плоскость каскада (Z = -splitDist)
+                // дальняя плоскость каскада (Z = -splitDist)
                 vec3f{-farWidth,   farHeight,  -splitDist},
                 vec3f{ farWidth,   farHeight,  -splitDist},
                 vec3f{ farWidth,  -farHeight,  -splitDist},
                 vec3f{-farWidth,  -farHeight,  -splitDist}
             };
 
-            // 3. Переводим вершины каскада из View Space в World Space
+            // переводим вершины каскада из View Space в World Space
             for (auto & corner : frustumCorners) {
                 const auto worldCorner = viewInverse * vec4f{corner, 1.0f};
                 corner = vec3f{worldCorner} / worldCorner.w;
             }
 
-            // 4. Находим центр усеченного конуса (Frustum Center) в мировом пространстве
+            // находим центр усеченного конуса (Frustum Center) в мировом пространстве
             vec3f frustumCenter{0.0f};
             for (uint8_t j = 0u; j < 8u; ++j) { 
                 frustumCenter += frustumCorners[j]; 
             }
             frustumCenter /= 8.0f;
 
-            // 5. Считаем радиус ограничивающей сферы (Bounding Sphere)
-            // Идеальная сфера гарантирует, что при вращении камеры размер каскада не изменится
-            float radius = 0.0f;
-            for (uint8_t j = 0u; j < 8u; ++j) {
-                radius = glm::max(radius, glm::length(frustumCorners[j] - frustumCenter));
-            }
+            const float radius = glm::length(frustumCorners[7u] - frustumCenter);
 
-            // 6. Строим матрицу вида для направленного света (Light View Matrix)
+            // строим матрицу вида для направленного света (Light View Matrix)
             const vec3f lightPos = frustumCenter - _direction * radius;
             const mat4f lightViewMatrix = glm::lookAtRH(lightPos, frustumCenter, vec3f{0.0f, 0.0f, 1.0f});
 
-            // 2. Строим исходную ортографическую проекцию
             mat4f lightOrthoMatrix = _reversedDepth ? 
                 glm::orthoRH_ZO(-radius, radius, -radius, radius, 2.0f * radius, 0.0f) : 
                 glm::orthoRH_ZO(-radius, radius, -radius, radius, 0.0f, 2.0f * radius);
@@ -459,10 +451,7 @@ namespace engine::graphics {
                 lightOrthoMatrix[3u] += vec4f{roundOffset, 0.0f, 0.0f};
             }
 
-            // Сохраняем дистанцию сплита для шейдера (в честных метрах или в NDC, зависит от вашего шейдера)
-            // Обычно для шейдера удобнее хранить её в View Space (отрицательной, если камера смотрит в -Z)
             _splitDepths[i] = -splitDist; 
-            //_splitDepths[i] = (_near + _cascadeSplits[i] * _clipRange) * -1.0f;
             _cascadeMatrices[i] = lightOrthoMatrix * lightViewMatrix;
             _texelSizes[i] = (2.0f * radius) / _size;
 

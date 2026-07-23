@@ -4,6 +4,7 @@
 #include "animation/texture/frame_sequence_animation.h"
 #include "objects/sprite.h"
 #include "objects/mesh.h"
+#include "objects/custom_draw_object.h"
 
 #include "graphics/common/graphics_service.h"
 #include "graphics/render/rhi/common/command_list.h"
@@ -112,6 +113,7 @@ namespace engine::scene {
     void attachObjectToNode(AttachmentObject & object, Node & node) noexcept {
         switch(object.typeIndex) {
         case ctti::typeIndex<AttachmentObject, Skeleton>(): [[fallthrough]];
+        case ctti::typeIndex<AttachmentObject, CustomDrawObject>(): [[fallthrough]];
         case ctti::typeIndex<AttachmentObject, Dummy>():
             node.setAttachment(&object);
             return;
@@ -1057,6 +1059,11 @@ namespace engine::scene {
             drawSprites(commandList, frame, begin, end, viewParams, offsets.spriteVerticesOffset, offsets.spriteIndicesOffset);
         }
             break;
+        case ctti::typeIndex<AttachmentObject, CustomDrawObject>():
+        {
+            drawCustomObjects(begin, end, viewParams, commandList, frame);
+        }
+            break;
         case ctti::typeIndex<AttachmentObject, Dummy>():
         {
             drawDummies(begin, end, viewParams, 0xff'00'00'ffu);
@@ -1085,6 +1092,9 @@ namespace engine::scene {
                 case ctti::typeIndex<AttachmentObject, Sprite>():
                     color = 0xff'ff'77'00u;
                     break;
+                case ctti::typeIndex<AttachmentObject, CustomDrawObject>():
+                    color = 0xff'00'00'ffu;
+                    break;
                 default:
                     break;
                 }
@@ -1096,9 +1106,9 @@ namespace engine::scene {
 
     void Scene::draw(RenderPass pass, rhi::runtime::CommandListPtr & commandList, rhi::runtime::CommandListPtr & transferCommandList, uint8_t frame, 
         const ViewParams & viewParams, stl::span<AttachmentObject*> objects, const DrawDataOffsets & offsets, const void * external) {
-        // if (objects.empty()) { // no right variant, just for test!
-        //     return;
-        // }
+        if (objects.empty()) { // no right variant, just for test!
+            return;
+        }
 
         _currentPass = pass;
         const size_t uniformBufferOffsetAlign = _device->getUniformBufferOffsetAlignment();
@@ -1129,7 +1139,6 @@ namespace engine::scene {
             }
         }
 
-        if (!objects.empty()) { // no right variant, just for test!
         DrawDataOffsets offsets2 = offsets;
         auto currentIt = objects.begin();
         uint16_t typeIdx = (*currentIt)->typeIndex;
@@ -1144,7 +1153,6 @@ namespace engine::scene {
         }
 
         drawObjects(commandList, frame, viewParams, currentIt, objects.end(), typeIdx, offsets2);
-        }
 
         // change unifrom buffer offset
         _currentViewParamsBufferOffset += align_value(sizeof(ViewParams), uniformBufferOffsetAlign);
@@ -1154,6 +1162,16 @@ namespace engine::scene {
         for (auto it = begin; it != end; ++it) {
             const auto & object = *it;
             _drawHelper.drawSphere(vec3f{0.0f}, 0.1f, color, 32u, viewParams.cameraTransform * object->node->getWorldTransform());
+        }
+    }
+
+    void Scene::drawCustomObjects(
+        AttachmentsIterator begin, AttachmentsIterator end, 
+        const ViewParams & viewParams, rhi::runtime::CommandListPtr & commandList, uint8_t frame
+    ) {
+        for (auto it = begin; it != end; ++it) {
+            const auto & object = *static_cast<const CustomDrawObject*>(*it);
+            object.draw(*this, viewParams, commandList, frame);
         }
     }
 

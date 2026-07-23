@@ -154,6 +154,10 @@ namespace engine::rhi::runtime {
         BindPipelineCommand(const PipelinePtr & pipeline) : 
             Command(CommandType::eBindPipeline, sizeof(BindPipelineCommand)), 
             pipeline(pipeline.get()) {}
+            
+        BindPipelineCommand(const Pipeline & pipeline) : 
+            Command(CommandType::eBindPipeline, sizeof(BindPipelineCommand)), 
+            pipeline(&pipeline) {}
     };
 
     struct BindVertexBufferCommand : Command {
