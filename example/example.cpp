@@ -742,7 +742,7 @@ namespace example {
                                                             linearSampler.info.addressModeW = engine::rhi::SamplerAddressMode::eClamp_To_Border;
                                                             
                                                             uint32_t i = 0u;
-                                                            for (auto & g : g_mapGeometry) {
+                                                            for (const auto & g : g_mapGeometry) {
                                                                 if (i == 0u) {
                                                                     commandList->bindPipeline(*g_mapGeometryCommonPipeline);
                                                                 } else {
@@ -760,7 +760,7 @@ namespace example {
                                                         break;
                                                         case engine::scene::RenderPass::eShadow:
                                                         {
-                                                            auto & g = g_mapGeometry[0u];
+                                                            const auto & g = g_mapGeometry[0u];
                                                             commandList->bindPipeline(*g_mapGeometryShadowPipeline);
                                                             commandList->bindVertexBuffer(0u, g.positions);
                                                             commandList->bindIndexBuffer(g.indices, 0u, engine::rhi::IndexType::eU32);
