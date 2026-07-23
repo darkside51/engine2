@@ -23,23 +23,33 @@ layout (set = 0, binding = 0) uniform UniformBuffer {
 	float time;
 } u_viewParams;
 
+layout(set = 0, binding = 1) uniform sampler2D u_texture;
+
 const vec4 colors[6] = vec4[](
-	    vec4(0.65f, 0.65f, 0.65f, 1.0f), 	// building
-	    vec4(0.25f, 0.75f, 0.25f, 1.0f), 	// grass
-	    vec4(0.3f, 0.3f, 0.3f, 1.0f),		// pedestrian
-	    vec4(0.01f, 0.7f, 0.01f, 1.0f),		// wood
-	    vec4(0.45f, 0.45f, 0.45f, 1.0f),	// industrial
-	    vec4(0.2f, 0.35f, 0.95f, 1.0f)		// water
-	    );
+	vec4(0.65f, 0.65f, 0.65f, 1.0f), 	// building
+	vec4(0.25f, 0.75f, 0.25f, 1.0f), 	// grass
+	vec4(0.3f, 0.3f, 0.3f, 1.0f),		// pedestrian
+	vec4(0.01f, 0.7f, 0.01f, 1.0f),		// wood
+	vec4(0.45f, 0.45f, 0.45f, 1.0f),	// industrial
+	vec4(0.2f, 0.35f, 0.95f, 1.0f)		// water
+);
 
 void main() {
 	const float depthLinear = linearDepth(gl_FragCoord.z, u_viewParams.nearFarPlanes.x, u_viewParams.nearFarPlanes.y);
 	out_position = depthLinear;
 
-	vec3 normal = v_normalMatrix * -cross(dFdx(v_position), dFdy(v_position));
+	const vec3 normal = normalize(-cross(dFdx(v_position), dFdy(v_position)));
+	const vec3 viewNormal = v_normalMatrix * normal;
 
-	out_normal = vec4(normalize(normal) * 0.5 + 0.5, 0.0f);
-	out_albedo = colors[v_material] * (1.0f + v_position.z);
+	out_normal = vec4(normalize(viewNormal) * 0.5f + 0.5f, 0.0f);
+	const vec4 color = colors[v_material] * (1.0f + v_position.z);
+	if (v_material == 0u) {
+		const float u = mix(v_position.x, v_position.y, step(abs(normal.y / normal.x), 1.0f));
+		const vec2 uv = vec2(u, 1.0f - v_position.z) * 10.0f;
+		out_albedo = mix(texture(u_texture, uv), color, step(0.99f, normal.z));
+	} else {
+		out_albedo = color;
+	}
 	out_emissive = vec4(0.0, 0.0, 0.0, 0.0);
 	out_metalicRoughness = vec2(0.0f, 1.0f);
 }

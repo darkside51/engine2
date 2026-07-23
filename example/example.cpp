@@ -710,7 +710,7 @@ namespace example {
                                                 offset += geometry.indices->sizeInBytes();
                                             }
 
-                                            callbacks.emplace_back([mapGeometry = std::move(mapGeometry)](){
+                                            callbacks.emplace_back([mapGeometry = std::move(mapGeometry)]() {
                                                 g_mapGeometry = std::move(mapGeometry);
 
                                                 auto * node = scene->createNode();
@@ -722,7 +722,8 @@ namespace example {
                                                         engine::vec3f{0.0f, 0.0f, 0.1f}
                                                     )
                                                 );
-                                                auto * object = scene->createObject<engine::scene::CustomDrawObject>([](
+                                                auto * brikcsImageHandler = textureManager->getImageHandler("bricks");
+                                                auto * object = scene->createObject<engine::scene::CustomDrawObject>([brikcsImageHandler](
                                                     const engine::scene::Scene & scene, 
                                                     const engine::scene::ViewParams &, 
                                                     const engine::mat4f & worldTransform,
@@ -732,6 +733,14 @@ namespace example {
                                                     switch (scene.getCurrentRenderPass()) {
                                                         case engine::scene::RenderPass::eCommon:
                                                         {
+                                                            engine::rhi::SamplerValue linearSampler{};
+                                                            linearSampler.info.minFilter = engine::rhi::FilterMode::eLinear;
+                                                            linearSampler.info.magFilter = engine::rhi::FilterMode::eLinear;
+                                                            linearSampler.info.mipMapFilter = engine::rhi::FilterMode::eLinear;
+                                                            linearSampler.info.addressModeU = engine::rhi::SamplerAddressMode::eRepeat;
+                                                            linearSampler.info.addressModeV = engine::rhi::SamplerAddressMode::eRepeat;
+                                                            linearSampler.info.addressModeW = engine::rhi::SamplerAddressMode::eClamp_To_Border;
+                                                            
                                                             uint32_t i = 0u;
                                                             for (auto & g : g_mapGeometry) {
                                                                 if (i == 0u) {
@@ -743,6 +752,7 @@ namespace example {
                                                                 commandList->bindIndexBuffer(g.indices, 0u, engine::rhi::IndexType::eU32);
                                                                 commandList->bindBuffer(0u, scene.getViewParamsUniformBuffer(frameId), 0u, sceneViewParamBufferOffset);
                                                                 commandList->pushConstants(engine::rhi::shaders::Stages::eVertex, 0u, sizeof(engine::mat4f), &worldTransform);
+                                                                commandList->bindImage(1u, brikcsImageHandler->image, linearSampler, 0u);
                                                                 commandList->drawIndexed(g.indices->sizeInBytes() / sizeof(uint32_t));
                                                                 ++i;
                                                             }

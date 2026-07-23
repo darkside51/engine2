@@ -282,7 +282,7 @@ namespace engine::scene {
         // samplers
         _linearSampler.info.magFilter = rhi::FilterMode::eLinear;
         _linearSampler.info.minFilter = rhi::FilterMode::eLinear;
-        _linearSampler.info.mipMapMode = rhi::FilterMode::eLinear;
+        _linearSampler.info.mipMapFilter = rhi::FilterMode::eLinear;
         // _linearSampler.info.addressModeU = rhi::SamplerAddressMode::eClamp_To_Edge;
         // _linearSampler.info.addressModeV = rhi::SamplerAddressMode::eClamp_To_Edge;
         // _linearSampler.info.addressModeW = rhi::SamplerAddressMode::eClamp_To_Edge;
@@ -292,6 +292,7 @@ namespace engine::scene {
         
         _nearestSampler.info.magFilter = rhi::FilterMode::eNearest;
         _nearestSampler.info.minFilter = rhi::FilterMode::eNearest;
+        _nearestSampler.info.mipMapFilter = rhi::FilterMode::eNearest;
         _nearestSampler.info.addressModeU = rhi::SamplerAddressMode::eRepeat;
         _nearestSampler.info.addressModeV = rhi::SamplerAddressMode::eRepeat;
         _nearestSampler.info.addressModeW = rhi::SamplerAddressMode::eRepeat;

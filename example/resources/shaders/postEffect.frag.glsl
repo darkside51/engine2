@@ -40,8 +40,8 @@ layout(push_constant) uniform Params {
 	vec4 options;
 } push;
 
-//const float biases[4] = float[](0.0015f, 0.0025f, 0.0009f, 0.0015f); // count = shadowCascades * 2
-const float biases[4] = float[](0.0001f, 0.0004f, 0.0001f, 0.0002f); // count = shadowCascades * 2
+
+const float biases[2] = float[](0.004f, 0.03f);
 
 void main() {
 	const float occlusion = push.options.x > 0.0f ? radialBlur(textureSsao, v_uv, int(push.options.x - 1.0f)) : 1.0f;
@@ -83,7 +83,7 @@ void main() {
 	const float texelSize = u_shadow.texelSizes[cascade];
 	//vec4 shadowCoord = u_shadow.cascades[cascade] * worldPosition;
 
-	const float factor = 0.001f;
+	const float factor = biases[cascade];
 	vec3 biasedViewPos = viewPosition + (normal * factor);
 	vec4 shadowCoord = u_shadow.cascades[cascade] * vec4(biasedViewPos, 1.0f);
 

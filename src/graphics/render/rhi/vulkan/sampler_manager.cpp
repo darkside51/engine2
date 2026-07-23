@@ -30,7 +30,7 @@ namespace engine::vulkan {
             .flags = 0,
             .magFilter = utils::convert2vk(samplerInfo.magFilter),
             .minFilter = utils::convert2vk(samplerInfo.minFilter),
-            .mipmapMode = utils::convert2vk2(samplerInfo.mipMapMode),
+            .mipmapMode = utils::convert2vk2(samplerInfo.mipMapFilter),
             .addressModeU = utils::convert2vk(samplerInfo.addressModeU),
             .addressModeV = utils::convert2vk(samplerInfo.addressModeV),
             .addressModeW = utils::convert2vk(samplerInfo.addressModeW),

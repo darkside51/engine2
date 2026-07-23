@@ -147,7 +147,7 @@ namespace engine::graphics {
         _sampler.info = {
             .magFilter = FilterMode::eLinear,
             .minFilter = FilterMode::eLinear,
-            .mipMapMode = FilterMode::eNearest,
+            .mipMapFilter = FilterMode::eNearest,
             .addressModeU = SamplerAddressMode::eClamp_To_Border,
             .addressModeV = SamplerAddressMode::eClamp_To_Border,
             .addressModeW = SamplerAddressMode::eClamp_To_Border,
@@ -282,7 +282,7 @@ namespace engine::graphics {
         _sampler.info = {
             .magFilter = FilterMode::eLinear,
             .minFilter = FilterMode::eLinear,
-            .mipMapMode = FilterMode::eNearest,
+            .mipMapFilter = FilterMode::eNearest,
             .addressModeU = SamplerAddressMode::eClamp_To_Border,
             .addressModeV = SamplerAddressMode::eClamp_To_Border,
             .addressModeW = SamplerAddressMode::eClamp_To_Border,
@@ -436,8 +436,7 @@ namespace engine::graphics {
             mat4f lightOrthoMatrix = _reversedDepth ? 
                 glm::orthoRH_ZO(-radius, radius, -radius, radius, 2.0f * radius, 0.0f) : 
                 glm::orthoRH_ZO(-radius, radius, -radius, radius, 0.0f, 2.0f * radius);
-
-            lightOrthoMatrix[1u][1u] *= -1.0f; // Инверсия Y для Vulkan/DirectX (если применимо)
+            lightOrthoMatrix[1u][1u] *= -1.0f; // инверсия Y для Vulkan/DirectX (если применимо)
 
             { // shimmering / aliasing fix
                 const auto shadowMatrix = lightOrthoMatrix * lightViewMatrix;

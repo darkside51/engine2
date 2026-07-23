@@ -1304,7 +1304,7 @@ namespace engine::rhi {
     struct SamplerInfo {
         FilterMode magFilter = FilterMode::eNearest;
         FilterMode minFilter = FilterMode::eNearest;
-        FilterMode mipMapMode = FilterMode::eNearest;
+        FilterMode mipMapFilter = FilterMode::eNearest;
         SamplerAddressMode addressModeU = SamplerAddressMode::eRepeat;
         SamplerAddressMode addressModeV = SamplerAddressMode::eRepeat;
         SamplerAddressMode addressModeW = SamplerAddressMode::eRepeat;
@@ -1316,7 +1316,7 @@ namespace engine::rhi {
             constexpr auto kAnisotropyRound = 100;
             const auto value = (static_cast<uint64_t>(magFilter) << 0u) | 
                                (static_cast<uint64_t>(magFilter) << 8u) |
-                               (static_cast<uint64_t>(mipMapMode) << 16u) |
+                               (static_cast<uint64_t>(mipMapFilter) << 16u) |
                                (static_cast<uint64_t>(addressModeU) << 24u) |
                                (static_cast<uint64_t>(addressModeV) << 32u) |
                                (static_cast<uint64_t>(addressModeW) << 40u) |
