@@ -151,7 +151,7 @@ namespace engine::graphics {
             .addressModeU = SamplerAddressMode::eClamp_To_Border,
             .addressModeV = SamplerAddressMode::eClamp_To_Border,
             .addressModeW = SamplerAddressMode::eClamp_To_Border,
-            .compareOp = _reversedDepth ? CompareOp::eGequal : CompareOp::eLess,
+            .compareOp = _reversedDepth ? CompareOp::eGreater : CompareOp::eLess,
             .borderColor = _reversedDepth ? BorderColor::eFloat_Opaque_Black : BorderColor::eFloat_Opaque_White,
             .maxAnisotropy = 0.0f
         };
@@ -286,7 +286,7 @@ namespace engine::graphics {
             .addressModeU = SamplerAddressMode::eClamp_To_Border,
             .addressModeV = SamplerAddressMode::eClamp_To_Border,
             .addressModeW = SamplerAddressMode::eClamp_To_Border,
-            .compareOp = _reversedDepth ? CompareOp::eGequal : CompareOp::eLess,
+            .compareOp = _reversedDepth ? CompareOp::eGreater : CompareOp::eLess,
             .borderColor = _reversedDepth ? BorderColor::eFloat_Opaque_Black : BorderColor::eFloat_Opaque_White,
             .maxAnisotropy = 0.0f
         };
@@ -360,7 +360,7 @@ namespace engine::graphics {
 			frustumCenter /= 8.0f;
 
             const float radius = glm::length(frustumCorners[7u] - frustumCenter);
-            const mat4f lightViewMatrix = glm::lookAtRH(frustumCenter - _direction * radius, frustumCenter, vec3f{0.0f, 1.0f, 0.0f});
+            const mat4f lightViewMatrix = glm::lookAtRH(frustumCenter - _direction * radius, frustumCenter, vec3f{0.0f, 0.0f, 1.0f});
             mat4f lightOrthoMatrix = _reversedDepth ? 
                 glm::orthoRH_ZO(-radius, radius, -radius, radius, 2.0f * radius, 0.0f) : 
                 glm::orthoRH_ZO(-radius, radius, -radius, radius, 0.0f, 2.0f * radius);
@@ -438,7 +438,7 @@ namespace engine::graphics {
 
             // 6. Строим матрицу вида для направленного света (Light View Matrix)
             const vec3f lightPos = frustumCenter - _direction * radius;
-            const mat4f lightViewMatrix = glm::lookAtRH(lightPos, frustumCenter, vec3f{0.0f, 1.0f, 0.0f});
+            const mat4f lightViewMatrix = glm::lookAtRH(lightPos, frustumCenter, vec3f{0.0f, 0.0f, 1.0f});
 
             // 2. Строим исходную ортографическую проекцию
             mat4f lightOrthoMatrix = _reversedDepth ? 

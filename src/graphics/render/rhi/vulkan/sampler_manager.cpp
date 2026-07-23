@@ -37,7 +37,7 @@ namespace engine::vulkan {
             .mipLodBias = 0.0f,
             .anisotropyEnable = std::abs(samplerInfo.maxAnisotropy) > 1e-2f,
             .maxAnisotropy = samplerInfo.maxAnisotropy,
-            .compareEnable = samplerInfo.compareOp != rhi::CompareOp::eNever,
+            .compareEnable = samplerInfo.compareOp != rhi::CompareOp::eAlways, // eNever
             .compareOp = utils::convert2vk(samplerInfo.compareOp),
             .minLod = 0.0f,
             .maxLod = static_cast<float>(VK_REMAINING_MIP_LEVELS),

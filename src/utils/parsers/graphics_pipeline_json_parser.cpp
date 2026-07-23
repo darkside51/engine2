@@ -372,7 +372,7 @@ namespace engine {
             .depthTestEnable = json["depthTestEnable"].get_boolean(),
             .depthWriteEnable = json["depthWriteEnable"].get_boolean(),
             .depthCompareOp = json.contains("depthCompareOp") ? parseCompareOp(json["depthCompareOp"].as<std::string_view>()) : rhi::CompareOp::eAlways,
-            .depthBoundsTestEnable = json.contains("depthBoundsTestEnable") ? json["depthBoundsTestEnable"].as<bool>() : false,
+            .depthBoundsTestEnable = json.contains("depthBoundsTestEnable") ? json["depthBoundsTestEnable"].get_boolean() : false,
             .minDepthBounds = json.contains("minDepthBounds") ? json["minDepthBounds"].as<float>() : 0.0f,
             .maxDepthBounds = json.contains("maxDepthBounds") ? json["maxDepthBounds"].as<float>() : 1.0f,
         };
@@ -384,13 +384,13 @@ namespace engine {
             return {
                 .front = stencilOpState,
                 .back = stencilOpState,
-                .stencilTestEnable = json["stencilTestEnable"].as<bool>()
+                .stencilTestEnable = json["stencilTestEnable"].get_boolean()
             };
         } else {
             return {
                 .front = parseStencilOpState(json["front"].as<std::string_view>()),
                 .back = parseStencilOpState(json["back"].as<std::string_view>()),
-                .stencilTestEnable = json["stencilTestEnable"].as<bool>()
+                .stencilTestEnable = json["stencilTestEnable"].get_boolean()
             };
         }
     }
@@ -436,10 +436,15 @@ namespace engine {
 
     rhi::GraphicsPipelineStatesInfo::RasterisationInfo parseRasterisationInfo(const engine::json::Json & json) noexcept {
         return {
-            .polygonMode = json.contains("polygonMode") ? parsePolygonMode(json["polygonMode"].as<std::string_view>()) : rhi::PolygonMode::eFill,
-            .cullmode = json.contains("cullmode") ? parseCullMode(json["cullmode"].as<std::string_view>()) : rhi::CullMode::eNone,
-            .frontFace = json.contains("frontFace") ? parseFrontFace(json["frontFace"].as<std::string_view>()) : rhi::FrontFace::eCounter_Clockwise
-        };
+                json.contains("polygonMode") ? parsePolygonMode(json["polygonMode"].as<std::string_view>()) : rhi::PolygonMode::eFill,
+                json.contains("cullmode") ? parseCullMode(json["cullmode"].as<std::string_view>()) : rhi::CullMode::eNone,
+                json.contains("frontFace") ? parseFrontFace(json["frontFace"].as<std::string_view>()) : rhi::FrontFace::eCounter_Clockwise,
+
+                json.contains("depthBiasEnable") ? json["depthBiasEnable"].get_boolean() : false,
+                json.contains("depthBiasFactor") ? json["depthBiasFactor"].as<float>() : 0.0f,
+                json.contains("depthBiasSlopeFactor") ? json["depthBiasSlopeFactor"].as<float>() : 0.0f,
+                json.contains("depthBiasClamp") ? json["depthBiasClamp"].as<float>() : 0.0f
+            };
     }
 
     rhi::GraphicsPipelineStatesInfo::MultisampleStateInfo parseMultisampleStateInfo(const engine::json::Json & /*json*/) noexcept {
@@ -450,7 +455,7 @@ namespace engine {
     rhi::GraphicsPipelineStatesInfo::InputAssemblyStateInfo parseInputAssemblyStateInfo(const engine::json::Json & json) noexcept {
         return {
             .topology = parsePrimitiveTopology(json["topology"].as<std::string_view>()),
-            .restartEnabled = json.contains("restartEnabled") ? json["restartEnabled"].as<bool>() : false
+            .restartEnabled = json.contains("restartEnabled") ? json["restartEnabled"].get_boolean() : false
         };
     }
 

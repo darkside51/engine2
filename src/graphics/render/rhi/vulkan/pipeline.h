@@ -30,7 +30,11 @@ namespace engine::vulkan {
     VkPipelineRasterizationStateCreateInfo pipelineRasterizationStateInfo(
         rhi::PolygonMode polygonMode, 
         rhi::CullMode cullmode, 
-        rhi::FrontFace frontFace = rhi::FrontFace::eCounter_Clockwise) noexcept;
+        rhi::FrontFace frontFace = rhi::FrontFace::eCounter_Clockwise,
+        bool depthBiasEnable = false,
+        float depthBiasFactor = 0.0f,
+        float depthBiasSlopeFactor = 0.0f,
+        float depthBiasClamp = 0.0f) noexcept;
 
     VkPipelineInputAssemblyStateCreateInfo pipelineInputAssemblyStateInfo(rhi::PrimitiveTopology topology,
         bool restartEnabled = false) noexcept;
@@ -124,7 +128,11 @@ namespace engine::vulkan {
         GraphicsPipelineInfo & rasterizationStateInfo(
             rhi::PolygonMode polygonMode, 
             rhi::CullMode cullmode, 
-            rhi::FrontFace frontFace = rhi::FrontFace::eCounter_Clockwise) noexcept;
+            rhi::FrontFace frontFace = rhi::FrontFace::eCounter_Clockwise,
+            bool depthBiasEnable = false,
+            float depthBiasFactor = 0.0f,
+            float depthBiasSlopeFactor = 0.0f,
+            float depthBiasClamp = 0.0f) noexcept;
 
         GraphicsPipelineInfo & inputAssemblyStateInfo(rhi::PrimitiveTopology topology,
             bool restartEnabled = false) noexcept;

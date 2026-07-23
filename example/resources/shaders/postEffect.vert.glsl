@@ -16,8 +16,8 @@ layout(push_constant) uniform Params {
 } push;
 
 void main() {
-	gl_Position = vec4(a_position.xy, 0.0, 1.0);
-	v_uv = (a_position.xy + 1.0) * 0.5;
+	gl_Position = vec4(a_position.xy, 0.0f, 1.0f);
+	v_uv = (a_position.xy + 1.0f) * 0.5f;
 
 	const mat3 m = transpose(mat3(
 		push.view[0].xyz,
@@ -26,5 +26,5 @@ void main() {
 	));
 
 	v_rayDirWorld = createRay(gl_Position, m[1], -m[0], -m[2], push.view[1][3], push.view[0][3]);
-	v_rayDirView = createRay(gl_Position, vec3(0.0, 1.0, 0.0), vec3(-1.0, 0.0, 0.0), vec3(0.0, 0.0, -1.0), push.view[1][3], push.view[0][3]);
+	v_rayDirView = createRay(gl_Position, vec3(0.0f, 1.0f, 0.0f), vec3(-1.0f, 0.0f, 0.0f), vec3(0.0f, 0.0f, -1.0f), push.view[1][3], push.view[0][3]);
 }

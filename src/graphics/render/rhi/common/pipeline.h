@@ -14,9 +14,32 @@ namespace engine::rhi {
         DynamicState dynamicStates = DynamicState::eViewport | DynamicState::eScissor;
     
         struct RasterisationInfo {
+            float depthBiasFactor = 0.0f;
+            float depthBiasSlopeFactor = 0.0f;
+            float depthBiasClamp = 0.0f;
             PolygonMode polygonMode = PolygonMode::eFill;
             CullMode cullmode = CullMode::eNone; 
             FrontFace frontFace = FrontFace::eCounter_Clockwise;
+            bool depthBiasEnable = false;
+
+            RasterisationInfo() = default;
+
+            RasterisationInfo(
+                PolygonMode polygonMode,
+                CullMode cullmode,
+                FrontFace frontFace = FrontFace::eCounter_Clockwise,
+                bool depthBiasEnable = false,
+                float depthBiasFactor = 0.0f,
+                float depthBiasSlopeFactor = 0.0f,
+                float depthBiasClamp = 0.0f
+            ) : 
+            depthBiasFactor(depthBiasFactor),
+            depthBiasSlopeFactor(depthBiasSlopeFactor),
+            depthBiasClamp(depthBiasClamp),
+            polygonMode(polygonMode),
+            cullmode(cullmode),
+            frontFace(frontFace),
+            depthBiasEnable(depthBiasEnable) {}
         } rasterisationState {};
     
         struct MultisampleStateInfo {

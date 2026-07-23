@@ -112,7 +112,7 @@ namespace example {
     std::optional<engine::scene::Scene> scene{};
 
     // engine::vec2f kNearFarPlane = {0.001f, 100.0f}; // common depth
-    engine::vec2f kNearFarPlane = {100.0f, 0.01f}; // reverse depth
+    engine::vec2f kNearFarPlane = {50.0f, 0.01f}; // reverse depth
     engine::scene::Camera camera;
     engine::scene::SphereCameraController controller{camera};
     engine::scene::Node * sceneWorldRoot = nullptr;
@@ -125,6 +125,7 @@ namespace example {
     std::unique_ptr<engine::graphics::InflightBuffer> shadowMapUniformBuffer = nullptr;
     struct ShadowMapUniforms {
         engine::stl::array<engine::mat4f, 2u> cascades;
+        engine::mat4f invViewMatrix;
         engine::vec4f splits;
         engine::vec4f texelSizes;
         engine::vec4f options;
@@ -1394,7 +1395,7 @@ namespace example {
 
         // shadow
         shadowMap = std::make_unique<engine::graphics::CascadeShadowMap>(*_api, *_device, 4096u, 2u, 16u, kNearFarPlane.x, kNearFarPlane.y);
-        shadowMap->initCascadeSplits({0.75f, 0.25f, -87.0f});
+        shadowMap->initCascadeSplits({0.95f, 0.4f, -8.0f});
         shadowMap->createRenderData();
         shadowMap->setDirection(glm::normalize(lightDir));
 
@@ -2318,26 +2319,27 @@ namespace example {
         if (viewParamsUpdated || lightDirty) { // viewParams has been changed
             shadowMap->setDirection(glm::normalize(lightDir));
 
-            // const auto invMatrix = glm::inverse(viewParams.cameraView);
-            // shadowMap->updateCascades(
-            //     invMatrix, 
-            //     3.1415926f / 3.0f, 
-            //     viewParams.cameraTransform[0][0] / viewParams.cameraTransform[1][1]
-            // );
+            const auto invMatrix = glm::inverse(viewParams.cameraView);
+            shadowMap->updateCascades(
+                invMatrix, 
+                3.1415926f / 3.0f, 
+                viewParams.cameraTransform[0][0] / viewParams.cameraTransform[1][1]
+            );
 
-            const auto invMatrix = glm::inverse(viewParams.cameraTransform);
-            shadowMap->updateCascades(invMatrix);
+            // const auto invMatrix = glm::inverse(viewParams.cameraTransform);
+            // shadowMap->updateCascades(invMatrix);
 
             auto * shadowUniforms = shadowMapUniformBuffer->memory2<ShadowMapUniforms>();
             memcpy(shadowUniforms->cascades.data(), shadowMap->getCascadeMatrices().data(), sizeof(engine::mat4f) * shadowMap->getCascadeMatrices().size());
+            shadowUniforms->invViewMatrix = glm::inverse(viewParams.cameraView);
             memcpy(&shadowUniforms->splits, shadowMap->getCascadeSplitDepths().data(), shadowMap->getCascadeSplitDepths().size() * sizeof(float));
             memcpy(&shadowUniforms->texelSizes, shadowMap->getTexelSizes().data(), shadowMap->getTexelSizes().size() * sizeof(float));
             shadowUniforms->options = shadowsOptions;
             shadowMapUniformBuffer->modify();
 
             // for inv cameraView variant
-            // shadowUniforms->cascades[0] *= invMatrix;
-            // shadowUniforms->cascades[1] *= invMatrix;
+            shadowUniforms->cascades[0] = shadowUniforms->cascades[0] * invMatrix;
+            shadowUniforms->cascades[1] = shadowUniforms->cascades[1] * invMatrix;
 
             viewParamsUpdated = false;
             lightDirty = false;

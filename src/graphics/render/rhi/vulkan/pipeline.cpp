@@ -50,7 +50,11 @@ namespace engine::vulkan {
     VkPipelineRasterizationStateCreateInfo pipelineRasterizationStateInfo(
         rhi::PolygonMode polygonMode, 
         rhi::CullMode cullmode, 
-        rhi::FrontFace frontFace
+        rhi::FrontFace frontFace,
+        bool depthBiasEnable,
+        float depthBiasFactor,
+        float depthBiasSlopeFactor,
+        float depthBiasClamp
     ) noexcept {
         return {
             .sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
@@ -61,10 +65,10 @@ namespace engine::vulkan {
             .polygonMode = utils::convert2vk(polygonMode),
             .cullMode = utils::convert2vk(cullmode),
             .frontFace = utils::convert2vk(frontFace),
-            .depthBiasEnable = false,
-            .depthBiasConstantFactor = 0.0f,
-            .depthBiasClamp = 0.0f,
-            .depthBiasSlopeFactor = 0.0f,
+            .depthBiasEnable = depthBiasEnable,
+            .depthBiasConstantFactor = depthBiasFactor,
+            .depthBiasClamp = depthBiasClamp,
+            .depthBiasSlopeFactor = depthBiasSlopeFactor,
             .lineWidth = 1.0f
         };
     }
@@ -242,8 +246,16 @@ namespace engine::vulkan {
         GraphicsPipelineInfo & GraphicsPipelineInfo::rasterizationStateInfo(
             rhi::PolygonMode polygonMode, 
             rhi::CullMode cullmode, 
-            rhi::FrontFace frontFace) noexcept {
-            _rasterizationState = pipelineRasterizationStateInfo(polygonMode, cullmode, frontFace);
+            rhi::FrontFace frontFace,
+            bool depthBiasEnable,
+            float depthBiasFactor,
+            float depthBiasSlopeFactor,
+            float depthBiasClamp) noexcept {
+            _rasterizationState = pipelineRasterizationStateInfo(
+                polygonMode, cullmode, frontFace,
+                depthBiasEnable, depthBiasFactor,
+                depthBiasSlopeFactor, depthBiasClamp
+            );
             return *this;
         }
 
@@ -291,7 +303,15 @@ namespace engine::vulkan {
         GraphicsPipelineInfo::GraphicsPipelineInfo(const rhi::GraphicsPipelineStatesInfo & info) {
             viewportStateInfo(info.viewportState.viewportCount, info.viewportState.scissorCount);
             dynamicStateInfo(info.dynamicStates);
-            rasterizationStateInfo(info.rasterisationState.polygonMode, info.rasterisationState.cullmode, info.rasterisationState.frontFace);
+            rasterizationStateInfo(
+                info.rasterisationState.polygonMode, 
+                info.rasterisationState.cullmode, 
+                info.rasterisationState.frontFace,
+                info.rasterisationState.depthBiasEnable,
+                info.rasterisationState.depthBiasFactor,
+                info.rasterisationState.depthBiasSlopeFactor,
+                info.rasterisationState.depthBiasClamp
+            );
             multisampleStateInfo();
             inputAssemblyStateInfo(info.inputAssemblyState.topology, info.inputAssemblyState.restartEnabled);
             depthStencilStateInfo(info.depthStencilState.depth, info.depthStencilState.stencil);

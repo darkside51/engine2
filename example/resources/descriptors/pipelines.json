@@ -403,7 +403,11 @@
 	"map_buildings_shadows": {
 		"rasterisationState": {
 			"polygonMode": "eFill",
-			"cullmode": "eBack"
+			"cullmode": "eBack",
+			"depthBiasEnable": false,
+			"depthBiasFactor": 0.0,
+			"depthBiasSlopeFactor": 0.0,
+			"depthBiasClamp": 0.0
 		},
 		"depthStencilState": {
 			"depth": {
