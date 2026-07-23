@@ -83,7 +83,7 @@ void main() {
 	const float texelSize = u_shadow.texelSizes[cascade];
 	//vec4 shadowCoord = u_shadow.cascades[cascade] * worldPosition;
 
-	const float factor = 0.01f;
+	const float factor = 0.001f;
 	vec3 biasedViewPos = viewPosition + (normal * factor);
 	vec4 shadowCoord = u_shadow.cascades[cascade] * vec4(biasedViewPos, 1.0f);
 

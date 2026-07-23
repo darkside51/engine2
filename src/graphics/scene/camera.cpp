@@ -43,6 +43,10 @@ namespace engine::scene {
 		_dirty->transform = 1u;
 	}
 
+	float Camera::getAspect() const noexcept {
+		return _transform[0u][0u] / _transform[1u][1u];
+	}
+
     vec2f Camera::worldToScreen(const vec3f & p) const noexcept {
 		vec4f v = _transform * vec4f(p, 1.0f);
 		v /= v.w;

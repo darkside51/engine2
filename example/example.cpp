@@ -2379,8 +2379,8 @@ namespace example {
             const auto invMatrix = glm::inverse(viewParams.cameraView);
             shadowMap->updateCascades(
                 invMatrix, 
-                3.1415926f / 3.0f, 
-                viewParams.cameraTransform[0][0] / viewParams.cameraTransform[1][1]
+                engine::pi_v<float> / 3.0f, 
+                viewParams.cameraTransform[0u][0u] / viewParams.cameraTransform[1u][1u]
             );
 
             // const auto invMatrix = glm::inverse(viewParams.cameraTransform);

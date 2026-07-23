@@ -81,6 +81,7 @@ public:
     void makeOrtho(float left, float right, float bottom, float top, float znear, float zfar) noexcept;
 
     void setView(const mat4f & view) noexcept;
+    float getAspect() const noexcept;
 
     // observers
     inline void addObserver(ICameraObserver* observer) {
