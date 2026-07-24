@@ -160,6 +160,7 @@ struct alignas(32) Node {
     vec3f getRotationAngles() const noexcept { return transformation.getRotationAngles(); }
     vec3f getScale() const noexcept { return transformation.getScale(); }
     vec3f getPosition() const noexcept { return transformation.getPosition(); }
+    vec3f getPivot() const noexcept { return transformation.getPivot(); }
 
     void setPosition(const vec3f & p) noexcept {
         if (transformation.setPosition(p)) {
@@ -177,6 +178,12 @@ struct alignas(32) Node {
     template <typename T>
     void setRotation(T && r) noexcept {
         if (transformation.setRotation(r)) {
+            state.setTransformationsDirty(true);
+        }
+    }
+
+    void setPivot(const vec3f & p) noexcept {
+        if (transformation.setPivot(p)) {
             state.setTransformationsDirty(true);
         }
     }

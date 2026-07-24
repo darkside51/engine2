@@ -2049,7 +2049,8 @@ namespace example {
             
             { // floor
                 auto * node = scene->createNode();
-                node->setPosition(engine::vec3f{-30.0f, -30.0f, 0.0f});
+                node->setPivot({30.0f, 30.0f, 0.0f});
+                node->setPosition({0.0f, 0.0f, 0.0f});
 
                 // "assets/vulkan_11_rgba.ktx"
                 // "assets/2d_bc7.ktx2"

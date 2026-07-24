@@ -364,4 +364,38 @@ namespace engine {
             t.z = m1[3].z;
         }
     }
+
+    inline mat4f mat4FromQuat(const quatf & q) noexcept {
+        mat4f result;
+
+        const float x2(q.x + q.x);
+        const float y2(q.y + q.y);
+        const float z2(q.z + q.z);
+
+        const float wx2(q.w * x2); const float wy2(q.w * y2); const float wz2(q.w * z2);
+        const float xx2(q.x * x2); const float xy2(q.x * y2); const float xz2(q.x * z2);
+        const float yy2(q.y * y2); const float yz2(q.y * z2); const float zz2(q.z * z2);
+
+        result[0u][0u] = 1.0f - (yy2 + zz2);
+        result[0u][1u] = xy2 + wz2;
+        result[0u][2u] = xz2 - wy2;
+        result[0u][3u] = 0.0f;
+
+        result[1u][0u] = xy2 - wz2;
+        result[1u][1u] = 1.0f - (xx2 + zz2);
+        result[1u][2u] = yz2 + wx2;
+        result[1u][3u] = 0.0f;
+
+        result[2u][0u] = xz2 + wy2;
+        result[2u][1u] = yz2 - wx2;
+        result[2u][2u] = 1.0f - (xx2 + yy2);
+        result[2u][3u] = 0.0f;
+
+        result[3u][0u] = 0.0f;
+        result[3u][1u] = 0.0f;
+        result[3u][2u] = 0.0f;
+        result[3u][3u] = 1.0f;
+
+        return result;
+    }
 }

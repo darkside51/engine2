@@ -36,7 +36,7 @@ namespace {
         #ifdef SIMD_MATH
         static_assert(sizeof(Node) == 288u);
         static_assert(sizeof(Bounds) == 48u);
-        static_assert(sizeof(Transformation) == 48u);
+        static_assert(sizeof(Transformation) == 64u);
         static_assert(alignof(Node) == 32u);
         static_assert(alignof(void*) == 8u);
         static_assert(alignof(mat4f) == 16u);

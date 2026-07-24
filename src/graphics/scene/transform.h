@@ -4,7 +4,7 @@
 
 namespace engine::scene {
 
-class Transformation {
+class alignas(16u) Transformation {
 public:
     Transformation() = default;
     explicit Transformation(float scale) : _scale(vec3f{scale}) {}
@@ -14,6 +14,7 @@ public:
     vec3f getRotationAngles() const noexcept { return glm::eulerAngles(_rotation); }
     vec3f getScale() const noexcept { return _scale; }
     vec3f getPosition() const noexcept { return _position; }
+    vec3f getPivot() const noexcept { return _pivot; }
 
     bool setRotation(const quatf & q) noexcept {
         if (compare(_rotation, q, 1e-5f)) {
@@ -57,16 +58,29 @@ public:
         return false;
     }
 
+    bool setPivot(const vec3f & p) noexcept {
+        if (compare(_pivot, p, 1e-7f)) {
+            _pivot = p;
+            return true;
+        }
+        return false;
+    }
+
     void apply(mat4f & matrix) const noexcept {
-        matrix = glm::mat4_cast(_rotation);
-        scaleMatrix(matrix, _scale);
-        matrix[3u] = {_position, 1.0f};
+        matrix = mat4FromQuat(_rotation);
+
+        matrix[0u] *= _scale.x;
+        matrix[1u] *= _scale.y;
+        matrix[2u] *= _scale.z;
+
+        matrix[3u] = {_position - mat3f(matrix) * _pivot, 1.0f};
     }
 
 private:
-    quatf _rotation{};
+    quatf _rotation{1.0f, 0.0f, 0.0f, 0.0f};
     vec3f _scale{1.0f};
     vec3f _position{0.0f};
+    vec3f _pivot{0.0f};
 };
 
 }
