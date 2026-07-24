@@ -164,7 +164,7 @@ namespace example {
         eSmoothstep = 0u,
         eClamp = 1u
     };
-    SsaoRangeMethod ssaoRangeMethod = SsaoRangeMethod::eSmoothstep;
+    SsaoRangeMethod ssaoRangeMethod = SsaoRangeMethod::eClamp;
 
     bool emissiveBlur = true;
     float emissiveBlurScale = 2.2f;
@@ -177,7 +177,7 @@ namespace example {
     engine::vec4f ambientColor = {1.0f, 1.0f, 1.0f, 0.2f};
     engine::vec4f directionalLightColor = {1.0f, 1.0f, 1.0f, 4.200f};
     engine::vec3f lightDir = {0.26f, 0.15f, -0.75f};
-    engine::vec4f shadowsOptions = {0.2f, 0.0f, 0.0f, 0.0f};
+    engine::vec4f shadowsOptions = {0.0f, 0.0f, 0.0f, 0.0f};
     bool lightDirty = false;
     float saturation = 1.0f;
 
@@ -1476,8 +1476,8 @@ namespace example {
         scene->registerGraphicsPipeline(_api->createGraphicsPipeline(*_device, _renderPasses[kGbufferRenderPass], _programs[kMeshAfterComputeProgramNoPbr], info6, 0u));
 
         // shadow
-        shadowMap = std::make_unique<engine::graphics::CascadeShadowMap>(*_api, *_device, 4096u, 2u, 16u, kNearFarPlane.x, kNearFarPlane.y);
-        shadowMap->initCascadeSplits({0.95f, 0.4f, -8.0f});
+        shadowMap = std::make_unique<engine::graphics::CascadeShadowMap>(*_api, *_device, 2048u, 2u, 16u, kNearFarPlane.x, kNearFarPlane.y);
+        shadowMap->initCascadeSplits({0.95f, 0.4f, -36.0f});
         shadowMap->createRenderData();
         shadowMap->setDirection(glm::normalize(lightDir));
 

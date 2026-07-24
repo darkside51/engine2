@@ -63,6 +63,10 @@ float filterPCF_Low(
     uint layer,
     float bias
 ) {
+	if (shadowPosition.z <= 0.0f || shadowPosition.z >= 1.0f) {
+		return 1.0f;
+	}
+	
     const vec2 size = texSize;
     const vec2 texelSize = 1.0f / size;
 
