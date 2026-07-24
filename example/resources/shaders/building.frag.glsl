@@ -7,6 +7,7 @@
 layout (location = 0) in vec3 v_position;
 layout (location = 1) flat in int v_material;
 layout (location = 2) in mat3 v_normalMatrix;
+layout (location = 5) in vec2 v_w;
 
 layout (location = 0) out float out_position;
 layout (location = 1) out vec4 out_normal;
@@ -45,8 +46,16 @@ void main() {
 	const vec4 color = colors[v_material] * (1.0f + v_position.z);
 	if (v_material == 0u) {
 		const float u = mix(v_position.x, v_position.y, step(abs(normal.y / normal.x), 1.0f));
-		const vec2 uv = vec2(u, 1.0f - v_position.z) * 10.0f;
-		out_albedo = mix(texture(u_texture, uv), color, step(0.99f, normal.z));
+		vec2 uv = vec2(u, v_position.z) * 20.0f;
+		vec2 uv2 = vec2(v_w.x, v_w.y);
+
+		const vec2 fract_uv = fract(uv2);
+		const vec2 lower = step(vec2(0.25f, 0.25f), fract_uv);
+		const vec2 upper = step(fract_uv, vec2(0.75f, 0.75f));
+		const float inside = lower.x * lower.y * upper.x * upper.y;
+		const vec4 wallColor = mix(texture(u_texture, uv), vec4(0.0f, 0.0f, 0.0f, 1.0f), inside);
+
+		out_albedo = mix(wallColor, color, step(0.99f, normal.z));
 	} else {
 		out_albedo = color;
 	}

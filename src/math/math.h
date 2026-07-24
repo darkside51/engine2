@@ -146,8 +146,8 @@ namespace engine {
     }
 
     template <typename T>
-    inline std::decay_t<T> step(T && edge, T && x) noexcept {
-        return std::decay_t<T>(x >= edge);
+    inline std::decay_t<T> step(T edge, T x) noexcept {
+        return T{x >= edge};
     }
 
     template <typename T>

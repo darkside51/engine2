@@ -226,6 +226,7 @@ namespace map {
 
         // faces
         for (const auto & ring : rings) {
+            float l = 0.0f;
             for (size_t i = ring.first; i <= ring.second; ++i) {
                 const auto nextIdx = (i == ring.second) ? ring.first : (i + 1u);
 
@@ -242,6 +243,15 @@ namespace map {
                 totalIndices.emplace_back(roofCurrent);
                 totalIndices.emplace_back(floorNext);
                 totalIndices.emplace_back(roofNext);
+
+                if (i != ring.second) {
+                    const auto v0 = engine::vec2f{totalVerices[floorCurrent][0], totalVerices[floorCurrent][1]};
+                    const auto v1 = engine::vec2f{totalVerices[floorNext][0], totalVerices[floorNext][1]};
+                    const float wallLength = std::floor(glm::distance(v0, v1) / 16.0f);
+                    l += engine::step<float>(2.0f, wallLength) * wallLength;
+                    totalVerices[floorNext][3] = static_cast<int16_t>(l) << 4;
+                    totalVerices[roofNext][3] = static_cast<int16_t>(l) << 4;
+                }
             }
         }
     }
