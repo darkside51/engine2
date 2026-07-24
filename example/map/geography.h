@@ -30,12 +30,12 @@ inline TileID normalizedMercatorToTileId(engine::vec2d mercator, uint8_t zoom) n
     };
 }
 
-inline engine::vec2f tileCenterToGeo(TileID tileId) noexcept {    
+inline engine::vec2f tileToGeo(TileID tileId, float inTileX = 0.5f, float inTileY = 0.5f) noexcept {    
     // Количество тайлов на текущем уровне зума
     const auto n = 1 << tileId.z;
     
-    const float centerX = tileId.x + 0.5f;
-    const float centerY = tileId.y + 0.5f;
+    const float centerX = tileId.x + inTileX;
+    const float centerY = tileId.y + inTileY;
     
     const float lon = centerX / n * 360.0f - 180.0f;
     const float lat_rad = std::atan(std::sinh(engine::pi * (1.0f - 2.0f * centerY / n)));

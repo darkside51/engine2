@@ -1,5 +1,6 @@
 #include "vector_tile_parser.h"
 
+#include "engine/src/common/random.h"
 #include "engine/src/math/math.h"
 #include "engine/src/math/earcut.h"
 #include "engine/src/stl/algorithm.h"
@@ -164,22 +165,29 @@ namespace map {
         }
     };
 
-    void LayerPolygons::addGeometry(
+    float LayerPolygons::addGeometry(
+        TileID tileId,
         std::vector<uint32_t> indices, 
         std::vector<engine::vec2i> vertices, 
-        std::vector<std::pair<uint32_t, uint32_t>> rings, 
+        std::vector<std::pair<uint32_t, uint32_t>> rings,
+        int16_t extent,
         float minHeight, 
         float height,
         int16_t material
     ) {
-        if (vertices.empty() || indices.empty()) return;
+        if (vertices.empty() || indices.empty()) {
+            return 0.0f;
+        }
+
+        //
+        const auto latlon = tileToGeo(tileId, 0.5f, 0.5f);
+        const auto extentf = static_cast<float>(extent);
+
+        const auto hMin = metersToTileUnits(minHeight, latlon.x, tileId.z, extentf);
+        const auto hMax = metersToTileUnits(height, latlon.x, tileId.z, extentf);
 
         const auto vsz = vertices.size();
         const auto isz = indices.size();
-
-        //
-        const auto hMin = metersToTileUnits(minHeight, 55.750982f, 14u, 4096.0f);
-        const auto hMax = metersToTileUnits(height, 55.750982f, 14u, 4096.0f);
 
         // floor
         const auto currentVertexCount = totalVerices.size();
@@ -193,7 +201,7 @@ namespace map {
             totalVerices.emplace_back(
                 engine::stl::array<int16_t, 4u>{
                     static_cast<int16_t>(vtx.x), 
-                    static_cast<int16_t>(4096 - vtx.y), 
+                    static_cast<int16_t>(extent - vtx.y), 
                     static_cast<int16_t>(hMin),
                     material
                 }
@@ -201,7 +209,7 @@ namespace map {
         }
 
         if (hMax <= hMin) {
-            return;
+            return hMin;
         }
 
         // roof
@@ -213,11 +221,10 @@ namespace map {
             totalIndices.emplace_back(currentVertexCount2 + idx);
         }
         for (auto vtx : vertices) {
-            // totalVerices.emplace_back(engine::vec3f{4.0f * vtx.x, 4.0f * (1.0f - vtx.y) + 10.0f, 4.0f * hMax});
             totalVerices.emplace_back(
                 engine::stl::array<int16_t, 4u>{
                     static_cast<int16_t>(vtx.x), 
-                    static_cast<int16_t>(4096 - vtx.y), 
+                    static_cast<int16_t>(extent - vtx.y), 
                     static_cast<int16_t>(hMax),
                     material
                 }
@@ -245,18 +252,20 @@ namespace map {
                 totalIndices.emplace_back(roofNext);
 
                 if (i != ring.second) {
-                    const auto v0 = engine::vec2f{totalVerices[floorCurrent][0], totalVerices[floorCurrent][1]};
-                    const auto v1 = engine::vec2f{totalVerices[floorNext][0], totalVerices[floorNext][1]};
+                    const auto v0 = engine::vec2f{totalVerices[floorCurrent][0u], totalVerices[floorCurrent][1u]};
+                    const auto v1 = engine::vec2f{totalVerices[floorNext][0u], totalVerices[floorNext][1u]};
                     const float wallLength = std::floor(glm::distance(v0, v1) / 16.0f);
                     l += engine::step<float>(2.0f, wallLength) * wallLength;
-                    totalVerices[floorNext][3] = static_cast<int16_t>(l) << 4;
-                    totalVerices[roofNext][3] = static_cast<int16_t>(l) << 4;
+                    totalVerices[floorNext][3u] = static_cast<int16_t>(l) << 4;
+                    totalVerices[roofNext][3u] = static_cast<int16_t>(l) << 4;
                 }
             }
         }
+
+        return hMax;
     }
 
-    TileParsedGeometry VectorTileParser::parseGeometry(engine::stl::vector<std::byte> && parsedData) {
+    TileParsedGeometry VectorTileParser::parseGeometry(TileID tileId, engine::stl::vector<std::byte> && parsedData) {
         auto data = engine::compression::isDataCompressed(parsedData) ? 
                     engine::compression::decompress(parsedData) : 
                     std::move(parsedData);
@@ -286,7 +295,7 @@ namespace map {
                 bool skipGepmetry = false;
 
                 // read feature tags (metadata attributes)
-                printf("Properties:\n");
+                //printf("Properties:\n");
                 int16_t materialIdx = 0;
                 while (auto property = feature.next_property()) {
                     auto str = property.key();
@@ -339,14 +348,16 @@ namespace map {
                 handler.finalize();
 
                 auto && polygon = handler.getPolygon();
-                polygons.addGeometry(
+                geometry.height = std::max(polygons.addGeometry(
+                    tileId,
                     std::move(polygon.indices), 
                     std::move(polygon.vertices), 
                     std::move(polygon.rings),
+                    layer.extent(),
                     minHeight, 
                     height,
                     materialIdx
-                );
+                ) / layer.extent(), geometry.height);
             }
         }
 

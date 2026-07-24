@@ -31,10 +31,10 @@ layout(set = 0, binding = 4) uniform sampler2DArray u_interriorMapArr;
 const vec4 colors[6] = vec4[](
 	vec4(0.65f, 0.65f, 0.65f, 1.0f), 	// building
 	vec4(0.25f, 0.75f, 0.25f, 1.0f), 	// grass
-	vec4(0.3f, 0.3f, 0.3f, 1.0f),		// pedestrian
+	vec4(0.9f, 0.9f, 0.1f, 1.0f),		// pedestrian
 	vec4(0.01f, 0.7f, 0.01f, 1.0f),		// wood
-	vec4(0.45f, 0.45f, 0.45f, 1.0f),	// industrial
-	vec4(0.2f, 0.35f, 0.95f, 1.0f)		// water
+	vec4(0.95f, 0.05f, 0.05f, 1.0f),	// industrial
+	vec4(0.0f, 0.41f, 0.58f, 1.0f)		// water
 );
 
 void main() {
@@ -46,7 +46,7 @@ void main() {
 
 	out_normal = vec4(normalize(viewNormal) * 0.5f + 0.5f, 0.0f);
 	const vec4 color = colors[v_material] * (1.0f + v_position.z);
-	if (v_material == 0u) {
+	if (v_material == 0) {
 		const float u = mix(v_position.x, v_position.y, step(abs(normal.y / normal.x), 1.0f));
 		vec2 uv = vec2(u, -v_position.z) * 20.0f;
 		vec2 uv2 = vec2(-v_w.x, -v_w.y);

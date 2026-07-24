@@ -1,5 +1,7 @@
 #pragma once
 
+#include "tile_id.h"
+
 #include "math/math.h"
 #include "stl/array.h"
 #include "stl/vector.h"
@@ -10,10 +12,12 @@
 namespace map {
 
     struct LayerPolygons {
-        void addGeometry(
+        float addGeometry(
+            TileID tileId,
             std::vector<uint32_t> indices, 
             std::vector<engine::vec2i> vertices, 
             std::vector<std::pair<uint32_t, uint32_t>> rings, 
+            int16_t extent,
             float minHeight, 
             float height,
             int16_t material
@@ -25,17 +29,18 @@ namespace map {
 
     struct TileParsedGeometry {
         engine::stl::vector<LayerPolygons> polygons;
+        float height = 0.0f;
     };
 
     class VectorTileParser {
     public:
         template <typename GeometryHandler>
-        void parseData(engine::stl::vector<std::byte> && data, GeometryHandler && handler) {
-            handler(parseGeometry(std::move(data)));
+        void parseData(TileID tileId, engine::stl::vector<std::byte> && data, GeometryHandler && handler) {
+            handler(parseGeometry(tileId, std::move(data)));
         }
 
     private:
-        TileParsedGeometry parseGeometry(engine::stl::vector<std::byte> && data);
+        TileParsedGeometry parseGeometry(TileID tileId, engine::stl::vector<std::byte> && data);
     };
 
 }

@@ -621,7 +621,7 @@ namespace example {
                         [tileId](engine::stl::vector<std::byte> && response, engine::network::RequestResult resultCode) {
                             if (resultCode == engine::network::RequestResult::eSuccess) {
                                 map::VectorTileParser parser;
-                                parser.parseData(std::move(response), [](map::TileParsedGeometry && geometry) {
+                                parser.parseData(tileId, std::move(response), [](map::TileParsedGeometry && geometry) {
                                     if (!geometry.polygons.empty()) {
                                         auto & commandContext = backgroundgWorker->getCommandContext();
                                         auto & api = commandContext.getApi();
@@ -695,7 +695,8 @@ namespace example {
                                         gpuTasks.emplace_back(BackgroundWorker::GpuJob{[
                                             staging = std::move(staging),
                                             mapGeometry = std::move(mapGeometry),
-                                            device = &device
+                                            device = &device,
+                                            tileHeight = geometry.height
                                         ](
                                             engine::rhi::runtime::CommandList & commandList, 
                                             engine::stl::vector<threads::WorkerTask> & callbacks
@@ -711,16 +712,17 @@ namespace example {
                                                 offset += geometry.indices->sizeInBytes();
                                             }
 
-                                            callbacks.emplace_back([mapGeometry = std::move(mapGeometry), device]() mutable {
+                                            callbacks.emplace_back([mapGeometry = std::move(mapGeometry), device, tileHeight]() mutable {
                                                 g_mapGeometry = std::move(mapGeometry);
 
                                                 auto * node = scene->createNode();
                                                 node->setScale(engine::vec3f{16.0f});
-                                                node->setPosition(engine::vec3f(0.0f, 10.0f, 0.001f));
+                                                node->setPivot({0.5f, 0.5f, 0.0f}); // center of tile
+                                                node->setPosition(engine::vec3f(0.0f, 18.0f, 0.001f));
                                                 node->setBounds(
                                                     engine::scene::Bounds::createCube(
                                                         engine::vec3f{1.0f, 1.0f, 0.0f}, 
-                                                        engine::vec3f{0.0f, 0.0f, 0.1f}
+                                                        engine::vec3f{0.0f, 0.0f, tileHeight}
                                                     )
                                                 );
 
