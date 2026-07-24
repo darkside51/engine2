@@ -694,7 +694,8 @@ namespace example {
 
                                         gpuTasks.emplace_back(BackgroundWorker::GpuJob{[
                                             staging = std::move(staging),
-                                            mapGeometry = std::move(mapGeometry)
+                                            mapGeometry = std::move(mapGeometry),
+                                            device = &device
                                         ](
                                             engine::rhi::runtime::CommandList & commandList, 
                                             engine::stl::vector<threads::WorkerTask> & callbacks
@@ -710,7 +711,7 @@ namespace example {
                                                 offset += geometry.indices->sizeInBytes();
                                             }
 
-                                            callbacks.emplace_back([mapGeometry = std::move(mapGeometry)]() {
+                                            callbacks.emplace_back([mapGeometry = std::move(mapGeometry), device]() mutable {
                                                 g_mapGeometry = std::move(mapGeometry);
 
                                                 auto * node = scene->createNode();
@@ -722,10 +723,16 @@ namespace example {
                                                         engine::vec3f{0.0f, 0.0f, 0.1f}
                                                     )
                                                 );
-                                                auto * brikcsImageHandler = textureManager->getImageHandler("bricks");
+
+                                                const auto * brikcsImageHandler = loadImageAsync(*device, fileManager, *textureManager, 
+                                                    "beton", "assets/beton3.jpg", 
+                                                    engine::graphics::TextureFlags::eAllowSrgbColorSpace | engine::graphics::TextureFlags::eUseMipMaps);
+                                                const auto * asphaltImageHandler = loadImageAsync(*device, fileManager, *textureManager, 
+                                                    "asphalt", "assets/floor3.jpg", 
+                                                    engine::graphics::TextureFlags::eAllowSrgbColorSpace | engine::graphics::TextureFlags::eUseMipMaps);
                                                 auto * interriorImageHandler = textureManager->getImageHandler("skyBoxCubeMapImage");//
 
-                                                auto * object = scene->createObject<engine::scene::CustomDrawObject>([brikcsImageHandler, interriorImageHandler](
+                                                auto * object = scene->createObject<engine::scene::CustomDrawObject>([brikcsImageHandler, asphaltImageHandler, interriorImageHandler](
                                                     const engine::scene::Scene & scene, 
                                                     const engine::scene::ViewParams &, 
                                                     const engine::mat4f & worldTransform,
@@ -755,9 +762,10 @@ namespace example {
                                                                 commandList->bindBuffer(0u, scene.getViewParamsUniformBuffer(frameId), 0u, sceneViewParamBufferOffset);
                                                                 commandList->pushConstants(engine::rhi::shaders::Stages::eVertex, 0u, sizeof(engine::mat4f), &worldTransform);
                                                                 commandList->bindImage(1u, brikcsImageHandler->image, linearSampler, 0u);
-                                                                commandList->bindImage(2u, interriorImageHandler->image, linearSampler, 0u, 
-                                                                    engine::rhi::ImageAspectFlags::eColor, engine::rhi::ImageViewType::eType_Cube);
+                                                                commandList->bindImage(2u, asphaltImageHandler->image, linearSampler, 0u);
                                                                 commandList->bindImage(3u, interriorImageHandler->image, linearSampler, 0u, 
+                                                                    engine::rhi::ImageAspectFlags::eColor, engine::rhi::ImageViewType::eType_Cube);
+                                                                commandList->bindImage(4u, interriorImageHandler->image, linearSampler, 0u, 
                                                                     engine::rhi::ImageAspectFlags::eColor, engine::rhi::ImageViewType::eType_2D_Array);
                                                                     
                                                                 commandList->drawIndexed(g.indices->sizeInBytes() / sizeof(uint32_t));
@@ -2069,9 +2077,9 @@ namespace example {
             { // test
 
                 {
-                    auto * node = scene->createNode();
-                    node->setPosition(engine::vec3f{17.165f, 12.2f, 0.0f});
-                    node->setRotation(engine::vec3f{engine::pi2, 0.0f, -0.35f});
+                    // auto * node = scene->createNode();
+                    // node->setPosition(engine::vec3f{17.165f, 12.2f, 0.0f});
+                    // node->setRotation(engine::vec3f{engine::pi2, 0.0f, -0.35f});
 
                     const auto * imageHandler = loadImageAsync(*_device, fileManager, *textureManager, "bricks", "assets/154.jpg", 
                         engine::graphics::TextureFlags::eAllowSrgbColorSpace | engine::graphics::TextureFlags::eUseMipMaps);
@@ -2084,24 +2092,24 @@ namespace example {
                         engine::graphics::Frame2D{.uvMin = {0.0f, 0.0f}, .uvMax = {8.0f, 4.0f}}
                     };
 
-                    auto * sprite = scene->createObject<engine::scene::Sprite>(frame, 7u);
-                    sprite->setSubImage(imageHandler1, 0u);
-                    sprite->setSubImage(textureManager->getImageHandler("skyBoxCubeMapImage"), 1u, engine::rhi::ImageViewType::eType_Cube);
-                    sprite->setSubImage(textureManager->getImageHandler("skyBoxCubeMapImage"), 2u, engine::rhi::ImageViewType::eType_2D_Array);
-                    // sprite->setSubImage(textureManager->getDefaultCubeImageHandler(), 1u, engine::rhi::ImageViewType::eType_Cube);
-                    //sprite->setFilter(engine::scene::SpriteTextureFilter::eNearest);
+                    // auto * sprite = scene->createObject<engine::scene::Sprite>(frame, 7u);
+                    // sprite->setSubImage(imageHandler1, 0u);
+                    // sprite->setSubImage(textureManager->getImageHandler("skyBoxCubeMapImage"), 1u, engine::rhi::ImageViewType::eType_Cube);
+                    // sprite->setSubImage(textureManager->getImageHandler("skyBoxCubeMapImage"), 2u, engine::rhi::ImageViewType::eType_2D_Array);
+                    // // sprite->setSubImage(textureManager->getDefaultCubeImageHandler(), 1u, engine::rhi::ImageViewType::eType_Cube);
+                    // //sprite->setFilter(engine::scene::SpriteTextureFilter::eNearest);
 
-                    sprite->setSize({8.3f, 4.0f});
-                    engine::scene::attachObjectToNode(*sprite, *node);
-                    sprite->setOrder(2);
+                    // sprite->setSize({8.3f, 4.0f});
+                    // engine::scene::attachObjectToNode(*sprite, *node);
+                    // sprite->setOrder(2);
 
-                    sceneWorldRoot->addChild(node);
+                    // sceneWorldRoot->addChild(node);
                 }
 
                 {
-                    auto * node = scene->createNode();
-                    node->setPosition(engine::vec3f{20.0f, 20.0f, 0.0f});
-                    node->setRotation(engine::vec3f{engine::pi2, 0.0f, -0.35f - 1.57f});
+                    // auto * node = scene->createNode();
+                    // node->setPosition(engine::vec3f{20.0f, 20.0f, 0.0f});
+                    // node->setRotation(engine::vec3f{engine::pi2, 0.0f, -0.35f - 1.57f});
 
                     const auto * imageHandler = loadImageAsync(*_device, fileManager, *textureManager, "bricks", "assets/154.jpg", 
                         engine::graphics::TextureFlags::eAllowSrgbColorSpace | engine::graphics::TextureFlags::eUseMipMaps);
@@ -2114,18 +2122,18 @@ namespace example {
                         engine::graphics::Frame2D{.uvMin = {0.0f, 0.0f}, .uvMax = {8.0f, 4.0f}}
                     };
 
-                    auto * sprite = scene->createObject<engine::scene::Sprite>(frame, 7u);
-                    sprite->setSubImage(imageHandler1, 0u);
-                    sprite->setSubImage(textureManager->getImageHandler("skyBoxCubeMapImage"), 1u, engine::rhi::ImageViewType::eType_Cube);
-                    sprite->setSubImage(textureManager->getImageHandler("skyBoxCubeMapImage"), 2u, engine::rhi::ImageViewType::eType_2D_Array);
-                    // sprite->setSubImage(textureManager->getDefaultCubeImageHandler(), 1u, engine::rhi::ImageViewType::eType_Cube);
-                    //sprite->setFilter(engine::scene::SpriteTextureFilter::eNearest);
+                    // auto * sprite = scene->createObject<engine::scene::Sprite>(frame, 7u);
+                    // sprite->setSubImage(imageHandler1, 0u);
+                    // sprite->setSubImage(textureManager->getImageHandler("skyBoxCubeMapImage"), 1u, engine::rhi::ImageViewType::eType_Cube);
+                    // sprite->setSubImage(textureManager->getImageHandler("skyBoxCubeMapImage"), 2u, engine::rhi::ImageViewType::eType_2D_Array);
+                    // // sprite->setSubImage(textureManager->getDefaultCubeImageHandler(), 1u, engine::rhi::ImageViewType::eType_Cube);
+                    // //sprite->setFilter(engine::scene::SpriteTextureFilter::eNearest);
 
-                    sprite->setSize({8.3f, 4.0f});
-                    engine::scene::attachObjectToNode(*sprite, *node);
-                    sprite->setOrder(2);
+                    // sprite->setSize({8.3f, 4.0f});
+                    // engine::scene::attachObjectToNode(*sprite, *node);
+                    // sprite->setOrder(2);
 
-                    sceneWorldRoot->addChild(node);
+                    // sceneWorldRoot->addChild(node);
                 }
 
             }
