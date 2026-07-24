@@ -1,8 +1,7 @@
 #version 450
 
 #include "common"
-
-//layout(set = 0, binding = 1) uniform sampler2D texture0;
+#include "interrior_maps"
 
 layout (location = 0) in vec3 v_position;
 layout (location = 1) flat in int v_material;
@@ -25,6 +24,8 @@ layout (set = 0, binding = 0) uniform UniformBuffer {
 } u_viewParams;
 
 layout(set = 0, binding = 1) uniform sampler2D u_texture;
+layout(set = 0, binding = 2) uniform samplerCube u_interriorMap;
+layout(set = 0, binding = 3) uniform sampler2DArray u_interriorMapArr;
 
 const vec4 colors[6] = vec4[](
 	vec4(0.65f, 0.65f, 0.65f, 1.0f), 	// building
@@ -47,13 +48,19 @@ void main() {
 	if (v_material == 0u) {
 		const float u = mix(v_position.x, v_position.y, step(abs(normal.y / normal.x), 1.0f));
 		vec2 uv = vec2(u, v_position.z) * 20.0f;
-		vec2 uv2 = vec2(v_w.x, v_w.y);
+		vec2 uv2 = vec2(-v_w.x, -v_w.y);
 
 		const vec2 fract_uv = fract(uv2);
 		const vec2 lower = step(vec2(0.25f, 0.25f), fract_uv);
 		const vec2 upper = step(fract_uv, vec2(0.75f, 0.75f));
 		const float inside = lower.x * lower.y * upper.x * upper.y;
-		const vec4 wallColor = mix(texture(u_texture, uv), vec4(0.0f, 0.0f, 0.0f, 1.0f), inside);
+
+		const vec4 interriorColor = calculateRoomCube(u_interriorMap, v_position, u_viewParams.cameraPosition, normal, uv2, vec3(2.0f, 1.3f, 1.0f), vec4(1.0f));
+
+		const vec4 window = texture(u_interriorMapArr, vec3(uv2 * vec2(1.0f, 2.0f) + vec2(-0.23f, 0.5f), 3.0f));
+		const float s = clamp((window.r + window.g + window.b) / 2.0f, 0.0f, 1.0f);
+
+		const vec4 wallColor = mix(texture(u_texture, uv), mix(interriorColor, window, s), inside);
 
 		out_albedo = mix(wallColor, color, step(0.99f, normal.z));
 	} else {

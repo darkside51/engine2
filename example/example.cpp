@@ -723,7 +723,9 @@ namespace example {
                                                     )
                                                 );
                                                 auto * brikcsImageHandler = textureManager->getImageHandler("bricks");
-                                                auto * object = scene->createObject<engine::scene::CustomDrawObject>([brikcsImageHandler](
+                                                auto * interriorImageHandler = textureManager->getImageHandler("skyBoxCubeMapImage");//
+
+                                                auto * object = scene->createObject<engine::scene::CustomDrawObject>([brikcsImageHandler, interriorImageHandler](
                                                     const engine::scene::Scene & scene, 
                                                     const engine::scene::ViewParams &, 
                                                     const engine::mat4f & worldTransform,
@@ -753,6 +755,11 @@ namespace example {
                                                                 commandList->bindBuffer(0u, scene.getViewParamsUniformBuffer(frameId), 0u, sceneViewParamBufferOffset);
                                                                 commandList->pushConstants(engine::rhi::shaders::Stages::eVertex, 0u, sizeof(engine::mat4f), &worldTransform);
                                                                 commandList->bindImage(1u, brikcsImageHandler->image, linearSampler, 0u);
+                                                                commandList->bindImage(2u, interriorImageHandler->image, linearSampler, 0u, 
+                                                                    engine::rhi::ImageAspectFlags::eColor, engine::rhi::ImageViewType::eType_Cube);
+                                                                commandList->bindImage(3u, interriorImageHandler->image, linearSampler, 0u, 
+                                                                    engine::rhi::ImageAspectFlags::eColor, engine::rhi::ImageViewType::eType_2D_Array);
+                                                                    
                                                                 commandList->drawIndexed(g.indices->sizeInBytes() / sizeof(uint32_t));
                                                                 ++i;
                                                             }
