@@ -108,7 +108,7 @@ void main() {
 
 	// pbr
 	const vec3 N = normal; // in view space
-    const vec3 V = normalize(-v_rayDirView); // in view space
+    const vec3 V = normalize(-viewPosition); // in view space
     const vec3 L = normalize(-push.light.xyz); // in view space
 
     // per-light calculation (Loop for multiple lights)
