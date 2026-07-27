@@ -19,8 +19,7 @@ layout(push_constant) uniform Params {
 } push;
 
 layout (location = 0) in vec2 v_uv;
-layout (location = 1) in vec3 v_worldPosition;
-layout (location = 2) in mat3 v_tbn;
+layout (location = 1) in mat3 v_tbn;
 
 layout(set = 2, binding = 0) uniform sampler2D u_texture_color;
 layout(set = 2, binding = 1) uniform sampler2D u_texture_emissive;

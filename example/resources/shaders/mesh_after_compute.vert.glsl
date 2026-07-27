@@ -33,8 +33,7 @@ layout (set = 1, binding = 2) readonly buffer SkeletonIds {
 //} in_tangents;
 
 layout (location = 0) out vec2 v_uv;
-layout (location = 1) out vec3 v_worldPosition;
-layout (location = 2) out mat3 v_tbn;
+layout (location = 1) out mat3 v_tbn;
 
 layout(push_constant) uniform Params {
 	vec4 color;
@@ -49,7 +48,6 @@ void main() {
 	gl_Position = u_viewParams.viewProjection * position;
 	v_uv = a_uv;
 
-	v_worldPosition = position.xyz;
 	const mat3 normalMatrix = transpose(inverse(mat3(u_viewParams.view)));
 	
 	const vec3 normal = imageLoad(in_normals, int(vertexId)).xyz;//in_normals.data[vertexId].xyz;
@@ -57,4 +55,19 @@ void main() {
 	const vec3 binormal = cross(normal, tangent.xyz) * tangent.w;
 
 	v_tbn = mat3(normalMatrix * tangent.xyz, normalMatrix * binormal, normalMatrix * normal);
+
+   //const mat3 normalMatrix = transpose(inverse(mat3(u_viewParams.view)));
+   //const mat3 normalMatrix = mat3(u_viewParams.view);
+    
+   //const vec3 normal = imageLoad(in_normals, int(vertexId)).xyz;
+   //const vec4 tangent = imageLoad(in_tangents, int(vertexId));
+    
+   //vec3 T = normalize(normalMatrix * tangent.xyz);
+   //const vec3 N = normalize(normalMatrix * normal);
+    
+   //// Грама-Шмидта: гарантирует строгую ортогональность базиса
+   //T = normalize(T - N * dot(N, T));
+    
+   //const vec3 B = normalize(cross(N, T) * tangent.w);
+   //v_tbn = mat3(T, B, N);
 }

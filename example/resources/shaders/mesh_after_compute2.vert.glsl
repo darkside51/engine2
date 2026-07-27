@@ -33,8 +33,7 @@ layout (set = 1, binding = 2) readonly buffer SkeletonIds {
 //} in_tangents;
 
 layout (location = 0) out vec2 v_uv;
-layout (location = 1) out vec3 v_worldPosition;
-layout (location = 2) out vec3 v_normal;
+layout (location = 1) out vec3 v_normal;
 
 layout(push_constant) uniform Params {
 	vec4 color;
@@ -49,7 +48,6 @@ void main() {
 	gl_Position = u_viewParams.viewProjection * position;
 	v_uv = a_uv;
 
-	v_worldPosition = position.xyz;
 	const mat3 normalMatrix = transpose(inverse(mat3(u_viewParams.view)));
 	
 	const vec3 normal = imageLoad(in_normals, int(vertexId)).xyz;//in_normals.data[vertexId].xyz;

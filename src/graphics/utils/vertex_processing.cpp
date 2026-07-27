@@ -176,7 +176,7 @@ stl::vector<std::byte> generateTangentsCompressed(
         tan2[i3] = tan2[i3] + tdir;
     }
 
-    stl::vector<std::byte> tangents{vertexCount * 4u};
+    stl::vector<std::byte> tangents(vertexCount * 4u);
 
     // step 2: orthogonalize and calculate handedness (w)
     for (size_t i = 0u; i < vertexCount; ++i) {
@@ -190,7 +190,12 @@ stl::vector<std::byte> generateTangentsCompressed(
 
         // Gram-Schmidt orthogonalization
         // t_orthogonal = t - n * dot(n, t)
-        const vec3f tangent = glm::normalize(t - (n * glm::dot(n, t)));
+        vec3f tangent;
+        if (glm::length2(tangent) > 1e-5f) {
+            tangent = glm::normalize(tangent);
+        } else {
+            tangent = vec3f{1.0f, 0.0f, 0.0f}; // default
+        }
 
         // calculate handedness (bitangent flip factor)
         // sign is determined by whether the cross product matches tan2

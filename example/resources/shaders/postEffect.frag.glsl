@@ -43,6 +43,54 @@ layout(push_constant) uniform Params {
 
 const float biases[2] = float[](0.006f, 0.03f);
 
+// sky
+// Функция интерполяции на основе угла в радианах
+vec3 sampleSkyColorByRadians(vec3 nightColor, vec3 sunsetColor, vec3 dayColor, float angle) {
+    if (angle < 0.0) {
+        // Солнце зашло за горизонт. Переход от ночи (-0.21 рад) к моменту заката (0.0 рад)
+        float t = clamp((angle + 0.21) / 0.21, 0.0, 1.0);
+        return mix(nightColor, sunsetColor, t);
+    } else {
+        // Солнце поднимается. Переход от заката (0.0 рад) к яркому дню (0.43 рад)
+        float t = clamp(angle / 0.43, 0.0, 1.0);
+        return mix(sunsetColor, dayColor, t);
+    }
+}
+
+vec3 simpleSky(const vec3 viewDir, const vec3 sunViewDir, const vec3 sunWorldDir, inout vec3 sunColor) {
+	// Палитры в линейном пространстве
+    const vec3 dayTop       = vec3(0.05, 0.21, 0.53);
+    const vec3 dayBottom    = vec3(0.43, 0.67, 0.89);
+    const vec3 daySun       = vec3(1.5, 1.4, 1.2);
+
+    const vec3 sunsetTop    = vec3(0.02, 0.05, 0.15);
+    const vec3 sunsetBottom = vec3(0.95, 0.35, 0.05);
+    const vec3 sunsetSun    = vec3(2.0, 0.8, 0.2);
+
+    const vec3 nightTop     = vec3(0.002, 0.004, 0.01);
+    const vec3 nightBottom  = vec3(0.01, 0.015, 0.025);
+    const vec3 nightSun     = vec3(0.0, 0.0, 0.0);
+
+	// Смешивание цветов по углу в радианах
+    const vec3 skyColorTop    = sampleSkyColorByRadians(nightTop, sunsetTop, dayTop, sunWorldDir.z);
+    const vec3 skyColorBottom = sampleSkyColorByRadians(nightBottom, sunsetBottom, dayBottom, sunWorldDir.z);
+    //const vec3 
+    sunColor       = sampleSkyColorByRadians(nightSun, sunsetSun, daySun, sunWorldDir.z);
+
+	const float mixFactor = clamp(viewDir.y * 0.5 + 0.5, 0.0, 1.0);
+    const vec3 finalSkyColor = mix(skyColorBottom, skyColorTop, mixFactor);
+
+    // --- 2. Симуляция солнца ---
+    const float dotViewSun = dot(viewDir, sunViewDir);
+    
+    // Солнечный диск и ореол
+    const float sunIntensity = smoothstep(0.9994, 0.9998, dotViewSun);
+    const float sunGlow = pow(max(dotViewSun, 0.0), 128.0) * 0.5;
+
+    // Итоговый цвет
+    return finalSkyColor + (sunColor * sunIntensity) + (sunColor * sunGlow);
+}
+
 void main() {
 	const float occlusion = push.options.x > 0.0f ? radialBlur(textureSsao, v_uv, int(push.options.x - 1.0f)) : 1.0f;
 	const vec3 normal = normalize(texture(textureNormal, v_uv).rgb * 2.0f - 1.0f);
@@ -108,6 +156,11 @@ void main() {
 	const float shadowValue = clamp(shadow, u_shadow.options.x, 1.0f);
 	// shadows
 
+	// simple sky
+	vec3 sunColor;
+	const vec3 sky = simpleSky(-V, L, normalize((u_shadow.viewInverse * vec4(L, 0.0f)).xyz), sunColor);
+	// simple sky
+
 	const float metallic = metallicRoughness.x;
 	const float roughness = metallicRoughness.y;
 
@@ -120,7 +173,7 @@ void main() {
     
     const float distance = 1.0f;//length(lightPosition - worldPosition.xyz);
     const float attenuation = 1.0f / (distance * distance); // Physical attenuation
-    const vec3 radiance = push.directionalLight.xyz * push.directionalLight.w * attenuation;
+    const vec3 radiance = sunColor * push.directionalLight.xyz * push.directionalLight.w * attenuation;
 
      // Cook-Torrance BRDF Evaluation
     const float D = distributionGGX(dotNH, roughness);
@@ -162,9 +215,12 @@ void main() {
 	//const vec3 cubeColor = texture(textureCubeMap, v_rayDirWorld).rgb;
 	//baseColor = mix(baseColor, cubeColor, step(0.0f, viewPosition.z));
 
+	//const vec3 sky = simpleSky(-V, L);
+	baseColor = mix(baseColor, sky, step(0.0f, viewPosition.z));
+
 	// 4. gamma
 	vec3 color = pow(baseColor, vec3(0.4545f)); // gamma correction 1.0f / 2.2f = 0.4545f
-	color = mix(color, albedo.rgb, step(0.0f, viewPosition.z));
+	//color = mix(color, albedo.rgb, step(0.0f, viewPosition.z));
 
 	// vignette
 	if (push.options.w > 0.0f) {

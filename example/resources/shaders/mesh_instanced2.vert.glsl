@@ -7,8 +7,7 @@ layout (location = 3) in vec4 a_tangent;
 //layout (location = 3) in uint a_sbo_offset; // per instance value
 
 layout (location = 0) out vec2 v_uv;
-layout (location = 1) out vec3 v_worldPosition;
-layout (location = 2) out vec3 v_normal;
+layout (location = 1) out vec3 v_normal;
 
 layout (set = 0, binding = 0) uniform UniformBuffer {
 	mat4 view;
@@ -51,7 +50,6 @@ void main() {
 		vec4 worldPosition = vec4(a_position, 1.0) * model;
 		gl_Position = u_viewParams.viewProjection * worldPosition;
 		
-		v_worldPosition = worldPosition.xyz;
 		const mat3 normalMatrix = transpose(inverse(mat3(u_viewParams.view)));
 
 		const vec3 normal = normalize((vec4(a_normal, 0.0f) * model).xyz);
