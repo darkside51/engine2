@@ -105,34 +105,15 @@ void main() {
 		vec4(0.0f, 0.0f, 0.0f, 1.0f)
 	) * a_weights.w;
 
-	//const uint skeletonData = skeleton_ids.data[objectId + push.firstObject];
-	//const uint skeletonId = skeletonData & 0xffffu;
-	//const uint vertexCount = (skeletonData >> 16u) & 0xffffu;
-	//const uint resultOffset = vertexId + skeletonId * vertexCount;
-
 	const uint resultOffset = vertexId + skeleton_ids.data[objectId + push.firstObject + push.skeletonsOffset];
-	//out_positions.data[resultOffset] = vec4(texelFetch(u_positions, vertexId).xyz, 1.0f) * skin;
-	//out_normals.data[resultOffset] = normalize((texelFetch(u_normals, vertexId) * skin));
-	//out_tangents.data[resultOffset] = normalize((texelFetch(u_tangents, vertexId) * skin));
 
 	imageStore(out_positions, int(resultOffset), vec4(texelFetch(u_positions, vertexId).xyz, 1.0f) * skin);
-	imageStore(out_normals, int(resultOffset), normalize((texelFetch(u_normals, vertexId) * skin)));
-	imageStore(out_tangents, int(resultOffset), normalize((texelFetch(u_tangents, vertexId) * skin)));
-
-//	const vec4 normal = texelFetch(u_normals, vertexId);
-//	imageStore(out_normals, int(resultOffset), vec4(normalize((vec4(normal.xyz, 0.0f) * skin).xyz), 0.0f));
-
-//	const vec4 tangent = texelFetch(u_tangents, vertexId);
-//	imageStore(out_tangents, int(resultOffset), vec4(normalize((vec4(tangent.xyz, 0.0f) * skin).xyz), tangent.w));
-
-
-	//mat3 nm = inverse(transpose(mat3(skin)));
-
-	//imageStore(out_normals, int(resultOffset), vec4(normalize((texelFetch(u_normals, vertexId).xyz * nm)), 0.0f));
-
-	//const vec4 tangent = texelFetch(u_tangents, vertexId);
-	//vec3 tg = normalize(tangent.xyz * mat3(skin));
-	//imageStore(out_tangents, int(resultOffset), vec4(tg, tangent.w));
-
+	//imageStore(out_normals, int(resultOffset), normalize((texelFetch(u_normals, vertexId) * skin)));
 	//imageStore(out_tangents, int(resultOffset), normalize((texelFetch(u_tangents, vertexId) * skin)));
+
+	const vec4 normal = texelFetch(u_normals, vertexId);
+	imageStore(out_normals, int(resultOffset), vec4(normalize(normal.xyz * mat3(skin)), 0.0f));
+
+	const vec4 tangent = texelFetch(u_tangents, vertexId);
+	imageStore(out_tangents, int(resultOffset), vec4(normalize(tangent.xyz * mat3(skin)), tangent.w));
 }

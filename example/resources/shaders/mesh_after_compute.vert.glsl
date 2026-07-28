@@ -48,26 +48,26 @@ void main() {
 	gl_Position = u_viewParams.viewProjection * position;
 	v_uv = a_uv;
 
-	const mat3 normalMatrix = transpose(inverse(mat3(u_viewParams.view)));
+	//const mat3 normalMatrix = transpose(inverse(mat3(u_viewParams.view)));
 	
-	const vec3 normal = imageLoad(in_normals, int(vertexId)).xyz;//in_normals.data[vertexId].xyz;
-	const vec4 tangent = imageLoad(in_tangents, int(vertexId));//in_tangents.data[vertexId];
-	const vec3 binormal = cross(normal, tangent.xyz) * tangent.w;
+	//const vec3 normal = imageLoad(in_normals, int(vertexId)).xyz;//in_normals.data[vertexId].xyz;
+	//const vec4 tangent = imageLoad(in_tangents, int(vertexId));//in_tangents.data[vertexId];
+	//const vec3 binormal = cross(normal, tangent.xyz) * tangent.w;
 
-	v_tbn = mat3(normalMatrix * tangent.xyz, normalMatrix * binormal, normalMatrix * normal);
+	//v_tbn = mat3(normalMatrix * tangent.xyz, normalMatrix * binormal, normalMatrix * normal);
 
    //const mat3 normalMatrix = transpose(inverse(mat3(u_viewParams.view)));
-   //const mat3 normalMatrix = mat3(u_viewParams.view);
+   const mat3 normalMatrix = mat3(u_viewParams.view);
     
-   //const vec3 normal = imageLoad(in_normals, int(vertexId)).xyz;
-   //const vec4 tangent = imageLoad(in_tangents, int(vertexId));
+   const vec3 normal = imageLoad(in_normals, int(vertexId)).xyz;
+   const vec4 tangent = imageLoad(in_tangents, int(vertexId));
     
-   //vec3 T = normalize(normalMatrix * tangent.xyz);
-   //const vec3 N = normalize(normalMatrix * normal);
+   vec3 T = normalize(normalMatrix * tangent.xyz);
+   const vec3 N = normalize(normalMatrix * normal);
     
-   //// Грама-Шмидта: гарантирует строгую ортогональность базиса
-   //T = normalize(T - N * dot(N, T));
+   // Грама-Шмидта: гарантирует строгую ортогональность базиса
+   T = normalize(T - N * dot(N, T));
     
-   //const vec3 B = normalize(cross(N, T) * tangent.w);
-   //v_tbn = mat3(T, B, N);
+   const vec3 B = normalize(cross(N, T) * tangent.w);
+   v_tbn = mat3(T, B, N);
 }

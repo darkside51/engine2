@@ -158,7 +158,7 @@ void main() {
 
 	// simple sky
 	vec3 sunColor;
-	const vec3 sky = simpleSky(-V, L, normalize((u_shadow.viewInverse * vec4(L, 0.0f)).xyz), sunColor);
+	const vec3 sky = simpleSky(normalize(v_rayDirView), L, normalize((u_shadow.viewInverse * vec4(L, 0.0f)).xyz), sunColor);
 	// simple sky
 
 	const float metallic = metallicRoughness.x;
