@@ -56,8 +56,8 @@ void main() {
 
 	//v_tbn = mat3(normalMatrix * tangent.xyz, normalMatrix * binormal, normalMatrix * normal);
 
-   //const mat3 normalMatrix = transpose(inverse(mat3(u_viewParams.view)));
-   const mat3 normalMatrix = mat3(u_viewParams.view);
+   const mat3 normalMatrix = transpose(inverse(mat3(u_viewParams.view)));
+   //const mat3 normalMatrix = mat3(u_viewParams.view);
     
    const vec3 normal = imageLoad(in_normals, int(vertexId)).xyz;
    const vec4 tangent = imageLoad(in_tangents, int(vertexId));
