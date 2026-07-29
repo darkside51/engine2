@@ -67,17 +67,17 @@ void main() {
 		return;
 	}
 
-	const uint transfromIdx = skin_offsets.data[objectId + push.firstObject + push.transformsOffset];
+	const uint transformIdx = skin_offsets.data[objectId + push.firstObject + push.transformsOffset];
 	const int vertexId = int(u_indices.data[invocationId % push.invocationsPerObject + push.indicesOffset]);
 
 	const vec4 a_weights = texelFetch(u_weights, vertexId);
 	const uvec4 a_joints = uvec4(texelFetch(u_joints, vertexId) * 255.0f);
 
 	const mat3x4 transforms[] = mat3x4[](
-		sbo_skin.transforms[transfromIdx + a_joints.x],
-		sbo_skin.transforms[transfromIdx + a_joints.y],
-		sbo_skin.transforms[transfromIdx + a_joints.z],
-		sbo_skin.transforms[transfromIdx + a_joints.w]
+		sbo_skin.transforms[transformIdx + a_joints.x],
+		sbo_skin.transforms[transformIdx + a_joints.y],
+		sbo_skin.transforms[transformIdx + a_joints.z],
+		sbo_skin.transforms[transformIdx + a_joints.w]
 	);
 
 	const mat4 skin = mat4(
@@ -108,12 +108,12 @@ void main() {
 	const uint resultOffset = vertexId + skeleton_ids.data[objectId + push.firstObject + push.skeletonsOffset];
 
 	imageStore(out_positions, int(resultOffset), vec4(texelFetch(u_positions, vertexId).xyz, 1.0f) * skin);
-	//imageStore(out_normals, int(resultOffset), normalize((texelFetch(u_normals, vertexId) * skin)));
-	//imageStore(out_tangents, int(resultOffset), normalize((texelFetch(u_tangents, vertexId) * skin)));
 
+	const mat3 skinIT = mat3(skin);
+	
 	const vec4 normal = texelFetch(u_normals, vertexId);
-	imageStore(out_normals, int(resultOffset), vec4(normalize(normal.xyz * mat3(skin)), 0.0f));
+	imageStore(out_normals, int(resultOffset), vec4(normalize(normal.xyz * skinIT), 0.0f));
 
 	const vec4 tangent = texelFetch(u_tangents, vertexId);
-	imageStore(out_tangents, int(resultOffset), vec4(normalize(tangent.xyz * mat3(skin)), tangent.w));
+	imageStore(out_tangents, int(resultOffset), vec4(normalize(tangent.xyz * skinIT), tangent.w));
 }
