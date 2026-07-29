@@ -1619,7 +1619,7 @@ namespace example {
                                 swordNode->removeFromParent();
                                 handBone->addChild(swordNode);
                                 meshRoot->setRotation(engine::vec3f(1.57f, 0.0f, 0.25f));
-                                // meshRoot->childAt(0u)->getAttachment(1u)->setHidden(true); // todo: fix it for compute skinning method
+                                // meshRoot->childAt(0u)->getAttachment(1u)->setHidden(true);
                             }
 
                             auto * anim0 = scene->createAnimInfo<engine::scene::SkeletalAnimation>(animId, engine::common::random(0.25f, 1.7f));
@@ -1632,101 +1632,101 @@ namespace example {
             );
         }
 
-        // {
-        //     auto const modelIdx = loadModelAsync(
-        //         *_api, *_device,
-        //         _renderThread,
-        //         fileManager,
-        //         *modelManager,
-        //         *textureManager,
-        //         animationManager,
-        //         "scene", 
-        //         "assets/models/1/",
-        //         "scene.gltf",
-        //         [](uint32_t modelIndex) {
-        //             engine::scene::MeshPipelines pipelines = {
-        //                 .commonPipeline = 2u, 
-        //                 .skeletalPipeline = 4u
-        //             };
+        {
+            auto const modelIdx = loadModelAsync(
+                *_api, *_device,
+                _renderThread,
+                fileManager,
+                *modelManager,
+                *textureManager,
+                animationManager,
+                "scene", 
+                "assets/models/1/",
+                "scene.gltf",
+                [](uint32_t modelIndex) {
+                    engine::scene::MeshPipelines pipelines = {
+                        .commonPipeline = 2u, 
+                        .skeletalPipeline = 4u
+                    };
 
-        //             auto * meshRoot = engine::scene::createNodeWithSkeletalMesh(*scene, *modelManager, modelIndex, 
-        //                     engine::scene::Bounds::Type::eCube, pipelines, 
-        //                     {.size = {6.5f, 6.5f, 6.5f}, .type = engine::scene::ObjectSizeLayout::Type::eMin});
+                    auto * meshRoot = engine::scene::createNodeWithSkeletalMesh(*scene, *modelManager, modelIndex, 
+                            engine::scene::Bounds::Type::eCube, pipelines, 
+                            {.size = {6.5f, 6.5f, 6.5f}, .type = engine::scene::ObjectSizeLayout::Type::eMin});
 
-        //             meshRoot->setRotation(engine::vec3f(1.57f, 0.0f, 0.0f));
-        //             meshRoot->setPosition(engine::vec3f(0.0f, 4.0f, 0.0f));
-        //             sceneWorldRoot->addChild(meshRoot);
-        //         }
-        //     );
-        // }
+                    meshRoot->setRotation(engine::vec3f(1.57f, 0.0f, 0.0f));
+                    meshRoot->setPosition(engine::vec3f(0.0f, 4.0f, 0.0f));
+                    sceneWorldRoot->addChild(meshRoot);
+                }
+            );
+        }
 
-        // {
-        //     auto const modelIdx = loadModelAsync(
-        //         *_api, *_device,
-        //         _renderThread,
-        //         fileManager,
-        //         *modelManager,
-        //         *textureManager,
-        //         animationManager,
-        //         "wheel", 
-        //         "assets/models/",
-        //         "Minsk_wheel.glb",
-        //         [](uint32_t modelIndex) {
-        //             engine::scene::MeshPipelines pipelines = {
-        //                 .commonPipeline = 2u, 
-        //                 .skeletalPipeline = 4u
-        //             };
-        //             auto * meshRoot = engine::scene::createNodeWithSkeletalMesh(*scene, *modelManager, modelIndex, 
-        //                 engine::scene::Bounds::Type::eCube, pipelines,
-        //                 {.size = {3.5f, 3.5f, 3.5f}, .type = engine::scene::ObjectSizeLayout::Type::eMin});
+        {
+            auto const modelIdx = loadModelAsync(
+                *_api, *_device,
+                _renderThread,
+                fileManager,
+                *modelManager,
+                *textureManager,
+                animationManager,
+                "wheel", 
+                "assets/models/",
+                "Minsk_wheel.glb",
+                [](uint32_t modelIndex) {
+                    engine::scene::MeshPipelines pipelines = {
+                        .commonPipeline = 2u, 
+                        .skeletalPipeline = 4u
+                    };
+                    auto * meshRoot = engine::scene::createNodeWithSkeletalMesh(*scene, *modelManager, modelIndex, 
+                        engine::scene::Bounds::Type::eCube, pipelines,
+                        {.size = {3.5f, 3.5f, 3.5f}, .type = engine::scene::ObjectSizeLayout::Type::eMin});
 
-        //             if (auto * skeleton = static_cast<engine::scene::Skeleton *>(meshRoot->getAttachment())) {
-        //                 auto const animId = animationManager.getAnimationIndex("wheel_anim0");
-        //                 auto * anim = scene->createAnimInfo<engine::scene::SkeletalAnimation>(animId, engine::common::random(0.25f, 1.7f));
-        //                 scene->destroyAnimInfo(skeleton->setAnimation(anim));
-        //             }
+                    if (auto * skeleton = static_cast<engine::scene::Skeleton *>(meshRoot->getAttachment())) {
+                        auto const animId = animationManager.getAnimationIndex("wheel_anim0");
+                        auto * anim = scene->createAnimInfo<engine::scene::SkeletalAnimation>(animId, engine::common::random(0.25f, 1.7f));
+                        scene->destroyAnimInfo(skeleton->setAnimation(anim));
+                    }
 
-        //             meshRoot->setRotation(engine::vec3f(1.57f, 0.0f, 1.57f));
-        //             meshRoot->setPosition(engine::vec3f(-3.0f, 2.0f, 0.0f));
-        //             sceneWorldRoot->addChild(meshRoot);
-        //         }
-        //     );
-        // }
+                    meshRoot->setRotation(engine::vec3f(1.57f, 0.0f, 1.57f));
+                    meshRoot->setPosition(engine::vec3f(-3.0f, 2.0f, 0.0f));
+                    sceneWorldRoot->addChild(meshRoot);
+                }
+            );
+        }
 
-        // {
-        //     auto const modelIdx = loadModelAsync(
-        //         *_api, *_device,
-        //         _renderThread,
-        //         fileManager,
-        //         *modelManager,
-        //         *textureManager,
-        //         animationManager,
-        //         "buster_drone", 
-        //         "assets/models/",
-        //         "buster_drone.glb",
-        //         [](uint32_t modelIndex) {
-        //             engine::scene::MeshPipelines pipelines = {
-        //                 .commonPipeline = 1u, 
-        //                 .skeletalPipeline = 3u
-        //             };
-        //             auto const animId = animationManager.getAnimationIndex("buster_drone_anim0");
-        //             for (uint8_t i = 0u; i < 20u; ++i) {
-        //                 auto * meshRoot = engine::scene::createNodeWithSkeletalMesh(*scene, *modelManager, modelIndex, 
-        //                     engine::scene::Bounds::Type::eCube, pipelines, 
-        //                     {.size = {1.5f, 1.5f, 1.5f}, .type = engine::scene::ObjectSizeLayout::Type::eMin});
+        {
+            auto const modelIdx = loadModelAsync(
+                *_api, *_device,
+                _renderThread,
+                fileManager,
+                *modelManager,
+                *textureManager,
+                animationManager,
+                "buster_drone", 
+                "assets/models/",
+                "buster_drone.glb",
+                [](uint32_t modelIndex) {
+                    engine::scene::MeshPipelines pipelines = {
+                        .commonPipeline = 1u, 
+                        .skeletalPipeline = 3u
+                    };
+                    auto const animId = animationManager.getAnimationIndex("buster_drone_anim0");
+                    for (uint8_t i = 0u; i < 20u; ++i) {
+                        auto * meshRoot = engine::scene::createNodeWithSkeletalMesh(*scene, *modelManager, modelIndex, 
+                            engine::scene::Bounds::Type::eCube, pipelines, 
+                            {.size = {1.5f, 1.5f, 1.5f}, .type = engine::scene::ObjectSizeLayout::Type::eMin});
 
-        //                 if (auto * skeleton = static_cast<engine::scene::Skeleton *>(meshRoot->getAttachment())) {
-        //                     auto * anim = scene->createAnimInfo<engine::scene::SkeletalAnimation>(animId, engine::common::random(0.25f, 1.7f));
-        //                     scene->destroyAnimInfo(skeleton->setAnimation(anim));
-        //                 }
+                        if (auto * skeleton = static_cast<engine::scene::Skeleton *>(meshRoot->getAttachment())) {
+                            auto * anim = scene->createAnimInfo<engine::scene::SkeletalAnimation>(animId, engine::common::random(0.25f, 1.7f));
+                            scene->destroyAnimInfo(skeleton->setAnimation(anim));
+                        }
 
-        //                 meshRoot->setRotation(engine::vec3f(engine::pi2, 0.0f, engine::common::random(-3.14f, 3.14f)));
-        //                 meshRoot->setPosition(engine::vec3f(-5.5f + i % 2 * 1.5f, 0.0f - i / 2 * 1.5f, 0.4126f));
-        //                 sceneWorldRoot->addChild(meshRoot);
-        //             }
-        //         }
-        //     );
-        // }
+                        meshRoot->setRotation(engine::vec3f(engine::pi2, 0.0f, engine::common::random(-3.14f, 3.14f)));
+                        meshRoot->setPosition(engine::vec3f(-5.5f + i % 2 * 1.5f, 0.0f - i / 2 * 1.5f, 0.4126f));
+                        sceneWorldRoot->addChild(meshRoot);
+                    }
+                }
+            );
+        }
 
         {
             auto const modelIdx = loadModelAsync(
@@ -1763,65 +1763,65 @@ namespace example {
             );
         }
 
-        // {
-        //     auto const modelIdx = loadModelAsync(
-        //         *_api, *_device,
-        //         _renderThread,
-        //         fileManager,
-        //         *modelManager,
-        //         *textureManager,
-        //         animationManager,
-        //         "cathedral", 
-        //         "assets/models/",
-        //         "St_Basils_Cathedral.glb",
-        //         [](uint32_t modelIndex) {
-        //             engine::scene::MeshPipelines pipelines = {
-        //                 .commonPipeline = 2u, 
-        //                 .skeletalPipeline = 4u
-        //             };
-        //             auto * meshRoot = engine::scene::createNodeWithSkeletalMesh(*scene, *modelManager, modelIndex, 
-        //                 engine::scene::Bounds::Type::eCube, pipelines,
-        //                 {.size = {4.5f, 4.5f, 4.5f}, .type = engine::scene::ObjectSizeLayout::Type::eMin});
+        {
+            auto const modelIdx = loadModelAsync(
+                *_api, *_device,
+                _renderThread,
+                fileManager,
+                *modelManager,
+                *textureManager,
+                animationManager,
+                "cathedral", 
+                "assets/models/",
+                "St_Basils_Cathedral.glb",
+                [](uint32_t modelIndex) {
+                    engine::scene::MeshPipelines pipelines = {
+                        .commonPipeline = 2u, 
+                        .skeletalPipeline = 4u
+                    };
+                    auto * meshRoot = engine::scene::createNodeWithSkeletalMesh(*scene, *modelManager, modelIndex, 
+                        engine::scene::Bounds::Type::eCube, pipelines,
+                        {.size = {4.5f, 4.5f, 4.5f}, .type = engine::scene::ObjectSizeLayout::Type::eMin});
 
-        //             meshRoot->setRotation(engine::vec3f(1.57f, 0.0f, 1.57f));
-        //             meshRoot->setPosition(engine::vec3f(10.0f, 4.0f, 0.0f));
-        //             sceneWorldRoot->addChild(meshRoot);
-        //         }
-        //     );
-        // }
+                    meshRoot->setRotation(engine::vec3f(1.57f, 0.0f, 1.57f));
+                    meshRoot->setPosition(engine::vec3f(10.0f, 4.0f, 0.0f));
+                    sceneWorldRoot->addChild(meshRoot);
+                }
+            );
+        }
 
-        // {
-        //     auto const modelIdx = loadModelAsync(
-        //         *_api, *_device,
-        //         _renderThread,
-        //         fileManager,
-        //         *modelManager,
-        //         *textureManager,
-        //         animationManager,
-        //         "windmill", 
-        //         "assets/models/windmill/",
-        //         "scene.gltf",
-        //         [](uint32_t modelIndex) {
-        //             engine::scene::MeshPipelines pipelines = {
-        //                 .commonPipeline = 1u, 
-        //                 .skeletalPipeline = 3u
-        //             };
-        //             auto * meshRoot = engine::scene::createNodeWithSkeletalMesh(*scene, *modelManager, modelIndex, 
-        //                 engine::scene::Bounds::Type::eCube, pipelines,
-        //                 {.size = {3.5f, 3.5f, 3.5f}, .type = engine::scene::ObjectSizeLayout::Type::eMin});
+        {
+            auto const modelIdx = loadModelAsync(
+                *_api, *_device,
+                _renderThread,
+                fileManager,
+                *modelManager,
+                *textureManager,
+                animationManager,
+                "windmill", 
+                "assets/models/windmill/",
+                "scene.gltf",
+                [](uint32_t modelIndex) {
+                    engine::scene::MeshPipelines pipelines = {
+                        .commonPipeline = 1u, 
+                        .skeletalPipeline = 3u
+                    };
+                    auto * meshRoot = engine::scene::createNodeWithSkeletalMesh(*scene, *modelManager, modelIndex, 
+                        engine::scene::Bounds::Type::eCube, pipelines,
+                        {.size = {3.5f, 3.5f, 3.5f}, .type = engine::scene::ObjectSizeLayout::Type::eMin});
 
-        //             if (auto * skeleton = static_cast<engine::scene::Skeleton *>(meshRoot->getAttachment())) {
-        //                 auto const animId = animationManager.getAnimationIndex("windmill_anim0");
-        //                 auto * anim = scene->createAnimInfo<engine::scene::SkeletalAnimation>(animId, engine::common::random(0.25f, 1.7f));
-        //                 scene->destroyAnimInfo(skeleton->setAnimation(anim));
-        //             }
+                    if (auto * skeleton = static_cast<engine::scene::Skeleton *>(meshRoot->getAttachment())) {
+                        auto const animId = animationManager.getAnimationIndex("windmill_anim0");
+                        auto * anim = scene->createAnimInfo<engine::scene::SkeletalAnimation>(animId, engine::common::random(0.25f, 1.7f));
+                        scene->destroyAnimInfo(skeleton->setAnimation(anim));
+                    }
 
-        //             meshRoot->setRotation(engine::vec3f(1.57f, 0.0f, 0.0f));
-        //             meshRoot->setPosition(engine::vec3f(-7.0f, 2.0f, -0.1f));
-        //             sceneWorldRoot->addChild(meshRoot);
-        //         }
-        //     );
-        // }
+                    meshRoot->setRotation(engine::vec3f(1.57f, 0.0f, 0.0f));
+                    meshRoot->setPosition(engine::vec3f(-7.0f, 2.0f, -0.1f));
+                    sceneWorldRoot->addChild(meshRoot);
+                }
+            );
+        }
 
         textureManager->generateGpuData(tmpCommandList);
         //

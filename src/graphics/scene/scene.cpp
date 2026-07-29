@@ -916,7 +916,7 @@ namespace engine::scene {
                     commandList->bindTexelBuffer(2u, mesh2.getAttribute(mesh::Semantic::eNormal).buffer, rhi::Format::eR8G8B8A8_Snorm, 2u);
                     commandList->bindTexelBuffer(3u, mesh2.getAttribute(mesh::Semantic::eJoints).buffer, rhi::Format::eR8G8B8A8_Unorm, 2u);
                     commandList->bindTexelBuffer(4u, mesh2.getAttribute(mesh::Semantic::eWeights).buffer, rhi::Format::eR16G16B16A16_Sfloat, 2u);
-                    commandList->bindTexelBuffer(5u, mesh.getAttribute(mesh::Semantic::eTangent).buffer, rhi::Format::eR8G8B8A8_Snorm, 2u);
+                    commandList->bindTexelBuffer(5u, mesh2.getAttribute(mesh::Semantic::eTangent).buffer, rhi::Format::eR8G8B8A8_Snorm, 2u);
                 }
             } else {
                 ++count;
@@ -1476,6 +1476,7 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
 
         const auto & pipeline = getGraphicsPipeline(pipelineIdx);
         assert(pipeline != nullptr);
+        
         commandList->bindPipeline(pipeline);
         commandList->bindBuffer(0u, (*_viewParamsUniformBuffer)(frame), 0u, _currentViewParamsBufferOffset);
 
@@ -1726,7 +1727,7 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
                 return;
             }
         }
-//return;
+
         uint32_t binding_v = 0u;
         commandList->bindVertexBuffer(binding_v++, mesh.getAttribute(mesh::Semantic::ePosition).buffer, 0u);
         if (_currentPass != RenderPass::eShadow) {

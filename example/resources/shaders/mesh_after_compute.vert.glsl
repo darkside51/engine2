@@ -42,11 +42,10 @@ void main() {
 	//const vec3 normal = imageLoad(in_normals, int(vertexId)).xyz;//in_normals.data[vertexId].xyz;
 	//const vec4 tangent = imageLoad(in_tangents, int(vertexId));//in_tangents.data[vertexId];
 	//const vec3 binormal = cross(normal, tangent.xyz) * tangent.w;
-
 	//v_tbn = mat3(normalMatrix * tangent.xyz, normalMatrix * binormal, normalMatrix * normal);
 
-   const mat3 normalMatrix = transpose(inverse(mat3(u_viewParams.view)));
-   //const mat3 normalMatrix = mat3(u_viewParams.view);
+   //const mat3 normalMatrix = transpose(inverse(mat3(u_viewParams.view)));
+   const mat3 normalMatrix = mat3(u_viewParams.view);
     
    const vec3 normal = imageLoad(in_normals, int(vertexId)).xyz;
    const vec4 tangent = imageLoad(in_tangents, int(vertexId));
