@@ -161,10 +161,6 @@ namespace engine::scene {
         _meshSkeletalTransforms = nullptr;
         _skeletonIds = nullptr;
 
-        // _computedVertices = nullptr;
-        // _computedNormals = nullptr;
-        // _computedTangents = nullptr;
-
         _computedVertices = {};
         _computedNormals = {};
         _computedTangents = {};
@@ -372,14 +368,6 @@ namespace engine::scene {
 
             // reserve 2u * kMeshComputeVerticesBufferBytesCount mb gpu memory for calculate skinnig all vertices of all meshes 
             // maybe calculate and change this size dynamically is better way - 100%
-
-            // _computedVertices    - data vec4 - r32g32b32a32 or use texelbuffer
-            // _computedNormals     - data vec4 - r32g32b32a32 or use texelbuffer
-            // _computedTangents    - data vec4 - r32g32b32a32 or use texelbuffer
-
-            // _computedVertices = api.createBuffer(device, computeVerticesInfo, kMeshComputeVerticesBufferBytesCount);
-            // _computedNormals = api.createBuffer(device, computeVerticesInfo, kMeshComputeVerticesBufferBytesCount);
-            // _computedTangents = api.createBuffer(device, computeVerticesInfo, kMeshComputeVerticesBufferBytesCount);
 
             const auto buffersCount = device.inFlightFramesCount();
             _computedVertices.reserve(buffersCount);
@@ -858,18 +846,13 @@ namespace engine::scene {
         assert(pipeline != nullptr);
 
         commandList->bindPipeline(pipeline);
-        // commandList->bindBuffer(0u, _computedVertices[frame], 0u, 0u);
-        // commandList->bindBuffer(1u, _computedNormals[frame], 0u, 0u);
-        // commandList->bindBuffer(2u, _computedTangents[frame], 0u, 0u);
-
         commandList->bindTexelBuffer(0u, _computedVertices[frame], rhi::Format::eR32G32B32A32_Sfloat, 0u, 0u);
         commandList->bindTexelBuffer(1u, _computedNormals[frame], rhi::Format::eR8G8B8A8_Snorm, 0u, 0u);
         commandList->bindTexelBuffer(2u, _computedTangents[frame], rhi::Format::eR8G8B8A8_Snorm, 0u, 0u);
 
         commandList->bindBuffer(0u, (*_meshSkeletalTransforms)(frame), 1u, 0u);
-
-        commandList->bindBuffer(1u, (*_meshTransformIndices)(frame), 1u, 0u/*sizeof(uint32_t) * transformIndex*/);
-        commandList->bindBuffer(2u, (*_skeletonIds)(frame), 1u, 0u /*sizeof(uint32_t) * skeletonsOffset*/);
+        commandList->bindBuffer(1u, (*_meshTransformIndices)(frame), 1u, 0u);
+        commandList->bindBuffer(2u, (*_skeletonIds)(frame), 1u, 0u);
 
         auto computesDataIndex = dataIndex;
         if (skeletal) {
@@ -1399,6 +1382,7 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
                     const auto & pipeline = getGraphicsPipeline(currentPipelineIdx);
                     assert(pipeline != nullptr);
                     commandList->bindPipeline(pipeline);
+                    commandList->bindBuffer(0u, (*_viewParamsUniformBuffer)(frame), 0u, _currentViewParamsBufferOffset);
                 }
 
                 if (currentSkeletal != skeletal || pipelineChanged) {
@@ -1493,19 +1477,13 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
         const auto & pipeline = getGraphicsPipeline(pipelineIdx);
         assert(pipeline != nullptr);
         commandList->bindPipeline(pipeline);
-
         commandList->bindBuffer(0u, (*_viewParamsUniformBuffer)(frame), 0u, _currentViewParamsBufferOffset);
 
         if (skeletal) {
-            // commandList->bindBuffer(0u, _computedVertices[frame], 1u, 0u);
-            // commandList->bindBuffer(1u, _computedNormals[frame], 1u, 0u);
-
             commandList->bindTexelBuffer(0u, _computedVertices[frame], rhi::Format::eR32G32B32A32_Sfloat, 1u, 0u);
             commandList->bindTexelBuffer(1u, _computedNormals[frame], rhi::Format::eR8G8B8A8_Snorm, 1u, 0u);
-            commandList->bindTexelBuffer(3u, _computedTangents[frame], rhi::Format::eR8G8B8A8_Snorm, 1u, 0u);
-
-            commandList->bindBuffer(2u, (*_skeletonIds)(frame), 1u, 0u);
-            // commandList->bindBuffer(3u, _computedTangents[frame], 1u, 0u);
+            commandList->bindTexelBuffer(2u, _computedTangents[frame], rhi::Format::eR8G8B8A8_Snorm, 1u, 0u);
+            commandList->bindBuffer(3u, (*_skeletonIds)(frame), 1u, 0u);
         } else {
             commandList->bindBuffer(0u, (*_meshTransforms)(frame), 1u, 0u);
             commandList->bindBuffer(1u, (*_meshTransformIndices)(frame), 1u, 0u);
@@ -1551,24 +1529,24 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
                     const auto & pipeline = getGraphicsPipeline(currentPipelineIdx);
                     assert(pipeline != nullptr);
                     commandList->bindPipeline(pipeline);
+                    commandList->bindBuffer(0u, (*_viewParamsUniformBuffer)(frame), 0u, _currentViewParamsBufferOffset);
                 }
 
                 if (pipelineChanged || materialChanged) {
                     applyMaterial(currenMaterialIndex);
-                    commandList->pushConstants(rhi::shaders::Stages::eVertex | rhi::shaders::Stages::eFragment, 0u, sizeof(Uniform), &uniform);
+                    commandList->pushConstants(rhi::shaders::Stages::eVertex | rhi::shaders::Stages::eFragment, 
+                        0u, sizeof(Uniform), &uniform);
                 } else {
-                    commandList->pushConstants(rhi::shaders::Stages::eVertex | rhi::shaders::Stages::eFragment, 48u, sizeof(vec4u), &uniform.offset);
+                    commandList->pushConstants(rhi::shaders::Stages::eVertex | rhi::shaders::Stages::eFragment, 
+                        offset_of(&Uniform::offset), sizeof(vec4u), &uniform.offset);
                 }
 
                 if (currentSkeletal != skeletal || pipelineChanged) {
                     if (currentSkeletal) {
-                        // commandList->bindBuffer(0u, _computedVertices[frame], 1u, 0u);
-                        // commandList->bindBuffer(1u, _computedNormals[frame], 1u, 0u);
-                        // commandList->bindBuffer(3u, _computedTangents[frame], 1u, 0u);
-                        commandList->bindBuffer(2u, (*_skeletonIds)(frame), 1u, 0u);
                         commandList->bindTexelBuffer(0u, _computedVertices[frame], rhi::Format::eR32G32B32A32_Sfloat, 1u, 0u);
                         commandList->bindTexelBuffer(1u, _computedNormals[frame], rhi::Format::eR8G8B8A8_Snorm, 1u, 0u);
-                        commandList->bindTexelBuffer(3u, _computedTangents[frame], rhi::Format::eR8G8B8A8_Snorm, 1u, 0u);
+                        commandList->bindTexelBuffer(2u, _computedTangents[frame], rhi::Format::eR8G8B8A8_Snorm, 1u, 0u);
+                        commandList->bindBuffer(3u, (*_skeletonIds)(frame), 1u, 0u);
                     } else {
                         commandList->bindBuffer(0u, (*_meshTransforms)(frame), 1u, 0u);
                         commandList->bindBuffer(1u, (*_meshTransformIndices)(frame), 1u, 0u);
@@ -1748,7 +1726,7 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
                 return;
             }
         }
-
+//return;
         uint32_t binding_v = 0u;
         commandList->bindVertexBuffer(binding_v++, mesh.getAttribute(mesh::Semantic::ePosition).buffer, 0u);
         if (_currentPass != RenderPass::eShadow) {
