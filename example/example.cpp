@@ -615,192 +615,375 @@ namespace example {
 
 // https://api.protomaps.com/tiles/v4/{z}/{x}/{y}.mvt?key=1356a5e8566eb869
 
-                curlNetworkService.sendRequest(backgroundgWorker->getScheduler(),
-                    engine::network::http::Request{
-                        engine::fmt_string("https://api.protomaps.com/tiles/v4/%d/%d/%d.mvt?key=1356a5e8566eb869", tileId.z, tileId.x, tileId.y)},
-                        [tileId](engine::stl::vector<std::byte> && response, engine::network::RequestResult resultCode) {
-                            if (resultCode == engine::network::RequestResult::eSuccess) {
-                                map::VectorTileParser parser;
-                                parser.parseData(tileId, std::move(response), [](map::TileParsedGeometry && geometry) {
-                                    if (!geometry.polygons.empty()) {
-                                        auto & commandContext = backgroundgWorker->getCommandContext();
-                                        auto & api = commandContext.getApi();
-                                        auto & device = commandContext.getDevice();
 
-                                        const engine::rhi::BufferInfo vertexBufferInfo {
-                                            engine::rhi::BufferUsageFlags::eVertex_Buffer | engine::rhi::BufferUsageFlags::eTransfer_Dst,
-                                            engine::rhi::MemoryPropertyFlags::eDeviceLocal
-                                        };
+                auto tileBytes = fileManager.getFileSystem("common_fs0")->readFile(
+                                    engine::fmt_string("download/tile_%d_%d_%d.pbf", tileId.z, tileId.x, tileId.y));
+                if (tileBytes.empty()) {
+                    curlNetworkService.sendRequest(backgroundgWorker->getScheduler(),
+                        engine::network::http::Request{
+                            engine::fmt_string("https://api.protomaps.com/tiles/v4/%d/%d/%d.mvt?key=1356a5e8566eb869", tileId.z, tileId.x, tileId.y)},
+                            [tileId](engine::stl::vector<std::byte> && response, engine::network::RequestResult resultCode) {
+                                if (resultCode == engine::network::RequestResult::eSuccess) {
+                                    fileManager.getFileSystem("common_fs0")->writeFile(
+                                        engine::fmt_string("download/tile_%d_%d_%d.pbf", tileId.z, tileId.x, tileId.y), 
+                                        response.data(), response.size());
 
-                                        const engine::rhi::BufferInfo indexBufferInfo {
-                                            engine::rhi::BufferUsageFlags::eIndex_Buffer | engine::rhi::BufferUsageFlags::eTransfer_Dst,
-                                            engine::rhi::MemoryPropertyFlags::eDeviceLocal
-                                        };
-                                        
-                                        // struct MapPolygonGeometry {
-                                        //     engine::rhi::runtime::BufferPtr positions;
-                                        //     engine::rhi::runtime::BufferPtr indices;
-                                        // };
+                                    map::VectorTileParser parser;
+                                    parser.parseData(tileId, std::move(response), [](map::TileParsedGeometry && geometry) {
+                                        if (!geometry.polygons.empty()) {
+                                            auto & commandContext = backgroundgWorker->getCommandContext();
+                                            auto & api = commandContext.getApi();
+                                            auto & device = commandContext.getDevice();
 
-                                        std::vector<MapPolygonGeometry> mapGeometry;
+                                            const engine::rhi::BufferInfo vertexBufferInfo {
+                                                engine::rhi::BufferUsageFlags::eVertex_Buffer | engine::rhi::BufferUsageFlags::eTransfer_Dst,
+                                                engine::rhi::MemoryPropertyFlags::eDeviceLocal
+                                            };
 
-                                        size_t allDataSize = 0u;
+                                            const engine::rhi::BufferInfo indexBufferInfo {
+                                                engine::rhi::BufferUsageFlags::eIndex_Buffer | engine::rhi::BufferUsageFlags::eTransfer_Dst,
+                                                engine::rhi::MemoryPropertyFlags::eDeviceLocal
+                                            };
+                                            
+                                            // struct MapPolygonGeometry {
+                                            //     engine::rhi::runtime::BufferPtr positions;
+                                            //     engine::rhi::runtime::BufferPtr indices;
+                                            // };
 
-                                        for (auto & polygon : geometry.polygons) {
-                                            const auto vtxSize = sizeof(int16_t) * 4u * polygon.totalVerices.size();
-                                            const auto idxSize = sizeof(uint32_t) * polygon.totalIndices.size();
-                                            if (vtxSize == 0u || idxSize == 0u) {
-                                                continue;
-                                            }
-                                            allDataSize += vtxSize + idxSize;
+                                            std::vector<MapPolygonGeometry> mapGeometry;
 
-                                            auto & g = mapGeometry.emplace_back();
+                                            size_t allDataSize = 0u;
 
-                                            g.positions = api.createBuffer(
-                                                device, 
-                                                vertexBufferInfo, 
-                                                vtxSize
-                                            );
+                                            for (auto & polygon : geometry.polygons) {
+                                                const auto vtxSize = sizeof(int16_t) * 4u * polygon.totalVerices.size();
+                                                const auto idxSize = sizeof(uint32_t) * polygon.totalIndices.size();
+                                                if (vtxSize == 0u || idxSize == 0u) {
+                                                    continue;
+                                                }
+                                                allDataSize += vtxSize + idxSize;
 
-                                            g.indices = api.createBuffer(
-                                                device,
-                                                indexBufferInfo, 
-                                                idxSize
-                                            );
-                                        }
+                                                auto & g = mapGeometry.emplace_back();
 
-                                        engine::graphics::StagingBuffer staging{api, device, allDataSize};
-                                        std::byte * memory = staging.map();
-
-                                        for (auto & polygon : geometry.polygons) {
-                                            const auto vtxSize = sizeof(int16_t) * 4u * polygon.totalVerices.size();
-                                            const auto idxSize = sizeof(uint32_t) * polygon.totalIndices.size();
-                                            if (vtxSize == 0u || idxSize == 0u) {
-                                                continue;
-                                            }
-
-                                            const auto vtxOffset = staging.requestBytes(vtxSize);
-                                            const auto idxOffset = staging.requestBytes(idxSize);
-
-                                            auto * vtxData = reinterpret_cast<int16_t*>(memory + vtxOffset);
-                                            auto * idxData = reinterpret_cast<uint32_t*>(memory + idxOffset);
-
-                                            memcpy(vtxData, polygon.totalVerices.data(), vtxSize);
-                                            memcpy(idxData, polygon.totalIndices.data(), idxSize);
-                                        }
-
-                                        staging.flush();
-                                        staging.unmap();
-
-                                        gpuTasks.emplace_back(BackgroundWorker::GpuJob{[
-                                            staging = std::move(staging),
-                                            mapGeometry = std::move(mapGeometry),
-                                            device = &device,
-                                            tileHeight = geometry.height
-                                        ](
-                                            engine::rhi::runtime::CommandList & commandList, 
-                                            engine::stl::vector<threads::WorkerTask> & callbacks
-                                        ) mutable {
-                                            size_t offset = 0u;
-                                            for (auto & geometry : mapGeometry) {
-                                                commandList.copyBuffer2Buffer(staging.getBuffer(), geometry.positions, 
-                                                    {.srcOffset = offset, .dstOffset = 0u, .size = geometry.positions->sizeInBytes()});
-                                                offset += geometry.positions->sizeInBytes();
-
-                                                commandList.copyBuffer2Buffer(staging.getBuffer(), geometry.indices, 
-                                                    {.srcOffset = offset, .dstOffset = 0u, .size = geometry.indices->sizeInBytes()});
-                                                offset += geometry.indices->sizeInBytes();
-                                            }
-
-                                            callbacks.emplace_back([mapGeometry = std::move(mapGeometry), device, tileHeight]() mutable {
-                                                g_mapGeometry = std::move(mapGeometry);
-
-                                                auto * node = scene->createNode();
-                                                node->setScale(engine::vec3f{16.0f});
-                                                node->setPivot({0.5f, 0.5f, 0.0f}); // center of tile
-                                                node->setPosition(engine::vec3f(0.0f, 18.0f, 0.001f));
-                                                node->setBounds(
-                                                    engine::scene::Bounds::createCube(
-                                                        engine::vec3f{1.0f, 1.0f, 0.0f}, 
-                                                        engine::vec3f{0.0f, 0.0f, tileHeight}
-                                                    )
+                                                g.positions = api.createBuffer(
+                                                    device, 
+                                                    vertexBufferInfo, 
+                                                    vtxSize
                                                 );
 
-                                                const auto * brikcsImageHandler = loadImageAsync(*device, fileManager, *textureManager, 
-                                                    "beton", "assets/beton3.jpg", 
-                                                    engine::graphics::TextureFlags::eAllowSrgbColorSpace | engine::graphics::TextureFlags::eUseMipMaps);
-                                                const auto * asphaltImageHandler = loadImageAsync(*device, fileManager, *textureManager, 
-                                                    "asphalt", "assets/floor3.jpg", 
-                                                    engine::graphics::TextureFlags::eAllowSrgbColorSpace | engine::graphics::TextureFlags::eUseMipMaps);
-                                                auto * interriorImageHandler = textureManager->getImageHandler("skyBoxCubeMapImage");//
+                                                g.indices = api.createBuffer(
+                                                    device,
+                                                    indexBufferInfo, 
+                                                    idxSize
+                                                );
+                                            }
 
-                                                auto * object = scene->createObject<engine::scene::CustomDrawObject>([brikcsImageHandler, asphaltImageHandler, interriorImageHandler](
-                                                    const engine::scene::Scene & scene, 
-                                                    const engine::scene::ViewParams &, 
-                                                    const engine::mat4f & worldTransform,
-                                                    engine::rhi::runtime::CommandListPtr & commandList,
-                                                    uint8_t frameId) {
-                                                    auto const sceneViewParamBufferOffset = scene.getCurrentViewParamsBufferOffset();
-                                                    switch (scene.getCurrentRenderPass()) {
-                                                        case engine::scene::RenderPass::eCommon:
-                                                        {
-                                                            engine::rhi::SamplerValue linearSampler{};
-                                                            linearSampler.info.minFilter = engine::rhi::FilterMode::eLinear;
-                                                            linearSampler.info.magFilter = engine::rhi::FilterMode::eLinear;
-                                                            linearSampler.info.mipMapFilter = engine::rhi::FilterMode::eLinear;
-                                                            linearSampler.info.addressModeU = engine::rhi::SamplerAddressMode::eRepeat;
-                                                            linearSampler.info.addressModeV = engine::rhi::SamplerAddressMode::eRepeat;
-                                                            linearSampler.info.addressModeW = engine::rhi::SamplerAddressMode::eClamp_To_Border;
-                                                            
-                                                            uint32_t i = 0u;
-                                                            for (const auto & g : g_mapGeometry) {
-                                                                if (i == 0u) {
-                                                                    commandList->bindPipeline(*g_mapGeometryCommonPipeline);
-                                                                } else {
-                                                                    commandList->bindPipeline(*g_mapGeometryCommonAreaPipeline);
+                                            engine::graphics::StagingBuffer staging{api, device, allDataSize};
+                                            std::byte * memory = staging.map();
+
+                                            for (auto & polygon : geometry.polygons) {
+                                                const auto vtxSize = sizeof(int16_t) * 4u * polygon.totalVerices.size();
+                                                const auto idxSize = sizeof(uint32_t) * polygon.totalIndices.size();
+                                                if (vtxSize == 0u || idxSize == 0u) {
+                                                    continue;
+                                                }
+
+                                                const auto vtxOffset = staging.requestBytes(vtxSize);
+                                                const auto idxOffset = staging.requestBytes(idxSize);
+
+                                                auto * vtxData = reinterpret_cast<int16_t*>(memory + vtxOffset);
+                                                auto * idxData = reinterpret_cast<uint32_t*>(memory + idxOffset);
+
+                                                memcpy(vtxData, polygon.totalVerices.data(), vtxSize);
+                                                memcpy(idxData, polygon.totalIndices.data(), idxSize);
+                                            }
+
+                                            staging.flush();
+                                            staging.unmap();
+
+                                            gpuTasks.emplace_back(BackgroundWorker::GpuJob{[
+                                                staging = std::move(staging),
+                                                mapGeometry = std::move(mapGeometry),
+                                                device = &device,
+                                                tileHeight = geometry.height
+                                            ](
+                                                engine::rhi::runtime::CommandList & commandList, 
+                                                engine::stl::vector<threads::WorkerTask> & callbacks
+                                            ) mutable {
+                                                size_t offset = 0u;
+                                                for (auto & geometry : mapGeometry) {
+                                                    commandList.copyBuffer2Buffer(staging.getBuffer(), geometry.positions, 
+                                                        {.srcOffset = offset, .dstOffset = 0u, .size = geometry.positions->sizeInBytes()});
+                                                    offset += geometry.positions->sizeInBytes();
+
+                                                    commandList.copyBuffer2Buffer(staging.getBuffer(), geometry.indices, 
+                                                        {.srcOffset = offset, .dstOffset = 0u, .size = geometry.indices->sizeInBytes()});
+                                                    offset += geometry.indices->sizeInBytes();
+                                                }
+
+                                                callbacks.emplace_back([mapGeometry = std::move(mapGeometry), device, tileHeight]() mutable {
+                                                    g_mapGeometry = std::move(mapGeometry);
+
+                                                    auto * node = scene->createNode();
+                                                    node->setScale(engine::vec3f{16.0f});
+                                                    node->setPivot({0.5f, 0.5f, 0.0f}); // center of tile
+                                                    node->setPosition(engine::vec3f(0.0f, 18.0f, 0.001f));
+                                                    node->setBounds(
+                                                        engine::scene::Bounds::createCube(
+                                                            engine::vec3f{1.0f, 1.0f, 0.0f}, 
+                                                            engine::vec3f{0.0f, 0.0f, tileHeight}
+                                                        )
+                                                    );
+
+                                                    const auto * brikcsImageHandler = loadImageAsync(*device, fileManager, *textureManager, 
+                                                        "beton", "assets/beton3.jpg", 
+                                                        engine::graphics::TextureFlags::eAllowSrgbColorSpace | engine::graphics::TextureFlags::eUseMipMaps);
+                                                    const auto * asphaltImageHandler = loadImageAsync(*device, fileManager, *textureManager, 
+                                                        "asphalt", "assets/floor3.jpg", 
+                                                        engine::graphics::TextureFlags::eAllowSrgbColorSpace | engine::graphics::TextureFlags::eUseMipMaps);
+                                                    auto * interriorImageHandler = textureManager->getImageHandler("skyBoxCubeMapImage");//
+
+                                                    auto * object = scene->createObject<engine::scene::CustomDrawObject>([brikcsImageHandler, asphaltImageHandler, interriorImageHandler](
+                                                        const engine::scene::Scene & scene, 
+                                                        const engine::scene::ViewParams &, 
+                                                        const engine::mat4f & worldTransform,
+                                                        engine::rhi::runtime::CommandListPtr & commandList,
+                                                        uint8_t frameId) {
+                                                        auto const sceneViewParamBufferOffset = scene.getCurrentViewParamsBufferOffset();
+                                                        switch (scene.getCurrentRenderPass()) {
+                                                            case engine::scene::RenderPass::eCommon:
+                                                            {
+                                                                engine::rhi::SamplerValue linearSampler{};
+                                                                linearSampler.info.minFilter = engine::rhi::FilterMode::eLinear;
+                                                                linearSampler.info.magFilter = engine::rhi::FilterMode::eLinear;
+                                                                linearSampler.info.mipMapFilter = engine::rhi::FilterMode::eLinear;
+                                                                linearSampler.info.addressModeU = engine::rhi::SamplerAddressMode::eRepeat;
+                                                                linearSampler.info.addressModeV = engine::rhi::SamplerAddressMode::eRepeat;
+                                                                linearSampler.info.addressModeW = engine::rhi::SamplerAddressMode::eClamp_To_Border;
+                                                                
+                                                                uint32_t i = 0u;
+                                                                for (const auto & g : g_mapGeometry) {
+                                                                    if (i == 0u) {
+                                                                        commandList->bindPipeline(*g_mapGeometryCommonPipeline);
+                                                                    } else {
+                                                                        commandList->bindPipeline(*g_mapGeometryCommonAreaPipeline);
+                                                                    }
+                                                                    commandList->bindVertexBuffer(0u, g.positions);
+                                                                    commandList->bindIndexBuffer(g.indices, 0u, engine::rhi::IndexType::eU32);
+                                                                    commandList->bindBuffer(0u, scene.getViewParamsUniformBuffer(frameId), 0u, sceneViewParamBufferOffset);
+                                                                    commandList->pushConstants(engine::rhi::shaders::Stages::eVertex, 0u, sizeof(engine::mat4f), &worldTransform);
+                                                                    commandList->bindImage(1u, brikcsImageHandler->image, linearSampler, 0u);
+                                                                    commandList->bindImage(2u, asphaltImageHandler->image, linearSampler, 0u);
+                                                                    commandList->bindImage(3u, interriorImageHandler->image, linearSampler, 0u, 
+                                                                        engine::rhi::ImageAspectFlags::eColor, engine::rhi::ImageViewType::eType_Cube);
+                                                                    commandList->bindImage(4u, interriorImageHandler->image, linearSampler, 0u, 
+                                                                        engine::rhi::ImageAspectFlags::eColor, engine::rhi::ImageViewType::eType_2D_Array);
+                                                                        
+                                                                    commandList->drawIndexed(g.indices->sizeInBytes() / sizeof(uint32_t));
+                                                                    ++i;
                                                                 }
+                                                            }
+                                                            break;
+                                                            case engine::scene::RenderPass::eShadow:
+                                                            {
+                                                                const auto & g = g_mapGeometry[0u];
+                                                                commandList->bindPipeline(*g_mapGeometryShadowPipeline);
                                                                 commandList->bindVertexBuffer(0u, g.positions);
                                                                 commandList->bindIndexBuffer(g.indices, 0u, engine::rhi::IndexType::eU32);
                                                                 commandList->bindBuffer(0u, scene.getViewParamsUniformBuffer(frameId), 0u, sceneViewParamBufferOffset);
                                                                 commandList->pushConstants(engine::rhi::shaders::Stages::eVertex, 0u, sizeof(engine::mat4f), &worldTransform);
-                                                                commandList->bindImage(1u, brikcsImageHandler->image, linearSampler, 0u);
-                                                                commandList->bindImage(2u, asphaltImageHandler->image, linearSampler, 0u);
-                                                                commandList->bindImage(3u, interriorImageHandler->image, linearSampler, 0u, 
-                                                                    engine::rhi::ImageAspectFlags::eColor, engine::rhi::ImageViewType::eType_Cube);
-                                                                commandList->bindImage(4u, interriorImageHandler->image, linearSampler, 0u, 
-                                                                    engine::rhi::ImageAspectFlags::eColor, engine::rhi::ImageViewType::eType_2D_Array);
-                                                                    
-                                                                commandList->drawIndexed(g.indices->sizeInBytes() / sizeof(uint32_t));
-                                                                ++i;
+                                                                commandList->drawIndexed(g.indices->sizeInBytes() / sizeof(uint32_t), 2u);
                                                             }
+                                                            break;
                                                         }
-                                                        break;
-                                                        case engine::scene::RenderPass::eShadow:
-                                                        {
-                                                            const auto & g = g_mapGeometry[0u];
-                                                            commandList->bindPipeline(*g_mapGeometryShadowPipeline);
-                                                            commandList->bindVertexBuffer(0u, g.positions);
-                                                            commandList->bindIndexBuffer(g.indices, 0u, engine::rhi::IndexType::eU32);
-                                                            commandList->bindBuffer(0u, scene.getViewParamsUniformBuffer(frameId), 0u, sceneViewParamBufferOffset);
-                                                            commandList->pushConstants(engine::rhi::shaders::Stages::eVertex, 0u, sizeof(engine::mat4f), &worldTransform);
-                                                            commandList->drawIndexed(g.indices->sizeInBytes() / sizeof(uint32_t), 2u);
-                                                        }
-                                                        break;
-                                                    }
+                                                    });
+                                                    engine::scene::attachObjectToNode(*object, *node);
+                                                    sceneWorldRoot->addChild(node);
                                                 });
-                                                engine::scene::attachObjectToNode(*object, *node);
-                                                sceneWorldRoot->addChild(node);
-                                            });
-                                        }});
-                                    }
-                                });
-                                
-                                fileManager.getFileSystem("common_fs0")->writeFile(
-                                    engine::fmt_string("download/tile_%d_%d_%d.pbf", tileId.z, tileId.x, tileId.y), 
-                                    response.data(), response.size());
+                                            }});
+                                        }
+                                    });
+                                }
+                                printf("result code %d\n", static_cast<uint8_t>(resultCode));
+                            }, {}/*stopSource.get_token()*/
+                        );
+                } else {
+                    map::VectorTileParser parser;
+                    parser.parseData(tileId, std::move(tileBytes), [](map::TileParsedGeometry && geometry) {
+                        if (!geometry.polygons.empty()) {
+                            auto & commandContext = backgroundgWorker->getCommandContext();
+                            auto & api = commandContext.getApi();
+                            auto & device = commandContext.getDevice();
+
+                            const engine::rhi::BufferInfo vertexBufferInfo {
+                                engine::rhi::BufferUsageFlags::eVertex_Buffer | engine::rhi::BufferUsageFlags::eTransfer_Dst,
+                                engine::rhi::MemoryPropertyFlags::eDeviceLocal
+                            };
+
+                            const engine::rhi::BufferInfo indexBufferInfo {
+                                engine::rhi::BufferUsageFlags::eIndex_Buffer | engine::rhi::BufferUsageFlags::eTransfer_Dst,
+                                engine::rhi::MemoryPropertyFlags::eDeviceLocal
+                            };
+                            
+                            // struct MapPolygonGeometry {
+                            //     engine::rhi::runtime::BufferPtr positions;
+                            //     engine::rhi::runtime::BufferPtr indices;
+                            // };
+
+                            std::vector<MapPolygonGeometry> mapGeometry;
+
+                            size_t allDataSize = 0u;
+
+                            for (auto & polygon : geometry.polygons) {
+                                const auto vtxSize = sizeof(int16_t) * 4u * polygon.totalVerices.size();
+                                const auto idxSize = sizeof(uint32_t) * polygon.totalIndices.size();
+                                if (vtxSize == 0u || idxSize == 0u) {
+                                    continue;
+                                }
+                                allDataSize += vtxSize + idxSize;
+
+                                auto & g = mapGeometry.emplace_back();
+
+                                g.positions = api.createBuffer(
+                                    device, 
+                                    vertexBufferInfo, 
+                                    vtxSize
+                                );
+
+                                g.indices = api.createBuffer(
+                                    device,
+                                    indexBufferInfo, 
+                                    idxSize
+                                );
                             }
-                            printf("result code %d\n", static_cast<uint8_t>(resultCode));
-                        }, {}/*stopSource.get_token()*/);
+
+                            engine::graphics::StagingBuffer staging{api, device, allDataSize};
+                            std::byte * memory = staging.map();
+
+                            for (auto & polygon : geometry.polygons) {
+                                const auto vtxSize = sizeof(int16_t) * 4u * polygon.totalVerices.size();
+                                const auto idxSize = sizeof(uint32_t) * polygon.totalIndices.size();
+                                if (vtxSize == 0u || idxSize == 0u) {
+                                    continue;
+                                }
+
+                                const auto vtxOffset = staging.requestBytes(vtxSize);
+                                const auto idxOffset = staging.requestBytes(idxSize);
+
+                                auto * vtxData = reinterpret_cast<int16_t*>(memory + vtxOffset);
+                                auto * idxData = reinterpret_cast<uint32_t*>(memory + idxOffset);
+
+                                memcpy(vtxData, polygon.totalVerices.data(), vtxSize);
+                                memcpy(idxData, polygon.totalIndices.data(), idxSize);
+                            }
+
+                            staging.flush();
+                            staging.unmap();
+
+                            gpuTasks.emplace_back(BackgroundWorker::GpuJob{[
+                                staging = std::move(staging),
+                                mapGeometry = std::move(mapGeometry),
+                                device = &device,
+                                tileHeight = geometry.height
+                            ](
+                                engine::rhi::runtime::CommandList & commandList, 
+                                engine::stl::vector<threads::WorkerTask> & callbacks
+                            ) mutable {
+                                size_t offset = 0u;
+                                for (auto & geometry : mapGeometry) {
+                                    commandList.copyBuffer2Buffer(staging.getBuffer(), geometry.positions, 
+                                        {.srcOffset = offset, .dstOffset = 0u, .size = geometry.positions->sizeInBytes()});
+                                    offset += geometry.positions->sizeInBytes();
+
+                                    commandList.copyBuffer2Buffer(staging.getBuffer(), geometry.indices, 
+                                        {.srcOffset = offset, .dstOffset = 0u, .size = geometry.indices->sizeInBytes()});
+                                    offset += geometry.indices->sizeInBytes();
+                                }
+
+                                callbacks.emplace_back([mapGeometry = std::move(mapGeometry), device, tileHeight]() mutable {
+                                    g_mapGeometry = std::move(mapGeometry);
+
+                                    auto * node = scene->createNode();
+                                    node->setScale(engine::vec3f{16.0f});
+                                    node->setPivot({0.5f, 0.5f, 0.0f}); // center of tile
+                                    node->setPosition(engine::vec3f(0.0f, 18.0f, 0.001f));
+                                    node->setBounds(
+                                        engine::scene::Bounds::createCube(
+                                            engine::vec3f{1.0f, 1.0f, 0.0f}, 
+                                            engine::vec3f{0.0f, 0.0f, tileHeight}
+                                        )
+                                    );
+
+                                    const auto * brikcsImageHandler = loadImageAsync(*device, fileManager, *textureManager, 
+                                        "beton", "assets/beton3.jpg", 
+                                        engine::graphics::TextureFlags::eAllowSrgbColorSpace | engine::graphics::TextureFlags::eUseMipMaps);
+                                    const auto * asphaltImageHandler = loadImageAsync(*device, fileManager, *textureManager, 
+                                        "asphalt", "assets/floor3.jpg", 
+                                        engine::graphics::TextureFlags::eAllowSrgbColorSpace | engine::graphics::TextureFlags::eUseMipMaps);
+                                    auto * interriorImageHandler = textureManager->getImageHandler("skyBoxCubeMapImage");//
+
+                                    auto * object = scene->createObject<engine::scene::CustomDrawObject>([brikcsImageHandler, asphaltImageHandler, interriorImageHandler](
+                                        const engine::scene::Scene & scene, 
+                                        const engine::scene::ViewParams &, 
+                                        const engine::mat4f & worldTransform,
+                                        engine::rhi::runtime::CommandListPtr & commandList,
+                                        uint8_t frameId) {
+                                        auto const sceneViewParamBufferOffset = scene.getCurrentViewParamsBufferOffset();
+                                        switch (scene.getCurrentRenderPass()) {
+                                            case engine::scene::RenderPass::eCommon:
+                                            {
+                                                engine::rhi::SamplerValue linearSampler{};
+                                                linearSampler.info.minFilter = engine::rhi::FilterMode::eLinear;
+                                                linearSampler.info.magFilter = engine::rhi::FilterMode::eLinear;
+                                                linearSampler.info.mipMapFilter = engine::rhi::FilterMode::eLinear;
+                                                linearSampler.info.addressModeU = engine::rhi::SamplerAddressMode::eRepeat;
+                                                linearSampler.info.addressModeV = engine::rhi::SamplerAddressMode::eRepeat;
+                                                linearSampler.info.addressModeW = engine::rhi::SamplerAddressMode::eClamp_To_Border;
+                                                
+                                                uint32_t i = 0u;
+                                                for (const auto & g : g_mapGeometry) {
+                                                    if (i == 0u) {
+                                                        commandList->bindPipeline(*g_mapGeometryCommonPipeline);
+                                                    } else {
+                                                        commandList->bindPipeline(*g_mapGeometryCommonAreaPipeline);
+                                                    }
+                                                    commandList->bindVertexBuffer(0u, g.positions);
+                                                    commandList->bindIndexBuffer(g.indices, 0u, engine::rhi::IndexType::eU32);
+                                                    commandList->bindBuffer(0u, scene.getViewParamsUniformBuffer(frameId), 0u, sceneViewParamBufferOffset);
+                                                    commandList->pushConstants(engine::rhi::shaders::Stages::eVertex, 0u, sizeof(engine::mat4f), &worldTransform);
+                                                    commandList->bindImage(1u, brikcsImageHandler->image, linearSampler, 0u);
+                                                    commandList->bindImage(2u, asphaltImageHandler->image, linearSampler, 0u);
+                                                    commandList->bindImage(3u, interriorImageHandler->image, linearSampler, 0u, 
+                                                        engine::rhi::ImageAspectFlags::eColor, engine::rhi::ImageViewType::eType_Cube);
+                                                    commandList->bindImage(4u, interriorImageHandler->image, linearSampler, 0u, 
+                                                        engine::rhi::ImageAspectFlags::eColor, engine::rhi::ImageViewType::eType_2D_Array);
+                                                        
+                                                    commandList->drawIndexed(g.indices->sizeInBytes() / sizeof(uint32_t));
+                                                    ++i;
+                                                }
+                                            }
+                                            break;
+                                            case engine::scene::RenderPass::eShadow:
+                                            {
+                                                const auto & g = g_mapGeometry[0u];
+                                                commandList->bindPipeline(*g_mapGeometryShadowPipeline);
+                                                commandList->bindVertexBuffer(0u, g.positions);
+                                                commandList->bindIndexBuffer(g.indices, 0u, engine::rhi::IndexType::eU32);
+                                                commandList->bindBuffer(0u, scene.getViewParamsUniformBuffer(frameId), 0u, sceneViewParamBufferOffset);
+                                                commandList->pushConstants(engine::rhi::shaders::Stages::eVertex, 0u, sizeof(engine::mat4f), &worldTransform);
+                                                commandList->drawIndexed(g.indices->sizeInBytes() / sizeof(uint32_t), 2u);
+                                            }
+                                            break;
+                                        }
+                                    });
+                                    engine::scene::attachObjectToNode(*object, *node);
+                                    sceneWorldRoot->addChild(node);
+                                });
+                            }});
+                        }
+                    });
+                }
+
+                
 
                 // curlNetworkService.sendRequest(backgroundgWorker->getScheduler(),
                 //     engine::network::http::Request{
