@@ -528,7 +528,7 @@ namespace example {
                     constexpr float kRotationSpeed = 0.005f;
                     const auto rotation = engine::vec3f(kRotationSpeed * (y0 - event.y), 0.0f, kRotationSpeed * (event.x - x0));
                     auto resultRotation = controller.getRotation() + rotation;
-                    resultRotation.x = std::clamp(resultRotation.x, -1.50f, 1.50f);
+                    //resultRotation.x = std::clamp(resultRotation.x, -1.50f, 1.50f);
                     controller.setRotation(resultRotation);
                 }
 

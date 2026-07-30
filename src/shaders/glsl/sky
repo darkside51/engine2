@@ -7,203 +7,196 @@ struct SkyColors {
 };
 
 vec3 sampleSkyColorByRadians(vec3 nightColor, vec3 sunsetColor, vec3 dayColor, float angle) {
-    if (angle < 0.0) {
+    if (angle < 0.0f) {
         // the sun has set. transition from night (-0.21 rad) to sunset (0.0 rad)
-        float t = clamp((angle + 0.21) / 0.21, 0.0, 1.0);
+        const float t = clamp((angle + 0.21f) / 0.21f, 0.0f, 1.0f);
         return mix(nightColor, sunsetColor, t);
     } else {
         // the sun is rising. transition from sunset (0.0 rad) to bright daylight (0.43 rad).
-        float t = clamp(angle / 0.43, 0.0, 1.0);
+        const float t = clamp(angle / 0.43f, 0.0f, 1.0f);
         return mix(sunsetColor, dayColor, t);
     }
 }
 
 vec3 sampleSkyColorByRadians2(vec3 nightColor, vec3 sunsetColor, vec3 dayColor, float angle) {
-    if (angle < 0.0) {
-        // Переход: ночь (-0.21) -> закат (0.0)
-        float t = clamp((angle + 0.21) / 0.21, 0.0, 1.0);
-        // Добавляем плавность через smoothstep, чтобы убрать резкий излом в нуле
-        t = smoothstep(0.0, 1.0, t); 
+    if (angle < 0.0f) {
+        // transition: night (-0.21) -> sunset (0.0)
+        float t = clamp((angle + 0.21f) / 0.21f, 0.0f, 1.0f);
+        // add smoothness via smoothstep to remove sharp kink at zero
+        t = smoothstep(0.0f, 1.0f, t); 
         return mix(nightColor, sunsetColor, t);
     } else {
-        // Переход: закат (0.0) -> день (0.43)
-        float t = clamp(angle / 0.43, 0.0, 1.0);
-        t = smoothstep(0.0, 1.0, t);
+        // transition: sunset (0.0) -> day (0.43)
+        float t = clamp(angle / 0.43f, 0.0f, 1.0f);
+        t = smoothstep(0.0f, 1.0f, t);
         
-        // Маленький трюк: на раннем восходе подмешиваем немного розового/пурпурного,
-        // чтобы синее небо и оранжевый горизонт не давали серый стык
-        vec3 edgeCorrection = vec3(0.4, 0.15, 0.3) * smoothstep(1.0, 0.0, abs(t - 0.2));
-        return mix(sunsetColor, dayColor, t) + edgeCorrection * (1.0 - clamp(angle, 0.0, 1.0));
+        // small trick: on early sunrise blend in some pink/purple
+        // so blue sky and orange horizon don’t produce gray seam
+        const vec3 edgeCorrection = vec3(0.4f, 0.15f, 0.3f) * smoothstep(1.0f, 0.0f, abs(t - 0.2f));
+        return mix(sunsetColor, dayColor, t) + edgeCorrection * (1.0f - clamp(angle, 0.0f, 1.0f));
     }
 }
 
+vec3 sampleSkyColorByRadians3(vec3 nightColor, vec3 sunsetColor, vec3 dayColor, float angle) {
+    const float tDay = smoothstep(0.0f, 0.35f, angle);
+    const float tNight = smoothstep(0.0f, -0.20f, angle);
+    const vec3 base = mix(sunsetColor, dayColor, tDay);
+    return mix(base, nightColor, tNight);
+}
+
 SkyColors simpleSky(const vec3 viewDir, const vec3 sunViewDir, const vec3 sunWorldDir) {
-	// Palettes in linear space
-    const vec3 dayTop       = vec3(0.05, 0.21, 0.53);
-    const vec3 dayBottom    = vec3(0.43, 0.67, 0.89);
-    const vec3 daySun       = vec3(1.5, 1.4, 1.2);
+    // palettes in linear space
+    const vec3 dayTop       = vec3(0.05f, 0.21f, 0.53f);
+    const vec3 dayBottom    = vec3(0.43f, 0.67f, 0.89f);
+    const vec3 daySun       = vec3(1.5f, 1.4f, 1.2f);
 
-    const vec3 sunsetTop    = vec3(0.02, 0.05, 0.15);
-    const vec3 sunsetBottom = vec3(0.95, 0.35, 0.05);
-    const vec3 sunsetSun    = vec3(2.0, 0.8, 0.2);
+    const vec3 sunsetTop    = vec3(0.02f, 0.05f, 0.15f);
+    const vec3 sunsetBottom = vec3(0.95f, 0.35f, 0.05f);
+    const vec3 sunsetSun    = vec3(2.0f, 0.8f, 0.2f);
 
-    const vec3 nightTop     = vec3(0.002, 0.004, 0.01);
-    const vec3 nightBottom  = vec3(0.01, 0.015, 0.025);
-    const vec3 nightSun     = vec3(0.0, 0.0, 0.0);
+    const vec3 nightTop     = vec3(0.002f, 0.004f, 0.01f);
+    const vec3 nightBottom  = vec3(0.01f, 0.015f, 0.025f);
+    const vec3 nightSun     = vec3(0.0f, 0.0f, 0.0f);
 
     const vec3 skyColorTop    = sampleSkyColorByRadians(nightTop, sunsetTop, dayTop, sunWorldDir.z);
     const vec3 skyColorBottom = sampleSkyColorByRadians(nightBottom, sunsetBottom, dayBottom, sunWorldDir.z);
     const vec3 sunColor       = sampleSkyColorByRadians(nightSun, sunsetSun, daySun, sunWorldDir.z);
 
-	const float mixFactor = clamp(viewDir.y * 0.5 + 0.5, 0.0, 1.0);
+    const float mixFactor = clamp(viewDir.y * 0.5f + 0.5f, 0.0f, 1.0f);
     const vec3 finalSkyColor = mix(skyColorBottom, skyColorTop, mixFactor);
 
     const float dotViewSun = dot(viewDir, sunViewDir);
     
     // solar disk and halo
-    const float sunIntensity = smoothstep(0.9994, 0.9998, dotViewSun);
-    const float sunGlow = pow(max(dotViewSun, 0.0), 128.0) * 0.5;
+    const float sunIntensity = smoothstep(0.9994f, 0.9998f, dotViewSun);
+    const float sunGlow = pow(max(dotViewSun, 0.0f), 128.0f) * 0.5f;
 
     return SkyColors(
-    	finalSkyColor + (sunColor * sunIntensity) + (sunColor * sunGlow),
-    	sunColor);
+        finalSkyColor + (sunColor * sunIntensity) + (sunColor * sunGlow),
+        sunColor);
 }
 
 SkyColors simpleSky2(const vec3 viewDir, const vec3 sunViewDir, const vec3 sunWorldDir) {
-    // Палитры в линейном пространстве
-    const vec3 dayTop       = vec3(0.03, 0.15, 0.45); // Сделали чуть глубже
-    const vec3 dayBottom    = vec3(0.38, 0.63, 0.87);
-    const vec3 daySun       = vec3(2.0, 1.8, 1.5);    // Сделали ярче (HDR)
+    // palettes in linear space
+    const vec3 dayTop       = vec3(0.03f, 0.15f, 0.45f); // made slightly deeper
+    const vec3 dayBottom    = vec3(0.38f, 0.63f, 0.87f);
+    const vec3 daySun       = vec3(2.0f, 1.8f, 1.5f);    // made brighter (hdr)
 
-    const vec3 sunsetTop    = vec3(0.01, 0.03, 0.12);
-    const vec3 sunsetBottom = vec3(0.98, 0.32, 0.02); // Насыщеннее оранжевый
-    const vec3 sunsetSun    = vec3(3.5, 0.9, 0.1);    // Мощный закатный свет
+    const vec3 sunsetTop    = vec3(0.01f, 0.03f, 0.12f);
+    const vec3 sunsetBottom = vec3(0.98f, 0.32f, 0.02f); // more saturated orange
+    const vec3 sunsetSun    = vec3(3.5f, 0.9f, 0.1f);    // strong sunset light
 
-    const vec3 nightTop     = vec3(0.001, 0.002, 0.008);
-    const vec3 nightBottom  = vec3(0.005, 0.008, 0.018);
-    const vec3 nightSun     = vec3(0.0, 0.0, 0.0);
+    const vec3 nightTop     = vec3(0.001f, 0.002f, 0.008f);
+    const vec3 nightBottom  = vec3(0.005f, 0.008f, 0.018f);
+    const vec3 nightSun     = vec3(0.0f, 0.0f, 0.0f);
 
-    // Базовые цвета в зависимости от высоты солнца
+    // base colors depending on sun height
     const vec3 skyColorTop    = sampleSkyColorByRadians2(nightTop, sunsetTop, dayTop, sunWorldDir.z);
     const vec3 skyColorBottom = sampleSkyColorByRadians2(nightBottom, sunsetBottom, dayBottom, sunWorldDir.z);
     const vec3 sunColor       = sampleSkyColorByRadians2(nightSun, sunsetSun, daySun, sunWorldDir.z);
 
-    // КРАСИВОЕ УЛУЧШЕНИЕ 1: Экспоненциальный градиент высоты вместо линейного
-    // Направление вверх (viewDir.y) теперь плавно уходит в зенит, оставляя дымку у горизонта
-    float skyHeight = max(viewDir.y, 0.0);
-    float mixFactor = 1.0 - exp(-skyHeight * 2.15); // 2.15 управляет толщиной дымки у горизонта
-    vec3 finalSkyColor = mix(skyColorBottom, skyColorTop, mixFactor);
+    // nice improvement 1: exponential height gradient instead of linear
+    // direction up (viewDir.y) now smoothly goes to zenith leaving haze near horizon
+    const float skyHeight = max(viewDir.y, 0.0f);
+    const float mixFactor = 1.0f - exp(-skyHeight * 2.15f); // 2.15 controls haze thickness near horizon
+    const vec3 finalSkyColor = mix(skyColorBottom, skyColorTop, mixFactor);
 
-    // Скалярное произведение для солнца
+    // dot product for sun
     const float dotViewSun = dot(viewDir, sunViewDir);
     
-    // КРАСИВОЕ УЛУЧШЕНИЕ 2: Ореол солнца (Упрощенная фазовая функция Ми)
-    // Дает красивое кинематографичное рассеяние света в атмосфере
-    float g = 0.9995; // Анизотропия (чем ближе к 1.0, тем уже и ярче пучок света)
-    float miePart1 = (1.0 - g * g);
-    float miePart2 = (1.0 + g * g - 2.0 * g * dotViewSun);
-    float sunGlow = 0.1 * miePart1 / (miePart2 * sqrt(miePart2));
+    // nice improvement 2: sun halo (simplified mie phase function)
+    // gives nice cinematic light scattering in atmosphere
+    const float g = 0.9995f; // anisotropy (closer to 1.0 makes narrower and brighter light beam)
+    const float miePart1 = (1.0f - g * g);
+    const float miePart2 = (1.0f + g * g - 2.0f * g * dotViewSun);
+    const float sunGlow = 0.1f * miePart1 / (miePart2 * sqrt(miePart2));
 
-    // КРАСИВОЕ УЛУЧШЕНИЕ 3: Динамический размер ореола
-    // На закате из-за плотности воздуха ореол солнца становится шире и мягче
-    float sunsetFactor = smoothstep(0.3, -0.1, sunWorldDir.z);
-    sunGlow *= mix(1.0, 3.5, sunsetFactor); 
+    // nice improvement 3: dynamic halo size
+    // at sunset air density makes sun halo wider and softer
+    const float sunsetFactor = smoothstep(0.3f, -0.1f, sunWorldDir.z);
+    float modifiedSunGlow = sunGlow * mix(1.0f, 3.5f, sunsetFactor); 
 
-    // Солнечный диск (чуть мягче края, чтобы не было пиксельных лесенок)
-    const float sunIntensity = smoothstep(0.99985, 0.99993, dotViewSun) * 2.0;
+    // sun disk (slightly softer edge to avoid pixel staircases)
+    const float sunIntensity = smoothstep(0.99985f, 0.99993f, dotViewSun) * 2.0f;
 
-    // Финальная сборка: небо + диск солнца + атмосферное свечение
-    vec3 finalColor = finalSkyColor + (sunColor * sunIntensity) + (sunColor * sunGlow);
+    // final assembly: sky + sun disk + atmospheric glow
+    const vec3 finalColor = finalSkyColor + (sunColor * sunIntensity) + (sunColor * modifiedSunGlow);
 
-    // КРАСИВОЕ УЛУЧШЕНИЕ 4: Гашение солнца за горизонтом
-    // Если солнце ушло глубоко под горизонт, полностью убираем его свет из кадра
-    float sunVisibility = smoothstep(-0.15, 0.0, sunWorldDir.z);
-    finalColor = mix(finalSkyColor, finalColor, sunVisibility);
+    // nice improvement 4: fade out sun below horizon
+    // if sun went deep below horizon completely remove its light from frame
+    const float sunVisibility = smoothstep(-0.15f, 0.0f, sunWorldDir.z);
+    const vec3 resultColor = mix(finalSkyColor, finalColor, sunVisibility);
 
-    return SkyColors(finalColor, sunColor);
+    return SkyColors(resultColor, sunColor);
 }
 
 
-
-vec3 sampleSkyColorByRadians3(vec3 nightColor, vec3 sunsetColor, vec3 dayColor, float angle) {
-    float tDay = smoothstep(0.0, 0.35, angle);
-    float tNight = smoothstep(0.0, -0.20, angle);
-    vec3 base = mix(sunsetColor, dayColor, tDay);
-    return mix(base, nightColor, tNight);
-}
-
-// Принимает векторы строго в стабильном World Space
 SkyColors simpleSky3(
-    const vec3 viewDirView,   // Вектор взгляда во VIEW SPACE (normalize(v_rayDirView))
-    const vec3 sunDirView,    // Вектор солнца во VIEW SPACE (normalize(L))
-    const vec3 sunDirWorld,   // Направление солнца в WORLD SPACE (из u_shadow.viewInverse)
-    const vec3 worldUpInView  // Вектор верха mat3(push.view) * vec3(0, 0, 1)
+    const vec3 viewDirView,   // view direction vector in view space (normalize(v_rayDirView))
+    const vec3 sunDirView,    // sun direction vector in view space (normalize(L))
+    const vec3 sunDirWorld,   // sun direction in world space (from u_shadow.viewInverse)
+    const vec3 worldUpInView  // up vector mat3(push.view) * vec3(0, 0, 1)
 ) {
-    // Палитры (HDR)
-    const vec3 dayTop       = vec3(0.02, 0.12, 0.42); 
-    const vec3 dayBottom    = vec3(0.42, 0.65, 0.88);
-    const vec3 daySun       = vec3(4.0, 3.8, 3.2);
+    // palettes (hdr)
+    const vec3 dayTop       = vec3(0.02f, 0.12f, 0.42f); 
+    const vec3 dayBottom    = vec3(0.42f, 0.65f, 0.88f);
+    const vec3 daySun       = vec3(4.0f, 3.8f, 3.2f);
 
-    const vec3 sunsetTop    = vec3(0.015, 0.02, 0.08); 
-    const vec3 sunsetBottom = vec3(0.98, 0.35, 0.02);
-    const vec3 sunsetSun    = vec3(5.0, 1.2, 0.05);
+    const vec3 sunsetTop    = vec3(0.015f, 0.02f, 0.08f); 
+    const vec3 sunsetBottom = vec3(0.98f, 0.35f, 0.02f);
+    const vec3 sunsetSun    = vec3(5.0f, 1.2f, 0.05f);
 
-    const vec3 nightTop     = vec3(0.0005, 0.001, 0.004);
-    const vec3 nightBottom  = vec3(0.002, 0.004, 0.012);
-    const vec3 nightSun     = vec3(0.0);
+    const vec3 nightTop     = vec3(0.0005f, 0.001f, 0.004f);
+    const vec3 nightBottom  = vec3(0.002f, 0.004f, 0.012f);
+    const vec3 nightSun     = vec3(0.0f);
 
-    // Высота солнца в мире (для фазы дня)
-    float sunHeightWorld = sunDirWorld.z; 
+    const float sunHeightWorld = sunDirWorld.z; 
 
     const vec3 skyColorTop    = sampleSkyColorByRadians3(nightTop, sunsetTop, dayTop, sunHeightWorld);
     const vec3 skyColorBottom = sampleSkyColorByRadians3(nightBottom, sunsetBottom, dayBottom, sunHeightWorld);
     const vec3 sunColor       = sampleSkyColorByRadians3(nightSun, sunsetSun, daySun, sunHeightWorld);
 
-    // ВЫСОТА НЕБА: Считаем через проекцию на честный мировой верх во View Space
-    // Это гарантирует стабильный горизонт при наклонах камеры
-    float skyHeight = max(dot(viewDirView, worldUpInView), 0.0);
-    float mixFactor = 1.0 - exp(-skyHeight * 4.0);
-    vec3 baseSkyColor = mix(skyColorBottom, skyColorTop, mixFactor);
+    // sky height: calculated using projection onto the true world’s top in view space
+    // this ensures stable horizon when camera tilts
+    const float skyHeight = max(dot(viewDirView, worldUpInView), 0.0f);
+    const float mixFactor = 1.0f - exp(-skyHeight * 4.0f);
+    const vec3 baseSkyColor = mix(skyColorBottom, skyColorTop, mixFactor);
 
-    // Эффект озона
-    float sunsetIntensity = smoothstep(0.2, -0.1, sunHeightWorld) * smoothstep(-0.3, -0.1, sunHeightWorld);
-    baseSkyColor += vec3(0.08, 0.03, 0.22) * sunsetIntensity * mixFactor;
+    // ozone effect
+    const float sunsetIntensity = smoothstep(0.2f, -0.1f, sunHeightWorld) * smoothstep(-0.3f, -0.1f, sunHeightWorld);
+    vec3 modifiedBaseSkyColor = baseSkyColor + vec3(0.08f, 0.03f, 0.22f) * sunsetIntensity * mixFactor;
 
-    // ЖЕЛЕЗНАЯ СИНХРОНИЗАЦИЯ: Считаем угол строго во VIEW SPACE
-    // Так как оба вектора изначальные, они гарантированно двигаются с одинаковой скоростью
-    float dotViewSun = dot(viewDirView, sunDirView);
+    // calculate angle strictly in view space
+    // since both vectors are initial they are guaranteed to move at same speed
+    const float dotViewSun = dot(viewDirView, sunDirView);
 
-    // Пояс Венеры
-    float oppositeSun = max(-dotViewSun, 0.0); 
-    float beltOfVenusFactor = pow(oppositeSun, 2.0) * smoothstep(0.0, 0.2, skyHeight) * smoothstep(0.3, 0.0, skyHeight);
-    baseSkyColor += vec3(0.85, 0.25, 0.35) * beltOfVenusFactor * sunsetIntensity;
+    // belt of venus
+    const float oppositeSun = max(-dotViewSun, 0.0f); 
+    const float beltOfVenusFactor = pow(oppositeSun, 2.0f) * smoothstep(0.0f, 0.2f, skyHeight) * smoothstep(0.3f, 0.0f, skyHeight);
+    modifiedBaseSkyColor += vec3(0.85f, 0.25f, 0.35f) * beltOfVenusFactor * sunsetIntensity;
 
-    // Расчет отклонения
-    float angleToSun = 1.0 - max(dotViewSun, 0.0);
+    // calculate deviation
+    const float angleToSun = 1.0f - max(dotViewSun, 0.0f);
 
-    // СОЛНЕЧНЫЙ ДИСК (аккуратный и маленький)
-    const float sunIntensity = smoothstep(0.99995, 0.99998, dotViewSun) * 4.0;
+    // solar disk
+    const float sunIntensity = smoothstep(0.99993f, 0.99996f, dotViewSun) * 3.0f;
 
-    // ОРЕОЛ (Привязан к тому же dotViewSun во View Space)
-    float sunGlow = 1.0 / (1.0 + angleToSun * 500.0); // 500.0 сделает его еще чуть аккуратнее
-    sunGlow = pow(sunGlow, 2.0) * 0.4; 
+    // halo (linked to same dotViewSun in view space)
+    float sunGlow = 1.0f / (1.0f + angleToSun * 500.0f); // 500.0 makes it slightly neater
+    sunGlow = pow(sunGlow, 2.0f) * 0.4f; 
 
-    // Вырезаем маску под диск солнца
-    //sunGlow *= (1.0 - smoothstep(0.999, 0.99998, dotViewSun));
+    // spreading along horizon
+    const float horizonGlow = exp(-skyHeight * 5.0f) * smoothstep(-0.05f, 0.3f, sunHeightWorld) * 0.25f;
+    sunGlow += horizonGlow * max(dotViewSun, 0.0f);
+    sunGlow *= mix(1.0f, 2.5f, smoothstep(0.2f, -0.1f, sunHeightWorld)); 
 
-    // Растекание по горизонту
-    float horizonGlow = exp(-skyHeight * 5.0) * smoothstep(-0.05, 0.3, sunHeightWorld) * 0.25;
-    sunGlow += horizonGlow * max(dotViewSun, 0.0);
-    sunGlow *= mix(1.0, 0.7, smoothstep(0.2, -0.1, sunHeightWorld)); 
+    // complete
+    const vec3 finalColor = modifiedBaseSkyColor + (sunColor * sunIntensity) + (sunColor * sunGlow);
 
-    // Сборка
-    vec3 finalColor = baseSkyColor + (sunColor * sunIntensity) + (sunColor * sunGlow);
+    // going under horizon
+    const vec3 resultColor = mix(modifiedBaseSkyColor, finalColor, smoothstep(-0.18f, 0.02f, sunHeightWorld));
 
-    // Уход под горизонт
-    finalColor = mix(baseSkyColor, finalColor, smoothstep(-0.18, 0.02, sunHeightWorld));
-
-    return SkyColors(finalColor, sunColor);
+    return SkyColors(resultColor, sunColor);
 }
-
 
 #endif
