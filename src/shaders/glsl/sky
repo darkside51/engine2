@@ -130,7 +130,6 @@ SkyColors simpleSky2(const vec3 viewDir, const vec3 sunViewDir, const vec3 sunWo
     return SkyColors(resultColor, sunColor);
 }
 
-
 SkyColors simpleSky3(
     const vec3 viewDirView,   // view direction vector in view space (normalize(v_rayDirView))
     const vec3 sunDirView,    // sun direction vector in view space (normalize(L))
