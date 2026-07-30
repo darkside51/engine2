@@ -246,9 +246,9 @@ namespace example {
         }
         
         ImGui::ColorEdit3("ambient color", &ambientColor[0u]);
-        ImGui::DragFloat("ambient factor", &ambientColor[3u], 0.01f, 0.0f, 1.0f);
+        ImGui::DragFloat("ambient factor", &ambientColor[3u], 0.01f, 0.0f, 100.0f);
         ImGui::ColorEdit3("directional light color", &directionalLightColor[0u]);
-        ImGui::DragFloat("directional light factor", &directionalLightColor[3u], 0.01f, 0.0f, 10.0f);
+        ImGui::DragFloat("directional light factor", &directionalLightColor[3u], 0.01f, 0.0f, 100.0f);
         if (ImGui::DragFloat("shadow factor", &shadowsOptions[0u], 0.01f, 0.0f, 1.0f)) {
             lightDirty = true;
         }

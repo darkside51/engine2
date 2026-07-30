@@ -148,7 +148,8 @@ void main() {
 
     // ambient lighting (Placeholder: upgrade to Image-Based Lighting later)
     //const vec3 ambient = mix(vec3(0.25, 1.0, 0.0), vec3(1.0, 1.0, 1.0), clamp(worldPosition.z * 6.2f, 0.0f, 1.0f)) * push.ambient.xyz * push.ambient.w * albedo.rgb * occlusion;
-    const vec3 ambient = push.ambient.xyz * push.ambient.w * albedo.rgb * occlusion;
+    const vec3 ambientColor = push.ambient.xyz * push.ambient.w * normalize(sky.skyColor);
+    const vec3 ambient = ambientColor * albedo.rgb * occlusion;
     vec3 baseColor = ambient + Lo;
 
     baseColor = clamp(baseColor * shadowValue, ambient, baseColor);
