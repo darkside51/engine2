@@ -50,10 +50,11 @@ void main() {
 		const vec4 worldPosition = vec4(a_position, 1.0) * model;
 		gl_Position = u_viewParams.viewProjection * worldPosition;
 		
-		const mat3 normalMatrix = transpose(inverse(mat3(u_viewParams.view))); // todo - move it to uniform
+		const mat3 normalMatrix = transpose(inverse(mat3(u_viewParams.view))); // todo - move it to uniform!!!!!!!!!!!!
     
-   	const vec3 normal = normalize((vec4(a_normal, 0.0f) * model).xyz);
-   	const vec3 tangent = normalize((vec4(a_tangent.xyz, 0.0f) * model).xyz);
+    	const mat3 model3x3 = mat3(model);
+   	const vec3 normal = normalize(a_normal * model3x3);
+   	const vec3 tangent = normalize(a_tangent.xyz * model3x3);
     
    	const vec3 t = normalize(normalMatrix * tangent.xyz);
    	const vec3 n = normalize(normalMatrix * normal); 
