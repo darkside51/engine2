@@ -5,8 +5,7 @@
 
 layout (location = 0) in vec3 v_position;
 layout (location = 1) flat in int v_material;
-layout (location = 2) in mat3 v_normalMatrix;
-layout (location = 5) in vec2 v_w;
+layout (location = 2) in vec2 v_w;
 
 layout (location = 0) out float out_position;
 layout (location = 1) out vec4 out_normal;
@@ -18,6 +17,7 @@ layout (set = 0, binding = 0) uniform UniformBuffer {
 	mat4 view;
 	mat4 projection;
 	mat4 viewProjection;
+	mat3 viewTransposeInverse;
 	vec3 cameraPosition;
 	vec2 nearFarPlanes;
 	float time;
@@ -42,7 +42,7 @@ void main() {
 	out_position = depthLinear;
 
 	const vec3 normal = normalize(-cross(dFdx(v_position), dFdy(v_position)));
-	const vec3 viewNormal = v_normalMatrix * normal;
+	const vec3 viewNormal = u_viewParams.viewTransposeInverse * normal;
 
 	out_normal = vec4(normalize(viewNormal) * 0.5f + 0.5f, 0.0f);
 	const vec4 color = colors[v_material] * (1.0f + v_position.z);

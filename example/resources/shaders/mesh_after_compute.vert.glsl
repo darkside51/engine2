@@ -7,6 +7,7 @@ layout (set = 0, binding = 0) uniform UniformBuffer {
 	mat4 view;
 	mat4 projection;
 	mat4 viewProjection;
+	mat3 viewTransposeInverse;
 	vec3 cameraPosition;
 	vec2 nearFarPlanes;
 	float time;
@@ -36,14 +37,12 @@ void main() {
 	const vec4 position = imageLoad(in_positions, int(vertexId)); // in_positions.data[vertexId];
 	gl_Position = u_viewParams.viewProjection * position;
 	v_uv = a_uv;
-
-   const mat3 normalMatrix = transpose(inverse(mat3(u_viewParams.view))); // todo - move it to uniform
     
    const vec3 normal = imageLoad(in_normals, int(vertexId)).xyz;
    const vec4 tangent = imageLoad(in_tangents, int(vertexId));
     
-   const vec3 t = normalize(normalMatrix * tangent.xyz);
-   const vec3 n = normalize(normalMatrix * normal); 
+   const vec3 t = normalize(u_viewParams.viewTransposeInverse * tangent.xyz);
+   const vec3 n = normalize(u_viewParams.viewTransposeInverse * normal); 
    const vec3 b = normalize(cross(n, t) * -tangent.w);
 
    v_tbn = mat3(t, b, n);

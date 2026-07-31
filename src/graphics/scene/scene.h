@@ -77,6 +77,7 @@ struct ViewParams {
     mat4f cameraView;
     mat4f cameraProjection;
     mat4f cameraTransform;
+    mat3f viewTransposeInverse;
     vec3f cameraPosition;
     vec2f nearFarPlanes;
     float time = 0.0f;

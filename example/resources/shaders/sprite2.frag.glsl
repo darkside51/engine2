@@ -11,7 +11,6 @@ layout(set = 0, binding = 4) uniform sampler2DArray textureCubeMapArr;
 layout (location = 0) in vec2 v_uv;
 layout (location = 1) in vec3 v_worldPosition;
 layout (location = 2) in vec4 v_normalAndEmissive;
-layout (location = 3) in mat3 v_normalMatrix;
 
 layout (location = 0) out float out_position;
 layout (location = 1) out vec4 out_normal;
@@ -23,6 +22,7 @@ layout (set = 0, binding = 0) uniform UniformBuffer {
 	mat4 view;
 	mat4 projection;
 	mat4 viewProjection;
+	mat3 viewTransposeInverse;
 	vec3 cameraPosition;
 	vec2 nearFarPlanes;
 	float time;
@@ -48,7 +48,7 @@ void main() {
 		//out_albedo = calculateRoomCube(textureCubeMap, v_worldPosition, u_viewParams.cameraPosition, normal, v_uv, vec3(2.0f, 2.0f, 1.0f), vec4(1.0f), vec3(cos(angle), sin(angle), 0.0f));
 		//
 		out_albedo = calculateRoomCube(textureCubeMap, v_worldPosition, u_viewParams.cameraPosition, normal, v_uv, vec3(2.0f, 1.25f, 1.0f), vec4(1.0f));
-		out_normal = vec4(normalize(v_normalMatrix * normal) * 0.5f + 0.5f, 0.0f);
+		out_normal = vec4(normalize(u_viewParams.viewTransposeInverse * normal) * 0.5f + 0.5f, 0.0f);
 
 		//vec3 direction = normalize(v_worldPosition - u_viewParams.cameraPosition);
 		//out_albedo = mix(out_albedo, texture(textureCubeMap, -direction) * vec4(0.92f, 0.92f, 1.0f, 1.0f), 0.3f);
@@ -62,7 +62,7 @@ void main() {
 	} else {
 		const vec3 tangent = vec3(-1.0f, 0.0f, 0.0f);
 		const vec3 binormal = (gl_FrontFacing ? 1.0f : -1.0f) * cross(normal, tangent) * sign(dot(normal, tangent));
-		const mat3 tbn = mat3(v_normalMatrix * tangent, v_normalMatrix * binormal, v_normalMatrix * normal);
+		const mat3 tbn = mat3(u_viewParams.viewTransposeInverse * tangent, u_viewParams.viewTransposeInverse * binormal, u_viewParams.viewTransposeInverse * normal);
 
 		vec2 uv = v_uv * 2.0f;
 		out_albedo = texture(texture0, uv);

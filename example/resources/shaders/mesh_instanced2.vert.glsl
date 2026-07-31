@@ -13,6 +13,7 @@ layout (set = 0, binding = 0) uniform UniformBuffer {
 	mat4 view;
 	mat4 projection;
 	mat4 viewProjection;
+	mat3 viewTransposeInverse;
 	vec3 cameraPosition;
 	vec2 nearFarPlanes;
 	float time;
@@ -50,10 +51,8 @@ void main() {
 		const vec4 worldPosition = vec4(a_position, 1.0) * model;
 		gl_Position = u_viewParams.viewProjection * worldPosition;
 		
-		const mat3 normalMatrix = transpose(inverse(mat3(u_viewParams.view))); // todo - move it to uniform!!!!!!!!!!!!
-
 		const mat3 model3x3 = mat3(model);
 		const vec3 normal = normalize(a_normal * model3x3);
-		v_normal = normalMatrix * normal;
+		v_normal = u_viewParams.viewTransposeInverse * normal;
 	}
 }

@@ -9,7 +9,6 @@ layout (location = 0) in vec2 v_uv;
 layout (location = 1) in vec3 v_worldPosition;
 layout (location = 2) in vec4 v_normalAndEmissive;
 //layout (location = 3) in vec3 v_worldPosition;
-layout (location = 3) in mat3 v_normalMatrix;
 
 //layout (location = 0) out vec4 out_color;
 
@@ -24,6 +23,7 @@ layout (set = 0, binding = 0) uniform UniformBuffer {
 	mat4 view;
 	mat4 projection;
 	mat4 viewProjection;
+	mat3 viewTransposeInverse;
 	vec3 cameraPosition;
 	vec2 nearFarPlanes;
 	float time;
@@ -42,7 +42,7 @@ void main() {
 	//out_position = vec4(v_worldPosition, depthLinear);
 	out_position = depthLinear;
 
-	vec3 normal = v_normalMatrix * -normalize(cross(dFdx(v_normalAndEmissive.xyz), dFdy(v_normalAndEmissive.xyz)));
+	vec3 normal = u_viewParams.viewTransposeInverse * -normalize(cross(dFdx(v_normalAndEmissive.xyz), dFdy(v_normalAndEmissive.xyz)));
 
 	out_normal = vec4(normalize(normal) * 0.5 + 0.5, 0.0f);
 	out_albedo = albedo;

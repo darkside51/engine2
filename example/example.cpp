@@ -2403,6 +2403,7 @@ namespace example {
                 viewParams.cameraView = view;
                 viewParams.cameraProjection = projection;
                 viewParams.cameraTransform = transform;
+                viewParams.viewTransposeInverse = glm::transpose(glm::inverse(engine::mat3f(view)));
                 viewParams.cameraPosition = cameraPos; 
                 viewParams.nearFarPlanes = kNearFarPlane;
                 viewParamsUpdated = true;
@@ -2599,7 +2600,8 @@ namespace example {
 
             auto * shadowUniforms = shadowMapUniformBuffer->memory2<ShadowMapUniforms>();
             memcpy(shadowUniforms->cascades.data(), shadowMap->getCascadeMatrices().data(), sizeof(engine::mat4f) * shadowMap->getCascadeMatrices().size());
-            shadowUniforms->invViewMatrix = glm::inverse(viewParams.cameraView);
+            shadowUniforms->invViewMatrix = invMatrix;
+            //shadowUniforms->invViewMatrix = glm::inverse(viewParams.cameraView);
             memcpy(&shadowUniforms->splits, shadowMap->getCascadeSplitDepths().data(), shadowMap->getCascadeSplitDepths().size() * sizeof(float));
             memcpy(&shadowUniforms->texelSizes, shadowMap->getTexelSizes().data(), shadowMap->getTexelSizes().size() * sizeof(float));
             shadowUniforms->options = shadowsOptions;
@@ -2788,7 +2790,6 @@ namespace example {
             engine::vec4f options{};
         };
 
-        const auto normalMatrix = glm::transpose(glm::inverse(engine::mat3f(viewParams.cameraView)));
         // const PostParams postParams{
         //     .projection = viewParams.cameraProjection,
         //     .cameraPosition = {viewParams.cameraPosition, 0.0f},
@@ -2802,7 +2803,7 @@ namespace example {
             .view = viewParams.cameraView,
             .ambient = ambientColor,
             .directionalLight = directionalLightColor,
-            .light = engine::vec4f{glm::normalize(normalMatrix * lightDir), 0.0f},
+            .light = engine::vec4f{glm::normalize(viewParams.viewTransposeInverse * lightDir), 0.0f},
             .options = {ssaoEnable, static_cast<float>(debugShow), saturation, vignetteExtent}
         };
 
