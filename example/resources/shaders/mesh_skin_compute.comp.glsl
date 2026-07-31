@@ -2,20 +2,6 @@
 
 layout (local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
 
-// out data
-//layout (set = 0, binding = 0) writeonly buffer OutPositions {
-//   vec4 data[];
-//} out_positions;
-
-//layout (set = 0, binding = 1) writeonly buffer OutNormals {
-//   vec4 data[];
-//} out_normals;
-
-//layout (set = 0, binding = 2) writeonly buffer OutTangents {
-//   vec4 data[];
-//} out_tangents;
-
-
 // Syntax: layout(set = X, binding = Y, format_qualifier) writeonly uniform imageBuffer variableName;
 layout(set = 0, binding = 0, rgba32f) writeonly uniform imageBuffer out_positions;
 layout(set = 0, binding = 1, rgba8_snorm) writeonly uniform imageBuffer out_normals;
@@ -73,43 +59,23 @@ void main() {
 	const vec4 a_weights = texelFetch(u_weights, vertexId);
 	const uvec4 a_joints = uvec4(texelFetch(u_joints, vertexId) * 255.0f);
 
-	const mat3x4 transforms[] = mat3x4[](
-		sbo_skin.transforms[transformIdx + a_joints.x],
-		sbo_skin.transforms[transformIdx + a_joints.y],
-		sbo_skin.transforms[transformIdx + a_joints.z],
-		sbo_skin.transforms[transformIdx + a_joints.w]
-	);
+	const mat3x4 skin3x4 = sbo_skin.transforms[transformIdx + a_joints.x] * a_weights.x +
+						  		  sbo_skin.transforms[transformIdx + a_joints.y] * a_weights.y +
+						  		  sbo_skin.transforms[transformIdx + a_joints.z] * a_weights.z +
+						  		  sbo_skin.transforms[transformIdx + a_joints.w] * a_weights.w;
 
 	const mat4 skin = mat4(
-		transforms[0][0],
-		transforms[0][1],
-		transforms[0][2],
+		skin3x4[0],
+		skin3x4[1],
+		skin3x4[2],
 		vec4(0.0f, 0.0f, 0.0f, 1.0f)
-	) * a_weights.x +
-	mat4(
-		transforms[1][0],
-		transforms[1][1],
-		transforms[1][2],
-		vec4(0.0f, 0.0f, 0.0f, 1.0f)
-	) * a_weights.y +
-	mat4(
-		transforms[2][0],
-		transforms[2][1],
-		transforms[2][2],
-		vec4(0.0f, 0.0f, 0.0f, 1.0f)
-	) * a_weights.z +
-	mat4(
-		transforms[3][0],
-		transforms[3][1],
-		transforms[3][2],
-		vec4(0.0f, 0.0f, 0.0f, 1.0f)
-	) * a_weights.w;
+	);
 
 	const uint resultOffset = vertexId + skeleton_ids.data[objectId + push.firstObject + push.skeletonsOffset];
 
 	imageStore(out_positions, int(resultOffset), vec4(texelFetch(u_positions, vertexId).xyz, 1.0f) * skin);
 
-	const mat3 skinIT = mat3(skin);
+	const mat3 skinIT = mat3(skin3x4);
 	
 	const vec4 normal = texelFetch(u_normals, vertexId);
 	imageStore(out_normals, int(resultOffset), vec4(normalize(normal.xyz * skinIT), 0.0f));

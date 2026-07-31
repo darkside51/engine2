@@ -47,7 +47,7 @@ void main() {
 			vec4(0.0, 0.0, 0.0, 1.0)
 		);
 
-		vec4 worldPosition = vec4(a_position, 1.0) * model;
+		const vec4 worldPosition = vec4(a_position, 1.0) * model;
 		gl_Position = u_viewParams.viewProjection * worldPosition;
 		
 		const mat3 normalMatrix = transpose(inverse(mat3(u_viewParams.view))); // todo - move it to uniform
