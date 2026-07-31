@@ -24,11 +24,13 @@ public:
         }
 
         _worker->emplaceTask(threads::WorkerTask{[this, grabber = std::move(grabber), commands = std::move(commands)]() mutable {
+            const auto frameIdx = ++_frameIndex;
+            auto & commandList = *_commandLists[frameIdx];
+            _commandLists[frameIdx]->begin(engine::rhi::CommandBufferUsageFlags::eOne_Time_Submit);
+            
             stl::vector<threads::WorkerTask> callbacks;
             callbacks.reserve(commands.size());
 
-            const auto frameIdx = _frameIndex();
-            auto & commandList = *_commandLists[frameIdx];
             for (auto & command : commands) {
                 command(commandList, callbacks);
             }
@@ -37,8 +39,6 @@ public:
             commandList.record(frameIdx);
 
             grabber(&commandList, std::move(callbacks));
-
-            _commandLists[++_frameIndex]->begin(engine::rhi::CommandBufferUsageFlags::eOne_Time_Submit);
         }});
         commands.clear();
     }

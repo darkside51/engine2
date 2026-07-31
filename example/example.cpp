@@ -2532,7 +2532,7 @@ namespace example {
                     this,
                     commandList,
                     callbacks = std::move(callbacks)
-                ]() mutable {    
+                ]() mutable {
                     _externalCommandLists[_frameIndex()] = commandList;
                     for (auto & callback : callbacks) {
                         callback();
@@ -2550,10 +2550,10 @@ namespace example {
         const auto frameId = _frameIndex();
 
         if (_canDraw) {
-            auto const waitSubmitResult = _renderQueue->waitSubmit(frameId); // result!!!
-
-            _externalCommandLists[frameId] = nullptr;
-            executionContext.performTasks(1u);
+            if (auto const waitSubmitResult = _renderQueue->waitSubmit(frameId)) {
+                _externalCommandLists[frameId] = nullptr;
+                executionContext.performTasks(1u);
+            }
         }
 
         const auto [imageIndex, success] = _swapchain->acquireNextImage(frameId); // https://vulkan-tutorial.com/Drawing_a_triangle/Swap_chain_recreation

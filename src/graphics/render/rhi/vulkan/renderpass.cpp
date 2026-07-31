@@ -107,10 +107,10 @@ namespace engine::vulkan {
         for (auto const & subpass : subpassesSrc) {
             assert ( // resolveAttachments are empty or it size equal colorAttachments size
                 subpass.resolveAttachments.empty() ||
-                subpass.resolveAttachments.capacity == subpass.colorAttachments.capacity
+                subpass.resolveAttachments.size() == subpass.colorAttachments.size()
             );
 
-            auto & inputAttachmentReferences = inputAttachmentReferencesVec.emplace_back(subpass.inputAttachments.capacity);
+            auto & inputAttachmentReferences = inputAttachmentReferencesVec.emplace_back(subpass.inputAttachments.size());
             const auto inputAttachmentReferencesView = inputAttachmentReferences.view();
             const auto attachmentsView = subpass.inputAttachments.view();
             size_t i = 0u;
@@ -119,7 +119,7 @@ namespace engine::vulkan {
                 ++i; 
             }
 
-            auto & colorAttachmentReferences = colorAttachmentReferencesVec.emplace_back(subpass.colorAttachments.capacity);
+            auto & colorAttachmentReferences = colorAttachmentReferencesVec.emplace_back(subpass.colorAttachments.size());
             const auto colorAttachmentReferencesView = colorAttachmentReferences.view();
             const auto colorAttachmentsView = subpass.colorAttachments.view();
             i = 0u;
@@ -128,7 +128,7 @@ namespace engine::vulkan {
                 ++i;
             }
 
-            auto & resolveAttachmentReferences = resolveAttachmentReferencesVec.emplace_back(subpass.resolveAttachments.capacity);
+            auto & resolveAttachmentReferences = resolveAttachmentReferencesVec.emplace_back(subpass.resolveAttachments.size());
             const auto resolveAttachmentReferencesView = resolveAttachmentReferences.view();
             const auto resolveAttachmentsView = subpass.resolveAttachments.view();
             i = 0u;
@@ -151,7 +151,7 @@ namespace engine::vulkan {
                 colorAttachmentReferencesView.data(),
                 resolveAttachmentReferencesView.empty() ? nullptr : resolveAttachmentReferencesView.data(),
                 depthStencilRef,
-                subpass.reserveAttachments.capacity,
+                subpass.reserveAttachments.size(),
                 subpass.reserveAttachments.view().data()
             );
         }

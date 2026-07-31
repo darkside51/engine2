@@ -5,8 +5,11 @@
 #include "command_list.h"
 #include "runtime.h"
 
+#include "log/log.h"
+
 #include <array>
 #include <cassert>
+#include <utility>
 
 namespace engine::vulkan {
     
@@ -36,8 +39,9 @@ namespace engine::vulkan {
 
     bool Queue::waitSubmitComplete(uint8_t frameIdx, uint64_t timeout, VkFence f) noexcept {
         const auto * fence = (f == VK_NULL_HANDLE ? &_submitCompleteFences[frameIdx] : &f);
-        const auto result = vkWaitForFences(_device(), 1, fence, VK_TRUE, timeout); 
-        if (result != VK_SUCCESS) {
+        const auto result = vkWaitForFences(_device(), 1u, fence, VK_TRUE, timeout); 
+        if (result != VK_SUCCESS) { [[unlikely]]
+            LOG_W("Queue vkWaitForFences result no success: %d", std::to_underlying(result));
             return false;
         }
         vkResetFences(_device(), 1, fence);

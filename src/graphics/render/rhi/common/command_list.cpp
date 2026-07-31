@@ -17,8 +17,8 @@ namespace engine::rhi::runtime {
         _commandsCount = 0u;
 
         _pipelineType = PipelineBindPoint::eCompute;
-        for (auto & pass : _passes) {
-        // for (auto & pass : _passes.view()) {
+        // for (auto & pass : _passes) {
+        for (auto & pass : _passes.view()) {
             pass.buffers.clear();
             pass.images.clear();
         }

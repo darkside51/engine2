@@ -169,8 +169,7 @@ void main() {
 	//const vec3 cubeColor = texture(textureCubeMap, v_rayDirWorld).rgb;
 	//baseColor = mix(baseColor, cubeColor, step(0.0f, viewPosition.z));
 
-	//const vec3 sky = simpleSky(-V, L);
-	baseColor = mix(baseColor, sky.skyColor, step(0.0f, viewPosition.z));
+	baseColor = mix(baseColor, saturate(sky.skyColor, push.options.z), step(0.0f, viewPosition.z));
 
 	// 4. gamma
 	vec3 color = pow(baseColor, vec3(0.4545f)); // gamma correction 1.0f / 2.2f = 0.4545f

@@ -132,13 +132,17 @@ namespace engine::rhi::runtime {
             return _statistics;
         }
 
+        CommandType getLastCommandType() const noexcept {
+            return _lastCommandType;
+        }
+
     protected:
         inline static constexpr size_t kStackSize = 1024u * 1024u; // 1 Mb
         allocators::StackAllocator<kStackSize, false> _commands{};
         uint32_t _commandsCount = 0u;
         
-        // dynamic_array<Pass, 8u> _passes = {};
-        stl::vector<Pass> _passes = {};
+        dynamic_array<Pass, 16u> _passes = {};
+        // stl::vector<Pass> _passes = {};
         // stl::array<Pass, 8u> _passes = {};
         // uint8_t _passId = 0u;
         Pass * _currentPass = nullptr;
@@ -211,6 +215,7 @@ namespace engine::rhi::runtime {
         } _state;
 
         stl::vector<sh_ptr<PipeLineResource>> _resources;
+        CommandType _lastCommandType = CommandType::eUndefined;
     };
 
 }
