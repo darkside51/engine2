@@ -38,37 +38,17 @@ void main() {
 
 	{ // with 48 bytes transforms
 		// skinned
-		const mat3x4 transforms[] = mat3x4[](
-			sbo_skin.transforms[a_sbo_offset + a_joints.x],
-			sbo_skin.transforms[a_sbo_offset + a_joints.y],
-			sbo_skin.transforms[a_sbo_offset + a_joints.z],
-			sbo_skin.transforms[a_sbo_offset + a_joints.w]
-		);
+		const mat3x4 skin3x4 = sbo_skin.transforms[a_sbo_offset + a_joints.x] * a_weights.x +
+						  		     sbo_skin.transforms[a_sbo_offset + a_joints.y] * a_weights.y +
+						  		     sbo_skin.transforms[a_sbo_offset + a_joints.z] * a_weights.z +
+						  		     sbo_skin.transforms[a_sbo_offset + a_joints.w] * a_weights.w;
 
 		const mat4 skin = mat4(
-			transforms[0][0],
-			transforms[0][1],
-			transforms[0][2],
-			vec4(0.0, 0.0, 0.0, 1.0)
-		) * a_weights.x +
-		mat4(
-			transforms[1][0],
-			transforms[1][1],
-			transforms[1][2],
-			vec4(0.0, 0.0, 0.0, 1.0)
-		) * a_weights.y +
-		mat4(
-			transforms[2][0],
-			transforms[2][1],
-			transforms[2][2],
-			vec4(0.0, 0.0, 0.0, 1.0)
-		) * a_weights.z +
-		mat4(
-			transforms[3][0],
-			transforms[3][1],
-			transforms[3][2],
-			vec4(0.0, 0.0, 0.0, 1.0)
-		) * a_weights.w;
+			skin3x4[0],
+			skin3x4[1],
+			skin3x4[2],
+			vec4(0.0f, 0.0f, 0.0f, 1.0f)
+		);
 
 		gl_Position = u_viewParams.viewProjection * (vec4(a_position, 1.0) * skin);
 		v_normal = normalize((vec4(a_normal, 0.0) * skin).xyz);
