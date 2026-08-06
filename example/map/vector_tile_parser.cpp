@@ -254,10 +254,10 @@ namespace map {
                 if (i != ring.second) {
                     const auto v0 = engine::vec2f{totalVerices[floorCurrent][0u], totalVerices[floorCurrent][1u]};
                     const auto v1 = engine::vec2f{totalVerices[floorNext][0u], totalVerices[floorNext][1u]};
-                    const float wallLength = std::floor(glm::distance(v0, v1) / 16.0f);
-                    l += engine::step<float>(2.0f, wallLength) * wallLength;
-                    totalVerices[floorNext][3u] = static_cast<int16_t>(l) << 4;
-                    totalVerices[roofNext][3u] = static_cast<int16_t>(l) << 4;
+                    const float wallLength = std::round(glm::distance(v0, v1) / 16.0f);
+                    l += wallLength;//engine::step<float>(2.0f, wallLength) * wallLength;
+                    totalVerices[floorNext][3u] = (static_cast<int16_t>(l) << 4) | material;
+                    totalVerices[roofNext][3u] = (static_cast<int16_t>(l) << 4) | material;
                 }
             }
         }
@@ -297,6 +297,7 @@ namespace map {
                 // read feature tags (metadata attributes)
                 //printf("Properties:\n");
                 int16_t materialIdx = 0;
+                auto const buildingColor = engine::common::fixedRandom(0, 1);
                 while (auto property = feature.next_property()) {
                     auto str = property.key();
                     if (str == "height") {
@@ -311,20 +312,20 @@ namespace map {
                         auto value = stringify(property.value());
                         //printf("kind: %s\n", value.c_str());
                         if (value == "building") {
-                            materialIdx = 0;
+                            materialIdx = buildingColor;
                         } else if (value == "grass" || value == "park" || value == "grassland") {
                             //skipGepmetry = true;
-                            materialIdx = 1;
+                            materialIdx = 5;
                         } else if (value == "pedestrian") {
-                            materialIdx = 2;
+                            materialIdx = 6;
                         } else if (value == "wood" || value == "scrub") {
                             //skipGepmetry = true;
-                            materialIdx = 3;
+                            materialIdx = 7;
                         } else if (value == "industrial") {
-                            materialIdx = 4;
+                            materialIdx = 8;
                         } else if (value == "water") {
                             //skipGepmetry = true;
-                            materialIdx = 5;
+                            materialIdx = 9;
                         }
                     }
                     // if (str == "kind_detail") {

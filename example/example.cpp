@@ -174,8 +174,8 @@ namespace example {
     float vignetteExtent = 0.1f;
 
     uint32_t clearColor = 0xcd'cd'cd'ffu;
-    engine::vec4f ambientColor = {1.0f, 1.0f, 1.0f, 0.2f};
-    engine::vec4f directionalLightColor = {1.0f, 1.0f, 1.0f, 4.200f};
+    engine::vec4f ambientColor = {1.0f, 1.0f, 1.0f, 0.3f};
+    engine::vec4f directionalLightColor = {1.0f, 1.0f, 1.0f, 2.200f};
     engine::vec3f lightDir = {0.26f, 0.15f, -0.75f};
     engine::vec4f shadowsOptions = {0.0f, 0.0f, 0.0f, 0.0f};
     bool lightDirty = false;
@@ -735,10 +735,10 @@ namespace example {
                                                     );
 
                                                     const auto * brikcsImageHandler = loadImageAsync(*device, fileManager, *textureManager, 
-                                                        "beton", "assets/beton3.jpg", 
+                                                        "beton", "assets/wall0.jpg", 
                                                         engine::graphics::TextureFlags::eAllowSrgbColorSpace | engine::graphics::TextureFlags::eUseMipMaps);
                                                     const auto * asphaltImageHandler = loadImageAsync(*device, fileManager, *textureManager, 
-                                                        "asphalt", "assets/floor3.jpg", 
+                                                        "asphalt", "assets/asphalt-2.jpg", 
                                                         engine::graphics::TextureFlags::eAllowSrgbColorSpace | engine::graphics::TextureFlags::eUseMipMaps);
                                                     auto * interriorImageHandler = textureManager->getImageHandler("skyBoxCubeMapImage");//
 
@@ -914,10 +914,10 @@ namespace example {
                                     );
 
                                     const auto * brikcsImageHandler = loadImageAsync(*device, fileManager, *textureManager, 
-                                        "beton", "assets/beton3.jpg", 
+                                        "beton", "assets/wall0.jpg", 
                                         engine::graphics::TextureFlags::eAllowSrgbColorSpace | engine::graphics::TextureFlags::eUseMipMaps);
                                     const auto * asphaltImageHandler = loadImageAsync(*device, fileManager, *textureManager, 
-                                        "asphalt", "assets/floor3.jpg", 
+                                        "asphalt", "assets/asphalt-2.jpg", 
                                         engine::graphics::TextureFlags::eAllowSrgbColorSpace | engine::graphics::TextureFlags::eUseMipMaps);
                                     auto * interriorImageHandler = textureManager->getImageHandler("skyBoxCubeMapImage");//
 

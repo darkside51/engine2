@@ -45,8 +45,7 @@ void main() {
 	const vec3 viewNormal = u_viewParams.viewTransposeInverse * normal;
 
 	out_normal = vec4(normalize(viewNormal) * 0.5f + 0.5f, 0.0f);
-	const vec4 color = colors[v_material] * (1.0f + v_position.z);
-	if (v_material == 0) {
+	if (v_material < 5) {
 		const float u = mix(v_position.x, v_position.y, step(abs(normal.y / normal.x), 1.0f));
 		vec2 uv = vec2(u, -v_position.z) * 20.0f;
 		vec2 uv2 = vec2(-v_w.x, -v_w.y);
@@ -61,14 +60,27 @@ void main() {
 		const vec4 window = texture(u_interriorMapArr, vec3(uv2 * vec2(1.0f, 2.0f) + vec2(-0.23f, 0.5f), 3.0f));
 		const float s = clamp((window.r + window.g + window.b) / 2.0f, 0.0f, 1.0f);
 
-		int m = int(round(v_position.x * 49.06f) * round(v_position.y * 49.06f)) % 6;
+		//int m = int(round(v_position.x * 49.06f) * round(v_position.y * 49.06f)) % 6;
 		//int m = (3000 * int(round(v_position.x * 4096.0f) * round(v_position.y * 4096.0f))) % 6;
 
-		const vec4 wallColor = mix(texture(u_texture, uv) * colors[m], mix(interriorColor, window, s), inside);
+		//const vec4 wallColor = mix(texture(u_texture, uv) * colors[m], mix(interriorColor, window, s), inside);
 
-		const vec4 floorColor = mix(texture(u_texture2, v_position.xy * 16.0f), color, step(0.01f, v_position.z));
+
+		//const vec2 lower2 = step(vec2(0.01f, 0.01f), fract_uv);
+		//const vec2 upper2 = step(fract_uv, vec2(0.99f, 0.99f));
+		//const float inside2 = lower2.x * lower2.y * upper2.x * upper2.y;
+
+		const float kUvMix = 0.0001f;
+		const vec4 wallColor = mix(texture(u_texture, mix(uv2, uv, step(dFdx(uv2).x, kUvMix))) * colors[v_material], mix(interriorColor, window, s), inside);
+
+		const vec4 color = colors[0] * (1.0f + v_position.z);
+		const vec4 floorColor = mix(texture(u_texture2, v_position.xy * 8.0f), color, step(0.01f, v_position.z));
 		out_albedo = mix(wallColor, floorColor, step(0.99f, normal.z));
 	} else {
+		//if (v_material == 7 || v_material == 5) {
+		//}
+
+		const vec4 color = colors[v_material - 4] * (1.0f + v_position.z);
 		out_albedo = color;
 	}
 	out_emissive = vec4(0.0, 0.0, 0.0, 0.0);
