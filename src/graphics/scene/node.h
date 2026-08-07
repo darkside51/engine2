@@ -217,6 +217,7 @@ template <typename Function>
 void hierarchyPass(Node * root, Function && f) noexcept {
     Node * node = root;
     bool process = true;
+    
     while (node != nullptr) {
         if (process) {
             f(node);
@@ -225,49 +226,58 @@ void hierarchyPass(Node * root, Function && f) noexcept {
         if (node->isVisible() && node->firstChild && process) {
             node = node->firstChild;
             process = true;
-        } else if (node->next != nullptr && node != root) {
+            continue;
+        }
+        
+        if (node == root) {
+            break;
+        }
+
+        if (node->next != nullptr) {
             node = node->next;
             process = true;
         } else {
             node = node->parent;
             process = false;
-            if (node == root) {
-                break;
-            }
         }
     }
 }
 
 template <typename VisibleChecker>
-void recalculateHierarchy(Node * root, VisibleChecker && v, bool forceRecalculate = false) noexcept {
+void recalculateHierarchy(Node * root, VisibleChecker && v, bool const forceRecalculate = false) noexcept {
     Node * node = root;
     bool process = true;
+
     while (node != nullptr) {
         if (process && !node->isHidden()) {
             node->applyTransformations();
-            if (node->calculateWorldTransform(forceRecalculate || (node->parent ? node->parent->isChildrenTransformsDirty() : false))) {
+            
+            const bool parentDirty = node->parent && node->parent->isChildrenTransformsDirty();
+            if (node->calculateWorldTransform(forceRecalculate || parentDirty)) {
                 node->setChildrenTransformsDirty(true);
             }
+            
             node->setCulled(!v(node));
-        } else {
-            node->setChildrenTransformsDirty(false); // end child calculation
         }
-        
-        if (node->isVisible() && node->firstChild && process) {
+
+        if (process && !node->isHidden() && node->firstChild) {
             node = node->firstChild;
             process = true;
-        } else if (node->next != nullptr && node != root) {
+            continue;
+        }
+        
+        if (node == root) {
+            break;
+        }
+        
+        if (node->next != nullptr) {
             node = node->next;
             process = true;
         } else {
             node = node->parent;
             process = false;
-            if (node == root) {
-                break;
-            }
         }
     }
 }
-
 
 }
