@@ -42,6 +42,7 @@ layout(push_constant) uniform Params {
 } push;
 
 
+//const float biases[2] = float[](0.006f, 0.03f); // for viewInverseMatrix variant
 const float biases[2] = float[](0.006f, 0.03f);
 
 void main() {
@@ -85,12 +86,12 @@ void main() {
 	//vec4 shadowCoord = u_shadow.cascades[cascade] * worldPosition;
 
 	const float factor = biases[cascade];
-	vec3 biasedViewPos = viewPosition + (normal * factor);
-	vec4 shadowCoord = u_shadow.cascades[cascade] * vec4(biasedViewPos, 1.0f);
+	//vec3 biasedViewPos = viewPosition + (normal * factor);
+	//vec4 shadowCoord = u_shadow.cascades[cascade] * vec4(biasedViewPos, 1.0f);
 
-	//vec3 worldNormal = normalize((u_shadow.viewInverse * vec4(normal, 0.0f)).xyz);
-	//vec3 biasedWorldPos = worldPosition.xyz + (worldNormal * factor);
-	//vec4 shadowCoord = u_shadow.cascades[cascade] * vec4(biasedWorldPos, 1.0f);
+	vec3 worldNormal = normalize(mat3(u_shadow.viewInverse) * normal);
+	vec3 biasedWorldPos = worldPosition.xyz + (worldNormal * factor);
+	vec4 shadowCoord = u_shadow.cascades[cascade] * vec4(biasedWorldPos.xyz, 1.0f);
 	
 	shadowCoord.xyz /= shadowCoord.w;
 	shadowCoord.xy = shadowCoord.xy * 0.5f + 0.5f;

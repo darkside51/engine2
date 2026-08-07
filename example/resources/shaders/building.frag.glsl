@@ -1,6 +1,7 @@
 #version 450
 
 #include "common"
+#include "uv"
 #include "interrior_maps"
 
 layout (location = 0) in vec3 v_position;
@@ -49,6 +50,7 @@ void main() {
 	if (v_material < 5) {
 		const float u = mix(v_position.x, v_position.y, step(abs(normal.y / normal.x), 1.0f));
 		//vec2 uv = vec2(u, -v_position.z) * 20.0f;
+
 		vec2 uv = vec2(u * 16.0f, -v_w.y);
 		vec2 uv2 = vec2(-v_w.x, -v_w.y);
 
@@ -73,12 +75,24 @@ void main() {
 		//const float inside2 = lower2.x * lower2.y * upper2.x * upper2.y;
 
 		const float kUvMix = 0.0001f;
-		const vec4 wallColor = mix(texture(u_texture, mix(uv2, uv, step(dFdx(uv2).x, kUvMix))) /** colors[v_material]*/, mix(interriorColor, window, s), inside);
+
+		vec2 uvMin = mix(vec2(0.0f, 0.0f), vec2(0.5f, 0.0f), v_material & 1);
+		vec2 uvMax = mix(vec2(0.5f, 0.5f), vec2(1.0f, 0.5f), v_material & 1);
+		const vec2 size = uvMax - uvMin;
+
+		uv = repeatUV(uv * size, uvMin, uvMax);
+		vec2 uv3 = uv2 * size;
+		const vec2 dx = dFdx(uv3);
+		const vec2 dy = dFdy(uv3);
+
+		uv3 = repeatUV(uv3, uvMin, uvMax);
+
+		const vec4 wallColor = mix(textureGrad(u_texture, mix(uv3, uv, step(dx.x, kUvMix)), dx, dy) /** colors[v_material]*/, mix(interriorColor, window, s), inside);
 
 		const vec4 color = texture(u_texture2, v_position.xy * 8.0f) * (1.0f + v_position.z);
-		const vec4 floorColor = mix(texture(u_texture3, v_position.xy * 8.0f), color, step(0.01f, v_position.z));
+		const vec4 floorColor = mix(texture(u_texture3, v_position.xy * 10.0f), color, step(0.01f, v_position.z));
 		out_albedo = mix(wallColor, floorColor, step(0.99f, normal.z));
-		out_metalicRoughness = mix(vec2(0.0f, 1.0f), vec2(0.5f, 0.1f), inside * (1.0f - s));
+		out_metalicRoughness = mix(vec2(0.0f, 1.0f), vec2(0.0f, 0.1f), inside);
 	} else {
 		//if (v_material == 7 || v_material == 5) {
 		//}

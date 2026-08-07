@@ -585,25 +585,25 @@ namespace example {
             }
             if (event.state == engine::InputEventState::ePress && event.key == engine::KeyboardKey::eK) {
                 // threads::StopSource2 stopSource;
-                // https://maptiler.com/{z}/{x}/{y}.pbf?key=YOUR_API_KEY
-                // auto const tileId = map::latLonToTileID(68.971447, 33.074109, 14u);
-                auto const tileId = map::latLonToTileID(55.750982, 37.617958, 14u);
-                curlNetworkService.sendRequest(backgroundgWorker->getScheduler(),
-                    //engine::network::http::Request{"https://i.pinimg.com/originals/97/3e/fd/973efd74e4edfa29b2e939c6a8774c4e.jpg"},
-                    // {z}/{x}/{y}
-                    // max zoom 5 on maptiler for heightmap
-                    engine::network::http::Request{"https://api.maptiler.com/tiles/terrain-rgb/5/2/2.png?key=6ks89yREYo9GEfWO2i8h"},
-                    [](engine::stl::vector<std::byte> && response, engine::network::RequestResult resultCode) {
-                        if (resultCode == engine::network::RequestResult::eSuccess) {
-                            // fileManager.getFileSystem("common_fs0")->writeFile("download/image.jpg", response.data(), response.size());
-                            fileManager.getFileSystem("common_fs0")->writeFile(
-                                "download/tile_5_2_2.png", 
-                                response.data(), response.size());
-                        }
-                        printf("result code %d\n", static_cast<uint8_t>(resultCode));
-                        //std::string_view str{reinterpret_cast<char*>(response.data()), response.size()};
-                        //printf("resonse: %s\n", str.data());
-                }, {}/*stopSource.get_token()*/);
+                // // https://maptiler.com/{z}/{x}/{y}.pbf?key=YOUR_API_KEY
+                // // auto const tileId = map::latLonToTileID(68.971447, 33.074109, 14u);
+                // auto const tileId = map::latLonToTileID(55.750982, 37.617958, 14u);
+                // curlNetworkService.sendRequest(backgroundgWorker->getScheduler(),
+                //     //engine::network::http::Request{"https://i.pinimg.com/originals/97/3e/fd/973efd74e4edfa29b2e939c6a8774c4e.jpg"},
+                //     // {z}/{x}/{y}
+                //     // max zoom 5 on maptiler for heightmap
+                //     engine::network::http::Request{"https://api.maptiler.com/tiles/terrain-rgb/5/2/2.png?key=6ks89yREYo9GEfWO2i8h"},
+                //     [](engine::stl::vector<std::byte> && response, engine::network::RequestResult resultCode) {
+                //         if (resultCode == engine::network::RequestResult::eSuccess) {
+                //             // fileManager.getFileSystem("common_fs0")->writeFile("download/image.jpg", response.data(), response.size());
+                //             fileManager.getFileSystem("common_fs0")->writeFile(
+                //                 "download/tile_5_2_2.png", 
+                //                 response.data(), response.size());
+                //         }
+                //         printf("result code %d\n", static_cast<uint8_t>(resultCode));
+                //         //std::string_view str{reinterpret_cast<char*>(response.data()), response.size()};
+                //         //printf("resonse: %s\n", str.data());
+                // }, {}/*stopSource.get_token()*/);
 
 
 //https://api.maptiler.com/tiles/buildings/?key=6ks89yREYo9GEfWO2i8h#14.0/47.37000/8.53000
@@ -739,7 +739,7 @@ namespace example {
                                     );
 
                                     const auto * brikcsImageHandler = loadImageAsync(*device, fileManager, *textureManager, 
-                                        "beton", "assets/beton.jpg", 
+                                        "walls", "assets/walls.jpg", 
                                         engine::graphics::TextureFlags::eAllowSrgbColorSpace | engine::graphics::TextureFlags::eUseMipMaps);
 
                                     const auto * betonImageHandler = loadImageAsync(*device, fileManager, *textureManager, 
@@ -747,7 +747,7 @@ namespace example {
                                         engine::graphics::TextureFlags::eAllowSrgbColorSpace | engine::graphics::TextureFlags::eUseMipMaps);
 
                                     const auto * asphaltImageHandler = loadImageAsync(*device, fileManager, *textureManager, 
-                                        "asphalt", "assets/floor3.jpg", 
+                                        "asphalt", "assets/asphalt-2.jpg", 
                                         engine::graphics::TextureFlags::eAllowSrgbColorSpace | engine::graphics::TextureFlags::eUseMipMaps);
                                     auto * interriorImageHandler = textureManager->getImageHandler("skyBoxCubeMapImage");//
 
@@ -1493,7 +1493,7 @@ namespace example {
 
         // shadow
         shadowMap = std::make_unique<engine::graphics::CascadeShadowMap>(*_api, *_device, 2048u, 2u, 16u, kNearFarPlane.x, kNearFarPlane.y);
-        shadowMap->initCascadeSplits({0.95f, 0.4f, -36.0f});
+        shadowMap->initCascadeSplits({0.95f, 0.4f, -40.0f});
         shadowMap->createRenderData();
         shadowMap->setDirection(glm::normalize(lightDir));
 
@@ -2419,28 +2419,28 @@ namespace example {
         if (viewParamsUpdated || lightDirty) { // viewParams has been changed
             shadowMap->setDirection(glm::normalize(lightDir));
 
-            const auto invMatrix = glm::inverse(viewParams.cameraView);
-            shadowMap->updateCascades(
-                invMatrix, 
-                engine::pi_v<float> / 3.0f, 
-                viewParams.cameraTransform[0u][0u] / viewParams.cameraTransform[1u][1u]
-            );
+            const auto viewInverseMatrix = glm::inverse(viewParams.cameraView);
+            const auto invMatrix = glm::inverse(viewParams.cameraTransform);
 
-            // const auto invMatrix = glm::inverse(viewParams.cameraTransform);
-            // shadowMap->updateCascades(invMatrix);
+            //shadowMap->updateCascades(
+            //    viewInverseMatrix, 
+            //    engine::pi_v<float> / 3.0f, 
+            //    viewParams.cameraTransform[0u][0u] / viewParams.cameraTransform[1u][1u]
+            //);
+
+            shadowMap->updateCascades(invMatrix);
 
             auto * shadowUniforms = shadowMapUniformBuffer->memory2<ShadowMapUniforms>();
             memcpy(shadowUniforms->cascades.data(), shadowMap->getCascadeMatrices().data(), sizeof(engine::mat4f) * shadowMap->getCascadeMatrices().size());
-            shadowUniforms->invViewMatrix = invMatrix;
-            //shadowUniforms->invViewMatrix = glm::inverse(viewParams.cameraView);
+            shadowUniforms->invViewMatrix = viewInverseMatrix;
             memcpy(&shadowUniforms->splits, shadowMap->getCascadeSplitDepths().data(), shadowMap->getCascadeSplitDepths().size() * sizeof(float));
             memcpy(&shadowUniforms->texelSizes, shadowMap->getTexelSizes().data(), shadowMap->getTexelSizes().size() * sizeof(float));
             shadowUniforms->options = shadowsOptions;
             shadowMapUniformBuffer->modify();
 
-            // for inv cameraView variant
-            shadowUniforms->cascades[0] = shadowUniforms->cascades[0] * invMatrix;
-            shadowUniforms->cascades[1] = shadowUniforms->cascades[1] * invMatrix;
+            // for viewInverseMatrix variant
+            //shadowUniforms->cascades[0] = shadowUniforms->cascades[0] * viewInverseMatrix;
+            //shadowUniforms->cascades[1] = shadowUniforms->cascades[1] * viewInverseMatrix;
 
             viewParamsUpdated = false;
             lightDirty = false;

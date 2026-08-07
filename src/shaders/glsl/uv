@@ -1,0 +1,9 @@
+#ifndef UV_HEADER
+#define UV_HEADER
+
+vec2 repeatUV(vec2 uv, vec2 uvMin, vec2 uvMax) {
+	const vec2 size = uvMax - uvMin;
+	return uvMin + fract((uv - uvMin) / size) * size;
+}
+
+#endif
