@@ -9,7 +9,17 @@
 #include <cstddef>
 #include <vector>
 
+namespace vtzero {
+    class feature;
+}
+
 namespace map {
+
+    template <typename T>
+    struct GeometryOnLayer {
+        T geometry;
+        uint32_t layer = 0u;
+    };
 
     struct LayerPolygons {
         float addGeometry(
@@ -19,17 +29,17 @@ namespace map {
             std::vector<std::pair<uint32_t, uint32_t>> rings, 
             int16_t extent,
             float minHeight, 
-            float height,
+            float maxHeight,
+            float distanceFactor,
             int16_t material
         );
         std::vector<uint32_t> totalIndices;
         engine::stl::vector<engine::stl::array<int16_t, 4u>> totalVerices;
-        uint32_t layer = 0u;
     };
 
     struct TileParsedGeometry {
-        engine::stl::vector<LayerPolygons> polygons;
-        float height = 0.0f;
+        engine::stl::vector<GeometryOnLayer<LayerPolygons>> polygons;
+        float tileMaxHeight = 0.0f;
     };
 
     class VectorTileParser {
@@ -40,6 +50,7 @@ namespace map {
         }
 
     private:
+        float parsePolygonsGeometry(TileID tileId, LayerPolygons & polygons, vtzero::feature & feature, int16_t extent);
         TileParsedGeometry parseGeometry(TileID tileId, engine::stl::vector<std::byte> && data);
     };
 

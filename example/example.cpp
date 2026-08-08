@@ -658,9 +658,10 @@ namespace example {
 
                             size_t allDataSize = 0u;
 
-                            for (auto & polygon : geometry.polygons) {
-                                const auto vtxSize = sizeof(int16_t) * 4u * polygon.totalVerices.size();
-                                const auto idxSize = sizeof(uint32_t) * polygon.totalIndices.size();
+                            for (const auto & polygon : geometry.polygons) {
+                                const auto & pg = polygon.geometry;
+                                const auto vtxSize = sizeof(int16_t) * 4u * pg.totalVerices.size();
+                                const auto idxSize = sizeof(uint32_t) * pg.totalIndices.size();
                                 if (vtxSize == 0u || idxSize == 0u) {
                                     continue;
                                 }
@@ -684,9 +685,10 @@ namespace example {
                             engine::graphics::StagingBuffer staging{api, device, allDataSize};
                             std::byte * memory = staging.map();
 
-                            for (auto & polygon : geometry.polygons) {
-                                const auto vtxSize = sizeof(int16_t) * 4u * polygon.totalVerices.size();
-                                const auto idxSize = sizeof(uint32_t) * polygon.totalIndices.size();
+                            for (const auto & polygon : geometry.polygons) {
+                                const auto & pg = polygon.geometry;
+                                const auto vtxSize = sizeof(int16_t) * 4u * pg.totalVerices.size();
+                                const auto idxSize = sizeof(uint32_t) * pg.totalIndices.size();
                                 if (vtxSize == 0u || idxSize == 0u) {
                                     continue;
                                 }
@@ -697,8 +699,8 @@ namespace example {
                                 auto * vtxData = reinterpret_cast<int16_t*>(memory + vtxOffset);
                                 auto * idxData = reinterpret_cast<uint32_t*>(memory + idxOffset);
 
-                                memcpy(vtxData, polygon.totalVerices.data(), vtxSize);
-                                memcpy(idxData, polygon.totalIndices.data(), idxSize);
+                                memcpy(vtxData, pg.totalVerices.data(), vtxSize);
+                                memcpy(idxData, pg.totalIndices.data(), idxSize);
                             }
 
                             staging.flush();
@@ -708,7 +710,7 @@ namespace example {
                                 staging = std::move(staging),
                                 mapGeometry = std::move(mapGeometry),
                                 device = &device,
-                                tileHeight = geometry.height
+                                tileHeight = geometry.tileMaxHeight
                             ](
                                 engine::rhi::runtime::CommandList & commandList, 
                                 engine::stl::vector<threads::WorkerTask> & callbacks

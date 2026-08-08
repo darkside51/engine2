@@ -16,6 +16,8 @@
 
 namespace map {
 
+    constexpr float kWallsDistanceFactor = 16.0f;
+
     // define a variant covering the valid Vector Tile property types
     using variant_type = std::variant<std::string, float, double, int64_t, uint64_t, bool>;
     auto stringify = [](vtzero::property_value pvalue)->std::string {
@@ -172,7 +174,8 @@ namespace map {
         std::vector<std::pair<uint32_t, uint32_t>> rings,
         int16_t extent,
         float minHeight, 
-        float height,
+        float maxHeight,
+        float distanceFactor,
         int16_t material
     ) {
         if (vertices.empty() || indices.empty()) {
@@ -184,12 +187,12 @@ namespace map {
         const auto extentf = static_cast<float>(extent);
 
         const auto hMin = metersToTileUnits(minHeight, latlon.x, tileId.z, extentf);
-        const auto hMax = metersToTileUnits(height, latlon.x, tileId.z, extentf);
+        const auto hMax = metersToTileUnits(maxHeight, latlon.x, tileId.z, extentf);
 
         const auto vsz = vertices.size();
         const auto isz = indices.size();
 
-        // floor
+        // bottom
         const auto currentVertexCount = totalVerices.size();
         totalIndices.reserve(totalIndices.size() + isz);
         totalVerices.reserve(totalVerices.size() + vsz);
@@ -209,10 +212,12 @@ namespace map {
         }
 
         if (hMax <= hMin) {
-            return hMin;
+            return hMin / extent;
         }
 
-        // roof
+        // is 3d object if hMax > hMin, build other planes
+
+        // top
         const auto currentVertexCount2 = totalVerices.size();
         totalIndices.reserve(totalIndices.size() + isz);
         totalVerices.reserve(totalVerices.size() + vsz);
@@ -254,15 +259,73 @@ namespace map {
                 if (i != ring.second) {
                     const auto v0 = engine::vec2f{totalVerices[floorCurrent][0u], totalVerices[floorCurrent][1u]};
                     const auto v1 = engine::vec2f{totalVerices[floorNext][0u], totalVerices[floorNext][1u]};
-                    const float wallLength = std::round(glm::distance(v0, v1) / 16.0f);
-                    l += wallLength;//engine::step<float>(2.0f, wallLength) * wallLength;
+                    const float wallLength = std::round(glm::distance(v0, v1) / distanceFactor);
+                    l += wallLength;
                     totalVerices[floorNext][3u] = (static_cast<int16_t>(l) << 4) | material;
                     totalVerices[roofNext][3u] = (static_cast<int16_t>(l) << 4) | material;
                 }
             }
         }
 
-        return hMax;
+        return hMax / extent;
+    }
+
+    float VectorTileParser::parsePolygonsGeometry(TileID tileId, LayerPolygons & polygons, vtzero::feature & feature, int16_t extent) {
+        PolygonGeometryHandler handler{static_cast<float>(extent)};
+        vtzero::decode_polygon_geometry(feature.geometry(), handler);
+        handler.finalize();
+
+        float maxHeight = 0.0f;
+        float minHeight = 0.0f;
+
+        int16_t materialIdx = 0;
+        while (auto property = feature.next_property()) {
+            auto str = property.key();
+            if (str == "height") {
+                auto value = property.value();
+                maxHeight = static_cast<float>(value.double_value());
+            }
+            if (str == "height_min") {
+                auto value = property.value();
+                minHeight = static_cast<float>(value.double_value());
+            }
+            if (str == "kind") {
+                auto value = stringify(property.value());
+                //printf("kind: %s\n", value.c_str());
+                if (value == "building") {
+                    materialIdx = engine::common::fixedRandom(0, 1);
+                } else if (value == "grass" || value == "park" || value == "grassland") {
+                    materialIdx = 5;
+                } else if (value == "pedestrian") {
+                    materialIdx = 6;
+                } else if (value == "wood" || value == "scrub") {
+                    materialIdx = 7;
+                } else if (value == "industrial") {
+                    materialIdx = 8;
+                } else if (value == "water") {
+                    materialIdx = 9;
+                }
+            }
+            // if (str == "kind_detail") {
+            //     auto value = stringify(property.value());
+            //     int a = 0;
+            //     printf("kind_detail: %s\n", stringify(property.value()).c_str());
+            // }
+            //printf("%s = %s\n", property.key().to_string().c_str(), stringify(property.value()).c_str());
+        }
+
+        auto && polygon = handler.getPolygon();
+        return polygons.addGeometry(
+            tileId,
+            std::move(polygon.indices), 
+            std::move(polygon.vertices), 
+            std::move(polygon.rings),
+            extent,
+            minHeight, 
+            maxHeight,
+            kWallsDistanceFactor,
+            materialIdx
+        );
     }
 
     TileParsedGeometry VectorTileParser::parseGeometry(TileID tileId, engine::stl::vector<std::byte> && parsedData) {
@@ -276,91 +339,40 @@ namespace map {
         TileParsedGeometry geometry;
         auto & totalPolygons = geometry.polygons;
         while (auto layer = tile.next_layer()) {
-            printf("layer name: %s\n", layer.name());
+            //printf("layer name: %s\n", layer.name());
 
-            LayerPolygons & polygons = totalPolygons.emplace_back();
-            polygons.layer = (layer.name() == "buildings") ? 0u : 1u;
-            // if (polygons.layer != 0u) {
-            //     continue;
-            // }
+            LayerPolygons * polygons = nullptr;
+            uint32_t layerIdx = 0u;
+
             while (auto feature = layer.next_feature()) { //
                 //printf("feature id: %lu\n", feature.id());
 
+                const auto geometryType = feature.geometry_type();
+
+                switch (geometryType) {
+                case vtzero::GeomType::POLYGON: {
+                    if (polygons == nullptr) {
+                        auto & p = totalPolygons.emplace_back();
+                        p.layer = layerIdx;
+                        polygons = &p.geometry;
+                    }
+
+                    geometry.tileMaxHeight = std::max(
+                        parsePolygonsGeometry(tileId, *polygons, feature, layer.extent()), 
+                        geometry.tileMaxHeight
+                    );
+                }
+                    break;
+                default: break;
+                }
+                
                 if (feature.geometry_type() != vtzero::GeomType::POLYGON) {
                     continue;
                 }
-                
-                float height = 0.0f;
-                float minHeight = 0.0f;
-                bool skipGepmetry = false;
-
-                // read feature tags (metadata attributes)
-                //printf("Properties:\n");
-                int16_t materialIdx = 0;
-                auto const buildingColor = engine::common::fixedRandom(0, 1);
-                while (auto property = feature.next_property()) {
-                    auto str = property.key();
-                    if (str == "height") {
-                        auto value = property.value();
-                        height = static_cast<float>(value.double_value());
-                    }
-                    if (str == "height_min") {
-                        auto value = property.value();
-                        minHeight = static_cast<float>(value.double_value());
-                    }
-                    if (str == "kind") {
-                        auto value = stringify(property.value());
-                        //printf("kind: %s\n", value.c_str());
-                        if (value == "building") {
-                            materialIdx = buildingColor;
-                        } else if (value == "grass" || value == "park" || value == "grassland") {
-                            //skipGepmetry = true;
-                            materialIdx = 5;
-                        } else if (value == "pedestrian") {
-                            materialIdx = 6;
-                        } else if (value == "wood" || value == "scrub") {
-                            //skipGepmetry = true;
-                            materialIdx = 7;
-                        } else if (value == "industrial") {
-                            materialIdx = 8;
-                        } else if (value == "water") {
-                            //skipGepmetry = true;
-                            materialIdx = 9;
-                        }
-                    }
-                    // if (str == "kind_detail") {
-                    //     auto value = stringify(property.value());
-                    //     int a = 0;
-                    //     printf("kind_detail: %s\n", stringify(property.value()).c_str());
-                    // }
-                    //printf("%s = %s\n", property.key().to_string().c_str(), stringify(property.value()).c_str());
-                }
-
-                if (skipGepmetry || polygons.layer == 0u && height == 0.0f) {
-                    continue;
-                }
-
-                // decode Geometries (Points, Lines, or Polygons)
-                // GeometryHandler handler{engine::vec2f{static_cast<float>(layer.extent())}};
-                // vtzero::decode_geometry(feature.geometry(), handler);
-
-                PolygonGeometryHandler handler{static_cast<float>(layer.extent())};
-                vtzero::decode_polygon_geometry(feature.geometry(), handler);
-                handler.finalize();
-
-                auto && polygon = handler.getPolygon();
-                geometry.height = std::max(polygons.addGeometry(
-                    tileId,
-                    std::move(polygon.indices), 
-                    std::move(polygon.vertices), 
-                    std::move(polygon.rings),
-                    layer.extent(),
-                    minHeight, 
-                    height,
-                    materialIdx
-                ) / layer.extent(), geometry.height);
             }
         }
+
+        LOG_I("geometry polygon layers count = %d", geometry.polygons.size());
 
         return geometry;
     }
