@@ -186,6 +186,7 @@ namespace example {
     struct MapPolygonGeometry {
         engine::rhi::runtime::BufferPtr positions;
         engine::rhi::runtime::BufferPtr indices;
+        uint8_t renderPassMask = 1u << static_cast<uint8_t>(engine::scene::RenderPass::eCommon);
     };
 
     std::vector<MapPolygonGeometry> g_mapGeometry;
@@ -586,8 +587,13 @@ namespace example {
             if (event.state == engine::InputEventState::ePress && event.key == engine::KeyboardKey::eK) {
                 // threads::StopSource2 stopSource;
                 // // https://maptiler.com/{z}/{x}/{y}.pbf?key=YOUR_API_KEY
-                auto const tileId = map::latLonToTileID(68.971447, 33.074109, 14u);
+                // auto const tileId = map::latLonToTileID(68.971447, 33.074109, 14u);
                 // auto const tileId = map::latLonToTileID(55.750982, 37.617958, 14u);
+
+                const map::TileID tileId {
+                    .x = 9905u, .y = 5120u, .z = 14u
+                };
+
                 // curlNetworkService.sendRequest(backgroundgWorker->getScheduler(),
                 //     //engine::network::http::Request{"https://i.pinimg.com/originals/97/3e/fd/973efd74e4edfa29b2e939c6a8774c4e.jpg"},
                 //     // {z}/{x}/{y}
@@ -621,7 +627,9 @@ namespace example {
                 if (tileBytes.empty()) {
                     curlNetworkService.sendRequest(backgroundgWorker->getScheduler(),
                         engine::network::http::Request{
-                            engine::fmt_string("https://api.protomaps.com/tiles/v4/%d/%d/%d.mvt?key=1356a5e8566eb869", tileId.z, tileId.x, tileId.y)},
+                            // engine::fmt_string("https://api.protomaps.com/tiles/v4/%d/%d/%d.mvt?key=1356a5e8566eb869", tileId.z, tileId.x, tileId.y)},
+                            engine::fmt_string("https://tiles.api.hexawall.ru/api/tiles/%d/%d/%d.pbf?source=2", tileId.z, tileId.x, tileId.y)},
+
                             [tileId](engine::stl::vector<std::byte> && response, engine::network::RequestResult resultCode) {
                                 if (resultCode == engine::network::RequestResult::eSuccess) {
                                     fileManager.getFileSystem("common_fs0")->writeFile(
@@ -668,6 +676,11 @@ namespace example {
                                 allDataSize += vtxSize + idxSize;
 
                                 auto & g = mapGeometry.emplace_back();
+                                g.renderPassMask = 1u << static_cast<uint8_t>(engine::scene::RenderPass::eCommon);
+
+                                if (polygon.flags & map::kFeatureFlag3D) {
+                                    g.renderPassMask |= 1u << static_cast<uint8_t>(engine::scene::RenderPass::eShadow);
+                                }
 
                                 g.positions = api.createBuffer(
                                     device, 
@@ -710,7 +723,8 @@ namespace example {
                                 staging = std::move(staging),
                                 mapGeometry = std::move(mapGeometry),
                                 device = &device,
-                                tileHeight = geometry.tileMaxHeight
+                                tileHeight = geometry.tileMaxHeight,
+                                extent = geometry.extent
                             ](
                                 engine::rhi::runtime::CommandList & commandList, 
                                 engine::stl::vector<threads::WorkerTask> & callbacks
@@ -726,7 +740,7 @@ namespace example {
                                     offset += geometry.indices->sizeInBytes();
                                 }
 
-                                callbacks.emplace_back([mapGeometry = std::move(mapGeometry), device, tileHeight]() mutable {
+                                callbacks.emplace_back([mapGeometry = std::move(mapGeometry), device, tileHeight, extent]() mutable {
                                     g_mapGeometry = std::move(mapGeometry);
 
                                     auto * node = scene->createNode();
@@ -753,12 +767,29 @@ namespace example {
                                         engine::graphics::TextureFlags::eAllowSrgbColorSpace | engine::graphics::TextureFlags::eUseMipMaps);
                                     auto * interriorImageHandler = textureManager->getImageHandler("skyBoxCubeMapImage");//
 
-                                    auto * object = scene->createObject<engine::scene::CustomDrawObject>([brikcsImageHandler, betonImageHandler, asphaltImageHandler, interriorImageHandler](
+                                    auto * object = scene->createObject<engine::scene::CustomDrawObject>([
+                                        extent, 
+                                        brikcsImageHandler, 
+                                        betonImageHandler, 
+                                        asphaltImageHandler, 
+                                        interriorImageHandler
+                                    ](
                                         const engine::scene::Scene & scene, 
                                         const engine::scene::ViewParams &, 
                                         const engine::mat4f & worldTransform,
                                         engine::rhi::runtime::CommandListPtr & commandList,
                                         uint8_t frameId) {
+                                        
+                                        struct TileUniform {
+                                            engine::mat4f worldTransform;
+                                            float extent;
+                                        };
+
+                                        TileUniform uniform {
+                                            worldTransform,
+                                            extent
+                                        };
+
                                         auto const sceneViewParamBufferOffset = scene.getCurrentViewParamsBufferOffset();
                                         switch (scene.getCurrentRenderPass()) {
                                             case engine::scene::RenderPass::eCommon:
@@ -773,23 +804,30 @@ namespace example {
                                                 
                                                 uint32_t i = 0u;
                                                 for (const auto & g : g_mapGeometry) {
-                                                    if (i == 0u) {
-                                                        commandList->bindPipeline(*g_mapGeometryCommonPipeline);
+                                                    engine::rhi::runtime::Pipeline * pipeline = nullptr;
+                                                    if (g.renderPassMask & (1u << static_cast<uint8_t>(engine::scene::RenderPass::eShadow))) {
+                                                        pipeline = g_mapGeometryCommonPipeline;
                                                     } else {
-                                                        commandList->bindPipeline(*g_mapGeometryCommonAreaPipeline);
+                                                        pipeline = g_mapGeometryCommonAreaPipeline;
                                                     }
+
+                                                    if (commandList->bindPipeline(*g_mapGeometryCommonPipeline)) {
+                                                        commandList->pushConstants(
+                                                            engine::rhi::shaders::Stages::eVertex, 
+                                                            0u, sizeof(TileUniform), &uniform
+                                                        );
+                                                        commandList->bindBuffer(0u, scene.getViewParamsUniformBuffer(frameId), 0u, sceneViewParamBufferOffset);
+                                                        commandList->bindImage(1u, brikcsImageHandler->image, linearSampler, 0u);
+                                                        commandList->bindImage(2u, betonImageHandler->image, linearSampler, 0u);
+                                                        commandList->bindImage(3u, asphaltImageHandler->image, linearSampler, 0u);
+                                                        commandList->bindImage(4u, interriorImageHandler->image, linearSampler, 0u, 
+                                                            engine::rhi::ImageAspectFlags::eColor, engine::rhi::ImageViewType::eType_Cube);
+                                                        commandList->bindImage(5u, interriorImageHandler->image, linearSampler, 0u, 
+                                                            engine::rhi::ImageAspectFlags::eColor, engine::rhi::ImageViewType::eType_2D_Array);
+                                                    }
+
                                                     commandList->bindVertexBuffer(0u, g.positions);
                                                     commandList->bindIndexBuffer(g.indices, 0u, engine::rhi::IndexType::eU32);
-                                                    commandList->bindBuffer(0u, scene.getViewParamsUniformBuffer(frameId), 0u, sceneViewParamBufferOffset);
-                                                    commandList->pushConstants(engine::rhi::shaders::Stages::eVertex, 0u, sizeof(engine::mat4f), &worldTransform);
-                                                    commandList->bindImage(1u, brikcsImageHandler->image, linearSampler, 0u);
-                                                    commandList->bindImage(2u, betonImageHandler->image, linearSampler, 0u);
-                                                    commandList->bindImage(3u, asphaltImageHandler->image, linearSampler, 0u);
-                                                    commandList->bindImage(4u, interriorImageHandler->image, linearSampler, 0u, 
-                                                        engine::rhi::ImageAspectFlags::eColor, engine::rhi::ImageViewType::eType_Cube);
-                                                    commandList->bindImage(5u, interriorImageHandler->image, linearSampler, 0u, 
-                                                        engine::rhi::ImageAspectFlags::eColor, engine::rhi::ImageViewType::eType_2D_Array);
-                                                        
                                                     commandList->drawIndexed(g.indices->sizeInBytes() / sizeof(uint32_t));
                                                     ++i;
                                                 }
@@ -797,13 +835,17 @@ namespace example {
                                             break;
                                             case engine::scene::RenderPass::eShadow:
                                             {
-                                                const auto & g = g_mapGeometry[0u];
                                                 commandList->bindPipeline(*g_mapGeometryShadowPipeline);
-                                                commandList->bindVertexBuffer(0u, g.positions);
-                                                commandList->bindIndexBuffer(g.indices, 0u, engine::rhi::IndexType::eU32);
                                                 commandList->bindBuffer(0u, scene.getViewParamsUniformBuffer(frameId), 0u, sceneViewParamBufferOffset);
-                                                commandList->pushConstants(engine::rhi::shaders::Stages::eVertex, 0u, sizeof(engine::mat4f), &worldTransform);
-                                                commandList->drawIndexed(g.indices->sizeInBytes() / sizeof(uint32_t), 2u);
+                                                commandList->pushConstants(engine::rhi::shaders::Stages::eVertex, 0u, sizeof(TileUniform), &uniform);
+
+                                                for (const auto & g : g_mapGeometry) {
+                                                    if (g.renderPassMask & (1u << static_cast<uint8_t>(engine::scene::RenderPass::eShadow))) {
+                                                        commandList->bindVertexBuffer(0u, g.positions);
+                                                        commandList->bindIndexBuffer(g.indices, 0u, engine::rhi::IndexType::eU32);
+                                                        commandList->drawIndexed(g.indices->sizeInBytes() / sizeof(uint32_t), 2u);
+                                                    }
+                                                }
                                             }
                                             break;
                                         }

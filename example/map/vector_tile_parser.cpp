@@ -6,6 +6,7 @@
 #include "engine/src/stl/algorithm.h"
 #include "engine/src/utils/compression.h"
 #include "engine/src/stl/helper.h"
+#include "engine/src/log/log.h"
 
 #include "geography.h"
 
@@ -14,9 +15,13 @@
 
 #include <string_view>
 
+// test
+#include <string>
+#include <unordered_set>
+
 namespace map {
 
-    constexpr float kWallsDistanceFactor = 16.0f;
+    constexpr float kWallsDistanceFactor = 256.0f;
 
     // define a variant covering the valid Vector Tile property types
     using variant_type = std::variant<std::string, float, double, int64_t, uint64_t, bool>;
@@ -57,7 +62,6 @@ namespace map {
     //     engine::vec2f _extent{};
     //     vector<vector<engine::vec2f>> _rings;
     // };
-
 
     class PolygonGeometryHandler {
     public:
@@ -167,7 +171,7 @@ namespace map {
         }
     };
 
-    float LayerPolygons::addGeometry(
+    void LayerPolygons::addGeometry(
         TileID tileId,
         std::vector<uint32_t> indices, 
         std::vector<engine::vec2i> vertices, 
@@ -179,7 +183,7 @@ namespace map {
         int16_t material
     ) {
         if (vertices.empty() || indices.empty()) {
-            return 0.0f;
+            return;
         }
 
         //
@@ -189,6 +193,9 @@ namespace map {
         const auto hMin = metersToTileUnits(minHeight, latlon.x, tileId.z, extentf);
         const auto hMax = metersToTileUnits(maxHeight, latlon.x, tileId.z, extentf);
 
+        minTileHeight = std::min(hMin / extent, minTileHeight);
+        maxTileHeight = std::max(hMax / extent, maxTileHeight);
+
         const auto vsz = vertices.size();
         const auto isz = indices.size();
 
@@ -197,9 +204,7 @@ namespace map {
         totalIndices.reserve(totalIndices.size() + isz);
         totalVerices.reserve(totalVerices.size() + vsz);
 
-        for (auto idx : indices) {
-            totalIndices.emplace_back(currentVertexCount + idx);
-        }
+        
         for (auto vtx : vertices) {
             totalVerices.emplace_back(
                 engine::stl::array<int16_t, 4u>{
@@ -212,7 +217,14 @@ namespace map {
         }
 
         if (hMax <= hMin) {
-            return hMin / extent;
+            for (auto idx : indices) {
+                totalIndices.emplace_back(currentVertexCount + idx);
+            }
+            return;
+        } else {
+            for (auto it = indices.rbegin(); it != indices.rend(); ++it) {
+                totalIndices.emplace_back(currentVertexCount + *it);
+            }
         }
 
         // is 3d object if hMax > hMin, build other planes
@@ -266,11 +278,33 @@ namespace map {
                 }
             }
         }
-
-        return hMax / extent;
     }
 
-    float VectorTileParser::parsePolygonsGeometry(TileID tileId, LayerPolygons & polygons, vtzero::feature & feature, int16_t extent) {
+    template <typename T>
+    concept Numeric = std::integral<T> || std::floating_point<T>;
+
+    template <Numeric T>
+    T getNumericValue(const vtzero::property_value & value) noexcept {
+        switch(value.type()) {
+        case vtzero::property_value_type::bool_value:
+            return static_cast<T>(value.bool_value());
+        case vtzero::property_value_type::sint_value:
+            return static_cast<T>(value.sint_value());
+        case vtzero::property_value_type::uint_value:
+            return static_cast<T>(value.uint_value());
+        case vtzero::property_value_type::int_value:
+            return static_cast<T>(value.int_value());
+        case vtzero::property_value_type::double_value:
+            return static_cast<T>(value.double_value());
+        case vtzero::property_value_type::float_value:
+            return static_cast<T>(value.float_value());
+        case vtzero::property_value_type::string_value:
+            return T{0};
+        }
+        return T{0};
+    }
+
+    void VectorTileParser::parsePolygonsGeometry(TileID tileId, LayerPolygons & polygons, vtzero::feature & feature, int16_t extent) {
         PolygonGeometryHandler handler{static_cast<float>(extent)};
         vtzero::decode_polygon_geometry(feature.geometry(), handler);
         handler.finalize();
@@ -281,14 +315,36 @@ namespace map {
         int16_t materialIdx = 0;
         while (auto property = feature.next_property()) {
             auto str = property.key();
-            if (str == "height") {
-                auto value = property.value();
-                maxHeight = static_cast<float>(value.double_value());
+            if (str == "height" || str == "render_height") {
+                maxHeight = getNumericValue<float>(property.value());
             }
-            if (str == "height_min") {
-                auto value = property.value();
-                minHeight = static_cast<float>(value.double_value());
+            if (str == "height_min" || str == "render_min_height") {
+                minHeight = getNumericValue<float>(property.value());
             }
+            if (str == "windows") {
+                int a = 0;
+            }
+            if (str == "building_colour") {
+                static std::unordered_set<std::string> colors;
+                auto str = property.value().string_value().to_string();
+
+                if (!colors.contains(str)) {
+                    colors.emplace(str);
+                    printf("building color: %s\n", str.c_str());
+                }
+
+                int a = 0;
+            }
+            if (str == "building_material") {
+                static std::unordered_set<std::string> materials;
+                auto str = property.value().string_value().to_string();
+
+                if (!materials.contains(str)) {
+                    materials.emplace(str);
+                    printf("building material: %s\n", str.c_str());
+                }
+            }
+
             if (str == "kind") {
                 auto value = stringify(property.value());
                 //printf("kind: %s\n", value.c_str());
@@ -305,6 +361,8 @@ namespace map {
                 } else if (value == "water") {
                     materialIdx = 9;
                 }
+            } else {
+                materialIdx = engine::common::fixedRandom(0, 1);
             }
             // if (str == "kind_detail") {
             //     auto value = stringify(property.value());
@@ -315,7 +373,7 @@ namespace map {
         }
 
         auto && polygon = handler.getPolygon();
-        return polygons.addGeometry(
+        polygons.addGeometry(
             tileId,
             std::move(polygon.indices), 
             std::move(polygon.vertices), 
@@ -323,7 +381,7 @@ namespace map {
             extent,
             minHeight, 
             maxHeight,
-            kWallsDistanceFactor,
+            static_cast<float>(extent) / kWallsDistanceFactor,
             materialIdx
         );
     }
@@ -349,6 +407,8 @@ namespace map {
 
                 const auto geometryType = feature.geometry_type();
 
+                geometry.extent = std::max(static_cast<float>(layer.extent()), geometry.extent);
+
                 switch (geometryType) {
                 case vtzero::GeomType::POLYGON: {
                     if (polygons == nullptr) {
@@ -357,8 +417,14 @@ namespace map {
                         polygons = &p.geometry;
                     }
 
+                    parsePolygonsGeometry(tileId, *polygons, feature, layer.extent());
+
+                    if (std::abs(polygons->maxTileHeight - polygons->minTileHeight) > 1e-7f) {
+                        totalPolygons.back().flags |= kFeatureFlag3D;
+                    }
+
                     geometry.tileMaxHeight = std::max(
-                        parsePolygonsGeometry(tileId, *polygons, feature, layer.extent()), 
+                        polygons->maxTileHeight, 
                         geometry.tileMaxHeight
                     );
                 }

@@ -11,10 +11,11 @@ layout (set = 0, binding = 0) uniform UniformBuffer {
 
 layout(push_constant) uniform Params {
 	mat4 transform;
+	vec4 extent;
 } push;
 
 void main() {
-	vec3 position = vec3(a_position.xyz) / 4096.0f;
+	vec3 position = vec3(a_position.xyz) / push.extent.x;
 	vec4 worldPosition = push.transform * vec4(position, 1.0f);
 	const uint count = 1;
 	gl_Position = u_viewParams.cascades[gl_InstanceIndex / count] * worldPosition;

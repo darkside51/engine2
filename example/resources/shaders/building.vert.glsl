@@ -18,10 +18,11 @@ layout (set = 0, binding = 0) uniform UniformBuffer {
 
 layout(push_constant) uniform Params {
 	mat4 transform;
+	vec4 extent;
 } push;
 
 void main() {
-	v_position = vec3(a_position.xyz) / 4096.0f;
+	v_position = vec3(a_position.xyz) / push.extent.x;
 	vec4 worldPosition = push.transform * vec4(v_position, 1.0f);
 	v_position = worldPosition.xyz / worldPosition.w;
 

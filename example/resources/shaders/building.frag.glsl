@@ -24,6 +24,11 @@ layout (set = 0, binding = 0) uniform UniformBuffer {
 	float time;
 } u_viewParams;
 
+//layout(push_constant) uniform Params {
+//	mat4 transform;
+//	vec4 extent;
+//} push;
+
 layout(set = 0, binding = 1) uniform sampler2D u_texture;
 layout(set = 0, binding = 2) uniform sampler2D u_texture2;
 layout(set = 0, binding = 3) uniform sampler2D u_texture3;

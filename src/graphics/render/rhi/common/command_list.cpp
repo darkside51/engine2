@@ -115,7 +115,7 @@ namespace engine::rhi::runtime {
         }
     }
 
-    void CommandList::bindPipeline(const PipelinePtr & pipeline) noexcept {
+    bool CommandList::bindPipeline(const PipelinePtr & pipeline) noexcept {
         if (_state.pipeline != pipeline.get()) {
             _commands->create<BindPipelineCommand>(pipeline);
             _state.pipeline = pipeline.get();
@@ -130,10 +130,12 @@ namespace engine::rhi::runtime {
                 _currentPass = &_passes.emplace_back(Pass::Type::eCompute, _commandsCount);
             }
             ++_commandsCount;
+            return true;
         }
+        return false;
     }
 
-    void CommandList::bindPipeline(const Pipeline & pipeline) noexcept {
+    bool CommandList::bindPipeline(const Pipeline & pipeline) noexcept {
         if (_state.pipeline != &pipeline) {
             _commands->create<BindPipelineCommand>(pipeline);
             _state.pipeline = &pipeline;
@@ -148,7 +150,9 @@ namespace engine::rhi::runtime {
                 _currentPass = &_passes.emplace_back(Pass::Type::eCompute, _commandsCount);
             }
             ++_commandsCount;
+            return true;
         }
+        return false;
     }
 
     // void CommandList::bindVertexBuffer(uint32_t binding, Buffer * buffer, uint32_t offset) {
