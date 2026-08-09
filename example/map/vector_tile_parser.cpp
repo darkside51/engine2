@@ -1,5 +1,8 @@
 #include "vector_tile_parser.h"
 
+#include "colors.h"
+#include "geography.h"
+
 #include "engine/src/common/random.h"
 #include "engine/src/math/math.h"
 #include "engine/src/math/earcut.h"
@@ -7,8 +10,6 @@
 #include "engine/src/utils/compression.h"
 #include "engine/src/stl/helper.h"
 #include "engine/src/log/log.h"
-
-#include "geography.h"
 
 #include "vtzero/vector_tile.hpp"
 #include "vtzero/property_value.hpp"
@@ -330,10 +331,27 @@ namespace map {
 
                 if (!colors.contains(str)) {
                     colors.emplace(str);
-                    printf("building color: %s\n", str.c_str());
-                }
+                    uint32_t color = 0xff'ff'ff'ffu;
+                    if (str.starts_with('#')) {
+                        color = hexStringToUint32(str).color;
+                    } else {
+                        const auto delimeter = str.find(';');
+                        bool colorFoundResult = false;
+                        if (delimeter != std::string::npos) { // get first color
+                            const auto [c, result] = colorNameToUint32t({str.begin(), str.begin() + delimeter});
+                            color = c;
+                            colorFoundResult = result;
+                        } else {
+                            const auto [c, result] = colorNameToUint32t(str);
+                            color = c;
+                            colorFoundResult = result;
+                        }
 
-                int a = 0;
+                        if (!colorFoundResult) {
+                            LOG_W("no found color uint32_t for : %s", str.c_str());
+                        }
+                    }
+                }
             }
             if (str == "building_material") {
                 static std::unordered_set<std::string> materials;
