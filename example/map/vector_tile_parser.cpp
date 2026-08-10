@@ -341,10 +341,11 @@ namespace map {
                     if (str.starts_with('#')) {
                         color = hexStringToUint32(str).color;
                     } else {
-                        const auto delimeter = str.find(';');
+                        const auto delimeter = std::min(str.find(';'), str.find('\''));
                         bool colorFoundResult = false;
                         if (delimeter != std::string::npos) { // get first color
                             const auto [c, result] = colorNameToUint32t({str.begin(), str.begin() + delimeter});
+                            //const auto [c, result] = colorNameToUint32t({str.begin() + delimeter + 1u, str.end()});
                             color = c;
                             colorFoundResult = result;
                         } else {

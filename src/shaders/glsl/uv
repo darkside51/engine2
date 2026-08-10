@@ -6,4 +6,9 @@ vec2 repeatUV(vec2 uv, vec2 uvMin, vec2 uvMax) {
 	return uvMin + fract((uv - uvMin) / size) * size;
 }
 
+vec2 repeatUVSimple(vec2 uv, vec2 uvMin, vec2 uvMax) {
+	const vec2 size = uvMax - uvMin;
+	return uvMin + fract(uv / size) * size;
+}
+
 #endif

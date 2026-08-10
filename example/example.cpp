@@ -771,7 +771,7 @@ namespace example {
                                     );
 
                                     const auto * brikcsImageHandler = loadImageAsync(*device, fileManager, *textureManager, 
-                                        "walls", "assets/walls.jpg", 
+                                        "walls", "assets/walls4.png", 
                                         engine::graphics::TextureFlags::eAllowSrgbColorSpace | engine::graphics::TextureFlags::eUseMipMaps);
 
                                     const auto * betonImageHandler = loadImageAsync(*device, fileManager, *textureManager, 
