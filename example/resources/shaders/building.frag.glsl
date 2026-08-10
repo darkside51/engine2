@@ -45,6 +45,13 @@ const vec4 colors[6] = vec4[](
 	vec4(0.0f, 0.41f, 0.58f, 1.0f)		// water
 );
 
+const float kWallImageSize = 128.0f;
+
+vec4 getMaterialUv(ivec2 uv0) {
+	const float textureSize = textureSize(u_texture, 0).x;
+	return vec4(uv0 / textureSize, (uv0 + 1) / textureSize) * kWallImageSize;
+}
+
 void main() {
 	const float depthLinear = linearDepth(gl_FragCoord.z, u_viewParams.nearFarPlanes.x, u_viewParams.nearFarPlanes.y);
 	out_position = depthLinear;
@@ -65,21 +72,23 @@ void main() {
 
 		//vec2 uvMin = mix(vec2(0.0f, 0.0f), vec2(0.5f, 0.0f), v_material & 1);
 		//vec2 uvMax = mix(vec2(0.5f, 0.5f), vec2(1.0f, 0.5f), v_material & 1);
-		vec2 uvMin = vec2(0.0f, 0.5f);
-		vec2 uvMax = vec2(0.5f, 1.0f);
+		const vec4 materialUvs = getMaterialUv(ivec2(0, 1));
+		const vec2 uvMin = materialUvs.xy;
+		const vec2 uvMax = materialUvs.zw;
 		const vec2 size = uvMax - uvMin;
 
-		uv = repeatUV(uv * size, uvMin, uvMax);
+		uv = repeatUVSimple(uv * size, uvMin, uvMax);
 		vec2 uv3 = uv2 * size;
 		const vec2 dx = dFdx(uv3);
 		const vec2 dy = dFdy(uv3);
 
-		const vec2 uvWindowMin = vec2(0.51f, 0.51f);
-		const vec2 uvWindowMax = vec2(0.99f, 0.99f);
+		const vec4 windowMaterialUvs = getMaterialUv(ivec2(1, 1));
+		const vec2 uvWindowMin = windowMaterialUvs.xy + vec2(0.01f, 0.01f);
+		const vec2 uvWindowMax = windowMaterialUvs.zw - vec2(0.01f, 0.01f);
 		const vec2 size2 = uvWindowMax - uvWindowMin;
 		const vec2 windowUv = repeatUVSimple(uv2 * size2, uvWindowMin, uvWindowMax);
 
-		uv3 = repeatUV(uv3, uvMin, uvMax);
+		uv3 = repeatUVSimple(uv3, uvMin, uvMax);
 
 		const float magicStep = step(abs(dx.x), kUvMix);
 
@@ -92,14 +101,11 @@ void main() {
 
 		const vec4 color = texture(u_texture2, v_position.xy * 8.0f) * (1.0f + v_position.z) * v_color;
 		const vec4 floorColor = mix(texture(u_texture3, v_position.xy * 10.0f), color, step(0.01f, v_position.z));
-		const float roof = step(0.99f, normal.z);
+		const float roof = step(0.99f, abs(normal.z));
 		
 		out_albedo = mix(wallColor, floorColor, roof);
-		out_metalicRoughness = mix(vec2(0.0f, 1.0f), vec2(0.0f, 0.1f), step(wallMaterialColor.a, 0.5f) * (1.0f - roof));
+		out_metalicRoughness = mix(vec2(0.0f, 1.0f), vec2(0.0f, 0.1f), step(wallMaterialColor.a, 0.95f) * (1.0f - roof));
 	} else {
-		//if (v_material == 7 || v_material == 5) {
-		//}
-
 		const vec4 color = colors[v_material - 4] * (1.0f + v_position.z);
 		out_albedo = color * v_color;
 		out_metalicRoughness = vec2(0.0f, 1.0f);
