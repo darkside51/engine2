@@ -181,7 +181,8 @@ namespace map {
         float minHeight, 
         float maxHeight,
         float distanceFactor,
-        int16_t material
+        int16_t material,
+        uint32_t color
     ) {
         if (vertices.empty() || indices.empty()) {
             return;
@@ -204,8 +205,8 @@ namespace map {
         const auto currentVertexCount = totalVerices.size();
         totalIndices.reserve(totalIndices.size() + isz);
         totalVerices.reserve(totalVerices.size() + vsz);
+        totalColors.reserve(totalColors.size() + vsz);
 
-        
         for (auto vtx : vertices) {
             totalVerices.emplace_back(
                 engine::stl::array<int16_t, 4u>{
@@ -215,6 +216,7 @@ namespace map {
                     material
                 }
             );
+            totalColors.emplace_back(color);
         }
 
         if (hMax <= hMin) {
@@ -234,6 +236,7 @@ namespace map {
         const auto currentVertexCount2 = totalVerices.size();
         totalIndices.reserve(totalIndices.size() + isz);
         totalVerices.reserve(totalVerices.size() + vsz);
+        totalColors.reserve(totalColors.size() + vsz);
 
         for (auto idx : indices) {
             totalIndices.emplace_back(currentVertexCount2 + idx);
@@ -247,6 +250,7 @@ namespace map {
                     material
                 }
             );
+            totalColors.emplace_back(color);
         }
 
         // faces
@@ -314,6 +318,8 @@ namespace map {
         float minHeight = 0.0f;
 
         int16_t materialIdx = 0;
+        uint32_t color = 0xff'ff'ff'ffu;
+
         while (auto property = feature.next_property()) {
             auto str = property.key();
             if (str == "height" || str == "render_height") {
@@ -331,7 +337,7 @@ namespace map {
 
                 if (!colors.contains(str)) {
                     colors.emplace(str);
-                    uint32_t color = 0xff'ff'ff'ffu;
+                    
                     if (str.starts_with('#')) {
                         color = hexStringToUint32(str).color;
                     } else {
@@ -367,7 +373,7 @@ namespace map {
                 auto value = stringify(property.value());
                 //printf("kind: %s\n", value.c_str());
                 if (value == "building") {
-                    materialIdx = engine::common::fixedRandom(0, 1);
+                    materialIdx = 0;//engine::common::fixedRandom(0, 1);
                 } else if (value == "grass" || value == "park" || value == "grassland") {
                     materialIdx = 5;
                 } else if (value == "pedestrian") {
@@ -380,7 +386,7 @@ namespace map {
                     materialIdx = 9;
                 }
             } else {
-                materialIdx = engine::common::fixedRandom(0, 1);
+                materialIdx = 1;//engine::common::fixedRandom(0, 1);
             }
             // if (str == "kind_detail") {
             //     auto value = stringify(property.value());
@@ -400,7 +406,8 @@ namespace map {
             minHeight, 
             maxHeight,
             static_cast<float>(extent) / kWallsDistanceFactor,
-            materialIdx
+            materialIdx,
+            color
         );
     }
 

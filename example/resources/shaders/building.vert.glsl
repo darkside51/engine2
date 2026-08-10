@@ -1,10 +1,12 @@
 #version 450
 
 layout (location = 0) in ivec4 a_position;
+layout (location = 1) in vec4 a_color;
 
 layout (location = 0) out vec3 v_position;
-layout (location = 1) flat out int v_material;
-layout (location = 2) out vec2 v_w;
+layout (location = 1) out vec4 v_color;
+layout (location = 2) flat out int v_material;
+layout (location = 3) out vec2 v_w;
 
 layout (set = 0, binding = 0) uniform UniformBuffer {
 	mat4 view;
@@ -29,4 +31,5 @@ void main() {
 	gl_Position = u_viewParams.viewProjection * worldPosition;
 	v_material = a_position.w & 0x000f;
 	v_w = vec2(float(a_position.w >> 4), round(v_position.z * 16.0f));
+	v_color = a_color;
 }

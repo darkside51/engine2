@@ -185,6 +185,7 @@ namespace example {
 
     struct MapPolygonGeometry {
         engine::rhi::runtime::BufferPtr positions;
+        engine::rhi::runtime::BufferPtr colors;
         engine::rhi::runtime::BufferPtr indices;
         uint8_t renderPassMask = 1u << static_cast<uint8_t>(engine::scene::RenderPass::eCommon);
     };
@@ -669,11 +670,12 @@ namespace example {
                             for (const auto & polygon : geometry.polygons) {
                                 const auto & pg = polygon.geometry;
                                 const auto vtxSize = sizeof(int16_t) * 4u * pg.totalVerices.size();
+                                const auto vtxColorSize = sizeof(uint32_t) * pg.totalColors.size();
                                 const auto idxSize = sizeof(uint32_t) * pg.totalIndices.size();
                                 if (vtxSize == 0u || idxSize == 0u) {
                                     continue;
                                 }
-                                allDataSize += vtxSize + idxSize;
+                                allDataSize += vtxSize + idxSize + vtxColorSize;
 
                                 auto & g = mapGeometry.emplace_back();
                                 g.renderPassMask = 1u << static_cast<uint8_t>(engine::scene::RenderPass::eCommon);
@@ -686,6 +688,12 @@ namespace example {
                                     device, 
                                     vertexBufferInfo, 
                                     vtxSize
+                                );
+
+                                g.colors = api.createBuffer(
+                                    device, 
+                                    vertexBufferInfo, 
+                                    vtxColorSize
                                 );
 
                                 g.indices = api.createBuffer(
@@ -701,18 +709,22 @@ namespace example {
                             for (const auto & polygon : geometry.polygons) {
                                 const auto & pg = polygon.geometry;
                                 const auto vtxSize = sizeof(int16_t) * 4u * pg.totalVerices.size();
+                                const auto vtxColorSize = sizeof(uint32_t) * pg.totalColors.size();
                                 const auto idxSize = sizeof(uint32_t) * pg.totalIndices.size();
                                 if (vtxSize == 0u || idxSize == 0u) {
                                     continue;
                                 }
 
                                 const auto vtxOffset = staging.requestBytes(vtxSize);
+                                const auto colorsOffset = staging.requestBytes(vtxColorSize);
                                 const auto idxOffset = staging.requestBytes(idxSize);
 
                                 auto * vtxData = reinterpret_cast<int16_t*>(memory + vtxOffset);
+                                auto * colorsData = reinterpret_cast<int16_t*>(memory + colorsOffset);
                                 auto * idxData = reinterpret_cast<uint32_t*>(memory + idxOffset);
 
                                 memcpy(vtxData, pg.totalVerices.data(), vtxSize);
+                                memcpy(colorsData, pg.totalColors.data(), vtxColorSize);
                                 memcpy(idxData, pg.totalIndices.data(), idxSize);
                             }
 
@@ -734,6 +746,10 @@ namespace example {
                                     commandList.copyBuffer2Buffer(staging.getBuffer(), geometry.positions, 
                                         {.srcOffset = offset, .dstOffset = 0u, .size = geometry.positions->sizeInBytes()});
                                     offset += geometry.positions->sizeInBytes();
+
+                                    commandList.copyBuffer2Buffer(staging.getBuffer(), geometry.colors, 
+                                        {.srcOffset = offset, .dstOffset = 0u, .size = geometry.colors->sizeInBytes()});
+                                    offset += geometry.colors->sizeInBytes();
 
                                     commandList.copyBuffer2Buffer(staging.getBuffer(), geometry.indices, 
                                         {.srcOffset = offset, .dstOffset = 0u, .size = geometry.indices->sizeInBytes()});
@@ -763,7 +779,7 @@ namespace example {
                                         engine::graphics::TextureFlags::eAllowSrgbColorSpace | engine::graphics::TextureFlags::eUseMipMaps);
 
                                     const auto * asphaltImageHandler = loadImageAsync(*device, fileManager, *textureManager, 
-                                        "asphalt", "assets/floor3.jpg", 
+                                        "asphalt", "assets/alphalt-1.jpg", 
                                         engine::graphics::TextureFlags::eAllowSrgbColorSpace | engine::graphics::TextureFlags::eUseMipMaps);
                                     auto * interriorImageHandler = textureManager->getImageHandler("skyBoxCubeMapImage");//
 
@@ -827,6 +843,7 @@ namespace example {
                                                     }
 
                                                     commandList->bindVertexBuffer(0u, g.positions);
+                                                    commandList->bindVertexBuffer(1u, g.colors);
                                                     commandList->bindIndexBuffer(g.indices, 0u, engine::rhi::IndexType::eU32);
                                                     commandList->drawIndexed(g.indices->sizeInBytes() / sizeof(uint32_t));
                                                     ++i;

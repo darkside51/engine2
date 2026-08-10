@@ -37,10 +37,12 @@ namespace map {
             float minHeight, 
             float maxHeight,
             float distanceFactor,
-            int16_t material
+            int16_t material,
+            uint32_t color
         );
         std::vector<uint32_t> totalIndices;
         engine::stl::vector<engine::stl::array<int16_t, 4u>> totalVerices;
+        engine::stl::vector<uint32_t> totalColors;
         float minTileHeight = std::numeric_limits<float>::max();
         float maxTileHeight = std::numeric_limits<float>::lowest();
     };
