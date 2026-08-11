@@ -52,6 +52,11 @@ vec4 getMaterialUv(ivec2 uv0) {
 	return vec4(uv0 / textureSize, (uv0 + 1) / textureSize) * kWallImageSize;
 }
 
+vec4 getMaterialUv(int imageID) {
+	const int size = textureSize(u_texture, 0).x / int(kWallImageSize);
+	return getMaterialUv(ivec2(imageID % size, imageID / size));
+}
+
 void main() {
 	const float depthLinear = linearDepth(gl_FragCoord.z, u_viewParams.nearFarPlanes.x, u_viewParams.nearFarPlanes.y);
 	out_position = depthLinear;
@@ -66,13 +71,13 @@ void main() {
 		vec2 uv = vec2(u * 16.0f, -v_w.y);
 		vec2 uv2 = vec2(-v_w.x, -v_w.y);
 
-		const vec4 interriorColor = calculateRoomCube(u_interriorMap, v_position, u_viewParams.cameraPosition, normal, uv2, vec3(2.0f, 1.3f, 1.0f), vec4(1.0f));
+		const vec4 interriorColor = calculateRoomCube(u_interriorMap, v_position, u_viewParams.cameraPosition, normal, uv2, vec3(2.0f, 1.0f, 1.0f), vec4(1.0f));
 
 		const float kUvMix = 0.0001f;
 
 		//vec2 uvMin = mix(vec2(0.0f, 0.0f), vec2(0.5f, 0.0f), v_material & 1);
 		//vec2 uvMax = mix(vec2(0.5f, 0.5f), vec2(1.0f, 0.5f), v_material & 1);
-		const vec4 materialUvs = getMaterialUv(ivec2(0, 1));
+		const vec4 materialUvs = getMaterialUv(4);
 		const vec2 uvMin = materialUvs.xy;
 		const vec2 uvMax = materialUvs.zw;
 		const vec2 size = uvMax - uvMin;
@@ -82,9 +87,9 @@ void main() {
 		const vec2 dx = dFdx(uv3);
 		const vec2 dy = dFdy(uv3);
 
-		const vec4 windowMaterialUvs = getMaterialUv(ivec2(1, 1));
-		const vec2 uvWindowMin = windowMaterialUvs.xy + vec2(0.01f, 0.01f);
-		const vec2 uvWindowMax = windowMaterialUvs.zw - vec2(0.01f, 0.01f);
+		const vec4 windowMaterialUvs = getMaterialUv(5);
+		const vec2 uvWindowMin = windowMaterialUvs.xy + vec2(0.005f, 0.005f);
+		const vec2 uvWindowMax = windowMaterialUvs.zw - vec2(0.005f, 0.005f);
 		const vec2 size2 = uvWindowMax - uvWindowMin;
 		const vec2 windowUv = repeatUVSimple(uv2 * size2, uvWindowMin, uvWindowMax);
 
