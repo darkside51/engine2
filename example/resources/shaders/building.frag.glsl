@@ -42,17 +42,18 @@ struct Material {
 	int windowImageId;
 };
 
-const Material materials[10] = Material[](
+const Material materials[11] = Material[](
 	Material(vec2(0.0f, 1.0f), 4, 5),		// plaster / default
 	Material(vec2(0.25f, 0.25f), 3, 2),		// glass
 	Material(vec2(0.0f, 1.0f), 6, 7),		// wood
 	Material(vec2(0.25f, 0.25f), 3, 5), 	// metal_plates / metal
 	Material(vec2(0.1f, 0.4f), 9, 5), 		// granite
 	Material(vec2(0.0f, 0.8f), 8, 5), 		// marble / vinyl
-	Material(vec2(0.0f, 1.0f), 0, 5), 		// brick
+	Material(vec2(0.0f, 1.0f), 0, 5), 		// brick - limestone
 	Material(vec2(0.0f, 1.0f), 1, 5), 		// cement_block / concrate / concrete
 	Material(vec2(0.1f, 0.9f), 3, 5),		// porcelain_stoneware
-	Material(vec2(0.0f, 1.0f), 10, 7)		// limestone
+	Material(vec2(0.0f, 1.0f), 10, 7),		// free!
+	Material(vec2(0.0f, 1.0f), 11, 5) 		// brick
 );
 
 const vec4 colors[6] = vec4[](
@@ -84,7 +85,7 @@ void main() {
 	const vec3 viewNormal = u_viewParams.viewTransposeInverse * normal;
 
 	out_normal = vec4(normalize(viewNormal) * 0.5f + 0.5f, 0.0f);
-	if (v_material < 10) {
+	if (v_material < 11) {
 		const float u = mix(v_position.x, v_position.y, step(abs(normal.y / normal.x), 1.0f));
 
 		vec2 uv = vec2(u * 16.0f, -v_w.y);
