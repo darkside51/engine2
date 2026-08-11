@@ -36,6 +36,25 @@ layout(set = 0, binding = 3) uniform sampler2D u_texture3;
 layout(set = 0, binding = 4) uniform samplerCube u_interriorMap;
 layout(set = 0, binding = 5) uniform sampler2DArray u_interriorMapArr;
 
+struct Material {
+	vec2 metalicRoughness;
+	int imageId;
+	int windowImageId;
+};
+
+const Material materials[10] = Material[](
+	Material(vec2(0.0f, 1.0f), 4, 5),		// plaster / default
+	Material(vec2(0.25f, 0.25f), 3, 2),		// glass
+	Material(vec2(0.0f, 1.0f), 6, 7),		// wood
+	Material(vec2(0.25f, 0.25f), 3, 5), 	// metal_plates / metal
+	Material(vec2(0.1f, 0.4f), 9, 5), 		// granite
+	Material(vec2(0.0f, 0.8f), 8, 5), 		// marble / vinyl
+	Material(vec2(0.0f, 1.0f), 0, 5), 		// brick
+	Material(vec2(0.0f, 1.0f), 1, 5), 		// cement_block / concrate / concrete
+	Material(vec2(0.1f, 0.9f), 3, 5),		// porcelain_stoneware
+	Material(vec2(0.0f, 1.0f), 10, 7)		// limestone
+);
+
 const vec4 colors[6] = vec4[](
 	vec4(0.65f, 0.65f, 0.65f, 1.0f), 	// building
 	vec4(0.25f, 0.75f, 0.25f, 1.0f), 	// grass
@@ -65,7 +84,7 @@ void main() {
 	const vec3 viewNormal = u_viewParams.viewTransposeInverse * normal;
 
 	out_normal = vec4(normalize(viewNormal) * 0.5f + 0.5f, 0.0f);
-	if (v_material < 5) {
+	if (v_material < 10) {
 		const float u = mix(v_position.x, v_position.y, step(abs(normal.y / normal.x), 1.0f));
 
 		vec2 uv = vec2(u * 16.0f, -v_w.y);
@@ -77,7 +96,10 @@ void main() {
 
 		//vec2 uvMin = mix(vec2(0.0f, 0.0f), vec2(0.5f, 0.0f), v_material & 1);
 		//vec2 uvMax = mix(vec2(0.5f, 0.5f), vec2(1.0f, 0.5f), v_material & 1);
-		const vec4 materialUvs = getMaterialUv(4);
+
+		const Material material = materials[v_material];
+
+		const vec4 materialUvs = getMaterialUv(material.imageId);
 		const vec2 uvMin = materialUvs.xy;
 		const vec2 uvMax = materialUvs.zw;
 		const vec2 size = uvMax - uvMin;
@@ -87,7 +109,7 @@ void main() {
 		const vec2 dx = dFdx(uv3);
 		const vec2 dy = dFdy(uv3);
 
-		const vec4 windowMaterialUvs = getMaterialUv(5);
+		const vec4 windowMaterialUvs = getMaterialUv(material.windowImageId);
 		const vec2 uvWindowMin = windowMaterialUvs.xy + vec2(0.005f, 0.005f);
 		const vec2 uvWindowMax = windowMaterialUvs.zw - vec2(0.005f, 0.005f);
 		const vec2 size2 = uvWindowMax - uvWindowMin;
@@ -109,9 +131,9 @@ void main() {
 		const float roof = step(0.99f, abs(normal.z));
 		
 		out_albedo = mix(wallColor, floorColor, roof);
-		out_metalicRoughness = mix(vec2(0.0f, 1.0f), vec2(0.0f, 0.1f), step(wallMaterialColor.a, 0.95f) * (1.0f - roof));
+		out_metalicRoughness = mix(material.metalicRoughness, vec2(0.0f, 0.1f), step(wallMaterialColor.a, 0.95f) * (1.0f - roof));
 	} else {
-		const vec4 color = colors[v_material - 4] * (1.0f + v_position.z);
+		const vec4 color = /*colors[v_material - 4] * */vec4(1.0f) * (1.0f + v_position.z);
 		out_albedo = color * v_color;
 		out_metalicRoughness = vec2(0.0f, 1.0f);
 	}

@@ -309,6 +309,30 @@ namespace map {
         return T{0};
     }
 
+
+    struct MaterialEntry {
+        std::string_view name;
+        uint32_t id;
+    };
+
+    static constexpr MaterialEntry kMaterials[] = {
+        {"granite",             4},
+        {"marble",              5},
+        {"plaster",             0},
+        {"metal_plates",        3},
+        {"glass",               1},
+        {"metal",               3},
+        {"brick",               6},
+        {"concrete",            7},
+        {"cement_block",        7},
+        {"vinyl",               5},
+        {"wood",                2},
+        {"limestone",           9},
+        {"porcelain_stoneware", 8},
+        {"cement_block;glass",  7},
+        {"concrate",            7}
+    };
+
     void VectorTileParser::parsePolygonsGeometry(TileID tileId, LayerPolygons & polygons, vtzero::feature & feature, int16_t extent) {
         PolygonGeometryHandler handler{static_cast<float>(extent)};
         vtzero::decode_polygon_geometry(feature.geometry(), handler);
@@ -364,31 +388,44 @@ namespace map {
                 static std::unordered_set<std::string> materials;
                 auto str = property.value().string_value().to_string();
 
+                const auto it = std::find_if(
+                    std::begin(kMaterials),
+                    std::end(kMaterials),
+                    [&str] (const MaterialEntry & material) noexcept {
+                    return str == material.name;
+                    }
+                );
+
+                if (it != std::end(kMaterials)) {
+                    materialIdx = it->id;
+                }
+
+
                 if (!materials.contains(str)) {
                     materials.emplace(str);
                     printf("building material: %s\n", str.c_str());
                 }
             }
 
-            if (str == "kind") {
-                auto value = stringify(property.value());
-                //printf("kind: %s\n", value.c_str());
-                if (value == "building") {
-                    materialIdx = 0;//engine::common::fixedRandom(0, 1);
-                } else if (value == "grass" || value == "park" || value == "grassland") {
-                    materialIdx = 5;
-                } else if (value == "pedestrian") {
-                    materialIdx = 6;
-                } else if (value == "wood" || value == "scrub") {
-                    materialIdx = 7;
-                } else if (value == "industrial") {
-                    materialIdx = 8;
-                } else if (value == "water") {
-                    materialIdx = 9;
-                }
-            } else {
-                materialIdx = 1;//engine::common::fixedRandom(0, 1);
-            }
+            // if (str == "kind") {
+            //     auto value = stringify(property.value());
+            //     //printf("kind: %s\n", value.c_str());
+            //     if (value == "building") {
+            //         materialIdx = 0;//engine::common::fixedRandom(0, 1);
+            //     } else if (value == "grass" || value == "park" || value == "grassland") {
+            //         materialIdx = 5;
+            //     } else if (value == "pedestrian") {
+            //         materialIdx = 6;
+            //     } else if (value == "wood" || value == "scrub") {
+            //         materialIdx = 7;
+            //     } else if (value == "industrial") {
+            //         materialIdx = 8;
+            //     } else if (value == "water") {
+            //         materialIdx = 9;
+            //     }
+            // } else {
+            //     materialIdx = 1;//engine::common::fixedRandom(0, 1);
+            // }
             // if (str == "kind_detail") {
             //     auto value = stringify(property.value());
             //     int a = 0;
