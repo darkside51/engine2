@@ -323,14 +323,14 @@ namespace map {
         {"glass",               1},
         {"metal",               3},
         {"brick",               10},
+        {"concrate",            7},
         {"concrete",            7},
-        {"cement_block",        7},
+        {"cement_block",        9},
         {"vinyl",               5},
         {"wood",                2},
         {"limestone",           6},
         {"porcelain_stoneware", 8},
-        {"cement_block;glass",  7},
-        {"concrate",            7}
+        {"cement_block;glass",  9},
     };
 
     void VectorTileParser::parsePolygonsGeometry(TileID tileId, LayerPolygons & polygons, vtzero::feature & feature, int16_t extent) {

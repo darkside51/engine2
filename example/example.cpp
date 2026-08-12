@@ -97,6 +97,7 @@ namespace example {
     constexpr uint8_t kSpritesProgram2 = 14u;
     constexpr uint8_t kMapBuildingsProgram = 15u;
     constexpr uint8_t kMapBuildingsShadowsProgram = 16u;
+    constexpr uint8_t kMapPolygonsProgram = 17u;
 
     constexpr uint8_t kSsaoKernelSize = 32u;
     constexpr uint8_t kSsaoNoiseDim = 4u;
@@ -818,16 +819,18 @@ namespace example {
                                                 linearSampler.info.addressModeV = engine::rhi::SamplerAddressMode::eRepeat;
                                                 linearSampler.info.addressModeW = engine::rhi::SamplerAddressMode::eClamp_To_Border;
                                                 
-                                                uint32_t i = 0u;
                                                 for (const auto & g : g_mapGeometry) {
                                                     engine::rhi::runtime::Pipeline * pipeline = nullptr;
                                                     if (g.renderPassMask & (1u << static_cast<uint8_t>(engine::scene::RenderPass::eShadow))) {
                                                         pipeline = g_mapGeometryCommonPipeline;
+                                                        printf("sss1\n");
                                                     } else {
                                                         pipeline = g_mapGeometryCommonAreaPipeline;
+                                                        printf("sss2\n");
                                                     }
 
-                                                    if (commandList->bindPipeline(*g_mapGeometryCommonPipeline)) {
+                                                    if (commandList->bindPipeline(*pipeline)) {
+                                                        printf("sda222\n");
                                                         commandList->pushConstants(
                                                             engine::rhi::shaders::Stages::eVertex, 
                                                             0u, sizeof(TileUniform), &uniform
@@ -846,7 +849,6 @@ namespace example {
                                                     commandList->bindVertexBuffer(1u, g.colors);
                                                     commandList->bindIndexBuffer(g.indices, 0u, engine::rhi::IndexType::eU32);
                                                     commandList->drawIndexed(g.indices->sizeInBytes() / sizeof(uint32_t));
-                                                    ++i;
                                                 }
                                             }
                                             break;
@@ -1489,6 +1491,16 @@ namespace example {
             const auto & vsModule = _shaderModulesManager->registerModule("building_shadow.vert", *_device, engine::rhi::shaders::Stages::eVertex, vBytes);
             _programs.emplace_back(_api->createProgram(*_device, engine::stl::array{vsModule.getView()}));
         }
+
+        { // kMapPolygonsProgram
+            auto const vBytes = fileManager.readFile("shaders/polygons.vert.spv");
+            auto const fBytes = fileManager.readFile("shaders/polygons.frag.spv");
+
+            const auto & vsModule = _shaderModulesManager->registerModule("polygons.vert", *_device, engine::rhi::shaders::Stages::eVertex, vBytes);
+            const auto & fsModule = _shaderModulesManager->registerModule("polygons.frag", *_device, engine::rhi::shaders::Stages::eFragment, fBytes);
+
+            _programs.emplace_back(_api->createProgram(*_device, engine::stl::array{vsModule.getView(), fsModule.getView()}));
+        }
     }
     
     void Example::createPipelines() {
@@ -1530,7 +1542,7 @@ namespace example {
         g_mapGeometryCommonPipeline = _pipelines.emplace_back(_api->createGraphicsPipeline(*_device, _renderPasses[kGbufferRenderPass], _programs[kMapBuildingsProgram], info9, 0u)).get();
         // kMapAreaPipeline
         const GraphicsPipelineStatesInfo info10 = engine::parseGraphicsPipelineInfo(json["map_area"]);
-        g_mapGeometryCommonAreaPipeline = _pipelines.emplace_back(_api->createGraphicsPipeline(*_device, _renderPasses[kGbufferRenderPass], _programs[kMapBuildingsProgram], info10, 0u)).get();
+        g_mapGeometryCommonAreaPipeline = _pipelines.emplace_back(_api->createGraphicsPipeline(*_device, _renderPasses[kGbufferRenderPass], _programs[kMapPolygonsProgram], info10, 0u)).get();
         
         // scene pipelines
         const GraphicsPipelineStatesInfo info2 = engine::parseGraphicsPipelineInfo(json["sprite_common"]);
