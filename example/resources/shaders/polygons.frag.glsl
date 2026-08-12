@@ -81,8 +81,8 @@ void main() {
 	out_normal = vec4(normalize(viewNormal) * 0.5f + 0.5f, 0.0f);
 
 	const vec4 floorColor = texture(u_texture3, v_position.xy * 10.0f);
+	
 	out_albedo = floorColor * v_color;
 	out_metalicRoughness = vec2(0.0f, 1.0f);
-	
 	out_emissive = vec4(0.0, 0.0, 0.0, 0.0);
 }

@@ -197,6 +197,7 @@ namespace map {
 
         minTileHeight = std::min(hMin / extent, minTileHeight);
         maxTileHeight = std::max(hMax / extent, maxTileHeight);
+        color |= material << 24u;
 
         const auto vsz = vertices.size();
         const auto isz = indices.size();
@@ -278,8 +279,8 @@ namespace map {
                     const auto v1 = engine::vec2f{totalVerices[floorNext][0u], totalVerices[floorNext][1u]};
                     const float wallLength = std::round(glm::distance(v0, v1) / distanceFactor);
                     l += wallLength;
-                    totalVerices[floorNext][3u] = (static_cast<int16_t>(l) << 4) | material;
-                    totalVerices[roofNext][3u] = (static_cast<int16_t>(l) << 4) | material;
+                    totalVerices[floorNext][3u] = static_cast<int16_t>(l);
+                    totalVerices[roofNext][3u] = static_cast<int16_t>(l);
                 }
             }
         }
@@ -342,7 +343,7 @@ namespace map {
         float minHeight = 0.0f;
 
         int16_t materialIdx = 0;
-        uint32_t color = 0xff'ff'ff'ffu;
+        uint32_t color = 0x00'ff'ff'ffu;
 
         while (auto property = feature.next_property()) {
             auto str = property.key();

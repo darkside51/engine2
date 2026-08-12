@@ -823,14 +823,11 @@ namespace example {
                                                     engine::rhi::runtime::Pipeline * pipeline = nullptr;
                                                     if (g.renderPassMask & (1u << static_cast<uint8_t>(engine::scene::RenderPass::eShadow))) {
                                                         pipeline = g_mapGeometryCommonPipeline;
-                                                        printf("sss1\n");
                                                     } else {
                                                         pipeline = g_mapGeometryCommonAreaPipeline;
-                                                        printf("sss2\n");
                                                     }
 
                                                     if (commandList->bindPipeline(*pipeline)) {
-                                                        printf("sda222\n");
                                                         commandList->pushConstants(
                                                             engine::rhi::shaders::Stages::eVertex, 
                                                             0u, sizeof(TileUniform), &uniform

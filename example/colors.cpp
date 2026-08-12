@@ -5,7 +5,7 @@
 
 namespace map {
 
-constexpr uint32_t kDefaultColor = 0xff'ff'ff'ffu;
+constexpr uint32_t kDefaultColor = 0xFF'FF'FFu;
 
 struct ColorEntry {
     std::string_view name;
