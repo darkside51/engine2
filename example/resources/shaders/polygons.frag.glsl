@@ -75,13 +75,13 @@ void main() {
 	const float depthLinear = linearDepth(gl_FragCoord.z, u_viewParams.nearFarPlanes.x, u_viewParams.nearFarPlanes.y);
 	out_position = depthLinear;
 
-	const vec3 normal = normalize(-cross(dFdx(v_position), dFdy(v_position)));
+	const vec3 normal = normalize(cross(dFdx(v_position), -dFdy(v_position)));
 	const vec3 viewNormal = u_viewParams.viewTransposeInverse * normal;
 
 	out_normal = vec4(normalize(viewNormal) * 0.5f + 0.5f, 0.0f);
 
 	const vec4 floorColor = texture(u_texture3, v_position.xy * 10.0f);
-	
+
 	out_albedo = floorColor * v_color;
 	out_metalicRoughness = vec2(0.0f, 1.0f);
 	out_emissive = vec4(0.0, 0.0, 0.0, 0.0);

@@ -30,6 +30,6 @@ void main() {
 
 	gl_Position = u_viewParams.viewProjection * worldPosition;
 	v_material = int(a_color.w * 255.0f);
-	v_w = vec2(a_position.w, round(v_position.z * 24.0f));
+	v_w = vec2(float(a_position.w >> 4), round(v_position.z * 24.0f));
 	v_color = a_color;
 }

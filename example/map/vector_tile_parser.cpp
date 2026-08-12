@@ -279,8 +279,8 @@ namespace map {
                     const auto v1 = engine::vec2f{totalVerices[floorNext][0u], totalVerices[floorNext][1u]};
                     const float wallLength = std::round(glm::distance(v0, v1) / distanceFactor);
                     l += wallLength;
-                    totalVerices[floorNext][3u] = static_cast<int16_t>(l);
-                    totalVerices[roofNext][3u] = static_cast<int16_t>(l);
+                    totalVerices[floorNext][3u] = (static_cast<int16_t>(l) << 4);
+                    totalVerices[roofNext][3u] = totalVerices[floorNext][3u];
                 }
             }
         }
@@ -310,28 +310,27 @@ namespace map {
         return T{0};
     }
 
-
     struct MaterialEntry {
         std::string_view name;
         uint32_t id;
     };
 
     static constexpr MaterialEntry kMaterials[] = {
+        {"plaster",             0},
+        {"glass",               1},
+        {"wood",                2},
+        {"metal",               3},
+        {"metal_plates",        3},
         {"granite",             4},
         {"marble",              5},
-        {"plaster",             0},
-        {"metal_plates",        3},
-        {"glass",               1},
-        {"metal",               3},
-        {"brick",               10},
+        {"vinyl",               5},
+        {"limestone",           6},
         {"concrate",            7},
         {"concrete",            7},
-        {"cement_block",        9},
-        {"vinyl",               5},
-        {"wood",                2},
-        {"limestone",           6},
         {"porcelain_stoneware", 8},
+        {"cement_block",        9},
         {"cement_block;glass",  9},
+        {"brick",               10},
     };
 
     void VectorTileParser::parsePolygonsGeometry(TileID tileId, LayerPolygons & polygons, vtzero::feature & feature, int16_t extent) {
@@ -347,65 +346,82 @@ namespace map {
 
         while (auto property = feature.next_property()) {
             auto str = property.key();
-            if (str == "height" || str == "render_height") {
-                maxHeight = getNumericValue<float>(property.value());
-            }
-            if (str == "height_min" || str == "render_min_height") {
-                minHeight = getNumericValue<float>(property.value());
-            }
-            if (str == "windows") {
-                int a = 0;
-            }
-            if (str == "building_colour") {
-                static std::unordered_set<std::string> colors;
-                auto str = property.value().string_value().to_string();
-
-                if (!colors.contains(str)) {
-                    colors.emplace(str);
-                    
-                    if (str.starts_with('#')) {
-                        color = hexStringToUint32(str).color;
-                    } else {
-                        const auto delimeter = std::min(str.find(';'), str.find('\''));
-                        bool colorFoundResult = false;
-                        if (delimeter != std::string::npos) { // get first color
-                            const auto [c, result] = colorNameToUint32t({str.begin(), str.begin() + delimeter});
-                            //const auto [c, result] = colorNameToUint32t({str.begin() + delimeter + 1u, str.end()});
-                            color = c;
-                            colorFoundResult = result;
-                        } else {
-                            const auto [c, result] = colorNameToUint32t(str);
-                            color = c;
-                            colorFoundResult = result;
-                        }
-
-                        if (!colorFoundResult) {
-                            LOG_W("no found color uint32_t for : %s", str.c_str());
-                        }
-                    }
-                }
-            }
-            if (str == "building_material") {
-                static std::unordered_set<std::string> materials;
-                auto str = property.value().string_value().to_string();
-
+            if (str == "class") {
+                const auto value = property.value().string_value().to_string();
+                
                 const auto it = std::find_if(
                     std::begin(kMaterials),
                     std::end(kMaterials),
-                    [&str] (const MaterialEntry & material) noexcept {
-                    return str == material.name;
+                    [&value] (const MaterialEntry & material) noexcept {
+                        return value == material.name;
                     }
                 );
 
                 if (it != std::end(kMaterials)) {
                     materialIdx = it->id;
+                } else {
+                    static std::unordered_set<std::string> classes;
+                    if (!classes.contains(value)) {
+                        classes.insert(value);
+                        LOG_W("no found material uint32_t for : %s", value.c_str());
+                    }
                 }
+            }
 
+            if (str == "height" || str == "render_height") {
+                maxHeight = getNumericValue<float>(property.value());
+            }
 
-                if (!materials.contains(str)) {
-                    materials.emplace(str);
-                    printf("building material: %s\n", str.c_str());
+            if (str == "height_min" || str == "render_min_height") {
+                minHeight = getNumericValue<float>(property.value());
+            }
+
+            if (str == "building_colour") {
+                const auto value = property.value().string_value().to_string();
+
+                if (value.starts_with('#')) {
+                    color = hexStringToUint32(value).color;
+                } else {
+                    const auto delimeter = std::min(value.find(';'), value.find('\''));
+                    bool colorFoundResult = false;
+                    if (delimeter != std::string::npos) { // get first color
+                        const auto [c, result] = colorNameToUint32t({value.begin(), value.begin() + delimeter});
+                        //const auto [c, result] = colorNameToUint32t({str.begin() + delimeter + 1u, str.end()});
+                        color = c;
+                        colorFoundResult = result;
+                    } else {
+                        const auto [c, result] = colorNameToUint32t(value);
+                        color = c;
+                        colorFoundResult = result;
+                    }
+
+                    if (!colorFoundResult) {
+                        LOG_W("no found color uint32_t for : %s", value.c_str());
+                    }
                 }
+            }
+
+            if (str == "building_material") {
+                const auto value = property.value().string_value().to_string();
+
+                const auto it = std::find_if(
+                    std::begin(kMaterials),
+                    std::end(kMaterials),
+                    [&value] (const MaterialEntry & material) noexcept {
+                        return value == material.name;
+                    }
+                );
+
+                if (it != std::end(kMaterials)) {
+                    materialIdx = it->id;
+                } else {
+                    LOG_W("no found material uint32_t for : %s", value.c_str());
+                }
+            }
+
+            if (str == "windows") {
+                const auto value = property.value().string_value().to_string();
+                LOG_W("windows key found, value : %s", value.c_str());
             }
 
             // if (str == "kind") {

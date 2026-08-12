@@ -81,7 +81,7 @@ void main() {
 	const float depthLinear = linearDepth(gl_FragCoord.z, u_viewParams.nearFarPlanes.x, u_viewParams.nearFarPlanes.y);
 	out_position = depthLinear;
 
-	const vec3 normal = normalize(-cross(dFdx(v_position), dFdy(v_position)));
+	const vec3 normal = normalize(cross(dFdx(v_position), -dFdy(v_position)));
 	const vec3 viewNormal = u_viewParams.viewTransposeInverse * normal;
 
 	out_normal = vec4(normalize(viewNormal) * 0.5f + 0.5f, 0.0f);
@@ -91,9 +91,9 @@ void main() {
 	vec2 uv = vec2(u * 16.0f, -v_w.y);
 	vec2 uv2 = vec2(-v_w.x, -v_w.y);
 
-	const vec4 interriorColor = calculateRoomCube(u_interriorMap, v_position, u_viewParams.cameraPosition, normal, uv2, vec3(2.0f, 1.0f, 1.0f), vec4(1.0f));
+	const vec4 interriorColor = calculateRoomCube(u_interriorMap, v_position, u_viewParams.cameraPosition, normal, uv2, vec3(1.0f, 0.75f, 1.0f), vec4(1.0f));
 
-	const float kUvMix = 0.0001f;
+	const float kUvMix = 0.00001f;
 	const Material material = materials[v_material];
 
 	const vec4 materialUvs = getMaterialUv(material.imageId);
@@ -114,7 +114,8 @@ void main() {
 
 	uv3 = repeatUVSimple(uv3, uvMin, uvMax);
 
-	const float magicStep = step(abs(dx.x), kUvMix);
+	const float absDx = abs(dx.x);
+	const float magicStep = step(absDx, kUvMix);
 
 	vec4 wallMaterialColor = textureGrad(u_texture, mix(uv3, uv, magicStep), dx, dy);
 	wallMaterialColor.rgb *= v_color.rgb;
