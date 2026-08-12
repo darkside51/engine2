@@ -315,7 +315,7 @@ namespace map {
         uint32_t id;
     };
 
-    static constexpr MaterialEntry kMaterials[] = {
+    static constexpr MaterialEntry kBuildingMaterials[] = {
         {"plaster",             0},
         {"glass",               1},
         {"wood",                2},
@@ -331,6 +331,11 @@ namespace map {
         {"cement_block",        9},
         {"cement_block;glass",  9},
         {"brick",               10},
+    };
+
+    static constexpr MaterialEntry kPolyginMaterials[] = {
+        {"grass",               11},
+        {"wood",                12},
     };
 
     void VectorTileParser::parsePolygonsGeometry(TileID tileId, LayerPolygons & polygons, vtzero::feature & feature, int16_t extent) {
@@ -350,14 +355,14 @@ namespace map {
                 const auto value = property.value().string_value().to_string();
                 
                 const auto it = std::find_if(
-                    std::begin(kMaterials),
-                    std::end(kMaterials),
+                    std::begin(kPolyginMaterials),
+                    std::end(kPolyginMaterials),
                     [&value] (const MaterialEntry & material) noexcept {
                         return value == material.name;
                     }
                 );
 
-                if (it != std::end(kMaterials)) {
+                if (it != std::end(kPolyginMaterials)) {
                     materialIdx = it->id;
                 } else {
                     static std::unordered_set<std::string> classes;
@@ -405,14 +410,14 @@ namespace map {
                 const auto value = property.value().string_value().to_string();
 
                 const auto it = std::find_if(
-                    std::begin(kMaterials),
-                    std::end(kMaterials),
+                    std::begin(kBuildingMaterials),
+                    std::end(kBuildingMaterials),
                     [&value] (const MaterialEntry & material) noexcept {
                         return value == material.name;
                     }
                 );
 
-                if (it != std::end(kMaterials)) {
+                if (it != std::end(kBuildingMaterials)) {
                     materialIdx = it->id;
                 } else {
                     LOG_W("no found material uint32_t for : %s", value.c_str());

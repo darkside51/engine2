@@ -4,9 +4,7 @@
 #include "uv"
 
 layout (location = 0) in vec3 v_position;
-layout (location = 1) in vec4 v_color;
-layout (location = 2) flat in int v_material;
-layout (location = 3) in vec2 v_w;
+layout (location = 1) flat in int v_material;
 
 layout (location = 0) out float out_position;
 layout (location = 1) out vec4 out_normal;
@@ -50,15 +48,6 @@ const Material materials[11] = Material[](
 	Material(vec2(0.0f, 1.0f), 11, 5) 		// brick
 );
 
-const vec4 colors[6] = vec4[](
-	vec4(0.65f, 0.65f, 0.65f, 1.0f), 	// building
-	vec4(0.25f, 0.75f, 0.25f, 1.0f), 	// grass
-	vec4(0.9f, 0.9f, 0.1f, 1.0f),		// pedestrian
-	vec4(0.01f, 0.7f, 0.01f, 1.0f),		// wood
-	vec4(0.95f, 0.05f, 0.05f, 1.0f),	// industrial
-	vec4(0.0f, 0.41f, 0.58f, 1.0f)		// water
-);
-
 const float kWallImageSize = 128.0f;
 
 vec4 getMaterialUv(ivec2 uv0) {
@@ -82,7 +71,7 @@ void main() {
 
 	const vec4 floorColor = texture(u_texture3, v_position.xy * 10.0f);
 
-	out_albedo = floorColor * v_color;
+	out_albedo = floorColor;
 	out_metalicRoughness = vec2(0.0f, 1.0f);
 	out_emissive = vec4(0.0, 0.0, 0.0, 0.0);
 }
