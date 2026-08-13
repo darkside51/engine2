@@ -31,32 +31,23 @@ layout(set = 0, binding = 5) uniform sampler2DArray u_interriorMapArr;
 struct Material {
 	vec2 metalicRoughness;
 	int imageId;
-	int windowImageId;
 };
 
-const Material materials[11] = Material[](
-	Material(vec2(0.0f, 1.0f), 4, 5),		// plaster / default
-	Material(vec2(0.25f, 0.25f), 3, 2),		// glass
-	Material(vec2(0.0f, 1.0f), 6, 7),		// wood
-	Material(vec2(0.25f, 0.25f), 3, 5), 	// metal_plates / metal
-	Material(vec2(0.1f, 0.4f), 9, 5), 		// granite
-	Material(vec2(0.0f, 0.8f), 8, 5), 		// marble / vinyl
-	Material(vec2(0.0f, 1.0f), 0, 5), 		// brick - limestone
-	Material(vec2(0.0f, 1.0f), 1, 12), 		// concrate / concrete
-	Material(vec2(0.1f, 0.9f), 3, 5),		// porcelain_stoneware
-	Material(vec2(0.0f, 1.0f), 10, 7),		// cement_block
-	Material(vec2(0.0f, 1.0f), 11, 5) 		// brick
+const Material materials[3] = Material[](
+	Material(vec2(0.0f, 1.0f), 56),		// asphalt / default
+	Material(vec2(0.0f, 1.0f), 57),		// grass
+	Material(vec2(0.0f, 1.0f), 58)		// wood
 );
 
-const float kWallImageSize = 128.0f;
+const float kImageSize = 128.0f;
 
 vec4 getMaterialUv(ivec2 uv0) {
 	const float textureSize = textureSize(u_texture, 0).x;
-	return vec4(uv0 / textureSize, (uv0 + 1) / textureSize) * kWallImageSize;
+	return vec4(uv0 / textureSize, (uv0 + 1) / textureSize) * kImageSize;
 }
 
 vec4 getMaterialUv(int imageID) {
-	const int size = textureSize(u_texture, 0).x / int(kWallImageSize);
+	const int size = textureSize(u_texture, 0).x / int(kImageSize);
 	return getMaterialUv(ivec2(imageID % size, imageID / size));
 }
 
@@ -69,7 +60,20 @@ void main() {
 
 	out_normal = vec4(normalize(viewNormal) * 0.5f + 0.5f, 0.0f);
 
-	const vec4 floorColor = texture(u_texture3, v_position.xy * 10.0f);
+	const Material material = materials[v_material];
+
+	const vec4 materialUvs = getMaterialUv(material.imageId);
+	const float smoothFactor = mix(0.0001f, 0.005f, depthLinear);
+	const vec2 uvMin = materialUvs.xy + vec2(smoothFactor);
+	const vec2 uvMax = materialUvs.zw - vec2(smoothFactor);
+	const vec2 size = uvMax - uvMin;
+
+	vec2 uv = v_position.xy * size * 8.0f;
+	const vec2 dx = dFdx(uv);
+	const vec2 dy = dFdy(uv);
+
+	const vec2 uv2 = repeatUVSimple(uv, uvMin, uvMax);
+	const vec4 floorColor = textureGrad(u_texture, uv2, dx, dy);
 
 	out_albedo = floorColor;
 	out_metalicRoughness = vec2(0.0f, 1.0f);

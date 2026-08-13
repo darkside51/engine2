@@ -25,11 +25,6 @@ layout (set = 0, binding = 0) uniform UniformBuffer {
 	float time;
 } u_viewParams;
 
-//layout(push_constant) uniform Params {
-//	mat4 transform;
-//	vec4 extent;
-//} push;
-
 layout(set = 0, binding = 1) uniform sampler2D u_texture;
 layout(set = 0, binding = 2) uniform sampler2D u_texture2;
 layout(set = 0, binding = 3) uniform sampler2D u_texture3;
@@ -43,26 +38,17 @@ struct Material {
 };
 
 const Material materials[11] = Material[](
-	Material(vec2(0.0f, 1.0f), 4, 5),		// plaster / default
+	Material(vec2(0.0f, 1.0f), 8, 9),		// plaster / default
 	Material(vec2(0.25f, 0.25f), 3, 2),		// glass
-	Material(vec2(0.0f, 1.0f), 6, 7),		// wood
-	Material(vec2(0.25f, 0.25f), 3, 5), 	// metal_plates / metal
-	Material(vec2(0.1f, 0.4f), 9, 5), 		// granite
-	Material(vec2(0.0f, 0.8f), 8, 5), 		// marble / vinyl
-	Material(vec2(0.0f, 1.0f), 0, 5), 		// brick - limestone
-	Material(vec2(0.0f, 1.0f), 1, 12), 		// concrate / concrete
-	Material(vec2(0.1f, 0.9f), 3, 5),		// porcelain_stoneware
-	Material(vec2(0.0f, 1.0f), 10, 7),		// cement_block
-	Material(vec2(0.0f, 1.0f), 11, 5) 		// brick
-);
-
-const vec4 colors[6] = vec4[](
-	vec4(0.65f, 0.65f, 0.65f, 1.0f), 	// building
-	vec4(0.25f, 0.75f, 0.25f, 1.0f), 	// grass
-	vec4(0.9f, 0.9f, 0.1f, 1.0f),		// pedestrian
-	vec4(0.01f, 0.7f, 0.01f, 1.0f),		// wood
-	vec4(0.95f, 0.05f, 0.05f, 1.0f),	// industrial
-	vec4(0.0f, 0.41f, 0.58f, 1.0f)		// water
+	Material(vec2(0.0f, 1.0f), 10, 11),		// wood
+	Material(vec2(0.25f, 0.25f), 3, 9), 	// metal_plates / metal
+	Material(vec2(0.1f, 0.4f), 17, 9), 		// granite
+	Material(vec2(0.0f, 0.8f), 16, 9), 		// marble / vinyl
+	Material(vec2(0.0f, 1.0f), 0, 9), 		// brick - limestone
+	Material(vec2(0.0f, 1.0f), 1, 24), 		// concrate / concrete
+	Material(vec2(0.1f, 0.9f), 3, 9),		// porcelain_stoneware
+	Material(vec2(0.0f, 1.0f), 18, 24),		// cement_block
+	Material(vec2(0.0f, 1.0f), 19, 9) 		// brick
 );
 
 const float kWallImageSize = 128.0f;

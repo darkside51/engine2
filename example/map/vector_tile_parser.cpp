@@ -334,8 +334,9 @@ namespace map {
     };
 
     static constexpr MaterialEntry kPolyginMaterials[] = {
-        {"grass",               11},
-        {"wood",                12},
+        {"asphalt",             0},
+        {"grass",               1},
+        {"wood",                2},
     };
 
     void VectorTileParser::parsePolygonsGeometry(TileID tileId, LayerPolygons & polygons, vtzero::feature & feature, int16_t extent) {
@@ -481,7 +482,23 @@ namespace map {
 
         TileParsedGeometry geometry;
         auto & totalPolygons = geometry.polygons;
+        totalPolygons.resize(5u);
+
+        struct LayerIndex {
+            std::string_view name;
+            uint16_t index = 0u;
+        };
+
+        static constexpr LayerIndex kLayers[] = {
+            {"building",        0},
+            {"landuse",         1},
+            {"landcover",       2},
+            {"water-",          3},
+            {"transportation",  4}
+        };
+
         while (auto layer = tile.next_layer()) {
+            
             //printf("layer name: %s\n", layer.name());
 
             LayerPolygons * polygons = nullptr;
@@ -489,15 +506,26 @@ namespace map {
 
             while (auto feature = layer.next_feature()) { //
                 //printf("feature id: %lu\n", feature.id());
-
                 const auto geometryType = feature.geometry_type();
 
                 geometry.extent = std::max(static_cast<float>(layer.extent()), geometry.extent);
-
+                
                 switch (geometryType) {
                 case vtzero::GeomType::POLYGON: {
                     if (polygons == nullptr) {
-                        auto & p = totalPolygons.emplace_back();
+                        const auto it = std::find_if(
+                                            std::begin(kLayers),
+                                            std::end(kLayers),
+                                            [name = layer.name()] (const LayerIndex & l) noexcept {
+                                                return name.to_string() == l.name;
+                                            }
+                                        );
+
+
+
+                        // printf("layer name: %s\n", layer.name());
+                        layerIdx = it->index;
+                        auto & p = totalPolygons[layerIdx];
                         p.layer = layerIdx;
                         polygons = &p.geometry;
                     }
@@ -505,7 +533,7 @@ namespace map {
                     parsePolygonsGeometry(tileId, *polygons, feature, layer.extent());
 
                     if (std::abs(polygons->maxTileHeight - polygons->minTileHeight) > 1e-7f) {
-                        totalPolygons.back().flags |= kFeatureFlag3D;
+                        totalPolygons[layerIdx].flags |= kFeatureFlag3D;
                     }
 
                     geometry.tileMaxHeight = std::max(
