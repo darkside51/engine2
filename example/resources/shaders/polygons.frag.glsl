@@ -26,17 +26,20 @@ layout(set = 0, binding = 1) uniform sampler2D u_texture;
 layout(set = 0, binding = 2) uniform sampler2D u_texture2;
 layout(set = 0, binding = 3) uniform sampler2D u_texture3;
 layout(set = 0, binding = 4) uniform samplerCube u_interriorMap;
-layout(set = 0, binding = 5) uniform sampler2DArray u_interriorMapArr;
 
 struct Material {
 	vec2 metalicRoughness;
 	int imageId;
 };
 
-const Material materials[3] = Material[](
-	Material(vec2(0.0f, 1.0f), 56),		// asphalt / default
-	Material(vec2(0.0f, 1.0f), 57),		// grass
-	Material(vec2(0.0f, 1.0f), 58)		// wood
+const Material materials[7] = Material[](
+	Material(vec2(0.0f, 0.8f), 56),		// asphalt / default
+	Material(vec2(0.0f, 0.55f), 57),	// grass
+	Material(vec2(0.0f, 0.9f), 58),		// wood
+	Material(vec2(0.0f, 0.75f), 59),	// playground
+	Material(vec2(0.0f, 0.7f), 60),		// residential
+	Material(vec2(0.0f, 0.8f), 61),		// parking
+	Material(vec2(1.0f, 0.5f), 62)		// industrial
 );
 
 const float kImageSize = 128.0f;
@@ -63,12 +66,12 @@ void main() {
 	const Material material = materials[v_material];
 
 	const vec4 materialUvs = getMaterialUv(material.imageId);
-	const float smoothFactor = mix(0.0001f, 0.005f, depthLinear);
+	const float smoothFactor = 0.0f;//0.0125f;
 	const vec2 uvMin = materialUvs.xy + vec2(smoothFactor);
-	const vec2 uvMax = materialUvs.zw - vec2(smoothFactor);
+	const vec2 uvMax = materialUvs.zw- vec2(smoothFactor);
 	const vec2 size = uvMax - uvMin;
 
-	vec2 uv = v_position.xy * size * 8.0f;
+	vec2 uv = v_position.xy * size * 16.0f;
 	const vec2 dx = dFdx(uv);
 	const vec2 dy = dFdy(uv);
 

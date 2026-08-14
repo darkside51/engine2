@@ -182,7 +182,9 @@ namespace map {
         float maxHeight,
         float distanceFactor,
         int16_t material,
-        uint32_t color
+        uint32_t color,
+        float roofHeight,
+        RoofType roofType
     ) {
         if (vertices.empty() || indices.empty()) {
             return;
@@ -214,7 +216,7 @@ namespace map {
                     static_cast<int16_t>(vtx.x), 
                     static_cast<int16_t>(extent - vtx.y), 
                     static_cast<int16_t>(hMin),
-                    material
+                    static_cast<int16_t>(0)
                 }
             );
             totalColors.emplace_back(color);
@@ -248,7 +250,7 @@ namespace map {
                     static_cast<int16_t>(vtx.x), 
                     static_cast<int16_t>(extent - vtx.y), 
                     static_cast<int16_t>(hMax),
-                    material
+                    static_cast<int16_t>(0)
                 }
             );
             totalColors.emplace_back(color);
@@ -283,6 +285,196 @@ namespace map {
                     totalVerices[roofNext][3u] = totalVerices[floorNext][3u];
                 }
             }
+        }
+
+
+        // for (auto vtx : vertices) {
+        //         totalVerices.emplace_back(
+        //             engine::stl::array<int16_t, 4u>{
+        //                 static_cast<int16_t>(vtx.x), 
+        //                 static_cast<int16_t>(extent - vtx.y), 
+        //                 static_cast<int16_t>(hMax),
+        //                 static_cast<int16_t>(1)
+        //             }
+        //         );
+        //         totalColors.emplace_back(color);
+        //     }
+
+        switch (roofType) {
+        case RoofType::eHipped: {
+            constexpr float kMinHippedRoofHeightInMeters = 4.0f;
+            const auto hRidge = hMax + metersToTileUnits(
+                std::max(kMinHippedRoofHeightInMeters, roofHeight),
+                latlon.x, tileId.z, extentf);
+            
+            // Фиксированный отступ ската в единицах тайла
+            const float insetDistance = metersToTileUnits(1.5f, latlon.x, tileId.z, extentf);
+
+            // ==============================================================================
+            // ПОЛИГОН 1: НИЖНИЙ ПОЛИГОН КРЫШИ (Карниз на высоте hMax)
+            const uint32_t lowerPolygonStartIdx = static_cast<uint32_t>(totalVerices.size());
+
+            for (auto vtx : vertices) {
+                totalVerices.emplace_back(
+                    engine::stl::array<int16_t, 4u>{
+                        static_cast<int16_t>(vtx.x), 
+                        static_cast<int16_t>(extent - vtx.y), 
+                        static_cast<int16_t>(hMax),
+                        static_cast<int16_t>(1)
+                    }
+                );
+                totalColors.emplace_back(color);
+            }
+
+            // ==============================================================================
+            // ПОЛИГОН 2: ВЕРХНИЙ ПОЛИГОН КРЫШИ (Конёк на высоте hRidge, суженный по биссектрисам)
+            const uint32_t upperPolygonStartIdx = static_cast<uint32_t>(totalVerices.size());
+
+            // Изначально заполняем верхний полигон чистыми копиями для сохранения структуры индексов Шага 2
+            for (auto vtx : vertices) {
+                totalVerices.emplace_back(
+                    engine::stl::array<int16_t, 4u>{
+                        static_cast<int16_t>(vtx.x), 
+                        static_cast<int16_t>(extent - vtx.y), 
+                        static_cast<int16_t>(hRidge), 
+                        static_cast<int16_t>(1)
+                    }
+                );
+                totalColors.emplace_back(color);
+            }
+
+            // Создаем структуру для хранения новой геометрии конька под повторный Earcut
+            // Формат зависит от вашего типа Point, предположим std::vector<std::vector<PointType>>
+            // где первый элемент — внешнее кольцо, последующие — дыры.
+            using Point2D = engine::vec2f; // Подставьте ваш тип точки, если нужен int/float
+            std::vector<std::vector<Point2D>> earcutPolygonData;
+            earcutPolygonData.reserve(rings.size());
+
+            // Модифицируем вершины верхнего полигона по вашему лаконичному алгоритму
+            for (const auto & ring : rings) {
+                if (ring.second < ring.first) continue;
+
+                bool isClosedWithDuplicate = (vertices[ring.first].x == vertices[ring.second].x && 
+                                              vertices[ring.first].y == vertices[ring.second].y);
+                size_t endIdx = isClosedWithDuplicate ? (ring.second - 1u) : ring.second;
+
+                // Создаем локальное кольцо для триангулятора
+                std::vector<Point2D> localNewRing;
+                localNewRing.reserve((ring.second - ring.first) + 1);
+
+                for (size_t i = ring.first; i <= ring.second; ++i) {
+                    size_t prevIdx, nextIdx;
+                    if (isClosedWithDuplicate && i == ring.second) {
+                        prevIdx = endIdx;
+                        nextIdx = ring.first + 1u;
+                    } else {
+                        prevIdx = (i == ring.first) ? endIdx : (i - 1u);
+                        nextIdx = (i == endIdx) ? ring.first : (i + 1u);
+                    }
+
+                    const auto &vCurr = vertices[i];
+                    const auto &vPrev = vertices[prevIdx];
+                    const auto &vNext = vertices[nextIdx];
+
+                    engine::vec2f d1{ static_cast<float>(vCurr.x - vPrev.x), static_cast<float>(vCurr.y - vPrev.y) };
+                    engine::vec2f d2{ static_cast<float>(vNext.x - vCurr.x), static_cast<float>(vNext.y - vCurr.y) };
+
+                    float lenD1 = glm::length(d1);
+                    float lenD2 = glm::length(d2);
+
+                    if (lenD1 > 0.001f) d1 /= lenD1;
+                    if (lenD2 > 0.001f) d2 /= lenD2;
+
+                    engine::vec2f n1{-d1.y, d1.x};
+                    engine::vec2f n2{-d2.y, d2.x};
+
+                    engine::vec2f shiftDir = n1 + n2;
+                    float lenShift = glm::length(shiftDir);
+
+                    if (lenShift > 0.001f) {
+                        shiftDir /= lenShift;
+                    } else {
+                        shiftDir = n1; 
+                    }
+
+                    float dotProd = glm::dot(shiftDir, n1);
+                    float length = insetDistance;
+                    
+                    if (std::abs(dotProd) > 0.1f) {
+                        length = insetDistance / std::abs(dotProd);
+                    }
+
+                    if (length > insetDistance * 1.8f || std::isnan(length) || std::isinf(length)) {
+                        length = insetDistance * 1.8f;
+                    }
+
+                    float ridgePtX = static_cast<float>(vCurr.x) + shiftDir.x * length;
+                    float ridgePtY = static_cast<float>(vCurr.y) + shiftDir.y * length;
+
+                    int16_t finalX = static_cast<int16_t>(std::round(ridgePtX));
+                    int16_t finalY = static_cast<int16_t>(std::round(ridgePtY));
+
+                    // Пишем сдвинутые координаты в глобальный буфер Полигона 2
+                    totalVerices[upperPolygonStartIdx + i] = engine::stl::array<int16_t, 4u>{
+                        finalX, 
+                        static_cast<int16_t>(extent - finalY), 
+                        static_cast<int16_t>(hRidge), 
+                        static_cast<int16_t>(1)
+                    };
+
+                    // Сохраняем точку для повторного Earcut (в исходной системе координат)
+                    localNewRing.emplace_back(Point2D{ridgePtX, ridgePtY});
+                }
+
+                earcutPolygonData.emplace_back(std::move(localNewRing));
+            }
+
+            // ==============================================================================
+            // ШАГ 2: СТРОИМ СТЕНЫ КРЫШИ (Боковые покатые наклонные грани)
+            // Строятся по локальным rings, связывая нижний и верхний монолитные буферы
+            for (const auto & ring : rings) {
+                if (ring.second < ring.first) continue;
+
+                bool isClosedWithDuplicate = (vertices[ring.first].x == vertices[ring.second].x && 
+                                              vertices[ring.first].y == vertices[ring.second].y);
+                size_t endIdx = isClosedWithDuplicate ? (ring.second - 1u) : ring.second;
+
+                for (size_t i = ring.first; i <= endIdx; ++i) {
+                    const auto nextIdx = (i == endIdx) ? ring.first : (i + 1u);
+
+                    const auto eCurrent = lowerPolygonStartIdx + static_cast<uint32_t>(i);
+                    const auto eNext    = lowerPolygonStartIdx + static_cast<uint32_t>(nextIdx);
+                    
+                    const auto rCurrent = upperPolygonStartIdx + static_cast<uint32_t>(i);
+                    const auto rNext    = upperPolygonStartIdx + static_cast<uint32_t>(nextIdx);
+
+                    totalIndices.emplace_back(eCurrent);
+                    totalIndices.emplace_back(eNext);
+                    totalIndices.emplace_back(rCurrent);
+
+                    totalIndices.emplace_back(rCurrent);
+                    totalIndices.emplace_back(eNext);
+                    totalIndices.emplace_back(rNext);
+                }
+            }
+
+            // ==============================================================================
+            // ШАГ 3: ПОВТОРНАЯ ТРИАНГУЛЯЦИЯ СЖАТЫХ ВЕРШИН
+            // Передаем новый суженный контур здания в Earcut. 
+            // Он построит чистые треугольники без вылетов во двор и без учета старой топологии.
+            // Примечание: Подставьте точный вызов вашего Earcut-декодера, если интерфейс отличается.
+            std::vector<uint32_t> newRidgeIndices = mapbox::earcut<uint32_t>(earcutPolygonData);
+
+            for (auto idx : newRidgeIndices) {
+                if (idx < vertices.size()) {
+                    totalIndices.emplace_back(upperPolygonStartIdx + idx);
+                }
+            }
+        }
+        break;
+
+        default:
+            break;
         }
     }
 
@@ -337,7 +529,24 @@ namespace map {
         {"asphalt",             0},
         {"grass",               1},
         {"wood",                2},
+        {"playground",          3},
+        {"residential",         4},
+        {"shrub",               2},
+        {"parking",             5},
+        {"industrial",          6},
     };
+
+    RoofType parseRoofType(std::string_view roofType) noexcept {
+        if (roofType == "flat") {
+            return RoofType::eFlat;
+        }
+
+        if (roofType == "hipped") {
+            return RoofType::eHipped;
+        }
+
+        return RoofType::eFlat;
+    }
 
     void VectorTileParser::parsePolygonsGeometry(TileID tileId, LayerPolygons & polygons, vtzero::feature & feature, int16_t extent) {
         PolygonGeometryHandler handler{static_cast<float>(extent)};
@@ -349,6 +558,8 @@ namespace map {
 
         int16_t materialIdx = 0;
         uint32_t color = 0x00'ff'ff'ffu;
+        RoofType roofType = RoofType::eFlat;
+        float roofHeight = 0.0f;
 
         while (auto property = feature.next_property()) {
             auto str = property.key();
@@ -425,6 +636,22 @@ namespace map {
                 }
             }
 
+            if (str == "roof_shape") {
+                static std::unordered_set<std::string> roofTypes;
+                const auto value = property.value().string_value().to_string();
+
+                roofType = parseRoofType(value);
+
+                if (!roofTypes.contains(value)) {
+                    printf("roof type: %s\n", value.c_str());
+                    roofTypes.emplace(std::move(value));
+                }
+            }
+
+            if (str == "roof_height") {
+                roofHeight = getNumericValue<float>(property.value());
+            }
+
             if (str == "windows") {
                 const auto value = property.value().string_value().to_string();
                 LOG_W("windows key found, value : %s", value.c_str());
@@ -468,7 +695,9 @@ namespace map {
             maxHeight,
             static_cast<float>(extent) / kWallsDistanceFactor,
             materialIdx,
-            color
+            color,
+            roofHeight,
+            roofType
         );
     }
 
@@ -521,13 +750,15 @@ namespace map {
                                             }
                                         );
 
-
-
-                        // printf("layer name: %s\n", layer.name());
-                        layerIdx = it->index;
-                        auto & p = totalPolygons[layerIdx];
-                        p.layer = layerIdx;
-                        polygons = &p.geometry;
+                        if (it != std::end(kLayers)) {
+                            // printf("layer name: %s\n", layer.name());
+                            layerIdx = it->index;
+                            auto & p = totalPolygons[layerIdx];
+                            p.layer = layerIdx;
+                            polygons = &p.geometry;
+                        } else {
+                            break;
+                        }
                     }
 
                     parsePolygonsGeometry(tileId, *polygons, feature, layer.extent());

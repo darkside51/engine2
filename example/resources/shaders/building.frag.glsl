@@ -7,7 +7,8 @@
 layout (location = 0) in vec3 v_position;
 layout (location = 1) in vec4 v_color;
 layout (location = 2) flat in int v_material;
-layout (location = 3) in vec2 v_w;
+layout (location = 3) flat in int v_roof;
+layout (location = 4) in vec2 v_w;
 
 layout (location = 0) out float out_position;
 layout (location = 1) out vec4 out_normal;
@@ -29,7 +30,6 @@ layout(set = 0, binding = 1) uniform sampler2D u_texture;
 layout(set = 0, binding = 2) uniform sampler2D u_texture2;
 layout(set = 0, binding = 3) uniform sampler2D u_texture3;
 layout(set = 0, binding = 4) uniform samplerCube u_interriorMap;
-layout(set = 0, binding = 5) uniform sampler2DArray u_interriorMapArr;
 
 struct Material {
 	vec2 metalicRoughness;
@@ -38,17 +38,17 @@ struct Material {
 };
 
 const Material materials[11] = Material[](
-	Material(vec2(0.0f, 1.0f), 8, 9),		// plaster / default
-	Material(vec2(0.25f, 0.25f), 3, 2),		// glass
-	Material(vec2(0.0f, 1.0f), 10, 11),		// wood
-	Material(vec2(0.25f, 0.25f), 3, 9), 	// metal_plates / metal
-	Material(vec2(0.1f, 0.4f), 17, 9), 		// granite
-	Material(vec2(0.0f, 0.8f), 16, 9), 		// marble / vinyl
-	Material(vec2(0.0f, 1.0f), 0, 9), 		// brick - limestone
-	Material(vec2(0.0f, 1.0f), 1, 24), 		// concrate / concrete
-	Material(vec2(0.1f, 0.9f), 3, 9),		// porcelain_stoneware
-	Material(vec2(0.0f, 1.0f), 18, 24),		// cement_block
-	Material(vec2(0.0f, 1.0f), 19, 9) 		// brick
+	Material(vec2(0.0f, 0.8f), 8, 9),		// plaster / default
+	Material(vec2(0.0f, 0.15f), 3, 2),		// glass
+	Material(vec2(0.0f, 0.85f), 10, 11),	// wood
+	Material(vec2(1.0f, 0.25f), 3, 9), 		// metal_plates / metal
+	Material(vec2(0.0f, 0.4f), 17, 9), 		// granite
+	Material(vec2(0.0f, 0.45f), 16, 9), 	// marble / vinyl
+	Material(vec2(0.0f, 0.78f), 0, 9), 		// brick - limestone
+	Material(vec2(0.0f, 0.9f), 1, 24), 		// concrate / concrete
+	Material(vec2(0.0f, 0.7f), 3, 9),		// porcelain_stoneware
+	Material(vec2(0.0f, 0.88f), 18, 24),	// cement_block
+	Material(vec2(0.0f, 0.89f), 19, 9) 		// brick
 );
 
 const float kWallImageSize = 128.0f;
@@ -109,7 +109,7 @@ void main() {
 	const vec4 window = mix(textureGrad(u_texture, windowUv, dx, dy), vec4(0.0f), magicStep);
 	wallMaterialColor = mix(wallMaterialColor, window, step(0.3f, window.a));
 
-	const float roof = step(0.99f, abs(normal.z));
+	const float roof = clamp(v_roof + step(0.99f, abs(normal.z)), 0.0f, 1.0f);
 
 	const vec4 wallColor = mix(wallMaterialColor, interriorColor, 1.0f - wallMaterialColor.a);
 	const vec4 roofColor = texture(u_texture2, v_position.xy * 8.0f) * (1.0f + v_position.z) * v_color;

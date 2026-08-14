@@ -17,6 +17,19 @@ namespace vtzero {
 
 namespace map {
 
+    enum class RoofType : uint8_t {
+        eFlat = 0u,
+        eDome,
+        eGabled,
+        eMany,
+        eHipped,
+        eRound,
+        eSkillion,
+        ePlants,
+        ePyramidal,
+        eMansard
+    };
+
     static constexpr uint8_t kFeatureFlagCommon = 0u;
     static constexpr uint8_t kFeatureFlag3D = 1u;
 
@@ -38,7 +51,9 @@ namespace map {
             float maxHeight,
             float distanceFactor,
             int16_t material,
-            uint32_t color
+            uint32_t color,
+            float roofHeight,
+            RoofType roofType
         );
         std::vector<uint32_t> totalIndices;
         engine::stl::vector<engine::stl::array<int16_t, 4u>> totalVerices;

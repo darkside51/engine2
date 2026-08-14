@@ -811,13 +811,13 @@ namespace example {
                                         switch (scene.getCurrentRenderPass()) {
                                             case engine::scene::RenderPass::eCommon:
                                             {
-                                                engine::rhi::SamplerValue linearSampler{};
-                                                linearSampler.info.minFilter = engine::rhi::FilterMode::eLinear;
-                                                linearSampler.info.magFilter = engine::rhi::FilterMode::eLinear;
-                                                linearSampler.info.mipMapFilter = engine::rhi::FilterMode::eLinear;
-                                                linearSampler.info.addressModeU = engine::rhi::SamplerAddressMode::eRepeat;
-                                                linearSampler.info.addressModeV = engine::rhi::SamplerAddressMode::eRepeat;
-                                                linearSampler.info.addressModeW = engine::rhi::SamplerAddressMode::eClamp_To_Border;
+                                                engine::rhi::SamplerValue sampler{};
+                                                sampler.info.minFilter = engine::rhi::FilterMode::eNearest;
+                                                sampler.info.magFilter = engine::rhi::FilterMode::eNearest;
+                                                sampler.info.mipMapFilter = engine::rhi::FilterMode::eNearest;
+                                                sampler.info.addressModeU = engine::rhi::SamplerAddressMode::eRepeat;
+                                                sampler.info.addressModeV = engine::rhi::SamplerAddressMode::eRepeat;
+                                                sampler.info.addressModeW = engine::rhi::SamplerAddressMode::eClamp_To_Border;
                                                 
                                                 for (const auto & g : g_mapGeometry) {
                                                     engine::rhi::runtime::Pipeline * pipeline = nullptr;
@@ -833,13 +833,11 @@ namespace example {
                                                             0u, sizeof(TileUniform), &uniform
                                                         );
                                                         commandList->bindBuffer(0u, scene.getViewParamsUniformBuffer(frameId), 0u, sceneViewParamBufferOffset);
-                                                        commandList->bindImage(1u, brikcsImageHandler->image, linearSampler, 0u);
-                                                        commandList->bindImage(2u, betonImageHandler->image, linearSampler, 0u);
-                                                        commandList->bindImage(3u, asphaltImageHandler->image, linearSampler, 0u);
-                                                        commandList->bindImage(4u, interriorImageHandler->image, linearSampler, 0u, 
+                                                        commandList->bindImage(1u, brikcsImageHandler->image, sampler, 0u);
+                                                        commandList->bindImage(2u, betonImageHandler->image, sampler, 0u);
+                                                        commandList->bindImage(3u, asphaltImageHandler->image, sampler, 0u);
+                                                        commandList->bindImage(4u, interriorImageHandler->image, sampler, 0u, 
                                                             engine::rhi::ImageAspectFlags::eColor, engine::rhi::ImageViewType::eType_Cube);
-                                                        commandList->bindImage(5u, interriorImageHandler->image, linearSampler, 0u, 
-                                                            engine::rhi::ImageAspectFlags::eColor, engine::rhi::ImageViewType::eType_2D_Array);
                                                     }
 
                                                     commandList->bindVertexBuffer(0u, g.positions);
