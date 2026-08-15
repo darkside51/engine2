@@ -183,6 +183,7 @@ namespace map {
         float distanceFactor,
         int16_t material,
         uint32_t color,
+        uint32_t roofColor,
         float roofHeight,
         RoofType roofType
     ) {
@@ -302,9 +303,9 @@ namespace map {
 
         switch (roofType) {
         case RoofType::eHipped: {
-            constexpr float kMinHippedRoofHeightInMeters = 4.0f;
+            const float kMinHippedRoofHeightInMeters = std::min(maxHeight / 6.0f, 4.0f);
             const auto hRidge = hMax + metersToTileUnits(
-                std::max(kMinHippedRoofHeightInMeters, roofHeight),
+                (roofHeight == 0.0f ? kMinHippedRoofHeightInMeters : roofHeight),
                 latlon.x, tileId.z, extentf);
             
             // Фиксированный отступ ската в единицах тайла
@@ -314,6 +315,7 @@ namespace map {
             // ПОЛИГОН 1: НИЖНИЙ ПОЛИГОН КРЫШИ (Карниз на высоте hMax)
             const uint32_t lowerPolygonStartIdx = static_cast<uint32_t>(totalVerices.size());
 
+            // roof bottom plane
             for (auto vtx : vertices) {
                 totalVerices.emplace_back(
                     engine::stl::array<int16_t, 4u>{
@@ -323,7 +325,12 @@ namespace map {
                         static_cast<int16_t>(1)
                     }
                 );
-                totalColors.emplace_back(color);
+                totalColors.emplace_back(roofColor);
+            }
+
+            // roof bottom plane indices
+            for (auto it = indices.rbegin(); it != indices.rend(); ++it) {
+                totalIndices.emplace_back(lowerPolygonStartIdx + *it);
             }
 
             // ==============================================================================
@@ -340,7 +347,7 @@ namespace map {
                         static_cast<int16_t>(1)
                     }
                 );
-                totalColors.emplace_back(color);
+                totalColors.emplace_back(roofColor);
             }
 
             // Создаем структуру для хранения новой геометрии конька под повторный Earcut
@@ -421,6 +428,22 @@ namespace map {
                         static_cast<int16_t>(hRidge), 
                         static_cast<int16_t>(1)
                     };
+
+
+                    // test
+                    float ridgePtX2 = static_cast<float>(vCurr.x) - shiftDir.x * length * 0.25f;
+                    float ridgePtY2 = static_cast<float>(vCurr.y) - shiftDir.y * length * 0.25f;
+
+                    int16_t finalX2 = static_cast<int16_t>(std::round(ridgePtX2));
+                    int16_t finalY2 = static_cast<int16_t>(std::round(ridgePtY2));
+
+                    totalVerices[lowerPolygonStartIdx + i] = engine::stl::array<int16_t, 4u>{
+                        finalX2, 
+                        static_cast<int16_t>(extent - finalY2), 
+                        static_cast<int16_t>(hMax), 
+                        static_cast<int16_t>(1)
+                    };
+                    // test
 
                     // Сохраняем точку для повторного Earcut (в исходной системе координат)
                     localNewRing.emplace_back(Point2D{ridgePtX, ridgePtY});
@@ -558,6 +581,7 @@ namespace map {
 
         int16_t materialIdx = 0;
         uint32_t color = 0x00'ff'ff'ffu;
+        uint32_t roofColor = 0x00'ff'ff'ffu;
         RoofType roofType = RoofType::eFlat;
         float roofHeight = 0.0f;
 
@@ -652,6 +676,31 @@ namespace map {
                 roofHeight = getNumericValue<float>(property.value());
             }
 
+            if (str == "roof_color") {
+                const auto value = property.value().string_value().to_string();
+
+                if (value.starts_with('#')) {
+                    roofColor = hexStringToUint32(value).color;
+                } else {
+                    const auto delimeter = std::min(value.find(';'), value.find('\''));
+                    bool colorFoundResult = false;
+                    if (delimeter != std::string::npos) { // get first color
+                        const auto [c, result] = colorNameToUint32t({value.begin(), value.begin() + delimeter});
+                        //const auto [c, result] = colorNameToUint32t({str.begin() + delimeter + 1u, str.end()});
+                        roofColor = c;
+                        colorFoundResult = result;
+                    } else {
+                        const auto [c, result] = colorNameToUint32t(value);
+                        roofColor = c;
+                        colorFoundResult = result;
+                    }
+
+                    if (!colorFoundResult) {
+                        LOG_W("no found roofColor uint32_t for : %s", value.c_str());
+                    }
+                }
+            }
+
             if (str == "windows") {
                 const auto value = property.value().string_value().to_string();
                 LOG_W("windows key found, value : %s", value.c_str());
@@ -696,6 +745,7 @@ namespace map {
             static_cast<float>(extent) / kWallsDistanceFactor,
             materialIdx,
             color,
+            roofColor,
             roofHeight,
             roofType
         );

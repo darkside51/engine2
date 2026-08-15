@@ -52,6 +52,7 @@ namespace map {
             float distanceFactor,
             int16_t material,
             uint32_t color,
+            uint32_t roofColor,
             float roofHeight,
             RoofType roofType
         );
