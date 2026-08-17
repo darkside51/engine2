@@ -37,7 +37,7 @@ struct Material {
 	int windowImageId;
 };
 
-const Material materials[11] = Material[](
+const Material materials[16] = Material[](
 	Material(vec2(0.0f, 0.8f), 8, 9),		// plaster / default
 	Material(vec2(0.0f, 0.15f), 3, 2),		// glass
 	Material(vec2(0.0f, 0.85f), 10, 11),	// wood
@@ -48,7 +48,12 @@ const Material materials[11] = Material[](
 	Material(vec2(0.0f, 0.9f), 1, 24), 		// concrate / concrete
 	Material(vec2(0.0f, 0.7f), 3, 9),		// porcelain_stoneware
 	Material(vec2(0.0f, 0.88f), 18, 24),	// cement_block
-	Material(vec2(0.0f, 0.89f), 19, 9) 		// brick
+	Material(vec2(0.0f, 0.89f), 19, 9), 	// brick
+	Material(vec2(0.0f, 0.79f), 4, 4), 		// roof_tar_paper
+	Material(vec2(0.8f, 0.45f), 5, 5), 		// roof_metal
+	Material(vec2(0.0f, 0.4f), 6, 6),		// roof_granite
+	Material(vec2(0.0f, 0.8f), 7, 7),		// roof_tiles
+	Material(vec2(1.0f, 0.4f), 3, 3)		// roof_steel
 );
 
 const float kWallImageSize = 128.0f;
@@ -76,6 +81,7 @@ void main() {
 
 	vec2 uv = vec2(u * 16.0f, -v_w.y);
 	vec2 uv2 = vec2(-v_w.x, -v_w.y);
+	vec2 uvRoof = vec2(v_position.x * 16.0f, v_position.y * 16.0f);
 
 	const vec4 interriorColor = calculateRoomCube(u_interriorMap, v_position, u_viewParams.cameraPosition, normal, uv2, vec3(1.0f, 0.75f, 1.0f), vec4(1.0f));
 
@@ -88,6 +94,8 @@ void main() {
 	const vec2 size = uvMax - uvMin;
 
 	uv = repeatUVSimple(uv * size, uvMin, uvMax);
+	uvRoof = repeatUVSimple(uvRoof * size, uvMin, uvMax);
+
 	vec2 uv3 = uv2 * size;
 	const vec2 dx = dFdx(uv3);
 	const vec2 dy = dFdy(uv3);
@@ -112,7 +120,9 @@ void main() {
 	const float roof = clamp(v_roof + step(0.99f, abs(normal.z)), 0.0f, 1.0f);
 
 	const vec4 wallColor = mix(wallMaterialColor, interriorColor, 1.0f - wallMaterialColor.a);
-	const vec4 roofColor = texture(u_texture2, v_position.xy * 8.0f) * (1.0f + v_position.z) * v_color;
+
+	const vec4 roofColor = textureGrad(u_texture, uvRoof, dx, dy) * v_color;
+	//const vec4 roofColor = texture(u_texture2, v_position.xy * 8.0f) * (1.0f + v_position.z) * v_color;
 	
 	out_albedo = mix(wallColor, roofColor, roof);
 	out_metalicRoughness = mix(material.metalicRoughness, vec2(0.0f, 0.1f), step(wallMaterialColor.a, 0.95f) * (1.0f - roof));

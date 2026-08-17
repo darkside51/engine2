@@ -51,6 +51,7 @@ namespace map {
             float maxHeight,
             float distanceFactor,
             int16_t material,
+            int16_t roofMaterial,
             uint32_t color,
             uint32_t roofColor,
             float roofHeight,

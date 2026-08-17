@@ -182,6 +182,7 @@ namespace map {
         float maxHeight,
         float distanceFactor,
         int16_t material,
+        int16_t roofMaterial,
         uint32_t color,
         uint32_t roofColor,
         float roofHeight,
@@ -201,6 +202,7 @@ namespace map {
         minTileHeight = std::min(hMin / extent, minTileHeight);
         maxTileHeight = std::max(hMax / extent, maxTileHeight);
         color |= material << 24u;
+        roofColor |= roofMaterial << 24u;
 
         const auto vsz = vertices.size();
         const auto isz = indices.size();
@@ -242,9 +244,9 @@ namespace map {
         totalVerices.reserve(totalVerices.size() + vsz);
         totalColors.reserve(totalColors.size() + vsz);
 
-        for (auto idx : indices) {
-            totalIndices.emplace_back(currentVertexCount2 + idx);
-        }
+        // for (auto idx : indices) {
+        //     totalIndices.emplace_back(currentVertexCount2 + idx);
+        // }
         for (auto vtx : vertices) {
             totalVerices.emplace_back(
                 engine::stl::array<int16_t, 4u>{
@@ -310,6 +312,7 @@ namespace map {
             
             // Фиксированный отступ ската в единицах тайла
             const float insetDistance = metersToTileUnits(1.5f, latlon.x, tileId.z, extentf);
+            constexpr float kBottomOffset = 4.0f;
 
             // ==============================================================================
             // ПОЛИГОН 1: НИЖНИЙ ПОЛИГОН КРЫШИ (Карниз на высоте hMax)
@@ -379,47 +382,34 @@ namespace map {
                         nextIdx = (i == endIdx) ? ring.first : (i + 1u);
                     }
 
-                    const auto &vCurr = vertices[i];
-                    const auto &vPrev = vertices[prevIdx];
-                    const auto &vNext = vertices[nextIdx];
+                    const auto & vCurr = vertices[i];
+                    const auto & vPrev = vertices[prevIdx];
+                    const auto & vNext = vertices[nextIdx];
 
-                    engine::vec2f d1{ static_cast<float>(vCurr.x - vPrev.x), static_cast<float>(vCurr.y - vPrev.y) };
-                    engine::vec2f d2{ static_cast<float>(vNext.x - vCurr.x), static_cast<float>(vNext.y - vCurr.y) };
+                    const engine::vec2f d1{vCurr.x - vPrev.x, vCurr.y - vPrev.y};
+                    const engine::vec2f d2{vNext.x - vCurr.x, vNext.y - vCurr.y};
 
-                    float lenD1 = glm::length(d1);
-                    float lenD2 = glm::length(d2);
+                    const engine::vec2f n1 = glm::normalize(engine::vec2f{-d1.y, d1.x});
+                    const engine::vec2f n2 = glm::normalize(engine::vec2f{-d2.y, d2.x});
 
-                    if (lenD1 > 0.001f) d1 /= lenD1;
-                    if (lenD2 > 0.001f) d2 /= lenD2;
+                    const engine::vec2f shiftDir = glm::normalize(n1 + n2);
 
-                    engine::vec2f n1{-d1.y, d1.x};
-                    engine::vec2f n2{-d2.y, d2.x};
-
-                    engine::vec2f shiftDir = n1 + n2;
-                    float lenShift = glm::length(shiftDir);
-
-                    if (lenShift > 0.001f) {
-                        shiftDir /= lenShift;
-                    } else {
-                        shiftDir = n1; 
-                    }
-
-                    float dotProd = glm::dot(shiftDir, n1);
+                    const float dotProd = glm::dot(shiftDir, n1);
                     float length = insetDistance;
                     
                     if (std::abs(dotProd) > 0.1f) {
                         length = insetDistance / std::abs(dotProd);
                     }
 
-                    if (length > insetDistance * 1.8f || std::isnan(length) || std::isinf(length)) {
+                    if (length > insetDistance * 1.8f) {
                         length = insetDistance * 1.8f;
                     }
 
-                    float ridgePtX = static_cast<float>(vCurr.x) + shiftDir.x * length;
-                    float ridgePtY = static_cast<float>(vCurr.y) + shiftDir.y * length;
+                    const float ridgePtX = static_cast<float>(vCurr.x) + shiftDir.x * length;
+                    const float ridgePtY = static_cast<float>(vCurr.y) + shiftDir.y * length;
 
-                    int16_t finalX = static_cast<int16_t>(std::round(ridgePtX));
-                    int16_t finalY = static_cast<int16_t>(std::round(ridgePtY));
+                    const int16_t finalX = static_cast<int16_t>(std::round(ridgePtX));
+                    const int16_t finalY = static_cast<int16_t>(std::round(ridgePtY));
 
                     // Пишем сдвинутые координаты в глобальный буфер Полигона 2
                     totalVerices[upperPolygonStartIdx + i] = engine::stl::array<int16_t, 4u>{
@@ -429,13 +419,12 @@ namespace map {
                         static_cast<int16_t>(1)
                     };
 
-
                     // test
-                    float ridgePtX2 = static_cast<float>(vCurr.x) - shiftDir.x * length * 0.25f;
-                    float ridgePtY2 = static_cast<float>(vCurr.y) - shiftDir.y * length * 0.25f;
+                    const float ridgePtX2 = static_cast<float>(vCurr.x) - shiftDir.x * kBottomOffset;
+                    const float ridgePtY2 = static_cast<float>(vCurr.y) - shiftDir.y * kBottomOffset;
 
-                    int16_t finalX2 = static_cast<int16_t>(std::round(ridgePtX2));
-                    int16_t finalY2 = static_cast<int16_t>(std::round(ridgePtY2));
+                    const int16_t finalX2 = static_cast<int16_t>(std::round(ridgePtX2));
+                    const int16_t finalY2 = static_cast<int16_t>(std::round(ridgePtY2));
 
                     totalVerices[lowerPolygonStartIdx + i] = engine::stl::array<int16_t, 4u>{
                         finalX2, 
@@ -497,6 +486,27 @@ namespace map {
         break;
 
         default:
+        {
+            // ПОЛИГОН 2: ВЕРХНИЙ ПОЛИГОН КРЫШИ (Конёк на высоте hRidge, суженный по биссектрисам)
+            const uint32_t upperPolygonStartIdx = static_cast<uint32_t>(totalVerices.size());
+
+            // Изначально заполняем верхний полигон чистыми копиями для сохранения структуры индексов Шага 2
+            for (auto vtx : vertices) {
+                totalVerices.emplace_back(
+                    engine::stl::array<int16_t, 4u>{
+                        static_cast<int16_t>(vtx.x), 
+                        static_cast<int16_t>(extent - vtx.y), 
+                        static_cast<int16_t>(hMax), 
+                        static_cast<int16_t>(1)
+                    }
+                );
+                totalColors.emplace_back(roofColor);
+            }
+
+            for (auto idx : indices) {
+                totalIndices.emplace_back(upperPolygonStartIdx + idx);
+            }
+        }
             break;
         }
     }
@@ -546,6 +556,12 @@ namespace map {
         {"cement_block",        9},
         {"cement_block;glass",  9},
         {"brick",               10},
+        {"roof_tar_paper",      11},
+        {"roof_metal",          12},
+        {"roof_granite",        13},
+        {"roof_roof_tiles",     14},
+        {"roof_steel",          15},
+        //{"roof_glass",        16}
     };
 
     static constexpr MaterialEntry kPolyginMaterials[] = {
@@ -580,6 +596,7 @@ namespace map {
         float minHeight = 0.0f;
 
         int16_t materialIdx = 0;
+        int16_t materialIdx2 = 14;
         uint32_t color = 0x00'ff'ff'ffu;
         uint32_t roofColor = 0x00'ff'ff'ffu;
         RoofType roofType = RoofType::eFlat;
@@ -676,7 +693,7 @@ namespace map {
                 roofHeight = getNumericValue<float>(property.value());
             }
 
-            if (str == "roof_color") {
+            if (str == "roof_colour") {
                 const auto value = property.value().string_value().to_string();
 
                 if (value.starts_with('#')) {
@@ -698,6 +715,24 @@ namespace map {
                     if (!colorFoundResult) {
                         LOG_W("no found roofColor uint32_t for : %s", value.c_str());
                     }
+                }
+            }
+
+            if (str == "roof_material") {
+                const auto value = "roof_" + property.value().string_value().to_string();
+
+                const auto it = std::find_if(
+                    std::begin(kBuildingMaterials),
+                    std::end(kBuildingMaterials),
+                    [&value] (const MaterialEntry & material) noexcept {
+                        return value == material.name;
+                    }
+                );
+
+                if (it != std::end(kBuildingMaterials)) {
+                    materialIdx2 = it->id;
+                } else {
+                    LOG_W("no found roof material uint32_t for : %s", value.c_str());
                 }
             }
 
@@ -744,6 +779,7 @@ namespace map {
             maxHeight,
             static_cast<float>(extent) / kWallsDistanceFactor,
             materialIdx,
+            materialIdx2,
             color,
             roofColor,
             roofHeight,
