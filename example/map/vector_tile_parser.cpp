@@ -596,7 +596,7 @@ namespace map {
         float minHeight = 0.0f;
 
         int16_t materialIdx = 0;
-        int16_t materialIdx2 = 14;
+        int16_t materialIdx2 = 0;
         uint32_t color = 0x00'ff'ff'ffu;
         uint32_t roofColor = 0x00'ff'ff'ffu;
         RoofType roofType = RoofType::eFlat;
