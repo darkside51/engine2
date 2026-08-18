@@ -775,20 +775,11 @@ namespace example {
                                         "walls", "assets/walls_texture.png", 
                                         engine::graphics::TextureFlags::eAllowSrgbColorSpace | engine::graphics::TextureFlags::eUseMipMaps);
 
-                                    const auto * betonImageHandler = loadImageAsync(*device, fileManager, *textureManager, 
-                                        "beton3", "assets/asphalt-11-6.jpg", 
-                                        engine::graphics::TextureFlags::eAllowSrgbColorSpace | engine::graphics::TextureFlags::eUseMipMaps);
-
-                                    const auto * asphaltImageHandler = loadImageAsync(*device, fileManager, *textureManager, 
-                                        "asphalt", "assets/alphalt-1.jpg", 
-                                        engine::graphics::TextureFlags::eAllowSrgbColorSpace | engine::graphics::TextureFlags::eUseMipMaps);
                                     auto * interriorImageHandler = textureManager->getImageHandler("skyBoxCubeMapImage");//
 
                                     auto * object = scene->createObject<engine::scene::CustomDrawObject>([
                                         extent, 
-                                        brikcsImageHandler, 
-                                        betonImageHandler, 
-                                        asphaltImageHandler, 
+                                        brikcsImageHandler,
                                         interriorImageHandler
                                     ](
                                         const engine::scene::Scene & scene, 
@@ -814,9 +805,9 @@ namespace example {
                                                 engine::rhi::SamplerValue sampler{};
                                                 sampler.info.minFilter = engine::rhi::FilterMode::eNearest;
                                                 sampler.info.magFilter = engine::rhi::FilterMode::eNearest;
-                                                sampler.info.mipMapFilter = engine::rhi::FilterMode::eNearest;
-                                                sampler.info.addressModeU = engine::rhi::SamplerAddressMode::eRepeat;
-                                                sampler.info.addressModeV = engine::rhi::SamplerAddressMode::eRepeat;
+                                                sampler.info.mipMapFilter = engine::rhi::FilterMode::eLinear;
+                                                sampler.info.addressModeU = engine::rhi::SamplerAddressMode::eClamp_To_Border;
+                                                sampler.info.addressModeV = engine::rhi::SamplerAddressMode::eClamp_To_Border;
                                                 sampler.info.addressModeW = engine::rhi::SamplerAddressMode::eClamp_To_Border;
                                                 
                                                 for (const auto & g : g_mapGeometry) {
@@ -834,9 +825,7 @@ namespace example {
                                                         );
                                                         commandList->bindBuffer(0u, scene.getViewParamsUniformBuffer(frameId), 0u, sceneViewParamBufferOffset);
                                                         commandList->bindImage(1u, brikcsImageHandler->image, sampler, 0u);
-                                                        commandList->bindImage(2u, betonImageHandler->image, sampler, 0u);
-                                                        commandList->bindImage(3u, asphaltImageHandler->image, sampler, 0u);
-                                                        commandList->bindImage(4u, interriorImageHandler->image, sampler, 0u, 
+                                                        commandList->bindImage(2u, interriorImageHandler->image, sampler, 0u, 
                                                             engine::rhi::ImageAspectFlags::eColor, engine::rhi::ImageViewType::eType_Cube);
                                                     }
 

@@ -6,6 +6,32 @@
 #include <span>
 
 namespace engine {
+    template <typename T>
+    struct Ray {
+        T origin;
+        T direction;
+    };
+
+    using ray2f = Ray<vec2f>;
+    using ray3f = Ray<vec3f>;
+
+    bool intersectRays2D(const ray2f & r1, const ray2f & r2, vec2f & outPoint) noexcept {
+        const auto cross = r1.direction.x * r2.direction.y - r1.direction.y * r2.direction.x;
+        if (abs(cross) < 1e-7f) {
+            return false; // the rays are parallel
+        }
+
+        const vec2f d = r2.origin - r1.origin;
+        const auto t1 = (d.x * r2.direction.y - d.y * r2.direction.x) / cross;
+        const auto t2 = (d.x * r1.direction.y - d.y * r1.direction.x) / cross;
+
+        if (t1 >= 0.0f && t2 >= 0.0f) {
+            outPoint = {r1.origin.x + t1 * r1.direction.x, r1.origin.y + t1 * r1.direction.y};
+            return true;
+        }
+        return false; // the intersection is behind one of the rays
+    }
+
     inline vec3f projection(const vec3f & a, const vec3f & b) noexcept { // project a to b
         const vec3f axis = glm::normalize(b);
         return axis * glm::dot(axis, a);

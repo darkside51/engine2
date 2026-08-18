@@ -27,9 +27,7 @@ layout (set = 0, binding = 0) uniform UniformBuffer {
 } u_viewParams;
 
 layout(set = 0, binding = 1) uniform sampler2D u_texture;
-layout(set = 0, binding = 2) uniform sampler2D u_texture2;
-layout(set = 0, binding = 3) uniform sampler2D u_texture3;
-layout(set = 0, binding = 4) uniform samplerCube u_interriorMap;
+layout(set = 0, binding = 2) uniform samplerCube u_interriorMap;
 
 struct Material {
 	vec2 metalicRoughness;
@@ -37,7 +35,7 @@ struct Material {
 	int windowImageId;
 };
 
-const Material materials[16] = Material[](
+const Material materials[18] = Material[](
 	Material(vec2(0.0f, 0.8f), 8, 9),		// plaster / default
 	Material(vec2(0.0f, 0.15f), 3, 2),		// glass
 	Material(vec2(0.0f, 0.85f), 10, 11),	// wood
@@ -50,10 +48,12 @@ const Material materials[16] = Material[](
 	Material(vec2(0.0f, 0.88f), 18, 24),	// cement_block
 	Material(vec2(0.0f, 0.89f), 19, 9), 	// brick
 	Material(vec2(0.0f, 0.79f), 4, 4), 		// roof_tar_paper
-	Material(vec2(0.8f, 0.45f), 5, 5), 		// roof_metal
+	Material(vec2(1.0f, 0.45f), 14, 14), 	// roof_metal
 	Material(vec2(0.0f, 0.4f), 6, 6),		// roof_granite
 	Material(vec2(0.0f, 0.8f), 7, 7),		// roof_tiles
-	Material(vec2(1.0f, 0.4f), 3, 3)		// roof_steel
+	Material(vec2(1.0f, 0.4f), 5, 5),		// roof_steel
+	Material(vec2(0.0f, 0.8f), 12, 12),		// roof_default
+	Material(vec2(0.0f, 0.125f), 13, 13)	// roof_glass
 );
 
 const float kWallImageSize = 128.0f;
@@ -83,7 +83,7 @@ void main() {
 	vec2 uv2 = vec2(-v_w.x, -v_w.y);
 	vec2 uvRoof = vec2(v_position.x * 16.0f, v_position.y * 16.0f);
 
-	const vec4 interriorColor = calculateRoomCube(u_interriorMap, v_position, u_viewParams.cameraPosition, normal, uv2, vec3(1.0f, 0.75f, 1.0f), vec4(1.0f));
+	const vec4 interriorColor = calculateRoomCube(u_interriorMap, v_position, u_viewParams.cameraPosition, normal, uv2, vec3(2.0f, 1.25f, 1.0f), vec4(1.0f));
 
 	const float kUvMix = 0.00001f;
 	const Material material = materials[v_material];
@@ -113,17 +113,18 @@ void main() {
 
 	vec4 wallMaterialColor = textureGrad(u_texture, mix(uv3, uv, magicStep), dx, dy);
 	wallMaterialColor.rgb *= v_color.rgb;
+	const float wallOpacity = wallMaterialColor.a;
 
 	const vec4 window = mix(textureGrad(u_texture, windowUv, dx, dy), vec4(0.0f), magicStep);
 	wallMaterialColor = mix(wallMaterialColor, window, step(0.3f, window.a));
 
 	const float roof = clamp(v_roof + step(0.99f, abs(normal.z)), 0.0f, 1.0f);
 
-	const vec4 wallColor = mix(wallMaterialColor, interriorColor, 1.0f - wallMaterialColor.a);
+	vec4 wallColor = mix(wallMaterialColor, interriorColor, 1.0f - wallMaterialColor.a);
+	wallColor.a = wallOpacity;
+	vec4 roofColor = textureGrad(u_texture, uvRoof, dx, dy);
+	roofColor.rgb *= v_color.rgb;
 
-	const vec4 roofColor = textureGrad(u_texture, uvRoof, dx, dy) * v_color;
-	//const vec4 roofColor = texture(u_texture2, v_position.xy * 8.0f) * (1.0f + v_position.z) * v_color;
-	
 	out_albedo = mix(wallColor, roofColor, roof);
 	out_metalicRoughness = mix(material.metalicRoughness, vec2(0.0f, 0.1f), step(wallMaterialColor.a, 0.95f) * (1.0f - roof));
 
