@@ -57,7 +57,7 @@ namespace map {
             float roofHeight,
             RoofType roofType
         );
-        std::vector<uint32_t> totalIndices;
+        engine::stl::vector<uint32_t> totalIndices;
         engine::stl::vector<engine::stl::array<int16_t, 4u>> totalVerices;
         engine::stl::vector<uint32_t> totalColors;
         float minTileHeight = std::numeric_limits<float>::max();
