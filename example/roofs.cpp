@@ -529,6 +529,7 @@ void buildHippedRoof(
         totalIndices.emplace_back(lowerPolygonStartIdx + *it);
     }
 
+    // top vertices
     const uint32_t upperPolygonStartIdx = static_cast<uint32_t>(totalVerices.size());
     for (auto vtx : vertices) {
         totalVerices.emplace_back(

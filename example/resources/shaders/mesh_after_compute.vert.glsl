@@ -33,13 +33,13 @@ layout(push_constant) uniform Params {
 } push;
 
 void main() {
-	const uint vertexId = gl_VertexIndex + in_skeleton_ids.data[gl_InstanceIndex + push.offset.x];//a_skeleton_ids;
-	const vec4 position = imageLoad(in_positions, int(vertexId)); // in_positions.data[vertexId];
+	const int vertexId = int(gl_VertexIndex + in_skeleton_ids.data[gl_InstanceIndex + push.offset.x]);//a_skeleton_ids;
+	const vec4 position = imageLoad(in_positions, vertexId); // in_positions.data[vertexId];
 	gl_Position = u_viewParams.viewProjection * position;
 	v_uv = a_uv;
     
-   const vec3 normal = imageLoad(in_normals, int(vertexId)).xyz;
-   const vec4 tangent = imageLoad(in_tangents, int(vertexId));
+   const vec3 normal = imageLoad(in_normals, vertexId).xyz;
+   const vec4 tangent = imageLoad(in_tangents, vertexId);
     
    const vec3 t = normalize(u_viewParams.viewTransposeInverse * tangent.xyz);
    const vec3 n = normalize(u_viewParams.viewTransposeInverse * normal); 

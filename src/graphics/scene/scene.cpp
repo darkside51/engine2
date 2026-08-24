@@ -56,7 +56,7 @@ namespace engine::scene {
     constexpr float kTryReduceUsedMemoryTimePeriodSeconds = 5.0f;
     constexpr uint32_t kInitialVerticesCountMax = 1024u;
     constexpr uint32_t kInitialIndicesCountMax = 1024u;
-    constexpr uint32_t kInitialmeshTransformsInFrameMax = 128u;
+    constexpr uint32_t kInitialMeshTransformsInFrameMax = 128u;
     constexpr uint32_t kInitialSkeletalmeshTransformsInFrameMax = 128u;
     constexpr uint32_t kMinStagingSize = 100u * 1024u /*100 Kb*/;
     constexpr uint32_t kStaginBufferEnlargeSizeMult = 2u;
@@ -160,6 +160,7 @@ namespace engine::scene {
         _meshTransforms = nullptr;
         _meshSkeletalTransforms = nullptr;
         _skeletonIds = nullptr;
+        _strockedMeshesIds = nullptr;
 
         _computedVertices = {};
         _computedNormals = {};
@@ -343,7 +344,7 @@ namespace engine::scene {
         };
 
         _meshTransforms = std::make_unique<graphics::InflightBuffer>(
-            api, device, storageInfo, kSsboTransformSize * kInitialmeshTransformsInFrameMax
+            api, device, storageInfo, kSsboTransformSize * kInitialMeshTransformsInFrameMax
         );
 
         _meshSkeletalTransforms = std::make_unique<graphics::InflightBuffer>(
@@ -351,11 +352,15 @@ namespace engine::scene {
         );
 
         _meshTransformIndices = std::make_unique<graphics::InflightBuffer>(
-            api, device, verticesInfo2, sizeof(uint32_t) * kInitialmeshTransformsInFrameMax
+            api, device, verticesInfo2, sizeof(uint32_t) * kInitialMeshTransformsInFrameMax
         );
 
         _skeletonIds = std::make_unique<graphics::InflightBuffer>(
-            api, device, verticesInfo2, sizeof(uint32_t) * kInitialmeshTransformsInFrameMax
+            api, device, verticesInfo2, sizeof(uint32_t) * kInitialMeshTransformsInFrameMax
+        );
+
+        _strockedMeshesIds = std::make_unique<graphics::InflightBuffer>(
+            api, device, verticesInfo2, sizeof(uint32_t) * kInitialMeshTransformsInFrameMax
         );
 
         if constexpr (kComputeSkinningAvailable) {
@@ -575,9 +580,10 @@ namespace engine::scene {
         const auto meshesDrawInFrame = _meshesDrawInFrame;
         auto meshTransformsInFrame = _meshTransformsInFrame;
         const auto skeletonsInFrame = _skeletonsInFrame;
+        const auto strockedMeshesIds = _strockedMeshesIndicesInFrame;
 
         auto skeletalTransformsInFrame = _skeletalTransformsInFrame;
-        _tmpUniqueMeshes.reserve(kInitialmeshTransformsInFrameMax);
+        _tmpUniqueMeshes.reserve(kInitialMeshTransformsInFrameMax);
 
         auto addSkeletonToMap = [&](const Skeleton* skeleton)-> stl::pair<uint32_t, uint32_t> {
             const auto result =  stl::pair{skeletalTransformsInFrame, _uniqueSkeletons};
@@ -605,7 +611,8 @@ namespace engine::scene {
             case ctti::typeIndex<AttachmentObject, Mesh>():
             {
                 if (!_meshTransformIndicesMap.contains(object)) {
-                    const auto * skeleton = static_cast<const Mesh*>(object)->getSkeleton();
+                    const auto * mesh = static_cast<const Mesh*>(object);
+                    const auto * skeleton = mesh->getSkeleton();
                     const bool isSkeletalMesh = skeleton != nullptr;
 
                     uint32_t skeletalTransformIndex = kUnknownTransformIndex;
@@ -633,6 +640,10 @@ namespace engine::scene {
                 
                     if (!isSkeletalMesh) {
                         ++meshTransformsInFrame;
+                    }
+
+                    if (mesh->isSelected()) {
+                        ++_strockedMeshesIndicesInFrame;
                     }
                 }
                 if (static_cast<const Mesh*>(object)->getSkeleton()) {
@@ -689,11 +700,16 @@ namespace engine::scene {
                 _meshTransformIndices->resize(std::max(currentSize * 2u, size));
             }
 
-
             const auto size2 = static_cast<uint32_t>(_skeletonsInFrame * sizeof(uint32_t));
             const auto currentSize2 = _skeletonIds->sizeInBytes();
             if (currentSize2 <= size2) {
                 _skeletonIds->resize(std::max(currentSize2 * 2u, size2));
+            }
+
+            const auto size3 = static_cast<uint32_t>(_strockedMeshesIndicesInFrame * sizeof(uint32_t));
+            const auto currentSize3 = _strockedMeshesIds->sizeInBytes();
+            if (currentSize3 <= size3) {
+                _strockedMeshesIds->resize(std::max(currentSize3 * 2u, size3));
             }
         }
 
@@ -703,6 +719,7 @@ namespace engine::scene {
         _meshSkeletalTransforms->applySize(frame);
         _meshTransformIndices->applySize(frame);
         _skeletonIds->applySize(frame);
+        _strockedMeshesIds->applySize(frame);
 
         // staging buffer
         if (auto const stagingTargetSize = calculateTargetStagingSize(); stagingTargetSize > 0u) {
@@ -722,6 +739,7 @@ namespace engine::scene {
             _meshSkeletalTransforms->setStagingBuffer(_staging.get());
             _meshTransformIndices->setStagingBuffer(_staging.get());
             _skeletonIds->setStagingBuffer(_staging.get());
+            _strockedMeshesIds->setStagingBuffer(_staging.get());
         }
 
         if (!_tmpUniqueMeshes.empty()) { // mehses transforms to storage buffers
@@ -1516,10 +1534,10 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
             if (completePack) {
                 // draw
                 if (skeletal) {
-                    drawSameMeshes(commandList, frame, currentIt, it, count, skeletal, skeletonsOffset);
+                    drawSameMeshes(commandList, frame, currentIt, it, count, true/*skeletal*/, skeletonsOffset);
                     skeletonsOffset += count;
                 } else {
-                    drawSameMeshes(commandList, frame, currentIt, it, count, skeletal, offset);
+                    drawSameMeshes(commandList, frame, currentIt, it, count, false/*skeletal*/, offset);
                 }
 
                 offset += count;
@@ -1568,10 +1586,10 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
         }
 
         if (skeletal) {
-            drawSameMeshes(commandList, frame, currentIt, end, count, skeletal, skeletonsOffset);
+            drawSameMeshes(commandList, frame, currentIt, end, count, true/*skeletal*/, skeletonsOffset);
             skeletonsOffset += count;
         } else {
-            drawSameMeshes(commandList, frame, currentIt, end, count, skeletal, offset);
+            drawSameMeshes(commandList, frame, currentIt, end, count, false/*skeletal*/, offset);
         }
         offset += count;
     }
@@ -1773,7 +1791,7 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
             }
 
             {
-                auto const minCount = std::max(_meshTransformsInFrame, kInitialmeshTransformsInFrameMax);
+                auto const minCount = std::max(_meshTransformsInFrame, kInitialMeshTransformsInFrameMax);
                 if (minCount * 2u < _lastFramesUsedMeshsTransforms) {
                     _meshTransforms->resize(minCount * kSsboTransformSize);
                     _tmpUniqueMeshes.resize(minCount);
@@ -1791,17 +1809,25 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
             }
 
             {
-                auto const minCount = std::max(_meshesDrawInFrame, kInitialmeshTransformsInFrameMax);
+                auto const minCount = std::max(_meshesDrawInFrame, kInitialMeshTransformsInFrameMax);
                 if (minCount * 2u < _lastFramesUsedMeshesDraw) {
                     _meshTransformIndices->resize(minCount * sizeof(uint32_t));
                 }
                 _lastFramesUsedMeshesDraw = _meshesDrawInFrame;
 
-                auto const minCount2 = std::max(_skeletonsInFrame, kInitialmeshTransformsInFrameMax);
+                auto const minCount2 = std::max(_skeletonsInFrame, kInitialMeshTransformsInFrameMax);
                 if (minCount2 * 2u < _lastFramesUsedSkeletonsInFrame) {
                     _skeletonIds->resize(minCount2 * sizeof(uint32_t));
                 }
                 _lastFramesUsedSkeletonsInFrame = _skeletonsInFrame;
+            }
+
+            {
+                auto const minCount = std::max(_strockedMeshesIndicesInFrame, kInitialMeshTransformsInFrameMax);
+                if (minCount * 2u < _lastFramesUsedStrockedMeshesIndicesInFrame) {
+                    _strockedMeshesIds->resize(minCount * sizeof(uint32_t));
+                }
+                _lastFramesUsedStrockedMeshesIndicesInFrame = _strockedMeshesIndicesInFrame;
             }
 
             // for staging buffer
@@ -1819,7 +1845,8 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
                 _meshTransformsInFrame > _lastFramesUsedMeshsTransforms ||
                 _meshesDrawInFrame > _lastFramesUsedMeshesDraw ||
                 _skeletalTransformsInFrame > _lastFramesUsedSkeletalTransforms ||
-                _skeletonsInFrame > _lastFramesUsedSkeletonsInFrame
+                _skeletonsInFrame > _lastFramesUsedSkeletonsInFrame ||
+                _strockedMeshesIndicesInFrame > _lastFramesUsedStrockedMeshesIndicesInFrame
             ) {
                 _lastFramesUsedSpritesVertexCount = _spritesVertexesCount;
                 _lastFramesUsedSpritesIndicesCount = _spritesIndicesCount;
@@ -1827,6 +1854,7 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
                 _lastFramesUsedMeshesDraw = _meshesDrawInFrame;
                 _lastFramesUsedSkeletalTransforms = _skeletalTransformsInFrame;
                 _lastFramesUsedSkeletonsInFrame = _skeletonsInFrame;
+                _lastFramesUsedStrockedMeshesIndicesInFrame = _strockedMeshesIndicesInFrame;
                 _tryReduceUsedMemoryTime = now;
             }
         }
@@ -1856,6 +1884,7 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
         _skeletalTransformsInFrame = 0u;
         _skeletonsInFrame = 0u;
         _uniqueSkeletons = 0u;
+        _strockedMeshesIndicesInFrame = 0u;
 
         completeAnimations();
 
@@ -1877,7 +1906,8 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
 
         return bufferTargetSize(*_spritesVertices) + bufferTargetSize(*_spritesIndices) + 
                bufferTargetSize(*_meshTransforms) + bufferTargetSize(*_meshSkeletalTransforms) + 
-               bufferTargetSize(*_meshTransformIndices) + bufferTargetSize(*_skeletonIds);
+               bufferTargetSize(*_meshTransformIndices) + bufferTargetSize(*_skeletonIds) +
+               bufferTargetSize(*_strockedMeshesIds);
     }
 
     void Scene::performCommits(rhi::runtime::CommandListPtr & commandList, uint8_t frame) {
@@ -1888,5 +1918,6 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
         _meshSkeletalTransforms->commit(*commandList, frame);
         _meshTransformIndices->commit(*commandList, frame);
         _skeletonIds->commit(*commandList, frame);
+        _strockedMeshesIds->commit(*commandList, frame);
     }
 }

@@ -27,7 +27,7 @@ layout(push_constant) uniform Params {
 void main() {
 	const uint offset = push.offset_and_count.x;
 	const uint count = push.offset_and_count.y;
-	const uint vertexId = gl_VertexIndex + in_skeleton_ids.data[gl_InstanceIndex % count + offset];
-	gl_Position = u_viewParams.cascades[gl_InstanceIndex / count] * imageLoad(in_positions, int(vertexId));//in_positions.data[vertexId];
+	const int vertexId = int(gl_VertexIndex + in_skeleton_ids.data[gl_InstanceIndex % count + offset]);
+	gl_Position = u_viewParams.cascades[gl_InstanceIndex / count] * imageLoad(in_positions, vertexId);//in_positions.data[vertexId];
 	gl_Layer = int(gl_InstanceIndex / count);
 }

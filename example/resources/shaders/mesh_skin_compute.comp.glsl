@@ -71,15 +71,15 @@ void main() {
 		vec4(0.0f, 0.0f, 0.0f, 1.0f)
 	);
 
-	const uint resultOffset = vertexId + skeleton_ids.data[objectId + push.firstObject + push.skeletonsOffset];
+	const int resultOffset = int(vertexId + skeleton_ids.data[objectId + push.firstObject + push.skeletonsOffset]);
 
-	imageStore(out_positions, int(resultOffset), vec4(texelFetch(u_positions, vertexId).xyz, 1.0f) * skin);
+	imageStore(out_positions, resultOffset, vec4(texelFetch(u_positions, vertexId).xyz, 1.0f) * skin);
 
 	const mat3 skinIT = mat3(skin3x4);
 	
 	const vec4 normal = texelFetch(u_normals, vertexId);
-	imageStore(out_normals, int(resultOffset), vec4(normalize(normal.xyz * skinIT), 0.0f));
+	imageStore(out_normals, resultOffset, vec4(normalize(normal.xyz * skinIT), 0.0f));
 
 	const vec4 tangent = texelFetch(u_tangents, vertexId);
-	imageStore(out_tangents, int(resultOffset), vec4(normalize(tangent.xyz * skinIT), tangent.w));
+	imageStore(out_tangents, resultOffset, vec4(normalize(tangent.xyz * skinIT), tangent.w));
 }

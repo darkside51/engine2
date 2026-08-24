@@ -353,6 +353,11 @@ private:
     uint32_t _lastFramesUsedSkeletonsInFrame = 0u;
     std::unique_ptr<graphics::InflightBuffer> _skeletonIds = nullptr;
 
+    // stroke meshes
+    uint32_t _strockedMeshesIndicesInFrame = 0u;
+    uint32_t _lastFramesUsedStrockedMeshesIndicesInFrame = 0u;
+    std::unique_ptr<graphics::InflightBuffer> _strockedMeshesIds = nullptr;
+
     uint32_t _computedVerticesSizeInFrame = 0u; // need resize buffers functional!
     uint32_t _lastFramesComputedVerticesSize = 0u;
 
