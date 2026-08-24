@@ -98,7 +98,7 @@ namespace engine::rhi::runtime {
     struct BeginRenderPassCommand : Command {
         RenderPass renderPass{};
         FrameBuffer * framebuffer = nullptr; 
-        dynamic_array<ClearValue, 4u> clearValues;
+        dynamic_array<ClearValue, 8u> clearValues;
         rhi::Rect2D area{};
         BeginRenderPassCommand(
             RenderPass renderPass, FrameBufferPtr & framebuffer, 

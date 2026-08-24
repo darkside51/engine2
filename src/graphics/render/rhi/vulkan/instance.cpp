@@ -1,6 +1,7 @@
 #include "instance.h"
 #include "helper.h"
 
+#include "utils/assert.h"
 #include "log/log.h"
 
 #include <algorithm>
@@ -16,12 +17,15 @@ namespace engine::vulkan {
         case VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT: [[fallthrough]];
         case VK_DEBUG_UTILS_MESSAGE_TYPE_DEVICE_ADDRESS_BINDING_BIT_EXT:
             LOG_I("vulkan: %s", pCallbackData->pMessage);
+            ENGINE_BREAK
             break;
         case VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT:
             LOG_E("vulkan error: %s", pCallbackData->pMessage);
+            ENGINE_BREAK
             break;
         case VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT: 
             LOG_D("vulkan warning: %s", pCallbackData->pMessage);
+            ENGINE_BREAK
             break;
         default:
             break;

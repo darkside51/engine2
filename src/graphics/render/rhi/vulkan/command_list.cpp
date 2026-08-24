@@ -324,7 +324,7 @@ namespace engine::vulkan::runtime {
                 applyBarriers(pass, renderPass, framebuffer.attachments()); 
                 ++passId;
 
-                dynamic_array<VkClearValue, 4u> clearValues;
+                dynamic_array<VkClearValue, 8u> clearValues;
                 clearValues.resize(command->clearValues.size());
                 auto clearValuesView = clearValues.view();
                 auto commandClearValuesView = command->clearValues.view();

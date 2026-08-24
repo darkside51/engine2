@@ -142,7 +142,7 @@ public:
             return;
         }
         
-        heap_vector.reserve(size);
+        heap_vector.reserve(size); // ?
         for (uint32_t i = 0u; i < current_size; ++i) {
             heap_vector.emplace_back(std::move(stack_data()[i]));
         }

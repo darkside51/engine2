@@ -160,7 +160,7 @@ namespace engine::vulkan {
         stl::pair<stl::array<VkDynamicState, rhi::kDynamicStatesCount>, uint8_t> _statesArray{};
         dynamic_array<VkVertexInputBindingDescription, 8u> _vertexBindings;
         dynamic_array<VkVertexInputAttributeDescription, 8u> _vertexAttributes;
-        dynamic_array<VkPipelineColorBlendAttachmentState, 4u> _blendAttachmentState;
+        dynamic_array<VkPipelineColorBlendAttachmentState, 8u> _blendAttachmentState;
 
         VkPipelineVertexInputStateCreateInfo _vertexInputState{};
         VkPipelineInputAssemblyStateCreateInfo _inputAssemblyState{};
