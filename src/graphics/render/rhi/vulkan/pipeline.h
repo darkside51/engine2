@@ -119,6 +119,7 @@ namespace engine::vulkan {
     public:
         GraphicsPipelineInfo() = default;
         GraphicsPipelineInfo(const rhi::GraphicsPipelineStatesInfo & info);
+        ~GraphicsPipelineInfo() = default;
 
         GraphicsPipelineInfo & viewportStateInfo(uint32_t viewportCount = 1u, uint32_t scissorCount = 1u) noexcept;
         GraphicsPipelineInfo & dynamicStateInfo(rhi::DynamicState states) noexcept;
@@ -154,7 +155,8 @@ namespace engine::vulkan {
             VkRenderPass renderPass,
             uint32_t subpass = 0u,
             VkPipeline basePipelineHandle = VK_NULL_HANDLE,
-            int32_t basePipelineIndex = 0) const noexcept;
+            int32_t basePipelineIndex = 0
+        ) const noexcept;
 
     private:
         stl::pair<stl::array<VkDynamicState, rhi::kDynamicStatesCount>, uint8_t> _statesArray{};

@@ -163,7 +163,7 @@ public:
         }
 
         reserve(size);
-        if (is_on_stack()) {
+        if (is_on_stack() && size < Max) {
             for (uint32_t i = current_size; i < size; ++i) {
                 new (stack_data() + i) T();
             }
