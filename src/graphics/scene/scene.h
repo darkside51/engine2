@@ -80,6 +80,7 @@ struct ViewParams {
     mat3f viewTransposeInverse;
     vec3f cameraPosition;
     vec2f nearFarPlanes;
+    vec2f cursorPosition;
     float time = 0.0f;
 };
 

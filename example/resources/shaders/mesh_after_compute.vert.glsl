@@ -10,6 +10,7 @@ layout (set = 0, binding = 0) uniform UniformBuffer {
 	mat3 viewTransposeInverse;
 	vec3 cameraPosition;
 	vec2 nearFarPlanes;
+	vec2 cursorPosition;
 	float time;
 } u_viewParams;
 
@@ -19,11 +20,12 @@ layout(set = 1, binding = 1, rgba8_snorm) readonly uniform imageBuffer in_normal
 layout(set = 1, binding = 2, rgba8_snorm) readonly uniform imageBuffer in_tangents;
 
 layout (set = 1, binding = 3) readonly buffer SkeletonIds {
-   uint data[];
+   uvec2 data[];
 } in_skeleton_ids;
 
 layout (location = 0) out vec2 v_uv;
 layout (location = 1) out mat3 v_tbn;
+layout (location = 4) flat out uint v_nodeId;
 
 layout(push_constant) uniform Params {
 	vec4 color;
@@ -33,7 +35,8 @@ layout(push_constant) uniform Params {
 } push;
 
 void main() {
-	const int vertexId = int(gl_VertexIndex + in_skeleton_ids.data[gl_InstanceIndex + push.offset.x]);//a_skeleton_ids;
+	const uvec2 ids = in_skeleton_ids.data[gl_InstanceIndex + push.offset.x];
+	const int vertexId = int(gl_VertexIndex + ids.x);//a_skeleton_ids;
 	const vec4 position = imageLoad(in_positions, vertexId); // in_positions.data[vertexId];
 	gl_Position = u_viewParams.viewProjection * position;
 	v_uv = a_uv;
@@ -46,4 +49,5 @@ void main() {
    const vec3 b = normalize(cross(n, t) * -tangent.w);
 
    v_tbn = mat3(t, b, n);
+   v_nodeId = ids.y;
 }

@@ -13,11 +13,11 @@ layout (set = 1, binding = 0) readonly buffer SkinTransformations {
 } sbo_skin;
 
 layout (set = 1, binding = 1) readonly buffer SkinTransformOffsets {
-   uint data[];
+   uvec2 data[];
 } skin_offsets;
 
 layout (set = 1, binding = 2) readonly buffer SkeletonIds {
-   uint data[];
+   uvec2 data[];
 } skeleton_ids;
 
 layout (set = 2, binding = 0) readonly buffer UniqueIndices {
@@ -53,7 +53,7 @@ void main() {
 		return;
 	}
 
-	const uint transformIdx = skin_offsets.data[objectId + push.firstObject + push.transformsOffset];
+	const uint transformIdx = skin_offsets.data[objectId + push.firstObject + push.transformsOffset].x;
 	const int vertexId = int(u_indices.data[invocationId % push.invocationsPerObject + push.indicesOffset]);
 
 	const vec4 a_weights = texelFetch(u_weights, vertexId);
@@ -71,7 +71,7 @@ void main() {
 		vec4(0.0f, 0.0f, 0.0f, 1.0f)
 	);
 
-	const int resultOffset = int(vertexId + skeleton_ids.data[objectId + push.firstObject + push.skeletonsOffset]);
+	const int resultOffset = int(vertexId + skeleton_ids.data[objectId + push.firstObject + push.skeletonsOffset].x);
 
 	imageStore(out_positions, resultOffset, vec4(texelFetch(u_positions, vertexId).xyz, 1.0f) * skin);
 

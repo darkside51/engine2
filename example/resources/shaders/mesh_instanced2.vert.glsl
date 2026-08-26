@@ -8,6 +8,7 @@ layout (location = 3) in vec4 a_tangent;
 
 layout (location = 0) out vec2 v_uv;
 layout (location = 1) out vec3 v_normal;
+layout (location = 2) flat out uint v_nodeId;
 
 layout (set = 0, binding = 0) uniform UniformBuffer {
 	mat4 view;
@@ -16,6 +17,7 @@ layout (set = 0, binding = 0) uniform UniformBuffer {
 	mat3 viewTransposeInverse;
 	vec3 cameraPosition;
 	vec2 nearFarPlanes;
+	vec2 cursorPosition;
 	float time;
 } u_viewParams;
 
@@ -25,7 +27,7 @@ layout (set = 1, binding = 0) readonly buffer Transformations {
 } sbo;
 
 layout (set = 1, binding = 1) readonly buffer offsetIds {
-   uint data[];
+   uvec2 data[];
 } in_offset_ids;
 
 layout(push_constant) uniform Params {
@@ -39,8 +41,9 @@ void main() {
 	v_uv = a_uv;
 
 	{ // with 48 bytes transforms
-		// common 
-		const mat3x4 transform = sbo.transforms[in_offset_ids.data[gl_InstanceIndex + push.offset.x]];//sbo.transforms[a_sbo_offset];
+		// common
+		const uvec2 ids = in_offset_ids.data[gl_InstanceIndex + push.offset.x];
+		const mat3x4 transform = sbo.transforms[ids.x];//sbo.transforms[a_sbo_offset];
 		const mat4 model = mat4(
 			transform[0],
 			transform[1],
@@ -54,5 +57,6 @@ void main() {
 		const mat3 model3x3 = mat3(model);
 		const vec3 normal = normalize(a_normal * model3x3);
 		v_normal = u_viewParams.viewTransposeInverse * normal;
+		v_nodeId = ids.y;
 	}
 }

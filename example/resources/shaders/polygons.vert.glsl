@@ -13,6 +13,7 @@ layout (set = 0, binding = 0) uniform UniformBuffer {
 	mat3 viewTransposeInverse;
 	vec3 cameraPosition;
 	vec2 nearFarPlanes;
+	vec2 cursorPosition;
 	float time;
 } u_viewParams;
 

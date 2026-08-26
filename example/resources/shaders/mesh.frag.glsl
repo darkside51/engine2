@@ -9,6 +9,7 @@ layout (set = 0, binding = 0) uniform UniformBuffer {
 	mat3 viewTransposeInverse;
 	vec3 cameraPosition;
 	vec2 nearFarPlanes;
+	vec2 cursorPosition;
 	float time;
 } u_viewParams;
 
@@ -21,6 +22,7 @@ layout(push_constant) uniform Params {
 
 layout (location = 0) in vec2 v_uv;
 layout (location = 1) in mat3 v_tbn;
+layout (location = 4) flat in uint v_nodeId;
 
 layout(set = 2, binding = 0) uniform sampler2D u_texture_color;
 layout(set = 2, binding = 1) uniform sampler2D u_texture_emissive;
@@ -51,4 +53,6 @@ void main() {
 	out_normal = vec4(normalize(v_tbn * tangentNormal) * 0.5f + 0.5f, 0.0f);
 	out_emissive = vec4(texture(u_texture_emissive, v_uv).rgb * push.emissive.rgb, 1.0f);
 	out_metalicRoughness = vec2(texture(u_texture_metalicRoughness, v_uv).bg * push.metalicRoughnessAlphaCut.xy);
+
+	//gl_FragCoord
 }

@@ -491,9 +491,12 @@ namespace example {
 
     class SceneEventHandler final : public engine::InputObserver {
         inline static const auto kPlaneXOY = engine::vec4f(0.0f, 0.0f, 1.0f, 0.0f);
-        float x0 = 0.0f;
-        float y0 = 0.0f;
+         engine::vec2f cursorPosition = {0.0f, 0.0f};
     public:
+        engine::vec2f getCursorPosition() const noexcept {
+            return cursorPosition;
+        }
+
         bool onInputPointerEvent(const engine::PointerEvent & event) override {
             static bool pressedLeft = false;
             static bool pressedRight = false;
@@ -529,28 +532,27 @@ namespace example {
             {
                 if (pressedRight) {
                     constexpr float kRotationSpeed = 0.005f;
-                    const auto rotation = engine::vec3f(kRotationSpeed * (y0 - event.y), 0.0f, kRotationSpeed * (event.x - x0));
+                    const auto rotation = engine::vec3f(kRotationSpeed * (cursorPosition.y - event.y), 0.0f, kRotationSpeed * (event.x - cursorPosition.x));
                     auto resultRotation = controller.getRotation() + rotation;
                     //resultRotation.x = std::clamp(resultRotation.x, -1.50f, 1.50f);
                     controller.setRotation(resultRotation);
                 }
 
                 if (pressedLeft) {
-                    const auto ray0 = camera.screenToWorld({x0, y0});
+                    const auto ray0 = camera.screenToWorld(cursorPosition);
                     const auto ray1 = camera.screenToWorld({event.x, event.y});
                     const auto worldPoint0 = engine::intersectionLinePlane(ray0.begin, ray0.end, kPlaneXOY);
                     const auto worldPoint1 = engine::intersectionLinePlane(ray1.begin, ray1.end, kPlaneXOY);
                     
                     controller.setPosition(controller.getPosition() + worldPoint0 - worldPoint1);
                 }
-
-                x0 = event.x;
-                y0 = event.y;
             }
                 break;
             default:
                 break;
             }
+
+            cursorPosition = {event.x, event.y};
 
             return true;
         }
@@ -558,7 +560,7 @@ namespace example {
         bool onInputWheelEvent(float /*dx*/, float dy) override {
 
             controller.calculateTransform();
-            const auto ray0 = camera.screenToWorld({x0, y0});
+            const auto ray0 = camera.screenToWorld(cursorPosition);
             const auto worldPoint0 = engine::intersectionLinePlane(ray0.begin, ray0.end, kPlaneXOY);
 
             const auto d = controller.getDistance();
@@ -566,7 +568,7 @@ namespace example {
 
             //
             controller.calculateTransform();
-            const auto ray1 = camera.screenToWorld({x0, y0});
+            const auto ray1 = camera.screenToWorld(cursorPosition);
             const auto worldPoint1 = engine::intersectionLinePlane(ray1.begin, ray1.end, kPlaneXOY);
 
             controller.setPosition(controller.getPosition() + worldPoint0 - worldPoint1);
@@ -2295,6 +2297,7 @@ namespace example {
                 viewParams.viewTransposeInverse = glm::transpose(glm::inverse(engine::mat3f(view)));
                 viewParams.cameraPosition = cameraPos; 
                 viewParams.nearFarPlanes = kNearFarPlane;
+                viewParams.cursorPosition = sceneEventHandler.getCursorPosition();
                 viewParamsUpdated = true;
             }}, 0u);
         }
