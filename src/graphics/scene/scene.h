@@ -106,6 +106,7 @@ class Scene {
         uint32_t spriteIndicesOffset = 0u;
         uint32_t skeletonOffset = 0u;
         uint32_t computeSkinVerticesOffset = 0u;
+        uint32_t meshOutlinesOffset = 0u;
     };
 
 public:
@@ -113,8 +114,7 @@ public:
         enum class Type : uint8_t {
             eMeshShadow = 0u,
             eMeshSkinnedShadow = 1u,
-            eMesh = 2u,
-            eMeshSkinned = 3u,
+            eMeshSkinCompute = 2u,
             eCount
         };
         stl::array<uint32_t, std::to_underlying(Type::eCount)> pipelines;
@@ -361,9 +361,6 @@ private:
     uint32_t _computedVerticesSizeInFrame = 0u; // need resize buffers functional!
     uint32_t _lastFramesComputedVerticesSize = 0u;
 
-    // rhi::runtime::BufferPtr _computedVertices = nullptr;
-    // rhi::runtime::BufferPtr _computedNormals = nullptr;
-    // rhi::runtime::BufferPtr _computedTangents = nullptr;
     stl::vector<rhi::runtime::BufferPtr> _computedVertices = {};
     stl::vector<rhi::runtime::BufferPtr> _computedNormals = {};
     stl::vector<rhi::runtime::BufferPtr> _computedTangents = {};

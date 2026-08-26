@@ -1542,7 +1542,8 @@ namespace example {
         scene->registerGraphicsPipeline(_api->createGraphicsPipeline(*_device, _renderPasses[kGbufferRenderPass], _programs[kMeshInstancedProgramNoPbr], info5, 0u));
 
         // compute
-        scene->registerComputePipeline(_api->createComputePipeline(*_device, _programs[kComputeProgram]));
+        const uint32_t meshSkinComputePipeline = scene->registerComputePipeline(_api->createComputePipeline(*_device, _programs[kComputeProgram]));
+        scene->assignCommonPipeline(meshSkinComputePipeline, engine::scene::Scene::CommonPipeline::Type::eMeshSkinCompute);
 
         const GraphicsPipelineStatesInfo info6 = engine::parseGraphicsPipelineInfo(json["mesh_skeletal_computed"]);
         scene->registerGraphicsPipeline(_api->createGraphicsPipeline(*_device, _renderPasses[kGbufferRenderPass], _programs[kMeshAfterComputeProgram], info6, 0u));

@@ -87,7 +87,7 @@ namespace engine::scene {
     stl::array<SkeletalAnimator, kAnimationCalculationThreadsCount> gSkeletalAnimatorsMT;
 
     // quality
-    constexpr stl::array kDefaultQualityLevels = {2.0f, 4.0f, 16.0f, 36.0f, 64.0f, 100.0f, 144.0f};
+    constexpr stl::array<float, 7u> kDefaultQualityLevels = {2.0f, 4.0f, 16.0f, 36.0f, 64.0f, 100.0f, 144.0f};
 
     // shaders time
     constexpr float kShaderTimeMultiplier = 0.001f;
@@ -784,7 +784,9 @@ namespace engine::scene {
             .meshesDrawOffset = meshesDrawInFrame,
             .spriteVerticesOffset = spritesVertexesCount,
             .spriteIndicesOffset = spritesIndicesCount,
-            .skeletonOffset = skeletonsInFrame
+            .skeletonOffset = skeletonsInFrame,
+            .computeSkinVerticesOffset = 0u,
+            .meshOutlinesOffset = outlinedMeshesIds
         };
     }
 
@@ -829,10 +831,13 @@ namespace engine::scene {
 
         const auto startOffset = offsets.meshesDrawOffset;
         const auto startSkeletonOffset = offsets.skeletonOffset;
+        const auto startMeshOutlenesOffset = offsets.meshOutlinesOffset;
         uint32_t i = 0u;
         uint32_t j = 0u;
+        uint32_t k = 0u;
         auto * memory = _meshTransformIndices->memory2<uint32_t>() + startOffset;
         auto * memory2 = _skeletonIds->memory2<uint32_t>() + startSkeletonOffset;
+        auto * memory3 = _outlinedMeshesIds->memory2<uint32_t>() + startMeshOutlenesOffset;
         const auto & ti = _meshTransformIndicesMap.find(*it)->second;
 
         uint32_t minId = 0xff'ff'ff'ffu;
@@ -852,15 +857,26 @@ namespace engine::scene {
             maxId = std::max(maxId, skeletonId);
 
             ++j;
+
+            if (mesh.isOutlined()) {
+                *(memory3 + k) = skeletonId;
+                ++k;
+            }
         } else {
             *(memory + i) = ti.transformIndex;
+
+            if (mesh.isOutlined()) {
+                *(memory3 + k) = ti.transformIndex;
+                ++k;
+            }
         }
+
         ++it;
         ++i;
 
         uint32_t count = 1u;
 
-        const auto & pipeline = getComputePipeline(0u); // todo: store mesh skin compute pipeline
+        const auto & pipeline = getComputePipeline(getCommonPipeline(CommonPipeline::Type::eMeshSkinCompute));
         assert(pipeline != nullptr);
 
         commandList->bindPipeline(pipeline);
@@ -904,8 +920,18 @@ namespace engine::scene {
                 maxId = std::max(maxId, skeletonId);
 
                 ++j;
+
+                if (mesh2.isOutlined()) {
+                    *(memory3 + k) = skeletonId;
+                    ++k;
+                }
             } else {
                 *(memory + i) = ti.transformIndex;
+
+                if (mesh2.isOutlined()) {
+                    *(memory3 + k) = ti.transformIndex;
+                    ++k;
+                }
             }
 
             const bool completePack = currentSkeletal != skeletal ||
@@ -1326,8 +1352,8 @@ namespace engine::scene {
 
 void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_t frame, 
         AttachmentsIterator begin, AttachmentsIterator end, const ViewParams & viewParams, uint32_t & offset, uint32_t & skeletonsOffset) {
-        if (getCommonPipeline(CommonPipeline::Type::eMeshShadow) == 0xff'ff'ff'ffu/* || 
-            getCommonPipeline(CommonPipeline::Type::eMeshSkinnedShadow) == 0xff'ff'ff'ffu*/) {
+        if (getCommonPipeline(CommonPipeline::Type::eMeshShadow) == 0xff'ff'ff'ffu || 
+            getCommonPipeline(CommonPipeline::Type::eMeshSkinnedShadow) == 0xff'ff'ff'ffu) {
             return;
         } 
 
