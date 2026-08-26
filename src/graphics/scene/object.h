@@ -13,7 +13,7 @@ namespace engine::scene {
 
     namespace AttachmentFlagBits {
         constexpr uint8_t kHiddenBit = 0u;
-        constexpr uint8_t kSelectedBit = 1u;
+        constexpr uint8_t kOutlineBit = 1u;
     }
 
     struct AttachmentObject /*: IntrusiveListNode<Object>*/ {
@@ -30,13 +30,13 @@ namespace engine::scene {
                          flags &= ~(1u << AttachmentFlagBits::kHiddenBit);
             }
 
-            inline bool isSelected() const noexcept {
-                return flags & (1u << AttachmentFlagBits::kSelectedBit);
+            inline bool isOutlined() const noexcept {
+                return flags & (1u << AttachmentFlagBits::kOutlineBit);
             }
 
-            inline void setSelected(bool selected) noexcept {
-                selected ? flags |= (1u << AttachmentFlagBits::kSelectedBit) : 
-                         flags &= ~(1u << AttachmentFlagBits::kSelectedBit);
+            inline void setOutlined(bool value) noexcept {
+                value ? flags |= (1u << AttachmentFlagBits::kOutlineBit) : 
+                        flags &= ~(1u << AttachmentFlagBits::kOutlineBit);
             }
         };
 
@@ -74,12 +74,12 @@ namespace engine::scene {
             flags.setHidden(hidden);
         }
 
-        bool isSelected() const noexcept {
-            return flags.isSelected();
+        bool isOutlined() const noexcept {
+            return flags.isOutlined();
         }
 
-        void setSelected(bool selected) noexcept {
-            flags.setSelected(selected);
+        void setOutlined(bool value) noexcept {
+            flags.setOutlined(value);
         }
         
         bool cmp(const AttachmentObject &) const noexcept { return false; }

@@ -160,7 +160,7 @@ namespace engine::scene {
         _meshTransforms = nullptr;
         _meshSkeletalTransforms = nullptr;
         _skeletonIds = nullptr;
-        _strockedMeshesIds = nullptr;
+        _outlinedMeshesIds = nullptr;
 
         _computedVertices = {};
         _computedNormals = {};
@@ -359,7 +359,7 @@ namespace engine::scene {
             api, device, verticesInfo2, sizeof(uint32_t) * kInitialMeshTransformsInFrameMax
         );
 
-        _strockedMeshesIds = std::make_unique<graphics::InflightBuffer>(
+        _outlinedMeshesIds = std::make_unique<graphics::InflightBuffer>(
             api, device, verticesInfo2, sizeof(uint32_t) * kInitialMeshTransformsInFrameMax
         );
 
@@ -580,7 +580,7 @@ namespace engine::scene {
         const auto meshesDrawInFrame = _meshesDrawInFrame;
         auto meshTransformsInFrame = _meshTransformsInFrame;
         const auto skeletonsInFrame = _skeletonsInFrame;
-        const auto strockedMeshesIds = _strockedMeshesIndicesInFrame;
+        const auto outlinedMeshesIds = _outlinedMeshesIndicesInFrame;
 
         auto skeletalTransformsInFrame = _skeletalTransformsInFrame;
         _tmpUniqueMeshes.reserve(kInitialMeshTransformsInFrameMax);
@@ -642,8 +642,8 @@ namespace engine::scene {
                         ++meshTransformsInFrame;
                     }
 
-                    if (mesh->isSelected()) {
-                        ++_strockedMeshesIndicesInFrame;
+                    if (mesh->isOutlined()) {
+                        ++_outlinedMeshesIndicesInFrame;
                     }
                 }
                 if (static_cast<const Mesh*>(object)->getSkeleton()) {
@@ -706,10 +706,10 @@ namespace engine::scene {
                 _skeletonIds->resize(std::max(currentSize2 * 2u, size2));
             }
 
-            const auto size3 = static_cast<uint32_t>(_strockedMeshesIndicesInFrame * sizeof(uint32_t));
-            const auto currentSize3 = _strockedMeshesIds->sizeInBytes();
+            const auto size3 = static_cast<uint32_t>(_outlinedMeshesIndicesInFrame * sizeof(uint32_t));
+            const auto currentSize3 = _outlinedMeshesIds->sizeInBytes();
             if (currentSize3 <= size3) {
-                _strockedMeshesIds->resize(std::max(currentSize3 * 2u, size3));
+                _outlinedMeshesIds->resize(std::max(currentSize3 * 2u, size3));
             }
         }
 
@@ -719,7 +719,7 @@ namespace engine::scene {
         _meshSkeletalTransforms->applySize(frame);
         _meshTransformIndices->applySize(frame);
         _skeletonIds->applySize(frame);
-        _strockedMeshesIds->applySize(frame);
+        _outlinedMeshesIds->applySize(frame);
 
         // staging buffer
         if (auto const stagingTargetSize = calculateTargetStagingSize(); stagingTargetSize > 0u) {
@@ -739,7 +739,7 @@ namespace engine::scene {
             _meshSkeletalTransforms->setStagingBuffer(_staging.get());
             _meshTransformIndices->setStagingBuffer(_staging.get());
             _skeletonIds->setStagingBuffer(_staging.get());
-            _strockedMeshesIds->setStagingBuffer(_staging.get());
+            _outlinedMeshesIds->setStagingBuffer(_staging.get());
         }
 
         if (!_tmpUniqueMeshes.empty()) { // mehses transforms to storage buffers
@@ -1823,11 +1823,11 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
             }
 
             {
-                auto const minCount = std::max(_strockedMeshesIndicesInFrame, kInitialMeshTransformsInFrameMax);
-                if (minCount * 2u < _lastFramesUsedStrockedMeshesIndicesInFrame) {
-                    _strockedMeshesIds->resize(minCount * sizeof(uint32_t));
+                auto const minCount = std::max(_outlinedMeshesIndicesInFrame, kInitialMeshTransformsInFrameMax);
+                if (minCount * 2u < _lastFramesUsedOutlinedMeshesIndicesInFrame) {
+                    _outlinedMeshesIds->resize(minCount * sizeof(uint32_t));
                 }
-                _lastFramesUsedStrockedMeshesIndicesInFrame = _strockedMeshesIndicesInFrame;
+                _lastFramesUsedOutlinedMeshesIndicesInFrame = _outlinedMeshesIndicesInFrame;
             }
 
             // for staging buffer
@@ -1846,7 +1846,7 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
                 _meshesDrawInFrame > _lastFramesUsedMeshesDraw ||
                 _skeletalTransformsInFrame > _lastFramesUsedSkeletalTransforms ||
                 _skeletonsInFrame > _lastFramesUsedSkeletonsInFrame ||
-                _strockedMeshesIndicesInFrame > _lastFramesUsedStrockedMeshesIndicesInFrame
+                _outlinedMeshesIndicesInFrame > _lastFramesUsedOutlinedMeshesIndicesInFrame
             ) {
                 _lastFramesUsedSpritesVertexCount = _spritesVertexesCount;
                 _lastFramesUsedSpritesIndicesCount = _spritesIndicesCount;
@@ -1854,7 +1854,7 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
                 _lastFramesUsedMeshesDraw = _meshesDrawInFrame;
                 _lastFramesUsedSkeletalTransforms = _skeletalTransformsInFrame;
                 _lastFramesUsedSkeletonsInFrame = _skeletonsInFrame;
-                _lastFramesUsedStrockedMeshesIndicesInFrame = _strockedMeshesIndicesInFrame;
+                _lastFramesUsedOutlinedMeshesIndicesInFrame = _outlinedMeshesIndicesInFrame;
                 _tryReduceUsedMemoryTime = now;
             }
         }
@@ -1884,7 +1884,7 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
         _skeletalTransformsInFrame = 0u;
         _skeletonsInFrame = 0u;
         _uniqueSkeletons = 0u;
-        _strockedMeshesIndicesInFrame = 0u;
+        _outlinedMeshesIndicesInFrame = 0u;
 
         completeAnimations();
 
@@ -1907,7 +1907,7 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
         return bufferTargetSize(*_spritesVertices) + bufferTargetSize(*_spritesIndices) + 
                bufferTargetSize(*_meshTransforms) + bufferTargetSize(*_meshSkeletalTransforms) + 
                bufferTargetSize(*_meshTransformIndices) + bufferTargetSize(*_skeletonIds) +
-               bufferTargetSize(*_strockedMeshesIds);
+               bufferTargetSize(*_outlinedMeshesIds);
     }
 
     void Scene::performCommits(rhi::runtime::CommandListPtr & commandList, uint8_t frame) {
@@ -1918,6 +1918,6 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
         _meshSkeletalTransforms->commit(*commandList, frame);
         _meshTransformIndices->commit(*commandList, frame);
         _skeletonIds->commit(*commandList, frame);
-        _strockedMeshesIds->commit(*commandList, frame);
+        _outlinedMeshesIds->commit(*commandList, frame);
     }
 }
