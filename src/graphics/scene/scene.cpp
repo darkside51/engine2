@@ -851,22 +851,22 @@ namespace engine::scene {
             assert(skeletonId < kMaxSkeletonsDispatchPack);
 
             skeletonMeshesVerticesCounts[skeletonId] = mesh.getVertexCount();
-            *(memory + i) = ti.skeletalTransformIndex;
-            *(memory2 + j) = skeletonId;// | (vertexCount << 16u);
+            memory[i] = ti.skeletalTransformIndex;
+            memory2[j] = skeletonId;// | (vertexCount << 16u);
             minId = std::min(minId, skeletonId);
             maxId = std::max(maxId, skeletonId);
 
             ++j;
 
             if (mesh.isOutlined()) {
-                *(memory3 + k) = skeletonId;
+                memory3[k] = skeletonId;
                 ++k;
             }
         } else {
-            *(memory + i) = ti.transformIndex;
+            memory[i] = ti.transformIndex;
 
             if (mesh.isOutlined()) {
-                *(memory3 + k) = ti.transformIndex;
+                memory3[k] = ti.transformIndex;
                 ++k;
             }
         }
@@ -914,22 +914,22 @@ namespace engine::scene {
                 assert(skeletonId < kMaxSkeletonsDispatchPack);
 
                 skeletonMeshesVerticesCounts[skeletonId] = mesh2.getVertexCount();
-                *(memory + i) = ti.skeletalTransformIndex;
-                *(memory2 + j) = skeletonId;// | (vertexCount << 16u);
+                memory[i] = ti.skeletalTransformIndex;
+                memory2[j] = skeletonId;// | (vertexCount << 16u);
                 minId = std::min(minId, skeletonId);
                 maxId = std::max(maxId, skeletonId);
 
                 ++j;
 
                 if (mesh2.isOutlined()) {
-                    *(memory3 + k) = skeletonId;
+                    memory3[k] = skeletonId;
                     ++k;
                 }
             } else {
-                *(memory + i) = ti.transformIndex;
+                memory[i] = ti.transformIndex;
 
                 if (mesh2.isOutlined()) {
-                    *(memory3 + k) = ti.transformIndex;
+                    memory3[k] = ti.transformIndex;
                     ++k;
                 }
             }
@@ -980,7 +980,7 @@ namespace engine::scene {
         }
 
         for (uint32_t n = 0u; n < j; ++n) {
-            *(memory2 + n) = skeletonMeshesVerticesCounts[*(memory2 + n)];
+            memory2[n] = skeletonMeshesVerticesCounts[memory2[n]];
         }
 
         _meshTransformIndices->modify(sizeof(uint32_t) * i, sizeof(uint32_t) * startOffset);
