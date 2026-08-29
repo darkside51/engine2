@@ -96,6 +96,7 @@ enum class FillAttachmentFlags : uint8_t {
 enum class RenderPass : uint8_t {
     eCommon = 0u,
     eShadow = 1u,
+    eColorId = 2u
 };
 
 class Scene {
@@ -116,6 +117,9 @@ public:
             eMeshShadow = 0u,
             eMeshSkinnedShadow = 1u,
             eMeshSkinCompute = 2u,
+            eMeshColorId = 3u,
+            eMeshSkinColorId = 4u,
+            eSpriteColorId = 5u,
             eCount
         };
         stl::array<uint32_t, std::to_underlying(Type::eCount)> pipelines;
@@ -190,7 +194,7 @@ public:
     void animate(std::chrono::time_point<std::chrono::steady_clock> now, float delta, stl::span<AttachmentObject*> objects, 
         const AnimationManager & animationManager, float speed = 1.0f);
     void draw(RenderPass pass, rhi::runtime::CommandListPtr & commandList, rhi::runtime::CommandListPtr & transferCommandList, uint8_t frame, 
-        const ViewParams & viewParams, stl::span<AttachmentObject*> objects, const DrawDataOffsets & offsets, const void * external = nullptr);
+        const ViewParams & viewParams, stl::span<AttachmentObject*> objects, const DrawDataOffsets & offsets, const void * uniformData = nullptr);
     void drawDebug(const ViewParams & viewParams, stl::span<AttachmentObject*> objects);
     DispatchResult dispatch(rhi::runtime::CommandListPtr & commandList, uint8_t frame, stl::span<AttachmentObject*> objects, const DrawDataOffsets & offsets);
 
@@ -237,6 +241,18 @@ private:
 
     // draw
     void drawObjects(rhi::runtime::CommandListPtr & commandList, uint8_t frame, 
+        const ViewParams & viewParams, AttachmentsIterator begin, AttachmentsIterator end, 
+        uint16_t typeIdx, DrawDataOffsets & offsets);
+
+    void drawCommon(rhi::runtime::CommandListPtr & commandList, uint8_t frame, 
+        const ViewParams & viewParams, AttachmentsIterator begin, AttachmentsIterator end, 
+        uint16_t typeIdx, DrawDataOffsets & offsets);
+
+    void drawShadows(rhi::runtime::CommandListPtr & commandList, uint8_t frame, 
+        const ViewParams & viewParams, AttachmentsIterator begin, AttachmentsIterator end, 
+        uint16_t typeIdx, DrawDataOffsets & offsets);
+
+    void drawColorIds(rhi::runtime::CommandListPtr & commandList, uint8_t frame, 
         const ViewParams & viewParams, AttachmentsIterator begin, AttachmentsIterator end, 
         uint16_t typeIdx, DrawDataOffsets & offsets);
 
@@ -358,6 +374,11 @@ private:
     uint32_t _outlinedMeshesIndicesInFrame = 0u;
     uint32_t _lastFramesUsedOutlinedMeshesIndicesInFrame = 0u;
     std::unique_ptr<graphics::InflightBuffer> _outlinedMeshesIds = nullptr;
+
+    // color ids meshes
+    uint32_t _colorIdMeshesIndicesInFrame = 0u;
+    uint32_t _lastFramesUsedColorIdMeshesIndicesInFrame = 0u;
+    std::unique_ptr<graphics::InflightBuffer> _colorIdMeshesIds = nullptr;
 
     uint32_t _computedVerticesSizeInFrame = 0u; // need resize buffers functional!
     uint32_t _lastFramesComputedVerticesSize = 0u;

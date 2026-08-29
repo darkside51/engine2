@@ -57,6 +57,8 @@ namespace engine::scene {
     constexpr uint32_t kInitialVerticesCountMax = 1024u;
     constexpr uint32_t kInitialIndicesCountMax = 1024u;
     constexpr uint32_t kInitialMeshTransformsInFrameMax = 128u;
+    constexpr uint32_t kInitialMeshColorIdsInFrameMax = 128u;
+    constexpr uint32_t kInitialMeshOutlinedInFrameMax = 16u;
     constexpr uint32_t kInitialSkeletalmeshTransformsInFrameMax = 128u;
     constexpr uint32_t kMinStagingSize = 100u * 1024u /*100 Kb*/;
     constexpr uint32_t kStaginBufferEnlargeSizeMult = 2u;
@@ -360,7 +362,7 @@ namespace engine::scene {
         );
 
         _outlinedMeshesIds = std::make_unique<graphics::InflightBuffer>(
-            api, device, verticesInfo2, sizeof(uint32_t) * kInitialMeshTransformsInFrameMax
+            api, device, verticesInfo2, sizeof(uint32_t) * kInitialMeshOutlinedInFrameMax
         );
 
         if constexpr (kComputeSkinningAvailable) {
@@ -832,13 +834,13 @@ namespace engine::scene {
 
         const auto startOffset = offsets.meshesDrawOffset;
         const auto startSkeletonOffset = offsets.skeletonOffset;
-        const auto startMeshOutlenesOffset = offsets.meshOutlinesOffset;
+        const auto startMeshOutlinesOffset = offsets.meshOutlinesOffset;
         uint32_t i = 0u;
         uint32_t j = 0u;
         uint32_t k = 0u;
         auto * memory = _meshTransformIndices->memory2<uint32_t>() + startOffset;
         auto * memory2 = _skeletonIds->memory2<uint32_t>() + startSkeletonOffset;
-        auto * memory3 = _outlinedMeshesIds->memory2<uint32_t>() + startMeshOutlenesOffset;
+        auto * memory3 = _outlinedMeshesIds->memory2<uint32_t>() + startMeshOutlinesOffset;
         const auto & ti = _meshTransformIndicesMap.find(*it)->second;
 
         uint32_t minId = 0xff'ff'ff'ffu;
@@ -1065,17 +1067,29 @@ namespace engine::scene {
     void Scene::drawObjects(rhi::runtime::CommandListPtr & commandList, uint8_t frame, 
         const ViewParams & viewParams, AttachmentsIterator begin, AttachmentsIterator end, 
         uint16_t typeIdx, DrawDataOffsets & offsets) {
+        switch(_currentPass) {
+        case RenderPass::eCommon:
+            drawCommon(commandList, frame, viewParams, begin, end, typeIdx, offsets);
+            break;
+        case RenderPass::eShadow:
+            drawShadows(commandList, frame, viewParams, begin, end, typeIdx, offsets);
+            break;
+        case RenderPass::eColorId:
+            drawColorIds(commandList, frame, viewParams, begin, end, typeIdx, offsets);
+            break;
+        }
+    }
+
+    void Scene::drawCommon(rhi::runtime::CommandListPtr & commandList, uint8_t frame, 
+        const ViewParams & viewParams, AttachmentsIterator begin, AttachmentsIterator end, 
+        uint16_t typeIdx, DrawDataOffsets & offsets) {
         switch (typeIdx) {
         case ctti::typeIndex<AttachmentObject, Skeleton>(): // do not draw skeletons
             break;
         case ctti::typeIndex<AttachmentObject, Mesh>():
         {
             if constexpr (kComputeSkinningAvailable) {
-                if (_currentPass == RenderPass::eShadow) {
-                    drawMeshes2Shadow(commandList, frame, begin, end, viewParams, offsets.meshesDrawOffset, offsets.skeletonOffset);
-                } else {
-                    drawMeshes2(commandList, frame, begin, end, viewParams, offsets.meshesDrawOffset, offsets.skeletonOffset);
-                }
+                drawMeshes2(commandList, frame, begin, end, viewParams, offsets.meshesDrawOffset, offsets.skeletonOffset);
             } else {
                 drawMeshes(commandList, frame, begin, end, viewParams, offsets.meshesDrawOffset);
             }
@@ -1097,6 +1111,39 @@ namespace engine::scene {
         }
             break;
         }
+    }
+
+    void Scene::drawShadows(rhi::runtime::CommandListPtr & commandList, uint8_t frame, 
+        const ViewParams & viewParams, AttachmentsIterator begin, AttachmentsIterator end, 
+        uint16_t typeIdx, DrawDataOffsets & offsets) {
+        switch (typeIdx) {
+        case ctti::typeIndex<AttachmentObject, Skeleton>(): // do not draw skeletons
+            break;
+        case ctti::typeIndex<AttachmentObject, Mesh>():
+        {
+            if constexpr (kComputeSkinningAvailable) {
+                drawMeshes2Shadow(commandList, frame, begin, end, viewParams, offsets.meshesDrawOffset, offsets.skeletonOffset);
+            } else {
+                assert(false);
+            }
+        }
+            break;
+        case ctti::typeIndex<AttachmentObject, Sprite>():
+            break;
+        case ctti::typeIndex<AttachmentObject, CustomDrawObject>():
+        {
+            drawCustomObjects(begin, end, viewParams, commandList, frame);
+        }
+            break;
+        case ctti::typeIndex<AttachmentObject, Dummy>():
+            break;
+        }
+    }
+
+    void Scene::drawColorIds(rhi::runtime::CommandListPtr & commandList, uint8_t frame, 
+        const ViewParams & viewParams, AttachmentsIterator begin, AttachmentsIterator end, 
+        uint16_t typeIdx, DrawDataOffsets & offsets) {
+        // todo!
     }
 
     void Scene::drawDebug(const ViewParams & viewParams, stl::span<AttachmentObject*> objects) {
@@ -1132,7 +1179,7 @@ namespace engine::scene {
     }
 
     void Scene::draw(RenderPass pass, rhi::runtime::CommandListPtr & commandList, rhi::runtime::CommandListPtr & transferCommandList, uint8_t frame, 
-        const ViewParams & viewParams, stl::span<AttachmentObject*> objects, const DrawDataOffsets & offsets, const void * external) {
+        const ViewParams & viewParams, stl::span<AttachmentObject*> objects, const DrawDataOffsets & offsets, const void * uniformData) {
         if (objects.empty()) { // no right variant, just for test!
             return;
         }
@@ -1154,13 +1201,18 @@ namespace engine::scene {
                 break;
             case RenderPass::eShadow:
             {
-                assert(external != nullptr);
+                assert(uniformData != nullptr);
                 auto * uniform = _viewParamsUniformBuffer->memory2<std::byte>() + _currentViewParamsBufferOffset;
-                const ShadowViewParams & shadowParams = *static_cast<const ShadowViewParams *>(external);
+                const ShadowViewParams & shadowParams = *static_cast<const ShadowViewParams *>(uniformData);
                 _shadowCascades = shadowParams.cascadeMatrices.size();
                 const auto dataSize = sizeof(mat4f) * _shadowCascades;
                 memcpy(uniform , shadowParams.cascadeMatrices.data(), dataSize);
                 _viewParamsUniformBuffer->modify(dataSize, _currentViewParamsBufferOffset);
+            }
+                break;
+            case RenderPass::eColorId:
+            {
+                
             }
                 break;
             }
@@ -1847,7 +1899,7 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
             }
 
             {
-                auto const minCount = std::max(_outlinedMeshesIndicesInFrame, kInitialMeshTransformsInFrameMax);
+                auto const minCount = std::max(_outlinedMeshesIndicesInFrame, kInitialMeshOutlinedInFrameMax);
                 if (minCount * 2u < _lastFramesUsedOutlinedMeshesIndicesInFrame) {
                     _outlinedMeshesIds->resize(minCount * sizeof(uint32_t));
                 }

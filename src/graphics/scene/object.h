@@ -14,6 +14,7 @@ namespace engine::scene {
     namespace AttachmentFlagBits {
         constexpr uint8_t kHiddenBit = 0u;
         constexpr uint8_t kOutlineBit = 1u;
+        constexpr uint8_t kColorIdBit = 2u;
     }
 
     struct AttachmentObject /*: IntrusiveListNode<Object>*/ {
@@ -37,6 +38,15 @@ namespace engine::scene {
             inline void setOutlined(bool value) noexcept {
                 value ? flags |= (1u << AttachmentFlagBits::kOutlineBit) : 
                         flags &= ~(1u << AttachmentFlagBits::kOutlineBit);
+            }
+
+            inline bool isEnableColorId() const noexcept {
+                return flags & (1u << AttachmentFlagBits::kColorIdBit);
+            }
+
+            inline void setEnableColorId(bool value) noexcept {
+                value ? flags |= (1u << AttachmentFlagBits::kColorIdBit) : 
+                        flags &= ~(1u << AttachmentFlagBits::kColorIdBit);
             }
         };
 
@@ -81,7 +91,15 @@ namespace engine::scene {
         void setOutlined(bool value) noexcept {
             flags.setOutlined(value);
         }
-        
+
+        bool isEnableColorId() const noexcept {
+            return flags.isEnableColorId();
+        }
+
+        void setEnableColorId(bool value) noexcept {
+            flags.setEnableColorId(value);
+        }
+    
         bool cmp(const AttachmentObject &) const noexcept { return false; }
     };
 

@@ -38,8 +38,8 @@
 #include "engine/src/graphics/mesh/model_manager.h"
 #include "engine/src/graphics/common/material.h"
 #include "engine/src/graphics/common/background_command_context.h"
-#include "engine/src/graphics/render/techniques/cascade_shadow_map.h"
-#include "engine/src/graphics/render/techniques/ssao.h"
+#include "engine/src/graphics/render/features/cascade_shadow_map.h"
+#include "engine/src/graphics/render/features/ssao.h"
 
 #include "engine/src/network/network_service_curl.h"
 

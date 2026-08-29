@@ -85,7 +85,7 @@ set(
 	graphics
 	graphics/render
 	graphics/render/rhi/common
-	graphics/render/techniques
+	graphics/render/features
 	graphics/ui
 	graphics/scene
 	graphics/scene/animation
