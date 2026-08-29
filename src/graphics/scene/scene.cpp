@@ -352,11 +352,11 @@ namespace engine::scene {
         );
 
         _meshTransformIndices = std::make_unique<graphics::InflightBuffer>(
-            api, device, verticesInfo2, sizeof(vec2u) * kInitialMeshTransformsInFrameMax
+            api, device, verticesInfo2, sizeof(uint32_t) * kInitialMeshTransformsInFrameMax
         );
 
         _skeletonIds = std::make_unique<graphics::InflightBuffer>(
-            api, device, verticesInfo2, sizeof(vec2u) * kInitialMeshTransformsInFrameMax
+            api, device, verticesInfo2, sizeof(uint32_t) * kInitialMeshTransformsInFrameMax
         );
 
         _outlinedMeshesIds = std::make_unique<graphics::InflightBuffer>(
@@ -694,13 +694,13 @@ namespace engine::scene {
         }
 
         {
-            const auto size = static_cast<uint32_t>(_meshesDrawInFrame * sizeof(vec2u));
+            const auto size = static_cast<uint32_t>(_meshesDrawInFrame * sizeof(uint32_t));
             const auto currentSize = _meshTransformIndices->sizeInBytes();
             if (currentSize <= size) {
                 _meshTransformIndices->resize(std::max(currentSize * 2u, size));
             }
 
-            const auto size2 = static_cast<uint32_t>(_skeletonsInFrame * sizeof(vec2u));
+            const auto size2 = static_cast<uint32_t>(_skeletonsInFrame * sizeof(uint32_t));
             const auto currentSize2 = _skeletonIds->sizeInBytes();
             if (currentSize2 <= size2) {
                 _skeletonIds->resize(std::max(currentSize2 * 2u, size2));
@@ -826,7 +826,7 @@ namespace engine::scene {
         bool skeletal = mesh.getSkeleton() != nullptr;
         auto dataIndex = mesh.dataIndex();
         auto materialIndex = mesh.materialIndex();
-        const uint32_t nodeId = mesh.node->getId();
+        // const uint32_t nodeId = mesh.node->getId();
           
         stl::array<uint32_t, kMaxSkeletonsDispatchPack> skeletonMeshesVerticesCounts{};
 
@@ -836,8 +836,8 @@ namespace engine::scene {
         uint32_t i = 0u;
         uint32_t j = 0u;
         uint32_t k = 0u;
-        auto * memory = _meshTransformIndices->memory2<vec2u>() + startOffset;
-        auto * memory2 = _skeletonIds->memory2<vec2u>() + startSkeletonOffset;
+        auto * memory = _meshTransformIndices->memory2<uint32_t>() + startOffset;
+        auto * memory2 = _skeletonIds->memory2<uint32_t>() + startSkeletonOffset;
         auto * memory3 = _outlinedMeshesIds->memory2<uint32_t>() + startMeshOutlenesOffset;
         const auto & ti = _meshTransformIndicesMap.find(*it)->second;
 
@@ -852,8 +852,8 @@ namespace engine::scene {
             assert(skeletonId < kMaxSkeletonsDispatchPack);
 
             skeletonMeshesVerticesCounts[skeletonId] = mesh.getVertexCount();
-            memory[i] = {ti.skeletalTransformIndex, nodeId};
-            memory2[j] = {skeletonId, nodeId};// | (vertexCount << 16u);
+            memory[i] = ti.skeletalTransformIndex;
+            memory2[j] = skeletonId;// | (vertexCount << 16u);
             minId = std::min(minId, skeletonId);
             maxId = std::max(maxId, skeletonId);
 
@@ -864,7 +864,7 @@ namespace engine::scene {
                 ++k;
             }
         } else {
-            memory[i] = {ti.transformIndex, nodeId};
+            memory[i] = ti.transformIndex;
 
             if (mesh.isOutlined()) {
                 memory3[k] = ti.transformIndex;
@@ -905,7 +905,7 @@ namespace engine::scene {
             const bool currentSkeletal = mesh2.getSkeleton() != nullptr;
             const auto currenDataIndex = mesh2.dataIndex();
             const auto currenMaterialIndex = mesh2.materialIndex();
-            const uint32_t nodeId = mesh2.node->getId();
+            // const uint32_t nodeId = mesh2.node->getId();
 
             const auto & ti = _meshTransformIndicesMap.find(*it)->second;
             if (currentSkeletal) {
@@ -916,8 +916,8 @@ namespace engine::scene {
                 assert(skeletonId < kMaxSkeletonsDispatchPack);
 
                 skeletonMeshesVerticesCounts[skeletonId] = mesh2.getVertexCount();
-                memory[i] = {ti.skeletalTransformIndex, nodeId};
-                memory2[j] = {skeletonId, nodeId};// | (vertexCount << 16u);
+                memory[i] = ti.skeletalTransformIndex;
+                memory2[j] = skeletonId;// | (vertexCount << 16u);
                 minId = std::min(minId, skeletonId);
                 maxId = std::max(maxId, skeletonId);
 
@@ -928,7 +928,7 @@ namespace engine::scene {
                     ++k;
                 }
             } else {
-                memory[i] = {ti.transformIndex, nodeId};
+                memory[i] = ti.transformIndex;
 
                 if (mesh2.isOutlined()) {
                     memory3[k] = ti.transformIndex;
@@ -982,11 +982,11 @@ namespace engine::scene {
         }
 
         for (uint32_t n = 0u; n < j; ++n) {
-            memory2[n].x = skeletonMeshesVerticesCounts[memory2[n].x];
+            memory2[n] = skeletonMeshesVerticesCounts[memory2[n]];
         }
 
-        _meshTransformIndices->modify(sizeof(vec2u) * i, sizeof(vec2u) * startOffset);
-        _skeletonIds->modify(sizeof(vec2u) * j, sizeof(vec2u) * startSkeletonOffset);
+        _meshTransformIndices->modify(sizeof(uint32_t) * i, sizeof(uint32_t) * startOffset);
+        _skeletonIds->modify(sizeof(uint32_t) * j, sizeof(uint32_t) * startSkeletonOffset);
     }
 
     void Scene::dispatchSameMeshes(rhi::runtime::CommandListPtr & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end, 
@@ -1632,11 +1632,11 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
 
         const auto startOffset = offset;
         uint32_t i = 0u;
-        auto * memory = _meshTransformIndices->memory2<vec2u>() + offset;
+        auto * memory = _meshTransformIndices->memory2<uint32_t>() + offset;
         if (skeletal) {
-            memory[i] = {_meshTransformIndicesMap[*it].skeletalTransformIndex, 0u};
+            memory[i] = _meshTransformIndicesMap[*it].skeletalTransformIndex;
         } else {
-            memory[i] = {_meshTransformIndicesMap[*it].transformIndex, 0u};
+            memory[i] = _meshTransformIndicesMap[*it].transformIndex;
         }
         ++it;
         ++i;
@@ -1695,9 +1695,9 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
             const auto currenMaterialIndex = mesh2.materialIndex();
 
             if (currentSkeletal) {
-                memory[i] = {_meshTransformIndicesMap[*it].skeletalTransformIndex, 0u};
+                memory[i] = _meshTransformIndicesMap[*it].skeletalTransformIndex;
             } else {
-                memory[i] = {_meshTransformIndicesMap[*it].transformIndex, 0u};
+                memory[i] = _meshTransformIndicesMap[*it].transformIndex;
             }
 
             const bool pipelineChanged = pipelineIdx != currentPipelineIdx;
@@ -1749,7 +1749,7 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
         drawSameMeshes(commandList, frame, currentIt, end, count, skeletal, offset);
         offset += count;
 
-        _meshTransformIndices->modify(sizeof(vec2u) * i, sizeof(vec2u) * startOffset);
+        _meshTransformIndices->modify(sizeof(uint32_t) * i, sizeof(uint32_t) * startOffset);
     }
 
     void Scene::drawSameMeshes(rhi::runtime::CommandListPtr & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end,
@@ -1835,13 +1835,13 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
             {
                 auto const minCount = std::max(_meshesDrawInFrame, kInitialMeshTransformsInFrameMax);
                 if (minCount * 2u < _lastFramesUsedMeshesDraw) {
-                    _meshTransformIndices->resize(minCount * sizeof(vec2u));
+                    _meshTransformIndices->resize(minCount * sizeof(uint32_t));
                 }
                 _lastFramesUsedMeshesDraw = _meshesDrawInFrame;
 
                 auto const minCount2 = std::max(_skeletonsInFrame, kInitialMeshTransformsInFrameMax);
                 if (minCount2 * 2u < _lastFramesUsedSkeletonsInFrame) {
-                    _skeletonIds->resize(minCount2 * sizeof(vec2u));
+                    _skeletonIds->resize(minCount2 * sizeof(uint32_t));
                 }
                 _lastFramesUsedSkeletonsInFrame = _skeletonsInFrame;
             }

@@ -22,7 +22,6 @@ layout(push_constant) uniform Params {
 
 layout (location = 0) in vec2 v_uv;
 layout (location = 1) in mat3 v_tbn;
-layout (location = 4) flat in uint v_nodeId;
 
 layout(set = 2, binding = 0) uniform sampler2D u_texture_color;
 layout(set = 2, binding = 1) uniform sampler2D u_texture_emissive;

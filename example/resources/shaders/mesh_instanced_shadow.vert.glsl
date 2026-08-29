@@ -15,7 +15,7 @@ layout (set = 1, binding = 0) readonly buffer Transformations {
 } sbo;
 
 layout (set = 1, binding = 1) readonly buffer offsetIds {
-   uvec2 data[];
+   uint data[];
 } in_offset_ids;
 
 layout(push_constant) uniform Params {
@@ -27,7 +27,7 @@ void main() {
 		// common
 		const uint offset = push.offset_and_count.x;
 		const uint count = push.offset_and_count.y;
-		const mat3x4 transform = sbo.transforms[in_offset_ids.data[gl_InstanceIndex % count + offset].x];
+		const mat3x4 transform = sbo.transforms[in_offset_ids.data[gl_InstanceIndex % count + offset]];
 		const mat4 model = mat4(
 			transform[0],
 			transform[1],

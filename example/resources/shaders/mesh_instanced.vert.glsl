@@ -8,7 +8,6 @@ layout (location = 3) in vec4 a_tangent;
 
 layout (location = 0) out vec2 v_uv;
 layout (location = 1) out mat3 v_tbn;
-layout (location = 4) flat out uint v_nodeId;
 
 layout (set = 0, binding = 0) uniform UniformBuffer {
 	mat4 view;
@@ -27,7 +26,7 @@ layout (set = 1, binding = 0) readonly buffer Transformations {
 } sbo;
 
 layout (set = 1, binding = 1) readonly buffer offsetIds {
-   uvec2 data[];
+   uint data[];
 } in_offset_ids;
 
 layout(push_constant) uniform Params {
@@ -42,8 +41,8 @@ void main() {
 
 	{ // with 48 bytes transforms
 		// common
-		const uvec2 ids = in_offset_ids.data[gl_InstanceIndex + push.offset.x];
-		const mat3x4 transform = sbo.transforms[ids.x];//sbo.transforms[a_sbo_offset];
+		const uint id = in_offset_ids.data[gl_InstanceIndex + push.offset.x];
+		const mat3x4 transform = sbo.transforms[id];//sbo.transforms[a_sbo_offset];
 		const mat4 model = mat4(
 			transform[0],
 			transform[1],
@@ -63,6 +62,5 @@ void main() {
    	const vec3 b = normalize(cross(n, t) * a_tangent.w);
 
    	v_tbn = mat3(t, b, n);
-   	v_nodeId = ids.y;
 	}
 }
