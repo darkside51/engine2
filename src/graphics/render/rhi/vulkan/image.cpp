@@ -10,6 +10,8 @@
 
 namespace engine::vulkan {
 
+Image::Image() = default;
+
 Image::Image(Device & device, const rhi::ImageInfo & info) : 
     rhi::runtime::Image(std::move(info)),
     _device(&device), 
@@ -141,6 +143,26 @@ void Image::assignLayout(VkImageLayout dstLayout, uint8_t baseLayer, uint8_t bas
 VkImageLayout Image::getLayout(uint8_t layer, uint8_t level) const noexcept {
     const auto & subState = _imageSubStates[layer * _info.mipLevels + level];
     return subState.layout;
+}
+
+void Image::flush(size_t offset, size_t size) noexcept {
+    _device->getMemoryAllocator().flushMemory(_allocation, offset, size);
+}
+
+void Image::invalidate(size_t offset, size_t size) noexcept {
+    _device->getMemoryAllocator().invalidateMemory(_allocation, offset, size);
+}
+
+void * Image::map() noexcept {
+    return _device->getMemoryAllocator().mapMemory(_allocation);
+}
+
+void Image::unmap() noexcept {
+    _device->getMemoryAllocator().unmapMemory(_allocation);
+}
+
+VkMemoryPropertyFlags Image::memoryFlags() const noexcept {
+    return _device->gpu().memoryProperties().memoryTypes[_allocation.info.memoryType].propertyFlags;
 }
 
 void Image::transition(PipelineBarriers & barriers, VkImageLayout dstLayout, 

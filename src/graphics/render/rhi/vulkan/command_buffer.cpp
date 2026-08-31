@@ -103,7 +103,7 @@ namespace engine::vulkan {
     void CommandBuffer::copyBuffer2Image(const Buffer & src, const Image & dst, stl::span<VkBufferImageCopy> copyInfo) const noexcept {
         // vkCmdCopyBufferToImage2; // ?
 
-        const auto info = dst.getInfo();
+        const auto & info = dst.getInfo();
         const auto & subresource = copyInfo[0u].imageSubresource;
         const auto baseLayoutIdx = subresource.baseArrayLayer * info.mipLevels + subresource.mipLevel;
         const auto baseLayout = dst.getSubStates()[baseLayoutIdx].layout;
@@ -113,6 +113,20 @@ namespace engine::vulkan {
 
     void CommandBuffer::blitImage(const Image & src, const Image & dst, VkImageLayout srcImageLayout, VkImageLayout dstImageLayout, stl::span<VkImageBlit> info, VkFilter filter) const noexcept {
         vkCmdBlitImage(_commandBuffer, src(), srcImageLayout, dst(), dstImageLayout, info.size(), info.data(), filter);
+    }
+
+    void CommandBuffer::copyImage2Image(const Image & src, const Image & dst, stl::span<VkImageCopy> copyInfo) const noexcept {
+        const auto & srcInfo = src.getInfo();
+        const auto & srcSubresource = copyInfo[0u].srcSubresource;
+        const auto srcBaseLayoutIdx = srcSubresource.baseArrayLayer * srcInfo.mipLevels + srcSubresource.mipLevel;
+        const auto srcBaseLayout = src.getSubStates()[srcBaseLayoutIdx].layout;
+
+        const auto & dstInfo = dst.getInfo();
+        const auto & dstSubresource = copyInfo[0u].dstSubresource;
+        const auto dstBaseLayoutIdx = dstSubresource.baseArrayLayer * dstInfo.mipLevels + dstSubresource.mipLevel;
+        const auto dstBaseLayout = dst.getSubStates()[dstBaseLayoutIdx].layout;
+
+        vkCmdCopyImage(_commandBuffer, src(), srcBaseLayout, dst(), dstBaseLayout, copyInfo.size(), copyInfo.data());
     }
 
     void CommandBuffer::bindPipeline(Pipeline const & pipeline) noexcept {

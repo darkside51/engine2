@@ -69,6 +69,7 @@ class Image final : public rhi::runtime::Image {
     using ImageViewMap = stl::unordered_map<ImageViewDescription, VkImageView, hash::Hasher<ImageViewDescription>, std::equal_to<>>;
     
 public:
+    Image();
     Image(Device & device, const rhi::ImageInfo & imageInfo);
     Image(Device & device, const rhi::ImageInfo & imageInfo, VkImage externalImage);
     ~Image();
@@ -122,13 +123,23 @@ public:
         uint8_t layersCount = 0u, uint8_t levelsCount = 0u, 
         uint32_t queueFamily = VK_QUEUE_FAMILY_IGNORED);
 
-private:
-    Device * _device;
-    VkImage _image = VK_NULL_HANDLE;
-    MemoryAllocation _allocation;
+    void * map() noexcept override;
+    void unmap() noexcept override;
+    void flush(size_t offset = 0u, size_t size = VK_WHOLE_SIZE) noexcept override;
+    void invalidate(size_t offset = 0u, size_t size = VK_WHOLE_SIZE) noexcept override;
+    bool isHostVisible() const noexcept override {
+        return memoryFlags() & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
+    }
 
-    ImageViewMap _imageViews;
-    stl::vector<ImageSubState> _imageSubStates; // size must be _layers * _mipLevels
+    VkMemoryPropertyFlags memoryFlags() const noexcept;
+
+private:
+    Device * _device = nullptr;
+    VkImage _image = VK_NULL_HANDLE;
+    MemoryAllocation _allocation = {};
+
+    ImageViewMap _imageViews = {};
+    stl::vector<ImageSubState> _imageSubStates = {}; // size must be _layers * _mipLevels
     bool _imageStatesIdentical = true;
     bool _externalImage = false;
 };

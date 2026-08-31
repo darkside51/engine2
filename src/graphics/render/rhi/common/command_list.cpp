@@ -359,6 +359,24 @@ namespace engine::rhi::runtime {
         ++_commandsCount;
     }
 
+    void CommandList::copyImage2Image(ImagePtr & src, ImagePtr & dst, const CopyImage2ImageInfo & info) noexcept {
+        _resources.push_back(src);
+        _resources.push_back(dst);
+        _commands->create<CopyImage2ImageCommand>(src.get(), dst.get(), info);
+
+        if constexpr (kStatisticsEnable) {
+            ++_statistics.copyCommands;
+        }
+
+        if (_currentPass == nullptr) {
+            _currentPass = &_passes.emplace_back(Pass::Type::eTransfer, _commandsCount);
+        }
+
+        _currentPass->images.emplace_back(src.get(), ImageUsageFlags::eTransfer_Src, _pipelineType); // ...
+        _currentPass->images.emplace_back(dst.get(), ImageUsageFlags::eTransfer_Dst, _pipelineType); // ...
+        ++_commandsCount;
+    }
+
     // manual barriers
     void CommandList::insertBarriers() noexcept {
         // todo!

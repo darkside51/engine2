@@ -1144,6 +1144,31 @@ namespace engine::scene {
         const ViewParams & viewParams, AttachmentsIterator begin, AttachmentsIterator end, 
         uint16_t typeIdx, DrawDataOffsets & offsets) {
         // todo!
+        switch (typeIdx) {
+        case ctti::typeIndex<AttachmentObject, Skeleton>(): // do not draw skeletons
+            break;
+        case ctti::typeIndex<AttachmentObject, Mesh>():
+        {
+            if constexpr (kComputeSkinningAvailable) {
+                // drawMeshes2ColorIds(commandList, frame, begin, end, viewParams, offsets.meshesDrawOffset, offsets.skeletonOffset);
+            } else {
+                assert(false);
+            }
+        }
+            break;
+        case ctti::typeIndex<AttachmentObject, Sprite>():
+        {
+            // drawSpritesColorIds(commandList, frame, begin, end, viewParams, offsets.spriteVerticesOffset, offsets.spriteIndicesOffset);
+        }
+            break;
+        case ctti::typeIndex<AttachmentObject, CustomDrawObject>():
+        {
+            drawCustomObjects(begin, end, viewParams, commandList, frame);
+        }
+            break;
+        case ctti::typeIndex<AttachmentObject, Dummy>():
+            break;
+        }
     }
 
     void Scene::drawDebug(const ViewParams & viewParams, stl::span<AttachmentObject*> objects) {

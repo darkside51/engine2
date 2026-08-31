@@ -123,6 +123,7 @@ namespace engine::rhi::runtime {
 
         void copyBuffer2Image(const BufferPtr & src, ImagePtr & dst, const CopyBufferImageInfo & copyInfos) noexcept;
         void blitImage(const ImagePtr & src, ImagePtr & dst, const BlitImageInfo & info) noexcept;
+        void copyImage2Image(ImagePtr & src, ImagePtr & dst, const CopyImage2ImageInfo & info) noexcept;
 
         void insertBarriers() noexcept;
 

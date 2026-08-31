@@ -589,6 +589,7 @@ namespace engine::rhi {
         uint8_t samples = 1u;
         stl::vector<uint32_t> queueFamilyIndices = {};
 
+        ImageInfo() = default;
         ImageInfo(ImageUsageFlags usage, Format format, Extent3D extent) : 
             usage(usage),
             format(format),
@@ -639,6 +640,14 @@ namespace engine::rhi {
         ImageSubresourceLayers imageSubresource{};
         Offset3D imageOffset{};
         Extent3D imageExtent{};
+    };
+
+    struct CopyImage2ImageInfo {
+        ImageSubresourceLayers srcSubresource{};
+        ImageSubresourceLayers dstSubresource{};
+        Offset3D srcOffset{};
+        Offset3D dstOffset{};
+        Extent3D extent{};
     };
 
     enum class BufferCreateFlags : uint8_t {

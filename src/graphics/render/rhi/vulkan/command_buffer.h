@@ -81,6 +81,7 @@ namespace engine::vulkan {
         void copyBuffer2Buffer(const Buffer & src, const Buffer & dst, stl::span<VkBufferCopy> copyInfo) const noexcept;
         void copyBuffer2Image(const Buffer & src, const Image & dst, stl::span<VkBufferImageCopy> copyInfo) const noexcept;
         void blitImage(const Image & src, const Image & dst, VkImageLayout srcImageLayout, VkImageLayout dstImageLayout, stl::span<VkImageBlit> info, VkFilter filter) const noexcept;
+        void copyImage2Image(const Image & src, const Image & dst, stl::span<VkImageCopy> copyInfo) const noexcept;
 
         static SubmitSyncInfo createSubmitSyncInfo(
             stl::span<const VkPipelineStageFlags> waitStages,

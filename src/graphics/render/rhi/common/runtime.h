@@ -98,6 +98,7 @@ protected:
 
 class Image : public PipeLineResource {
 public:
+    Image() = default;
     Image(const rhi::ImageInfo & imageInfo) : _info(imageInfo) {}
     virtual ~Image() = default;
 
@@ -108,8 +109,14 @@ public:
         return _info.usage;
     }
 
+    virtual void * map() noexcept = 0;
+    virtual void unmap() noexcept = 0;
+    virtual void flush(size_t offset = 0u, size_t size = kWholeSize) noexcept = 0;
+    virtual void invalidate(size_t offset = 0u, size_t size = kWholeSize) noexcept = 0;
+    virtual bool isHostVisible() const noexcept = 0;
+
 protected:
-    rhi::ImageInfo _info;
+    rhi::ImageInfo _info = {};
 };
 
 class Swapchain {

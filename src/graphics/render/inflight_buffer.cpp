@@ -85,7 +85,7 @@ namespace engine::graphics {
                     mappedMemory = static_cast<std::byte*>(buffer->map());
                 }
                 memcpy(mappedMemory + offset, _tmpMemory.get() + offset, bytesChanged);
-                buffer->flush(); // vma check is memory coherent 
+                buffer->flush(offset, bytesChanged); // vma check is memory coherent 
             } else { // need use stagingBuffer
                 if (bytesChanged < rhi::runtime::command_limits::kMaxMemoryBytesToCopyCommand) { // use cmdUpdateBuffer
                     cmd.updateBuffer(buffer, offset, bytesChanged, _tmpMemory.get() + offset);

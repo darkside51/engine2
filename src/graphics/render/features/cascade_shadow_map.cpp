@@ -236,6 +236,7 @@ namespace engine::graphics {
 
         for (uint8_t i = 0u; i < frames; ++i) {
             CascadeFrameBuffer framebuffer = {
+                .image = nullptr,
                 .depthImage = _api.createImage(_device, imageInfo),
                 .frameBuffers = stl::vector<runtime::FrameBufferPtr>(kUseInstanceDrawShadows ? 1u : _cascadesCount)
             };

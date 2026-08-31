@@ -427,6 +427,16 @@ inline VkBufferImageCopy convert2vk(const rhi::CopyBufferImageInfo & info) noexc
     };
 }
 
+inline VkImageCopy convert2vk(const rhi::CopyImage2ImageInfo & info) noexcept {
+    return {
+        .srcSubresource = convert2vk(info.srcSubresource),
+        .srcOffset = convert2vk(info.srcOffset),
+        .dstSubresource = convert2vk(info.dstSubresource),
+        .dstOffset = convert2vk(info.dstOffset),
+        .extent = convert2vk(info.extent)
+    };
+}
+
 inline VkSharingMode convert2vk(rhi::SharingMode mode) noexcept {
     switch (mode) {
         case rhi::SharingMode::eExclusive:
