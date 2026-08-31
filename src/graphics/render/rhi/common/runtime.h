@@ -220,6 +220,11 @@ public:
         size_t stride, QueryResultFlags flags) const noexcept = 0;
 };
 
+class ImageMemoryReader {
+public:
+    virtual ~ImageMemoryReader() = default;
+};
+
 using SurfacePtr = std::unique_ptr<Surface>;
 using PysicalDevicePtr = std::unique_ptr<PhysicalDevice>;
 using DevicePtr = std::unique_ptr<Device>;
@@ -234,6 +239,7 @@ using PipelinesManagerPtr = std::unique_ptr<PipelinesManager>;
 using BufferPtr = sh_ptr<Buffer>;//std::unique_ptr<Buffer>;
 using CommandListPtr = std::unique_ptr<CommandList>;
 using QueryPoolPtr = std::unique_ptr<QueryPool>;
+using ImageMemoryReaderPtr = std::unique_ptr<ImageMemoryReader>;
 
 class Rhi {
 public:
@@ -285,5 +291,6 @@ public:
 
     virtual CommandListPtr createCommandList(CommandPool * commandPool, rhi::CommandBufferLevel level = rhi::CommandBufferLevel::ePrimary) const = 0;
     virtual QueryPoolPtr createQueryPool(Device & device, const rhi::QueryPoolInfo & info) const = 0;
+    virtual ImageMemoryReaderPtr createImageMemoryReader(Device & device, Format format, Extent3D extent, uint8_t imagesCount) const = 0;
 };
 }

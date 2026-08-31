@@ -19,23 +19,25 @@ namespace engine::vulkan {
     }
 
     void ImageMemoryReader::prepareMemory(rhi::runtime::CommandList & commandList, rhi::runtime::ImagePtr image, 
-        uint8_t frameId, uint8_t mipLevel, uint8_t baseArrayLayer) noexcept {
+        uint8_t frameId, uint8_t mipLevel, uint8_t baseArrayLayer, 
+        rhi::Offset3D srcOffset, rhi::Offset3D dstOffset, rhi::Extent3D extent,
+        rhi::ImageAspectFlags aspectMask) noexcept {
         const rhi::CopyImage2ImageInfo info = {
             .srcSubresource = rhi::ImageSubresourceLayers{
-                .aspectMask = rhi::ImageAspectFlags::eColor,
+                .aspectMask = aspectMask,
                 .mipLevel = mipLevel,
                 .baseArrayLayer = baseArrayLayer,
                 .layerCount = 1u
             },
             .dstSubresource = rhi::ImageSubresourceLayers{
-                .aspectMask = rhi::ImageAspectFlags::eColor,
+                .aspectMask = aspectMask,
                 .mipLevel = mipLevel,
                 .baseArrayLayer = baseArrayLayer,
                 .layerCount = 1u
             },
-            .srcOffset = rhi::Offset3D{0, 0, 0},
-            .dstOffset = rhi::Offset3D{0, 0, 0},
-            .extent = _images[frameId]->getExtent()
+            .srcOffset = srcOffset,
+            .dstOffset = dstOffset,
+            .extent = ((extent == rhi::Extent3D{0, 0, 0}) ? _images[frameId]->getExtent() : extent)
         };
 
         commandList.copyImage2Image(image, _images[frameId], info);

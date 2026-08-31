@@ -92,6 +92,9 @@ namespace engine::vulkan::runtime {
             rhi::CommandBufferLevel level = rhi::CommandBufferLevel::ePrimary) const override;
 
         rhi::runtime::QueryPoolPtr createQueryPool(rhi::runtime::Device & device, const rhi::QueryPoolInfo & info) const override;
+
+        rhi::runtime::ImageMemoryReaderPtr createImageMemoryReader(rhi::runtime::Device & device, rhi::Format format, 
+            rhi::Extent3D extent, uint8_t imagesCount) const override;
         
     private:
         Api::Instance _instance;

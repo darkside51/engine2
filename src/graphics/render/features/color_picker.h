@@ -22,6 +22,10 @@ namespace engine::graphics {
         void beginRenderPass(rhi::runtime::CommandList & commandList, uint8_t frameId) noexcept;
         void endRenderPass(rhi::runtime::CommandList & commandList) const noexcept;
 
+        const rhi::runtime::ImagePtr & getImage(uint8_t frameId) const noexcept {
+            return _framebuffers[frameId].image;
+        }
+
         uint32_t getValue(vec2u coords) const noexcept;
 
     private:
@@ -29,6 +33,7 @@ namespace engine::graphics {
         rhi::runtime::RenderPass _renderPass;
         rhi::runtime::Rhi & _api;
         rhi::runtime::Device & _device;
+        rhi::runtime::ImageMemoryReaderPtr _imageReader = nullptr;
     };
 
 }

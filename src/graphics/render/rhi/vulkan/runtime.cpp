@@ -14,6 +14,7 @@
 #include "command_buffer.h"
 #include "renderpass.h"
 #include "query_pool.h"
+#include "image_memory_reader.h"
 #include "vk_types.h"
 
 #include "graphics/render/rhi/common/shader_module.h"
@@ -191,5 +192,10 @@ namespace engine::vulkan::runtime {
 
     rhi::runtime::QueryPoolPtr Rhi::createQueryPool(rhi::runtime::Device & device, const rhi::QueryPoolInfo & info) const {
         return std::make_unique<QueryPool>(static_cast<Api::Device &>(device), info);
+    }
+
+    rhi::runtime::ImageMemoryReaderPtr Rhi::createImageMemoryReader(rhi::runtime::Device & device, rhi::Format format, 
+        rhi::Extent3D extent, uint8_t imagesCount) const {
+        return std::make_unique<ImageMemoryReader>(static_cast<Api::Device &>(device), format, extent, imagesCount);
     }
 }
