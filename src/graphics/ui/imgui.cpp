@@ -105,8 +105,8 @@ namespace engine {
 
         _fontStageBuffer = api.createBuffer(device, stageInfo, sizeof(unsigned char) * width * height);
         {
-            auto * map = _fontStageBuffer->map2<unsigned char>();
-            memcpy(map, pixels, _fontStageBuffer->sizeInBytes());
+            auto * memory = _fontStageBuffer->map2<unsigned char>();
+            memcpy(memory, pixels, _fontStageBuffer->sizeInBytes());
             _fontStageBuffer->flush();
             _fontStageBuffer->unmap();
         }
@@ -279,6 +279,9 @@ namespace engine {
 
                 commandList.bindVertexBuffer(0u, (*_vertices)(frame), vOffset);
                 commandList.bindIndexBuffer((*_indices)(frame), indexBufferOffset, rhi::IndexType::eU16);
+
+                // const uint32_t oneChannelTexture = texture->getInfo().format == rhi::Format::eR8_Unorm;
+                // commandList.pushConstants(rhi::shaders::Stages::eFragment, 0u, sizeof(uint32_t), &oneChannelTexture);
 
                 commandList.drawIndexed(static_cast<uint32_t>(cmd.ElemCount), 1u, firstIndex);
 
