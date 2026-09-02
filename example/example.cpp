@@ -2326,9 +2326,9 @@ namespace example {
         static bool showTextureViewer = false;
         if (showTextureViewer) {
             ImGui::Begin("Texture Viewer");
-            auto * texture_id = &_gBufferAttachments[0].albedo;
-            ImVec2 display_size(256.0f, 256.0f); 
-            ImGui::Image(texture_id, display_size);
+            auto * texture = &_gBufferAttachments[0u].albedo;
+            const ImVec2 viewerSize = ImGui::GetContentRegionAvail(); 
+            ImGui::Image(texture, viewerSize);
             ImGui::End();
         }
 
