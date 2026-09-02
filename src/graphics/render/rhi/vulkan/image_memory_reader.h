@@ -16,7 +16,7 @@ namespace engine::vulkan {
         void prepareMemory(rhi::runtime::CommandList & commandList, rhi::runtime::ImagePtr image, 
             uint8_t frameId, uint8_t mipLevel = 0u, uint8_t baseArrayLayer = 0u,
             rhi::Offset3D srcOffset = {0, 0, 0}, rhi::Offset3D dstOffset = {0, 0, 0}, rhi::Extent3D extent = {0, 0, 0},
-            rhi::ImageAspectFlags aspectMask = rhi::ImageAspectFlags::eColor) noexcept;
+            rhi::ImageAspectFlags aspectMask = rhi::ImageAspectFlags::eColor) noexcept override;
             
         const rhi::runtime::Image & getImage(uint8_t frameId) const noexcept {
             return *_images[frameId];

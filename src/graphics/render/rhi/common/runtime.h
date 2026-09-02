@@ -223,6 +223,10 @@ public:
 class ImageMemoryReader {
 public:
     virtual ~ImageMemoryReader() = default;
+    virtual void prepareMemory(CommandList & commandList, sh_ptr<Image> image, 
+            uint8_t frameId, uint8_t mipLevel = 0u, uint8_t baseArrayLayer = 0u,
+            Offset3D srcOffset = {0, 0, 0}, Offset3D dstOffset = {0, 0, 0}, Extent3D extent = {0, 0, 0},
+            ImageAspectFlags aspectMask = ImageAspectFlags::eColor) noexcept = 0;
 };
 
 using SurfacePtr = std::unique_ptr<Surface>;

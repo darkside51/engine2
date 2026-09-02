@@ -72,10 +72,12 @@ namespace engine::rhi {
         inline bool operator == (const Viewport & viewport) const noexcept = default;
     };
 
-    struct ClearColorValue {
-        float value[4] = {0.0f, 0.0f, 0.0f, 0.0f};
+    union ClearColorValue {
+        float fvalue[4];
+        int32_t ivalue[4];
+        uint32_t uvalue[4];
     };
-    
+
     struct ClearDepthStencilValue {
         float depth = 1.0f;
         uint32_t stencil = 0u;

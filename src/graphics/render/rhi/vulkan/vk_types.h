@@ -34,10 +34,16 @@ inline VkExtent3D convert2vk(const rhi::Extent3D & extent) noexcept {
 }
 
 inline VkClearValue convert2vk(const rhi::ClearValue & clearValue) noexcept {
-    return {clearValue.color.value[0u], 
-            clearValue.color.value[1u], 
-            clearValue.color.value[2u], 
-            clearValue.color.value[3u]};
+    return {
+        .color = {
+            .uint32 = {
+                clearValue.color.uvalue[0u],
+                clearValue.color.uvalue[1u],
+                clearValue.color.uvalue[2u],
+                clearValue.color.uvalue[3u]
+            }
+        }
+    };
 }
 
 template<size_t N>

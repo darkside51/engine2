@@ -46,7 +46,7 @@ namespace engine {
     private:
         void setupKeyMap();
         rhi::runtime::PipelinePtr _pipeline = nullptr;
-        rhi::runtime::BufferPtr _stagefontBuffer = nullptr;
+        rhi::runtime::BufferPtr _fontStageBuffer = nullptr;
         rhi::runtime::ImagePtr _fontImage = nullptr;
         rhi::SamplerValue _sampler;
         std::unique_ptr<graphics::InflightBuffer> _vertices = nullptr;

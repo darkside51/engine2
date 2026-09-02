@@ -40,6 +40,7 @@
 #include "engine/src/graphics/common/background_command_context.h"
 #include "engine/src/graphics/render/features/cascade_shadow_map.h"
 #include "engine/src/graphics/render/features/ssao.h"
+#include "engine/src/graphics/render/features/color_picker.h"
 
 #include "engine/src/network/network_service_curl.h"
 
@@ -134,8 +135,10 @@ namespace example {
 
     engine::graphics::Ssao ssao;
 
+    std::unique_ptr<engine::graphics::ColorPicker> colorPicker = nullptr;
+
     //
-    engine::rhi::runtime::ImagePtr skyBoxCubeMapImage = nullptr;
+    engine::rhi::runtime::ImagePtr interriorCubeMapImage = nullptr;
 
     // options
     bool showOptions = false;
@@ -777,7 +780,7 @@ namespace example {
                                         "walls", "assets/walls_texture.png", 
                                         engine::graphics::TextureFlags::eAllowSrgbColorSpace | engine::graphics::TextureFlags::eUseMipMaps);
 
-                                    auto * interriorImageHandler = textureManager->getImageHandler("skyBoxCubeMapImage");//
+                                    auto * interriorImageHandler = textureManager->getImageHandler("interriorCubeMapImage");//
 
                                     auto * object = scene->createObject<engine::scene::CustomDrawObject>([
                                         extent, 
@@ -965,7 +968,9 @@ namespace example {
         shadowMapUniformBuffer = nullptr;
         shadowMap = nullptr;
 
-        skyBoxCubeMapImage = nullptr;
+        colorPicker = nullptr;
+
+        interriorCubeMapImage = nullptr;
 
         g_mapGeometryCommonPipeline = nullptr;
         g_mapGeometryCommonAreaPipeline = nullptr;
@@ -1650,11 +1655,11 @@ namespace example {
         layers[4u] = std::move(textureData4.data);
         layers[5u] = std::move(textureData5.data);
 
-        skyBoxCubeMapImage = textureManager->generateImage(engine::rhi::Format::eR8G8B8A8_Srgb, textureData0.metaInfo.size, engine::graphics::TextureFlags::eNone, layers, 
+        interriorCubeMapImage = textureManager->generateImage(engine::rhi::Format::eR8G8B8A8_Srgb, textureData0.metaInfo.size, engine::graphics::TextureFlags::eNone, layers, 
             engine::rhi::ImageCreateFlags::eCube_Compatible, *tmpCommandList);
 
-        const auto & [imageHandler, isNew] = textureManager->addImage("skyBoxCubeMapImage");
-        textureManager->getImageHandler("skyBoxCubeMapImage")->image = skyBoxCubeMapImage;
+        const auto & [imageHandler, isNew] = textureManager->addImage("interriorCubeMapImage");
+        textureManager->getImageHandler("interriorCubeMapImage")->image = interriorCubeMapImage;
         ////
 
         //
@@ -2171,8 +2176,8 @@ namespace example {
 
                     // auto * sprite = scene->createObject<engine::scene::Sprite>(frame, 7u);
                     // sprite->setSubImage(imageHandler1, 0u);
-                    // sprite->setSubImage(textureManager->getImageHandler("skyBoxCubeMapImage"), 1u, engine::rhi::ImageViewType::eType_Cube);
-                    // sprite->setSubImage(textureManager->getImageHandler("skyBoxCubeMapImage"), 2u, engine::rhi::ImageViewType::eType_2D_Array);
+                    // sprite->setSubImage(textureManager->getImageHandler("interriorCubeMapImage"), 1u, engine::rhi::ImageViewType::eType_Cube);
+                    // sprite->setSubImage(textureManager->getImageHandler("interriorCubeMapImage"), 2u, engine::rhi::ImageViewType::eType_2D_Array);
                     // // sprite->setSubImage(textureManager->getDefaultCubeImageHandler(), 1u, engine::rhi::ImageViewType::eType_Cube);
                     // //sprite->setFilter(engine::scene::SpriteTextureFilter::eNearest);
 
@@ -2201,8 +2206,8 @@ namespace example {
 
                     // auto * sprite = scene->createObject<engine::scene::Sprite>(frame, 7u);
                     // sprite->setSubImage(imageHandler1, 0u);
-                    // sprite->setSubImage(textureManager->getImageHandler("skyBoxCubeMapImage"), 1u, engine::rhi::ImageViewType::eType_Cube);
-                    // sprite->setSubImage(textureManager->getImageHandler("skyBoxCubeMapImage"), 2u, engine::rhi::ImageViewType::eType_2D_Array);
+                    // sprite->setSubImage(textureManager->getImageHandler("interriorCubeMapImage"), 1u, engine::rhi::ImageViewType::eType_Cube);
+                    // sprite->setSubImage(textureManager->getImageHandler("interriorCubeMapImage"), 2u, engine::rhi::ImageViewType::eType_2D_Array);
                     // // sprite->setSubImage(textureManager->getDefaultCubeImageHandler(), 1u, engine::rhi::ImageViewType::eType_Cube);
                     // //sprite->setFilter(engine::scene::SpriteTextureFilter::eNearest);
 
@@ -2318,6 +2323,15 @@ namespace example {
             ImGui::ShowDemoWindow();
         }
 
+        static bool showTextureViewer = false;
+        if (showTextureViewer) {
+            ImGui::Begin("Texture Viewer");
+            auto * texture_id = &_gBufferAttachments[0].albedo;
+            ImVec2 display_size(256.0f, 256.0f); 
+            ImGui::Image(texture_id, display_size);
+            ImGui::End();
+        }
+
         if (showOptions) {
             optionsWindow();
         }
@@ -2328,6 +2342,9 @@ namespace example {
                 }
                 if (ImGui::MenuItem("Demo")) {
                     showDemo = !showDemo;
+                }
+                if (ImGui::MenuItem("Texture Viewer")) {
+                    showTextureViewer = !showTextureViewer;
                 }
                 if (ImGui::MenuItem("Options")) {
                     showOptions = !showOptions;
@@ -2723,7 +2740,7 @@ namespace example {
         commandList->bindBuffer(7u, (*shadowMapUniformBuffer)(frameId), 0u, 0u);
 
         // commandList->bindImage(
-        //     0u, skyBoxCubeMapImage, linearSampler, 1u, 
+        //     0u, interriorCubeMapImage, linearSampler, 1u, 
         //     rhi::ImageAspectFlags::eColor, rhi::ImageViewType::eType_Cube 
         // );
 

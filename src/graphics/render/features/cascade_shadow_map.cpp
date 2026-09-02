@@ -172,7 +172,8 @@ namespace engine::graphics {
                 .loadStoreOp = AttachmentLoadStoreOp{AttachmentLoadOp::eClear, AttachmentStoreOp::eStore},
                 .stencilLoadStoreOp = AttachmentLoadStoreOp{AttachmentLoadOp::eDont_Care, AttachmentStoreOp::eDont_Care},
                 .initialLayout = ImageLayout::eUndefined,
-                .finalLayout = ImageLayout::eDepth_Stencil_Read_Only_Optimal,
+                .finalLayout = ImageLayout::eDepth_Stencil_Attachment_Optimal,
+                //.finalLayout = ImageLayout::eDepth_Stencil_Read_Only_Optimal,
                 .samples = 1u
             }
         };

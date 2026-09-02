@@ -36,7 +36,7 @@ namespace engine {
 
     void ImGuiSystem::destroy() noexcept {
         _pipeline = nullptr;
-        _stagefontBuffer = nullptr;
+        _fontStageBuffer = nullptr;
         _fontImage = nullptr;
         _vertices = nullptr;
         _indices = nullptr;
@@ -103,12 +103,12 @@ namespace engine {
             rhi::MemoryPropertyFlags::eHostVisible
         };
 
-        _stagefontBuffer = api.createBuffer(device, stageInfo, sizeof(unsigned char) * width * height);
+        _fontStageBuffer = api.createBuffer(device, stageInfo, sizeof(unsigned char) * width * height);
         {
-            auto * map = _stagefontBuffer->map2<unsigned char>();
-            memcpy(map, pixels, _stagefontBuffer->sizeInBytes());
-            _stagefontBuffer->flush();
-            _stagefontBuffer->unmap();
+            auto * map = _fontStageBuffer->map2<unsigned char>();
+            memcpy(map, pixels, _fontStageBuffer->sizeInBytes());
+            _fontStageBuffer->flush();
+            _fontStageBuffer->unmap();
         }
 
         const auto imageInfo = rhi::ImageInfo{
@@ -167,8 +167,8 @@ namespace engine {
 
     void ImGuiSystem::prepare(rhi::runtime::CommandList & commandList, uint8_t frame,
         rhi::runtime::Rhi & api, rhi::runtime::Device & device) {
-        if (_stagefontBuffer) {
-            commandList.copyBuffer2Image(_stagefontBuffer, _fontImage, {
+        if (_fontStageBuffer) {
+            commandList.copyBuffer2Image(_fontStageBuffer, _fontImage, {
                 .bufferOffset = 0u,
                 .bufferRowLength = 0u,
                 .bufferImageHeight = 0u,
@@ -176,7 +176,7 @@ namespace engine {
                 .imageOffset = {0u, 0u, 0u},
                 .imageExtent = _fontImage->getExtent()
             });
-            _stagefontBuffer = nullptr;
+            _fontStageBuffer = nullptr;
         }
 
         const ImDrawData *drawData = ImGui::GetDrawData();
