@@ -11,6 +11,7 @@ namespace engine::graphics {
     
     struct ColorIdsFrameBuffer {
         rhi::runtime::ImagePtr image = nullptr;
+        rhi::runtime::ImagePtr depthImage = nullptr;
         rhi::runtime::FrameBufferPtr frameBuffer = {};
     };
 
@@ -22,6 +23,8 @@ namespace engine::graphics {
             rhi::Format format = rhi::Format::eR32_Uint);
 
         void createRenderData(stl::span<engine::rhi::runtime::ImagePtr> depthImages);
+        void createRenderData();
+        
         void beginRenderPass(rhi::runtime::CommandList & commandList, uint8_t frameId, vec2u currentSize) noexcept;
         void endRenderPass(rhi::runtime::CommandList & commandList, uint8_t frameId) noexcept;
 

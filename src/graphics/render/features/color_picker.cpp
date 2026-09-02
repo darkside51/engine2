@@ -60,7 +60,7 @@ namespace engine::graphics {
                 .colorAttachments = {{
                     .pNext = {nullptr, 0u},
                     .attachment = 0u,
-                    .layout = ImageLayout::eTransfer_Src_Optimal,
+                    .layout = ImageLayout::eColor_Attachment_Optimal,
                     .aspectMask = ImageAspectFlags::eColor
                 }}
             }
@@ -69,14 +69,6 @@ namespace engine::graphics {
         const RenderPassDescription description{attachment, subpass, {}};
         _renderPass = _api.getRenderPass(_device, description);
         
-        // images
-        const auto imageInfo = ImageInfo{
-            ImageUsageFlags::eSampled | ImageUsageFlags::eColor_Attachment | ImageUsageFlags::eTransfer_Src, 
-            _format, 
-            {_size.x, _size.y, 1u},
-            ImageAspectFlags::eColor
-        };
-
         // attachments
         auto fbColorAttachment = FrameBufferAttachment {
             .image = nullptr,
@@ -100,6 +92,14 @@ namespace engine::graphics {
             .viewType = ImageViewType::eType_2D
         };
 
+        // images
+        const auto imageInfo = ImageInfo{
+            ImageUsageFlags::eSampled | ImageUsageFlags::eColor_Attachment | ImageUsageFlags::eTransfer_Src, 
+            _format, 
+            {_size.x, _size.y, 1u},
+            ImageAspectFlags::eColor
+        };
+
         for (uint8_t i = 0u; i < _imagesCount; ++i) {
             auto image = _api.createImage(_device, imageInfo);
             fbColorAttachment.image = image.get();
@@ -112,6 +112,106 @@ namespace engine::graphics {
 
             _framebuffers[i] = ColorIdsFrameBuffer{
                 .image = std::move(image),
+                .depthImage = nullptr,
+                .frameBuffer = _api.createFrameBuffer(_device, std::move(fbAttachemnts), _renderPass)
+            };
+        }
+    }
+
+    void ColorPicker::createRenderData() {
+        using namespace rhi;
+
+        // renderpass
+        stl::array attachment = {
+            AttachmentDescription {
+                .format = _format,
+                .loadStoreOp = AttachmentLoadStoreOp{AttachmentLoadOp::eClear, AttachmentStoreOp::eStore},
+                .stencilLoadStoreOp = AttachmentLoadStoreOp{AttachmentLoadOp::eDont_Care, AttachmentStoreOp::eDont_Care},
+                .initialLayout = ImageLayout::eUndefined,
+                .finalLayout = ImageLayout::eTransfer_Src_Optimal,
+                .samples = 1u
+            },
+            AttachmentDescription {
+                .format = Format::eD32_Sfloat,
+                .loadStoreOp = AttachmentLoadStoreOp{AttachmentLoadOp::eClear, AttachmentStoreOp::eDont_Care},
+                .stencilLoadStoreOp = AttachmentLoadStoreOp{AttachmentLoadOp::eDont_Care, AttachmentStoreOp::eDont_Care},
+                .initialLayout = ImageLayout::eUndefined,
+                .finalLayout = ImageLayout::eDepth_Stencil_Attachment_Optimal,
+                .samples = 1u
+            },
+        };
+
+        stl::array subpass = {
+            SubpassDescription {
+                .pNext = {nullptr, 0u},
+                .depthStencilAttachment = {
+                    .pNext = {nullptr, 0u},
+                    .attachment = 1u,
+                    .layout = ImageLayout::eDepth_Stencil_Attachment_Optimal,
+                    .aspectMask = ImageAspectFlags::eDepth
+                },
+                .colorAttachments = {{
+                    .pNext = {nullptr, 0u},
+                    .attachment = 0u,
+                    .layout = ImageLayout::eColor_Attachment_Optimal,
+                    .aspectMask = ImageAspectFlags::eColor
+                }}
+            }
+        };
+
+        const RenderPassDescription description{attachment, subpass, {}};
+        _renderPass = _api.getRenderPass(_device, description);
+        
+        // attachments
+        auto fbColorAttachment = FrameBufferAttachment {
+            .image = nullptr,
+            .imageSize = {_size.x, _size.y},
+            .aspect = ImageAspectFlags::eColor,
+            .layer = 0u,
+            .level = 0u,
+            .layersCount = 1u,
+            .levelsCount = 1u,
+            .viewType = ImageViewType::eType_2D
+        };
+
+        auto fbDepthAttachment = FrameBufferAttachment {
+            .image = nullptr,
+            .imageSize = {_size.x, _size.y},
+            .aspect = ImageAspectFlags::eDepth,
+            .layer = 0u,
+            .level = 0u,
+            .layersCount = 1u,
+            .levelsCount = 1u,
+            .viewType = ImageViewType::eType_2D
+        };
+
+        // images
+        const auto imageInfo = ImageInfo{
+            ImageUsageFlags::eSampled | ImageUsageFlags::eColor_Attachment | ImageUsageFlags::eTransfer_Src, 
+            _format, {_size.x, _size.y, 1u},
+            ImageAspectFlags::eColor
+        };
+
+        const auto depthImageInfo = ImageInfo{
+            ImageUsageFlags::eDepth_Stencil_Attachment, 
+            _format, {_size.x, _size.y, 1u},
+            ImageAspectFlags::eColor
+        };
+
+        for (uint8_t i = 0u; i < _imagesCount; ++i) {
+            auto image = _api.createImage(_device, imageInfo);
+            auto depthImage = _api.createImage(_device, depthImageInfo);
+            fbColorAttachment.image = image.get();
+            fbDepthAttachment.image = depthImage.get();
+
+            stl::vector fbAttachemnts = {
+                fbColorAttachment,
+                fbDepthAttachment
+            };
+
+            _framebuffers[i] = ColorIdsFrameBuffer{
+                .image = std::move(image),
+                .depthImage = std::move(depthImage),
                 .frameBuffer = _api.createFrameBuffer(_device, std::move(fbAttachemnts), _renderPass)
             };
         }
