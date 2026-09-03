@@ -11,14 +11,15 @@ namespace engine::vulkan {
             rhi::ImageUsageFlags::eTransfer_Dst,
             format, extent
         };
-        imageInfo.memoryFlags = engine::rhi::MemoryPropertyFlags::eHostVisible | engine::rhi::MemoryPropertyFlags::eHostCoherent;
+        imageInfo.memoryFlags = rhi::MemoryPropertyFlags::eHostVisible | rhi::MemoryPropertyFlags::eHostCoherent;
+        imageInfo.tiling = rhi::ImageTiling::eLinear;
 
         for (auto & img : _images) {
             img = rhi::runtime::sh_ptr<Image>::make(_device, imageInfo);
         }
     }
 
-    void ImageMemoryReader::prepareMemory(rhi::runtime::CommandList & commandList, rhi::runtime::ImagePtr image, 
+    void ImageMemoryReader::prepareMemory(rhi::runtime::CommandList & commandList, rhi::runtime::ImagePtr & image, 
         uint8_t frameId, uint8_t mipLevel, uint8_t baseArrayLayer, 
         rhi::Offset3D srcOffset, rhi::Offset3D dstOffset, rhi::Extent3D extent,
         rhi::ImageAspectFlags aspectMask) noexcept {

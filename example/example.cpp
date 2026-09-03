@@ -1562,6 +1562,14 @@ namespace example {
         shadowMap->createRenderData();
         shadowMap->setDirection(glm::normalize(lightDir));
 
+        // colorPicker
+        colorPicker = std::make_unique<engine::graphics::ColorPicker>(
+            *_api, *_device, _device->inFlightFramesCount(), 
+            engine::vec2u{128u, 128u}, engine::rhi::ClearValue{0xff'00'00'ffu}, 
+            engine::rhi::Format::eR8G8B8A8_Unorm
+        );
+        colorPicker->createRenderData();
+
         const GraphicsPipelineStatesInfo info7 = engine::parseGraphicsPipelineInfo(json["mesh_shadows"]);
         const uint32_t meshShadowPipeline = scene->registerGraphicsPipeline(_api->createGraphicsPipeline(*_device, shadowMap->getRenderPass(), _programs[kMeshShadowProgram], info7, 0u));
         scene->assignCommonPipeline(meshShadowPipeline, engine::scene::Scene::CommonPipeline::Type::eMeshShadow);
@@ -2685,6 +2693,13 @@ namespace example {
             }
 
         }
+
+        // color picker pass
+        colorPicker->beginRenderPass(*commandList, frameId, {width, height});
+        //...
+        colorPicker->endRenderPass(*commandList, frameId);
+        commandList->setViewport(0.0f, 0.0f, width, height);
+        commandList->setScissor({{0, 0}, {width, height}});
 
         // final pass
         // engine::stl::array images2Shaders{rhi::runtime::ImageTransitionInfo{_colorAttachmentImages[imageIndex].get()}};

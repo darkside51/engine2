@@ -280,8 +280,9 @@ namespace engine {
                 commandList.bindVertexBuffer(0u, (*_vertices)(frame), vOffset);
                 commandList.bindIndexBuffer((*_indices)(frame), indexBufferOffset, rhi::IndexType::eU16);
 
-                // const uint32_t oneChannelTexture = texture->getInfo().format == rhi::Format::eR8_Unorm;
-                // commandList.pushConstants(rhi::shaders::Stages::eFragment, 0u, sizeof(uint32_t), &oneChannelTexture);
+                // ??
+                const uint32_t oneChannelTexture = texture->getInfo().format == rhi::Format::eR8_Unorm;
+                commandList.pushConstants(rhi::shaders::Stages::eFragment, 0u, sizeof(uint32_t), &oneChannelTexture);
 
                 commandList.drawIndexed(static_cast<uint32_t>(cmd.ElemCount), 1u, firstIndex);
 

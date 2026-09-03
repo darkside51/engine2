@@ -22,8 +22,9 @@ namespace engine::graphics {
             rhi::ClearValue clearColorValue, 
             rhi::Format format = rhi::Format::eR32_Uint);
 
-        void createRenderData(stl::span<engine::rhi::runtime::ImagePtr> depthImages);
         void createRenderData();
+        void createRenderData(stl::span<rhi::runtime::ImagePtr> depthImages);
+        void createRenderData(stl::span<rhi::runtime::ImagePtr> depthImages, vec2i offset);
         
         void beginRenderPass(rhi::runtime::CommandList & commandList, uint8_t frameId, vec2u currentSize) noexcept;
         void endRenderPass(rhi::runtime::CommandList & commandList, uint8_t frameId) noexcept;
@@ -37,6 +38,7 @@ namespace engine::graphics {
 
     private:
         stl::vector<ColorIdsFrameBuffer> _framebuffers; // inflight frames count
+        stl::vector<rhi::runtime::ImagePtr> _externalDepthImages;
         rhi::runtime::RenderPass _renderPass;
         rhi::runtime::Rhi & _api;
         rhi::runtime::Device & _device;
@@ -44,6 +46,7 @@ namespace engine::graphics {
         rhi::ClearValue _clearColorValue;
         rhi::Format _format;
         vec2u _size;
+        vec2i _frameBufferOffset = {0, 0};
         uint8_t _imagesCount;
     };
 

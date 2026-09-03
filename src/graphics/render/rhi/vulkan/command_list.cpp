@@ -160,8 +160,20 @@ namespace engine::vulkan::runtime {
                 auto * vkImage = static_cast<vulkan::Image*>(image.image);
                 auto const usage = vkImage->usage();
                 // ++imn;
-
-                if ((image.flags & rhi::ImageUsageFlags::eTransfer_Dst) != rhi::ImageUsageFlags::eNone) {
+                if ((image.flags & rhi::ImageUsageFlags::eTransfer_Src) != rhi::ImageUsageFlags::eNone) {
+                    vkImage->transition(
+                        _barriers,
+                        VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, 
+                        VK_PIPELINE_STAGE_TRANSFER_BIT,
+                        VK_ACCESS_TRANSFER_READ_BIT,
+                        0u, 0u, 
+                        0u, 0u
+                        // command->info.imageSubresource.baseArrayLayer,
+                        // command->info.imageSubresource.mipLevel,
+                        // command->info.imageSubresource.layerCount,
+                        // 1u
+                    );
+                } else if ((image.flags & rhi::ImageUsageFlags::eTransfer_Dst) != rhi::ImageUsageFlags::eNone) {
                     vkImage->transition(
                         _barriers,
                         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 
