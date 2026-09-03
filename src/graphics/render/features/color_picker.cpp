@@ -220,6 +220,7 @@ namespace engine::graphics {
     void ColorPicker::createRenderData(stl::span<engine::rhi::runtime::ImagePtr> depthImages, vec2i offset) {
         using namespace rhi;
 
+        _frameBufferOffset = offset;
         _externalDepthImages = {depthImages.begin(), depthImages.end()};
 
         const auto & externalDepthImageInfo = depthImages[0u]->getInfo();
@@ -238,7 +239,7 @@ namespace engine::graphics {
             },
             AttachmentDescription {
                 .format = depthImageFormat,
-                .loadStoreOp = AttachmentLoadStoreOp{AttachmentLoadOp::eClear, AttachmentStoreOp::eDont_Care},
+                .loadStoreOp = AttachmentLoadStoreOp{AttachmentLoadOp::eLoad, AttachmentStoreOp::eDont_Care},
                 .stencilLoadStoreOp = AttachmentLoadStoreOp{AttachmentLoadOp::eDont_Care, AttachmentStoreOp::eDont_Care},
                 .initialLayout = ImageLayout::eUndefined,
                 .finalLayout = ImageLayout::eDepth_Stencil_Attachment_Optimal,
@@ -360,8 +361,11 @@ namespace engine::graphics {
         commandList.beginRenderPass(_renderPass, _framebuffers[frameId].frameBuffer, clearValues, {{0, 0}, {_size.x, _size.y}});
     }
 
-    void ColorPicker::endRenderPass(rhi::runtime::CommandList & commandList, uint8_t frameId) noexcept {
+    void ColorPicker::endRenderPass(rhi::runtime::CommandList & commandList) noexcept {
         commandList.endRenderPass();
+    }
+
+    void ColorPicker::prepareResults(rhi::runtime::CommandList & commandList, uint8_t frameId) noexcept {
         _imageReader->prepareMemory(commandList, _framebuffers[frameId].image, frameId);
     }
 

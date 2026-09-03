@@ -27,7 +27,8 @@ namespace engine::graphics {
         void createRenderData(stl::span<rhi::runtime::ImagePtr> depthImages, vec2i offset);
         
         void beginRenderPass(rhi::runtime::CommandList & commandList, uint8_t frameId, vec2u currentSize) noexcept;
-        void endRenderPass(rhi::runtime::CommandList & commandList, uint8_t frameId) noexcept;
+        void endRenderPass(rhi::runtime::CommandList & commandList) noexcept;
+        void prepareResults(rhi::runtime::CommandList & commandList, uint8_t frameId) noexcept;
 
         const rhi::runtime::ImagePtr & getImage(uint8_t frameId) const noexcept {
             return _framebuffers[frameId].image;

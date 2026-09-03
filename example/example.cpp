@@ -2697,7 +2697,8 @@ namespace example {
         // color picker pass
         colorPicker->beginRenderPass(*commandList, frameId, {width, height});
         //...
-        colorPicker->endRenderPass(*commandList, frameId);
+        colorPicker->endRenderPass(*commandList);
+        colorPicker->prepareResults(*commandList, frameId);
         commandList->setViewport(0.0f, 0.0f, width, height);
         commandList->setScissor({{0, 0}, {width, height}});
 
