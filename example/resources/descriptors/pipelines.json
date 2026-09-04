@@ -370,13 +370,13 @@
 		"blendModes": ["blend_none"],
 		"rasterisationState": {
 			"polygonMode": "eFill",
-			"cullmode": "eFront"
+			"cullmode": "eBack"
 		},
 		"depthStencilState": {
 			"depth": {
 				"depthTestEnable": true,
-				"depthWriteEnable": true,
-				"depthCompareOp": "eGreater"
+				"depthWriteEnable": false,
+				"depthCompareOp": "eEqual"
 			}
 		},
 		"inputAssemblyState": {
@@ -404,13 +404,13 @@
 		"blendModes": ["blend_none"],
 		"rasterisationState": {
 			"polygonMode": "eFill",
-			"cullmode": "eFront"
+			"cullmode": "eBack"
 		},
 		"depthStencilState": {
 			"depth": {
 				"depthTestEnable": true,
-				"depthWriteEnable": true,
-				"depthCompareOp": "eGreater"
+				"depthWriteEnable": false,
+				"depthCompareOp": "eEqual"
 			}
 		},
 		"inputAssemblyState": {

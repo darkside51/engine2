@@ -1276,6 +1276,10 @@ namespace example {
         textureViewer.setTexture("gBufferAlbedo", _gBufferAttachments[0].albedo);
         textureViewer.setTexture("gBufferMetallicRoughness", _gBufferAttachments[0].metallicRoughness);
         textureViewer.setTexture("ssao", ssao.getImage(0u));
+
+        auto depthArray = engine::stl::array{_gBufferAttachments[0].depth};
+        colorPicker->createRenderData(depthArray);
+        textureViewer.setTexture("colorPicker", colorPicker->getImage(0u));
     }
 
     void Example::resize(uint16_t w, uint16_t h) {
@@ -1610,9 +1614,11 @@ namespace example {
             // engine::rhi::Format::eR32_Uint
             engine::rhi::Format::eR8G8B8A8_Unorm
         );
-        colorPicker->createRenderData();
-        textureViewer.setTexture("colorPicker", colorPicker->getImage(0u));
 
+        const auto depthFormat = _device->getSupportedDepthFormat(kDepthFormatTargetBits, false);
+        colorPicker->createRenderPass(depthFormat, engine::rhi::ImageAspectFlags::eDepth);
+        // colorPicker->createRenderData();
+        
         const GraphicsPipelineStatesInfo info7 = engine::parseGraphicsPipelineInfo(json["mesh_shadows"]);
         const uint32_t meshShadowPipeline = scene->registerGraphicsPipeline(_api->createGraphicsPipeline(*_device, shadowMap->getRenderPass(), _programs[kMeshShadowProgram], info7, 0u));
         scene->assignCommonPipeline(meshShadowPipeline, engine::scene::Scene::CommonPipeline::Type::eMeshShadow);

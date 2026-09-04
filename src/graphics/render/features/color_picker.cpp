@@ -21,12 +21,8 @@ namespace engine::graphics {
         assert(access.checkBit(FormatFeatureAccess::Bit::eOptimalTilingFeaturesBit));
     }
 
-    void ColorPicker::createRenderData(stl::span<engine::rhi::runtime::ImagePtr> depthImages) {
+    void ColorPicker::createRenderPass(rhi::Format depthFormat, rhi::ImageAspectFlags depthAspectFlags) {
         using namespace rhi;
-
-        const auto & depthImageInfo = depthImages[0u]->getInfo();
-        const auto depthImageFormat = depthImageInfo.format;
-        const auto depthImageAspectFlags = depthImageInfo.aspectFlags;
 
         // renderpass
         stl::array attachment = {
@@ -39,7 +35,7 @@ namespace engine::graphics {
                 .samples = 1u
             },
             AttachmentDescription {
-                .format = depthImageFormat,
+                .format = depthFormat,
                 .loadStoreOp = AttachmentLoadStoreOp{AttachmentLoadOp::eLoad, AttachmentStoreOp::eDont_Care},
                 .stencilLoadStoreOp = AttachmentLoadStoreOp{AttachmentLoadOp::eDont_Care, AttachmentStoreOp::eDont_Care},
                 .initialLayout = ImageLayout::eDepth_Stencil_Attachment_Optimal,
@@ -55,7 +51,7 @@ namespace engine::graphics {
                     .pNext = {nullptr, 0u},
                     .attachment = 1u,
                     .layout = ImageLayout::eDepth_Stencil_Attachment_Optimal,
-                    .aspectMask = depthImageAspectFlags
+                    .aspectMask = depthAspectFlags
                 },
                 .colorAttachments = {{
                     .pNext = {nullptr, 0u},
@@ -66,8 +62,33 @@ namespace engine::graphics {
             }
         };
 
+        // stl::array<SubpassDependency, 1u> dependency;
+        // dependency[0u] = {
+        //     .stages = {
+        //         .src = {
+        //             .stage = PipelineStageFlags::eLate_Fragment_Tests,
+        //             .accessMask = AccessFlags::eDepth_Stencil_Attachment_Write
+        //         },
+        //         .dst = {
+        //             .stage = PipelineStageFlags::eEarly_Fragment_Tests,
+        //             .accessMask = AccessFlags::eDepth_Stencil_Attachment_Read
+        //         }
+        //     }
+        // };
+
         const RenderPassDescription description{attachment, subpass, {}};
         _renderPass = _api.getRenderPass(_device, description);
+    }
+
+    void ColorPicker::createRenderData(stl::span<engine::rhi::runtime::ImagePtr> depthImages) {
+        using namespace rhi;
+
+        assert(_renderPass != {});
+
+        const auto & depthImageInfo = depthImages[0u]->getInfo();
+        const auto depthImageFormat = depthImageInfo.format;
+        const auto depthImageAspectFlags = depthImageInfo.aspectFlags;
+        const auto depthImageExtent = depthImageInfo.extent;
         
         // attachments
         auto fbColorAttachment = FrameBufferAttachment {

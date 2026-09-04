@@ -1021,14 +1021,17 @@ namespace engine::scene {
         }
         offsets.meshesDrawOffset += count;
 
-        for (uint32_t n = minId; n <= maxId; ++n) {
-            const auto vertexCount = skeletonMeshesVerticesCounts[n];
-            skeletonMeshesVerticesCounts[n] = offsets.computeSkinVerticesOffset;
+        for (uint32_t m = minId; m <= maxId; ++m) {
+            const auto vertexCount = skeletonMeshesVerticesCounts[m];
+            skeletonMeshesVerticesCounts[m] = offsets.computeSkinVerticesOffset;
             offsets.computeSkinVerticesOffset += vertexCount;
         }
 
-        for (uint32_t n = 0u; n < j; ++n) {
-            memory2[n] = skeletonMeshesVerticesCounts[memory2[n]];
+        for (uint32_t m = 0u; m < j; ++m) {
+            memory2[m] = skeletonMeshesVerticesCounts[memory2[m]];
+            if (m < n) {
+                memory4[m].x = skeletonMeshesVerticesCounts[memory4[m].x];
+            }
         }
 
         _meshTransformIndices->modify(sizeof(uint32_t) * i, sizeof(uint32_t) * startOffset);
@@ -1550,12 +1553,12 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
                 if (skeletal) {
                     uniform.offset_and_count = {skeletonsOffset, count, 0u, 0u};
                     commandList->pushConstants(rhi::shaders::Stages::eVertex, 0u, sizeof(Uniform), &uniform);
-                    drawSameMeshes(commandList, frame, currentIt, it, count * _shadowCascades, skeletal, skeletonsOffset);
+                    drawSameMeshes(commandList, frame, currentIt, it, count * _shadowCascades, true, skeletonsOffset);
                     skeletonsOffset += count;
                 } else {
                     uniform.offset_and_count = {offset, count, 0u, 0u};
                     commandList->pushConstants(rhi::shaders::Stages::eVertex, 0u, sizeof(Uniform), &uniform);
-                    drawSameMeshes(commandList, frame, currentIt, it, count * _shadowCascades, skeletal, offset);
+                    drawSameMeshes(commandList, frame, currentIt, it, count * _shadowCascades, false, offset);
                 }
                 offset += count;
 
@@ -1593,12 +1596,12 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
         if (skeletal) {
             uniform.offset_and_count = {skeletonsOffset, count, 0u, 0u};
             commandList->pushConstants(rhi::shaders::Stages::eVertex, 0u, sizeof(Uniform), &uniform);
-            drawSameMeshes(commandList, frame, currentIt, end, count * _shadowCascades, skeletal, skeletonsOffset);
+            drawSameMeshes(commandList, frame, currentIt, end, count * _shadowCascades, true, skeletonsOffset);
             skeletonsOffset += count;
         } else {
             uniform.offset_and_count = {offset, count, 0u, 0u};
             commandList->pushConstants(rhi::shaders::Stages::eVertex, 0u, sizeof(Uniform), &uniform);
-            drawSameMeshes(commandList, frame, currentIt, end, count * _shadowCascades, skeletal, offset);
+            drawSameMeshes(commandList, frame, currentIt, end, count * _shadowCascades, false, offset);
         }
         offset += count;
     }
@@ -1667,11 +1670,11 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
                 if (skeletal) {
                     uniform.offset_and_count = {offset, count, 0u, 0u};
                     commandList->pushConstants(rhi::shaders::Stages::eVertex, 0u, sizeof(Uniform), &uniform);
-                    drawSameMeshes(commandList, frame, currentIt, it, count * _shadowCascades, skeletal, offset);
+                    drawSameMeshes(commandList, frame, currentIt, it, count, true, offset);
                 } else {
                     uniform.offset_and_count = {offset, count, 0u, 0u};
                     commandList->pushConstants(rhi::shaders::Stages::eVertex, 0u, sizeof(Uniform), &uniform);
-                    drawSameMeshes(commandList, frame, currentIt, it, count * _shadowCascades, skeletal, offset);
+                    drawSameMeshes(commandList, frame, currentIt, it, count, false, offset);
                 }
                 offset += count;
 
@@ -1710,11 +1713,11 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
         if (skeletal) {
             uniform.offset_and_count = {offset, count, 0u, 0u};
             commandList->pushConstants(rhi::shaders::Stages::eVertex, 0u, sizeof(Uniform), &uniform);
-            drawSameMeshes(commandList, frame, currentIt, end, count * _shadowCascades, skeletal, offset);
+            drawSameMeshes(commandList, frame, currentIt, end, count, true, offset);
         } else {
             uniform.offset_and_count = {offset, count, 0u, 0u};
             commandList->pushConstants(rhi::shaders::Stages::eVertex, 0u, sizeof(Uniform), &uniform);
-            drawSameMeshes(commandList, frame, currentIt, end, count * _shadowCascades, skeletal, offset);
+            drawSameMeshes(commandList, frame, currentIt, end, count, false, offset);
         }
         offset += count;
     }
@@ -2013,7 +2016,7 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
         if constexpr (kComputeSkinningAvailable) {
             if (skeletal) { // skinning with compute shader
                 uint32_t binding_v = 0u;
-                if (_currentPass != RenderPass::eShadow) {
+                if (_currentPass == RenderPass::eCommon) {
                     commandList->bindVertexBuffer(binding_v++, mesh.getAttribute(mesh::Semantic::eUv0).buffer, 0u);
                 }
                 commandList->bindIndexBuffer(mesh.getIndices().buffer, 0u, rhi::IndexType::eU32);
@@ -2026,7 +2029,7 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
 
         uint32_t binding_v = 0u;
         commandList->bindVertexBuffer(binding_v++, mesh.getAttribute(mesh::Semantic::ePosition).buffer, 0u);
-        if (_currentPass != RenderPass::eShadow) {
+        if (_currentPass == RenderPass::eCommon) {
             commandList->bindVertexBuffer(binding_v++, mesh.getAttribute(mesh::Semantic::eNormal).buffer, 0u);
             commandList->bindVertexBuffer(binding_v++, mesh.getAttribute(mesh::Semantic::eUv0).buffer, 0u);
             commandList->bindVertexBuffer(binding_v++, mesh.getAttribute(mesh::Semantic::eTangent).buffer, 0u);
