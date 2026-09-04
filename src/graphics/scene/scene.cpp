@@ -367,7 +367,7 @@ namespace engine::scene {
         );
 
         _colorIdMeshesIds = std::make_unique<graphics::InflightBuffer>(
-            api, device, verticesInfo2, sizeof(uint32_t) * kInitialMeshColorIdsInFrameMax
+            api, device, verticesInfo2, sizeof(vec2u) * kInitialMeshColorIdsInFrameMax
         );
 
         if constexpr (kComputeSkinningAvailable) {
@@ -724,7 +724,7 @@ namespace engine::scene {
                 _outlinedMeshesIds->resize(std::max(currentSize3 * 2u, size3));
             }
 
-            const auto size4 = static_cast<uint32_t>(_colorIdMeshesIndicesInFrame * sizeof(uint32_t));
+            const auto size4 = static_cast<uint32_t>(_colorIdMeshesIndicesInFrame * sizeof(vec2u));
             const auto currentSize4 = _colorIdMeshesIds->sizeInBytes();
             if (currentSize4 <= size4) {
                 _colorIdMeshesIds->resize(std::max(currentSize4 * 2u, size4));
@@ -862,11 +862,13 @@ namespace engine::scene {
         auto * memory = _meshTransformIndices->memory2<uint32_t>() + startOffset;
         auto * memory2 = _skeletonIds->memory2<uint32_t>() + startSkeletonOffset;
         auto * memory3 = _outlinedMeshesIds->memory2<uint32_t>() + startMeshOutlinesOffset;
-        auto * memory4 = _colorIdMeshesIds->memory2<uint32_t>() + startMeshColorIdsOffset;
+        auto * memory4 = _colorIdMeshesIds->memory2<vec2u>() + startMeshColorIdsOffset;
         const auto & ti = _meshTransformIndicesMap.find(*it)->second;
 
         uint32_t minId = 0xff'ff'ff'ffu;
         uint32_t maxId = 0u;
+
+        uint32_t colorId = 0xff'00'ff'00u;
 
         if (skeletal) {
             // auto & skeletonData = _meshTransformIndicesMap[*it].skeletonId;
@@ -889,7 +891,7 @@ namespace engine::scene {
             }
 
             if (mesh.isEnableColorId()) {
-                memory4[n] = skeletonId;
+                memory4[n] = {skeletonId, colorId};
                 ++n;
             }
         } else {
@@ -901,7 +903,7 @@ namespace engine::scene {
             }
 
             if (mesh.isEnableColorId()) {
-                memory4[n] = ti.transformIndex;
+                memory4[n] = {ti.transformIndex, colorId};
                 ++n;
             }
         }
@@ -963,7 +965,7 @@ namespace engine::scene {
                 }
 
                 if (mesh2.isEnableColorId()) {
-                    memory4[n] = skeletonId;
+                    memory4[n] = {skeletonId, colorId};
                     ++n;
                 }
             } else {
@@ -975,7 +977,7 @@ namespace engine::scene {
                 }
 
                 if (mesh2.isEnableColorId()) {
-                    memory4[n] = ti.transformIndex;
+                    memory4[n] = {ti.transformIndex, colorId};
                     ++n;
                 }
             }
@@ -1037,7 +1039,7 @@ namespace engine::scene {
         }
 
         if (n > 0u) {
-            _colorIdMeshesIds->modify(sizeof(uint32_t) * n, sizeof(uint32_t) * startMeshColorIdsOffset);
+            _colorIdMeshesIds->modify(sizeof(vec2u) * n, sizeof(vec2u) * startMeshColorIdsOffset);
         }
     }
 
@@ -2109,7 +2111,7 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
             {
                 auto const minCount = std::max(_colorIdMeshesIndicesInFrame, kInitialMeshColorIdsInFrameMax);
                 if (minCount * 2u < _lastFramesUsedColorIdMeshesIndicesInFrame) {
-                    _colorIdMeshesIds->resize(minCount * sizeof(uint32_t));
+                    _colorIdMeshesIds->resize(minCount * sizeof(vec2u));
                 }
                 _lastFramesUsedColorIdMeshesIndicesInFrame = _colorIdMeshesIndicesInFrame;
             }
