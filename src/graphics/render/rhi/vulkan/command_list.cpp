@@ -202,20 +202,21 @@ namespace engine::vulkan::runtime {
                     }
                 }
 
-                if ((usage & rhi::ImageUsageFlags::eStorage) != rhi::ImageUsageFlags::eNone) {
-                    auto const dstStage = pass.type == rhi::runtime::Pass::Type::eRender ? VkPipelineStageFlagBits::VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | 
-                                                                                        VkPipelineStageFlagBits::VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT :
-                                                                                        VkPipelineStageFlagBits::VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+                // ???
+                // if ((usage & rhi::ImageUsageFlags::eStorage) != rhi::ImageUsageFlags::eNone) {
+                //     auto const dstStage = pass.type == rhi::runtime::Pass::Type::eRender ? VkPipelineStageFlagBits::VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | 
+                //                                                                         VkPipelineStageFlagBits::VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT :
+                //                                                                         VkPipelineStageFlagBits::VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
 
-                    vkImage->transition(
-                        _barriers, 
-                        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 
-                        dstStage, 
-                        VkAccessFlagBits::VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT, 
-                        0u, 0u, 
-                        0u, 0u
-                    );  
-                }
+                //     vkImage->transition(
+                //         _barriers, 
+                //         VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 
+                //         dstStage, 
+                //         VkAccessFlagBits::VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT, 
+                //         0u, 0u, 
+                //         0u, 0u
+                //     );  
+                // }
             }
         }
 
@@ -718,6 +719,31 @@ namespace engine::vulkan::runtime {
                 const auto & vkDstImage = *static_cast<const Image*>(command->dst);
                 _commandbuffer.copyImage2Image(vkSrcImage, vkDstImage, copyInfos);
             }   
+                break;
+            case CommandType::ePrepareImage2HostRead:
+            {
+                if (passId < _passes.size()) {
+                    const auto & pass = _passes[passId];
+                    if (pass.commandNumber == commandsNumber && pass.type == Pass::Type::eTransfer) {
+                        applyBarriers(pass, nullptr, {});
+                        ++passId;
+                    }
+                }
+
+                const auto * command = static_cast<PrepareImage2HostRead*>(cmd);
+                auto & vkImage = *static_cast<Image*>(command->img);
+
+                vkImage.transition(
+                        _barriers, 
+                        VK_IMAGE_LAYOUT_GENERAL, 
+                        VK_PIPELINE_STAGE_HOST_BIT, 
+                        VK_ACCESS_HOST_READ_BIT, 
+                        0u, 0u, 
+                        0u, 0u
+                    );
+
+                _barriers.flush(_commandbuffer());
+            }
                 break;
             case CommandType::ePipelineBarriers:
                 // todo!

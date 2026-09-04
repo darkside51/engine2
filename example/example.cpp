@@ -1565,8 +1565,16 @@ namespace example {
         // colorPicker
         colorPicker = std::make_unique<engine::graphics::ColorPicker>(
             *_api, *_device, _device->inFlightFramesCount(), 
-            engine::vec2u{128u, 128u}, engine::rhi::ClearValue{0xff'00'00'ffu}, 
-            engine::rhi::Format::eR8G8B8A8_Unorm
+            engine::vec2u{128u, 128u}, 
+            engine::rhi::ClearValue{
+                engine::rhi::ClearColorValue{
+                    .uvalue = {
+                        0xff'ff'ff'ffu, 0u, 0u, 0u
+                    }
+                }
+            },
+            //engine::rhi::ClearValue{0xff'ff'ff'ffu}, 
+            engine::rhi::Format::eR32_Uint
         );
         colorPicker->createRenderData();
 
@@ -2334,6 +2342,7 @@ namespace example {
         static bool showTextureViewer = false;
         if (showTextureViewer) {
             ImGui::Begin("Texture Viewer");
+            // auto * texture = &colorPicker->getImage(0u);
             auto * texture = &_gBufferAttachments[0u].albedo;
             const ImVec2 viewerSize = ImGui::GetContentRegionAvail(); 
             ImGui::Image(texture, viewerSize);
@@ -2484,6 +2493,8 @@ namespace example {
 
         _canDraw = true;
         _device->resetFrameTmpData(frameId);
+
+        // printf("color from picker = 0x%08x\n", colorPicker->getValue<uint32_t>(engine::vec2u{0u, 0u}, 0u));
 
         // render frame
         auto & transferCommandList = _transferCommandLists[frameId];

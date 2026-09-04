@@ -11,7 +11,9 @@ namespace engine::vulkan {
             rhi::ImageUsageFlags::eTransfer_Dst,
             format, extent
         };
-        imageInfo.memoryFlags = rhi::MemoryPropertyFlags::eHostVisible | rhi::MemoryPropertyFlags::eHostCoherent;
+        imageInfo.memoryFlags = rhi::MemoryPropertyFlags::eHostVisible | 
+                                rhi::MemoryPropertyFlags::eHostCoherent;// | 
+                                // rhi::MemoryPropertyFlags::eHostCached;
         imageInfo.tiling = rhi::ImageTiling::eLinear;
 
         for (auto & img : _images) {
@@ -42,6 +44,7 @@ namespace engine::vulkan {
         };
 
         commandList.copyImage2Image(image, _images[frameId], info);
+        // commandList.prepareImage2HostRead(_images[frameId]);
     }
 
 }

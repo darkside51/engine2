@@ -63,6 +63,7 @@ namespace engine::rhi::runtime {
                 renderPasses = 0u;
                 updateBuffers = 0u;
                 copyCommands = 0u;
+                otherCommands = 0u;
             }
 
             uint32_t drawCalls = 0u;
@@ -72,6 +73,7 @@ namespace engine::rhi::runtime {
             uint16_t renderPasses = 0u;
             uint16_t updateBuffers = 0u;
             uint16_t copyCommands = 0u;
+            uint16_t otherCommands = 0u;
         };
 
     public:
@@ -124,6 +126,7 @@ namespace engine::rhi::runtime {
         void copyBuffer2Image(const BufferPtr & src, ImagePtr & dst, const CopyBufferImageInfo & copyInfos) noexcept;
         void blitImage(const ImagePtr & src, ImagePtr & dst, const BlitImageInfo & info) noexcept;
         void copyImage2Image(ImagePtr & src, ImagePtr & dst, const CopyImage2ImageInfo & info) noexcept;
+        void prepareImage2HostRead(ImagePtr & img) noexcept;
 
         void insertBarriers() noexcept;
 

@@ -202,6 +202,16 @@ namespace engine::vulkan {
         
         vmaInfo.requiredFlags = requiredFlags;
 
+        if (requiredFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT ) {
+            if (requiredFlags & VkMemoryPropertyFlagBits::VK_MEMORY_PROPERTY_HOST_CACHED_BIT) { 
+                // host cached memory type is preferred for random access
+                vmaInfo.flags |= VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT;
+            } else {
+                // use sequental write for no host cached memory
+                vmaInfo.flags |= VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
+            }
+        }
+
         return vmaCreateImage(_allocator, &info, &vmaInfo, &image, &allocation.allocation, &allocation.info);
     }
 

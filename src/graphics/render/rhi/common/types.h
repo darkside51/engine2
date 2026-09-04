@@ -99,6 +99,8 @@ namespace engine::rhi {
 
         constexpr ClearValue(float r, float g, float b, float a) :  color{r, g, b, a} {}   
         constexpr ClearValue(float depth, uint32_t stencil = 0u) : depthStencil{depth, stencil} {}
+        explicit constexpr ClearValue(const ClearColorValue & value) : color{value} {}
+        explicit constexpr ClearValue(const ClearDepthStencilValue & value) : depthStencil{value} {}
     };
 
     struct CopyBufferInfo {

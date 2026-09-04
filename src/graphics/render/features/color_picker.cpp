@@ -369,7 +369,11 @@ namespace engine::graphics {
         _imageReader->prepareMemory(commandList, _framebuffers[frameId].image, frameId);
     }
 
-    uint32_t ColorPicker::getValue(vec2u coords) const noexcept {
-        return 0u;
+    const rhi::runtime::ImagePtr & ColorPicker::getImage(uint8_t frameId) const noexcept {
+        return _framebuffers[frameId].image;
+    }
+
+    rhi::runtime::ImagePtr & ColorPicker::getImage(uint8_t frameId) noexcept {
+        return _framebuffers[frameId].image;
     }
 }

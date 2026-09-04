@@ -30,12 +30,17 @@ namespace engine::graphics {
         void endRenderPass(rhi::runtime::CommandList & commandList) noexcept;
         void prepareResults(rhi::runtime::CommandList & commandList, uint8_t frameId) noexcept;
 
-        const rhi::runtime::ImagePtr & getImage(uint8_t frameId) const noexcept {
-            return _framebuffers[frameId].image;
-        }
+        const rhi::runtime::ImagePtr & getImage(uint8_t frameId) const noexcept;
+        rhi::runtime::ImagePtr & getImage(uint8_t frameId) noexcept;
 
         vec2u getSize() const noexcept { return _size; }
-        uint32_t getValue(vec2u coords) const noexcept;
+
+        template <typename T>
+        T getValue(vec2u coords, uint8_t frameId) const noexcept {
+            T value;
+            _imageReader->getValue(coords.x, coords.y, frameId, &value, sizeof(value));
+            return value;
+        }
 
     private:
         stl::vector<ColorIdsFrameBuffer> _framebuffers; // inflight frames count

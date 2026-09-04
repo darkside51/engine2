@@ -377,6 +377,20 @@ namespace engine::rhi::runtime {
         ++_commandsCount;
     }
 
+    void CommandList::prepareImage2HostRead(ImagePtr & img) noexcept {
+        _resources.push_back(img);
+        _commands->create<PrepareImage2HostRead>(img.get());
+
+        if constexpr (kStatisticsEnable) {
+            ++_statistics.otherCommands;
+        }
+
+        if (_currentPass == nullptr) {
+            _currentPass = &_passes.emplace_back(Pass::Type::eTransfer, _commandsCount);
+        }
+        ++_commandsCount;
+    }
+
     // manual barriers
     void CommandList::insertBarriers() noexcept {
         // todo!
