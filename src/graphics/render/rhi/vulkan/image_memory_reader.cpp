@@ -5,7 +5,8 @@ namespace engine::vulkan {
 
     ImageMemoryReader::ImageMemoryReader(Device & device, rhi::Format format, rhi::Extent3D extent, uint8_t imagesCount) : 
         _device(device),
-        _images(imagesCount) {
+        _images(imagesCount),
+        _imagesMemory(imagesCount) {
 
         auto imageInfo = rhi::ImageInfo {
             rhi::ImageUsageFlags::eTransfer_Dst,
@@ -16,8 +17,21 @@ namespace engine::vulkan {
                                 // rhi::MemoryPropertyFlags::eHostCached;
         imageInfo.tiling = rhi::ImageTiling::eLinear;
 
+        uint8_t i = 0u;
         for (auto & img : _images) {
             img = rhi::runtime::sh_ptr<Image>::make(_device, imageInfo);
+            _imagesMemory[i++] = static_cast<std::byte*>(img->map());
+        }
+    }
+
+    ImageMemoryReader::~ImageMemoryReader() {
+        uint8_t i = 0u;
+        for (auto & memory : _imagesMemory) {
+            if (memory) {
+                _images[i]->unmap();
+                memory = nullptr;
+            }
+            ++i;
         }
     }
 

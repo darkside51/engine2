@@ -12,7 +12,7 @@ namespace engine::vulkan {
     class ImageMemoryReader : public rhi::runtime::ImageMemoryReader {
     public:
         ImageMemoryReader(Device & device, rhi::Format format, rhi::Extent3D extent, uint8_t imagesCount);
-        ~ImageMemoryReader() = default;
+        ~ImageMemoryReader();
 
         void prepareMemory(rhi::runtime::CommandList & commandList, rhi::runtime::ImagePtr & image, 
             uint8_t frameId, uint8_t mipLevel = 0u, uint8_t baseArrayLayer = 0u,
@@ -40,17 +40,15 @@ namespace engine::vulkan {
 
             vkGetImageSubresourceLayout(_device(), vkImage, &subresource, &layout);
 
-            auto * memory = static_cast<std::byte*>(img.map());
             img.invalidate();
-
+            const auto * memory = _imagesMemory[frameId];
             std::memcpy(color, memory + (x * sizeInBytes + y * layout.rowPitch), sizeInBytes);
-
-            img.unmap();
         }
 
     private:
         Device & _device;
         stl::vector<rhi::runtime::ImagePtr> _images;
+        stl::vector<std::byte*> _imagesMemory;
     };
 
 }

@@ -53,6 +53,8 @@
 #include "map/geography.h"
 #include "map/vector_tile_parser.h"
 
+#include "graphics/ui/utils/texture_viewer.h"
+
 #include <imgui.h>
 
 #include <deque>
@@ -143,6 +145,8 @@ namespace example {
     // options
     bool showTextureViewer = false;
     bool showOptions = false;
+
+    engine::TextureViewer textureViewer;
     
     enum class DebugShow : uint8_t {
         eCommon = 0u,
@@ -199,19 +203,6 @@ namespace example {
     engine::rhi::runtime::Pipeline* g_mapGeometryCommonPipeline;
     engine::rhi::runtime::Pipeline* g_mapGeometryCommonAreaPipeline;
     engine::rhi::runtime::Pipeline* g_mapGeometryShadowPipeline;
-
-    void textureViewerWindow(engine::rhi::runtime::ImagePtr & image) {
-        ImGui::SetNextWindowSize(ImVec2(128, 128), ImGuiCond_FirstUseEver);
-        if(!ImGui::Begin("texture viewer", &showTextureViewer, 0)) {
-            ImGui::End();
-            return;
-        }
-        // auto * texture = &colorPicker->getImage(0u);
-        auto * texture = &image;
-        const ImVec2 viewerSize = ImGui::GetContentRegionAvail(); 
-        ImGui::Image(texture, viewerSize);
-        ImGui::End();
-    }
 
     void optionsWindow() {
         ImGui::SetNextWindowSize(ImVec2(540, 840), ImGuiCond_FirstUseEver);
@@ -1275,6 +1266,11 @@ namespace example {
 
             _emissiveBluredBuffers.emplace_back(_api->createFrameBuffer(*_device, std::move(fbAttachemnts), _renderPasses[kBlurRenderPass]));
         }
+
+        // texture viewer images set
+        textureViewer.setTexture("gBufferAlbedo", _gBufferAttachments[0].albedo);
+        textureViewer.setTexture("gBufferMetallicRoughness", _gBufferAttachments[0].metallicRoughness);
+        textureViewer.setTexture("ssao", ssao.getImage(0u));
     }
 
     void Example::resize(uint16_t w, uint16_t h) {
@@ -1580,17 +1576,19 @@ namespace example {
         colorPicker = std::make_unique<engine::graphics::ColorPicker>(
             *_api, *_device, _device->inFlightFramesCount(), 
             engine::vec2u{128u, 128u}, 
-            engine::rhi::ClearValue{
-                engine::rhi::ClearColorValue{
-                    .uvalue = {
-                        0xff'ff'ff'ffu, 0u, 0u, 0u
-                    }
-                }
-            },
-            //engine::rhi::ClearValue{0xff'ff'ff'ffu}, 
-            engine::rhi::Format::eR32_Uint
+            // engine::rhi::ClearValue{
+            //     engine::rhi::ClearColorValue{
+            //         .uvalue = {
+            //             0xff'ff'ff'ffu, 0u, 0u, 0u
+            //         }
+            //     }
+            // },
+            engine::rhi::ClearValue{0xff'ff'ff'ffu}, 
+            // engine::rhi::Format::eR32_Uint
+            engine::rhi::Format::eR8G8B8A8_Unorm
         );
         colorPicker->createRenderData();
+        textureViewer.setTexture("colorPicker", colorPicker->getImage(0u));
 
         const GraphicsPipelineStatesInfo info7 = engine::parseGraphicsPipelineInfo(json["mesh_shadows"]);
         const uint32_t meshShadowPipeline = scene->registerGraphicsPipeline(_api->createGraphicsPipeline(*_device, shadowMap->getRenderPass(), _programs[kMeshShadowProgram], info7, 0u));
@@ -2354,7 +2352,7 @@ namespace example {
         }
 
         if (showTextureViewer) {
-            textureViewerWindow(_gBufferAttachments[0u].albedo);
+            textureViewer.show(showTextureViewer);
         }
 
         if (showOptions) {
