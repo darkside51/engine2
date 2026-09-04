@@ -6,8 +6,8 @@
 #include "texture_data_loader.h"
 
 #include "stl/vector.h"
-#include "stl/unoredered_set.h"
-#include "stl/unoredered_map.h"
+#include "stl/unordered_set.h"
+#include "stl/unordered_map.h"
 #include "stl/utility.h"
 
 #include <cstddef>

@@ -141,6 +141,7 @@ namespace example {
     engine::rhi::runtime::ImagePtr interriorCubeMapImage = nullptr;
 
     // options
+    bool showTextureViewer = false;
     bool showOptions = false;
     
     enum class DebugShow : uint8_t {
@@ -198,6 +199,19 @@ namespace example {
     engine::rhi::runtime::Pipeline* g_mapGeometryCommonPipeline;
     engine::rhi::runtime::Pipeline* g_mapGeometryCommonAreaPipeline;
     engine::rhi::runtime::Pipeline* g_mapGeometryShadowPipeline;
+
+    void textureViewerWindow(engine::rhi::runtime::ImagePtr & image) {
+        ImGui::SetNextWindowSize(ImVec2(128, 128), ImGuiCond_FirstUseEver);
+        if(!ImGui::Begin("texture viewer", &showTextureViewer, 0)) {
+            ImGui::End();
+            return;
+        }
+        // auto * texture = &colorPicker->getImage(0u);
+        auto * texture = &image;
+        const ImVec2 viewerSize = ImGui::GetContentRegionAvail(); 
+        ImGui::Image(texture, viewerSize);
+        ImGui::End();
+    }
 
     void optionsWindow() {
         ImGui::SetNextWindowSize(ImVec2(540, 840), ImGuiCond_FirstUseEver);
@@ -2339,14 +2353,8 @@ namespace example {
             ImGui::ShowDemoWindow();
         }
 
-        static bool showTextureViewer = false;
         if (showTextureViewer) {
-            ImGui::Begin("Texture Viewer");
-            // auto * texture = &colorPicker->getImage(0u);
-            auto * texture = &_gBufferAttachments[0u].albedo;
-            const ImVec2 viewerSize = ImGui::GetContentRegionAvail(); 
-            ImGui::Image(texture, viewerSize);
-            ImGui::End();
+            textureViewerWindow(_gBufferAttachments[0u].albedo);
         }
 
         if (showOptions) {
