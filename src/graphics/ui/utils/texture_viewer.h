@@ -14,6 +14,7 @@ public:
     void setTexture(std::string_view name, const rhi::runtime::ImagePtr & image);
     void removeTexture(std::string_view name);
     void show(bool &showed);
+    void destroy();
 
 private:
     stl::unordered_map<std::string, rhi::runtime::ImagePtr, hash::String_hash, std::equal_to<>> _images;

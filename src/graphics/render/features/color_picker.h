@@ -30,6 +30,7 @@ namespace engine::graphics {
         void endRenderPass(rhi::runtime::CommandList & commandList) noexcept;
         void prepareResults(rhi::runtime::CommandList & commandList, uint8_t frameId) noexcept;
 
+        rhi::runtime::RenderPass getRenderPass() const noexcept { return _renderPass; }
         const rhi::runtime::ImagePtr & getImage(uint8_t frameId) const noexcept;
         rhi::runtime::ImagePtr & getImage(uint8_t frameId) noexcept;
 

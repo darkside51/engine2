@@ -19,7 +19,6 @@ layout (set = 1, binding = 1) readonly buffer SkeletonIds {
    uint data[];
 } in_skeleton_ids;
 
-
 layout(push_constant) uniform Params {
 	uvec4 offset_and_count;
 } push;

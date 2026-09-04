@@ -109,6 +109,7 @@ class Scene {
         uint32_t skeletonOffset = 0u;
         uint32_t computeSkinVerticesOffset = 0u;
         uint32_t meshOutlinesOffset = 0u;
+        uint32_t colorIdMeshesOffset = 0u;
     };
 
 public:
@@ -267,6 +268,8 @@ private:
     void drawMeshes2(rhi::runtime::CommandListPtr & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end,
         const ViewParams & viewParams, uint32_t & offset, uint32_t & skeletonsOffset);
     void drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end,
+        const ViewParams & viewParams, uint32_t & offset, uint32_t & skeletonsOffset);
+    void drawMeshes2ColorIds(rhi::runtime::CommandListPtr & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end,
         const ViewParams & viewParams, uint32_t & offset, uint32_t & skeletonsOffset);
     void drawSameMeshes(rhi::runtime::CommandListPtr & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end,
         uint32_t count, bool skeletal, uint32_t startTransformIndex);

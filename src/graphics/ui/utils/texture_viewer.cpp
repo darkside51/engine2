@@ -55,4 +55,8 @@ namespace engine {
 
         ImGui::End();
     }
+
+    void TextureViewer::destroy() {
+        _images.clear();
+    }
 }

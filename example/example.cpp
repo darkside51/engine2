@@ -89,6 +89,9 @@ namespace example {
     constexpr uint8_t kMeshInstancedProgramNoPbr = 12u;
     constexpr uint8_t kMeshAfterComputeProgramNoPbr = 13u;
 
+    constexpr uint8_t kMeshColorIdProgram = 18u;
+    constexpr uint8_t kMeshAfterComputeColorIdProgram = 19u;
+
     constexpr uint8_t kPostEffectPipeline = 0u;
     constexpr uint8_t kSsaoPipeline = 1u;
     constexpr uint8_t kEmissiveBlurPipeline = 2u;
@@ -959,6 +962,8 @@ namespace example {
 
         scene->destroy();
 
+        textureViewer.destroy();
+
         _shaderModulesManager = nullptr;
         _imgui.destroy();
         drawHelper.destroy();
@@ -1502,6 +1507,24 @@ namespace example {
 
             _programs.emplace_back(_api->createProgram(*_device, engine::stl::array{vsModule.getView(), fsModule.getView()}));
         }
+
+        { // kMeshColorIdProgram
+            auto const vBytes = fileManager.readFile("shaders/mesh_instanced_colorid.vert.spv");
+            auto const fBytes = fileManager.readFile("shaders/mesh_colorid.frag.spv");
+
+            const auto & vsModule = _shaderModulesManager->registerModule("mesh_instanced_colorid.vert", *_device, engine::rhi::shaders::Stages::eVertex, vBytes);
+            const auto & fsModule = _shaderModulesManager->registerModule("mesh_colorid.frag", *_device, engine::rhi::shaders::Stages::eFragment, fBytes);
+            _programs.emplace_back(_api->createProgram(*_device, engine::stl::array{vsModule.getView(), fsModule.getView()}));
+        }
+
+        { // kMeshAfterComputeColorIdProgram
+            auto const vBytes = fileManager.readFile("shaders/mesh_after_compute_colorid.vert.spv");
+            auto const fBytes = fileManager.readFile("shaders/mesh_colorid.frag.spv");
+
+            const auto & vsModule = _shaderModulesManager->registerModule("mesh_after_compute_colorid.vert", *_device, engine::rhi::shaders::Stages::eVertex, vBytes);
+            const auto & fsModule = _shaderModulesManager->registerModule("mesh_colorid.frag", *_device, engine::rhi::shaders::Stages::eFragment, fBytes);
+            _programs.emplace_back(_api->createProgram(*_device, engine::stl::array{vsModule.getView(), fsModule.getView()}));
+        }
     }
     
     void Example::createPipelines() {
@@ -1604,6 +1627,14 @@ namespace example {
         // kMapBuildingsShadowsPipeline
         const GraphicsPipelineStatesInfo info11 = engine::parseGraphicsPipelineInfo(json["map_buildings_shadows"]);
         g_mapGeometryShadowPipeline = _pipelines.emplace_back(_api->createGraphicsPipeline(*_device, shadowMap->getRenderPass(), _programs[kMapBuildingsShadowsProgram], info11, 0u)).get();
+
+        // mesh colorIds
+        const GraphicsPipelineStatesInfo info12 = engine::parseGraphicsPipelineInfo(json["mesh_colorId"]);
+        const GraphicsPipelineStatesInfo info13 = engine::parseGraphicsPipelineInfo(json["mesh_skin_colorId"]);
+        const uint32_t meshColorIdPipeline = scene->registerGraphicsPipeline(_api->createGraphicsPipeline(*_device, colorPicker->getRenderPass(), _programs[kMeshColorIdProgram], info12, 0u));
+        const uint32_t meshSkinColorIdPipeline = scene->registerGraphicsPipeline(_api->createGraphicsPipeline(*_device, colorPicker->getRenderPass(), _programs[kMeshAfterComputeColorIdProgram], info13, 0u));
+        scene->assignCommonPipeline(meshColorIdPipeline, engine::scene::Scene::CommonPipeline::Type::eMeshColorId);
+        scene->assignCommonPipeline(meshSkinColorIdPipeline, engine::scene::Scene::CommonPipeline::Type::eMeshSkinColorId);
     }
 
     void Example::createDefaultResources() {
@@ -1727,6 +1758,8 @@ namespace example {
                                 handBone->addChild(swordNode);
                                 meshRoot->setRotation(engine::vec3f(1.57f, 0.0f, 0.25f));
                                 // meshRoot->childAt(0u)->getAttachment(1u)->setHidden(true);
+                                meshRoot->childAt(0u)->getAttachment(0u)->setEnableColorId(true);
+                                meshRoot->childAt(0u)->getAttachment(1u)->setEnableColorId(true);
                             }
 
                             auto * anim0 = scene->createAnimInfo<engine::scene::SkeletalAnimation>(animId, engine::common::random(0.25f, 1.7f));
@@ -2600,7 +2633,7 @@ namespace example {
         shadowMap->beginRenderPass(*commandList, frameId);
         // draw shadows
         // ...
-        auto sceneViewParamBufferOffset = scene->getCurrentViewParamsBufferOffset();
+        // auto sceneViewParamBufferOffset = scene->getCurrentViewParamsBufferOffset();
         const auto cascadeMatrices = shadowMap->getCascadeMatrices();
         scene->draw(engine::scene::RenderPass::eShadow, commandList, transferCommandList, frameId, viewParams, shadowObjects, offsets1, &cascadeMatrices);
         shadowMap->endRenderPass(*commandList);
@@ -2626,7 +2659,7 @@ namespace example {
         // scene pass
         commandList->beginRenderPass(_renderPasses[kGbufferRenderPass], _gBuffers[frameId], gBufferClearValues, {{0, 0}, {width, height}});
         // scene->dispatch(commandList, frameId, objects, offsets);
-        sceneViewParamBufferOffset = scene->getCurrentViewParamsBufferOffset();
+        // sceneViewParamBufferOffset = scene->getCurrentViewParamsBufferOffset();
         scene->draw(engine::scene::RenderPass::eCommon, commandList, transferCommandList, frameId, viewParams, objects, offsets1);
         // scene->draw(commandList, transferCommandList, frameId, viewParams, o1, offsets1);
         // scene->draw(commandList, transferCommandList, frameId, viewParams, o0, offsets0);   
@@ -2714,6 +2747,7 @@ namespace example {
         // color picker pass
         colorPicker->beginRenderPass(*commandList, frameId, {width, height});
         //...
+        scene->draw(engine::scene::RenderPass::eColorId, commandList, transferCommandList, frameId, viewParams, objects, offsets1);
         colorPicker->endRenderPass(*commandList);
         colorPicker->prepareResults(*commandList, frameId);
         commandList->setViewport(0.0f, 0.0f, width, height);
