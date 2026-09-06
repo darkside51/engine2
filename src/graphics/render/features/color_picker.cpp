@@ -374,11 +374,12 @@ namespace engine::graphics {
         commandList.beginRenderPass(_renderPass, _framebuffers[frameId].frameBuffer, clearValues, {{0, 0}, {_size.x, _size.y}});
     }
 
-    void ColorPicker::beginRenderPass(rhi::runtime::CommandList & commandList, uint8_t frameId, vec2u currentSize, vec2i offset) noexcept {
+    void ColorPicker::beginRenderPass(rhi::runtime::CommandList & commandList, uint8_t frameId, vec2u currentSize, vec2u offset) noexcept {
         using namespace rhi;
 
         auto & src = _externalDepthImages[frameId];
         const auto & extent = src->getExtent();
+        offset = {std::min(offset.x, extent.width), std::min(offset.y, extent.height)};
 
         commandList.copyImage2Image(
             _externalDepthImages[frameId],
@@ -396,7 +397,10 @@ namespace engine::graphics {
                     .baseArrayLayer = 0u,
                     .layerCount = 1u
                 },
-                .srcOffset = {offset.x, offset.y, 0},
+                .srcOffset = {
+                    static_cast<int32_t>(offset.x), 
+                    static_cast<int32_t>(offset.y), 
+                    0},
                 .dstOffset = {0, 0, 0},
                 .extent = {std::min(_size.x, extent.width - offset.x), std::min(_size.y, extent.height - offset.y), 1u}
             }
