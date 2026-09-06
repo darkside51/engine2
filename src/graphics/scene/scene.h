@@ -405,6 +405,7 @@ private:
 
     // shadows
     uint8_t _shadowCascades = 0u;
+    vec2f _colorPassScreenOffset = {0.0f, 0.0f};
 };
 
 template <typename Condition>

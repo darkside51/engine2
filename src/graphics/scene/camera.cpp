@@ -52,7 +52,7 @@ namespace engine::scene {
 		v /= v.w;
 
 		v.x = (0.5f + v.x * 0.5f) * _size.x;
-		v.y = (0.5f - v.y * 0.5f) * _size.y; // for topdown viewport oy
+		v.y = (0.5f + v.y * 0.5f) * _size.y;
 
 		return vec2f(v.x, v.y);
 	}
@@ -60,7 +60,7 @@ namespace engine::scene {
 	Ray Camera::screenToWorld(const vec2f & screenCoord) noexcept {
 		vec4f v;
 		v.x = (((2.0f * screenCoord.x) / _size.x) - 1.0f);
-		v.y = -(((2.0f * screenCoord.y) / _size.y) - 1.0f); // for topdown viewport oy
+		v.y = (((2.0f * screenCoord.y) / _size.y) - 1.0f);
 		v.z = 0.0f;
 		v.w = 1.0f;
 

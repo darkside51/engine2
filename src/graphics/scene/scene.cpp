@@ -1294,10 +1294,12 @@ namespace engine::scene {
                 break;
             case RenderPass::eColorId:
             {
+                assert(uniformData != nullptr);
                 uniformBufferSize = sizeof(mat4f);
                 auto * uniform = _viewParamsUniformBuffer->memory2<std::byte>() + _currentViewParamsBufferOffset;
                 memcpy(uniform , &viewParams.cameraTransform, uniformBufferSize);
                 _viewParamsUniformBuffer->modify(uniformBufferSize, _currentViewParamsBufferOffset);
+                _colorPassScreenOffset = *static_cast<const vec2f*>(uniformData);
             }
                 break;
             default: 
@@ -1622,11 +1624,13 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
         bool colorIdEnabled = mesh.isEnableColorId();
 
         struct Uniform {
-            vec4u offset_and_count;
+            vec2f renderOffset;
+            uint32_t offset;
         };
 
         Uniform uniform {
-            .offset_and_count = vec4u{0u}
+            .renderOffset = _colorPassScreenOffset,
+            .offset = 0u
         };
 
         uint32_t count = 0u;
@@ -1652,7 +1656,7 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
             if (!mesh2.isEnableColorId()) {
                 continue;
             }
-            colorIdEnabled = true;
+            
             const auto currentGeometryDataIndex = mesh2.geometryDataIndex();
             const bool currentSkeletal = mesh2.getSkeleton() != nullptr;
             const auto currentPipelineIdx = currentSkeletal ? getCommonPipeline(CommonPipeline::Type::eMeshSkinColorId) : getCommonPipeline(CommonPipeline::Type::eMeshColorId);
@@ -1667,14 +1671,16 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
                  
             if (completePack) {
                 // draw
-                if (skeletal) {
-                    uniform.offset_and_count = {offset, count, 0u, 0u};
-                    commandList->pushConstants(rhi::shaders::Stages::eVertex, 0u, sizeof(Uniform), &uniform);
-                    drawSameMeshes(commandList, frame, currentIt, it, count, true, offset);
-                } else {
-                    uniform.offset_and_count = {offset, count, 0u, 0u};
-                    commandList->pushConstants(rhi::shaders::Stages::eVertex, 0u, sizeof(Uniform), &uniform);
-                    drawSameMeshes(commandList, frame, currentIt, it, count, false, offset);
+                if (colorIdEnabled) {
+                    if (skeletal) {
+                        uniform.offset = offset;
+                        commandList->pushConstants(rhi::shaders::Stages::eVertex, 0u, sizeof(Uniform), &uniform);
+                        drawSameMeshes(commandList, frame, currentIt, it, count, true, offset);
+                    } else {
+                        uniform.offset = offset;
+                        commandList->pushConstants(rhi::shaders::Stages::eVertex, 0u, sizeof(Uniform), &uniform);
+                        drawSameMeshes(commandList, frame, currentIt, it, count, false, offset);
+                    }
                 }
                 offset += count;
 
@@ -1704,6 +1710,8 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
             } else {
                 ++count;
             }
+
+            colorIdEnabled = true;
         }
 
         if (!colorIdEnabled) {
@@ -1711,11 +1719,11 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
         }
 
         if (skeletal) {
-            uniform.offset_and_count = {offset, count, 0u, 0u};
+            uniform.offset = offset;
             commandList->pushConstants(rhi::shaders::Stages::eVertex, 0u, sizeof(Uniform), &uniform);
             drawSameMeshes(commandList, frame, currentIt, end, count, true, offset);
         } else {
-            uniform.offset_and_count = {offset, count, 0u, 0u};
+            uniform.offset = offset;
             commandList->pushConstants(rhi::shaders::Stages::eVertex, 0u, sizeof(Uniform), &uniform);
             drawSameMeshes(commandList, frame, currentIt, end, count, false, offset);
         }

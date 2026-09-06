@@ -80,63 +80,63 @@ namespace engine::graphics {
         _renderPass = _api.getRenderPass(_device, description);
     }
 
-    void ColorPicker::createRenderData(stl::span<engine::rhi::runtime::ImagePtr> depthImages) {
+    void ColorPicker::createRenderPass2(rhi::Format depthFormat, rhi::ImageAspectFlags depthAspectFlags) {
         using namespace rhi;
 
-        assert(_renderPass != {});
-
-        const auto & depthImageInfo = depthImages[0u]->getInfo();
-        const auto depthImageFormat = depthImageInfo.format;
-        const auto depthImageAspectFlags = depthImageInfo.aspectFlags;
-        const auto depthImageExtent = depthImageInfo.extent;
-        
-        // attachments
-        auto fbColorAttachment = FrameBufferAttachment {
-            .image = nullptr,
-            .imageSize = {_size.x, _size.y},
-            .aspect = ImageAspectFlags::eColor,
-            .layer = 0u,
-            .level = 0u,
-            .layersCount = 1u,
-            .levelsCount = 1u,
-            .viewType = ImageViewType::eType_2D
+        // renderpass
+        stl::array attachment = {
+            AttachmentDescription {
+                .format = _format,
+                .loadStoreOp = AttachmentLoadStoreOp{AttachmentLoadOp::eClear, AttachmentStoreOp::eStore},
+                .stencilLoadStoreOp = AttachmentLoadStoreOp{AttachmentLoadOp::eDont_Care, AttachmentStoreOp::eDont_Care},
+                .initialLayout = ImageLayout::eUndefined,
+                .finalLayout = ImageLayout::eTransfer_Src_Optimal,
+                .samples = 1u
+            },
+            AttachmentDescription {
+                .format = depthFormat,
+                .loadStoreOp = AttachmentLoadStoreOp{AttachmentLoadOp::eLoad, AttachmentStoreOp::eDont_Care},
+                .stencilLoadStoreOp = AttachmentLoadStoreOp{AttachmentLoadOp::eDont_Care, AttachmentStoreOp::eDont_Care},
+                .initialLayout = ImageLayout::eDepth_Stencil_Attachment_Optimal,
+                .finalLayout = ImageLayout::eDepth_Stencil_Attachment_Optimal,
+                .samples = 1u
+            },
         };
 
-        auto fbDepthAttachment = FrameBufferAttachment {
-            .image = nullptr,
-            .imageSize = {_size.x, _size.y},
-            .aspect = depthImageAspectFlags,
-            .layer = 0u,
-            .level = 0u,
-            .layersCount = 1u,
-            .levelsCount = 1u,
-            .viewType = ImageViewType::eType_2D
+        stl::array subpass = {
+            SubpassDescription {
+                .pNext = {nullptr, 0u},
+                .depthStencilAttachment = {
+                    .pNext = {nullptr, 0u},
+                    .attachment = 1u,
+                    .layout = ImageLayout::eDepth_Stencil_Attachment_Optimal,
+                    .aspectMask = depthAspectFlags
+                },
+                .colorAttachments = {{
+                    .pNext = {nullptr, 0u},
+                    .attachment = 0u,
+                    .layout = ImageLayout::eColor_Attachment_Optimal,
+                    .aspectMask = ImageAspectFlags::eColor
+                }}
+            }
         };
 
-        // images
-        const auto imageInfo = ImageInfo{
-            ImageUsageFlags::eSampled | ImageUsageFlags::eColor_Attachment | ImageUsageFlags::eTransfer_Src, 
-            _format, 
-            {_size.x, _size.y, 1u},
-            ImageAspectFlags::eColor
-        };
+        // stl::array<SubpassDependency, 1u> dependency;
+        // dependency[0u] = {
+        //     .stages = {
+        //         .src = {
+        //             .stage = PipelineStageFlags::eLate_Fragment_Tests,
+        //             .accessMask = AccessFlags::eDepth_Stencil_Attachment_Write
+        //         },
+        //         .dst = {
+        //             .stage = PipelineStageFlags::eEarly_Fragment_Tests,
+        //             .accessMask = AccessFlags::eDepth_Stencil_Attachment_Read
+        //         }
+        //     }
+        // };
 
-        for (uint8_t i = 0u; i < _imagesCount; ++i) {
-            auto image = _api.createImage(_device, imageInfo);
-            fbColorAttachment.image = image.get();
-            fbDepthAttachment.image = depthImages[i].get();
-
-            stl::vector fbAttachemnts = {
-                fbColorAttachment,
-                fbDepthAttachment
-            };
-
-            _framebuffers[i] = ColorIdsFrameBuffer{
-                .image = std::move(image),
-                .depthImage = nullptr,
-                .frameBuffer = _api.createFrameBuffer(_device, std::move(fbAttachemnts), _renderPass)
-            };
-        }
+        const RenderPassDescription description{attachment, subpass, {}};
+        _renderPass = _api.getRenderPass(_device, description);
     }
 
     void ColorPicker::createRenderData() {
@@ -238,56 +238,15 @@ namespace engine::graphics {
         }
     }
 
-    void ColorPicker::createRenderData(stl::span<engine::rhi::runtime::ImagePtr> depthImages, vec2i offset) {
+    void ColorPicker::createRenderData(stl::span<engine::rhi::runtime::ImagePtr> depthImages) {
         using namespace rhi;
 
-        _frameBufferOffset = offset;
-        _externalDepthImages = {depthImages.begin(), depthImages.end()};
+        //assert(_renderPass != {});
 
-        const auto & externalDepthImageInfo = depthImages[0u]->getInfo();
-        const auto depthImageFormat = externalDepthImageInfo.format;
-        const auto depthImageAspectFlags = externalDepthImageInfo.aspectFlags;
-
-        // renderpass
-        stl::array attachment = {
-            AttachmentDescription {
-                .format = _format,
-                .loadStoreOp = AttachmentLoadStoreOp{AttachmentLoadOp::eClear, AttachmentStoreOp::eStore},
-                .stencilLoadStoreOp = AttachmentLoadStoreOp{AttachmentLoadOp::eDont_Care, AttachmentStoreOp::eDont_Care},
-                .initialLayout = ImageLayout::eUndefined,
-                .finalLayout = ImageLayout::eTransfer_Src_Optimal,
-                .samples = 1u
-            },
-            AttachmentDescription {
-                .format = depthImageFormat,
-                .loadStoreOp = AttachmentLoadStoreOp{AttachmentLoadOp::eLoad, AttachmentStoreOp::eDont_Care},
-                .stencilLoadStoreOp = AttachmentLoadStoreOp{AttachmentLoadOp::eDont_Care, AttachmentStoreOp::eDont_Care},
-                .initialLayout = ImageLayout::eUndefined,
-                .finalLayout = ImageLayout::eDepth_Stencil_Attachment_Optimal,
-                .samples = 1u
-            },
-        };
-
-        stl::array subpass = {
-            SubpassDescription {
-                .pNext = {nullptr, 0u},
-                .depthStencilAttachment = {
-                    .pNext = {nullptr, 0u},
-                    .attachment = 1u,
-                    .layout = ImageLayout::eDepth_Stencil_Attachment_Optimal,
-                    .aspectMask = depthImageAspectFlags
-                },
-                .colorAttachments = {{
-                    .pNext = {nullptr, 0u},
-                    .attachment = 0u,
-                    .layout = ImageLayout::eColor_Attachment_Optimal,
-                    .aspectMask = ImageAspectFlags::eColor
-                }}
-            }
-        };
-
-        const RenderPassDescription description{attachment, subpass, {}};
-        _renderPass = _api.getRenderPass(_device, description);
+        const auto & depthImageInfo = depthImages[0u]->getInfo();
+        const auto depthImageFormat = depthImageInfo.format;
+        const auto depthImageAspectFlags = depthImageInfo.aspectFlags;
+        const auto depthImageExtent = depthImageInfo.extent;
         
         // attachments
         auto fbColorAttachment = FrameBufferAttachment {
@@ -315,14 +274,71 @@ namespace engine::graphics {
         // images
         const auto imageInfo = ImageInfo{
             ImageUsageFlags::eSampled | ImageUsageFlags::eColor_Attachment | ImageUsageFlags::eTransfer_Src, 
+            _format, 
+            {_size.x, _size.y, 1u},
+            ImageAspectFlags::eColor
+        };
+
+        for (uint8_t i = 0u; i < _imagesCount; ++i) {
+            auto image = _api.createImage(_device, imageInfo);
+            fbColorAttachment.image = image.get();
+            fbDepthAttachment.image = depthImages[i].get();
+
+            stl::vector fbAttachemnts = {
+                fbColorAttachment,
+                fbDepthAttachment
+            };
+
+            _framebuffers[i] = ColorIdsFrameBuffer{
+                .image = std::move(image),
+                .depthImage = nullptr,
+                .frameBuffer = _api.createFrameBuffer(_device, std::move(fbAttachemnts), _renderPass)
+            };
+        }
+    }
+
+    void ColorPicker::createRenderData2(stl::span<engine::rhi::runtime::ImagePtr> depthImages) {
+        using namespace rhi;
+
+        _externalDepthImages = {depthImages.begin(), depthImages.end()};
+
+        const auto & externalDepthImageInfo = depthImages[0u]->getInfo();
+        const auto depthImageFormat = externalDepthImageInfo.format;
+
+        // attachments
+        auto fbColorAttachment = FrameBufferAttachment {
+            .image = nullptr,
+            .imageSize = {_size.x, _size.y},
+            .aspect = ImageAspectFlags::eColor,
+            .layer = 0u,
+            .level = 0u,
+            .layersCount = 1u,
+            .levelsCount = 1u,
+            .viewType = ImageViewType::eType_2D
+        };
+
+        auto fbDepthAttachment = FrameBufferAttachment {
+            .image = nullptr,
+            .imageSize = {_size.x, _size.y},
+            .aspect = ImageAspectFlags::eDepth,
+            .layer = 0u,
+            .level = 0u,
+            .layersCount = 1u,
+            .levelsCount = 1u,
+            .viewType = ImageViewType::eType_2D
+        };
+
+        // images
+        const auto imageInfo = ImageInfo{
+            ImageUsageFlags::eSampled | ImageUsageFlags::eColor_Attachment | ImageUsageFlags::eTransfer_Src, 
             _format, {_size.x, _size.y, 1u},
             ImageAspectFlags::eColor
         };
 
         const auto depthImageInfo = ImageInfo{
-            ImageUsageFlags::eDepth_Stencil_Attachment, 
+            ImageUsageFlags::eDepth_Stencil_Attachment | ImageUsageFlags::eTransfer_Dst, 
             depthImageFormat, {_size.x, _size.y, 1u},
-            depthImageAspectFlags
+            ImageAspectFlags::eDepth
         };
 
         for (uint8_t i = 0u; i < _imagesCount; ++i) {
@@ -347,29 +363,44 @@ namespace engine::graphics {
     void ColorPicker::beginRenderPass(rhi::runtime::CommandList & commandList, uint8_t frameId, vec2u currentSize) noexcept {
         using namespace rhi;
 
-        if (_frameBufferOffset != vec2i{0, 0}) {
-            commandList.copyImage2Image(
-                _externalDepthImages[frameId],
-                _framebuffers[frameId].depthImage,
-                {
-                    .srcSubresource = {
-                        .aspectMask = ImageAspectFlags::eDepth,
-                        .mipLevel = 0u,
-                        .baseArrayLayer = 0u,
-                        .layerCount = 1u
-                    },
-                    .dstSubresource = {
-                        .aspectMask = ImageAspectFlags::eDepth,
-                        .mipLevel = 0u,
-                        .baseArrayLayer = 0u,
-                        .layerCount = 1u
-                    },
-                    .srcOffset = {_frameBufferOffset.x, _frameBufferOffset.y, 0},
-                    .dstOffset = {0, 0, 0},
-                    .extent = {_size.x, _size.y, 1u}
-                }
-            );
-        }
+        commandList.setViewport(0.0f, 0.0f, currentSize.x, currentSize.y);
+        commandList.setScissor({{0, 0}, {_size.y, _size.y}});
+
+        const auto clearValues = stl::array{
+            _clearColorValue,                   // color
+            rhi::ClearValue{0.0f, 0u}           // depth
+        };
+
+        commandList.beginRenderPass(_renderPass, _framebuffers[frameId].frameBuffer, clearValues, {{0, 0}, {_size.x, _size.y}});
+    }
+
+    void ColorPicker::beginRenderPass(rhi::runtime::CommandList & commandList, uint8_t frameId, vec2u currentSize, vec2i offset) noexcept {
+        using namespace rhi;
+
+        auto & src = _externalDepthImages[frameId];
+        const auto & extent = src->getExtent();
+
+        commandList.copyImage2Image(
+            _externalDepthImages[frameId],
+            _framebuffers[frameId].depthImage,
+            {
+                .srcSubresource = {
+                    .aspectMask = ImageAspectFlags::eDepth,
+                    .mipLevel = 0u,
+                    .baseArrayLayer = 0u,
+                    .layerCount = 1u
+                },
+                .dstSubresource = {
+                    .aspectMask = ImageAspectFlags::eDepth,
+                    .mipLevel = 0u,
+                    .baseArrayLayer = 0u,
+                    .layerCount = 1u
+                },
+                .srcOffset = {offset.x, offset.y, 0},
+                .dstOffset = {0, 0, 0},
+                .extent = {std::min(_size.x, extent.width - offset.x), std::min(_size.y, extent.height - offset.y), 1u}
+            }
+        );
 
         commandList.setViewport(0.0f, 0.0f, currentSize.x, currentSize.y);
         commandList.setScissor({{0, 0}, {_size.y, _size.y}});

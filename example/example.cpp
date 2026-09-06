@@ -512,6 +512,9 @@ namespace example {
             static bool pressedLeft = false;
             static bool pressedRight = false;
 
+            const auto ex = event.x;
+            const auto ey = camera.getSize().y - event.y;
+
             switch (event.state) {
             case engine::InputEventState::ePress:
             {
@@ -543,7 +546,7 @@ namespace example {
             {
                 if (pressedRight) {
                     constexpr float kRotationSpeed = 0.005f;
-                    const auto rotation = engine::vec3f(kRotationSpeed * (cursorPosition.y - event.y), 0.0f, kRotationSpeed * (event.x - cursorPosition.x));
+                    const auto rotation = engine::vec3f(kRotationSpeed * (ey - cursorPosition.y), 0.0f, kRotationSpeed * (ex - cursorPosition.x));
                     auto resultRotation = controller.getRotation() + rotation;
                     //resultRotation.x = std::clamp(resultRotation.x, -1.50f, 1.50f);
                     controller.setRotation(resultRotation);
@@ -551,7 +554,7 @@ namespace example {
 
                 if (pressedLeft) {
                     const auto ray0 = camera.screenToWorld(cursorPosition);
-                    const auto ray1 = camera.screenToWorld({event.x, event.y});
+                    const auto ray1 = camera.screenToWorld({ex, ey});
                     const auto worldPoint0 = engine::intersectionLinePlane(ray0.begin, ray0.end, kPlaneXOY);
                     const auto worldPoint1 = engine::intersectionLinePlane(ray1.begin, ray1.end, kPlaneXOY);
                     
@@ -563,7 +566,7 @@ namespace example {
                 break;
             }
 
-            cursorPosition = {event.x, event.y};
+            cursorPosition = {ex,  ey};
 
             return true;
         }
@@ -1186,7 +1189,9 @@ namespace example {
         colorImageInfo8888.memoryExtFlags = engine::rhi::MemoryExtendedFlags::eDedicated;
 
         auto depthImageInfo = engine::rhi::ImageInfo{
-            engine::rhi::ImageUsageFlags::eDepth_Stencil_Attachment | engine::rhi::ImageUsageFlags::eTransient_Attachment,
+            engine::rhi::ImageUsageFlags::eDepth_Stencil_Attachment | 
+            /*engine::rhi::ImageUsageFlags::eTransient_Attachment |*/ 
+            engine::rhi::ImageUsageFlags::eTransfer_Src,
             depthFormat, {size.width, size.height, 1u}
         };
         depthImageInfo.memoryFlags = engine::rhi::MemoryPropertyFlags::eDeviceLocal | engine::rhi::MemoryPropertyFlags::eLazilyAllocated;
@@ -1278,7 +1283,7 @@ namespace example {
         textureViewer.setTexture("ssao", ssao.getImage(0u));
 
         auto depthArray = engine::stl::array{_gBufferAttachments[0].depth};
-        colorPicker->createRenderData(depthArray);
+        colorPicker->createRenderData2(depthArray);
         textureViewer.setTexture("colorPicker", colorPicker->getImage(0u));
     }
 
@@ -1602,7 +1607,7 @@ namespace example {
         // colorPicker
         colorPicker = std::make_unique<engine::graphics::ColorPicker>(
             *_api, *_device, _device->inFlightFramesCount(), 
-            engine::vec2u{128u, 128u}, 
+            engine::vec2u{32u, 32u}, 
             // engine::rhi::ClearValue{
             //     engine::rhi::ClearColorValue{
             //         .uvalue = {
@@ -1616,7 +1621,7 @@ namespace example {
         );
 
         const auto depthFormat = _device->getSupportedDepthFormat(kDepthFormatTargetBits, false);
-        colorPicker->createRenderPass(depthFormat, engine::rhi::ImageAspectFlags::eDepth);
+        colorPicker->createRenderPass2(depthFormat, engine::rhi::ImageAspectFlags::eDepth);
         // colorPicker->createRenderData();
         
         const GraphicsPipelineStatesInfo info7 = engine::parseGraphicsPipelineInfo(json["mesh_shadows"]);
@@ -2356,7 +2361,8 @@ namespace example {
     }
 
     void Example::deviceProcess() {
-        if (controller.calculateTransform() && _renderThread) {
+        if (_renderThread) {
+            controller.calculateTransform();
             _renderThread->emplaceTask(threads::WorkerTask{[
                 transform = camera.getTransform(), 
                 view = camera.getView(), 
@@ -2751,9 +2757,11 @@ namespace example {
         }
 
         // color picker pass
-        colorPicker->beginRenderPass(*commandList, frameId, {width, height});
+        vec2f cursor = viewParams.cursorPosition;
+        colorPicker->beginRenderPass(*commandList, frameId, {width, height}, {cursor});
+        cursor = -2.0f * vec2f{cursor.x / width, cursor.y / height};
         //...
-        scene->draw(engine::scene::RenderPass::eColorId, commandList, transferCommandList, frameId, viewParams, objects, offsets1);
+        scene->draw(engine::scene::RenderPass::eColorId, commandList, transferCommandList, frameId, viewParams, objects, offsets1, &cursor);
         colorPicker->endRenderPass(*commandList);
         colorPicker->prepareResults(*commandList, frameId);
         commandList->setViewport(0.0f, 0.0f, width, height);
