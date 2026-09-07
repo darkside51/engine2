@@ -19,8 +19,7 @@ layout(push_constant) uniform Params {
 layout (location = 0) flat out uint v_colorId;
 
 void main() {
-	const uint offset = push.offset;
-	uvec2 colorIds = in_color_ids.data[gl_InstanceIndex + offset];
+	const uvec2 colorIds = in_color_ids.data[gl_InstanceIndex + push.offset];
 	const int vertexId = int(gl_VertexIndex + colorIds.x);
 	gl_Position = u_viewParams.viewProjection * imageLoad(in_positions, vertexId);
 	gl_Position.xy += push.renderOffset * gl_Position.w;

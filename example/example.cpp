@@ -1607,7 +1607,7 @@ namespace example {
         // colorPicker
         colorPicker = std::make_unique<engine::graphics::ColorPicker>(
             *_api, *_device, _device->inFlightFramesCount(), 
-            engine::vec2u{256u, 256u}, 
+            engine::vec2u{4u, 4u}, 
             // engine::rhi::ClearValue{
             //     engine::rhi::ClearColorValue{
             //         .uvalue = {
@@ -1861,7 +1861,7 @@ namespace example {
                     };
                     auto const animId = animationManager.getAnimationIndex("buster_drone_anim0");
                     for (uint8_t i = 0u; i < 20u; ++i) {
-                        const auto colorId = 0xff'ff'ff'ffu;//engine::common::random(0xff'ff'00'00u, 0xff'ff'ff'ffu);
+                        const auto colorId = engine::common::random(0xff'ff'00'00u, 0xff'ff'ff'ffu);
                         auto * meshRoot = engine::scene::createNodeWithSkeletalMesh(*scene, *modelManager, modelIndex, 
                             engine::scene::Bounds::Type::eCube, pipelines, 
                             {.size = {1.5f, 1.5f, 1.5f}, .type = engine::scene::ObjectSizeLayout::Type::eMin}, 0, colorId);

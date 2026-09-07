@@ -108,8 +108,8 @@ class Scene {
         uint32_t spriteIndicesOffset = 0u;
         uint32_t skeletonOffset = 0u;
         uint32_t computeSkinVerticesOffset = 0u;
-        uint32_t meshOutlinesOffset = 0u;
         uint32_t colorIdMeshesOffset = 0u;
+        uint32_t colorIdSkeletalMeshesOffset = 0u;
     };
 
 public:
@@ -272,7 +272,7 @@ private:
     void drawMeshes2ColorIds(rhi::runtime::CommandListPtr & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end,
         const ViewParams & viewParams, uint32_t & offset, uint32_t & skeletonsOffset);
     void drawSameMeshes(rhi::runtime::CommandListPtr & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end,
-        uint32_t count, bool skeletal, uint32_t startTransformIndex);
+        uint32_t count, bool skeletal);
     // todo: void drawSameMeshesShadow(...);
 
     void drawCustomObjects(AttachmentsIterator begin, AttachmentsIterator end, const ViewParams & viewParams, 
@@ -374,11 +374,13 @@ private:
     std::unique_ptr<graphics::InflightBuffer> _skeletonIds = nullptr;
 
     // outline meshes
-    uint32_t _outlinedMeshesIndicesInFrame = 0u;
-    uint32_t _lastFramesUsedOutlinedMeshesIndicesInFrame = 0u;
-    std::unique_ptr<graphics::InflightBuffer> _outlinedMeshesIds = nullptr;
+    //...
 
     // color ids meshes
+    uint32_t _colorIdSkeletalMeshesIndicesInFrame = 0u;
+    uint32_t _lastFramesUsedColorIdSkeletalMeshesIndicesInFrame = 0u;
+    std::unique_ptr<graphics::InflightBuffer> _colorIdSkeletalMeshesIds = nullptr;
+
     uint32_t _colorIdMeshesIndicesInFrame = 0u;
     uint32_t _lastFramesUsedColorIdMeshesIndicesInFrame = 0u;
     std::unique_ptr<graphics::InflightBuffer> _colorIdMeshesIds = nullptr;

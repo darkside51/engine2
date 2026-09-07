@@ -58,7 +58,7 @@ namespace engine::scene {
     constexpr uint32_t kInitialIndicesCountMax = 1024u;
     constexpr uint32_t kInitialMeshTransformsInFrameMax = 128u;
     constexpr uint32_t kInitialMeshColorIdsInFrameMax = 128u;
-    constexpr uint32_t kInitialMeshOutlinedInFrameMax = 16u;
+    //constexpr uint32_t kInitialMeshOutlinedInFrameMax = 16u;
     constexpr uint32_t kInitialSkeletalmeshTransformsInFrameMax = 128u;
     constexpr uint32_t kMinStagingSize = 100u * 1024u /*100 Kb*/;
     constexpr uint32_t kStaginBufferEnlargeSizeMult = 2u;
@@ -162,8 +162,8 @@ namespace engine::scene {
         _meshTransforms = nullptr;
         _meshSkeletalTransforms = nullptr;
         _skeletonIds = nullptr;
-        _outlinedMeshesIds = nullptr;
         _colorIdMeshesIds = nullptr;
+        _colorIdSkeletalMeshesIds = nullptr;
 
         _computedVertices = {};
         _computedNormals = {};
@@ -362,11 +362,11 @@ namespace engine::scene {
             api, device, verticesInfo2, sizeof(uint32_t) * kInitialMeshTransformsInFrameMax
         );
 
-        _outlinedMeshesIds = std::make_unique<graphics::InflightBuffer>(
-            api, device, verticesInfo2, sizeof(uint32_t) * kInitialMeshOutlinedInFrameMax
+        _colorIdMeshesIds = std::make_unique<graphics::InflightBuffer>(
+            api, device, verticesInfo2, sizeof(vec2u) * kInitialMeshColorIdsInFrameMax
         );
 
-        _colorIdMeshesIds = std::make_unique<graphics::InflightBuffer>(
+        _colorIdSkeletalMeshesIds = std::make_unique<graphics::InflightBuffer>(
             api, device, verticesInfo2, sizeof(vec2u) * kInitialMeshColorIdsInFrameMax
         );
 
@@ -587,8 +587,8 @@ namespace engine::scene {
         const auto meshesDrawInFrame = _meshesDrawInFrame;
         auto meshTransformsInFrame = _meshTransformsInFrame;
         const auto skeletonsInFrame = _skeletonsInFrame;
-        const auto outlinedMeshesIds = _outlinedMeshesIndicesInFrame;
         const auto colorIdMeshesIds = _colorIdMeshesIndicesInFrame;
+        const auto colorIdSkeletalMeshesIds = _colorIdSkeletalMeshesIndicesInFrame;
 
         auto skeletalTransformsInFrame = _skeletalTransformsInFrame;
         _tmpUniqueMeshes.reserve(kInitialMeshTransformsInFrameMax);
@@ -625,6 +625,8 @@ namespace engine::scene {
 
                     uint32_t skeletalTransformIndex = kUnknownTransformIndex;
                     uint32_t skeletonId = kUnknownTransformIndex;
+                    const bool colorIdEnabled = mesh->isEnableColorId();
+
                     if (isSkeletalMesh) { 
                         if (auto it = _meshTransformIndicesMap.find(skeleton); it != _meshTransformIndicesMap.end()) {
                             skeletalTransformIndex = it->second.skeletalTransformIndex;
@@ -633,6 +635,14 @@ namespace engine::scene {
                             auto [transfromIndex, skeletonIndex] = addSkeletonToMap(skeleton);
                             skeletalTransformIndex = transfromIndex;
                             skeletonId = skeletonIndex;
+                        }
+
+                        if (colorIdEnabled) {
+                            ++_colorIdSkeletalMeshesIndicesInFrame;
+                        }
+                    } else {
+                        if (colorIdEnabled) {
+                            ++_colorIdMeshesIndicesInFrame;
                         }
                     }
                     
@@ -648,14 +658,6 @@ namespace engine::scene {
                 
                     if (!isSkeletalMesh) {
                         ++meshTransformsInFrame;
-                    }
-
-                    if (mesh->isOutlined()) {
-                        ++_outlinedMeshesIndicesInFrame;
-                    }
-
-                    if (mesh->isEnableColorId()) {
-                        ++_colorIdMeshesIndicesInFrame;
                     }
                 }
                 if (static_cast<const Mesh*>(object)->getSkeleton()) {
@@ -718,16 +720,16 @@ namespace engine::scene {
                 _skeletonIds->resize(std::max(currentSize2 * 2u, size2));
             }
 
-            const auto size3 = static_cast<uint32_t>(_outlinedMeshesIndicesInFrame * sizeof(uint32_t));
-            const auto currentSize3 = _outlinedMeshesIds->sizeInBytes();
+            const auto size3 = static_cast<uint32_t>(_colorIdMeshesIndicesInFrame * sizeof(vec2u));
+            const auto currentSize3 = _colorIdMeshesIds->sizeInBytes();
             if (currentSize3 <= size3) {
-                _outlinedMeshesIds->resize(std::max(currentSize3 * 2u, size3));
+                _colorIdMeshesIds->resize(std::max(currentSize3 * 2u, size3));
             }
 
-            const auto size4 = static_cast<uint32_t>(_colorIdMeshesIndicesInFrame * sizeof(vec2u));
-            const auto currentSize4 = _colorIdMeshesIds->sizeInBytes();
+            const auto size4 = static_cast<uint32_t>(_colorIdSkeletalMeshesIndicesInFrame * sizeof(vec2u));
+            const auto currentSize4 = _colorIdSkeletalMeshesIds->sizeInBytes();
             if (currentSize4 <= size4) {
-                _colorIdMeshesIds->resize(std::max(currentSize4 * 2u, size4));
+                _colorIdSkeletalMeshesIds->resize(std::max(currentSize4 * 2u, size4));
             }
         }
 
@@ -737,8 +739,8 @@ namespace engine::scene {
         _meshSkeletalTransforms->applySize(frame);
         _meshTransformIndices->applySize(frame);
         _skeletonIds->applySize(frame);
-        _outlinedMeshesIds->applySize(frame);
         _colorIdMeshesIds->applySize(frame);
+        _colorIdSkeletalMeshesIds->applySize(frame);
 
         // staging buffer
         if (auto const stagingTargetSize = calculateTargetStagingSize(); stagingTargetSize > 0u) {
@@ -758,8 +760,8 @@ namespace engine::scene {
             _meshSkeletalTransforms->setStagingBuffer(_staging.get());
             _meshTransformIndices->setStagingBuffer(_staging.get());
             _skeletonIds->setStagingBuffer(_staging.get());
-            _outlinedMeshesIds->setStagingBuffer(_staging.get());
             _colorIdMeshesIds->setStagingBuffer(_staging.get());
+            _colorIdSkeletalMeshesIds->setStagingBuffer(_staging.get());
         }
 
         if (!_tmpUniqueMeshes.empty()) { // mehses transforms to storage buffers
@@ -806,8 +808,8 @@ namespace engine::scene {
             .spriteIndicesOffset = spritesIndicesCount,
             .skeletonOffset = skeletonsInFrame,
             .computeSkinVerticesOffset = 0u,
-            .meshOutlinesOffset = outlinedMeshesIds,
-            .colorIdMeshesOffset = colorIdMeshesIds
+            .colorIdMeshesOffset = colorIdMeshesIds,
+            .colorIdSkeletalMeshesOffset = colorIdSkeletalMeshesIds
         };
     }
 
@@ -847,22 +849,21 @@ namespace engine::scene {
         bool skeletal = mesh.getSkeleton() != nullptr;
         auto dataIndex = mesh.dataIndex();
         auto materialIndex = mesh.materialIndex();
-        // const uint32_t nodeId = mesh.node->getId();
-          
+
         stl::array<uint32_t, kMaxSkeletonsDispatchPack> skeletonMeshesVerticesCounts{};
 
         const auto startOffset = offsets.meshesDrawOffset;
         const auto startSkeletonOffset = offsets.skeletonOffset;
-        const auto startMeshOutlinesOffset = offsets.meshOutlinesOffset;
+        const auto startSkeletalMeshColorIdsOffset = offsets.colorIdSkeletalMeshesOffset;
         const auto startMeshColorIdsOffset = offsets.colorIdMeshesOffset;
         uint32_t i = 0u;
         uint32_t j = 0u;
-        uint32_t k = 0u;
-        uint32_t n = 0u;
+        uint32_t n = 0u; // for skeletal meshes
+        uint32_t n1 = 0u; // for no skeletal meshes
         auto * memory = _meshTransformIndices->memory2<uint32_t>() + startOffset;
         auto * memory2 = _skeletonIds->memory2<uint32_t>() + startSkeletonOffset;
-        auto * memory3 = _outlinedMeshesIds->memory2<uint32_t>() + startMeshOutlinesOffset;
-        auto * memory4 = _colorIdMeshesIds->memory2<vec2u>() + startMeshColorIdsOffset;
+        auto * memory3 = _colorIdMeshesIds->memory2<vec2u>() + startMeshColorIdsOffset;
+        auto * memory4 = _colorIdSkeletalMeshesIds->memory2<vec2u>() + startSkeletalMeshColorIdsOffset;
         const auto & ti = _meshTransformIndicesMap.find(*it)->second;
 
         uint32_t minId = 0xff'ff'ff'ffu;
@@ -870,7 +871,6 @@ namespace engine::scene {
 
         uint32_t colorId = mesh.node->getId();
         bool colorIdEnabled = mesh.isEnableColorId();
-        bool outlineEnabled = mesh.isOutlined();
 
         if (skeletal) {
             // auto & skeletonData = _meshTransformIndicesMap[*it].skeletonId;
@@ -885,28 +885,19 @@ namespace engine::scene {
             minId = std::min(minId, skeletonId);
             maxId = std::max(maxId, skeletonId);
 
-            ++j;
-
-            if (outlineEnabled) {
-                memory3[k] = skeletonId;
-                ++k;
-            }
-
             if (colorIdEnabled) {
                 memory4[n] = {skeletonId, colorId};
                 ++n;
+                //++n1;
             }
+
+            ++j;
         } else {
             memory[i] = ti.transformIndex;
 
-            if (outlineEnabled) {
-                memory3[k] = ti.transformIndex;
-                ++k;
-            }
-
             if (colorIdEnabled) {
-                memory4[n] = {ti.transformIndex, colorId};
-                ++n;
+                memory3[n1] = {ti.transformIndex, colorId};
+                ++n1;
             }
         }
 
@@ -944,7 +935,6 @@ namespace engine::scene {
             const auto currenDataIndex = mesh2.dataIndex();
             const auto currenMaterialIndex = mesh2.materialIndex();
             const auto currentColorIdEnabled = mesh2.isEnableColorId();
-            const auto currentOutlineEnabled = mesh2.isOutlined();
             colorId = mesh2.node->getId();
 
             const auto & ti = _meshTransformIndicesMap.find(*it)->second;
@@ -961,28 +951,19 @@ namespace engine::scene {
                 minId = std::min(minId, skeletonId);
                 maxId = std::max(maxId, skeletonId);
 
-                ++j;
-
-                if (currentOutlineEnabled) {
-                    memory3[k] = skeletonId;
-                    ++k;
-                }
-
                 if (currentColorIdEnabled) {
                     memory4[n] = {skeletonId, colorId};
                     ++n;
+                    //++n1;
                 }
+
+                ++j;
             } else {
                 memory[i] = ti.transformIndex;
 
-                if (currentOutlineEnabled) {
-                    memory3[k] = ti.transformIndex;
-                    ++k;
-                }
-
                 if (currentColorIdEnabled) {
-                    memory4[n] = {ti.transformIndex, colorId};
-                    ++n;
+                    memory3[n1] = {ti.transformIndex, colorId};
+                    ++n1;
                 }
             }
 
@@ -997,16 +978,7 @@ namespace engine::scene {
                 }
                 offsets.meshesDrawOffset += count;
 
-                if (outlineEnabled) {
-                    offsets.meshOutlinesOffset += count;
-                }
-
-                if (colorIdEnabled) {
-                    offsets.colorIdMeshesOffset += count;
-                }
-
                 colorIdEnabled = currentColorIdEnabled;
-                outlineEnabled = currentOutlineEnabled;
 
                 // begin next pack
                 dataIndex = currenDataIndex;
@@ -1036,14 +1008,6 @@ namespace engine::scene {
         }
         offsets.meshesDrawOffset += count;
 
-        if (outlineEnabled) {
-            offsets.meshOutlinesOffset += count;
-        }
-
-        if (colorIdEnabled) {
-            offsets.colorIdMeshesOffset += count;
-        }
-
         for (uint32_t m = minId; m <= maxId; ++m) {
             const auto vertexCount = skeletonMeshesVerticesCounts[m];
             skeletonMeshesVerticesCounts[m] = offsets.computeSkinVerticesOffset;
@@ -1060,12 +1024,14 @@ namespace engine::scene {
         _meshTransformIndices->modify(sizeof(uint32_t) * i, sizeof(uint32_t) * startOffset);
         _skeletonIds->modify(sizeof(uint32_t) * j, sizeof(uint32_t) * startSkeletonOffset);
 
-        if (k > 0u) {
-            _outlinedMeshesIds->modify(sizeof(uint32_t) * k, sizeof(uint32_t) * startMeshOutlinesOffset);
+        if (n > 0u) {
+            offsets.colorIdSkeletalMeshesOffset += n;
+            _colorIdSkeletalMeshesIds->modify(sizeof(vec2u) * n, sizeof(vec2u) * startSkeletalMeshColorIdsOffset);
         }
 
-        if (n > 0u) {
-            _colorIdMeshesIds->modify(sizeof(vec2u) * n, sizeof(vec2u) * startMeshColorIdsOffset);
+        if (n1 > 0u) {
+            offsets.colorIdMeshesOffset += n1;
+            _colorIdMeshesIds->modify(sizeof(vec2u) * n1, sizeof(vec2u) * startMeshColorIdsOffset);
         }
     }
 
@@ -1228,7 +1194,7 @@ namespace engine::scene {
         case ctti::typeIndex<AttachmentObject, Mesh>():
         {
             if constexpr (kComputeSkinningAvailable) {
-                drawMeshes2ColorIds(commandList, frame, begin, end, viewParams, offsets.colorIdMeshesOffset, offsets.colorIdMeshesOffset);
+                drawMeshes2ColorIds(commandList, frame, begin, end, viewParams, offsets.colorIdMeshesOffset, offsets.colorIdSkeletalMeshesOffset);
             } else {
                 assert(false);
             }
@@ -1578,12 +1544,12 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
                 if (skeletal) {
                     uniform.offset_and_count = {skeletonsOffset, count, 0u, 0u};
                     commandList->pushConstants(rhi::shaders::Stages::eVertex, 0u, sizeof(Uniform), &uniform);
-                    drawSameMeshes(commandList, frame, currentIt, it, count * _shadowCascades, true, skeletonsOffset);
+                    drawSameMeshes(commandList, frame, currentIt, it, count * _shadowCascades, true);
                     skeletonsOffset += count;
                 } else {
                     uniform.offset_and_count = {offset, count, 0u, 0u};
                     commandList->pushConstants(rhi::shaders::Stages::eVertex, 0u, sizeof(Uniform), &uniform);
-                    drawSameMeshes(commandList, frame, currentIt, it, count * _shadowCascades, false, offset);
+                    drawSameMeshes(commandList, frame, currentIt, it, count * _shadowCascades, false);
                 }
                 offset += count;
 
@@ -1621,12 +1587,12 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
         if (skeletal) {
             uniform.offset_and_count = {skeletonsOffset, count, 0u, 0u};
             commandList->pushConstants(rhi::shaders::Stages::eVertex, 0u, sizeof(Uniform), &uniform);
-            drawSameMeshes(commandList, frame, currentIt, end, count * _shadowCascades, true, skeletonsOffset);
+            drawSameMeshes(commandList, frame, currentIt, end, count * _shadowCascades, true);
             skeletonsOffset += count;
         } else {
             uniform.offset_and_count = {offset, count, 0u, 0u};
             commandList->pushConstants(rhi::shaders::Stages::eVertex, 0u, sizeof(Uniform), &uniform);
-            drawSameMeshes(commandList, frame, currentIt, end, count * _shadowCascades, false, offset);
+            drawSameMeshes(commandList, frame, currentIt, end, count * _shadowCascades, false);
         }
         offset += count;
     }
@@ -1637,14 +1603,6 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
             getCommonPipeline(CommonPipeline::Type::eMeshSkinColorId) == 0xff'ff'ff'ffu) {
             return;
         } 
-
-        auto currentIt = begin;
-        const auto & mesh = *static_cast<const Mesh*>(*currentIt);
-        auto geometryDataIndex = mesh.geometryDataIndex();
-        bool skeletal = mesh.getSkeleton() != nullptr;
-        auto pipelineIdx = skeletal ? getCommonPipeline(CommonPipeline::Type::eMeshSkinColorId) : getCommonPipeline(CommonPipeline::Type::eMeshColorId);
-        auto dataIndex = mesh.dataIndex();
-        bool colorIdEnabled = mesh.isEnableColorId();
 
         struct Uniform {
             vec2f renderOffset;
@@ -1657,20 +1615,29 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
         };
 
         uint32_t count = 0u;
+        auto currentIt = begin;
+        const auto & mesh = *static_cast<const Mesh*>(*currentIt);
+        auto geometryDataIndex = mesh.geometryDataIndex();
+        bool skeletal = mesh.getSkeleton() != nullptr;
+        auto pipelineIdx = skeletal ? 
+            getCommonPipeline(CommonPipeline::Type::eMeshSkinColorId) : 
+            getCommonPipeline(CommonPipeline::Type::eMeshColorId);
+        auto dataIndex = mesh.dataIndex();
+        bool colorIdEnabled = mesh.isEnableColorId();
 
         if (colorIdEnabled) {
             count = 1u;
             const auto & pipeline = getGraphicsPipeline(pipelineIdx);
             assert(pipeline != nullptr);
             commandList->bindPipeline(pipeline);
-
             commandList->bindBuffer(0u, (*_viewParamsUniformBuffer)(frame), 0u, _currentViewParamsBufferOffset);
-            commandList->bindBuffer(1u, (*_colorIdMeshesIds)(frame), 1u, 0u);
-
+            
             if (skeletal) {
                 commandList->bindTexelBuffer(0u, _computedVertices[frame], rhi::Format::eR32G32B32A32_Sfloat, 1u, 0u);
+                commandList->bindBuffer(1u, (*_colorIdSkeletalMeshesIds)(frame), 1u, 0u);
             } else {
                 commandList->bindBuffer(0u, (*_meshTransforms)(frame), 1u, 0u);
+                commandList->bindBuffer(1u, (*_colorIdMeshesIds)(frame), 1u, 0u);
             }
         }
 
@@ -1682,44 +1649,72 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
             
             const auto currentGeometryDataIndex = mesh2.geometryDataIndex();
             const bool currentSkeletal = mesh2.getSkeleton() != nullptr;
-            const auto currentPipelineIdx = currentSkeletal ? getCommonPipeline(CommonPipeline::Type::eMeshSkinColorId) : getCommonPipeline(CommonPipeline::Type::eMeshColorId);
+            const auto currentPipelineIdx = currentSkeletal ? 
+                getCommonPipeline(CommonPipeline::Type::eMeshSkinColorId) : 
+                getCommonPipeline(CommonPipeline::Type::eMeshColorId);
             const auto currenDataIndex = mesh2.dataIndex();
 
-            const bool pipelineChanged = pipelineIdx != currentPipelineIdx;
+            if (count == 0u) {
+                const auto & pipeline = getGraphicsPipeline(currentPipelineIdx);
+                assert(pipeline != nullptr);
+                commandList->bindPipeline(pipeline);
+                commandList->bindBuffer(0u, (*_viewParamsUniformBuffer)(frame), 0u, _currentViewParamsBufferOffset);
+                
+                if (currentSkeletal) {
+                    commandList->bindTexelBuffer(0u, _computedVertices[frame], rhi::Format::eR32G32B32A32_Sfloat, 1u, 0u);
+                    commandList->bindBuffer(1u, (*_colorIdSkeletalMeshesIds)(frame), 1u, 0u);
+                } else {
+                    commandList->bindBuffer(0u, (*_meshTransforms)(frame), 1u, 0u);
+                    commandList->bindBuffer(1u, (*_colorIdMeshesIds)(frame), 1u, 0u);
+                }
 
+                pipelineIdx = currentPipelineIdx;
+                skeletal = currentSkeletal;
+                dataIndex = currenDataIndex;
+                geometryDataIndex = currentGeometryDataIndex;
+                currentIt = it;
+            }
+
+            const bool pipelineChanged = pipelineIdx != currentPipelineIdx;
             const bool completePack = pipelineChanged ||
-                                currentSkeletal != skeletal ||
-                                currenDataIndex != dataIndex ||
-                                currentGeometryDataIndex != geometryDataIndex;
+                                      currentSkeletal != skeletal ||
+                                      currenDataIndex != dataIndex ||
+                                      currentGeometryDataIndex != geometryDataIndex;
                  
             if (completePack) {
                 // draw
                 if (colorIdEnabled) {
                     if (skeletal) {
-                        uniform.offset = offset;
+                        uniform.offset = skeletonsOffset;
                         commandList->pushConstants(rhi::shaders::Stages::eVertex, 0u, sizeof(Uniform), &uniform);
-                        drawSameMeshes(commandList, frame, currentIt, it, count, true, offset);
+                        drawSameMeshes(commandList, frame, currentIt, it, count, true);
                     } else {
                         uniform.offset = offset;
                         commandList->pushConstants(rhi::shaders::Stages::eVertex, 0u, sizeof(Uniform), &uniform);
-                        drawSameMeshes(commandList, frame, currentIt, it, count, false, offset);
+                        drawSameMeshes(commandList, frame, currentIt, it, count, false);
                     }
                 }
-                offset += count;
+
+                if (skeletal) {
+                    skeletonsOffset += count;
+                } else {
+                    offset += count;
+                }
 
                 if (pipelineChanged) {
                     const auto & pipeline = getGraphicsPipeline(currentPipelineIdx);
                     assert(pipeline != nullptr);
                     commandList->bindPipeline(pipeline);
                     commandList->bindBuffer(0u, (*_viewParamsUniformBuffer)(frame), 0u, _currentViewParamsBufferOffset);
-                    commandList->bindBuffer(1u, (*_colorIdMeshesIds)(frame), 1u, 0u);
                 }
 
                 if (currentSkeletal != skeletal || pipelineChanged) {
                     if (currentSkeletal) {
                         commandList->bindTexelBuffer(0u, _computedVertices[frame], rhi::Format::eR32G32B32A32_Sfloat, 1u, 0u);
+                        commandList->bindBuffer(1u, (*_colorIdSkeletalMeshesIds)(frame), 1u, 0u);
                     } else {
                         commandList->bindBuffer(0u, (*_meshTransforms)(frame), 1u, 0u);
+                        commandList->bindBuffer(1u, (*_colorIdMeshesIds)(frame), 1u, 0u);
                     }
                 }
 
@@ -1742,15 +1737,16 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
         }
 
         if (skeletal) {
-            uniform.offset = offset;
+            uniform.offset = skeletonsOffset;
             commandList->pushConstants(rhi::shaders::Stages::eVertex, 0u, sizeof(Uniform), &uniform);
-            drawSameMeshes(commandList, frame, currentIt, end, count, true, offset);
+            drawSameMeshes(commandList, frame, currentIt, end, count, true);
+            skeletonsOffset += count;
         } else {
             uniform.offset = offset;
             commandList->pushConstants(rhi::shaders::Stages::eVertex, 0u, sizeof(Uniform), &uniform);
-            drawSameMeshes(commandList, frame, currentIt, end, count, false, offset);
+            drawSameMeshes(commandList, frame, currentIt, end, count, false);
+            offset += count;
         }
-        offset += count;
     }
 
     void Scene::drawMeshes2(rhi::runtime::CommandListPtr & commandList, uint8_t frame, 
@@ -1847,10 +1843,10 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
             if (completePack) {
                 // draw
                 if (skeletal) {
-                    drawSameMeshes(commandList, frame, currentIt, it, count, true/*skeletal*/, skeletonsOffset);
+                    drawSameMeshes(commandList, frame, currentIt, it, count, true/*skeletal*/);
                     skeletonsOffset += count;
                 } else {
-                    drawSameMeshes(commandList, frame, currentIt, it, count, false/*skeletal*/, offset);
+                    drawSameMeshes(commandList, frame, currentIt, it, count, false/*skeletal*/);
                 }
 
                 offset += count;
@@ -1899,10 +1895,10 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
         }
 
         if (skeletal) {
-            drawSameMeshes(commandList, frame, currentIt, end, count, true/*skeletal*/, skeletonsOffset);
+            drawSameMeshes(commandList, frame, currentIt, end, count, true/*skeletal*/);
             skeletonsOffset += count;
         } else {
-            drawSameMeshes(commandList, frame, currentIt, end, count, false/*skeletal*/, offset);
+            drawSameMeshes(commandList, frame, currentIt, end, count, false/*skeletal*/);
         }
         offset += count;
     }
@@ -1999,7 +1995,7 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
                  
             if (completePack) {
                 // draw
-                drawSameMeshes(commandList, frame, currentIt, it, count, skeletal, offset);
+                drawSameMeshes(commandList, frame, currentIt, it, count, skeletal);
                 offset += count;
 
                 if (pipelineChanged) {
@@ -2034,14 +2030,14 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
             }
         }
 
-        drawSameMeshes(commandList, frame, currentIt, end, count, skeletal, offset);
+        drawSameMeshes(commandList, frame, currentIt, end, count, skeletal);
         offset += count;
 
         _meshTransformIndices->modify(sizeof(uint32_t) * i, sizeof(uint32_t) * startOffset);
     }
 
     void Scene::drawSameMeshes(rhi::runtime::CommandListPtr & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end,
-        uint32_t count, bool skeletal, uint32_t startTransformIndex) {
+        uint32_t count, bool skeletal) {
         const auto & mesh = *static_cast<const Mesh*>(*begin);
 
         if constexpr (kComputeSkinningAvailable) {
@@ -2072,7 +2068,6 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
             commandList->bindVertexBuffer(binding_v++, mesh.getAttribute(mesh::Semantic::eWeights).buffer, 0u);
         }
 
-        //commandList->bindVertexBuffer(binding_v++, (*_meshTransformIndices)(frame), sizeof(uint32_t) * startTransformIndex);
         commandList->bindIndexBuffer(mesh.getIndices().buffer, 0u, rhi::IndexType::eU32);
 
         const auto & geometry = mesh.geometry();
@@ -2135,19 +2130,19 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
             }
 
             {
-                auto const minCount = std::max(_outlinedMeshesIndicesInFrame, kInitialMeshOutlinedInFrameMax);
-                if (minCount * 2u < _lastFramesUsedOutlinedMeshesIndicesInFrame) {
-                    _outlinedMeshesIds->resize(minCount * sizeof(uint32_t));
-                }
-                _lastFramesUsedOutlinedMeshesIndicesInFrame = _outlinedMeshesIndicesInFrame;
-            }
-
-            {
                 auto const minCount = std::max(_colorIdMeshesIndicesInFrame, kInitialMeshColorIdsInFrameMax);
                 if (minCount * 2u < _lastFramesUsedColorIdMeshesIndicesInFrame) {
                     _colorIdMeshesIds->resize(minCount * sizeof(vec2u));
                 }
                 _lastFramesUsedColorIdMeshesIndicesInFrame = _colorIdMeshesIndicesInFrame;
+            }
+
+            {
+                auto const minCount = std::max(_colorIdSkeletalMeshesIndicesInFrame, kInitialMeshColorIdsInFrameMax);
+                if (minCount * 2u < _lastFramesUsedColorIdSkeletalMeshesIndicesInFrame) {
+                    _colorIdSkeletalMeshesIds->resize(minCount * sizeof(vec2u));
+                }
+                _lastFramesUsedColorIdSkeletalMeshesIndicesInFrame = _colorIdSkeletalMeshesIndicesInFrame;
             }
 
             // for staging buffer
@@ -2166,8 +2161,8 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
                 _meshesDrawInFrame > _lastFramesUsedMeshesDraw ||
                 _skeletalTransformsInFrame > _lastFramesUsedSkeletalTransforms ||
                 _skeletonsInFrame > _lastFramesUsedSkeletonsInFrame ||
-                _outlinedMeshesIndicesInFrame > _lastFramesUsedOutlinedMeshesIndicesInFrame ||
-                _colorIdMeshesIndicesInFrame > _lastFramesUsedColorIdMeshesIndicesInFrame
+                _colorIdMeshesIndicesInFrame > _lastFramesUsedColorIdMeshesIndicesInFrame ||
+                _colorIdSkeletalMeshesIndicesInFrame > _lastFramesUsedColorIdSkeletalMeshesIndicesInFrame
             ) {
                 _lastFramesUsedSpritesVertexCount = _spritesVertexesCount;
                 _lastFramesUsedSpritesIndicesCount = _spritesIndicesCount;
@@ -2175,8 +2170,8 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
                 _lastFramesUsedMeshesDraw = _meshesDrawInFrame;
                 _lastFramesUsedSkeletalTransforms = _skeletalTransformsInFrame;
                 _lastFramesUsedSkeletonsInFrame = _skeletonsInFrame;
-                _lastFramesUsedOutlinedMeshesIndicesInFrame = _outlinedMeshesIndicesInFrame;
                 _lastFramesUsedColorIdMeshesIndicesInFrame = _colorIdMeshesIndicesInFrame;
+                _lastFramesUsedColorIdSkeletalMeshesIndicesInFrame = _colorIdSkeletalMeshesIndicesInFrame;
                 _tryReduceUsedMemoryTime = now;
             }
         }
@@ -2206,8 +2201,8 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
         _skeletalTransformsInFrame = 0u;
         _skeletonsInFrame = 0u;
         _uniqueSkeletons = 0u;
-        _outlinedMeshesIndicesInFrame = 0u;
         _colorIdMeshesIndicesInFrame = 0u;
+        _colorIdSkeletalMeshesIndicesInFrame = 0u;
 
         completeAnimations();
 
@@ -2230,7 +2225,7 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
         return bufferTargetSize(*_spritesVertices) + bufferTargetSize(*_spritesIndices) + 
                bufferTargetSize(*_meshTransforms) + bufferTargetSize(*_meshSkeletalTransforms) + 
                bufferTargetSize(*_meshTransformIndices) + bufferTargetSize(*_skeletonIds) +
-               bufferTargetSize(*_outlinedMeshesIds) + bufferTargetSize(*_colorIdMeshesIds);
+               bufferTargetSize(*_colorIdMeshesIds) + bufferTargetSize(*_colorIdSkeletalMeshesIds);
     }
 
     void Scene::performCommits(rhi::runtime::CommandListPtr & commandList, uint8_t frame) {
@@ -2241,7 +2236,7 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
         _meshSkeletalTransforms->commit(*commandList, frame);
         _meshTransformIndices->commit(*commandList, frame);
         _skeletonIds->commit(*commandList, frame);
-        _outlinedMeshesIds->commit(*commandList, frame);
         _colorIdMeshesIds->commit(*commandList, frame);
+        _colorIdSkeletalMeshesIds->commit(*commandList, frame);
     }
 }

@@ -372,7 +372,7 @@
 			"polygonMode": "eFill",
 			"cullmode": "eBack",
 			"depthBiasEnable": true,
-			"depthBiasFactor": 220.0
+			"depthBiasFactor": 300.0
 		},
 		"depthStencilState": {
 			"depth": {
@@ -408,7 +408,7 @@
 			"polygonMode": "eFill",
 			"cullmode": "eBack",
 			"depthBiasEnable": true,
-			"depthBiasFactor": 220.0
+			"depthBiasFactor": 300.0
 		},
 		"depthStencilState": {
 			"depth": {

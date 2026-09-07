@@ -380,31 +380,34 @@ namespace engine::graphics {
         auto & src = _externalDepthImages[frameId];
         const auto & extent = src->getExtent();
         offset = {std::min(offset.x, extent.width), std::min(offset.y, extent.height)};
+        const Extent3D extent3d{std::min(_size.x, extent.width - offset.x), std::min(_size.y, extent.height - offset.y), 1u};
 
-        commandList.copyImage2Image(
-            _externalDepthImages[frameId],
-            _framebuffers[frameId].depthImage,
-            {
-                .srcSubresource = {
-                    .aspectMask = ImageAspectFlags::eDepth,
-                    .mipLevel = 0u,
-                    .baseArrayLayer = 0u,
-                    .layerCount = 1u
-                },
-                .dstSubresource = {
-                    .aspectMask = ImageAspectFlags::eDepth,
-                    .mipLevel = 0u,
-                    .baseArrayLayer = 0u,
-                    .layerCount = 1u
-                },
-                .srcOffset = {
-                    static_cast<int32_t>(offset.x), 
-                    static_cast<int32_t>(offset.y), 
-                    0},
-                .dstOffset = {0, 0, 0},
-                .extent = {std::min(_size.x, extent.width - offset.x), std::min(_size.y, extent.height - offset.y), 1u}
-            }
-        );
+        if (extent3d.width > 0u && extent3d.height > 0u) {
+            commandList.copyImage2Image(
+                _externalDepthImages[frameId],
+                _framebuffers[frameId].depthImage,
+                {
+                    .srcSubresource = {
+                        .aspectMask = ImageAspectFlags::eDepth,
+                        .mipLevel = 0u,
+                        .baseArrayLayer = 0u,
+                        .layerCount = 1u
+                    },
+                    .dstSubresource = {
+                        .aspectMask = ImageAspectFlags::eDepth,
+                        .mipLevel = 0u,
+                        .baseArrayLayer = 0u,
+                        .layerCount = 1u
+                    },
+                    .srcOffset = {
+                        static_cast<int32_t>(offset.x), 
+                        static_cast<int32_t>(offset.y), 
+                        0},
+                    .dstOffset = {0, 0, 0},
+                    .extent = extent3d
+                }
+            );
+        }
 
         commandList.setViewport(0.0f, 0.0f, currentSize.x, currentSize.y);
         commandList.setScissor({{0, 0}, {_size.y, _size.y}});
