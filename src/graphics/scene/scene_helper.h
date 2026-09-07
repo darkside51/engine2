@@ -30,7 +30,7 @@ namespace scene {
         uint32_t skeletalPipeline = 0u;
     };
     Node * createNodeWithSkeletalMesh(Scene & scene, const graphics::ModelManager & modelManager, uint32_t modelIndex, Bounds::Type boundsType, 
-        MeshPipelines pipelines, ObjectSizeLayout layout = {}, int16_t order = 0);
+        MeshPipelines pipelines, ObjectSizeLayout layout = {}, int16_t order = 0, uint32_t nodeId = 0xff'ff'ff'ffu);
 }
 
 }

@@ -13,9 +13,10 @@ namespace engine::scene {
 void loadNodes(Scene & scene, const graphics::ModelManager::ModelBuffers & gpuBuffers, 
     const graphics::models::MeshData & meshData, uint32_t dataIndex, engine::scene::Node * parent, 
     uint16_t nodeId, engine::scene::Skeleton * skeleton, MeshPipelines pipelines, 
-    vec3f & minCorner, vec3f & maxCorner, int16_t order) {
+    vec3f & minCorner, vec3f & maxCorner, int16_t order, uint32_t nodeColorId) {
 
     auto * current = scene.createNode();
+    current->setId(nodeColorId);
     if (parent) {
         parent->addChild(current);
     }
@@ -56,6 +57,10 @@ void loadNodes(Scene & scene, const graphics::ModelManager::ModelBuffers & gpuBu
 
             mesh->setOrder(order);
 
+            if (nodeColorId != 0xff'ff'ff'ffu) {
+                mesh->setEnableColorId(true);
+            }
+
             engine::scene::attachObjectToNode(*mesh, *current);
 
             // for calculate rootNode size
@@ -73,15 +78,19 @@ void loadNodes(Scene & scene, const graphics::ModelManager::ModelBuffers & gpuBu
     }
 
     for (const uint16_t childNodeId : node.children) {
-        loadNodes(scene, gpuBuffers, meshData, dataIndex, current, childNodeId, skeleton, pipelines, minCorner, maxCorner, order);
+        loadNodes(
+            scene, gpuBuffers, meshData, dataIndex, current, childNodeId, skeleton, 
+            pipelines, minCorner, maxCorner, order, nodeColorId
+        );
     }
 };
 
 Node * createNodeWithSkeletalMesh(Scene & scene, const graphics::ModelManager & modelManager, 
-    uint32_t modelIndex, Bounds::Type boundsType, MeshPipelines pipelines, ObjectSizeLayout layout, int16_t order) {
+    uint32_t modelIndex, Bounds::Type boundsType, MeshPipelines pipelines, ObjectSizeLayout layout, int16_t order, uint32_t nodeColorId) {
     auto * meshRoot = scene.createNode();
     const auto & meshData = modelManager.getModelData(modelIndex);
     engine::scene::Skeleton * skeleton = scene.createObject<engine::scene::Skeleton>(meshData);
+    meshRoot->setId(nodeColorId);
 
     if (skeleton) {
         engine::scene::attachObjectToNode(*skeleton, *meshRoot);
@@ -92,7 +101,7 @@ Node * createNodeWithSkeletalMesh(Scene & scene, const graphics::ModelManager & 
 
     for (const auto nodeId : meshData.sceneNodes) {
         loadNodes(scene, modelManager.getModelBuffers(modelIndex), meshData, 
-            modelIndex, meshRoot, nodeId, skeleton, pipelines, minCorner, maxCorner, order);
+            modelIndex, meshRoot, nodeId, skeleton, pipelines, minCorner, maxCorner, order, nodeColorId);
     }
 
     switch (boundsType) {
