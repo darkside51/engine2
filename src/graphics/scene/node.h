@@ -22,7 +22,7 @@ constexpr uint8_t kDefaultState = 1u << kDirtyTransformBit |
 struct AttachmentObject;
 
 struct alignas(32) Node {
-    inline static constexpr uint32_t kUnknownId = 0xff'ff;
+    inline static constexpr uint32_t kUnknownId = 0xff'ff'ff'ffu;
     struct State {
         uint8_t state = kDefaultState;
 

@@ -1607,7 +1607,7 @@ namespace example {
         // colorPicker
         colorPicker = std::make_unique<engine::graphics::ColorPicker>(
             *_api, *_device, _device->inFlightFramesCount(), 
-            engine::vec2u{32u, 32u}, 
+            engine::vec2u{16u, 16u}, 
             // engine::rhi::ClearValue{
             //     engine::rhi::ClearColorValue{
             //         .uvalue = {
@@ -1762,6 +1762,9 @@ namespace example {
                         meshRoot->setRotation(engine::vec3f(1.57f, 0.0f, engine::common::random(-3.14f, 3.14f)));
                         meshRoot->setPosition(engine::vec3f(-2.0f + i % 20 * 0.5f, 0.0f + i / 20 * -0.5f, 0.0f));
 
+                        // meshRoot->childAt(0u)->getAttachment(0u)->setEnableColorId(true);
+                        // meshRoot->childAt(0u)->getAttachment(1u)->setEnableColorId(true);
+
                         if (auto * skeleton = static_cast<engine::scene::Skeleton *>(meshRoot->getAttachment())) {
                             if (i == 5u) {
                                 auto * handBone = skeleton->node(15u);
@@ -1769,8 +1772,14 @@ namespace example {
                                 handBone->addChild(swordNode);
                                 meshRoot->setRotation(engine::vec3f(1.57f, 0.0f, 0.25f));
                                 // meshRoot->childAt(0u)->getAttachment(1u)->setHidden(true);
+                                
                                 meshRoot->childAt(0u)->getAttachment(0u)->setEnableColorId(true);
                                 meshRoot->childAt(0u)->getAttachment(1u)->setEnableColorId(true);
+                                meshRoot->childAt(0u)->setId(0xff'00'00'ffu);
+                            } else {
+                                meshRoot->childAt(0u)->getAttachment(0u)->setEnableColorId(true);
+                                meshRoot->childAt(0u)->getAttachment(1u)->setEnableColorId(true);
+                                meshRoot->childAt(0u)->setId(engine::common::random(0xff'ff'00'00u, 0xff'ff'ff'ffu));
                             }
 
                             auto * anim0 = scene->createAnimInfo<engine::scene::SkeletalAnimation>(animId, engine::common::random(0.25f, 1.7f));

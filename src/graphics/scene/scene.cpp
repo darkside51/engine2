@@ -868,7 +868,9 @@ namespace engine::scene {
         uint32_t minId = 0xff'ff'ff'ffu;
         uint32_t maxId = 0u;
 
-        uint32_t colorId = 0xff'00'ff'00u;
+        uint32_t colorId = mesh.node->getId();
+        bool colorIdEnabled = mesh.isEnableColorId();
+        bool outlineEnabled = mesh.isOutlined();
 
         if (skeletal) {
             // auto & skeletonData = _meshTransformIndicesMap[*it].skeletonId;
@@ -885,24 +887,24 @@ namespace engine::scene {
 
             ++j;
 
-            if (mesh.isOutlined()) {
+            if (outlineEnabled) {
                 memory3[k] = skeletonId;
                 ++k;
             }
 
-            if (mesh.isEnableColorId()) {
+            if (colorIdEnabled) {
                 memory4[n] = {skeletonId, colorId};
                 ++n;
             }
         } else {
             memory[i] = ti.transformIndex;
 
-            if (mesh.isOutlined()) {
+            if (outlineEnabled) {
                 memory3[k] = ti.transformIndex;
                 ++k;
             }
 
-            if (mesh.isEnableColorId()) {
+            if (colorIdEnabled) {
                 memory4[n] = {ti.transformIndex, colorId};
                 ++n;
             }
@@ -941,7 +943,9 @@ namespace engine::scene {
             const bool currentSkeletal = mesh2.getSkeleton() != nullptr;
             const auto currenDataIndex = mesh2.dataIndex();
             const auto currenMaterialIndex = mesh2.materialIndex();
-            // const uint32_t nodeId = mesh2.node->getId();
+            const auto currentColorIdEnabled = mesh2.isEnableColorId();
+            const auto currentOutlineEnabled = mesh2.isOutlined();
+            colorId = mesh2.node->getId();
 
             const auto & ti = _meshTransformIndicesMap.find(*it)->second;
             if (currentSkeletal) {
@@ -959,24 +963,24 @@ namespace engine::scene {
 
                 ++j;
 
-                if (mesh2.isOutlined()) {
+                if (currentOutlineEnabled) {
                     memory3[k] = skeletonId;
                     ++k;
                 }
 
-                if (mesh2.isEnableColorId()) {
+                if (currentColorIdEnabled) {
                     memory4[n] = {skeletonId, colorId};
                     ++n;
                 }
             } else {
                 memory[i] = ti.transformIndex;
 
-                if (mesh2.isOutlined()) {
+                if (currentOutlineEnabled) {
                     memory3[k] = ti.transformIndex;
                     ++k;
                 }
 
-                if (mesh2.isEnableColorId()) {
+                if (currentColorIdEnabled) {
                     memory4[n] = {ti.transformIndex, colorId};
                     ++n;
                 }
@@ -992,6 +996,17 @@ namespace engine::scene {
                     offsets.skeletonOffset += count;
                 }
                 offsets.meshesDrawOffset += count;
+
+                if (outlineEnabled) {
+                    offsets.meshOutlinesOffset += count;
+                }
+
+                if (colorIdEnabled) {
+                    offsets.colorIdMeshesOffset += count;
+                }
+
+                colorIdEnabled = currentColorIdEnabled;
+                outlineEnabled = currentOutlineEnabled;
 
                 // begin next pack
                 dataIndex = currenDataIndex;
@@ -1020,6 +1035,14 @@ namespace engine::scene {
             offsets.skeletonOffset += count;
         }
         offsets.meshesDrawOffset += count;
+
+        if (outlineEnabled) {
+            offsets.meshOutlinesOffset += count;
+        }
+
+        if (colorIdEnabled) {
+            offsets.colorIdMeshesOffset += count;
+        }
 
         for (uint32_t m = minId; m <= maxId; ++m) {
             const auto vertexCount = skeletonMeshesVerticesCounts[m];
