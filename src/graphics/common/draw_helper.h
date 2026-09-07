@@ -40,7 +40,7 @@ public:
 
     // user
     void drawSquare(vec2f corner0, vec2f corner1, uint32_t color, const mat4f & transform = mat4f{1.0f}, Type t = Type::eFull);
-    void drawCircle(vec2f center, float r, uint32_t color, uint8_t segments, const mat4f & transform = mat4f{1.0f}, Type t = Type::eFull);
+    void drawCircle(vec3f center, float r, uint32_t color, uint8_t segments, const mat4f & transform = mat4f{1.0f}, Type t = Type::eFull);
     void drawCube(vec3f corner0, vec3f corner1, uint32_t color, const mat4f & transform = mat4f{1.0f}, Type t = Type::eFull);
     void drawSphere(vec3f center, float r, uint32_t color, uint8_t segments, const mat4f & transform = mat4f{1.0f}, Type t = Type::eFull);
 

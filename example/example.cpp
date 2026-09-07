@@ -2677,12 +2677,17 @@ namespace example {
         // scene->draw(commandList, transferCommandList, frameId, viewParams, o1, offsets1);
         // scene->draw(commandList, transferCommandList, frameId, viewParams, o0, offsets0);   
         
+        // 
+        engine::vec3f p(-2.0f + 5u % 20 * 0.5f, 0.0f + 5u / 20 * -0.5f, 0.001f);
+        drawHelper.drawCircle(p, 0.135f, 0xff'00'00'ffu, 32u, viewParams.cameraTransform, engine::graphics::DrawHelper::Type::eLines);
+
         if (showBboxes) {
             scene->drawDebug(viewParams, objects);
-            drawHelper.prepare(*transferCommandList, frameId);
-            drawHelper.draw(*commandList, frameId, now);
         }
 
+        drawHelper.prepare(*transferCommandList, frameId);
+        drawHelper.draw(*commandList, frameId, now);
+        
         //commandList->nextSubpass(rhi::SubpassContents::ePrimaryBufferInline);
         commandList->endRenderPass();
 

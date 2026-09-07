@@ -362,7 +362,7 @@ namespace engine::graphics {
         _vertices->modify();
     }
 
-    void DrawHelper::drawCircle(vec2f center, float r, uint32_t color, uint8_t segments, const mat4f & transform, Type t) {
+    void DrawHelper::drawCircle(vec3f center, float r, uint32_t color, uint8_t segments, const mat4f & transform, Type t) {
         const auto vSize = static_cast<uint32_t>((_verticesCount + segments) * kVertexSize);
         if (_vertices->sizeInBytes() <= vSize) {
             _vertices->resize(std::max(_vertices->sizeInBytes() * 2u, vSize));
@@ -374,8 +374,8 @@ namespace engine::graphics {
         const float step = 2.0f * pi / segments;
 
         for (uint8_t s = 0u; s < segments; ++s) {
-            const vec2f p = center + r * vec2f{std::cos(angle), std::sin(angle)};
-            const auto vp = transform * vec4f{p, 0.0f, 1.0f};
+            const vec3f p = center + r * vec3f{std::cos(angle), std::sin(angle), 0.0f};
+            const auto vp = transform * vec4f{p, 1.0f};
             *(vMem + s) = {
                 .coord = {vp.x, vp.y, vp.z, vp.w},
                 .color = color
