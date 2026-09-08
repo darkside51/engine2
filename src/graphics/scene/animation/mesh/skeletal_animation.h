@@ -62,6 +62,7 @@ namespace engine::scene {
              const graphics::models::MeshData & meshData, float mix) noexcept;
 
         void apply2(Skeleton & skeleton) const noexcept;
+        void apply2(Skeleton & skeleton, float mix) const noexcept;
 
     private:
         stl::vector<Transform> _transforms;

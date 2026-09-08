@@ -17,7 +17,8 @@
 #include "graphics/texture/texture.h"
 #include "graphics/texture/texture_manager.h"
 
-#include <algorithm>
+#include "stl/algorithm.h"
+
 #include <cassert>
 
 namespace {
@@ -492,9 +493,12 @@ namespace engine::scene {
 
         if (!_animations.skeletalAnimations.empty()) { // skeletal animations
             auto begin = _animations.skeletalAnimations.begin() + skeletalAnimationsCountOnStart;
-            stl::sort(begin, _animations.skeletalAnimations.end(), [](const auto & seq0, const auto & seq1) {
-                        return seq0.animInfo->animationId < seq1.animInfo->animationId;
-                    });
+            // stl::sort(begin, _animations.skeletalAnimations.end(), [](const auto & animObject0, const auto & animObject1) {
+            //             if (animObject0.object != animObject1.object) {
+            //                 return std::less<AttachmentObject*>{}(animObject0.object, animObject1.object);
+            //             }
+            //             return animObject0.animInfo->animationId < animObject1.animInfo->animationId;
+            //         });
 
             auto animationsCount = static_cast<uint32_t>(_animations.skeletalAnimations.size() - skeletalAnimationsCountOnStart);
 
@@ -505,7 +509,12 @@ namespace engine::scene {
                 auto it = begin;
                 size_t i = 0u;
                 while (animationsCount > 0u) {
-                    const auto count = (i == numWorkers - 1u) ? animationsCount : taskPerThread;
+                    /*const*/ auto count = (i == numWorkers - 1u) ? animationsCount : taskPerThread;
+
+                    // get all object animations for last pack object to single thread
+                    while (count < animationsCount && ((it + count - 1)->object == (it + count)->object)) {
+                        ++count;
+                    }
                     const auto animations = stl::span{it, it + count};
                     it += count;
                     
@@ -515,6 +524,7 @@ namespace engine::scene {
                     gThreadPool.execute([animator = &gSkeletalAnimatorsMT[i], &animationManager, nowTimeCount, animations, taskW8]() {
                         auto animId = kUndefinedAnimId;
                         const SkeletalAnimation * currentAnim = nullptr;
+                        AttachmentObject * currentObject = nullptr;
 
                         for (const auto & [animInfo, object] : animations) {
                             if (animInfo->animationId != animId) {
@@ -526,8 +536,16 @@ namespace engine::scene {
                                 auto * skeleton = static_cast<Skeleton*>(object);
                                 animator->enlarge2(skeleton->nodesCount());
                                 animator->update2(nowTimeCount - animInfo->startTime, *currentAnim);
-                                animator->apply2(*skeleton);
+                                // animator->apply2(*skeleton);
+
+                                if (currentObject == object) {
+                                    animator->apply2(*skeleton, animInfo->weight);
+                                } else {
+                                    animator->apply2(*skeleton);
+                                }
                             }
+
+                            currentObject = object;
                         }
 
                         taskW8->request_complete();
@@ -538,6 +556,7 @@ namespace engine::scene {
                 }
             } else {
                 auto animId = kUndefinedAnimId;
+                AttachmentObject * currentObject = nullptr;
                 const SkeletalAnimation * currentAnim = nullptr;
 
                 for (const auto & [animInfo, object] : _animations.skeletalAnimations) {
@@ -550,8 +569,16 @@ namespace engine::scene {
                         auto * skeleton = static_cast<Skeleton*>(object);
                         gSkeletalAnimator.enlarge2(skeleton->nodesCount());
                         gSkeletalAnimator.update2(nowTimeCount - animInfo->startTime, *currentAnim);
-                        gSkeletalAnimator.apply2(*skeleton);
+                        // gSkeletalAnimator.apply2(*skeleton);
+
+                        if (currentObject == object) {
+                            gSkeletalAnimator.apply2(*skeleton, animInfo->weight);
+                        } else {
+                            gSkeletalAnimator.apply2(*skeleton);
+                        }
                     }
+
+                    currentObject = object;
                 }
             }
         }

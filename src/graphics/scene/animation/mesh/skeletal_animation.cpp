@@ -192,9 +192,9 @@ namespace engine::scene {
             if (((tr0.mask & TransformChangeFlags::eRotation) != TransformChangeFlags::eNone)
                 && ((tr1.mask & TransformChangeFlags::eRotation) != TransformChangeFlags::eNone)) {
                 tr.rotation = glm::normalize(glm::slerp(tr0.rotation, tr1.rotation, mix));
-            } else if ((tr0.mask & TransformChangeFlags::eScale) != TransformChangeFlags::eNone) {
+            } else if ((tr0.mask & TransformChangeFlags::eRotation) != TransformChangeFlags::eNone) {
                 tr.rotation = glm::normalize(glm::slerp(tr0.rotation, defaultQuat, mix));
-            } else if ((tr1.mask & TransformChangeFlags::eScale) != TransformChangeFlags::eNone) {
+            } else if ((tr1.mask & TransformChangeFlags::eRotation) != TransformChangeFlags::eNone) {
                 tr.rotation = glm::normalize(glm::slerp(defaultQuat, tr1.rotation, mix));
             }
 
@@ -255,6 +255,41 @@ namespace engine::scene {
                 target->setPosition(transform.position);
             } else {
                 target->setPosition(defaultPosition);
+            }
+            ++i;
+        }
+    }
+
+    void SkeletalAnimator::apply2(Skeleton & skeleton, float mix) const noexcept {
+        uint32_t i = 0U;
+        auto const maxNode = skeleton.nodesCount();
+        for (auto const & transform : _transforms) {
+            if (i >= maxNode) {
+                break;
+            }
+
+            auto const & defaultNode = skeleton.meshData().nodes[i];
+            const auto defaultScale = vec3f{defaultNode.scale.x, defaultNode.scale.y, defaultNode.scale.z};
+            const auto defaultPosition = vec3f{defaultNode.translation.x, defaultNode.translation.y, defaultNode.translation.z};
+            const auto defaultQuat = quatf{defaultNode.rotation.w, defaultNode.rotation.x, defaultNode.rotation.y, defaultNode.rotation.z};
+
+            auto * target = skeleton.node(i);
+            if ((transform.mask & TransformChangeFlags::eScale) != TransformChangeFlags::eNone) {
+                target->setScale(glm::mix(target->getScale(), transform.scale, mix));
+            } else {
+                target->setScale(glm::mix(target->getScale(), defaultScale, mix));
+            }
+
+            if ((transform.mask & TransformChangeFlags::eRotation) != TransformChangeFlags::eNone) {
+                target->setRotation(glm::normalize(glm::slerp(target->getRotation(), transform.rotation, mix)));
+            } else {
+                target->setRotation(glm::normalize(glm::slerp(target->getRotation(), defaultQuat, mix)));
+            }
+
+            if ((transform.mask & TransformChangeFlags::ePosition) != TransformChangeFlags::eNone) {
+                target->setPosition(glm::mix(target->getPosition(), transform.position, mix));
+            } else {
+                target->setPosition(glm::mix(target->getPosition(), defaultPosition, mix));
             }
             ++i;
         }

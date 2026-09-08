@@ -1901,7 +1901,8 @@ namespace example {
                         .commonPipeline = 1u, 
                         .skeletalPipeline = 3u
                     };
-                    auto const animId = animationManager.getAnimationIndex("chaman_anim1");
+                    auto const animId = animationManager.getAnimationIndex("chaman_anim2");
+                    auto const animId0 = animationManager.getAnimationIndex("chaman_anim1");
                     for (uint16_t i = 0u; i < 500u; ++i) {
                         const auto colorId = gColorId++;
                         auto * meshRoot = engine::scene::createNodeWithSkeletalMesh(*scene, *modelManager, modelIndex, 
@@ -1910,7 +1911,9 @@ namespace example {
                         selectableNodes.emplace(colorId, meshRoot);
 
                         if (auto * skeleton = static_cast<engine::scene::Skeleton *>(meshRoot->getAttachment())) {
-                            auto * anim = scene->createAnimInfo<engine::scene::SkeletalAnimation>(animId, engine::common::random(0.25f, 1.7f));
+                            auto * anim = scene->createAnimInfo<engine::scene::SkeletalAnimation>(animId, engine::common::random(0.25f, 1.7f), 1.0f);
+                            auto * anim0 = scene->createAnimInfo<engine::scene::SkeletalAnimation>(animId0, engine::common::random(0.25f, 1.7f), 0.0f);
+                            anim->next = anim0;
                             scene->destroyAnimInfo(skeleton->setAnimation(anim));
                         }
 
