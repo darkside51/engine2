@@ -65,10 +65,10 @@ void main() {
 						  		  sbo_skin.transforms[transformIdx + a_joints.w] * a_weights.w;
 
 	const mat4 skin = mat4(
-		skin3x4[0],
-		skin3x4[1],
-		skin3x4[2],
-		vec4(0.0f, 0.0f, 0.0f, 1.0f)
+		skin3x4[0u],
+		skin3x4[1u],
+		skin3x4[2u],
+		vec4(0.0f, 0.0f, 0.0f, a_weights.x + a_weights.y + a_weights.z + a_weights.w)
 	);
 
 	const int resultOffset = int(vertexId + skeleton_ids.data[objectId + push.firstObject + push.skeletonsOffset]);

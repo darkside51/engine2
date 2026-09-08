@@ -49,7 +49,7 @@ void main() {
 			skin3x4[0],
 			skin3x4[1],
 			skin3x4[2],
-			vec4(0.0f, 0.0f, 0.0f, 1.0f)
+			vec4(0.0f, 0.0f, 0.0f, a_weights.x + a_weights.y + a_weights.z + a_weights.w)
 		);
 
 		gl_Position = u_viewParams.viewProjection * (vec4(a_position, 1.0) * skin);

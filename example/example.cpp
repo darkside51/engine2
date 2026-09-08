@@ -144,6 +144,7 @@ namespace example {
     engine::graphics::Ssao ssao;
 
     std::unique_ptr<engine::graphics::ColorPicker> colorPicker = nullptr;
+    uint32_t gColorId = 0u;
 
     //
     engine::rhi::runtime::ImagePtr interriorCubeMapImage = nullptr;
@@ -1755,7 +1756,7 @@ namespace example {
 
                     auto const animId = animationManager.getAnimationIndex("model_anim0");
                     for (size_t i = 0u; i < 500u; ++i) {
-                        const auto colorId = engine::common::random(0xff'ff'00'00u, 0xff'ff'ff'ffu);
+                        const auto colorId = gColorId++;
                         auto * meshRoot = engine::scene::createNodeWithSkeletalMesh(*scene, *modelManager, modelIndex, 
                             engine::scene::Bounds::Type::eCube, pipelines, 
                             {.size = {0.47f, 0.47f, 0.47f}, .type = engine::scene::ObjectSizeLayout::Type::eMin},
@@ -1865,7 +1866,7 @@ namespace example {
                     };
                     auto const animId = animationManager.getAnimationIndex("buster_drone_anim0");
                     for (uint8_t i = 0u; i < 20u; ++i) {
-                        const auto colorId = engine::common::random(0xff'ff'00'00u, 0xff'ff'ff'ffu);
+                        const auto colorId = gColorId++;
                         auto * meshRoot = engine::scene::createNodeWithSkeletalMesh(*scene, *modelManager, modelIndex, 
                             engine::scene::Bounds::Type::eCube, pipelines, 
                             {.size = {1.5f, 1.5f, 1.5f}, .type = engine::scene::ObjectSizeLayout::Type::eMin}, 0, colorId);
@@ -1902,7 +1903,7 @@ namespace example {
                     };
                     auto const animId = animationManager.getAnimationIndex("chaman_anim1");
                     for (uint16_t i = 0u; i < 500u; ++i) {
-                        const auto colorId = engine::common::random(0xff'ff'00'00u, 0xff'ff'ff'ffu);
+                        const auto colorId = gColorId++;
                         auto * meshRoot = engine::scene::createNodeWithSkeletalMesh(*scene, *modelManager, modelIndex, 
                             engine::scene::Bounds::Type::eCube, pipelines,
                             {.size = {0.47f, 0.47f, 0.47f}, .type = engine::scene::ObjectSizeLayout::Type::eMin}, 0, colorId);
