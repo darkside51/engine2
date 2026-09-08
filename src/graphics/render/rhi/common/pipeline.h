@@ -17,6 +17,7 @@ namespace engine::rhi {
             float depthBiasFactor = 0.0f;
             float depthBiasSlopeFactor = 0.0f;
             float depthBiasClamp = 0.0f;
+            float lineWidth = 1.0f;
             PolygonMode polygonMode = PolygonMode::eFill;
             CullMode cullmode = CullMode::eNone; 
             FrontFace frontFace = FrontFace::eCounter_Clockwise;
@@ -31,11 +32,13 @@ namespace engine::rhi {
                 bool depthBiasEnable = false,
                 float depthBiasFactor = 0.0f,
                 float depthBiasSlopeFactor = 0.0f,
-                float depthBiasClamp = 0.0f
+                float depthBiasClamp = 0.0f,
+                float lineWidth = 1.0f
             ) : 
             depthBiasFactor(depthBiasFactor),
             depthBiasSlopeFactor(depthBiasSlopeFactor),
             depthBiasClamp(depthBiasClamp),
+            lineWidth(lineWidth),
             polygonMode(polygonMode),
             cullmode(cullmode),
             frontFace(frontFace),

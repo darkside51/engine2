@@ -54,7 +54,8 @@ namespace engine::vulkan {
         bool depthBiasEnable,
         float depthBiasFactor,
         float depthBiasSlopeFactor,
-        float depthBiasClamp
+        float depthBiasClamp,
+        float lineWidth
     ) noexcept {
         return {
             .sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
@@ -69,7 +70,7 @@ namespace engine::vulkan {
             .depthBiasConstantFactor = depthBiasFactor,
             .depthBiasClamp = depthBiasClamp,
             .depthBiasSlopeFactor = depthBiasSlopeFactor,
-            .lineWidth = 1.0f
+            .lineWidth = lineWidth
         };
     }
 
@@ -250,11 +251,13 @@ namespace engine::vulkan {
             bool depthBiasEnable,
             float depthBiasFactor,
             float depthBiasSlopeFactor,
-            float depthBiasClamp) noexcept {
+            float depthBiasClamp,
+            float linewidth) noexcept {
             _rasterizationState = pipelineRasterizationStateInfo(
                 polygonMode, cullmode, frontFace,
                 depthBiasEnable, depthBiasFactor,
-                depthBiasSlopeFactor, depthBiasClamp
+                depthBiasSlopeFactor, depthBiasClamp,
+                linewidth
             );
             return *this;
         }
@@ -310,7 +313,8 @@ namespace engine::vulkan {
                 info.rasterisationState.depthBiasEnable,
                 info.rasterisationState.depthBiasFactor,
                 info.rasterisationState.depthBiasSlopeFactor,
-                info.rasterisationState.depthBiasClamp
+                info.rasterisationState.depthBiasClamp,
+                info.rasterisationState.lineWidth
             );
             multisampleStateInfo();
             inputAssemblyStateInfo(info.inputAssemblyState.topology, info.inputAssemblyState.restartEnabled);

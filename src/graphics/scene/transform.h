@@ -10,11 +10,11 @@ public:
     explicit Transformation(float scale) : _scale(vec3f{scale}) {}
     explicit Transformation(const vec3f & scale) : _scale(scale) {}
 
-    quatf getRotation() const noexcept { return _rotation; }
+    const quatf & getRotation() const noexcept { return _rotation; }
     vec3f getRotationAngles() const noexcept { return glm::eulerAngles(_rotation); }
-    vec3f getScale() const noexcept { return _scale; }
-    vec3f getPosition() const noexcept { return _position; }
-    vec3f getPivot() const noexcept { return _pivot; }
+    const vec3f & getScale() const noexcept { return _scale; }
+    const vec3f & getPosition() const noexcept { return _position; }
+    const vec3f & getPivot() const noexcept { return _pivot; }
 
     bool setRotation(const quatf & q) noexcept {
         if (compare(_rotation, q, 1e-5f)) {

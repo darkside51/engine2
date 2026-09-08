@@ -156,11 +156,11 @@ struct alignas(32) Node {
     Node * childAt(uint32_t index) const noexcept;
 
     // transformation
-    quatf getRotation() const noexcept { return transformation.getRotation(); }
+    const quatf & getRotation() const noexcept { return transformation.getRotation(); }
     vec3f getRotationAngles() const noexcept { return transformation.getRotationAngles(); }
-    vec3f getScale() const noexcept { return transformation.getScale(); }
-    vec3f getPosition() const noexcept { return transformation.getPosition(); }
-    vec3f getPivot() const noexcept { return transformation.getPivot(); }
+    const vec3f & getScale() const noexcept { return transformation.getScale(); }
+    const vec3f & getPosition() const noexcept { return transformation.getPosition(); }
+    const vec3f & getPivot() const noexcept { return transformation.getPivot(); }
 
     void setPosition(const vec3f & p) noexcept {
         if (transformation.setPosition(p)) {

@@ -133,7 +133,8 @@ namespace engine::vulkan {
             bool depthBiasEnable = false,
             float depthBiasFactor = 0.0f,
             float depthBiasSlopeFactor = 0.0f,
-            float depthBiasClamp = 0.0f) noexcept;
+            float depthBiasClamp = 0.0f,
+            float linewidth = 1.0f) noexcept;
 
         GraphicsPipelineInfo & inputAssemblyStateInfo(rhi::PrimitiveTopology topology,
             bool restartEnabled = false) noexcept;

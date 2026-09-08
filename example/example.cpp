@@ -48,6 +48,7 @@
 
 #include "engine/src/stl/span.h"
 #include "engine/src/stl/vector.h"
+#include "engine/src/stl/unordered_map.h"
 
 #include "map/tile_id.h"
 #include "map/geography.h"
@@ -124,9 +125,11 @@ namespace example {
     engine::scene::SphereCameraController controller{camera};
     engine::scene::Node * sceneWorldRoot = nullptr;
     engine::scene::Node * swordNode = nullptr;
+    engine::scene::Node * underCursorNode = nullptr;
 
     engine::stl::vector<engine::scene::AttachmentObject*> shadowObjects(1024u);
     engine::stl::vector<engine::scene::AttachmentObject*> objects(1024u);
+    engine::stl::unordered_map<uint32_t, engine::scene::Node*> selectableNodes;
 
     std::unique_ptr<engine::graphics::CascadeShadowMap> shadowMap = nullptr;
     std::unique_ptr<engine::graphics::InflightBuffer> shadowMapUniformBuffer = nullptr;
@@ -1757,6 +1760,7 @@ namespace example {
                             engine::scene::Bounds::Type::eCube, pipelines, 
                             {.size = {0.47f, 0.47f, 0.47f}, .type = engine::scene::ObjectSizeLayout::Type::eMin},
                             i == 5u ? -1 : 0u, colorId);
+                        selectableNodes.emplace(colorId, meshRoot);
                         
                         // meshRoot->childAt(0u)->getAttachment(1u)->setHidden(true);
 
@@ -1865,6 +1869,7 @@ namespace example {
                         auto * meshRoot = engine::scene::createNodeWithSkeletalMesh(*scene, *modelManager, modelIndex, 
                             engine::scene::Bounds::Type::eCube, pipelines, 
                             {.size = {1.5f, 1.5f, 1.5f}, .type = engine::scene::ObjectSizeLayout::Type::eMin}, 0, colorId);
+                        selectableNodes.emplace(colorId, meshRoot);
 
                         if (auto * skeleton = static_cast<engine::scene::Skeleton *>(meshRoot->getAttachment())) {
                             auto * anim = scene->createAnimInfo<engine::scene::SkeletalAnimation>(animId, engine::common::random(0.25f, 1.7f));
@@ -1901,6 +1906,7 @@ namespace example {
                         auto * meshRoot = engine::scene::createNodeWithSkeletalMesh(*scene, *modelManager, modelIndex, 
                             engine::scene::Bounds::Type::eCube, pipelines,
                             {.size = {0.47f, 0.47f, 0.47f}, .type = engine::scene::ObjectSizeLayout::Type::eMin}, 0, colorId);
+                        selectableNodes.emplace(colorId, meshRoot);
 
                         if (auto * skeleton = static_cast<engine::scene::Skeleton *>(meshRoot->getAttachment())) {
                             auto * anim = scene->createAnimInfo<engine::scene::SkeletalAnimation>(animId, engine::common::random(0.25f, 1.7f));
@@ -2547,7 +2553,13 @@ namespace example {
         _device->resetFrameTmpData(frameId);
 
         // printf("color from picker = 0x%08x\n", colorPicker->getValue<uint32_t>(engine::vec2u{0u, 0u}, 0u));
-
+        const uint32_t nodeColor = colorPicker->getValue<uint32_t>(engine::vec2u{0u, 0u}, 0u);
+        if (auto it = selectableNodes.find(nodeColor); it != selectableNodes.end()) {
+            underCursorNode = it->second;
+        } else {
+            underCursorNode = nullptr;
+        }
+        
         // render frame
         auto & transferCommandList = _transferCommandLists[frameId];
         auto & commandList = _commandLists[frameId];
@@ -2678,9 +2690,12 @@ namespace example {
         // scene->draw(commandList, transferCommandList, frameId, viewParams, o0, offsets0);   
         
         // 
-        engine::vec3f p(-2.0f + 5u % 20 * 0.5f, 0.0f + 5u / 20 * -0.5f, 0.001f);
-        drawHelper.drawCircle(p, 0.135f, 0xff'00'00'ffu, 32u, viewParams.cameraTransform, engine::graphics::DrawHelper::Type::eLines);
-
+        if (underCursorNode != nullptr) {
+            const auto & nodePosition = underCursorNode->getPosition();
+            const engine::vec3f p = {nodePosition.x, nodePosition.y, 0.005f};
+            drawHelper.drawCircle(p, 0.135f, 0xff'00'00'ffu, 32u, viewParams.cameraTransform, engine::graphics::DrawHelper::Type::eLines);
+        }
+        
         if (showBboxes) {
             scene->drawDebug(viewParams, objects);
         }
