@@ -521,6 +521,11 @@ namespace engine::scene {
             //             return animObject0.animInfo->animationId < animObject1.animInfo->animationId;
             //         });
 
+            // need sort?
+            stl::stable_sort(begin, _animations.skeletalAnimations.end(), [](const auto & animObject0, const auto & animObject1) {
+                        return std::less<AttachmentObject*>{}(animObject0.object, animObject1.object);
+                    });
+
             auto animationsCount = static_cast<uint32_t>(_animations.skeletalAnimations.size() - skeletalAnimationsCountOnStart);
 
             if (animationsCount > kSkeletalAnimationCountToEnableMultyThreading) {

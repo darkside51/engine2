@@ -1918,10 +1918,7 @@ namespace example {
 
                         if (auto * skeleton = static_cast<engine::scene::Skeleton *>(meshRoot->getAttachment())) {
                             auto * anim = scene->createAnimInfo<engine::scene::SkeletalAnimation>(animId, engine::common::random(0.25f, 1.7f), engine::scene::AnimSwitchType::eByTime);
-                            //auto * anim0 = scene->createAnimInfo<engine::scene::SkeletalAnimation>(animId0, engine::common::random(0.25f, 1.7f));
-                            //anim->next = anim0;
                             scene->destroyAnimInfo(skeleton->setAnimation(anim));
-                            skeleton->setAnimation(animId0);
                         }
 
                         meshRoot->setRotation(engine::vec3f(1.57f, 0.0f, engine::common::random(-3.14f, 3.14f)));
