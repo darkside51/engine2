@@ -86,18 +86,15 @@ namespace engine::scene {
     constexpr uint32_t kMaxSkeletonsDispatchPack = 2048u;
 
     // times
-    constexpr float kDefaultAnimBlendTime = 0.35f; // in seconds
+    constexpr float kAnimBlendTime = 0.35f; // in seconds
     constexpr float kShaderTimeMultiplier = 0.001f;
 
     // global objects:
     FramesSequenceAnimator gSequenceAnimator{1.0f / 30.0f};
-    SkeletalAnimator gSkeletalAnimator{kDefaultAnimBlendTime};
+    SkeletalAnimator gSkeletalAnimator{};
 
     threads::ThreadPool gThreadPool{kAnimationCalculationThreadsCount};
-    stl::array<SkeletalAnimator, kAnimationCalculationThreadsCount> gSkeletalAnimatorsMT = {
-        SkeletalAnimator(kDefaultAnimBlendTime), 
-        SkeletalAnimator(kDefaultAnimBlendTime)
-    };
+    stl::array<SkeletalAnimator, kAnimationCalculationThreadsCount> gSkeletalAnimatorsMT;
 
     // quality
     constexpr stl::array<float, 7u> kDefaultQualityLevels = {2.0f, 4.0f, 16.0f, 36.0f, 64.0f, 100.0f, 144.0f};
@@ -469,6 +466,7 @@ namespace engine::scene {
         
         const auto skeletalAnimationsCountOnStart = _animations.skeletalAnimations.size();
         const auto sequenceAnimationsCountOnStart = _animations.sequences.size();
+        const float mixDelta = delta * std::abs(speed) / kAnimBlendTime;
 
         for (auto * object : objects) {
             auto * animInfo = object->animInfo;
@@ -482,15 +480,24 @@ namespace engine::scene {
                     switch (animInfo->current.animationType) {
                     case ctti::typeIndex<Animation, SkeletalAnimation>() : 
                     {
-                        _animations.skeletalAnimations.emplace_back(&animInfo->current, object);
+                        _animations.skeletalAnimations.emplace_back(animInfo->current, object);
                         if (animInfo->target.animationType != kUndefinedAnim) {
-                            _animations.skeletalAnimations.emplace_back(&animInfo->target, object);
+                            _animations.skeletalAnimations.emplace_back(animInfo->target, object, animInfo->mix);
+
+                            if (animInfo->animSwitchType == AnimSwitchType::eByTime) {
+                                animInfo->mix += mixDelta;
+                                if (animInfo->mix >= 1.0f) {
+                                    animInfo->mix = 0.0f;
+                                    animInfo->current = animInfo->target;
+                                    animInfo->target.animationType = kUndefinedAnim;
+                                }
+                            }
                         }
                     }
                         break;
                     case ctti::typeIndex<Animation, FramesSequence>() : 
                     {
-                        _animations.sequences.emplace_back(&animInfo->current, object);
+                        _animations.sequences.emplace_back(animInfo->current, object);
                     }
                         break;
                     default:
@@ -535,45 +542,27 @@ namespace engine::scene {
                     const auto w8Id = _calculationWaiterPtrs.size();
                     auto * taskW8 = _calculationWaiterPtrs.emplace_back(&_calculationWaiters[w8Id]);
 
-                    gThreadPool.execute([animator = &gSkeletalAnimatorsMT[i], &animationManager, nowTimeCount, animations, delta = delta * std::abs(speed), taskW8]() {
+                    gThreadPool.execute([animator = &gSkeletalAnimatorsMT[i], &animationManager, nowTimeCount, animations, taskW8]() {
                         auto animId = kUndefinedAnimId;
                         const SkeletalAnimation * currentAnim = nullptr;
                         AttachmentObject * currentObject = nullptr;
-                        const float animBlendTime = animator->getAnimBlendInvTime();
 
-                        for (const auto & [animInfo, object] : animations) {
-                            if (animInfo->animationId != animId) {
-                                animId = animInfo->animationId;
+                        for (const auto & [animInfo, object, mix] : animations) {
+                            if (animInfo.animationId != animId) {
+                                animId = animInfo.animationId;
                                 currentAnim = animationManager.getAnimation<SkeletalAnimation>(animId);
                             }
 
                             if (currentAnim) {
                                 auto * skeleton = static_cast<Skeleton*>(object);
                                 animator->enlarge2(skeleton->nodesCount());
-                                animator->update2(nowTimeCount - animInfo->startTime, *currentAnim);
+                                animator->update2(nowTimeCount - animInfo.startTime, *currentAnim);
 
-                                auto & animDescription = object->animInfo;
-                                if (&animDescription->target == animInfo) {
-                                    animator->apply2(*skeleton, animDescription->mix);
-                                    if (animDescription->animSwitchType == AnimSwitchType::eByTime) {
-                                        animDescription->mix += delta * animBlendTime;
-                                        if (animDescription->mix >= 1.0f) {
-                                            animDescription->mix = 0.0f;
-                                            animDescription->current = animDescription->target;
-                                            animDescription->target.animationType = kUndefinedAnim;
-                                        }
-                                    }
+                                if (currentObject == object) {
+                                    animator->apply2(*skeleton, mix);
                                 } else {
                                     animator->apply2(*skeleton);
                                 }
-
-                                // animator->apply2(*skeleton);
-
-                                // if (currentObject == object) {
-                                //     animator->apply2(*skeleton, animInfo->weight);
-                                // } else {
-                                    // animator->apply2(*skeleton);
-                                // }
                             }
 
                             currentObject = object;
@@ -589,41 +578,23 @@ namespace engine::scene {
                 auto animId = kUndefinedAnimId;
                 AttachmentObject * currentObject = nullptr;
                 const SkeletalAnimation * currentAnim = nullptr;
-                const float animBlendTime = gSkeletalAnimator.getAnimBlendInvTime();
 
-                for (const auto & [animInfo, object] : _animations.skeletalAnimations) {
-                    if (animInfo->animationId != animId) {
-                        animId = animInfo->animationId;
+                for (const auto & [animInfo, object, mix] : _animations.skeletalAnimations) {
+                    if (animInfo.animationId != animId) {
+                        animId = animInfo.animationId;
                         currentAnim = animationManager.getAnimation<SkeletalAnimation>(animId);
                     }
 
                     if (currentAnim) {
                         auto * skeleton = static_cast<Skeleton*>(object);
                         gSkeletalAnimator.enlarge2(skeleton->nodesCount());
-                        gSkeletalAnimator.update2(nowTimeCount - animInfo->startTime, *currentAnim);
-                        // gSkeletalAnimator.apply2(*skeleton);
+                        gSkeletalAnimator.update2(nowTimeCount - animInfo.startTime, *currentAnim);
 
-                        auto & animDescription = object->animInfo;
-                        if (&animDescription->target == animInfo) {
-                            gSkeletalAnimator.apply2(*skeleton, animDescription->mix);
-                            if (animDescription->animSwitchType == AnimSwitchType::eByTime) {
-                                // careful, this is a thread pool.
-                                animDescription->mix += delta * std::abs(speed) * animBlendTime;
-                                if (animDescription->mix >= 1.0f) {
-                                    animDescription->mix = 0.0f;
-                                    animDescription->current = animDescription->target;
-                                    animDescription->target.animationType = kUndefinedAnim;
-                                }
-                            }
+                        if (currentObject == object) {
+                            gSkeletalAnimator.apply2(*skeleton, mix);
                         } else {
                             gSkeletalAnimator.apply2(*skeleton);
                         }
-
-                        // if (currentObject == object) {
-                        //     gSkeletalAnimator.apply2(*skeleton, animInfo->weight);
-                        // } else {
-                            // gSkeletalAnimator.apply2(*skeleton);
-                        // }
                     }
 
                     currentObject = object;
@@ -634,21 +605,21 @@ namespace engine::scene {
         if (!_animations.sequences.empty()) { // sequences
             auto begin = _animations.sequences.begin() + sequenceAnimationsCountOnStart;
             stl::sort(begin, _animations.sequences.end(), [](const auto & seq0, const auto & seq1) {
-                        return seq0.animInfo->animationId < seq1.animInfo->animationId;
+                        return seq0.animInfo.animationId < seq1.animInfo.animationId;
                     });
 
             auto animId = kUndefinedAnimId;
             const FramesSequence * currentAnim = nullptr;
             
             const auto animations = stl::span{begin, _animations.sequences.end()};
-            for (const auto & [animInfo, object] : animations) {
-                if (animInfo->animationId != animId) {
-                    animId = animInfo->animationId;
+            for (const auto & [animInfo, object, _] : animations) {
+                if (animInfo.animationId != animId) {
+                    animId = animInfo.animationId;
                     currentAnim = animationManager.getAnimation<FramesSequence>(animId);
                 }
 
                 if (currentAnim) {
-                    static_cast<Sprite*>(object)->setFrame(gSequenceAnimator.update2(nowTimeCount - animInfo->startTime, *currentAnim));
+                    static_cast<Sprite*>(object)->setFrame(gSequenceAnimator.update2(nowTimeCount - animInfo.startTime, *currentAnim));
                 }
             }
         }

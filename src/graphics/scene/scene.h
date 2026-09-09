@@ -65,8 +65,9 @@ struct ObjectsHolder : ObjectsCollection {
 
 namespace animation {
 struct AnimatedObject {
-    const AnimationInfo* animInfo = nullptr;
+    AnimationInfo animInfo;
     AttachmentObject * object = nullptr;
+    float mix = 0.0f;
 };
 }
 
