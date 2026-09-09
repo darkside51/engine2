@@ -1903,6 +1903,8 @@ namespace example {
                     };
                     auto const animId = animationManager.getAnimationIndex("chaman_anim2");
                     auto const animId0 = animationManager.getAnimationIndex("chaman_anim1");
+
+                    //printf("animIds : %d x %d\n", animId, animId0);
                     for (uint16_t i = 0u; i < 500u; ++i) {
                         const auto colorId = gColorId++;
                         auto * meshRoot = engine::scene::createNodeWithSkeletalMesh(*scene, *modelManager, modelIndex, 
@@ -1911,10 +1913,11 @@ namespace example {
                         selectableNodes.emplace(colorId, meshRoot);
 
                         if (auto * skeleton = static_cast<engine::scene::Skeleton *>(meshRoot->getAttachment())) {
-                            auto * anim = scene->createAnimInfo<engine::scene::SkeletalAnimation>(animId, engine::common::random(0.25f, 1.7f), 1.0f);
-                            auto * anim0 = scene->createAnimInfo<engine::scene::SkeletalAnimation>(animId0, engine::common::random(0.25f, 1.7f), 0.0f);
-                            anim->next = anim0;
+                            auto * anim = scene->createAnimInfo<engine::scene::SkeletalAnimation>(animId, engine::common::random(0.25f, 1.7f), engine::scene::AnimSwitchType::eByTime);
+                            //auto * anim0 = scene->createAnimInfo<engine::scene::SkeletalAnimation>(animId0, engine::common::random(0.25f, 1.7f));
+                            //anim->next = anim0;
                             scene->destroyAnimInfo(skeleton->setAnimation(anim));
+                            skeleton->setAnimation(animId0);
                         }
 
                         meshRoot->setRotation(engine::vec3f(1.57f, 0.0f, engine::common::random(-3.14f, 3.14f)));
@@ -2559,7 +2562,20 @@ namespace example {
         // printf("color from picker = 0x%08x\n", colorPicker->getValue<uint32_t>(engine::vec2u{0u, 0u}, 0u));
         const uint32_t nodeColor = colorPicker->getValue<uint32_t>(engine::vec2u{0u, 0u}, 0u);
         if (auto it = selectableNodes.find(nodeColor); it != selectableNodes.end()) {
-            underCursorNode = it->second;
+            if (underCursorNode != it->second) {
+                underCursorNode = it->second;
+                auto * attachment = underCursorNode->getAttachment();
+                if (attachment->typeIndex == engine::ctti::typeIndex<engine::scene::AttachmentObject, engine::scene::Skeleton>()) {
+                    auto * skeleton = static_cast<engine::scene::Skeleton *>(attachment);
+                    if (skeleton->getAnimMix() == 0.0f) {
+                        if (skeleton->getAnimationId() == 6) {
+                            skeleton->setAnimation(5);
+                        } else if (skeleton->getAnimationId() == 5) {
+                            skeleton->setAnimation(6);
+                        }
+                    }
+                }
+            }
         } else {
             underCursorNode = nullptr;
         }

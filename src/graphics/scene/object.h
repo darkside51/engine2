@@ -9,7 +9,8 @@ namespace engine::scene {
     // constexpr uint32_t kEmptyAnimationDataIndex = 0xff'ff'ff'ffu;
 
     struct Node;
-    struct AnimationInfoChain;
+    struct AnimationDescription;
+    struct AnimationInfo;
 
     namespace AttachmentFlagBits {
         constexpr uint8_t kHiddenBit = 0u;
@@ -51,7 +52,7 @@ namespace engine::scene {
         };
 
         Node * node = nullptr;
-        AnimationInfoChain * animInfo = nullptr;
+        AnimationDescription * animInfo = nullptr;
         AttachmentObject * next = nullptr;
        
         uint32_t id = 0u;
@@ -72,9 +73,14 @@ namespace engine::scene {
         void setOrder(int16_t o) noexcept { order = o; }
         int16_t getOrder() const noexcept { return order; }
 
-        void addAnimation(AnimationInfoChain * anim) noexcept;
-        bool removeAnimation(AnimationInfoChain * anim) noexcept;
-        AnimationInfoChain * setAnimation(AnimationInfoChain * anim) noexcept;
+        // void addAnimation(AnimationInfoChain * anim) noexcept;
+        // bool removeAnimation(AnimationInfoChain * anim) noexcept;
+        bool removeAnimation() noexcept;
+        AnimationDescription * setAnimation(AnimationDescription * anim) noexcept;
+        void setAnimation(const AnimationInfo & anim, float mix = 0.0f) noexcept;
+        void setAnimation(uint16_t animationId, float mix = 0.0f) noexcept;
+        uint16_t getAnimationId() const noexcept;
+        float getAnimMix() const noexcept;
 
         bool isHidden() const noexcept {
             return flags.isHidden();

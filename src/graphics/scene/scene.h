@@ -158,11 +158,17 @@ public:
     bool destroyObject(AttachmentObject * object) noexcept;
 
     // anims
+    // template<typename T>
+    // AnimationInfoChain * createAnimInfo(uint16_t animationId, float startTime, float weight = 1.0f) {
+    //     return _animationInfosAllocator.create<AnimationInfoChain>(startTime, weight, animationId, ctti::typeIndex<Animation, T>());
+    // }
+    // bool destroyAnimInfo(AnimationInfoChain * info) noexcept;
+
     template<typename T>
-    AnimationInfoChain * createAnimInfo(uint16_t animationId, float startTime, float weight = 1.0f) {
-        return _animationInfosAllocator.create<AnimationInfoChain>(startTime, weight, animationId, ctti::typeIndex<Animation, T>());
+    AnimationDescription * createAnimInfo(uint16_t animationId, float startTime, AnimSwitchType switchType = AnimSwitchType::eNone) {
+        return _animationsAllocator.create<AnimationDescription>(ctti::typeIndex<Animation, T>(), animationId, startTime, switchType);
     }
-    bool destroyAnimInfo(AnimationInfoChain * info) noexcept;
+    bool destroyAnimInfo(AnimationDescription * info) noexcept;
 
     // quality levels
     void insertQualityLevels(stl::vector<float> && levels) {
@@ -281,8 +287,11 @@ private:
     using NodesAllocator = allocators::PoolAllocatorChain<sizeof(Node), alignof(Node), false, false>;
     NodesAllocator _nodeAllocator{512u, 256u};
 
-    using AnimationInfosAllocator = allocators::PoolAllocatorChain<sizeof(AnimationInfoChain), alignof(AnimationInfoChain), false, false>;
-    AnimationInfosAllocator _animationInfosAllocator{512u, 256u};
+    // using AnimationInfosAllocator = allocators::PoolAllocatorChain<sizeof(AnimationInfoChain), alignof(AnimationInfoChain), false, false>;
+    // AnimationInfosAllocator _animationInfosAllocator{512u, 256u};
+
+    using AnimationsAllocator = allocators::PoolAllocatorChain<sizeof(AnimationDescription), alignof(AnimationDescription), false, false>;
+    AnimationsAllocator _animationsAllocator{512u, 256u};
 
     float _shadersTime = 0.0f;
     uint32_t _frameNumber = 0u;

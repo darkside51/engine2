@@ -26,8 +26,11 @@ namespace {
         using namespace engine;
         using namespace engine::scene;
 
-        static_assert(sizeof(AnimationInfo) == 12u);
-        static_assert(sizeof(AnimationInfoChain) == 32u);
+        // static_assert(sizeof(AnimationInfo) == 12u);
+        // static_assert(sizeof(AnimationInfoChain) == 32u);
+
+        static_assert(sizeof(AnimationInfo) == 8u);
+        static_assert(sizeof(AnimationDescription) == 24u);
 
         static_assert(sizeof(AttachmentObject) == 40u);
         static_assert(sizeof(Dummy) == 40u);
@@ -82,18 +85,22 @@ namespace engine::scene {
     constexpr uint32_t kMeshComputeVerticesBufferBytesCount = 128u * 1024u * 1024u; // 128Mb
     constexpr uint32_t kMaxSkeletonsDispatchPack = 2048u;
 
+    // times
+    constexpr float kDefaultAnimBlendTime = 0.35f; // in seconds
+    constexpr float kShaderTimeMultiplier = 0.001f;
+
     // global objects:
     FramesSequenceAnimator gSequenceAnimator{1.0f / 30.0f};
-    SkeletalAnimator gSkeletalAnimator{};
+    SkeletalAnimator gSkeletalAnimator{kDefaultAnimBlendTime};
 
     threads::ThreadPool gThreadPool{kAnimationCalculationThreadsCount};
-    stl::array<SkeletalAnimator, kAnimationCalculationThreadsCount> gSkeletalAnimatorsMT;
+    stl::array<SkeletalAnimator, kAnimationCalculationThreadsCount> gSkeletalAnimatorsMT = {
+        SkeletalAnimator(kDefaultAnimBlendTime), 
+        SkeletalAnimator(kDefaultAnimBlendTime)
+    };
 
     // quality
     constexpr stl::array<float, 7u> kDefaultQualityLevels = {2.0f, 4.0f, 16.0f, 36.0f, 64.0f, 100.0f, 144.0f};
-
-    // shaders time
-    constexpr float kShaderTimeMultiplier = 0.001f;
 
     // struct ColoredVertex {
     //     stl::array<float, 3u> coord;
@@ -224,14 +231,18 @@ namespace engine::scene {
         return result;
     }
 
-    bool Scene::destroyAnimInfo(AnimationInfoChain * info) noexcept {
-        const bool result = (info != nullptr);
-        while (info) {
-            auto next = info->next;
-            _animationInfosAllocator.destroy(info);
-            info = next;
+    bool Scene::destroyAnimInfo(AnimationDescription * info) noexcept {
+        if (const bool result = (info != nullptr)) {
+            _animationsAllocator.destroy(info);
+            return true;
         }
-        return result;
+        return false;
+        // while (info) {
+        //     auto next = info->next;
+        //     _animationInfosAllocator.destroy(info);
+        //     info = next;
+        // }
+        // return result;
     }
 
     uint32_t Scene::registerGraphicsPipeline(rhi::runtime::PipelinePtr && pipeline) {
@@ -461,22 +472,25 @@ namespace engine::scene {
 
         for (auto * object : objects) {
             auto * animInfo = object->animInfo;
-            while (animInfo) {
+            if (animInfo) {
                 const uint32_t executionFramesCharacter = std::max(
                     static_cast<uint32_t>(std::roundf(kAnimUpdateFrequency * (1u + object->animationQualityFactor) / delta)), 
                     1u);
                 const bool isTargetFrame = ((object->id + _frameNumber) % executionFramesCharacter) == 0u;
 
-                if (isTargetFrame && animInfo->info.weight > 0.0f) {
-                    switch (animInfo->info.animationType) {
+                if (isTargetFrame) {
+                    switch (animInfo->current.animationType) {
                     case ctti::typeIndex<Animation, SkeletalAnimation>() : 
                     {
-                        _animations.skeletalAnimations.emplace_back(&animInfo->info, object);
+                        _animations.skeletalAnimations.emplace_back(&animInfo->current, object);
+                        if (animInfo->target.animationType != kUndefinedAnim) {
+                            _animations.skeletalAnimations.emplace_back(&animInfo->target, object);
+                        }
                     }
                         break;
                     case ctti::typeIndex<Animation, FramesSequence>() : 
                     {
-                        _animations.sequences.emplace_back(&animInfo->info, object);
+                        _animations.sequences.emplace_back(&animInfo->current, object);
                     }
                         break;
                     default:
@@ -484,7 +498,7 @@ namespace engine::scene {
                     }
                 } 
 
-                animInfo = animInfo->next;
+                //animInfo = animInfo->next;
             }
         }
 
@@ -521,10 +535,11 @@ namespace engine::scene {
                     const auto w8Id = _calculationWaiterPtrs.size();
                     auto * taskW8 = _calculationWaiterPtrs.emplace_back(&_calculationWaiters[w8Id]);
 
-                    gThreadPool.execute([animator = &gSkeletalAnimatorsMT[i], &animationManager, nowTimeCount, animations, taskW8]() {
+                    gThreadPool.execute([animator = &gSkeletalAnimatorsMT[i], &animationManager, nowTimeCount, animations, delta = delta * std::abs(speed), taskW8]() {
                         auto animId = kUndefinedAnimId;
                         const SkeletalAnimation * currentAnim = nullptr;
                         AttachmentObject * currentObject = nullptr;
+                        const float animBlendTime = animator->getAnimBlendInvTime();
 
                         for (const auto & [animInfo, object] : animations) {
                             if (animInfo->animationId != animId) {
@@ -536,13 +551,29 @@ namespace engine::scene {
                                 auto * skeleton = static_cast<Skeleton*>(object);
                                 animator->enlarge2(skeleton->nodesCount());
                                 animator->update2(nowTimeCount - animInfo->startTime, *currentAnim);
-                                // animator->apply2(*skeleton);
 
-                                if (currentObject == object) {
-                                    animator->apply2(*skeleton, animInfo->weight);
+                                auto & animDescription = object->animInfo;
+                                if (&animDescription->target == animInfo) {
+                                    animator->apply2(*skeleton, animDescription->mix);
+                                    if (animDescription->animSwitchType == AnimSwitchType::eByTime) {
+                                        animDescription->mix += delta * animBlendTime;
+                                        if (animDescription->mix >= 1.0f) {
+                                            animDescription->mix = 0.0f;
+                                            animDescription->current = animDescription->target;
+                                            animDescription->target.animationType = kUndefinedAnim;
+                                        }
+                                    }
                                 } else {
                                     animator->apply2(*skeleton);
                                 }
+
+                                // animator->apply2(*skeleton);
+
+                                // if (currentObject == object) {
+                                //     animator->apply2(*skeleton, animInfo->weight);
+                                // } else {
+                                    // animator->apply2(*skeleton);
+                                // }
                             }
 
                             currentObject = object;
@@ -558,6 +589,7 @@ namespace engine::scene {
                 auto animId = kUndefinedAnimId;
                 AttachmentObject * currentObject = nullptr;
                 const SkeletalAnimation * currentAnim = nullptr;
+                const float animBlendTime = gSkeletalAnimator.getAnimBlendInvTime();
 
                 for (const auto & [animInfo, object] : _animations.skeletalAnimations) {
                     if (animInfo->animationId != animId) {
@@ -571,11 +603,26 @@ namespace engine::scene {
                         gSkeletalAnimator.update2(nowTimeCount - animInfo->startTime, *currentAnim);
                         // gSkeletalAnimator.apply2(*skeleton);
 
-                        if (currentObject == object) {
-                            gSkeletalAnimator.apply2(*skeleton, animInfo->weight);
+                        auto & animDescription = object->animInfo;
+                        if (&animDescription->target == animInfo) {
+                            gSkeletalAnimator.apply2(*skeleton, animDescription->mix);
+                            if (animDescription->animSwitchType == AnimSwitchType::eByTime) {
+                                animDescription->mix += delta * std::abs(speed) * animBlendTime;
+                                if (animDescription->mix >= 1.0f) {
+                                    animDescription->mix = 0.0f;
+                                    animDescription->current = animDescription->target;
+                                    animDescription->target.animationType = kUndefinedAnim;
+                                }
+                            }
                         } else {
                             gSkeletalAnimator.apply2(*skeleton);
                         }
+
+                        // if (currentObject == object) {
+                        //     gSkeletalAnimator.apply2(*skeleton, animInfo->weight);
+                        // } else {
+                            // gSkeletalAnimator.apply2(*skeleton);
+                        // }
                     }
 
                     currentObject = object;

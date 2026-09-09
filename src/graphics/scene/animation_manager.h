@@ -84,7 +84,6 @@ public:
                 result.from = _skeletalAnimations.size() - 1u;
                 std::swap(_skeletalAnimations[i], _skeletalAnimations.back());
                 _skeletalAnimations.pop_back();
-                
             }
                 break;
             case ctti::typeIndex<Animation, FramesSequence>():

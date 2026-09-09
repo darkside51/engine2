@@ -50,6 +50,8 @@ namespace engine::scene {
     public:
         SkeletalAnimator() = default;
         explicit SkeletalAnimator(uint32_t count) : _transforms(count) {}
+        explicit SkeletalAnimator(float animBlendTime) : _animBlendTime(animBlendTime) {}
+        SkeletalAnimator(uint32_t count, float animBlendTime) : _transforms(count), _animBlendTime(animBlendTime) {}
         void resize(uint32_t count);
         void enlarge2(uint32_t count);
         
@@ -64,7 +66,20 @@ namespace engine::scene {
         void apply2(Skeleton & skeleton) const noexcept;
         void apply2(Skeleton & skeleton, float mix) const noexcept;
 
+        inline float getAnimBlendTime() const noexcept {
+            return _animBlendTime;
+        }
+
+        inline float getAnimBlendInvTime() const noexcept {
+            return 1.0f / _animBlendTime;
+        }
+
+        void setAnimBlendTime(float time) noexcept {
+            _animBlendTime = time;
+        }
+
     private:
         stl::vector<Transform> _transforms;
+        float _animBlendTime = 1.0f;
     };
 }
