@@ -607,6 +607,7 @@ namespace engine::scene {
                         if (&animDescription->target == animInfo) {
                             gSkeletalAnimator.apply2(*skeleton, animDescription->mix);
                             if (animDescription->animSwitchType == AnimSwitchType::eByTime) {
+                                // careful, this is a thread pool.
                                 animDescription->mix += delta * std::abs(speed) * animBlendTime;
                                 if (animDescription->mix >= 1.0f) {
                                     animDescription->mix = 0.0f;
