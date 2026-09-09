@@ -445,12 +445,12 @@ namespace engine::scene {
         return kDefaultQualityLevels;
     }
 
-    void Scene::calculateQualityFactors(engine::scene::AttachmentObject* object, const ViewParams & viewParams) noexcept {
+    void Scene::calculateQualityFactors(engine::scene::AttachmentObject* object, const ViewParams & viewParams) const noexcept {
         const auto position = engine::vec3f{object->node->getWorldTransform()[3u]}; 
         const auto length2 = glm::length2(position - viewParams.cameraPosition);
         object->animationQualityFactor = 0u;
         auto const levels = getQualityLevels(object->qualityLevelsId);
-        for (const auto l2 : kDefaultQualityLevels) {
+        for (const auto l2 : levels) {
             if (l2 > length2) {
                 break;
             }

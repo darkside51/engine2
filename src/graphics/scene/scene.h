@@ -232,7 +232,7 @@ public:
 private:
     // attachments
     static bool compareAttachmentsForDraw(const AttachmentObject & a, const AttachmentObject & b) noexcept;
-    void calculateQualityFactors(engine::scene::AttachmentObject* object, const ViewParams & viewParams) noexcept;
+    void calculateQualityFactors(engine::scene::AttachmentObject* object, const ViewParams & viewParams) const noexcept;
     
     uint32_t calculateTargetStagingSize() const noexcept;
     void performCommits(rhi::runtime::CommandListPtr & commandList, uint8_t frame);
@@ -422,11 +422,11 @@ private:
 template <typename Condition>
 void Scene::fillAttachmentsArray(const ViewParams & viewParams, Node * root, Condition && condition, 
     stl::vector<AttachmentObject*> & objects, FillAttachmentFlags flags) {
-    const Frustum frustum(viewParams.cameraTransform);
     const auto currentSize = static_cast<uint32_t>(objects.size()); 
     objects.clear();
     objects.reserve(std::max(kFillNodesReserveSize, currentSize));
 
+    const Frustum frustum(viewParams.cameraTransform);
     recalculateHierarchy(root, [this, &frustum, &viewParams, &objects, &condition, flags](Node * n) noexcept { 
         if (n->isHidden()) {
             return false;

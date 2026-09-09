@@ -1080,7 +1080,7 @@ namespace example {
         rhi::DeviceCreateInfo deviceCreateInfo{_gpuFeatures};
         deviceCreateInfo.queueFamilies.push_back({index, 1u, {1.0f}, queueFlags});
         deviceCreateInfo.commandPoolThreadsCount = 2u;
-        deviceCreateInfo.inFlightFramesCount = 1u;
+        deviceCreateInfo.inFlightFramesCount = 2u;
 
         _device = _api->createDevice(_gpu, deviceCreateInfo);
 
@@ -1286,7 +1286,11 @@ namespace example {
         textureViewer.setTexture("gBufferMetallicRoughness", _gBufferAttachments[0].metallicRoughness);
         textureViewer.setTexture("ssao", ssao.getImage(0u));
 
-        auto depthArray = engine::stl::array{_gBufferAttachments[0].depth};
+        auto depthArray = engine::stl::vector<engine::rhi::runtime::ImagePtr>(_device->inFlightFramesCount());
+        size_t i = 0u;
+        for (auto & img : depthArray) {
+            img = _gBufferAttachments[i++].depth;
+        }
         colorPicker->createRenderData2(depthArray);
         textureViewer.setTexture("colorPicker", colorPicker->getImage(0u));
     }
@@ -2560,7 +2564,7 @@ namespace example {
         _device->resetFrameTmpData(frameId);
 
         // printf("color from picker = 0x%08x\n", colorPicker->getValue<uint32_t>(engine::vec2u{0u, 0u}, 0u));
-        const uint32_t nodeColor = colorPicker->getValue<uint32_t>(engine::vec2u{0u, 0u}, 0u);
+        const uint32_t nodeColor = colorPicker->getValue<uint32_t>(engine::vec2u{0u, 0u}, frameId);
         if (auto it = selectableNodes.find(nodeColor); it != selectableNodes.end()) {
             if (underCursorNode != it->second) {
                 underCursorNode = it->second;
