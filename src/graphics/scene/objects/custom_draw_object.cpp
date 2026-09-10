@@ -11,7 +11,8 @@ CustomDrawObject::CustomDrawObject(size_t type, const ICustomDrawObjectRenderer 
     _customData(data),
     _subType(type) { }
 
-void CustomDrawObject::draw(const Scene & scene, const ViewParams & viewParams, RenderPass pass, rhi::runtime::CommandListPtr & commandList, uint8_t frame) const {
+void CustomDrawObject::draw(const Scene & scene, const ViewParams & viewParams, RenderPass pass, 
+    rhi::runtime::CommandListPtr & commandList, uint8_t frame) const {
     _renderer.draw(*this, scene, viewParams, pass, node->getWorldTransform(), commandList, frame);
 }
 

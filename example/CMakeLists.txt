@@ -52,6 +52,7 @@ set(
 	
 	./
 	map
+	game_map
 )
 
 foreach (DIR ${EXAMPLE_SRC_DIRS})
