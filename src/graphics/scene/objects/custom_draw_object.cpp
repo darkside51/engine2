@@ -15,6 +15,10 @@ void CustomDrawObject::draw(const Scene & scene, const ViewParams & viewParams, 
 }
 
 bool CustomDrawObject::cmp(const CustomDrawObject & other) const noexcept {
+    if (&_renderer != &other._renderer) {
+        return std::less<const ICustomDrawObjectRenderer *>{}(&_renderer, &other._renderer);
+    }
+
     return _subType < other._subType;
 }
 

@@ -7,6 +7,7 @@
 #include "math/math.h"
 
 #include <cstdint>
+#include <type_traits>
 
 namespace engine::scene {
 
@@ -17,8 +18,18 @@ class ICustomDrawObjectRenderer;
 
 class CustomDrawObject : public AttachmentObject {
 public:
-    template<typename T>
+    template<typename T, typename = std::enable_if_t<std::is_base_of_v<ICustomDrawObjectRenderer, std::decay_t<T>>>>
+    CustomDrawObject(T&&) = delete;
+
+    template<typename T, typename = std::enable_if_t<std::is_base_of_v<ICustomDrawObjectRenderer, std::decay_t<T>>>>
     CustomDrawObject(const T & renderer) : 
+        CustomDrawObject(
+            ctti::typeIndex<ICustomDrawObjectRenderer, T>()/*may be rtti::...?*/, 
+            renderer
+        ) {}
+
+    template<typename T, typename = std::enable_if_t<std::is_base_of_v<ICustomDrawObjectRenderer, std::decay_t<T>>>>
+    CustomDrawObject(T & renderer) : 
         CustomDrawObject(
             ctti::typeIndex<ICustomDrawObjectRenderer, T>()/*may be rtti::...?*/, 
             renderer
