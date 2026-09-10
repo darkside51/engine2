@@ -11,6 +11,7 @@
 #include "node.h"
 #include "object.h"
 #include "register.h"
+#include "types.h"
 #include "threads/threads.h"
 
 #include "stl/algorithm.h"
@@ -74,45 +75,9 @@ struct AnimatedObject {
 // global
 void attachObjectToNode(AttachmentObject & object, Node & node) noexcept;
 
-struct ViewParams {
-    mat4f cameraView;
-    mat4f cameraProjection;
-    mat4f cameraTransform;
-    mat3f viewTransposeInverse;
-    vec3f cameraPosition;
-    vec2f nearFarPlanes;
-    vec2f cursorPosition;
-    float time = 0.0f;
-};
-
-struct ShadowViewParams {
-    stl::span<const mat4f> cascadeMatrices;
-};
-
-enum class FillAttachmentFlags : uint8_t {
-    eNone = 0u,
-    eCalculateQuality = 1u,
-};
-
-enum class RenderPass : uint8_t {
-    eCommon = 0u,
-    eShadow = 1u,
-    eColorId = 2u
-};
-
 class Scene {
     using AttachmentsIterator = stl::span<AttachmentObject*>::iterator;
     
-    struct DrawDataOffsets {
-        uint32_t meshesDrawOffset = 0u;
-        uint32_t spriteVerticesOffset = 0u;
-        uint32_t spriteIndicesOffset = 0u;
-        uint32_t skeletonOffset = 0u;
-        uint32_t computeSkinVerticesOffset = 0u;
-        uint32_t colorIdMeshesOffset = 0u;
-        uint32_t colorIdSkeletalMeshesOffset = 0u;
-    };
-
 public:
     struct CommonPipeline {
         enum class Type : uint8_t {

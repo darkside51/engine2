@@ -5,18 +5,17 @@
 
 namespace engine::scene {
 
-CustomDrawObject::CustomDrawObject(Renderer && drawImpl) : 
+CustomDrawObject::CustomDrawObject(size_t type, const ICustomDrawObjectRenderer & renderer) : 
     AttachmentObject(ctti::typeIndex<AttachmentObject, CustomDrawObject>()), 
-    _drawImpl(std::move(drawImpl)) {
+    _renderer(renderer),
+    _subType(type) { }
 
+void CustomDrawObject::draw(const Scene & scene, const ViewParams & viewParams, RenderPass pass, rhi::runtime::CommandListPtr & commandList, uint8_t frame) const {
+    _renderer.draw(*this, scene, viewParams, pass, node->getWorldTransform(), commandList, frame);
 }
 
-void CustomDrawObject::draw(const Scene & scene, const ViewParams & viewParams, rhi::runtime::CommandListPtr & commandList, uint8_t frame) const {
-    _drawImpl(scene, viewParams, node->getWorldTransform(), commandList, frame);
-}
-
-bool CustomDrawObject::cmp(const CustomDrawObject &) const noexcept {
-    return false;
+bool CustomDrawObject::cmp(const CustomDrawObject & other) const noexcept {
+    return _subType < other._subType;
 }
 
 }

@@ -211,6 +211,93 @@ namespace example {
     engine::rhi::runtime::Pipeline* g_mapGeometryCommonAreaPipeline;
     engine::rhi::runtime::Pipeline* g_mapGeometryShadowPipeline;
 
+    class TileGeometryRenderer : public engine::scene::ICustomDrawObjectRenderer {
+        float _extent = 8192.0f;
+        engine::stl::array<const engine::graphics::ImageHandler*, 2u> _images;
+
+    public:
+        void setExtent(float extent) noexcept {
+            _extent = extent;
+        }
+
+        void setImage(const engine::graphics::ImageHandler* img, uint8_t slot) noexcept {
+            _images[slot] = img;
+        }
+        
+        void draw(
+            const engine::scene::CustomDrawObject & object, const engine::scene::Scene & scene, const engine::scene::ViewParams & viewParams, 
+            engine::scene::RenderPass pass, const engine::mat4f & worldTransform, 
+            engine::rhi::runtime::CommandListPtr & commandList, uint8_t frameId
+        ) const override {
+            struct TileUniform {
+                engine::mat4f worldTransform;
+                float extent;
+            };
+
+            TileUniform uniform {
+                worldTransform,
+                _extent
+            };
+
+            auto const sceneViewParamBufferOffset = scene.getCurrentViewParamsBufferOffset();
+            switch (pass) {
+                case engine::scene::RenderPass::eCommon:
+                {
+                    engine::rhi::SamplerValue sampler{};
+                    sampler.info.minFilter = engine::rhi::FilterMode::eNearest;
+                    sampler.info.magFilter = engine::rhi::FilterMode::eNearest;
+                    sampler.info.mipMapFilter = engine::rhi::FilterMode::eLinear;
+                    sampler.info.addressModeU = engine::rhi::SamplerAddressMode::eClamp_To_Border;
+                    sampler.info.addressModeV = engine::rhi::SamplerAddressMode::eClamp_To_Border;
+                    sampler.info.addressModeW = engine::rhi::SamplerAddressMode::eClamp_To_Border;
+                    
+                    for (const auto & g : g_mapGeometry) {
+                        engine::rhi::runtime::Pipeline * pipeline = nullptr;
+                        if (g.renderPassMask & (1u << static_cast<uint8_t>(engine::scene::RenderPass::eShadow))) {
+                            pipeline = g_mapGeometryCommonPipeline;
+                        } else {
+                            pipeline = g_mapGeometryCommonAreaPipeline;
+                        }
+
+                        if (commandList->bindPipeline(*pipeline)) {
+                            commandList->pushConstants(
+                                engine::rhi::shaders::Stages::eVertex, 
+                                0u, sizeof(TileUniform), &uniform
+                            );
+                            commandList->bindBuffer(0u, scene.getViewParamsUniformBuffer(frameId), 0u, sceneViewParamBufferOffset);
+                            commandList->bindImage(1u, _images[0u]->image, sampler, 0u);
+                            commandList->bindImage(2u, _images[1u]->image, sampler, 0u, 
+                                engine::rhi::ImageAspectFlags::eColor, engine::rhi::ImageViewType::eType_Cube);
+                        }
+
+                        commandList->bindVertexBuffer(0u, g.positions);
+                        commandList->bindVertexBuffer(1u, g.colors);
+                        commandList->bindIndexBuffer(g.indices, 0u, engine::rhi::IndexType::eU32);
+                        commandList->drawIndexed(g.indices->sizeInBytes() / sizeof(uint32_t));
+                    }
+                }
+                break;
+                case engine::scene::RenderPass::eShadow:
+                {
+                    commandList->bindPipeline(*g_mapGeometryShadowPipeline);
+                    commandList->bindBuffer(0u, scene.getViewParamsUniformBuffer(frameId), 0u, sceneViewParamBufferOffset);
+                    commandList->pushConstants(engine::rhi::shaders::Stages::eVertex, 0u, sizeof(TileUniform), &uniform);
+
+                    for (const auto & g : g_mapGeometry) {
+                        if (g.renderPassMask & (1u << static_cast<uint8_t>(engine::scene::RenderPass::eShadow))) {
+                            commandList->bindVertexBuffer(0u, g.positions);
+                            commandList->bindIndexBuffer(g.indices, 0u, engine::rhi::IndexType::eU32);
+                            commandList->drawIndexed(g.indices->sizeInBytes() / sizeof(uint32_t), 2u);
+                        }
+                    }
+                }
+                break;
+            }
+        }
+    };
+
+    TileGeometryRenderer gTileGeometryRenderer;
+
     void optionsWindow() {
         ImGui::SetNextWindowSize(ImVec2(540, 840), ImGuiCond_FirstUseEver);
         if (!ImGui::Begin("options", &showOptions, 0)) {
@@ -797,82 +884,11 @@ namespace example {
 
                                     auto * interriorImageHandler = textureManager->getImageHandler("interriorCubeMapImage");//
 
-                                    auto * object = scene->createObject<engine::scene::CustomDrawObject>([
-                                        extent, 
-                                        brikcsImageHandler,
-                                        interriorImageHandler
-                                    ](
-                                        const engine::scene::Scene & scene, 
-                                        const engine::scene::ViewParams &, 
-                                        const engine::mat4f & worldTransform,
-                                        engine::rhi::runtime::CommandListPtr & commandList,
-                                        uint8_t frameId) {
-                                        
-                                        struct TileUniform {
-                                            engine::mat4f worldTransform;
-                                            float extent;
-                                        };
+                                    gTileGeometryRenderer.setExtent(extent);
+                                    gTileGeometryRenderer.setImage(brikcsImageHandler, 0u);
+                                    gTileGeometryRenderer.setImage(interriorImageHandler, 1u);
 
-                                        TileUniform uniform {
-                                            worldTransform,
-                                            extent
-                                        };
-
-                                        auto const sceneViewParamBufferOffset = scene.getCurrentViewParamsBufferOffset();
-                                        switch (scene.getCurrentRenderPass()) {
-                                            case engine::scene::RenderPass::eCommon:
-                                            {
-                                                engine::rhi::SamplerValue sampler{};
-                                                sampler.info.minFilter = engine::rhi::FilterMode::eNearest;
-                                                sampler.info.magFilter = engine::rhi::FilterMode::eNearest;
-                                                sampler.info.mipMapFilter = engine::rhi::FilterMode::eLinear;
-                                                sampler.info.addressModeU = engine::rhi::SamplerAddressMode::eClamp_To_Border;
-                                                sampler.info.addressModeV = engine::rhi::SamplerAddressMode::eClamp_To_Border;
-                                                sampler.info.addressModeW = engine::rhi::SamplerAddressMode::eClamp_To_Border;
-                                                
-                                                for (const auto & g : g_mapGeometry) {
-                                                    engine::rhi::runtime::Pipeline * pipeline = nullptr;
-                                                    if (g.renderPassMask & (1u << static_cast<uint8_t>(engine::scene::RenderPass::eShadow))) {
-                                                        pipeline = g_mapGeometryCommonPipeline;
-                                                    } else {
-                                                        pipeline = g_mapGeometryCommonAreaPipeline;
-                                                    }
-
-                                                    if (commandList->bindPipeline(*pipeline)) {
-                                                        commandList->pushConstants(
-                                                            engine::rhi::shaders::Stages::eVertex, 
-                                                            0u, sizeof(TileUniform), &uniform
-                                                        );
-                                                        commandList->bindBuffer(0u, scene.getViewParamsUniformBuffer(frameId), 0u, sceneViewParamBufferOffset);
-                                                        commandList->bindImage(1u, brikcsImageHandler->image, sampler, 0u);
-                                                        commandList->bindImage(2u, interriorImageHandler->image, sampler, 0u, 
-                                                            engine::rhi::ImageAspectFlags::eColor, engine::rhi::ImageViewType::eType_Cube);
-                                                    }
-
-                                                    commandList->bindVertexBuffer(0u, g.positions);
-                                                    commandList->bindVertexBuffer(1u, g.colors);
-                                                    commandList->bindIndexBuffer(g.indices, 0u, engine::rhi::IndexType::eU32);
-                                                    commandList->drawIndexed(g.indices->sizeInBytes() / sizeof(uint32_t));
-                                                }
-                                            }
-                                            break;
-                                            case engine::scene::RenderPass::eShadow:
-                                            {
-                                                commandList->bindPipeline(*g_mapGeometryShadowPipeline);
-                                                commandList->bindBuffer(0u, scene.getViewParamsUniformBuffer(frameId), 0u, sceneViewParamBufferOffset);
-                                                commandList->pushConstants(engine::rhi::shaders::Stages::eVertex, 0u, sizeof(TileUniform), &uniform);
-
-                                                for (const auto & g : g_mapGeometry) {
-                                                    if (g.renderPassMask & (1u << static_cast<uint8_t>(engine::scene::RenderPass::eShadow))) {
-                                                        commandList->bindVertexBuffer(0u, g.positions);
-                                                        commandList->bindIndexBuffer(g.indices, 0u, engine::rhi::IndexType::eU32);
-                                                        commandList->drawIndexed(g.indices->sizeInBytes() / sizeof(uint32_t), 2u);
-                                                    }
-                                                }
-                                            }
-                                            break;
-                                        }
-                                    });
+                                    auto * object = scene->createObject<engine::scene::CustomDrawObject>(gTileGeometryRenderer);
                                     engine::scene::attachObjectToNode(*object, *node);
                                     sceneWorldRoot->addChild(node);
                                 });

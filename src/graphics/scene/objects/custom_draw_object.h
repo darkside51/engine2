@@ -1,29 +1,45 @@
 #pragma once
 
+#include "common/type_id.h"
 #include "graphics/render/rhi/common/runtime.h"
 #include "graphics/scene/object.h"
+#include "graphics/scene/types.h"
 #include "math/math.h"
 
 #include <cstdint>
-#include <functional>
 
 namespace engine::scene {
 
 class Scene;
 struct ViewParams;
 
+class ICustomDrawObjectRenderer;
+
 class CustomDrawObject : public AttachmentObject {
-    using Renderer = std::move_only_function<void(const Scene & scene, const ViewParams &, const mat4f &, rhi::runtime::CommandListPtr &, uint8_t) const>;
-
 public:
-    CustomDrawObject(Renderer && drawImpl);
+    template<typename T>
+    CustomDrawObject(const T & renderer) : 
+        CustomDrawObject(
+            ctti::typeIndex<ICustomDrawObjectRenderer, T>()/*may be rtti::...?*/, 
+            renderer
+        ) {}
 
-    void draw(const Scene & scene, const ViewParams & viewParams, rhi::runtime::CommandListPtr & commandList, uint8_t frame) const;
-
+    void draw(const Scene & scene, const ViewParams & viewParams, RenderPass pass, rhi::runtime::CommandListPtr & commandList, uint8_t frame) const;
     bool cmp(const CustomDrawObject &) const noexcept;
 
 private:
-    Renderer _drawImpl;
+    CustomDrawObject(size_t type, const ICustomDrawObjectRenderer & renderer);
+    const ICustomDrawObjectRenderer & _renderer;
+    uint32_t _subType;
+};
+
+class ICustomDrawObjectRenderer {
+public:
+    virtual ~ICustomDrawObjectRenderer() = default;
+    virtual void draw(
+        const CustomDrawObject & object, const Scene & scene, const ViewParams & viewParams, 
+        RenderPass pass, const mat4f &, rhi::runtime::CommandListPtr & commandList, uint8_t frame
+    ) const = 0;
 };
 
 }

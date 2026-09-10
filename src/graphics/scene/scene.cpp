@@ -427,6 +427,8 @@ namespace engine::scene {
             return static_cast<const Mesh &>(a).cmp(static_cast<const Mesh &>(b));
         case ctti::typeIndex<AttachmentObject, Sprite>():
             return static_cast<const Sprite &>(a).cmp(static_cast<const Sprite &>(b));
+        case ctti::typeIndex<AttachmentObject, CustomDrawObject>():
+            return static_cast<const CustomDrawObject &>(a).cmp(static_cast<const CustomDrawObject &>(b));
         case ctti::typeIndex<AttachmentObject, Dummy>():
             return static_cast<const Dummy &>(a).cmp(static_cast<const Dummy &>(b));
         }
@@ -630,7 +632,7 @@ namespace engine::scene {
         }
     }
 
-    Scene::DrawDataOffsets Scene::prepareDrawData(stl::span<AttachmentObject*> objects, uint8_t frame) noexcept {
+    DrawDataOffsets Scene::prepareDrawData(stl::span<AttachmentObject*> objects, uint8_t frame) noexcept {
         // resize buffers
         const auto spritesVertexesCount = _spritesVertexesCount;
         const auto spritesIndicesCount = _spritesIndicesCount;
@@ -1381,7 +1383,7 @@ namespace engine::scene {
     ) {
         for (auto it = begin; it != end; ++it) {
             const auto & object = *static_cast<const CustomDrawObject*>(*it);
-            object.draw(*this, viewParams, commandList, frame);
+            object.draw(*this, viewParams, _currentPass, commandList, frame);
         }
     }
 
