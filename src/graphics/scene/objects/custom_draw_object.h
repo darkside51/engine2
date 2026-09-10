@@ -19,28 +19,33 @@ class ICustomDrawObjectRenderer;
 class CustomDrawObject : public AttachmentObject {
 public:
     template<typename T, typename = std::enable_if_t<std::is_base_of_v<ICustomDrawObjectRenderer, std::decay_t<T>>>>
-    CustomDrawObject(T&&) = delete;
+    CustomDrawObject(T&&, void *) = delete;
 
     template<typename T, typename = std::enable_if_t<std::is_base_of_v<ICustomDrawObjectRenderer, std::decay_t<T>>>>
-    CustomDrawObject(const T & renderer) : 
+    CustomDrawObject(const T & renderer, void * data) : 
         CustomDrawObject(
             ctti::typeIndex<ICustomDrawObjectRenderer, T>()/*may be rtti::...?*/, 
-            renderer
+            renderer, data
         ) {}
 
     template<typename T, typename = std::enable_if_t<std::is_base_of_v<ICustomDrawObjectRenderer, std::decay_t<T>>>>
-    CustomDrawObject(T & renderer) : 
+    CustomDrawObject(T & renderer, void * data) : 
         CustomDrawObject(
             ctti::typeIndex<ICustomDrawObjectRenderer, T>()/*may be rtti::...?*/, 
-            renderer
+            renderer, data
         ) {}
 
     void draw(const Scene & scene, const ViewParams & viewParams, RenderPass pass, rhi::runtime::CommandListPtr & commandList, uint8_t frame) const;
     bool cmp(const CustomDrawObject &) const noexcept;
 
+    void * getData() const noexcept {
+        return _customData;
+    }
+
 private:
-    CustomDrawObject(size_t type, const ICustomDrawObjectRenderer & renderer);
+    CustomDrawObject(size_t type, const ICustomDrawObjectRenderer & renderer, void * data);
     const ICustomDrawObjectRenderer & _renderer;
+    void * _customData = nullptr;
     uint32_t _subType;
 };
 

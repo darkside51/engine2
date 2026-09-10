@@ -5,9 +5,10 @@
 
 namespace engine::scene {
 
-CustomDrawObject::CustomDrawObject(size_t type, const ICustomDrawObjectRenderer & renderer) : 
+CustomDrawObject::CustomDrawObject(size_t type, const ICustomDrawObjectRenderer & renderer, void * data) : 
     AttachmentObject(ctti::typeIndex<AttachmentObject, CustomDrawObject>()), 
     _renderer(renderer),
+    _customData(data),
     _subType(type) { }
 
 void CustomDrawObject::draw(const Scene & scene, const ViewParams & viewParams, RenderPass pass, rhi::runtime::CommandListPtr & commandList, uint8_t frame) const {

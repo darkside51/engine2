@@ -240,6 +240,7 @@ namespace example {
             };
 
             auto const sceneViewParamBufferOffset = scene.getCurrentViewParamsBufferOffset();
+            const auto & geometry = *static_cast<std::vector<MapPolygonGeometry>*>(object.getData());
             switch (pass) {
                 case engine::scene::RenderPass::eCommon:
                 {
@@ -251,7 +252,7 @@ namespace example {
                     sampler.info.addressModeV = engine::rhi::SamplerAddressMode::eClamp_To_Border;
                     sampler.info.addressModeW = engine::rhi::SamplerAddressMode::eClamp_To_Border;
                     
-                    for (const auto & g : g_mapGeometry) {
+                    for (const auto & g : geometry) {
                         engine::rhi::runtime::Pipeline * pipeline = nullptr;
                         if (g.renderPassMask & (1u << static_cast<uint8_t>(engine::scene::RenderPass::eShadow))) {
                             pipeline = g_mapGeometryCommonPipeline;
@@ -283,7 +284,7 @@ namespace example {
                     commandList->bindBuffer(0u, scene.getViewParamsUniformBuffer(frameId), 0u, sceneViewParamBufferOffset);
                     commandList->pushConstants(engine::rhi::shaders::Stages::eVertex, 0u, sizeof(TileUniform), &uniform);
 
-                    for (const auto & g : g_mapGeometry) {
+                    for (const auto & g : geometry) {
                         if (g.renderPassMask & (1u << static_cast<uint8_t>(engine::scene::RenderPass::eShadow))) {
                             commandList->bindVertexBuffer(0u, g.positions);
                             commandList->bindIndexBuffer(g.indices, 0u, engine::rhi::IndexType::eU32);
@@ -888,7 +889,7 @@ namespace example {
                                     gTileGeometryRenderer.setImage(brikcsImageHandler, 0u);
                                     gTileGeometryRenderer.setImage(interriorImageHandler, 1u);
 
-                                    auto * object = scene->createObject<engine::scene::CustomDrawObject>(gTileGeometryRenderer);
+                                    auto * object = scene->createObject<engine::scene::CustomDrawObject>(gTileGeometryRenderer, &g_mapGeometry);
                                     engine::scene::attachObjectToNode(*object, *node);
                                     sceneWorldRoot->addChild(node);
                                 });
