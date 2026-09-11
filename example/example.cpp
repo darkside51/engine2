@@ -54,6 +54,8 @@
 #include "map/geography.h"
 #include "map/vector_tile_parser.h"
 
+#include "game_map/map_tile.h"
+
 #include "graphics/ui/utils/texture_viewer.h"
 
 #include <imgui.h>
@@ -105,6 +107,9 @@ namespace example {
     constexpr uint8_t kMapBuildingsProgram = 15u;
     constexpr uint8_t kMapBuildingsShadowsProgram = 16u;
     constexpr uint8_t kMapPolygonsProgram = 17u;
+
+    constexpr uint8_t kTerrainTileProgram = 20u;
+    constexpr uint8_t kTerrainTilePipeline = 6u;
 
     constexpr uint8_t kSsaoKernelSize = 32u;
     constexpr uint8_t kSsaoNoiseDim = 4u;
@@ -300,6 +305,9 @@ namespace example {
     };
 
     TileGeometryRenderer gTileGeometryRenderer;
+    g_map::TerrainTileRenderer gTerrainTileRenderer;
+    g_map::TerrainTile terrainTile(4u, 16u);
+    uint8_t gTerrainPipeline;
 
     void optionsWindow() {
         ImGui::SetNextWindowSize(ImVec2(540, 840), ImGuiCond_FirstUseEver);
@@ -1561,6 +1569,15 @@ namespace example {
             const auto & fsModule = _shaderModulesManager->registerModule("mesh_colorid.frag", *_device, engine::rhi::shaders::Stages::eFragment, fBytes);
             _programs.emplace_back(_api->createProgram(*_device, engine::stl::array{vsModule.getView(), fsModule.getView()}));
         }
+
+        { // kTerrainTileProgram
+            auto const vBytes = fileManager.readFile("shaders/terrain_tile.vert.spv");
+            auto const fBytes = fileManager.readFile("shaders/terrain_tile.frag.spv");
+
+            const auto & vsModule = _shaderModulesManager->registerModule("terrain_tile.vert", *_device, engine::rhi::shaders::Stages::eVertex, vBytes);
+            const auto & fsModule = _shaderModulesManager->registerModule("terrain_tile.frag", *_device, engine::rhi::shaders::Stages::eFragment, fBytes);
+            _programs.emplace_back(_api->createProgram(*_device, engine::stl::array{vsModule.getView(), fsModule.getView()}));
+        }
     }
     
     void Example::createPipelines() {
@@ -1673,6 +1690,12 @@ namespace example {
         const uint32_t meshSkinColorIdPipeline = scene->registerGraphicsPipeline(_api->createGraphicsPipeline(*_device, colorPicker->getRenderPass(), _programs[kMeshAfterComputeColorIdProgram], info13, 0u));
         scene->assignCommonPipeline(meshColorIdPipeline, engine::scene::Scene::CommonPipeline::Type::eMeshColorId);
         scene->assignCommonPipeline(meshSkinColorIdPipeline, engine::scene::Scene::CommonPipeline::Type::eMeshSkinColorId);
+
+        // kTerrainTilePipeline
+        const GraphicsPipelineStatesInfo info14 = engine::parseGraphicsPipelineInfo(json["terrain_tile"]);
+        _pipelines.emplace_back(_api->createGraphicsPipeline(*_device, _renderPasses[kGbufferRenderPass], _programs[kTerrainTileProgram], info14, 0u)).get();
+        gTerrainPipeline = _pipelines.size() - 1u;
+        terrainTile.buildBuffers(*_api, *_device);
     }
 
     void Example::createDefaultResources() {
@@ -2149,6 +2172,11 @@ namespace example {
         tmpCommandList->copyBuffer2Buffer(staging.getBuffer(), _postIndices, 
             {.srcOffset = idxOffset, .dstOffset = 0u, .size = _postIndices->sizeInBytes()});
         
+
+        //
+        terrainTile.buildGeometry(*tmpCommandList);
+        terrainTile.setPipeline(_pipelines[gTerrainPipeline].get());
+
         tmpCommandList->end();
         tmpCommandList->record(0u);
 
@@ -2172,6 +2200,26 @@ namespace example {
             using namespace engine;
             sceneWorldRoot = scene->createNode();
             scene->rootNode()->addChild(sceneWorldRoot);
+
+            {
+                auto * node = scene->createNode();
+                node->setScale(engine::vec3f{1.0f});
+                node->setPivot({0.5f, 0.5f, 0.0f}); // center of tile
+                node->setPosition(engine::vec3f(0.0f, 18.0f, 0.1f));
+                
+                auto * object = scene->createObject<engine::scene::CustomDrawObject>(gTerrainTileRenderer, &terrainTile);
+                const float tileSize = static_cast<float>(terrainTile.getSize());
+
+                node->setBounds(
+                    engine::scene::Bounds::createCube(
+                        engine::vec3f{tileSize, tileSize, 0.0f}, 
+                        engine::vec3f{0.0f, 0.0f, 0.2f}
+                    )
+                );
+
+                engine::scene::attachObjectToNode(*object, *node);
+                sceneWorldRoot->addChild(node);
+            }
 
             auto m0 = engine::makeMatrix(0.5F);
             engine::rotateMatrix_z(m0, 1.57f);

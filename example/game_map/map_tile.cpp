@@ -2,12 +2,13 @@
 
 #include "graphics/render/rhi/common/command_list.h"
 #include "graphics/scene/scene.h"
+#include "stl/array.h"
 #include "stl/vector.h"
 
 namespace g_map {
     
     struct Vertex{
-        engine::vec3f positions;
+        engine::stl::array<float, 3u>(position);
     };
 
     TerrainTile::TerrainTile(uint16_t size, uint8_t sizeInCells): _size(size), _sizeInCells(sizeInCells) {}
@@ -39,38 +40,38 @@ namespace g_map {
 
         const size_t verticesInRow = _sizeInCells + 1u;
         {
-            stl::vector<Vertex> vertices(verticesInRow * verticesInRow);
+            static stl::vector<Vertex> vertices(verticesInRow * verticesInRow);
             const float cellSize = static_cast<float>(_size) / _sizeInCells;
 
             for (size_t i = 0u; i < verticesInRow; ++i) {
                 for (size_t j = 0u; j < verticesInRow; ++j) {
                     vertices[i * verticesInRow + j] = {
-                        .positions = {j * cellSize, i * cellSize, 0.0f}
+                        .position = {j * cellSize, i * cellSize, 0.0f}
                     };
                 }
             }
-
-            cmd.updateBuffer(_vertices, 0u, vertices.size(), vertices.data());
+            cmd.updateBuffer(_vertices, 0u, vertices.size() * sizeof(Vertex), vertices.data());
         }
         {
-            stl::vector<uint16_t> indices(_sizeInCells * _sizeInCells * 6u);
+            static stl::vector<uint16_t> indices(_sizeInCells * _sizeInCells * 6u);
 
+            uint16_t n = 0u;
             for (size_t i = 0u; i < _sizeInCells; ++i) {
                 for (size_t j = 0u; j < _sizeInCells; ++j) {
-                    auto idx = i * _sizeInCells + j;
-                    indices[idx + 0u] = idx;
-                    indices[idx + 1u] = idx + 1u;
-                    indices[idx + 2u] = idx + verticesInRow;
+                    auto idx = i * verticesInRow + j;
+                    indices[n + 0u] = idx;
+                    indices[n + 1u] = idx + 1u;
+                    indices[n + 2u] = idx + verticesInRow;
 
-                    indices[idx + 3u] = idx + verticesInRow;
-                    indices[idx + 4u] = idx + 1u;
-                    indices[idx + 5u] = idx + verticesInRow + 1u;
+                    indices[n + 3u] = idx + verticesInRow;
+                    indices[n + 4u] = idx + 1u;
+                    indices[n + 5u] = idx + verticesInRow + 1u;
+
+                    n += 6u;
                 }
             }
-
-            cmd.updateBuffer(_indices, 0u, indices.size(), indices.data());
+            cmd.updateBuffer(_indices, 0u, indices.size()* sizeof(uint16_t), indices.data());
         }
-        
     }
 
     //

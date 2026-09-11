@@ -28,6 +28,8 @@ public:
         return _indices;
     }
 
+    uint16_t getSize() const noexcept { return _size; }
+
 private:
     engine::rhi::runtime::Pipeline * _pipeline = nullptr;
     engine::rhi::runtime::BufferPtr _vertices = nullptr;
