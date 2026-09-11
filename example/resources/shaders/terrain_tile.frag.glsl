@@ -28,7 +28,7 @@ void main() {
 
 	vec3 normal = u_viewParams.viewTransposeInverse * -normalize(cross(dFdx(v_worldPosition.xyz), dFdy(v_worldPosition.xyz)));
 	out_normal = vec4(normalize(normal) * 0.5 + 0.5, 0.0f);
-	out_albedo = vec4(0.0, 1.0, 0.0, 1.0);
+	out_albedo = vec4(0.0, 0.0, 0.0, 1.0);
 	out_emissive = vec4(0.0, 0.0, 0.0, 0.0);
 	out_metalicRoughness = vec2(0.0f, 1.0f);
 }

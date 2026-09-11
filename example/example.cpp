@@ -306,7 +306,7 @@ namespace example {
 
     TileGeometryRenderer gTileGeometryRenderer;
     g_map::TerrainTileRenderer gTerrainTileRenderer;
-    g_map::TerrainTile terrainTile(4u, 16u);
+    g_map::TerrainTile terrainTile(4u, 32u);
     uint8_t gTerrainPipeline;
 
     void optionsWindow() {
