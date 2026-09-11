@@ -293,6 +293,8 @@ namespace example {
                     }
                 }
                 break;
+                default: 
+                break;
             }
         }
     };
