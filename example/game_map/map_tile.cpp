@@ -5,6 +5,8 @@
 #include "stl/array.h"
 #include "stl/vector.h"
 
+#include <cstddef>
+
 namespace g_map {
     
     struct Vertex{
@@ -40,41 +42,59 @@ namespace g_map {
 
         const size_t verticesInRow = _sizeInCells + 1u;
         {
-            static stl::vector<Vertex> vertices(verticesInRow * verticesInRow);
+            stl::vector<std::byte> vertices(verticesInRow * verticesInRow * sizeof(Vertex));
+            auto * verticeView = reinterpret_cast<Vertex*>(vertices.data());
             const float cellSize = static_cast<float>(_size) / _sizeInCells;
 
             for (size_t i = 0u; i < verticesInRow; ++i) {
                 for (size_t j = 0u; j < verticesInRow; ++j) {
-                    vertices[i * verticesInRow + j] = {
+                    verticeView[i * verticesInRow + j] = {
                         .position = {j * cellSize, i * cellSize, 0.0f}
                     };
                 }
             }
-            cmd.updateBuffer(_vertices, 0u, vertices.size() * sizeof(Vertex), vertices.data());
+            cmd.updateBuffer(_vertices, 0u, std::move(vertices));
         }
         {
-            static stl::vector<uint16_t> indices(_sizeInCells * _sizeInCells * 6u);
+            stl::vector<std::byte> indices(_sizeInCells * _sizeInCells * 6u * sizeof(uint16_t));
+            auto * indicesView = reinterpret_cast<uint16_t*>(indices.data());
 
             uint16_t n = 0u;
             for (size_t i = 0u; i < _sizeInCells; ++i) {
                 for (size_t j = 0u; j < _sizeInCells; ++j) {
                     auto idx = i * verticesInRow + j;
-                    indices[n + 0u] = idx;
-                    indices[n + 1u] = idx + 1u;
-                    indices[n + 2u] = idx + verticesInRow;
+                    indicesView[n + 0u] = idx;
+                    indicesView[n + 1u] = idx + 1u;
+                    indicesView[n + 2u] = idx + verticesInRow;
 
-                    indices[n + 3u] = idx + verticesInRow;
-                    indices[n + 4u] = idx + 1u;
-                    indices[n + 5u] = idx + verticesInRow + 1u;
+                    indicesView[n + 3u] = idx + verticesInRow;
+                    indicesView[n + 4u] = idx + 1u;
+                    indicesView[n + 5u] = idx + verticesInRow + 1u;
 
                     n += 6u;
                 }
             }
-            cmd.updateBuffer(_indices, 0u, indices.size()* sizeof(uint16_t), indices.data());
+            cmd.updateBuffer(_indices, 0u, std::move(indices));
         }
     }
 
+    void TerrainTile::destroy() noexcept {
+        _pipeline = nullptr;
+        _vertices = nullptr;
+        _indices = nullptr;
+    }
+
     //
+    void TerrainTileRenderer::dispatch(
+        const engine::scene::CustomDrawObject & object, const engine::scene::Scene & scene, const engine::mat4f & worldTransform,
+        engine::rhi::runtime::CommandListPtr & commandList, uint8_t frameId
+    ) const {
+        const auto & geometry = *static_cast<TerrainTile*>(object.getData());
+        engine::rhi::runtime::Pipeline * pipeline = geometry.getComputePipeline();
+        assert(pipeline != nullptr);
+        
+    }
+
     void TerrainTileRenderer::draw(
             const engine::scene::CustomDrawObject & object, const engine::scene::Scene & scene, const engine::scene::ViewParams & viewParams, 
             engine::scene::RenderPass pass, const engine::mat4f & worldTransform, 
@@ -93,7 +113,7 @@ namespace g_map {
             switch (pass) {
                 case engine::scene::RenderPass::eCommon:
                 {
-                    engine::rhi::runtime::Pipeline * pipeline = geometry.getPipeline();
+                    engine::rhi::runtime::Pipeline * pipeline = geometry.getGraphicsPipeline();
 
                     if (commandList->bindPipeline(*pipeline)) {
                         commandList->pushConstants(

@@ -204,6 +204,7 @@ private:
     void performCommits(rhi::runtime::CommandListPtr & commandList, uint8_t frame);
     void reduceUsedMemory(std::chrono::time_point<std::chrono::steady_clock> now) noexcept;
 
+    // dispatch
     void dispatchObjects(rhi::runtime::CommandListPtr & commandList, uint8_t frame, 
         AttachmentsIterator begin, AttachmentsIterator end, uint16_t typeIdx, DrawDataOffsets & offsets);
 
@@ -211,6 +212,9 @@ private:
         DrawDataOffsets & offsets);
     void dispatchSameMeshes(rhi::runtime::CommandListPtr & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end, 
         uint32_t count, uint32_t transformIndex, uint32_t skeletonsOffset);
+
+    void dispatchCustomObjects(rhi::runtime::CommandListPtr & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end, 
+        DrawDataOffsets & offsets);        
 
     // draw
     void drawObjects(rhi::runtime::CommandListPtr & commandList, uint8_t frame, 

@@ -36,6 +36,7 @@ public:
         ) {}
 
     void draw(const Scene & scene, const ViewParams & viewParams, RenderPass pass, rhi::runtime::CommandListPtr & commandList, uint8_t frame) const;
+    void dispatch(const Scene & scene, rhi::runtime::CommandListPtr & commandList, uint8_t frame) const;
     bool cmp(const CustomDrawObject &) const noexcept;
 
     void * getData() const noexcept {
@@ -51,11 +52,22 @@ private:
 
 class ICustomDrawObjectRenderer {
 public:
+    ICustomDrawObjectRenderer(bool dispatch = false) : _dispatch(dispatch) {}
     virtual ~ICustomDrawObjectRenderer() = default;
     virtual void draw(
         const CustomDrawObject & object, const Scene & scene, const ViewParams & viewParams, 
         RenderPass pass, const mat4f &, rhi::runtime::CommandListPtr & commandList, uint8_t frame
     ) const = 0;
+    virtual void dispatch(
+        const CustomDrawObject & object, const Scene & scene, const mat4f &,
+        rhi::runtime::CommandListPtr & commandList, uint8_t frame
+    ) const {};
+
+    inline bool isDispatchEnabled() const noexcept {
+        return _dispatch;
+    }
+private:
+    bool _dispatch = false;
 };
 
 }

@@ -31,6 +31,9 @@ namespace engine::rhi::runtime {
         _resources.clear();
         _resources.reserve(1024u);
 
+        _tmpBytes.clear();
+        _tmpBytes.reserve(16u);
+
         if constexpr (kStatisticsEnable) {
             _statistics.reset();
         }
@@ -299,6 +302,11 @@ namespace engine::rhi::runtime {
 
         _currentPass->buffers.emplace_back(dst.get(), BufferUsageFlags::eTransfer_Dst, _pipelineType); // ...
         ++_commandsCount;
+    }
+
+    void CommandList::updateBuffer(BufferPtr & dst, uint32_t dstOffset, stl::vector<std::byte> && data) noexcept {
+        const auto & tmpData = _tmpBytes.emplace_back(std::move(data));
+        updateBuffer(dst, dstOffset, tmpData.size(), tmpData.data());
     }
 
     // copy commands

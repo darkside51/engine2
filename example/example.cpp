@@ -1020,6 +1020,8 @@ namespace example {
         g_mapGeometryCommonAreaPipeline = nullptr;
         g_mapGeometryShadowPipeline = nullptr;
         g_mapGeometry.clear();
+
+        terrainTile.destroy();
         
         _pipelines.clear();
         _programs.clear();
@@ -2175,7 +2177,7 @@ namespace example {
 
         //
         terrainTile.buildGeometry(*tmpCommandList);
-        terrainTile.setPipeline(_pipelines[gTerrainPipeline].get());
+        terrainTile.setGraphicsPipeline(_pipelines[gTerrainPipeline].get());
 
         tmpCommandList->end();
         tmpCommandList->record(0u);

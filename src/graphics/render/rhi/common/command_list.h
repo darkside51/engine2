@@ -122,6 +122,7 @@ namespace engine::rhi::runtime {
 
         void copyBuffer2Buffer(const BufferPtr & src, BufferPtr & dst, const CopyBufferInfo & copyInfos) noexcept;
         void updateBuffer(BufferPtr & dst, uint32_t dstOffset, uint32_t dataSize, const void* pData) noexcept;
+        void updateBuffer(BufferPtr & dst, uint32_t dstOffset, stl::vector<std::byte> && data) noexcept;
 
         void copyBuffer2Image(const BufferPtr & src, ImagePtr & dst, const CopyBufferImageInfo & copyInfos) noexcept;
         void blitImage(const ImagePtr & src, ImagePtr & dst, const BlitImageInfo & info) noexcept;
@@ -219,6 +220,7 @@ namespace engine::rhi::runtime {
         } _state;
 
         stl::vector<sh_ptr<PipeLineResource>> _resources;
+        stl::vector<stl::vector<std::byte>> _tmpBytes;
         CommandType _lastCommandType = CommandType::eUndefined;
     };
 

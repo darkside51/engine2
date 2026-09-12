@@ -16,6 +16,13 @@ void CustomDrawObject::draw(const Scene & scene, const ViewParams & viewParams, 
     _renderer.draw(*this, scene, viewParams, pass, node->getWorldTransform(), commandList, frame);
 }
 
+void CustomDrawObject::dispatch(const Scene & scene, 
+    rhi::runtime::CommandListPtr & commandList, uint8_t frame) const {
+    if (_renderer.isDispatchEnabled()) {
+        _renderer.dispatch(*this, scene, node->getWorldTransform(), commandList, frame);
+    }
+}
+
 bool CustomDrawObject::cmp(const CustomDrawObject & other) const noexcept {
     if (&_renderer != &other._renderer) {
         return std::less<const ICustomDrawObjectRenderer *>{}(&_renderer, &other._renderer);

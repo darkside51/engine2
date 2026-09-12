@@ -723,6 +723,8 @@ namespace engine::scene {
                 _spritesVertexesCount += 4u;
                 _spritesIndicesCount += 6u;
                 break;
+            case ctti::typeIndex<AttachmentObject, CustomDrawObject>():
+                break;
             case ctti::typeIndex<AttachmentObject, Dummy>():
                 break;
             }
@@ -887,8 +889,21 @@ namespace engine::scene {
             break;
         case ctti::typeIndex<AttachmentObject, Sprite>():
             break;
+        case ctti::typeIndex<AttachmentObject, CustomDrawObject>():
+        {
+            dispatchCustomObjects(commandList, frame, begin, end, offsets);
+        }
+            break;
         case ctti::typeIndex<AttachmentObject, Dummy>():
             break;
+        }
+    }
+
+    void Scene::dispatchCustomObjects(rhi::runtime::CommandListPtr & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end, 
+        DrawDataOffsets & offsets) {
+        for (auto it = begin; it != end; ++it) {
+            const auto & object = *static_cast<const CustomDrawObject*>(*it);
+            object.dispatch(*this, commandList, frame);
         }
     }
 
