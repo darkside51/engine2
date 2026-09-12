@@ -37,6 +37,7 @@ public:
     }
 
     uint16_t getSize() const noexcept { return _size; }
+    uint16_t getSizeInCells() const noexcept { return _sizeInCells; }
 
     void destroy() noexcept;
 

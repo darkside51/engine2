@@ -1,6 +1,6 @@
 #version 450
 
-layout (location = 0) in vec3 a_position;
+layout (location = 0) in vec4 a_position;
 layout (location = 0) out vec3 v_worldPosition;
 
 layout(push_constant, std430) uniform Transform {
@@ -19,7 +19,7 @@ layout (set = 0, binding = 0) uniform UniformBuffer {
 } u_viewParams;
 
 void main() {
-	vec4 worldPosition = push.model * vec4(a_position, 1.0);
+	vec4 worldPosition = push.model * a_position;
 	gl_Position = u_viewParams.viewProjection * worldPosition;
-	v_worldPosition = worldPosition.xyz;
+	v_worldPosition = worldPosition.xyz / worldPosition.w;
 }

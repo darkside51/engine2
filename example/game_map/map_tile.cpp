@@ -10,7 +10,7 @@
 namespace g_map {
     
     struct Vertex{
-        engine::stl::array<float, 3u>(position);
+        engine::stl::array<float, 4u>(position);
     };
 
     TerrainTile::TerrainTile(uint16_t size, uint8_t sizeInCells): _size(size), _sizeInCells(sizeInCells) {}
@@ -49,7 +49,7 @@ namespace g_map {
             for (size_t i = 0u; i < verticesInRow; ++i) {
                 for (size_t j = 0u; j < verticesInRow; ++j) {
                     verticeView[i * verticesInRow + j] = {
-                        .position = {j * cellSize, i * cellSize, 0.0f}
+                        .position = {j * cellSize, i * cellSize, 0.0f, 1.0f}
                     };
                 }
             }
@@ -92,7 +92,20 @@ namespace g_map {
         const auto & geometry = *static_cast<TerrainTile*>(object.getData());
         engine::rhi::runtime::Pipeline * pipeline = geometry.getComputePipeline();
         assert(pipeline != nullptr);
-        
+
+        constexpr uint16_t kTileLocalGroupSize = 32u;
+        const auto cellsCountInRow = geometry.getSizeInCells();
+        const uint16_t verticesInRow = cellsCountInRow + 1u;
+
+        const auto localExecutionCount = (verticesInRow % kTileLocalGroupSize == 0u) ?
+                                          verticesInRow / kTileLocalGroupSize :
+                                          verticesInRow / kTileLocalGroupSize + 1u;
+
+        const auto time = scene.getShadersTime();
+        commandList->bindPipeline(*pipeline);
+        commandList->pushConstants(engine::rhi::shaders::Stages::eCompute, 0u, sizeof(float), &time);
+        commandList->bindBuffer(0u, geometry.getVerticesBuffer(), 0u);
+        commandList->dispatch(localExecutionCount, localExecutionCount, 1u);
     }
 
     void TerrainTileRenderer::draw(

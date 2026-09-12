@@ -109,7 +109,9 @@ namespace example {
     constexpr uint8_t kMapPolygonsProgram = 17u;
 
     constexpr uint8_t kTerrainTileProgram = 20u;
+    constexpr uint8_t kTerrainTileComputeProgram = 21u;
     constexpr uint8_t kTerrainTilePipeline = 6u;
+    constexpr uint8_t kTerrainTileComputePipeline = 7u;
 
     constexpr uint8_t kSsaoKernelSize = 32u;
     constexpr uint8_t kSsaoNoiseDim = 4u;
@@ -306,8 +308,9 @@ namespace example {
 
     TileGeometryRenderer gTileGeometryRenderer;
     g_map::TerrainTileRenderer gTerrainTileRenderer;
-    g_map::TerrainTile terrainTile(4u, 32u);
+    g_map::TerrainTile terrainTile(4u, 31u);
     uint8_t gTerrainPipeline;
+    uint8_t gTerrainComputePipeline;
 
     void optionsWindow() {
         ImGui::SetNextWindowSize(ImVec2(540, 840), ImGuiCond_FirstUseEver);
@@ -1580,6 +1583,12 @@ namespace example {
             const auto & fsModule = _shaderModulesManager->registerModule("terrain_tile.frag", *_device, engine::rhi::shaders::Stages::eFragment, fBytes);
             _programs.emplace_back(_api->createProgram(*_device, engine::stl::array{vsModule.getView(), fsModule.getView()}));
         }
+
+        { // kTerrainTileComputeProgram
+            auto const cBytes = fileManager.readFile("shaders/terrain_tile_compute.comp.spv");
+            const auto & compModule = _shaderModulesManager->registerModule("terrain_tile_compute.comp", *_device, engine::rhi::shaders::Stages::eCompute, cBytes);
+            _programs.emplace_back(_api->createProgram(*_device, engine::stl::array{compModule.getView()}));
+        }
     }
     
     void Example::createPipelines() {
@@ -1695,8 +1704,11 @@ namespace example {
 
         // kTerrainTilePipeline
         const GraphicsPipelineStatesInfo info14 = engine::parseGraphicsPipelineInfo(json["terrain_tile"]);
-        _pipelines.emplace_back(_api->createGraphicsPipeline(*_device, _renderPasses[kGbufferRenderPass], _programs[kTerrainTileProgram], info14, 0u)).get();
-        gTerrainPipeline = _pipelines.size() - 1u;
+        _pipelines.emplace_back(_api->createGraphicsPipeline(*_device, _renderPasses[kGbufferRenderPass], _programs[kTerrainTileProgram], info14, 0u));
+        _pipelines.emplace_back(_api->createComputePipeline(*_device, _programs[kTerrainTileComputeProgram]));
+
+        gTerrainPipeline = _pipelines.size() - 2u;
+        gTerrainComputePipeline = _pipelines.size() - 1u;
         terrainTile.buildBuffers(*_api, *_device);
     }
 
@@ -2178,6 +2190,7 @@ namespace example {
         //
         terrainTile.buildGeometry(*tmpCommandList);
         terrainTile.setGraphicsPipeline(_pipelines[gTerrainPipeline].get());
+        terrainTile.setComputePipeline(_pipelines[gTerrainComputePipeline].get());
 
         tmpCommandList->end();
         tmpCommandList->record(0u);
@@ -2207,7 +2220,7 @@ namespace example {
                 auto * node = scene->createNode();
                 node->setScale(engine::vec3f{1.0f});
                 node->setPivot({0.5f, 0.5f, 0.0f}); // center of tile
-                node->setPosition(engine::vec3f(0.0f, 18.0f, 0.1f));
+                node->setPosition(engine::vec3f(0.0f, 18.0f, 0.5f));
                 
                 auto * object = scene->createObject<engine::scene::CustomDrawObject>(gTerrainTileRenderer, &terrainTile);
                 const float tileSize = static_cast<float>(terrainTile.getSize());
