@@ -138,7 +138,7 @@ void main() {
     const float denominator = 4.0f * dotNV * dotNL + 0.0001f; // avoid division by zero
     //const 
     vec3 specular = numerator / denominator;
-	specular *= step(0.5f, shadowValue); // no specular in shadow
+	//specular *= step(0.5f, shadowValue); // no specular in shadow
     
     // energy conservation: diffuse must equal remaining non-reflected energy
     const vec3 kS = F;
@@ -149,11 +149,12 @@ void main() {
 
     // ambient lighting (Placeholder: upgrade to Image-Based Lighting later)
     //const vec3 ambient = mix(vec3(0.25, 1.0, 0.0), vec3(1.0, 1.0, 1.0), clamp(worldPosition.z * 6.2f, 0.0f, 1.0f)) * push.ambient.xyz * push.ambient.w * albedo.rgb * occlusion;
-    const vec3 ambientColor = push.ambient.xyz * push.ambient.w * normalize(sky.skyColor);
+    //const vec3 ambientColor = push.ambient.xyz * push.ambient.w * normalize(sky.skyColor);
+    const vec3 ambientColor = push.ambient.xyz * push.ambient.w * sky.skyColor;
     const vec3 ambient = ambientColor * albedo.rgb * occlusion;
-    vec3 baseColor = ambient + Lo;
-
-    baseColor = clamp(baseColor * shadowValue, ambient, baseColor);
+    //vec3 baseColor = ambient + Lo;
+    //baseColor = clamp(baseColor * shadowValue, ambient, baseColor);
+    vec3 baseColor = ambient + (Lo * shadowValue);
     baseColor += emissive.rgb;
 	//
 
