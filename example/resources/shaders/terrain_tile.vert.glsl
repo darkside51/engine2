@@ -5,6 +5,7 @@ layout (location = 0) out vec3 v_worldPosition;
 
 layout(push_constant, std430) uniform Transform {
 	mat4 model;
+	float cellSize;
 } push;
 
 layout (set = 0, binding = 0) uniform UniformBuffer {
@@ -19,7 +20,7 @@ layout (set = 0, binding = 0) uniform UniformBuffer {
 } u_viewParams;
 
 void main() {
-	vec4 worldPosition = push.model * a_position;
+	vec4 worldPosition = push.model * vec4(a_position.xyz * push.cellSize, a_position.w);
 	gl_Position = u_viewParams.viewProjection * worldPosition;
 	v_worldPosition = worldPosition.xyz / worldPosition.w;
 }

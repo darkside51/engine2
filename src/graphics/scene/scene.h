@@ -131,8 +131,8 @@ public:
     // bool destroyAnimInfo(AnimationInfoChain * info) noexcept;
 
     template<typename T>
-    AnimationDescription * createAnimInfo(uint16_t animationId, float startTime, AnimSwitchType switchType = AnimSwitchType::eNone) {
-        return _animationsAllocator.create<AnimationDescription>(ctti::typeIndex<Animation, T>(), animationId, startTime, switchType);
+    AnimationDescription * createAnimInfo(uint16_t animationId, float startTime, float speed = 1.0f, AnimSwitchType switchType = AnimSwitchType::eNone) {
+        return _animationsAllocator.create<AnimationDescription>(ctti::typeIndex<Animation, T>(), animationId, startTime, speed, switchType);
     }
     bool destroyAnimInfo(AnimationDescription * info) noexcept;
 
@@ -165,7 +165,7 @@ public:
     DrawDataOffsets prepareDrawData(stl::span<AttachmentObject*> objects, uint8_t frame) noexcept;
 
     void animate(std::chrono::time_point<std::chrono::steady_clock> now, float delta, stl::span<AttachmentObject*> objects, 
-        const AnimationManager & animationManager, float speed = 1.0f);
+        const AnimationManager & animationManager);
     void draw(RenderPass pass, rhi::runtime::CommandListPtr & commandList, rhi::runtime::CommandListPtr & transferCommandList, uint8_t frame, 
         const ViewParams & viewParams, stl::span<AttachmentObject*> objects, const DrawDataOffsets & offsets, const void * uniformData = nullptr);
     void drawDebug(const ViewParams & viewParams, stl::span<AttachmentObject*> objects);
@@ -193,6 +193,14 @@ public:
 
     RenderPass getCurrentRenderPass() const noexcept {
         return _currentPass;
+    }
+
+    void setAnimationSpeed(float speed) noexcept {
+        _animationSpeed = speed;
+    }
+
+    float getAnimationSpeed() const noexcept {
+        return _animationSpeed;
     }
 
 private:
@@ -263,6 +271,7 @@ private:
     using AnimationsAllocator = allocators::PoolAllocatorChain<sizeof(AnimationDescription), alignof(AnimationDescription), false, false>;
     AnimationsAllocator _animationsAllocator{512u, 256u};
 
+    float _animationSpeed = 1.0f;
     float _shadersTime = 0.0f;
     uint32_t _frameNumber = 0u;
     Node * _rootNode = nullptr;

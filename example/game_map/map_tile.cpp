@@ -44,12 +44,11 @@ namespace g_map {
         {
             stl::vector<std::byte> vertices(verticesInRow * verticesInRow * sizeof(Vertex));
             auto * verticeView = reinterpret_cast<Vertex*>(vertices.data());
-            const float cellSize = static_cast<float>(_size) / _sizeInCells;
 
             for (size_t i = 0u; i < verticesInRow; ++i) {
                 for (size_t j = 0u; j < verticesInRow; ++j) {
                     verticeView[i * verticesInRow + j] = {
-                        .position = {j * cellSize, i * cellSize, 0.0f, 1.0f}
+                        .position = {j, i, 0.0f, 1.0f}
                     };
                 }
             }
@@ -115,14 +114,18 @@ namespace g_map {
         ) const {
             struct Uniform {
                 engine::mat4f worldTransform;
-            };
-
-            Uniform uniform {
-                worldTransform
+                float cellSize;
             };
 
             auto const sceneViewParamBufferOffset = scene.getCurrentViewParamsBufferOffset();
             const auto & geometry = *static_cast<TerrainTile*>(object.getData());
+            const float cellSize = static_cast<float>(geometry.getSize()) / geometry.getSizeInCells();
+
+            Uniform uniform {
+                worldTransform,
+                cellSize
+            };
+
             switch (pass) {
                 case engine::scene::RenderPass::eCommon:
                 {

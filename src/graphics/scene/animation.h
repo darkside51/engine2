@@ -33,6 +33,7 @@ enum class AnimSwitchType : uint8_t {
 
 struct AnimationInfo {
     float startTime = 0.0f;
+    float speed = 1.0f;
     uint16_t animationId;
     uint16_t animationType = kUndefinedAnim;
 };
@@ -43,8 +44,8 @@ struct AnimationDescription {
     float mix = 0.0f;
     AnimSwitchType animSwitchType;
 
-    AnimationDescription(uint16_t type, uint16_t animationId, float startTime, AnimSwitchType switchType) :
-        current{startTime, animationId, type},
+    AnimationDescription(uint16_t type, uint16_t animationId, float startTime, float speed, AnimSwitchType switchType) :
+        current{startTime, speed, animationId, type},
         animSwitchType(switchType) { }
 };
 

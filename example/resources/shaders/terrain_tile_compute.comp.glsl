@@ -12,5 +12,5 @@ layout(push_constant, std430) uniform Transform {
 
 void main() {
 	const uint vertexIndex = gl_GlobalInvocationID.x + (gl_GlobalInvocationID.y * gl_NumWorkGroups.x * gl_WorkGroupSize.x);
-	out_positions.xyzw[vertexIndex].z = 0.4f * abs(sin(-200.0f * 6.28f * push.time + 2.0f * length(vec2(2.0f) - out_positions.xyzw[vertexIndex].xy)));
+	out_positions.xyzw[vertexIndex].z = 2.0f * sin(-600.0f * 6.28f * push.time + 0.3f * length(vec2(16.0f) - out_positions.xyzw[vertexIndex].xy));
 }

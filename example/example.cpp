@@ -377,7 +377,11 @@ namespace example {
         ImGui::DragFloat("vignette", &vignetteExtent, 0.01f, 0.0f, 1.0f);
 
         ImGui::NewLine();
-        ImGui::DragFloat("animation speed", &sceneAnimationSpeed, 0.01f, -4.0f, 4.0f);
+        if(ImGui::DragFloat("animation speed", &sceneAnimationSpeed, 0.01f, -4.0f, 4.0f)) {
+            if (scene.has_value()) {
+                scene->setAnimationSpeed(sceneAnimationSpeed);
+            }
+        }
 
         ImGui::NewLine();
         if (ImGui::RadioButton("composite", debugShow == DebugShow::eCommon)) { 
@@ -1973,7 +1977,8 @@ namespace example {
                         selectableNodes.emplace(colorId, meshRoot);
 
                         if (auto * skeleton = static_cast<engine::scene::Skeleton *>(meshRoot->getAttachment())) {
-                            auto * anim = scene->createAnimInfo<engine::scene::SkeletalAnimation>(animId, engine::common::random(0.25f, 1.7f), engine::scene::AnimSwitchType::eByTime);
+                            auto * anim = scene->createAnimInfo<engine::scene::SkeletalAnimation>(animId, engine::common::random(0.25f, 1.7f), 
+                                1.0f, engine::scene::AnimSwitchType::eByTime);
                             scene->destroyAnimInfo(skeleton->setAnimation(anim));
                         }
 
@@ -2652,9 +2657,9 @@ namespace example {
                     auto * skeleton = static_cast<engine::scene::Skeleton *>(attachment);
                     if (skeleton->getAnimMix() == 0.0f) {
                         if (skeleton->getAnimationId() == 6) {
-                            skeleton->setAnimation(5);
+                            skeleton->setAnimation(5, 1.0f);
                         } else if (skeleton->getAnimationId() == 5) {
-                            skeleton->setAnimation(6);
+                            skeleton->setAnimation(6, 1.0f);
                         }
                     }
                 }
@@ -2739,7 +2744,7 @@ namespace example {
 
         engine::scene::Scene::sortObjectsForDraw(shadowObjects);
 
-        scene->animate(now, delta, objects, animationManager, sceneAnimationSpeed); // after fillAttachmentsArrays and after beginFrame for correct
+        scene->animate(now, delta, objects, animationManager); // after fillAttachmentsArrays and after beginFrame for correct
 
         // auto o0 = engine::stl::span<engine::scene::AttachmentObject*>{objects.begin(), objects.begin() + objects.size() / 2};
         // auto o1 = engine::stl::span<engine::scene::AttachmentObject*>{objects.begin() + objects.size() / 2, objects.end()};

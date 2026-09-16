@@ -29,8 +29,8 @@ namespace {
         // static_assert(sizeof(AnimationInfo) == 12u);
         // static_assert(sizeof(AnimationInfoChain) == 32u);
 
-        static_assert(sizeof(AnimationInfo) == 8u);
-        static_assert(sizeof(AnimationDescription) == 24u);
+        static_assert(sizeof(AnimationInfo) == 12u);
+        static_assert(sizeof(AnimationDescription) == 32u);
 
         static_assert(sizeof(AttachmentObject) == 40u);
         static_assert(sizeof(Dummy) == 40u);
@@ -458,7 +458,7 @@ namespace engine::scene {
     }
 
     void Scene::animate(std::chrono::time_point<std::chrono::steady_clock> now, float delta, stl::span<AttachmentObject*> objects, 
-        const AnimationManager & animationManager, float speed) {
+        const AnimationManager & animationManager) {
         //return;
         if (objects.empty()) {
             return;
@@ -468,7 +468,7 @@ namespace engine::scene {
         
         const auto skeletalAnimationsCountOnStart = _animations.skeletalAnimations.size();
         const auto sequenceAnimationsCountOnStart = _animations.sequences.size();
-        const float mixDelta = delta * std::abs(speed) / kAnimBlendTime;
+        const float mixDelta = delta * std::abs(_animationSpeed) / kAnimBlendTime;
 
         for (auto * object : objects) {
             auto * animInfo = object->animInfo;
@@ -487,7 +487,7 @@ namespace engine::scene {
                             _animations.skeletalAnimations.emplace_back(animInfo->target, object, animInfo->mix);
 
                             if (animInfo->animSwitchType == AnimSwitchType::eByTime) {
-                                animInfo->mix += mixDelta;
+                                animInfo->mix += mixDelta * animInfo->target.speed;
                                 if (animInfo->mix >= 1.0f) {
                                     animInfo->mix = 0.0f;
                                     animInfo->current = animInfo->target;
@@ -512,7 +512,7 @@ namespace engine::scene {
         }
 
         const std::chrono::duration<float> nowDuration = now.time_since_epoch();
-        const float nowTimeCount = nowDuration.count() * speed;
+        const float nowTimeCount = nowDuration.count() * _animationSpeed;
 
         if (!_animations.skeletalAnimations.empty()) { // skeletal animations
             auto begin = _animations.skeletalAnimations.begin() + skeletalAnimationsCountOnStart;
@@ -563,7 +563,7 @@ namespace engine::scene {
                             if (currentAnim) {
                                 auto * skeleton = static_cast<Skeleton*>(object);
                                 animator->enlarge2(skeleton->nodesCount());
-                                animator->update2(nowTimeCount - animInfo.startTime, *currentAnim);
+                                animator->update2(nowTimeCount * animInfo.speed - animInfo.startTime, *currentAnim);
 
                                 if (currentObject == object) {
                                     animator->apply2(*skeleton, mix);
@@ -595,7 +595,7 @@ namespace engine::scene {
                     if (currentAnim) {
                         auto * skeleton = static_cast<Skeleton*>(object);
                         gSkeletalAnimator.enlarge2(skeleton->nodesCount());
-                        gSkeletalAnimator.update2(nowTimeCount - animInfo.startTime, *currentAnim);
+                        gSkeletalAnimator.update2(nowTimeCount * animInfo.speed - animInfo.startTime, *currentAnim);
 
                         if (currentObject == object) {
                             gSkeletalAnimator.apply2(*skeleton, mix);
@@ -2275,7 +2275,7 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
         completeAnimations();
 
         const std::chrono::duration<float> nowDuration = now.time_since_epoch();
-        _shadersTime = fract(nowDuration.count() * kShaderTimeMultiplier);
+        _shadersTime = fract(nowDuration.count() * _animationSpeed * kShaderTimeMultiplier);
 
         ++_frameNumber;
     }

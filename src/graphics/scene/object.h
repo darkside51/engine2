@@ -78,7 +78,7 @@ namespace engine::scene {
         bool removeAnimation() noexcept;
         AnimationDescription * setAnimation(AnimationDescription * anim) noexcept;
         void setAnimation(const AnimationInfo & anim, float mix = 0.0f) noexcept;
-        void setAnimation(uint16_t animationId, float mix = 0.0f) noexcept;
+        void setAnimation(uint16_t animationId, float speed = 1.0f, float mix = 0.0f) noexcept;
         uint16_t getAnimationId() const noexcept;
         float getAnimMix() const noexcept;
 
