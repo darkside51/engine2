@@ -124,39 +124,23 @@ namespace engine::vulkan::runtime {
 
                 if ((buffer.flags & (rhi::BufferUsageFlags::eUniform_Buffer | 
                                 rhi::BufferUsageFlags::eUniform_Texel_Buffer)) != rhi::BufferUsageFlags::eNone) {
-                    auto const usage = vkBuffer->usage();
-                    if ((usage & (rhi::BufferUsageFlags::eUniform_Buffer | 
-                                rhi::BufferUsageFlags::eUniform_Texel_Buffer)) != rhi::BufferUsageFlags::eNone) {
-                        auto const dstStage = pass.type == rhi::runtime::Pass::Type::eRender ? VkPipelineStageFlagBits::VK_PIPELINE_STAGE_VERTEX_SHADER_BIT : 
-                                            VkPipelineStageFlagBits::VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+                    auto const dstStage = pass.type == rhi::runtime::Pass::Type::eRender ? 
+                                        VkPipelineStageFlagBits::VK_PIPELINE_STAGE_VERTEX_SHADER_BIT /*|
+                                        VkPipelineStageFlagBits::VK_PIPELINE_STAGE_MESH_SHADER_BIT_EXT*/ : 
+                                        VkPipelineStageFlagBits::VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
 
-                        vkBuffer->transition(_barriers,
-                            dstStage,
-                            VkAccessFlagBits::VK_ACCESS_UNIFORM_READ_BIT | VkAccessFlagBits::VK_ACCESS_SHADER_READ_BIT, // correct?
-                            buffer.offset, buffer.size
-                        );
-                    } else {
-                        //assert(false);
-                    } 
-
-                    if ((usage & (rhi::BufferUsageFlags::eStorage_Buffer | 
-                                rhi::BufferUsageFlags::eStorage_Texel_Buffer)) != rhi::BufferUsageFlags::eNone) {
-                        auto const dstStage = pass.type == rhi::runtime::Pass::Type::eRender ? VkPipelineStageFlagBits::VK_PIPELINE_STAGE_VERTEX_SHADER_BIT : 
-                                            VkPipelineStageFlagBits::VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
-
-                        vkBuffer->transition(_barriers,
-                            dstStage,
-                            VkAccessFlagBits::VK_ACCESS_SHADER_READ_BIT | VkAccessFlagBits::VK_ACCESS_SHADER_WRITE_BIT, // need to specify read or write?
-                            buffer.offset, buffer.size
-                        );
-                    }
+                    vkBuffer->transition(_barriers,
+                        dstStage,
+                        VkAccessFlagBits::VK_ACCESS_UNIFORM_READ_BIT | VkAccessFlagBits::VK_ACCESS_SHADER_READ_BIT, // correct?
+                        buffer.offset, buffer.size
+                    );
                 }
 
                 if ((buffer.flags & (rhi::BufferUsageFlags::eStorage_Buffer | 
                                 rhi::BufferUsageFlags::eStorage_Texel_Buffer)) != rhi::BufferUsageFlags::eNone) {
-
                     auto const dstStage = pass.type == rhi::runtime::Pass::Type::eRender ? 
-                                            VkPipelineStageFlagBits::VK_PIPELINE_STAGE_VERTEX_SHADER_BIT : 
+                                            VkPipelineStageFlagBits::VK_PIPELINE_STAGE_VERTEX_SHADER_BIT /*|
+                                            VkPipelineStageFlagBits::VK_PIPELINE_STAGE_MESH_SHADER_BIT_EXT*/ : 
                                             VkPipelineStageFlagBits::VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
 
                     vkBuffer->transition(_barriers,
@@ -732,6 +716,25 @@ namespace engine::vulkan::runtime {
                 _commandbuffer.copyImage2Image(vkSrcImage, vkDstImage, copyInfos);
             }   
                 break;
+
+            case CommandType::eCopyImage2Buffer:
+            {
+                if (passId < _passes.size()) {
+                    const auto & pass = _passes[passId];
+                    if (pass.commandNumber == commandsNumber && pass.type == Pass::Type::eTransfer) {
+                        applyBarriers(pass, nullptr, {});
+                        ++passId;
+                    }
+                }
+
+                const auto * command = static_cast<CopyImage2BufferCommand*>(cmd);
+                stl::array copyInfos{utils::convert2vk(command->info)};
+
+                const auto & vkSrcImage = *static_cast<const Image*>(command->src);
+                const auto & vkDstBuffer = *static_cast<const Buffer*>(command->dst);
+                _commandbuffer.copyImage2Buffer(vkSrcImage, vkDstBuffer, copyInfos);
+            }   
+                break; 
             case CommandType::ePrepareImage2HostRead:
             {
                 if (passId < _passes.size()) {

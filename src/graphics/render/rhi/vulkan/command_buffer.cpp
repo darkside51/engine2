@@ -111,6 +111,15 @@ namespace engine::vulkan {
         vkCmdCopyBufferToImage(_commandBuffer, src(), dst(), baseLayout, copyInfo.size(), copyInfo.data());
     }
 
+    void CommandBuffer::copyImage2Buffer(const Image & src, const Buffer & dst, stl::span<VkBufferImageCopy> copyInfo) const noexcept {
+        const auto & info = src.getInfo();
+        const auto & subresource = copyInfo[0u].imageSubresource;
+        const auto baseLayoutIdx = subresource.baseArrayLayer * info.mipLevels + subresource.mipLevel;
+        const auto baseLayout = src.getSubStates()[baseLayoutIdx].layout;
+
+        vkCmdCopyImageToBuffer(_commandBuffer, src(), baseLayout, dst(), copyInfo.size(), copyInfo.data());
+    }
+
     void CommandBuffer::blitImage(const Image & src, const Image & dst, VkImageLayout srcImageLayout, VkImageLayout dstImageLayout, stl::span<VkImageBlit> info, VkFilter filter) const noexcept {
         vkCmdBlitImage(_commandBuffer, src(), srcImageLayout, dst(), dstImageLayout, info.size(), info.data(), filter);
     }

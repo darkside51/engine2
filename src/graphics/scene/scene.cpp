@@ -333,7 +333,7 @@ namespace engine::scene {
         };
 
         const rhi::BufferInfo verticesInfo2 {
-            rhi::BufferUsageFlags::eVertex_Buffer | rhi::BufferUsageFlags::eUniform_Buffer | 
+            rhi::BufferUsageFlags::eVertex_Buffer /*| rhi::BufferUsageFlags::eUniform_Buffer*/ | 
             rhi::BufferUsageFlags::eStorage_Buffer | rhi::BufferUsageFlags::eTransfer_Dst,
             rhi::MemoryPropertyFlags::eDeviceLocal
         };
@@ -381,8 +381,7 @@ namespace engine::scene {
 
         if constexpr (kComputeSkinningAvailable) {
             // compute:
-            const rhi::BufferInfo computeVerticesInfo {
-                //rhi::BufferUsageFlags::eStorage_Buffer | 
+            const rhi::BufferInfo computeVerticesInfo { 
                 rhi::BufferUsageFlags::eStorage_Texel_Buffer,
                 rhi::MemoryPropertyFlags::eDeviceLocal
             };
@@ -978,17 +977,17 @@ namespace engine::scene {
         assert(pipeline != nullptr);
 
         commandList->bindPipeline(pipeline);
-        commandList->bindTexelBuffer(0u, _computedVertices[frame], rhi::Format::eR32G32B32A32_Sfloat, 0u, 0u);
-        commandList->bindTexelBuffer(1u, _computedNormals[frame], rhi::Format::eR8G8B8A8_Snorm, 0u, 0u);
-        commandList->bindTexelBuffer(2u, _computedTangents[frame], rhi::Format::eR8G8B8A8_Snorm, 0u, 0u);
+        commandList->bindStorageTexelBuffer(0u, _computedVertices[frame], rhi::Format::eR32G32B32A32_Sfloat, 0u, 0u);
+        commandList->bindStorageTexelBuffer(1u, _computedNormals[frame], rhi::Format::eR8G8B8A8_Snorm, 0u, 0u);
+        commandList->bindStorageTexelBuffer(2u, _computedTangents[frame], rhi::Format::eR8G8B8A8_Snorm, 0u, 0u);
 
-        commandList->bindBuffer(0u, (*_meshSkeletalTransforms)(frame), 1u, 0u);
-        commandList->bindBuffer(1u, (*_meshTransformIndices)(frame), 1u, 0u);
-        commandList->bindBuffer(2u, (*_skeletonIds)(frame), 1u, 0u);
+        commandList->bindStorageBuffer(0u, (*_meshSkeletalTransforms)(frame), 1u, 0u);
+        commandList->bindStorageBuffer(1u, (*_meshTransformIndices)(frame), 1u, 0u);
+        commandList->bindStorageBuffer(2u, (*_skeletonIds)(frame), 1u, 0u);
 
         auto computesDataIndex = dataIndex;
         if (skeletal) {
-            commandList->bindBuffer(0u, mesh.getUniqueIndices().buffer, 2u, 0u);
+            commandList->bindStorageBuffer(0u, mesh.getUniqueIndices().buffer, 2u, 0u);
             commandList->bindTexelBuffer(1u, mesh.getAttribute(mesh::Semantic::ePosition).buffer, rhi::Format::eR16G16B16A16_Sfloat, 2u);
             commandList->bindTexelBuffer(2u, mesh.getAttribute(mesh::Semantic::eNormal).buffer, rhi::Format::eR8G8B8A8_Snorm, 2u);
             commandList->bindTexelBuffer(3u, mesh.getAttribute(mesh::Semantic::eJoints).buffer, rhi::Format::eR8G8B8A8_Unorm, 2u);
@@ -1058,7 +1057,7 @@ namespace engine::scene {
 
                 if (skeletal && computesDataIndex != dataIndex) {
                     computesDataIndex = dataIndex;
-                    commandList->bindBuffer(0u, mesh2.getUniqueIndices().buffer, 2u, 0u);
+                    commandList->bindStorageBuffer(0u, mesh2.getUniqueIndices().buffer, 2u, 0u);
                     commandList->bindTexelBuffer(1u, mesh2.getAttribute(mesh::Semantic::ePosition).buffer, rhi::Format::eR16G16B16A16_Sfloat, 2u);
                     commandList->bindTexelBuffer(2u, mesh2.getAttribute(mesh::Semantic::eNormal).buffer, rhi::Format::eR8G8B8A8_Snorm, 2u);
                     commandList->bindTexelBuffer(3u, mesh2.getAttribute(mesh::Semantic::eJoints).buffer, rhi::Format::eR8G8B8A8_Unorm, 2u);
@@ -1581,12 +1580,11 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
         commandList->bindBuffer(0u, (*_viewParamsUniformBuffer)(frame), 0u, _currentViewParamsBufferOffset);
 
         if (skeletal) {
-            // commandList->bindBuffer(0u, _computedVertices[frame], 1u, 0u);
-            commandList->bindTexelBuffer(0u, _computedVertices[frame], rhi::Format::eR32G32B32A32_Sfloat, 1u, 0u);
-            commandList->bindBuffer(1u, (*_skeletonIds)(frame), 1u, 0u);
+            commandList->bindStorageTexelBuffer(0u, _computedVertices[frame], rhi::Format::eR32G32B32A32_Sfloat, 1u, 0u);
+            commandList->bindStorageBuffer(1u, (*_skeletonIds)(frame), 1u, 0u);
         } else {
-            commandList->bindBuffer(0u, (*_meshTransforms)(frame), 1u, 0u);
-            commandList->bindBuffer(1u, (*_meshTransformIndices)(frame), 1u, 0u);
+            commandList->bindStorageBuffer(0u, (*_meshTransforms)(frame), 1u, 0u);
+            commandList->bindStorageBuffer(1u, (*_meshTransformIndices)(frame), 1u, 0u);
         }
 
         for (auto it = currentIt + 1u; it != end; ++it) {
@@ -1630,12 +1628,11 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
 
                 if (currentSkeletal != skeletal || pipelineChanged) {
                     if (currentSkeletal) {
-                        //commandList->bindBuffer(0u, _computedVertices[frame], 1u, 0u);
-                        commandList->bindTexelBuffer(0u, _computedVertices[frame], rhi::Format::eR32G32B32A32_Sfloat, 1u, 0u);
-                        commandList->bindBuffer(1u, (*_skeletonIds)(frame), 1u, 0u);
+                        commandList->bindStorageTexelBuffer(0u, _computedVertices[frame], rhi::Format::eR32G32B32A32_Sfloat, 1u, 0u);
+                        commandList->bindStorageBuffer(1u, (*_skeletonIds)(frame), 1u, 0u);
                     } else {
-                        commandList->bindBuffer(0u, (*_meshTransforms)(frame), 1u, 0u);
-                        commandList->bindBuffer(1u, (*_meshTransformIndices)(frame), 1u, 0u);
+                        commandList->bindStorageBuffer(0u, (*_meshTransforms)(frame), 1u, 0u);
+                        commandList->bindStorageBuffer(1u, (*_meshTransformIndices)(frame), 1u, 0u);
                     }
                 }
 
@@ -1701,11 +1698,11 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
             commandList->bindBuffer(0u, (*_viewParamsUniformBuffer)(frame), 0u, _currentViewParamsBufferOffset);
             
             if (skeletal) {
-                commandList->bindTexelBuffer(0u, _computedVertices[frame], rhi::Format::eR32G32B32A32_Sfloat, 1u, 0u);
-                commandList->bindBuffer(1u, (*_colorIdSkeletalMeshesIds)(frame), 1u, 0u);
+                commandList->bindStorageTexelBuffer(0u, _computedVertices[frame], rhi::Format::eR32G32B32A32_Sfloat, 1u, 0u);
+                commandList->bindStorageBuffer(1u, (*_colorIdSkeletalMeshesIds)(frame), 1u, 0u);
             } else {
-                commandList->bindBuffer(0u, (*_meshTransforms)(frame), 1u, 0u);
-                commandList->bindBuffer(1u, (*_colorIdMeshesIds)(frame), 1u, 0u);
+                commandList->bindStorageBuffer(0u, (*_meshTransforms)(frame), 1u, 0u);
+                commandList->bindStorageBuffer(1u, (*_colorIdMeshesIds)(frame), 1u, 0u);
             }
         }
 
@@ -1729,11 +1726,11 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
                 commandList->bindBuffer(0u, (*_viewParamsUniformBuffer)(frame), 0u, _currentViewParamsBufferOffset);
                 
                 if (currentSkeletal) {
-                    commandList->bindTexelBuffer(0u, _computedVertices[frame], rhi::Format::eR32G32B32A32_Sfloat, 1u, 0u);
-                    commandList->bindBuffer(1u, (*_colorIdSkeletalMeshesIds)(frame), 1u, 0u);
+                    commandList->bindStorageTexelBuffer(0u, _computedVertices[frame], rhi::Format::eR32G32B32A32_Sfloat, 1u, 0u);
+                    commandList->bindStorageBuffer(1u, (*_colorIdSkeletalMeshesIds)(frame), 1u, 0u);
                 } else {
-                    commandList->bindBuffer(0u, (*_meshTransforms)(frame), 1u, 0u);
-                    commandList->bindBuffer(1u, (*_colorIdMeshesIds)(frame), 1u, 0u);
+                    commandList->bindStorageBuffer(0u, (*_meshTransforms)(frame), 1u, 0u);
+                    commandList->bindStorageBuffer(1u, (*_colorIdMeshesIds)(frame), 1u, 0u);
                 }
 
                 pipelineIdx = currentPipelineIdx;
@@ -1778,11 +1775,11 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
 
                 if (currentSkeletal != skeletal || pipelineChanged) {
                     if (currentSkeletal) {
-                        commandList->bindTexelBuffer(0u, _computedVertices[frame], rhi::Format::eR32G32B32A32_Sfloat, 1u, 0u);
-                        commandList->bindBuffer(1u, (*_colorIdSkeletalMeshesIds)(frame), 1u, 0u);
+                        commandList->bindStorageTexelBuffer(0u, _computedVertices[frame], rhi::Format::eR32G32B32A32_Sfloat, 1u, 0u);
+                        commandList->bindStorageBuffer(1u, (*_colorIdSkeletalMeshesIds)(frame), 1u, 0u);
                     } else {
-                        commandList->bindBuffer(0u, (*_meshTransforms)(frame), 1u, 0u);
-                        commandList->bindBuffer(1u, (*_colorIdMeshesIds)(frame), 1u, 0u);
+                        commandList->bindStorageBuffer(0u, (*_meshTransforms)(frame), 1u, 0u);
+                        commandList->bindStorageBuffer(1u, (*_colorIdMeshesIds)(frame), 1u, 0u);
                     }
                 }
 
@@ -1876,13 +1873,13 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
         commandList->bindBuffer(0u, (*_viewParamsUniformBuffer)(frame), 0u, _currentViewParamsBufferOffset);
 
         if (skeletal) {
-            commandList->bindTexelBuffer(0u, _computedVertices[frame], rhi::Format::eR32G32B32A32_Sfloat, 1u, 0u);
-            commandList->bindTexelBuffer(1u, _computedNormals[frame], rhi::Format::eR8G8B8A8_Snorm, 1u, 0u);
-            commandList->bindTexelBuffer(2u, _computedTangents[frame], rhi::Format::eR8G8B8A8_Snorm, 1u, 0u);
-            commandList->bindBuffer(3u, (*_skeletonIds)(frame), 1u, 0u);
+            commandList->bindStorageTexelBuffer(0u, _computedVertices[frame], rhi::Format::eR32G32B32A32_Sfloat, 1u, 0u);
+            commandList->bindStorageTexelBuffer(1u, _computedNormals[frame], rhi::Format::eR8G8B8A8_Snorm, 1u, 0u);
+            commandList->bindStorageTexelBuffer(2u, _computedTangents[frame], rhi::Format::eR8G8B8A8_Snorm, 1u, 0u);
+            commandList->bindStorageBuffer(3u, (*_skeletonIds)(frame), 1u, 0u);
         } else {
-            commandList->bindBuffer(0u, (*_meshTransforms)(frame), 1u, 0u);
-            commandList->bindBuffer(1u, (*_meshTransformIndices)(frame), 1u, 0u);
+            commandList->bindStorageBuffer(0u, (*_meshTransforms)(frame), 1u, 0u);
+            commandList->bindStorageBuffer(1u, (*_meshTransformIndices)(frame), 1u, 0u);
         }
 
         uniform.offset.x = skeletal ? skeletonsOffset : offset;
@@ -1939,13 +1936,13 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
 
                 if (currentSkeletal != skeletal || pipelineChanged) {
                     if (currentSkeletal) {
-                        commandList->bindTexelBuffer(0u, _computedVertices[frame], rhi::Format::eR32G32B32A32_Sfloat, 1u, 0u);
-                        commandList->bindTexelBuffer(1u, _computedNormals[frame], rhi::Format::eR8G8B8A8_Snorm, 1u, 0u);
-                        commandList->bindTexelBuffer(2u, _computedTangents[frame], rhi::Format::eR8G8B8A8_Snorm, 1u, 0u);
-                        commandList->bindBuffer(3u, (*_skeletonIds)(frame), 1u, 0u);
+                        commandList->bindStorageTexelBuffer(0u, _computedVertices[frame], rhi::Format::eR32G32B32A32_Sfloat, 1u, 0u);
+                        commandList->bindStorageTexelBuffer(1u, _computedNormals[frame], rhi::Format::eR8G8B8A8_Snorm, 1u, 0u);
+                        commandList->bindStorageTexelBuffer(2u, _computedTangents[frame], rhi::Format::eR8G8B8A8_Snorm, 1u, 0u);
+                        commandList->bindStorageBuffer(3u, (*_skeletonIds)(frame), 1u, 0u);
                     } else {
-                        commandList->bindBuffer(0u, (*_meshTransforms)(frame), 1u, 0u);
-                        commandList->bindBuffer(1u, (*_meshTransformIndices)(frame), 1u, 0u);
+                        commandList->bindStorageBuffer(0u, (*_meshTransforms)(frame), 1u, 0u);
+                        commandList->bindStorageBuffer(1u, (*_meshTransformIndices)(frame), 1u, 0u);
                     }
                 }
 

@@ -49,7 +49,8 @@ namespace engine::rhi::runtime {
         eBindTexelBuffer = 28u,
         eBlitImage = 29u,
         eCopyImage2Image = 30u,
-        ePrepareImage2HostRead = 31u,
+        eCopyImage2Buffer = 31u,
+        ePrepareImage2HostRead = 32u,
     };
 
     class CommandList;
@@ -345,6 +346,17 @@ namespace engine::rhi::runtime {
             dst(dst) {}
     };
 
+    struct CopyImage2BufferCommand : Command {
+        CopyBufferImageInfo info{}; // todo: support array of CopyImage2ImageInfo
+        Image * src = nullptr;
+        Buffer * dst = nullptr;
+        CopyImage2BufferCommand(Image * src, Buffer * dst, const CopyBufferImageInfo & info) : 
+            Command(CommandType::eCopyImage2Buffer, sizeof(CopyImage2BufferCommand)),
+            info(info),
+            src(src), 
+            dst(dst) {}
+    };
+
     struct PrepareImage2HostRead : Command {
         Image * img = nullptr;
         PrepareImage2HostRead(Image * img) : 
@@ -445,6 +457,7 @@ namespace engine::rhi::runtime {
             case CommandType::eBindTexelBuffer: [[fallthrough]];
             case CommandType::eBlitImage: [[fallthrough]];
             case CommandType::eCopyImage2Image: [[fallthrough]];
+            case CommandType::eCopyImage2Buffer: [[fallthrough]];
             case CommandType::ePrepareImage2HostRead:
                 return;
             case CommandType::eBeginRenderPass: {
