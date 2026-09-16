@@ -24,12 +24,18 @@ namespace g_map {
             MemoryPropertyFlags::eDeviceLocal
         };
 
-        const engine::rhi::BufferInfo iBufferInfo {
+        const BufferInfo iBufferInfo {
             BufferUsageFlags::eIndex_Buffer | BufferUsageFlags::eStorage_Buffer | BufferUsageFlags::eTransfer_Dst,
             MemoryPropertyFlags::eDeviceLocal
         };
 
         const size_t verticesInRow = _sizeInCells + 1u;
+
+        const ImageInfo colorImageInfo{
+            engine::rhi::ImageUsageFlags::eStorage | engine::rhi::ImageUsageFlags::eSampled,
+            engine::rhi::Format::eR8G8B8A8_Unorm, {verticesInRow, verticesInRow, 1u}
+        };
+
         const size_t vBufferSize = verticesInRow * verticesInRow * sizeof(Vertex);
         const size_t iBufferSize = _sizeInCells * _sizeInCells * 6u * sizeof(uint16_t); // all cells count * 6u
         _vertices = api.createBuffer(device, vBufferInfo, vBufferSize);
@@ -134,7 +140,7 @@ namespace g_map {
                     if (commandList->bindPipeline(*pipeline)) {
                         commandList->pushConstants(
                             engine::rhi::shaders::Stages::eVertex, 
-                            0u, sizeof(Uniform), &uniform
+                            0u, 68u, &uniform
                         );
                         commandList->bindBuffer(0u, scene.getViewParamsUniformBuffer(frameId), 0u, sceneViewParamBufferOffset);
                     }

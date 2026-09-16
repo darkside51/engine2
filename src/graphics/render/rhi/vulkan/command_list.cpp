@@ -135,7 +135,9 @@ namespace engine::vulkan::runtime {
                             VkAccessFlagBits::VK_ACCESS_UNIFORM_READ_BIT | VkAccessFlagBits::VK_ACCESS_SHADER_READ_BIT, // correct?
                             buffer.offset, buffer.size
                         );
-                    }    
+                    } else {
+                        //assert(false);
+                    } 
 
                     if ((usage & (rhi::BufferUsageFlags::eStorage_Buffer | 
                                 rhi::BufferUsageFlags::eStorage_Texel_Buffer)) != rhi::BufferUsageFlags::eNone) {
@@ -148,9 +150,23 @@ namespace engine::vulkan::runtime {
                             buffer.offset, buffer.size
                         );
                     }
-
-                    // rhi::BufferUsageFlags::eIndirect_Buffer
                 }
+
+                if ((buffer.flags & (rhi::BufferUsageFlags::eStorage_Buffer | 
+                                rhi::BufferUsageFlags::eStorage_Texel_Buffer)) != rhi::BufferUsageFlags::eNone) {
+
+                    auto const dstStage = pass.type == rhi::runtime::Pass::Type::eRender ? 
+                                            VkPipelineStageFlagBits::VK_PIPELINE_STAGE_VERTEX_SHADER_BIT : 
+                                            VkPipelineStageFlagBits::VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+
+                    vkBuffer->transition(_barriers,
+                        dstStage,
+                        VkAccessFlagBits::VK_ACCESS_SHADER_READ_BIT | VkAccessFlagBits::VK_ACCESS_SHADER_WRITE_BIT, // need to specify read or write?
+                        buffer.offset, buffer.size
+                    );
+                }
+
+                // rhi::BufferUsageFlags::eIndirect_Buffer
             }
 
             // images
@@ -186,37 +202,33 @@ namespace engine::vulkan::runtime {
                         // command->info.imageSubresource.layerCount,
                         // 1u
                     );
-                } else {
-                    if ((usage & rhi::ImageUsageFlags::eSampled) != rhi::ImageUsageFlags::eNone) {
-                        auto const dstStage = VkPipelineStageFlagBits::VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | 
-                                            VkPipelineStageFlagBits::VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+                } else if ((image.flags & rhi::ImageUsageFlags::eSampled) != rhi::ImageUsageFlags::eNone) {
+                    auto const dstStage = pass.type == rhi::runtime::Pass::Type::eRender ? VkPipelineStageFlagBits::VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | 
+                                                                                        VkPipelineStageFlagBits::VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT :
+                                                                                        VkPipelineStageFlagBits::VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
 
-                        vkImage->transition(
-                            _barriers, 
-                            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 
-                            dstStage, 
-                            VkAccessFlagBits::VK_ACCESS_SHADER_READ_BIT, 
-                            0u, 0u, 
-                            0u, 0u
-                        );  
-                    }
+                    vkImage->transition(
+                        _barriers, 
+                        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 
+                        dstStage, 
+                        VkAccessFlagBits::VK_ACCESS_SHADER_READ_BIT, 
+                        0u, 0u, 
+                        0u, 0u
+                    );  
+                } else if ((image.flags & rhi::ImageUsageFlags::eStorage) != rhi::ImageUsageFlags::eNone) {
+                    auto const dstStage = pass.type == rhi::runtime::Pass::Type::eRender ? VkPipelineStageFlagBits::VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | 
+                                                                                        VkPipelineStageFlagBits::VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT :
+                                                                                        VkPipelineStageFlagBits::VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+
+                    vkImage->transition(
+                        _barriers, 
+                        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 
+                        dstStage, 
+                        VkAccessFlagBits::VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT, 
+                        0u, 0u, 
+                        0u, 0u
+                    );  
                 }
-
-                // ???
-                // if ((usage & rhi::ImageUsageFlags::eStorage) != rhi::ImageUsageFlags::eNone) {
-                //     auto const dstStage = pass.type == rhi::runtime::Pass::Type::eRender ? VkPipelineStageFlagBits::VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | 
-                //                                                                         VkPipelineStageFlagBits::VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT :
-                //                                                                         VkPipelineStageFlagBits::VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
-
-                //     vkImage->transition(
-                //         _barriers, 
-                //         VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 
-                //         dstStage, 
-                //         VkAccessFlagBits::VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT, 
-                //         0u, 0u, 
-                //         0u, 0u
-                //     );  
-                // }
             }
         }
 

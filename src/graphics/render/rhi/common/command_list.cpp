@@ -206,12 +206,30 @@ namespace engine::rhi::runtime {
         ++_commandsCount;
     }
 
+    void CommandList::bindStorageBuffer(uint16_t binding, const BufferPtr & buffer, uint8_t setId, uint64_t offset, uint64_t range) noexcept {
+        // no check it with state, correct check into record function!
+        _resources.push_back(buffer);
+        _commands->create<BindBufferCommand>(binding, buffer.get(), setId, offset, range, false);
+
+        _currentPass->buffers.emplace_back(buffer.get(), BufferUsageFlags::eStorage_Buffer, _pipelineType, offset, range); // not only uniform, correct usage check into implementation of commandlist
+        ++_commandsCount;
+    }
+
     void CommandList::bindBufferDynamic(uint16_t binding, const BufferPtr & buffer, uint8_t setId, uint64_t offset, uint64_t range) noexcept {
         // no check it with state, correct check into record function!
         _resources.push_back(buffer);
         _commands->create<BindBufferCommand>(binding, buffer.get(), setId, offset, range, true);
 
         _currentPass->buffers.emplace_back(buffer.get(), BufferUsageFlags::eUniform_Buffer, _pipelineType, offset, range); // not only uniform, correct usage check into implementation of commandlist
+        ++_commandsCount;
+    }
+
+    void CommandList::bindStorageBufferDynamic(uint16_t binding, const BufferPtr & buffer, uint8_t setId, uint64_t offset, uint64_t range) noexcept {
+        // no check it with state, correct check into record function!
+        _resources.push_back(buffer);
+        _commands->create<BindBufferCommand>(binding, buffer.get(), setId, offset, range, true);
+
+        _currentPass->buffers.emplace_back(buffer.get(), BufferUsageFlags::eStorage_Buffer, _pipelineType, offset, range); // not only uniform, correct usage check into implementation of commandlist
         ++_commandsCount;
     }
 
@@ -223,6 +241,14 @@ namespace engine::rhi::runtime {
         ++_commandsCount;
     }
 
+    void CommandList::bindStorageTexelBuffer(uint16_t binding, const BufferPtr & buffer, Format format, uint8_t setId, uint64_t offset, uint64_t range) noexcept {
+        _resources.push_back(buffer);
+        _commands->create<BindTexelBufferCommand>(binding, buffer.get(), format, setId, offset, range);
+
+        _currentPass->buffers.emplace_back(buffer.get(), BufferUsageFlags::eStorage_Texel_Buffer, _pipelineType, offset, range); // ...
+        ++_commandsCount;
+    }
+
     void CommandList::bindImage(uint16_t binding, const ImagePtr & image, std::optional<rhi::SamplerValue> sampler, uint8_t setId, 
         ImageAspectFlags aspectFlags, ImageViewType viewType) noexcept {
         // no check it with state, correct check into record function!
@@ -230,6 +256,16 @@ namespace engine::rhi::runtime {
         _commands->create<BindImageSamplerCommand>(viewType, aspectFlags, binding, image.get(), sampler, setId);
 
         _currentPass->images.emplace_back(image.get(), ImageUsageFlags::eSampled, _pipelineType);  // ...
+        ++_commandsCount;
+    }
+
+    void CommandList::bindStorageImage(uint16_t binding, const ImagePtr & image, std::optional<rhi::SamplerValue> sampler, uint8_t setId, 
+        ImageAspectFlags aspectFlags, ImageViewType viewType) noexcept {
+        // no check it with state, correct check into record function!
+        _resources.push_back(image);
+        _commands->create<BindImageSamplerCommand>(viewType, aspectFlags, binding, image.get(), sampler, setId);
+
+        _currentPass->images.emplace_back(image.get(), ImageUsageFlags::eStorage, _pipelineType);  // ...
         ++_commandsCount;
     }
 
