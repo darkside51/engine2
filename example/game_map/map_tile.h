@@ -46,6 +46,7 @@ private:
     engine::rhi::runtime::Pipeline * _computePipeline = nullptr;
     engine::rhi::runtime::BufferPtr _vertices = nullptr;
     engine::rhi::runtime::BufferPtr _indices = nullptr;
+    engine::rhi::runtime::ImagePtr _normals = nullptr;
     uint16_t _size;
     uint8_t _sizeInCells;
 };

@@ -1120,9 +1120,11 @@ namespace engine::scene {
         const auto & g = mesh.geometry();
         const auto vertexToCompute = g.uniqueIndicesCount;
 
-        const auto threadsPerObject = (vertexToCompute % kComputeSkinningLocalGroupSize == 0u) ?
-                                       vertexToCompute / kComputeSkinningLocalGroupSize :
-                                       vertexToCompute / kComputeSkinningLocalGroupSize + 1u;
+        // const auto threadsPerObject = (vertexToCompute % kComputeSkinningLocalGroupSize == 0u) ?
+        //                                vertexToCompute / kComputeSkinningLocalGroupSize :
+        //                                vertexToCompute / kComputeSkinningLocalGroupSize + 1u;
+
+        const auto threadsPerObject = (vertexToCompute + kComputeSkinningLocalGroupSize - 1u) / kComputeSkinningLocalGroupSize;
         
         Uniform uniform {
             .firstObject = 0u,

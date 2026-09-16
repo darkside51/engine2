@@ -31,7 +31,7 @@ namespace g_map {
 
         const size_t verticesInRow = _sizeInCells + 1u;
 
-        const ImageInfo colorImageInfo{
+        const ImageInfo imageInfo{
             engine::rhi::ImageUsageFlags::eStorage | engine::rhi::ImageUsageFlags::eSampled,
             engine::rhi::Format::eR8G8B8A8_Unorm, {verticesInRow, verticesInRow, 1u}
         };
@@ -40,6 +40,7 @@ namespace g_map {
         const size_t iBufferSize = _sizeInCells * _sizeInCells * 6u * sizeof(uint16_t); // all cells count * 6u
         _vertices = api.createBuffer(device, vBufferInfo, vBufferSize);
         _indices = api.createBuffer(device, iBufferInfo, iBufferSize);
+        _normals = api.createImage(device, imageInfo);
     }
 
     void TerrainTile::buildGeometry(engine::rhi::runtime::CommandList & cmd) {
@@ -87,6 +88,7 @@ namespace g_map {
         _pipeline = nullptr;
         _vertices = nullptr;
         _indices = nullptr;
+        _normals = nullptr;
     }
 
     //
@@ -98,19 +100,18 @@ namespace g_map {
         engine::rhi::runtime::Pipeline * pipeline = geometry.getComputePipeline();
         assert(pipeline != nullptr);
 
-        constexpr uint16_t kTileLocalGroupSize = 32u;
+        constexpr uint16_t kTileLocalGroupSize = 16u;
         const auto cellsCountInRow = geometry.getSizeInCells();
         const uint16_t verticesInRow = cellsCountInRow + 1u;
 
-        const auto localExecutionCount = (verticesInRow % kTileLocalGroupSize == 0u) ?
-                                          verticesInRow / kTileLocalGroupSize :
-                                          verticesInRow / kTileLocalGroupSize + 1u;
+        const auto groupX = (verticesInRow + kTileLocalGroupSize - 1u) / kTileLocalGroupSize;
+        const auto groupY = (verticesInRow + kTileLocalGroupSize - 1u) / kTileLocalGroupSize;
 
         const auto time = scene.getShadersTime();
         commandList->bindPipeline(*pipeline);
         commandList->pushConstants(engine::rhi::shaders::Stages::eCompute, 0u, sizeof(float), &time);
         commandList->bindStorageBuffer(0u, geometry.getVerticesBuffer(), 0u);
-        commandList->dispatch(localExecutionCount, localExecutionCount, 1u);
+        commandList->dispatch(groupX, groupY, 1u);
     }
 
     void TerrainTileRenderer::draw(
