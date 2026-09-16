@@ -33,7 +33,7 @@ namespace g_map {
 
         const ImageInfo imageInfo{
             engine::rhi::ImageUsageFlags::eStorage | engine::rhi::ImageUsageFlags::eSampled,
-            engine::rhi::Format::eR8G8B8A8_Unorm, {verticesInRow, verticesInRow, 1u}
+            engine::rhi::Format::eR8G8B8A8_Snorm, {verticesInRow, verticesInRow, 1u}
         };
 
         const size_t vBufferSize = verticesInRow * verticesInRow * sizeof(Vertex);
@@ -41,6 +41,13 @@ namespace g_map {
         _vertices = api.createBuffer(device, vBufferInfo, vBufferSize);
         _indices = api.createBuffer(device, iBufferInfo, iBufferSize);
         _normals = api.createImage(device, imageInfo);
+
+        _linearSampler.info.minFilter = engine::rhi::FilterMode::eLinear;
+        _linearSampler.info.magFilter = engine::rhi::FilterMode::eLinear;
+        _linearSampler.info.addressModeU = rhi::SamplerAddressMode::eClamp_To_Border;
+        _linearSampler.info.addressModeV = rhi::SamplerAddressMode::eClamp_To_Border;
+        _linearSampler.info.addressModeW = rhi::SamplerAddressMode::eClamp_To_Border;
+        //device.evaluateSampler(_linearSampler);
     }
 
     void TerrainTile::buildGeometry(engine::rhi::runtime::CommandList & cmd) {
@@ -97,7 +104,7 @@ namespace g_map {
         engine::rhi::runtime::CommandListPtr & commandList, uint8_t frameId
     ) const {
         const auto & geometry = *static_cast<TerrainTile*>(object.getData());
-        engine::rhi::runtime::Pipeline * pipeline = geometry.getComputePipeline();
+        engine::rhi::runtime::Pipeline * pipeline = geometry.getComputeHeightPipeline();
         assert(pipeline != nullptr);
 
         constexpr uint16_t kTileLocalGroupSize = 16u;
@@ -111,6 +118,18 @@ namespace g_map {
         commandList->bindPipeline(*pipeline);
         commandList->pushConstants(engine::rhi::shaders::Stages::eCompute, 0u, sizeof(float), &time);
         commandList->bindStorageBuffer(0u, geometry.getVerticesBuffer(), 0u);
+        commandList->dispatch(groupX, groupY, 1u);
+
+        pipeline = geometry.getComputeNormalsPipeline();
+        assert(pipeline != nullptr);
+        commandList->bindPipeline(*pipeline);
+        const uint32_t cells = verticesInRow;
+        commandList->pushConstants(
+                            engine::rhi::shaders::Stages::eCompute, 
+                            0u, 4u, &cells
+                        );
+        commandList->bindStorageBuffer(0u, geometry.getVerticesBuffer(), 0u);
+        commandList->bindStorageImage(1u, geometry.getNormalsImage(), std::nullopt, 0u);
         commandList->dispatch(groupX, groupY, 1u);
     }
 
@@ -147,6 +166,8 @@ namespace g_map {
                     }
 
                     const auto & ib = geometry.getIndicesBuffer();
+
+                    commandList->bindImage(1u, geometry.getNormalsImage(), geometry.getSampler(), 0u);
 
                     commandList->bindVertexBuffer(0u, geometry.getVerticesBuffer());
                     commandList->bindIndexBuffer(ib, 0u, engine::rhi::IndexType::eU16);

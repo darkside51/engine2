@@ -4,6 +4,7 @@
 
 
 layout (location = 0) in vec3 v_worldPosition;
+layout (location = 1) in vec2 v_uv;
 
 layout (location = 0) out float out_position;
 layout (location = 1) out vec4 out_normal;
@@ -22,13 +23,18 @@ layout (set = 0, binding = 0) uniform UniformBuffer {
 	float time;
 } u_viewParams;
 
+layout(set = 0, binding = 1) uniform sampler2D u_normals;
+
 void main() {
 	const float depthLinear = linearDepth(gl_FragCoord.z, u_viewParams.nearFarPlanes.x, u_viewParams.nearFarPlanes.y);
 	out_position = depthLinear;
 
-	vec3 normal = u_viewParams.viewTransposeInverse * -normalize(cross(dFdx(v_worldPosition.xyz), dFdy(v_worldPosition.xyz)));
-	out_normal = vec4(normalize(normal) * 0.5 + 0.5, 0.0f);
-	out_albedo = vec4(1.0, 1.0, 1.0, 1.0);
-	out_emissive = vec4(0.0, 0.0, 0.0, 0.0);
+	//vec3 normal = u_viewParams.viewTransposeInverse * -normalize(cross(dFdx(v_worldPosition.xyz), dFdy(v_worldPosition.xyz)));
+
+	vec3 normal = u_viewParams.viewTransposeInverse * -texture(u_normals, v_uv).xyz;
+
+	out_normal = vec4(normalize(normal) * 0.5f + 0.5f, 0.0f);
+	out_albedo = vec4(1.0f, 1.0f, 1.0f, 1.0f);
+	out_emissive = vec4(0.0f, 0.0f, 0.0f, 0.f);
 	out_metalicRoughness = vec2(0.0f, 1.0f);
 }

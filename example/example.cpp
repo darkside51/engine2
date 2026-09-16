@@ -110,6 +110,7 @@ namespace example {
 
     constexpr uint8_t kTerrainTileProgram = 20u;
     constexpr uint8_t kTerrainTileComputeProgram = 21u;
+    constexpr uint8_t kTerrainTileComputeNormalsProgram = 22u;
     constexpr uint8_t kTerrainTilePipeline = 6u;
     constexpr uint8_t kTerrainTileComputePipeline = 7u;
 
@@ -311,6 +312,7 @@ namespace example {
     g_map::TerrainTile terrainTile(4u, 31u);
     uint8_t gTerrainPipeline;
     uint8_t gTerrainComputePipeline;
+    uint8_t gTerrainComputeNormalsPipeline;
 
     void optionsWindow() {
         ImGui::SetNextWindowSize(ImVec2(540, 840), ImGuiCond_FirstUseEver);
@@ -1593,6 +1595,11 @@ namespace example {
             const auto & compModule = _shaderModulesManager->registerModule("terrain_tile_compute.comp", *_device, engine::rhi::shaders::Stages::eCompute, cBytes);
             _programs.emplace_back(_api->createProgram(*_device, engine::stl::array{compModule.getView()}));
         }
+        { // kTerrainTileComputeNormalsProgram
+            auto const cBytes = fileManager.readFile("shaders/terrain_tile_compute_normals.comp.spv");
+            const auto & compModule = _shaderModulesManager->registerModule("terrain_tile_compute_normals.comp", *_device, engine::rhi::shaders::Stages::eCompute, cBytes);
+            _programs.emplace_back(_api->createProgram(*_device, engine::stl::array{compModule.getView()}));
+        }
     }
     
     void Example::createPipelines() {
@@ -1710,9 +1717,11 @@ namespace example {
         const GraphicsPipelineStatesInfo info14 = engine::parseGraphicsPipelineInfo(json["terrain_tile"]);
         _pipelines.emplace_back(_api->createGraphicsPipeline(*_device, _renderPasses[kGbufferRenderPass], _programs[kTerrainTileProgram], info14, 0u));
         _pipelines.emplace_back(_api->createComputePipeline(*_device, _programs[kTerrainTileComputeProgram]));
+        _pipelines.emplace_back(_api->createComputePipeline(*_device, _programs[kTerrainTileComputeNormalsProgram]));
 
-        gTerrainPipeline = _pipelines.size() - 2u;
-        gTerrainComputePipeline = _pipelines.size() - 1u;
+        gTerrainPipeline = _pipelines.size() - 3u;
+        gTerrainComputePipeline = _pipelines.size() - 2u;
+        gTerrainComputeNormalsPipeline = _pipelines.size() - 1u;
         terrainTile.buildBuffers(*_api, *_device);
     }
 
@@ -2195,7 +2204,8 @@ namespace example {
         //
         terrainTile.buildGeometry(*tmpCommandList);
         terrainTile.setGraphicsPipeline(_pipelines[gTerrainPipeline].get());
-        terrainTile.setComputePipeline(_pipelines[gTerrainComputePipeline].get());
+        terrainTile.setComputeHeightPipeline(_pipelines[gTerrainComputePipeline].get());
+        terrainTile.setComputeNormalsPipeline(_pipelines[gTerrainComputeNormalsPipeline].get());
 
         tmpCommandList->end();
         tmpCommandList->record(0u);

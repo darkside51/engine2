@@ -32,7 +32,8 @@ namespace engine::vulkan {
             case rhi::shaders::DescriptorType::eInput_Attachment: [[fallthrough]]; // https://registry.khronos.org/vulkan/specs/latest/man/html/VkDescriptorImageInfo.html
             case rhi::shaders::DescriptorType::eSampler: [[fallthrough]];
             case rhi::shaders::DescriptorType::eSampled_Image: [[fallthrough]];
-            case rhi::shaders::DescriptorType::eCombined_Image_Sampler:
+            case rhi::shaders::DescriptorType::eCombined_Image_Sampler: [[fallthrough]];
+            case rhi::shaders::DescriptorType::eStorage_Image:
                 imagesCount += layout.count;
                 break;
             case rhi::shaders::DescriptorType::eUniform_Texel_Buffer: [[fallthrough]];
@@ -76,7 +77,8 @@ namespace engine::vulkan {
             case rhi::shaders::DescriptorType::eInput_Attachment: [[fallthrough]]; // https://registry.khronos.org/vulkan/specs/latest/man/html/VkDescriptorImageInfo.html
             case rhi::shaders::DescriptorType::eSampler: [[fallthrough]];
             case rhi::shaders::DescriptorType::eSampled_Image: [[fallthrough]];
-            case rhi::shaders::DescriptorType::eCombined_Image_Sampler:
+            case rhi::shaders::DescriptorType::eCombined_Image_Sampler: [[fallthrough]];
+            case rhi::shaders::DescriptorType::eStorage_Image:
             {
                 _imagesInfo.view()[updateImageIndex++] = {
                     {

@@ -16,16 +16,24 @@ public:
         _pipeline = p;
     }
 
-    void setComputePipeline(engine::rhi::runtime::Pipeline * p) noexcept {
-        _computePipeline = p;
+    void setComputeHeightPipeline(engine::rhi::runtime::Pipeline * p) noexcept {
+        _computePipelineHeight = p;
+    }
+
+    void setComputeNormalsPipeline(engine::rhi::runtime::Pipeline * p) noexcept {
+        _computePipelineNormals = p;
     }
     
     engine::rhi::runtime::Pipeline * getGraphicsPipeline() const noexcept {
         return _pipeline;
     }
 
-    engine::rhi::runtime::Pipeline * getComputePipeline() const noexcept {
-        return _computePipeline;
+    engine::rhi::runtime::Pipeline * getComputeHeightPipeline() const noexcept {
+        return _computePipelineHeight;
+    }
+
+    engine::rhi::runtime::Pipeline * getComputeNormalsPipeline() const noexcept {
+        return _computePipelineNormals;
     }
 
     const engine::rhi::runtime::BufferPtr & getVerticesBuffer() const noexcept {
@@ -36,6 +44,14 @@ public:
         return _indices;
     }
 
+    const engine::rhi::runtime::ImagePtr & getNormalsImage() const noexcept {
+        return _normals;
+    }
+
+    const engine::rhi::SamplerValue & getSampler() const noexcept {
+        return _linearSampler;
+    }
+
     uint16_t getSize() const noexcept { return _size; }
     uint16_t getSizeInCells() const noexcept { return _sizeInCells; }
 
@@ -43,10 +59,12 @@ public:
 
 private:
     engine::rhi::runtime::Pipeline * _pipeline = nullptr;
-    engine::rhi::runtime::Pipeline * _computePipeline = nullptr;
+    engine::rhi::runtime::Pipeline * _computePipelineHeight = nullptr;
+    engine::rhi::runtime::Pipeline * _computePipelineNormals = nullptr;
     engine::rhi::runtime::BufferPtr _vertices = nullptr;
     engine::rhi::runtime::BufferPtr _indices = nullptr;
     engine::rhi::runtime::ImagePtr _normals = nullptr;
+    engine::rhi::SamplerValue _linearSampler{};
     uint16_t _size;
     uint8_t _sizeInCells;
 };

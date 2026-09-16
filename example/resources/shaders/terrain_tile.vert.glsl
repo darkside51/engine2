@@ -2,6 +2,7 @@
 
 layout (location = 0) in vec4 a_position;
 layout (location = 0) out vec3 v_worldPosition;
+layout (location = 1) out vec2 v_uv;
 
 layout(push_constant, std430) uniform Transform {
 	mat4 model;
@@ -23,4 +24,5 @@ void main() {
 	vec4 worldPosition = push.model * vec4(a_position.xyz * push.cellSize, a_position.w);
 	gl_Position = u_viewParams.viewProjection * worldPosition;
 	v_worldPosition = worldPosition.xyz / worldPosition.w;
+	v_uv = a_position.xy / 32.0f;
 }

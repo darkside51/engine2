@@ -206,7 +206,7 @@ namespace engine::vulkan::runtime {
 
                     vkImage->transition(
                         _barriers, 
-                        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 
+                        VK_IMAGE_LAYOUT_GENERAL, 
                         dstStage, 
                         VkAccessFlagBits::VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT, 
                         0u, 0u, 
