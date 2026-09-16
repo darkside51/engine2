@@ -26,6 +26,8 @@ namespace engine {
         io.IniFilename = nullptr; // disable creation "imgui.ini"
         io.LogFilename = nullptr;
 
+        io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+
         setupKeyMap();
     }
 
@@ -159,6 +161,10 @@ namespace engine {
         io.DeltaTime = delta;
         io.DisplaySize = ImVec2(w, h);
         ImGui::NewFrame();
+
+        // for docking
+        const ImGuiDockNodeFlags dockFlags = ImGuiDockNodeFlags_PassthruCentralNode;
+        ImGui::DockSpaceOverViewport(0u, ImGui::GetMainViewport(), dockFlags);
     }
 
     void ImGuiSystem::endFrame() {
@@ -274,7 +280,7 @@ namespace engine {
                     }
                 );
 
-                auto & texture = *static_cast<rhi::runtime::ImagePtr *>(cmd.TextureId);
+                auto & texture = *reinterpret_cast<rhi::runtime::ImagePtr *>(cmd.GetTexID());
                 commandList.bindImage(1u, texture, _sampler);
 
                 commandList.bindVertexBuffer(0u, (*_vertices)(frame), vOffset);
@@ -318,13 +324,139 @@ namespace engine {
         return io.WantCaptureMouse;
     }
 
+    constexpr ImGuiKey translateKey(KeyboardKey key) noexcept {
+        switch (key) {
+            // system
+            case KeyboardKey::eEscape:       return ImGuiKey_Escape;
+            case KeyboardKey::eEnter:        return ImGuiKey_Enter;
+            case KeyboardKey::eSpace:        return ImGuiKey_Space;
+            case KeyboardKey::eBackSpace:    return ImGuiKey_Backspace;
+            case KeyboardKey::eTab:          return ImGuiKey_Tab;
+            case KeyboardKey::eInsert:       return ImGuiKey_Insert;
+            case KeyboardKey::eDelete:       return ImGuiKey_Delete;
+            case KeyboardKey::ePageUp:       return ImGuiKey_PageUp;
+            case KeyboardKey::ePageDown:     return ImGuiKey_PageDown;
+            case KeyboardKey::eHome:         return ImGuiKey_Home;
+            case KeyboardKey::eEnd:          return ImGuiKey_End;
+            case KeyboardKey::ePrintScreen:  return ImGuiKey_PrintScreen;
+            case KeyboardKey::eScrollLock:   return ImGuiKey_ScrollLock;
+            case KeyboardKey::ePause:        return ImGuiKey_Pause;
+            case KeyboardKey::eCapsLock:     return ImGuiKey_CapsLock;
+
+            // arrows
+            case KeyboardKey::eLeft:         return ImGuiKey_LeftArrow;
+            case KeyboardKey::eRight:        return ImGuiKey_RightArrow;
+            case KeyboardKey::eUp:           return ImGuiKey_UpArrow;
+            case KeyboardKey::eDown:         return ImGuiKey_DownArrow;
+
+            // modifiers
+            case KeyboardKey::eLeftShift:    return ImGuiKey_LeftShift;
+            case KeyboardKey::eRightShift:   return ImGuiKey_RightShift;
+            case KeyboardKey::eLeftControl:  return ImGuiKey_LeftCtrl;
+            case KeyboardKey::eRightControl: return ImGuiKey_RightCtrl;
+            case KeyboardKey::eLeftAlt:      return ImGuiKey_LeftAlt;
+            case KeyboardKey::eRightAlt:     return ImGuiKey_RightAlt;
+            case KeyboardKey::eLeftSuper:    return ImGuiKey_LeftSuper;
+            case KeyboardKey::eRightSuper:   return ImGuiKey_RightSuper;
+
+            // letters
+            case KeyboardKey::eA:            return ImGuiKey_A;
+            case KeyboardKey::eB:            return ImGuiKey_B;
+            case KeyboardKey::eC:            return ImGuiKey_C;
+            case KeyboardKey::eD:            return ImGuiKey_D;
+            case KeyboardKey::eE:            return ImGuiKey_E;
+            case KeyboardKey::eF:            return ImGuiKey_F;
+            case KeyboardKey::eG:            return ImGuiKey_G;
+            case KeyboardKey::eH:            return ImGuiKey_H;
+            case KeyboardKey::eI:            return ImGuiKey_I;
+            case KeyboardKey::eJ:            return ImGuiKey_J;
+            case KeyboardKey::eK:            return ImGuiKey_K;
+            case KeyboardKey::eL:            return ImGuiKey_L;
+            case KeyboardKey::eM:            return ImGuiKey_M;
+            case KeyboardKey::eN:            return ImGuiKey_N;
+            case KeyboardKey::eO:            return ImGuiKey_O;
+            case KeyboardKey::eP:            return ImGuiKey_P;
+            case KeyboardKey::eQ:            return ImGuiKey_Q;
+            case KeyboardKey::eR:            return ImGuiKey_R;
+            case KeyboardKey::eS:            return ImGuiKey_S;
+            case KeyboardKey::eT:            return ImGuiKey_T;
+            case KeyboardKey::eU:            return ImGuiKey_U;
+            case KeyboardKey::eV:            return ImGuiKey_V;
+            case KeyboardKey::eW:            return ImGuiKey_W;
+            case KeyboardKey::eX:            return ImGuiKey_X;
+            case KeyboardKey::eY:            return ImGuiKey_Y;
+            case KeyboardKey::eZ:            return ImGuiKey_Z;
+
+            // numbers
+            case KeyboardKey::e0:            return ImGuiKey_0;
+            case KeyboardKey::e1:            return ImGuiKey_1;
+            case KeyboardKey::e2:            return ImGuiKey_2;
+            case KeyboardKey::e3:            return ImGuiKey_3;
+            case KeyboardKey::e4:            return ImGuiKey_4;
+            case KeyboardKey::e5:            return ImGuiKey_5;
+            case KeyboardKey::e6:            return ImGuiKey_6;
+            case KeyboardKey::e7:            return ImGuiKey_7;
+            case KeyboardKey::e8:            return ImGuiKey_8;
+            case KeyboardKey::e9:            return ImGuiKey_9;
+
+            // F1-F12
+            case KeyboardKey::eF1:           return ImGuiKey_F1;
+            case KeyboardKey::eF2:           return ImGuiKey_F2;
+            case KeyboardKey::eF3:           return ImGuiKey_F3;
+            case KeyboardKey::eF4:           return ImGuiKey_F4;
+            case KeyboardKey::eF5:           return ImGuiKey_F5;
+            case KeyboardKey::eF6:           return ImGuiKey_F6;
+            case KeyboardKey::eF7:           return ImGuiKey_F7;
+            case KeyboardKey::eF8:           return ImGuiKey_F8;
+            case KeyboardKey::eF9:           return ImGuiKey_F9;
+            case KeyboardKey::eF10:          return ImGuiKey_F10;
+            case KeyboardKey::eF11:          return ImGuiKey_F11;
+            case KeyboardKey::eF12:          return ImGuiKey_F12;
+
+            // numpad
+            case KeyboardKey::eKP0:          return ImGuiKey_Keypad0;
+            case KeyboardKey::eKP1:          return ImGuiKey_Keypad1;
+            case KeyboardKey::eKP2:          return ImGuiKey_Keypad2;
+            case KeyboardKey::eKP3:          return ImGuiKey_Keypad3;
+            case KeyboardKey::eKP4:          return ImGuiKey_Keypad4;
+            case KeyboardKey::eKP5:          return ImGuiKey_Keypad5;
+            case KeyboardKey::eKP6:          return ImGuiKey_Keypad6;
+            case KeyboardKey::eKP7:          return ImGuiKey_Keypad7;
+            case KeyboardKey::eKP8:          return ImGuiKey_Keypad8;
+            case KeyboardKey::eKP9:          return ImGuiKey_Keypad9;
+            case KeyboardKey::eKPDecimal:    return ImGuiKey_KeypadDecimal;
+            case KeyboardKey::eKPDivide:     return ImGuiKey_KeypadDivide;
+            case KeyboardKey::eKPMultiply:   return ImGuiKey_KeypadMultiply;
+            case KeyboardKey::eKPSubtract:   return ImGuiKey_KeypadSubtract;
+            case KeyboardKey::eKPAdd:        return ImGuiKey_KeypadAdd;
+            case KeyboardKey::eKPEnter:      return ImGuiKey_KeypadEnter;
+            case KeyboardKey::eNumLock:      return ImGuiKey_NumLock;
+
+            // other
+            case KeyboardKey::eApostrophe:   return ImGuiKey_Apostrophe;   // '
+            case KeyboardKey::eComma:        return ImGuiKey_Comma;        // ,
+            case KeyboardKey::eMinus:        return ImGuiKey_Minus;        // -
+            case KeyboardKey::ePeriod:       return ImGuiKey_Period;       // .
+            case KeyboardKey::eSlash:        return ImGuiKey_Slash;        // /
+            case KeyboardKey::eSemicolon:    return ImGuiKey_Semicolon;    // ;
+            case KeyboardKey::eEqual:        return ImGuiKey_Equal;        // =
+            case KeyboardKey::eLeftBracket:  return ImGuiKey_LeftBracket;  // [
+            case KeyboardKey::eBackSlash:    return ImGuiKey_Backslash;    // \
+            case KeyboardKey::eRightBracket: return ImGuiKey_RightBracket; // ]
+            case KeyboardKey::eGraveAccent:  return ImGuiKey_GraveAccent;  // ` ~
+
+            default:                         return ImGuiKey_None;
+        }
+    }
+
     bool ImGuiSystem::onInpuKeyEvent(const KeyEvent & event, const InputKeyMod & mod) {
         ImGuiIO &io = ImGui::GetIO();
         io.KeyShift = mod.isShiftPressed();
         io.KeyAlt = mod.isAltPressed();
         io.KeySuper = mod.isSuperPressed();
         io.KeyCtrl = mod.isCtrlPressed();
-        io.KeysDown[static_cast<uint8_t>(event.key)] = event.state == InputEventState::ePress;
+        const auto key = translateKey(event.key);
+        io.AddKeyEvent(key, event.state == InputEventState::ePress);
 
         if (event.state == InputEventState::ePress || event.state == InputEventState::eRepeate) {
             const auto &[key, keyWithShift] = _keyMap[static_cast<uint8_t>(event.key)];
@@ -335,17 +467,6 @@ namespace engine {
     }
 
     void ImGuiSystem::setupKeyMap() {
-        ImGuiIO &io = ImGui::GetIO();
-        io.KeyMap[ImGuiKey_LeftArrow] = static_cast<uint8_t>(KeyboardKey::eLeft);
-        io.KeyMap[ImGuiKey_RightArrow] = static_cast<uint8_t>(KeyboardKey::eRight);
-        io.KeyMap[ImGuiKey_UpArrow] = static_cast<uint8_t>(KeyboardKey::eUp);
-        io.KeyMap[ImGuiKey_DownArrow] = static_cast<uint8_t>(KeyboardKey::eDown);
-        io.KeyMap[ImGuiKey_Delete] = static_cast<uint8_t>(KeyboardKey::eDelete);
-        io.KeyMap[ImGuiKey_Backspace] = static_cast<uint8_t>(KeyboardKey::eBackSpace);
-        io.KeyMap[ImGuiKey_Space] = static_cast<uint8_t>(KeyboardKey::eSpace);
-        io.KeyMap[ImGuiKey_Enter] = static_cast<uint8_t>(KeyboardKey::eEnter);
-        io.KeyMap[ImGuiKey_Tab] = static_cast<uint8_t>(KeyboardKey::eTab);
-
         _keyMap[static_cast<uint8_t>(KeyboardKey::eBackSpace)] = {8u, 8u};
         _keyMap[static_cast<uint8_t>(KeyboardKey::eTab)] = {9u, 9u};
         _keyMap[static_cast<uint8_t>(KeyboardKey::eSpace)] = {32u, 32u};
