@@ -29,6 +29,13 @@ namespace engine {
         io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 
         setupKeyMap();
+
+        // Set the standard dark theme (Default)
+        //ImGui::StyleColorsDark();
+        // Set the light theme
+        //ImGui::StyleColorsLight();
+        // Set the retro/classic ImGui theme
+        //ImGui::StyleColorsClassic();
     }
 
     ImGuiSystem::~ImGuiSystem() {
