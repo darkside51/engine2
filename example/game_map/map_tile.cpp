@@ -10,7 +10,7 @@
 namespace g_map {
     
     struct Vertex{
-        engine::stl::array<float, 4u>(position);
+        engine::stl::array<float, 2u>(position);
     };
 
     TerrainTile::TerrainTile(uint16_t size, uint8_t sizeInCells): _size(size), _sizeInCells(sizeInCells) {}
@@ -31,22 +31,28 @@ namespace g_map {
 
         const size_t verticesInRow = _sizeInCells + 1u;
 
-        const ImageInfo imageInfo{
+        const ImageInfo normalsImageInfo{
             engine::rhi::ImageUsageFlags::eStorage | engine::rhi::ImageUsageFlags::eSampled,
             engine::rhi::Format::eR8G8B8A8_Snorm, {verticesInRow, verticesInRow, 1u}
+        };
+
+        const ImageInfo heightsImageInfo{
+            engine::rhi::ImageUsageFlags::eStorage | engine::rhi::ImageUsageFlags::eSampled,
+            engine::rhi::Format::eR16_Sfloat, {verticesInRow, verticesInRow, 1u}
         };
 
         const size_t vBufferSize = verticesInRow * verticesInRow * sizeof(Vertex);
         const size_t iBufferSize = _sizeInCells * _sizeInCells * 6u * sizeof(uint16_t); // all cells count * 6u
         _vertices = api.createBuffer(device, vBufferInfo, vBufferSize);
         _indices = api.createBuffer(device, iBufferInfo, iBufferSize);
-        _normals = api.createImage(device, imageInfo);
+        _normals = api.createImage(device, normalsImageInfo);
+        _heights = api.createImage(device, heightsImageInfo);
 
         _linearSampler.info.minFilter = engine::rhi::FilterMode::eLinear;
         _linearSampler.info.magFilter = engine::rhi::FilterMode::eLinear;
-        _linearSampler.info.addressModeU = rhi::SamplerAddressMode::eClamp_To_Border;
-        _linearSampler.info.addressModeV = rhi::SamplerAddressMode::eClamp_To_Border;
-        _linearSampler.info.addressModeW = rhi::SamplerAddressMode::eClamp_To_Border;
+        _linearSampler.info.addressModeU = rhi::SamplerAddressMode::eClamp_To_Edge;
+        _linearSampler.info.addressModeV = rhi::SamplerAddressMode::eClamp_To_Edge;
+        _linearSampler.info.addressModeW = rhi::SamplerAddressMode::eClamp_To_Edge;
         //device.evaluateSampler(_linearSampler);
     }
 
@@ -62,7 +68,7 @@ namespace g_map {
             for (size_t i = 0u; i < verticesInRow; ++i) {
                 for (size_t j = 0u; j < verticesInRow; ++j) {
                     verticeView[i * verticesInRow + j] = {
-                        .position = {j, i, 0.0f, 1.0f}
+                        .position = {static_cast<float>(j), static_cast<float>(i)}
                     };
                 }
             }
@@ -96,6 +102,7 @@ namespace g_map {
         _vertices = nullptr;
         _indices = nullptr;
         _normals = nullptr;
+        _heights = nullptr;
     }
 
     //
@@ -118,18 +125,14 @@ namespace g_map {
         commandList->bindPipeline(*pipeline);
         commandList->pushConstants(engine::rhi::shaders::Stages::eCompute, 0u, sizeof(float), &time);
         commandList->bindStorageBuffer(0u, geometry.getVerticesBuffer(), 0u);
+        commandList->bindStorageImage(1u, geometry.getHeightsImage(), std::nullopt, 0u);
         commandList->dispatch(groupX, groupY, 1u);
 
         pipeline = geometry.getComputeNormalsPipeline();
         assert(pipeline != nullptr);
         commandList->bindPipeline(*pipeline);
-        const uint32_t cells = verticesInRow;
-        commandList->pushConstants(
-                            engine::rhi::shaders::Stages::eCompute, 
-                            0u, 4u, &cells
-                        );
-        commandList->bindStorageBuffer(0u, geometry.getVerticesBuffer(), 0u);
-        commandList->bindStorageImage(1u, geometry.getNormalsImage(), std::nullopt, 0u);
+        commandList->bindStorageImage(0u, geometry.getNormalsImage(), std::nullopt, 0u);
+        commandList->bindImage(1u, geometry.getHeightsImage(), geometry.getSampler(), 0u);
         commandList->dispatch(groupX, groupY, 1u);
     }
 
@@ -168,6 +171,7 @@ namespace g_map {
                     const auto & ib = geometry.getIndicesBuffer();
 
                     commandList->bindImage(1u, geometry.getNormalsImage(), geometry.getSampler(), 0u);
+                    commandList->bindStorageImage(2u, geometry.getHeightsImage(), std::nullopt, 0u);
 
                     commandList->bindVertexBuffer(0u, geometry.getVerticesBuffer());
                     commandList->bindIndexBuffer(ib, 0u, engine::rhi::IndexType::eU16);

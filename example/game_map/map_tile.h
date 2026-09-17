@@ -48,6 +48,10 @@ public:
         return _normals;
     }
 
+    const engine::rhi::runtime::ImagePtr & getHeightsImage() const noexcept {
+        return _heights;
+    }
+
     const engine::rhi::SamplerValue & getSampler() const noexcept {
         return _linearSampler;
     }
@@ -63,6 +67,7 @@ private:
     engine::rhi::runtime::Pipeline * _computePipelineNormals = nullptr;
     engine::rhi::runtime::BufferPtr _vertices = nullptr;
     engine::rhi::runtime::BufferPtr _indices = nullptr;
+    engine::rhi::runtime::ImagePtr _heights = nullptr;
     engine::rhi::runtime::ImagePtr _normals = nullptr;
     engine::rhi::SamplerValue _linearSampler{};
     uint16_t _size;

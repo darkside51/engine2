@@ -133,11 +133,12 @@ namespace engine::rhi::runtime {
 
             _pipelineType = pipeline.bindPoint;
 
-            if (pipeline.bindPoint == PipelineBindPoint::eCompute && (_currentPass == nullptr || _currentPass->type != Pass::Type::eRender)) {
+            if (pipeline.bindPoint == PipelineBindPoint::eCompute && 
+                (_currentPass == nullptr || _currentPass->type != Pass::Type::eRender)) { // correct?
                 _currentPass = &_passes.emplace_back(Pass::Type::eCompute, _commandsCount);
             }
             ++_commandsCount;
-            
+
             return true;
         }
         return false;

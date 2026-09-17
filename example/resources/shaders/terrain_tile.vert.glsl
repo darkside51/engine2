@@ -1,6 +1,6 @@
 #version 450
 
-layout (location = 0) in vec4 a_position;
+layout (location = 0) in vec2 a_position;
 layout (location = 0) out vec3 v_worldPosition;
 layout (location = 1) out vec2 v_uv;
 
@@ -20,8 +20,11 @@ layout (set = 0, binding = 0) uniform UniformBuffer {
 	float time;
 } u_viewParams;
 
+layout(set = 0, binding = 2, r16f) readonly uniform image2D heights;
+
 void main() {
-	vec4 worldPosition = push.model * vec4(a_position.xyz * push.cellSize, a_position.w);
+ 	const vec4 heightTexel = imageLoad(heights, ivec2(a_position.xy));
+	vec4 worldPosition = push.model * vec4(a_position.xy * push.cellSize, heightTexel.x * push.cellSize, 1.0f);
 	gl_Position = u_viewParams.viewProjection * worldPosition;
 	v_worldPosition = worldPosition.xyz / worldPosition.w;
 	v_uv = a_position.xy / 31.0f;
