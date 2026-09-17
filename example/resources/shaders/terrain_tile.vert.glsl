@@ -7,6 +7,7 @@ layout (location = 1) out vec2 v_uv;
 layout(push_constant, std430) uniform Transform {
 	mat4 model;
 	float cellSize;
+	float uvCellSize;
 } push;
 
 layout (set = 0, binding = 0) uniform UniformBuffer {
@@ -20,7 +21,7 @@ layout (set = 0, binding = 0) uniform UniformBuffer {
 	float time;
 } u_viewParams;
 
-layout(set = 0, binding = 2, r16f) readonly uniform image2D heights;
+layout(set = 0, binding = 1, r16f) readonly uniform image2D heights;
 
 void main() {
  	const vec4 heightTexel = imageLoad(heights, ivec2(a_position.xy));

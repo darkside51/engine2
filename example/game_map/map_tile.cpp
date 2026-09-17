@@ -1,7 +1,9 @@
 #include "map_tile.h"
 
+#include "graphics/common/graphics_service.h"
 #include "graphics/render/rhi/common/command_list.h"
 #include "graphics/scene/scene.h"
+#include "graphics/texture/texture_manager.h"
 #include "stl/array.h"
 #include "stl/vector.h"
 
@@ -47,13 +49,6 @@ namespace g_map {
         _indices = api.createBuffer(device, iBufferInfo, iBufferSize);
         _normals = api.createImage(device, normalsImageInfo);
         _heights = api.createImage(device, heightsImageInfo);
-
-        _linearSampler.info.minFilter = engine::rhi::FilterMode::eLinear;
-        _linearSampler.info.magFilter = engine::rhi::FilterMode::eLinear;
-        _linearSampler.info.addressModeU = rhi::SamplerAddressMode::eClamp_To_Edge;
-        _linearSampler.info.addressModeV = rhi::SamplerAddressMode::eClamp_To_Edge;
-        _linearSampler.info.addressModeW = rhi::SamplerAddressMode::eClamp_To_Edge;
-        //device.evaluateSampler(_linearSampler);
     }
 
     void TerrainTile::buildGeometry(engine::rhi::runtime::CommandList & cmd) {
@@ -82,13 +77,23 @@ namespace g_map {
             for (size_t i = 0u; i < _sizeInCells; ++i) {
                 for (size_t j = 0u; j < _sizeInCells; ++j) {
                     auto idx = i * verticesInRow + j;
-                    indicesView[n + 0u] = idx;
-                    indicesView[n + 1u] = idx + 1u;
-                    indicesView[n + 2u] = idx + verticesInRow;
+                    if (idx & 1) {
+                        indicesView[n + 0u] = idx;
+                        indicesView[n + 1u] = idx + 1u;
+                        indicesView[n + 2u] = idx + verticesInRow + 1u;
 
-                    indicesView[n + 3u] = idx + verticesInRow;
-                    indicesView[n + 4u] = idx + 1u;
-                    indicesView[n + 5u] = idx + verticesInRow + 1u;
+                        indicesView[n + 3u] = idx;
+                        indicesView[n + 4u] = idx + verticesInRow + 1u;
+                        indicesView[n + 5u] = idx + verticesInRow;
+                    } else {
+                        indicesView[n + 0u] = idx;
+                        indicesView[n + 1u] = idx + 1u;
+                        indicesView[n + 2u] = idx + verticesInRow;
+
+                        indicesView[n + 3u] = idx + verticesInRow;
+                        indicesView[n + 4u] = idx + 1u;
+                        indicesView[n + 5u] = idx + verticesInRow + 1u;
+                    }
 
                     n += 6u;
                 }
@@ -131,7 +136,7 @@ namespace g_map {
         assert(pipeline != nullptr);
         commandList->bindPipeline(*pipeline);
         commandList->bindStorageImage(0u, geometry.getNormalsImage(), std::nullopt, 0u);
-        commandList->bindImage(1u, geometry.getHeightsImage(), geometry.getSampler(), 0u);
+        commandList->bindImage(1u, geometry.getHeightsImage(), scene.getLinearSampler(), 0u);
         commandList->dispatch(groupX, groupY, 1u);
     }
 
@@ -143,6 +148,7 @@ namespace g_map {
             struct Uniform {
                 engine::mat4f worldTransform;
                 float cellSize;
+                float uvCellSize;
             };
 
             auto const sceneViewParamBufferOffset = scene.getCurrentViewParamsBufferOffset();
@@ -151,26 +157,29 @@ namespace g_map {
 
             Uniform uniform {
                 worldTransform,
-                cellSize
+                cellSize,
+                0.0625f
             };
 
             switch (pass) {
                 case engine::scene::RenderPass::eCommon:
                 {
+                    const auto & gs = scene.getGraphicsService();
                     engine::rhi::runtime::Pipeline * pipeline = geometry.getGraphicsPipeline();
 
                     if (commandList->bindPipeline(*pipeline)) {
                         commandList->pushConstants(
-                            engine::rhi::shaders::Stages::eVertex, 
-                            0u, 68u, &uniform
+                            engine::rhi::shaders::Stages::eVertex | engine::rhi::shaders::Stages::eFragment, 
+                            0u, 72u, &uniform
                         );
                         commandList->bindBuffer(0u, scene.getViewParamsUniformBuffer(frameId), 0u, sceneViewParamBufferOffset);
                     }
 
                     const auto & ib = geometry.getIndicesBuffer();
 
-                    commandList->bindImage(1u, geometry.getNormalsImage(), geometry.getSampler(), 0u);
-                    commandList->bindStorageImage(2u, geometry.getHeightsImage(), std::nullopt, 0u);
+                    commandList->bindStorageImage(1u, geometry.getHeightsImage(), std::nullopt, 0u);
+                    commandList->bindImage(2u, geometry.getNormalsImage(), scene.getLinearSampler(), 0u);
+                    commandList->bindImage(3u, gs.getTextureManager().getDefaultImage(), scene.getNearestSampler(), 0u);
 
                     commandList->bindVertexBuffer(0u, geometry.getVerticesBuffer());
                     commandList->bindIndexBuffer(ib, 0u, engine::rhi::IndexType::eU16);

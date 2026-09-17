@@ -52,10 +52,6 @@ public:
         return _heights;
     }
 
-    const engine::rhi::SamplerValue & getSampler() const noexcept {
-        return _linearSampler;
-    }
-
     uint16_t getSize() const noexcept { return _size; }
     uint16_t getSizeInCells() const noexcept { return _sizeInCells; }
 
@@ -69,7 +65,7 @@ private:
     engine::rhi::runtime::BufferPtr _indices = nullptr;
     engine::rhi::runtime::ImagePtr _heights = nullptr;
     engine::rhi::runtime::ImagePtr _normals = nullptr;
-    engine::rhi::SamplerValue _linearSampler{};
+    
     uint16_t _size;
     uint8_t _sizeInCells;
 };

@@ -23,7 +23,14 @@ layout (set = 0, binding = 0) uniform UniformBuffer {
 	float time;
 } u_viewParams;
 
-layout(set = 0, binding = 1) uniform sampler2D u_normals;
+layout(push_constant, std430) uniform Transform {
+	mat4 model;
+	float cellSize;
+	float uvCellSize;
+} push;
+
+layout(set = 0, binding = 2) uniform sampler2D u_normals;
+layout(set = 0, binding = 3) uniform sampler2D u_colors;
 
 void main() {
 	const float depthLinear = linearDepth(gl_FragCoord.z, u_viewParams.nearFarPlanes.x, u_viewParams.nearFarPlanes.y);
@@ -33,7 +40,7 @@ void main() {
 	const vec3 normal = normalize(u_viewParams.viewTransposeInverse * -texture(u_normals, v_uv).xyz);
 
 	out_normal = vec4(normal * 0.5f + 0.5f, 0.0f);
-	out_albedo = vec4(1.0f, 1.0f, 1.0f, 1.0f);
+	out_albedo = texture(u_colors, v_uv / push.uvCellSize);
 	out_emissive = vec4(0.0f, 0.0f, 0.0f, 0.f);
 	out_metalicRoughness = vec2(0.0f, 1.0f);
 }

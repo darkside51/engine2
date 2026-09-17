@@ -181,6 +181,18 @@ public:
         });
     }
 
+    const graphics::GraphicsService & getGraphicsService() const noexcept {
+        return _graphicsService;
+    }
+
+    const rhi::SamplerValue & getNearestSampler() const noexcept {
+        return _nearestSampler;
+    }
+
+    const rhi::SamplerValue & getLinearSampler() const noexcept {
+        return _linearSampler;
+    }
+
     float getShadersTime() const noexcept { return _shadersTime; }
 
     const rhi::runtime::BufferPtr & getViewParamsUniformBuffer(uint8_t frame) const noexcept {
