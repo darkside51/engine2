@@ -124,8 +124,7 @@ namespace g_map {
         const auto time = scene.getShadersTime();
         commandList->bindPipeline(*pipeline);
         commandList->pushConstants(engine::rhi::shaders::Stages::eCompute, 0u, sizeof(float), &time);
-        commandList->bindStorageBuffer(0u, geometry.getVerticesBuffer(), 0u);
-        commandList->bindStorageImage(1u, geometry.getHeightsImage(), std::nullopt, 0u);
+        commandList->bindStorageImage(0u, geometry.getHeightsImage(), std::nullopt, 0u);
         commandList->dispatch(groupX, groupY, 1u);
 
         pipeline = geometry.getComputeNormalsPipeline();
