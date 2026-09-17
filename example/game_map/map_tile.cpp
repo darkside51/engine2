@@ -107,7 +107,7 @@ namespace g_map {
         engine::rhi::runtime::Pipeline * pipeline = geometry.getComputeHeightPipeline();
         assert(pipeline != nullptr);
 
-        constexpr uint16_t kTileLocalGroupSize = 16u;
+        constexpr uint16_t kTileLocalGroupSize = 32u;
         const auto cellsCountInRow = geometry.getSizeInCells();
         const uint16_t verticesInRow = cellsCountInRow + 1u;
 

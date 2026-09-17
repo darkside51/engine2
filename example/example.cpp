@@ -2233,17 +2233,17 @@ namespace example {
 
             {
                 auto * node = scene->createNode();
-                node->setScale(engine::vec3f{1.0f});
+                node->setScale(engine::vec3f{2.0f});
                 node->setPivot({0.5f, 0.5f, 0.0f}); // center of tile
-                node->setPosition(engine::vec3f(0.0f, 18.0f, 0.5f));
+                node->setPosition(engine::vec3f(10.0f, 16.0f, 2.0f));
                 
                 auto * object = scene->createObject<engine::scene::CustomDrawObject>(gTerrainTileRenderer, &terrainTile);
                 const float tileSize = static_cast<float>(terrainTile.getSize());
 
                 node->setBounds(
                     engine::scene::Bounds::createCube(
-                        engine::vec3f{tileSize, tileSize, 0.0f}, 
-                        engine::vec3f{0.0f, 0.0f, 0.2f}
+                        engine::vec3f{tileSize, tileSize, -0.5f}, 
+                        engine::vec3f{0.0f, 0.0f, 0.5f}
                     )
                 );
 

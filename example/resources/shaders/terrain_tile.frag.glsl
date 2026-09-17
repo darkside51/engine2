@@ -29,11 +29,10 @@ void main() {
 	const float depthLinear = linearDepth(gl_FragCoord.z, u_viewParams.nearFarPlanes.x, u_viewParams.nearFarPlanes.y);
 	out_position = depthLinear;
 
-	//vec3 normal = u_viewParams.viewTransposeInverse * -normalize(cross(dFdx(v_worldPosition.xyz), dFdy(v_worldPosition.xyz)));
+	//const vec3 normal = normalize(u_viewParams.viewTransposeInverse * -normalize(cross(dFdx(v_worldPosition.xyz), dFdy(v_worldPosition.xyz))));
+	const vec3 normal = normalize(u_viewParams.viewTransposeInverse * -texture(u_normals, v_uv).xyz);
 
-	vec3 normal = u_viewParams.viewTransposeInverse * -texture(u_normals, v_uv).xyz;
-
-	out_normal = vec4(normalize(normal) * 0.5f + 0.5f, 0.0f);
+	out_normal = vec4(normal * 0.5f + 0.5f, 0.0f);
 	out_albedo = vec4(1.0f, 1.0f, 1.0f, 1.0f);
 	out_emissive = vec4(0.0f, 0.0f, 0.0f, 0.f);
 	out_metalicRoughness = vec2(0.0f, 1.0f);

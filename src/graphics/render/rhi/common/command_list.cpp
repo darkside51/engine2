@@ -119,23 +119,7 @@ namespace engine::rhi::runtime {
     }
 
     bool CommandList::bindPipeline(const PipelinePtr & pipeline) noexcept {
-        if (_state.pipeline != pipeline.get()) {
-            _commands->create<BindPipelineCommand>(pipeline);
-            _state.pipeline = pipeline.get();
-
-            if constexpr (kStatisticsEnable) {
-            ++_statistics.binPipelines;
-            }
-
-            _pipelineType = pipeline->bindPoint;
-
-            if (_currentPass == nullptr || pipeline->bindPoint == PipelineBindPoint::eCompute && _currentPass->type == Pass::Type::eTransfer) {
-                _currentPass = &_passes.emplace_back(Pass::Type::eCompute, _commandsCount);
-            }
-            ++_commandsCount;
-            return true;
-        }
-        return false;
+        return bindPipeline(*pipeline);
     }
 
     bool CommandList::bindPipeline(const Pipeline & pipeline) noexcept {
@@ -149,7 +133,7 @@ namespace engine::rhi::runtime {
 
             _pipelineType = pipeline.bindPoint;
 
-            if (_currentPass == nullptr || pipeline.bindPoint == PipelineBindPoint::eCompute && _currentPass->type == Pass::Type::eTransfer) {
+            if (pipeline.bindPoint == PipelineBindPoint::eCompute && (_currentPass == nullptr || _currentPass->type != Pass::Type::eRender)) {
                 _currentPass = &_passes.emplace_back(Pass::Type::eCompute, _commandsCount);
             }
             ++_commandsCount;
