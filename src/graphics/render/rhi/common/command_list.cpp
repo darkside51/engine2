@@ -128,7 +128,7 @@ namespace engine::rhi::runtime {
             _state.pipeline = &pipeline;
 
             if constexpr (kStatisticsEnable) {
-            ++_statistics.binPipelines;
+                ++_statistics.binPipelines;
             }
 
             _pipelineType = pipeline.bindPoint;
@@ -137,6 +137,7 @@ namespace engine::rhi::runtime {
                 _currentPass = &_passes.emplace_back(Pass::Type::eCompute, _commandsCount);
             }
             ++_commandsCount;
+            
             return true;
         }
         return false;
