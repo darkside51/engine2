@@ -613,15 +613,20 @@ namespace example {
 
     class SceneEventHandler final : public engine::InputObserver {
         inline static const auto kPlaneXOY = engine::vec4f(0.0f, 0.0f, 1.0f, 0.0f);
-         engine::vec2f cursorPosition = {0.0f, 0.0f};
+        engine::vec2f cursorPosition = {0.0f, 0.0f};
+        bool pressedLeft = false;
+        bool pressedRight = false;
     public:
         engine::vec2f getCursorPosition() const noexcept {
             return cursorPosition;
         }
 
+        bool isLeftPressed() const noexcept {
+            return pressedLeft;
+        }
+
         bool onInputPointerEvent(const engine::PointerEvent & event) override {
-            static bool pressedLeft = false;
-            static bool pressedRight = false;
+            
 
             const auto ex = event.x;
             const auto ey = camera.getSize().y - event.y;
@@ -2662,6 +2667,9 @@ namespace example {
         if (auto it = selectableNodes.find(nodeColor); it != selectableNodes.end()) {
             if (underCursorNode != it->second) {
                 underCursorNode = it->second;
+            }
+
+            if (sceneEventHandler.isLeftPressed()) {
                 auto * attachment = underCursorNode->getAttachment();
                 if (attachment->typeIndex == engine::ctti::typeIndex<engine::scene::AttachmentObject, engine::scene::Skeleton>()) {
                     auto * skeleton = static_cast<engine::scene::Skeleton *>(attachment);

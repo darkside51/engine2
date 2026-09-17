@@ -36,16 +36,25 @@ namespace threads {
         }
     };
 
-
     class SpinLock {
-	public:
-		explicit SpinLock(std::atomic_flag & l) : _lock(l) {
-			while (_lock.test_and_set(std::memory_order_acquire)) {}
-		}
+    public:
+        explicit SpinLock(std::atomic_flag & l) : _lock(l) {
+            lock();
+        }
 
-		~SpinLock() {
-			_lock.clear(std::memory_order_release);
-		}
+        ~SpinLock() {
+            unlock();
+        }
+
+        inline void lock() noexcept {
+            while (_lock.test_and_set(std::memory_order_acquire)) {
+                #if defined(__x86_64__) || defined(__i386__)
+                __builtin_ia32_pause();
+                #elif defined(__aarch64__) || defined(__arm__)
+                __builtin_arm_yield();
+                #endif
+            }
+        }
 
         inline bool try_lock() noexcept {
             return !_lock.test_and_set(std::memory_order_acquire);
@@ -55,9 +64,9 @@ namespace threads {
             _lock.clear(std::memory_order_release);
         }
 
-	private:
-		std::atomic_flag & _lock;
-	};
+    private:
+        std::atomic_flag & _lock;
+    };
 
     class RWSpinLock {
     public:
