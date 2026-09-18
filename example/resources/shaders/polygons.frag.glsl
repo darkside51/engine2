@@ -32,7 +32,7 @@ struct Material {
 };
 
 const Material materials[7] = Material[](
-	Material(vec2(0.0f, 0.8f), 56),		// asphalt / default
+	Material(vec2(0.0f, 0.8f), 48),		// asphalt / default
 	Material(vec2(0.0f, 0.55f), 57),	// grass
 	Material(vec2(0.0f, 0.9f), 58),		// wood
 	Material(vec2(0.0f, 0.75f), 59),	// playground

@@ -165,7 +165,7 @@ namespace g_map {
                 case engine::scene::RenderPass::eCommon:
                 {
                     const auto & gs = scene.getGraphicsService();
-                    engine::rhi::runtime::Pipeline * pipeline = geometry.getGraphicsPipeline();
+                    const auto * pipeline = geometry.getGraphicsPipeline();
 
                     if (commandList->bindPipeline(*pipeline)) {
                         commandList->pushConstants(

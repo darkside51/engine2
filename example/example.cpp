@@ -198,8 +198,8 @@ namespace example {
     float vignetteExtent = 0.1f;
 
     uint32_t clearColor = 0xcd'cd'cd'ffu;
-    engine::vec4f ambientColor = {1.0f, 1.0f, 1.0f, 0.3f};
-    engine::vec4f directionalLightColor = {1.0f, 1.0f, 1.0f, 2.200f};
+    engine::vec4f ambientColor = {1.0f, 1.0f, 1.0f, 0.35f};
+    engine::vec4f directionalLightColor = {1.0f, 1.0f, 1.0f, 1.600f};
     engine::vec3f lightDir = {0.26f, 0.15f, -0.75f};
     engine::vec4f shadowsOptions = {0.0f, 0.0f, 0.0f, 0.0f};
     bool lightDirty = false;
