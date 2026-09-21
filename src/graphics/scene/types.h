@@ -7,6 +7,9 @@
 
 namespace engine::scene {
 
+struct AttachmentObject;
+using AttachmentsIterator = stl::span<AttachmentObject*>::iterator;
+
 struct ShadowViewParams {
     stl::span<const mat4f> cascadeMatrices;
 };

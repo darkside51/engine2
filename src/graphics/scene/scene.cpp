@@ -900,9 +900,26 @@ namespace engine::scene {
 
     void Scene::dispatchCustomObjects(rhi::runtime::CommandListPtr & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end, 
         DrawDataOffsets & offsets) {
-        for (auto it = begin; it != end; ++it) {
-            const auto & object = *static_cast<const CustomDrawObject*>(*it);
-            object.dispatch(*this, commandList, frame);
+
+        auto currentIt = begin;
+        auto & object0 = *static_cast<CustomDrawObject*>(*currentIt);
+        auto * delegate = &object0.getDelegate();
+
+        for (auto it = begin + 1; it != end; ++it) {
+            auto & object = *static_cast<CustomDrawObject*>(*it);
+            auto * delegate2 = &object.getDelegate();
+
+            if (delegate != delegate2) {
+                if (delegate->isDispatchEnabled()) {
+                    delegate->dispatch(*this, commandList, frame, currentIt, it);
+                }
+                delegate = delegate2;
+                currentIt = it;
+            }
+        }
+
+        if (delegate->isDispatchEnabled()) {
+            delegate->dispatch(*this, commandList, frame, currentIt, end);
         }
     }
 
@@ -1397,10 +1414,22 @@ namespace engine::scene {
         AttachmentsIterator begin, AttachmentsIterator end, 
         const ViewParams & viewParams, rhi::runtime::CommandListPtr & commandList, uint8_t frame
     ) {
-        for (auto it = begin; it != end; ++it) {
-            const auto & object = *static_cast<const CustomDrawObject*>(*it);
-            object.draw(*this, viewParams, _currentPass, commandList, frame);
+        auto currentIt = begin;
+        auto & object0 = *static_cast<CustomDrawObject*>(*currentIt);
+        auto * delegate = &object0.getDelegate();
+
+        for (auto it = begin + 1; it != end; ++it) {
+            auto & object = *static_cast<CustomDrawObject*>(*it);
+            auto * delegate2 = &object.getDelegate();
+
+            if (delegate != delegate2) {
+                delegate->draw(currentIt, it, *this, viewParams, _currentPass, commandList, frame);
+                delegate = delegate2;
+                currentIt = it;
+            }
         }
+
+        delegate->draw(currentIt, end, *this, viewParams, _currentPass, commandList, frame);
     }
 
     void Scene::drawSprites(rhi::runtime::CommandListPtr & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end, 

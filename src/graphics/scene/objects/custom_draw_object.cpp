@@ -5,11 +5,9 @@
 
 namespace engine::scene {
 
-CustomDrawObject::CustomDrawObject(size_t type, const ICustomDrawObjectRenderer & renderer, void * data) : 
+CustomDrawObject::CustomDrawObject(ICustomDrawObjectRenderer & renderer) : 
     AttachmentObject(ctti::typeIndex<AttachmentObject, CustomDrawObject>()), 
-    _renderer(renderer),
-    _customData(data),
-    _subType(type) { }
+    _renderer(renderer) { }
 
 void CustomDrawObject::draw(const Scene & scene, const ViewParams & viewParams, RenderPass pass, 
     rhi::runtime::CommandListPtr & commandList, uint8_t frame) const {
@@ -28,7 +26,8 @@ bool CustomDrawObject::cmp(const CustomDrawObject & other) const noexcept {
         return std::less<const ICustomDrawObjectRenderer *>{}(&_renderer, &other._renderer);
     }
 
-    return _subType < other._subType;
+    return _renderer.compare(*this, other);
+    //return _subType < other._subType;
 }
 
 }

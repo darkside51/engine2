@@ -76,8 +76,6 @@ struct AnimatedObject {
 void attachObjectToNode(AttachmentObject & object, Node & node) noexcept;
 
 class Scene {
-    using AttachmentsIterator = stl::span<AttachmentObject*>::iterator;
-    
 public:
     struct CommonPipeline {
         enum class Type : uint8_t {
