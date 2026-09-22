@@ -7,7 +7,7 @@
 #include "object.h"
 #include "objects/mesh.h"
 #include "objects/sprite.h"
-#include "objects/custom_draw_object.h"
+#include "objects/custom_object.h"
 
 namespace engine::scene {
 
@@ -16,7 +16,7 @@ namespace engine::scene {
         static_assert(ctti::typeIndex<AttachmentObject, Skeleton>() == 0u);
         static_assert(ctti::typeIndex<AttachmentObject, Mesh>() == 1u);
         static_assert(ctti::typeIndex<AttachmentObject, Sprite>() == 2u);
-        static_assert(ctti::typeIndex<AttachmentObject, CustomDrawObject>() == 3u);
+        static_assert(ctti::typeIndex<AttachmentObject, CustomSceneObject>() == 3u);
         static_assert(ctti::typeIndex<AttachmentObject, Dummy>() == 4u); // maintain last position to avoid breaking batches
         
         // animations

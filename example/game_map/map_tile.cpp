@@ -112,7 +112,7 @@ namespace g_map {
 
     //
     void TerrainTileRenderer::dispatch(
-        const engine::scene::CustomDrawObject & object, const engine::scene::Scene & scene, const engine::mat4f & worldTransform,
+        const engine::scene::CustomSceneObject & object, const engine::scene::Scene & scene, const engine::mat4f & worldTransform,
         engine::rhi::runtime::CommandListPtr & commandList, uint8_t frameId
     ) const {
         const auto & geometry = *static_cast<TerrainTile*>(object.getData());
@@ -141,56 +141,73 @@ namespace g_map {
     }
 
     void TerrainTileRenderer::draw(
-            const engine::scene::CustomDrawObject & object, const engine::scene::Scene & scene, const engine::scene::ViewParams & viewParams, 
+            const engine::scene::CustomSceneObject & object, const engine::scene::Scene & scene, const engine::scene::ViewParams & viewParams, 
             engine::scene::RenderPass pass, const engine::mat4f & worldTransform, 
             engine::rhi::runtime::CommandListPtr & commandList, uint8_t frameId
         ) const {
-            struct Uniform {
-                engine::mat4f worldTransform;
-                float cellSize;
-                float uvCellSize;
-            };
+        struct Uniform {
+            engine::mat4f worldTransform;
+            float cellSize;
+            float uvCellSize;
+        };
 
-            auto const sceneViewParamBufferOffset = scene.getCurrentViewParamsBufferOffset();
-            const auto & geometry = *static_cast<TerrainTile*>(object.getData());
-            const float cellSize = static_cast<float>(geometry.getSize()) / geometry.getSizeInCells();
+        auto const sceneViewParamBufferOffset = scene.getCurrentViewParamsBufferOffset();
+        const auto & geometry = *static_cast<TerrainTile*>(object.getData());
+        const float cellSize = static_cast<float>(geometry.getSize()) / geometry.getSizeInCells();
 
-            Uniform uniform {
-                worldTransform,
-                cellSize,
-                0.0625f
-            };
+        Uniform uniform {
+            worldTransform,
+            cellSize,
+            0.0625f
+        };
 
-            switch (pass) {
-                case engine::scene::RenderPass::eCommon:
-                {
-                    const auto & gs = scene.getGraphicsService();
-                    const auto * pipeline = geometry.getGraphicsPipeline();
+        switch (pass) {
+            case engine::scene::RenderPass::eCommon:
+            {
+                const auto & gs = scene.getGraphicsService();
+                const auto * pipeline = geometry.getGraphicsPipeline();
 
-                    if (commandList->bindPipeline(*pipeline)) {
-                        commandList->pushConstants(
-                            engine::rhi::shaders::Stages::eVertex | engine::rhi::shaders::Stages::eFragment, 
-                            0u, 72u, &uniform
-                        );
-                        commandList->bindBuffer(0u, scene.getViewParamsUniformBuffer(frameId), 0u, sceneViewParamBufferOffset);
-                    }
-
-                    const auto & ib = geometry.getIndicesBuffer();
-
-                    commandList->bindStorageImage(1u, geometry.getHeightsImage(), std::nullopt, 0u);
-                    commandList->bindImage(2u, geometry.getNormalsImage(), scene.getLinearSampler(), 0u);
-                    commandList->bindImage(3u, gs.getTextureManager().getDefaultImage(), scene.getNearestSampler(), 0u);
-
-                    commandList->bindVertexBuffer(0u, geometry.getVerticesBuffer());
-                    commandList->bindIndexBuffer(ib, 0u, engine::rhi::IndexType::eU16);
-                    commandList->drawIndexed(ib->sizeInBytes() / sizeof(uint16_t));
+                if (commandList->bindPipeline(*pipeline)) {
+                    commandList->pushConstants(
+                        engine::rhi::shaders::Stages::eVertex | engine::rhi::shaders::Stages::eFragment, 
+                        0u, 72u, &uniform
+                    );
+                    commandList->bindBuffer(0u, scene.getViewParamsUniformBuffer(frameId), 0u, sceneViewParamBufferOffset);
                 }
-                break;
-                case engine::scene::RenderPass::eShadow:
-                break;
-                default: 
-                break;
+
+                const auto & ib = geometry.getIndicesBuffer();
+
+                commandList->bindStorageImage(1u, geometry.getHeightsImage(), std::nullopt, 0u);
+                commandList->bindImage(2u, geometry.getNormalsImage(), scene.getLinearSampler(), 0u);
+                commandList->bindImage(3u, gs.getTextureManager().getDefaultImage(), scene.getNearestSampler(), 0u);
+
+                commandList->bindVertexBuffer(0u, geometry.getVerticesBuffer());
+                commandList->bindIndexBuffer(ib, 0u, engine::rhi::IndexType::eU16);
+                commandList->drawIndexed(ib->sizeInBytes() / sizeof(uint16_t));
             }
+            break;
+            case engine::scene::RenderPass::eShadow:
+            break;
+            default: 
+            break;
         }
+    }
+
+    void TerrainTileRenderer::dispatch(const engine::scene::Scene & scene, engine::rhi::runtime::CommandListPtr & commandList, uint8_t frame, 
+        engine::scene::AttachmentsIterator begin, engine::scene::AttachmentsIterator end) {
+        for (auto it = begin; it != end; ++it) { // dirty!!!
+            const auto & object = *static_cast<const engine::scene::CustomSceneObject*>(*it);
+            dispatch(object, scene, object.node->getWorldTransform(), commandList, frame);
+        }
+    }
+
+    void TerrainTileRenderer::draw(engine::scene::AttachmentsIterator begin, engine::scene::AttachmentsIterator end, 
+        const engine::scene::Scene & scene, const engine::scene::ViewParams & viewParams, engine::scene::RenderPass pass, 
+        engine::rhi::runtime::CommandListPtr & commandList, uint8_t frame) {
+        for (auto it = begin; it != end; ++it) { // dirty!!!
+            const auto & object = *static_cast<const engine::scene::CustomSceneObject*>(*it);
+            draw(object, scene, viewParams, pass, object.node->getWorldTransform(), commandList, frame);
+        }
+    }
 
 }

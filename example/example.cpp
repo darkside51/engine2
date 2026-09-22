@@ -219,11 +219,13 @@ namespace example {
     engine::rhi::runtime::Pipeline* g_mapGeometryCommonAreaPipeline;
     engine::rhi::runtime::Pipeline* g_mapGeometryShadowPipeline;
 
-    class TileGeometryRenderer : public engine::scene::ICustomDrawObjectRenderer {
+    class TileGeometryRenderer : public engine::scene::ICustomObjectSceneDelegate {
         float _extent = 8192.0f;
         engine::stl::array<const engine::graphics::ImageHandler*, 2u> _images;
 
     public:
+        using object_type = std::vector<MapPolygonGeometry>;
+
         void setExtent(float extent) noexcept {
             _extent = extent;
         }
@@ -231,12 +233,21 @@ namespace example {
         void setImage(const engine::graphics::ImageHandler* img, uint8_t slot) noexcept {
             _images[slot] = img;
         }
+
+        void draw(engine::scene::AttachmentsIterator begin, engine::scene::AttachmentsIterator end, 
+            const engine::scene::Scene & scene, const engine::scene::ViewParams & viewParams, engine::scene::RenderPass pass, 
+            engine::rhi::runtime::CommandListPtr & commandList, uint8_t frame) override {
+            for (auto it = begin; it != end; ++it) { // dirty!!!
+                const auto & object = *static_cast<const engine::scene::CustomSceneObject*>(*it);
+                draw(object, scene, viewParams, pass, object.node->getWorldTransform(), commandList, frame);
+            }
+        }
         
         void draw(
-            const engine::scene::CustomDrawObject & object, const engine::scene::Scene & scene, const engine::scene::ViewParams & viewParams, 
+            const engine::scene::CustomSceneObject & object, const engine::scene::Scene & scene, const engine::scene::ViewParams & viewParams, 
             engine::scene::RenderPass pass, const engine::mat4f & worldTransform, 
             engine::rhi::runtime::CommandListPtr & commandList, uint8_t frameId
-        ) const override {
+        ) const {
             struct TileUniform {
                 engine::mat4f worldTransform;
                 float extent;
@@ -913,7 +924,7 @@ namespace example {
                                     gTileGeometryRenderer.setImage(brikcsImageHandler, 0u);
                                     gTileGeometryRenderer.setImage(interriorImageHandler, 1u);
 
-                                    auto * object = scene->createObject<engine::scene::CustomDrawObject>(gTileGeometryRenderer, &g_mapGeometry);
+                                    auto * object = scene->createObject<engine::scene::CustomSceneObject>(gTileGeometryRenderer, &g_mapGeometry);
                                     engine::scene::attachObjectToNode(*object, *node);
                                     sceneWorldRoot->addChild(node);
                                 });
@@ -2237,7 +2248,7 @@ namespace example {
             scene->rootNode()->addChild(sceneWorldRoot);
 
             {
-                auto * object = scene->createObject<engine::scene::CustomDrawObject>(gTerrainTileRenderer, &terrainTile);
+                auto * object = scene->createObject<engine::scene::CustomSceneObject>(gTerrainTileRenderer, &terrainTile);
                 const float tileSize = static_cast<float>(terrainTile.getSize());
 
                 auto * node = scene->createNode();
@@ -2752,7 +2763,7 @@ namespace example {
         // auto timer = engine::time::Timer{};
         scene->fillAttachmentsArray(viewParams, sceneWorldRoot, [](engine::scene::AttachmentObject* object) noexcept {
             if (object->typeIndex == ctti::typeIndex<engine::scene::AttachmentObject, engine::scene::Mesh>() ||
-                object->typeIndex == ctti::typeIndex<engine::scene::AttachmentObject, engine::scene::CustomDrawObject>()
+                object->typeIndex == ctti::typeIndex<engine::scene::AttachmentObject, engine::scene::CustomSceneObject>()
             ) {
                 shadowObjects.emplace_back(object); // check visible with shadow matrix?
             }

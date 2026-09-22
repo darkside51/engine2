@@ -2,7 +2,7 @@
 
 #include "engine/src/math/math.h"
 #include "engine/src/graphics/render/rhi/common/runtime.h"
-#include "engine/src/graphics/scene/objects/custom_draw_object.h"
+#include "engine/src/graphics/scene/objects/custom_object.h"
 #include <cstdint>
 
 namespace g_map {
@@ -70,19 +70,28 @@ private:
     uint8_t _sizeInCells;
 };
 
-class TerrainTileRenderer : public engine::scene::ICustomDrawObjectRenderer {
+class TerrainTileRenderer : public engine::scene::ICustomObjectSceneDelegate {
 public:
-    TerrainTileRenderer() : engine::scene::ICustomDrawObjectRenderer(true) {}
+    using object_type = TerrainTile;
+
+    TerrainTileRenderer() : engine::scene::ICustomObjectSceneDelegate(true) {}
     void draw(
-        const engine::scene::CustomDrawObject & object, const engine::scene::Scene & scene, const engine::scene::ViewParams & viewParams, 
+        const engine::scene::CustomSceneObject & object, const engine::scene::Scene & scene, const engine::scene::ViewParams & viewParams, 
         engine::scene::RenderPass pass, const engine::mat4f & worldTransform, 
         engine::rhi::runtime::CommandListPtr & commandList, uint8_t frameId
-    ) const override;
+    ) const;
 
     void dispatch(
-        const engine::scene::CustomDrawObject & object, const engine::scene::Scene & scene, const engine::mat4f & worldTransform,
+        const engine::scene::CustomSceneObject & object, const engine::scene::Scene & scene, const engine::mat4f & worldTransform,
         engine::rhi::runtime::CommandListPtr & commandList, uint8_t frameId
-    ) const override;
+    ) const;
+
+    void dispatch(const engine::scene::Scene & scene, engine::rhi::runtime::CommandListPtr & commandList, uint8_t frame, 
+        engine::scene::AttachmentsIterator begin, engine::scene::AttachmentsIterator end) override;
+
+    void draw(engine::scene::AttachmentsIterator begin, engine::scene::AttachmentsIterator end, 
+        const engine::scene::Scene & scene, const engine::scene::ViewParams & viewParams, engine::scene::RenderPass pass, 
+        engine::rhi::runtime::CommandListPtr & commandList, uint8_t frame) override;
 };
 
 }

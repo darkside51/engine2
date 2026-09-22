@@ -4,7 +4,7 @@
 #include "animation/texture/frame_sequence_animation.h"
 #include "objects/sprite.h"
 #include "objects/mesh.h"
-#include "objects/custom_draw_object.h"
+#include "objects/custom_object.h"
 
 #include "graphics/common/graphics_service.h"
 #include "graphics/render/rhi/common/command_list.h"
@@ -120,7 +120,7 @@ namespace engine::scene {
     void attachObjectToNode(AttachmentObject & object, Node & node) noexcept {
         switch(object.typeIndex) {
         case ctti::typeIndex<AttachmentObject, Skeleton>(): [[fallthrough]];
-        case ctti::typeIndex<AttachmentObject, CustomDrawObject>(): [[fallthrough]];
+        case ctti::typeIndex<AttachmentObject, CustomSceneObject>(): [[fallthrough]];
         case ctti::typeIndex<AttachmentObject, Dummy>():
             node.setAttachment(&object);
             return;
@@ -426,8 +426,8 @@ namespace engine::scene {
             return static_cast<const Mesh &>(a).cmp(static_cast<const Mesh &>(b));
         case ctti::typeIndex<AttachmentObject, Sprite>():
             return static_cast<const Sprite &>(a).cmp(static_cast<const Sprite &>(b));
-        case ctti::typeIndex<AttachmentObject, CustomDrawObject>():
-            return static_cast<const CustomDrawObject &>(a).cmp(static_cast<const CustomDrawObject &>(b));
+        case ctti::typeIndex<AttachmentObject, CustomSceneObject>():
+            return static_cast<const CustomSceneObject &>(a).cmp(static_cast<const CustomSceneObject &>(b));
         case ctti::typeIndex<AttachmentObject, Dummy>():
             return static_cast<const Dummy &>(a).cmp(static_cast<const Dummy &>(b));
         }
@@ -722,7 +722,7 @@ namespace engine::scene {
                 _spritesVertexesCount += 4u;
                 _spritesIndicesCount += 6u;
                 break;
-            case ctti::typeIndex<AttachmentObject, CustomDrawObject>():
+            case ctti::typeIndex<AttachmentObject, CustomSceneObject>():
                 break;
             case ctti::typeIndex<AttachmentObject, Dummy>():
                 break;
@@ -888,7 +888,7 @@ namespace engine::scene {
             break;
         case ctti::typeIndex<AttachmentObject, Sprite>():
             break;
-        case ctti::typeIndex<AttachmentObject, CustomDrawObject>():
+        case ctti::typeIndex<AttachmentObject, CustomSceneObject>():
         {
             dispatchCustomObjects(commandList, frame, begin, end, offsets);
         }
@@ -902,11 +902,11 @@ namespace engine::scene {
         DrawDataOffsets & offsets) {
 
         auto currentIt = begin;
-        auto & object0 = *static_cast<CustomDrawObject*>(*currentIt);
+        auto & object0 = *static_cast<CustomSceneObject*>(*currentIt);
         auto * delegate = &object0.getDelegate();
 
         for (auto it = begin + 1; it != end; ++it) {
-            auto & object = *static_cast<CustomDrawObject*>(*it);
+            auto & object = *static_cast<CustomSceneObject*>(*it);
             auto * delegate2 = &object.getDelegate();
 
             if (delegate != delegate2) {
@@ -1230,7 +1230,7 @@ namespace engine::scene {
             drawSprites(commandList, frame, begin, end, viewParams, offsets.spriteVerticesOffset, offsets.spriteIndicesOffset);
         }
             break;
-        case ctti::typeIndex<AttachmentObject, CustomDrawObject>():
+        case ctti::typeIndex<AttachmentObject, CustomSceneObject>():
         {
             drawCustomObjects(begin, end, viewParams, commandList, frame);
         }
@@ -1260,7 +1260,7 @@ namespace engine::scene {
             break;
         case ctti::typeIndex<AttachmentObject, Sprite>():
             break;
-        case ctti::typeIndex<AttachmentObject, CustomDrawObject>():
+        case ctti::typeIndex<AttachmentObject, CustomSceneObject>():
         {
             drawCustomObjects(begin, end, viewParams, commandList, frame);
         }
@@ -1291,7 +1291,7 @@ namespace engine::scene {
             // drawSprites2ColorIds(commandList, frame, begin, end, viewParams, offsets.spriteVerticesOffset, offsets.spriteIndicesOffset);
         }
             break;
-        case ctti::typeIndex<AttachmentObject, CustomDrawObject>():
+        case ctti::typeIndex<AttachmentObject, CustomSceneObject>():
         {
             drawCustomObjects(begin, end, viewParams, commandList, frame);
         }
@@ -1321,7 +1321,7 @@ namespace engine::scene {
                 case ctti::typeIndex<AttachmentObject, Sprite>():
                     color = 0xff'ff'77'00u;
                     break;
-                case ctti::typeIndex<AttachmentObject, CustomDrawObject>():
+                case ctti::typeIndex<AttachmentObject, CustomSceneObject>():
                     color = 0xff'00'00'ffu;
                     break;
                 default:
@@ -1415,11 +1415,11 @@ namespace engine::scene {
         const ViewParams & viewParams, rhi::runtime::CommandListPtr & commandList, uint8_t frame
     ) {
         auto currentIt = begin;
-        auto & object0 = *static_cast<CustomDrawObject*>(*currentIt);
+        auto & object0 = *static_cast<CustomSceneObject*>(*currentIt);
         auto * delegate = &object0.getDelegate();
 
         for (auto it = begin + 1; it != end; ++it) {
-            auto & object = *static_cast<CustomDrawObject*>(*it);
+            auto & object = *static_cast<CustomSceneObject*>(*it);
             auto * delegate2 = &object.getDelegate();
 
             if (delegate != delegate2) {
