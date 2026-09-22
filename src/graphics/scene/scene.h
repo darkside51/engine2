@@ -213,6 +213,15 @@ public:
         return _animationSpeed;
     }
 
+    // custom delegates
+    void addCustomDelegate(ICustomObjectSceneDelegate * delegate) {
+        _customDelegates.emplace_back(delegate);
+    }
+
+    void removeCustomDelegate(ICustomObjectSceneDelegate * delegate) {
+        stl::erase(_customDelegates, delegate); 
+    }
+
 private:
     // attachments
     static bool compareAttachmentsForDraw(const AttachmentObject & a, const AttachmentObject & b) noexcept;
@@ -393,7 +402,27 @@ private:
     // async animation calculation:
     // need use stop sources?
     stl::array<threads::WaitSource, 128u> _calculationWaiters;
-    stl::vector<threads::WaitSource*> _calculationWaiterPtrs;
+    struct CalculationWaiterPtrs {
+        stl::array<threads::WaitSource*, 128u> values;
+        uint8_t current = 0u;
+
+        threads::WaitSource * emplace_back(threads::WaitSource * source) noexcept {
+            values[current++] = source;
+            return source;
+        }
+
+        uint8_t size() const noexcept {
+            return current;
+        }
+
+        void clear() noexcept {
+            current = 0u;
+        }
+
+        stl::span<threads::WaitSource *> view() noexcept {
+            return {values.data(), current};
+        }
+    } _calculationWaiterPtrs;
 
     // samplers:
     rhi::SamplerValue _nearestSampler;
@@ -406,6 +435,9 @@ private:
     // shadows
     uint8_t _shadowCascades = 0u;
     vec2f _colorPassScreenOffset = {0.0f, 0.0f};
+
+    // custom delegates
+    stl::vector<ICustomObjectSceneDelegate *> _customDelegates;
 };
 
 template <typename Condition>

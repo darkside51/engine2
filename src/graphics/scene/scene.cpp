@@ -1335,7 +1335,7 @@ namespace engine::scene {
 
     void Scene::draw(RenderPass pass, rhi::runtime::CommandListPtr & commandList, rhi::runtime::CommandListPtr & transferCommandList, uint8_t frame, 
         const ViewParams & viewParams, stl::span<AttachmentObject*> objects, const DrawDataOffsets & offsets, const void * uniformData) {
-        if (objects.empty()) { // no right variant, just for test!
+        if (objects.empty()) {
             return;
         }
 
@@ -1399,7 +1399,7 @@ namespace engine::scene {
 
         drawObjects(commandList, frame, viewParams, currentIt, objects.end(), typeIdx, offsets2);
 
-        // change unifrom buffer offset
+        // change uniform buffer offset
         _currentViewParamsBufferOffset += align_value(uniformBufferSize, uniformBufferOffsetAlign);
     }
 
@@ -2274,11 +2274,10 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
     }
 
     void Scene::completeAnimations() noexcept {
-        for (auto * taskW8 : _calculationWaiterPtrs) {
+        for (auto * taskW8 : _calculationWaiterPtrs.view()) {
             taskW8->request_wait_and_reset();
         }
         _calculationWaiterPtrs.clear();
-        _calculationWaiterPtrs.reserve(128u);
         _animations.clearAndReserve();
     }
 
@@ -2300,6 +2299,10 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
         _colorIdMeshesIndicesInFrame = 0u;
         _colorIdSkeletalMeshesIndicesInFrame = 0u;
 
+        for (auto * delegate : _customDelegates) {
+            delegate->beginFrame(now);
+        }
+
         completeAnimations();
 
         const std::chrono::duration<float> seconds = now.time_since_epoch();
@@ -2309,6 +2312,10 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
     }
 
     void Scene::endFrame(rhi::runtime::CommandListPtr & commandList, rhi::runtime::CommandListPtr & transferCommandList, uint8_t frame) {
+        for (auto * delegate : _customDelegates) {
+            delegate->endFrame(commandList, transferCommandList, frame);
+        }
+
         performCommits(transferCommandList, frame);
     }
 

@@ -11,6 +11,6 @@ layout(push_constant, std430) uniform Transform {
 void main() {
 	const ivec2 texCoord = ivec2(gl_GlobalInvocationID.xy);
 	const uint vertexIndex = gl_GlobalInvocationID.x + (gl_GlobalInvocationID.y * gl_NumWorkGroups.x * gl_WorkGroupSize.x);
-	const float z = 2.0f * sin(-600.0f * 6.28f * push.time + 0.3f * length(vec2(16.0f) - texCoord));
+	const float z = 2.0f * cos(-600.0f * 6.28f * push.time + 0.3f * length(vec2(16.0f) - texCoord));
 	imageStore(heights, texCoord, vec4(z, 0.0, 0.0, 0.0));
 }

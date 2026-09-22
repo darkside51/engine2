@@ -1447,7 +1447,7 @@ namespace engine::rhi {
 
         struct BindingSetLayout {
             inline static constexpr uint32_t kMaxBindingsInSetOnStack = 8u;
-            inline static constexpr bool kUseSequentialBinding = true; // shaders must be written strictly
+            inline static constexpr bool kUseSequentialBindings = true; // shaders must be written strictly
 
             // BindingSetLayout() = default;
             explicit BindingSetLayout(dynamic_array<BindingLayout, kMaxBindingsInSetOnStack> && l) : layouts(std::move(l)) {
@@ -1467,7 +1467,7 @@ namespace engine::rhi {
             inline bool operator == (const BindingSetLayout & other) const noexcept = default;
 
             const BindingLayout * findLayout(uint32_t binding) const noexcept {
-                if constexpr (kUseSequentialBinding) {
+                if constexpr (kUseSequentialBindings) {
                     assert(binding < layouts.size());
                     assert(layouts[binding].binding == binding);
                     return &layouts[binding];
@@ -1483,7 +1483,7 @@ namespace engine::rhi {
             }
 
             BindingLayout * findLayout(uint32_t binding) noexcept {
-                if constexpr (kUseSequentialBinding) {
+                if constexpr (kUseSequentialBindings) {
                     if (binding >= layouts.size()) {
                         return nullptr;
                     }

@@ -6,6 +6,7 @@
 #include "graphics/scene/types.h"
 #include "math/math.h"
 
+#include <chrono>
 #include <cstdint>
 #include <type_traits>
 
@@ -53,6 +54,12 @@ public:
     virtual void draw(AttachmentsIterator begin, AttachmentsIterator end, 
         const Scene & scene, const ViewParams & viewParams, RenderPass pass, 
         rhi::runtime::CommandListPtr & commandList, uint8_t frame) = 0;
+
+    virtual void beginFrame(std::chrono::time_point<std::chrono::steady_clock> now) {}
+    virtual void endFrame(
+        rhi::runtime::CommandListPtr & commandList, 
+        rhi::runtime::CommandListPtr & transferCommandList, 
+        uint8_t frame) {}
 
     virtual bool compare(const CustomSceneObject & object0, const CustomSceneObject & object1) const noexcept {
         return false;
