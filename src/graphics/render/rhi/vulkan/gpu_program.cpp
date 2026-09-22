@@ -13,6 +13,10 @@
 #include <cassert>
 
 namespace {
+    constexpr bool kUseSequentialSetIds = true; // shaders must be written strictly
+}
+
+namespace {
     engine::rhi::Format convert2Rhi(SpvReflectFormat format) noexcept {
         using namespace engine::rhi;
         switch (format) {
@@ -302,6 +306,12 @@ namespace engine::vulkan {
     }
 
     const rhi::shaders::BindingSetLayout * GpuProgram::getLayout(uint8_t setId) const noexcept {
+        if constexpr (kUseSequentialSetIds) {
+            assert(setId <= _sets.size());
+            assert(_sets[setId].second == setId);
+            return &_sets[setId].first;
+        }
+
         if (auto it = std::find_if(_sets.begin(), _sets.end(), [setId](const auto & set) {
             return set.second == setId;
         }); it != _sets.end()) {

@@ -106,74 +106,74 @@ namespace engine::vulkan {
         }
     }
 
-    void DescriptorSetUpdater::updateBuffers(stl::span<const stl::pair<Buffer*, uint32_t>> bufferBindings) noexcept {
-        if (!isValid()) { 
-            return; 
-        }
+    // void DescriptorSetUpdater::updateBuffers(stl::span<const stl::pair<Buffer*, uint32_t>> bufferBindings) noexcept {
+    //     if (!isValid()) { 
+    //         return; 
+    //     }
 
-        const auto view = _buffersInfo.view();
-        for (const auto & [buffer, binding] : bufferBindings) {
-            const auto it = std::find_if(view.begin(), view.end(), [binding](const DescriptorInfo<DescriptorBufferInfo> & info) {
-                return info.binding == binding;
-            });
+    //     const auto view = _buffersInfo.view();
+    //     for (const auto & [buffer, binding] : bufferBindings) {
+    //         const auto it = std::find_if(view.begin(), view.end(), [binding](const DescriptorInfo<DescriptorBufferInfo> & info) {
+    //             return info.binding == binding;
+    //         });
 
-            if (it != view.end()) {
-                const auto vkBuffer = buffer->operator()();
-                auto & info = it->info;
-                if (info.vkInfo.buffer != vkBuffer) {
-                    info.vkInfo.buffer = vkBuffer;
-                    info.vkInfo.offset = 0u;
-                    info.vkInfo.range = static_cast<VkDeviceSize>(buffer->sizeInBytes());
-                    _buffersDirty = true;
-                }
-            }
-        }
-    }
+    //         if (it != view.end()) {
+    //             const auto vkBuffer = buffer->operator()();
+    //             auto & info = it->info;
+    //             if (info.vkInfo.buffer != vkBuffer) {
+    //                 info.vkInfo.buffer = vkBuffer;
+    //                 info.vkInfo.offset = 0u;
+    //                 info.vkInfo.range = static_cast<VkDeviceSize>(buffer->sizeInBytes());
+    //                 _buffersDirty = true;
+    //             }
+    //         }
+    //     }
+    // }
 
-    void DescriptorSetUpdater::updateImages(stl::span<const std::tuple<VkSampler, VkImageView, VkImageLayout, uint32_t>> imageBindings) noexcept {
-        if (!isValid()) { 
-            return; 
-        }
+    // void DescriptorSetUpdater::updateImages(stl::span<const std::tuple<VkSampler, VkImageView, VkImageLayout, uint32_t>> imageBindings) noexcept {
+    //     if (!isValid()) { 
+    //         return; 
+    //     }
 
-        const auto view = _imagesInfo.view();
-        for (const auto & [sampler, imageView, layout, binding] : imageBindings) {
-            const auto it = std::find_if(view.begin(), view.end(), [binding](const DescriptorInfo<VkDescriptorImageInfo> & info) {
-                return info.binding == binding;
-            });
+    //     const auto view = _imagesInfo.view();
+    //     for (const auto & [sampler, imageView, layout, binding] : imageBindings) {
+    //         const auto it = std::find_if(view.begin(), view.end(), [binding](const DescriptorInfo<VkDescriptorImageInfo> & info) {
+    //             return info.binding == binding;
+    //         });
 
-            if (it != view.end()) {
-                auto & info = it->info;
-                if (info.imageView != imageView || info.sampler != sampler || info.imageLayout != layout) {
-                    info.sampler = sampler;
-                    info.imageView = imageView;
-                    info.imageLayout = layout; // must be VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, or can be VK_IMAGE_LAYOUT_GENERAL sometimes (DescriptorType::eStorage_Image)?
-                    _imagesDirty = true;
-                }
-            }
-        }
-    }
+    //         if (it != view.end()) {
+    //             auto & info = it->info;
+    //             if (info.imageView != imageView || info.sampler != sampler || info.imageLayout != layout) {
+    //                 info.sampler = sampler;
+    //                 info.imageView = imageView;
+    //                 info.imageLayout = layout; // must be VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, or can be VK_IMAGE_LAYOUT_GENERAL sometimes (DescriptorType::eStorage_Image)?
+    //                 _imagesDirty = true;
+    //             }
+    //         }
+    //     }
+    // }
 
-    void DescriptorSetUpdater::updatetexelBuffers(stl::span<const std::tuple<Buffer*, rhi::Format, uint32_t>> texelBufferBindings) noexcept {
-        if (!isValid()) { 
-            return; 
-        }
+    // void DescriptorSetUpdater::updatetexelBuffers(stl::span<const std::tuple<Buffer*, rhi::Format, uint32_t>> texelBufferBindings) noexcept {
+    //     if (!isValid()) { 
+    //         return; 
+    //     }
 
-        const auto view = _texelBuffersInfo.view();
-        for (const auto & [buffer, format, binding] : texelBufferBindings) {
-            const auto it = std::find_if(view.begin(), view.end(), [binding](const DescriptorInfo<VkBufferView> & info) {
-                return info.binding == binding;
-            });
+    //     const auto view = _texelBuffersInfo.view();
+    //     for (const auto & [buffer, format, binding] : texelBufferBindings) {
+    //         const auto it = std::find_if(view.begin(), view.end(), [binding](const DescriptorInfo<VkBufferView> & info) {
+    //             return info.binding == binding;
+    //         });
 
-            if (it != view.end()) {
-                auto const vkBufferView = buffer->recieveView(format);
-                auto & bufferView = it->info;
-                if (bufferView != vkBufferView) {
-                    bufferView = vkBufferView;
-                    _texelBufferDirty = true;
-                }
-            }
-        }
-    }
+    //         if (it != view.end()) {
+    //             auto const vkBufferView = buffer->recieveView(format);
+    //             auto & bufferView = it->info;
+    //             if (bufferView != vkBufferView) {
+    //                 bufferView = vkBufferView;
+    //                 _texelBufferDirty = true;
+    //             }
+    //         }
+    //     }
+    // }
 
     DescriptorSetUpdater::BufferUpdateResult DescriptorSetUpdater::updateBuffer(const Buffer* buffer, 
         uint32_t binding, uint64_t offset, uint64_t range, bool dynamic) noexcept {

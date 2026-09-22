@@ -2302,8 +2302,8 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
 
         completeAnimations();
 
-        const std::chrono::duration<float> nowDuration = now.time_since_epoch();
-        _shadersTime = fract(nowDuration.count() * _animationSpeed * kShaderTimeMultiplier);
+        const std::chrono::duration<float> seconds = now.time_since_epoch();
+        _shadersTime = fract(seconds.count() * _animationSpeed * kShaderTimeMultiplier);
 
         ++_frameNumber;
     }

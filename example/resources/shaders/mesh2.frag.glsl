@@ -42,6 +42,6 @@ void main() {
 	out_normal = vec4(normalize(v_normal) * 0.5f + 0.5f, 0.0f);	
 	out_emissive = vec4(texture(u_texture_emissive, v_uv).rgb * push.emissive.rgb, 1.0f);
 	out_metalicRoughness = vec2(texture(u_texture_metalicRoughness, v_uv).bg * push.metalicRoughnessAlphaCut.xy);
-
+	out_metalicRoughness += texture(u_texture_normal, v_uv).rg * 0.0000001f;
 	//gl_FragCoord
 }

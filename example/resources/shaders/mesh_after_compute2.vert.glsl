@@ -38,6 +38,6 @@ void main() {
 	gl_Position = u_viewParams.viewProjection * position;
 	v_uv = a_uv;
 	
-	const vec3 normal = imageLoad(in_normals, int(vertexId)).xyz;
+	const vec3 normal = imageLoad(in_normals, int(vertexId)).xyz + imageLoad(in_tangents, int(vertexId)).xyz * 0.0000001f;
 	v_normal = u_viewParams.viewTransposeInverse * normal;
 }
