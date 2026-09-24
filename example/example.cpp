@@ -2829,8 +2829,9 @@ namespace example {
         // 
         if (underCursorNode != nullptr) {
             const auto & nodePosition = underCursorNode->getPosition();
-            const engine::vec3f p = {nodePosition.x, nodePosition.y, 0.005f};
-            drawHelper.drawCircle(p, 0.135f, 0xff'00'00'ffu, 32u, viewParams.cameraTransform, engine::graphics::DrawHelper::Type::eLines);
+            const engine::vec3f p = {nodePosition.x, nodePosition.y, 0.001f};
+            drawHelper.drawCircle(p, 0.135f, 0x22'ff'ff'ffu, 32u, viewParams.cameraTransform, engine::graphics::DrawHelper::Type::eFill);
+            drawHelper.drawCircle(p, 0.135f, 0xff'00'00'00u, 32u, viewParams.cameraTransform, engine::graphics::DrawHelper::Type::eLine);
         }
         
         if (showBboxes) {
@@ -2838,7 +2839,14 @@ namespace example {
         }
 
         drawHelper.prepare(*transferCommandList, frameId);
-        drawHelper.draw(*commandList, frameId, now);
+        struct DrawHelperGpuParams {
+            engine::mat3f m;
+            engine::vec2f v;
+        } unform = {
+            .m = viewParams.viewTransposeInverse,
+            .v = viewParams.nearFarPlanes
+        };
+        drawHelper.draw(*commandList, frameId, now, {{reinterpret_cast<std::byte*>(&unform), 56u}, engine::rhi::shaders::Stages::eFragment});
         
         //commandList->nextSubpass(rhi::SubpassContents::ePrimaryBufferInline);
         commandList->endRenderPass();

@@ -222,12 +222,17 @@ namespace engine::graphics {
         }
     }
 
-    void DrawHelper::draw(rhi::runtime::CommandList & commandList, uint8_t frame, std::chrono::time_point<std::chrono::steady_clock> now) noexcept {
+    void DrawHelper::draw(rhi::runtime::CommandList & commandList, uint8_t frame, std::chrono::time_point<std::chrono::steady_clock> now, 
+        draw_helper::Uniform uniform) noexcept {
         if (_lineIndicesCount) { // draw lines
             commandList.bindPipeline(_linePipeline);
 
             commandList.bindVertexBuffer(0u, (*_vertices)(frame), 0u);
             commandList.bindIndexBuffer((*_linesIndices)(frame), 0u, rhi::IndexType::eU32);
+
+            if (!uniform.empty()) {
+                commandList.pushConstants(uniform.stages, 0u, uniform.data.size(), uniform.data.data());
+            }
 
             commandList.drawIndexed(static_cast<uint32_t>(_lineIndicesCount), 1u, 0u);
         }
@@ -237,6 +242,10 @@ namespace engine::graphics {
 
             commandList.bindVertexBuffer(0u, (*_vertices)(frame), 0u);
             commandList.bindIndexBuffer((*_fillIndices)(frame), 0u, rhi::IndexType::eU32);
+
+            if (!uniform.empty()) {
+                commandList.pushConstants(uniform.stages, 0u, uniform.data.size(), uniform.data.data());
+            }
 
             commandList.drawIndexed(static_cast<uint32_t>(_filledIndicesCount), 1u, 0u);
         }
@@ -319,7 +328,7 @@ namespace engine::graphics {
             .color = color
         };
 
-        if (std::to_underlying(t) & std::to_underlying(Type::eLines)) {
+        if (std::to_underlying(t) & std::to_underlying(Type::eLine)) {
             const auto iSize = static_cast<uint32_t>((_lineIndicesCount + 8u) * sizeof(uint32_t));
             if (_linesIndices->sizeInBytes() <= iSize) {
                 _linesIndices->resize(std::max(_linesIndices->sizeInBytes() * 2u, iSize));
@@ -383,7 +392,7 @@ namespace engine::graphics {
             angle += step;
         }
 
-        if (std::to_underlying(t) & std::to_underlying(Type::eLines)) {
+        if (std::to_underlying(t) & std::to_underlying(Type::eLine)) {
             const auto iSize = static_cast<uint32_t>((_lineIndicesCount + segments * 2u) * sizeof(uint32_t));
             if (_linesIndices->sizeInBytes() <= iSize) {
                 _linesIndices->resize(std::max(_linesIndices->sizeInBytes() * 2u, iSize));
@@ -460,7 +469,7 @@ namespace engine::graphics {
             }
         }
 
-        if (std::to_underlying(t) & std::to_underlying(Type::eLines)) {
+        if (std::to_underlying(t) & std::to_underlying(Type::eLine)) {
             const auto iSize = static_cast<uint32_t>((_lineIndicesCount + segments * 2u * segments + segments * 2u * segments) * sizeof(uint32_t));
             if (_linesIndices->sizeInBytes() <= iSize) {
                 _linesIndices->resize(std::max(_linesIndices->sizeInBytes() * 2u, iSize));
@@ -560,7 +569,7 @@ namespace engine::graphics {
             .color = color
         };
 
-        if (std::to_underlying(t) & std::to_underlying(Type::eLines)) {
+        if (std::to_underlying(t) & std::to_underlying(Type::eLine)) {
             const auto iSize = static_cast<uint32_t>((_lineIndicesCount + 24u) * sizeof(uint32_t));
             if (_linesIndices->sizeInBytes() <= iSize) {
                 _linesIndices->resize(std::max(_linesIndices->sizeInBytes() * 2u, iSize));

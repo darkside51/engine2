@@ -4,10 +4,12 @@
 #include "graphics/render/inflight_buffer.h"
 #include "graphics/render/staging_buffer.h"
 #include "math/math.h"
+#include "stl/span.h"
 
+#include <cassert>
+#include <cstddef>
 #include <cstdint>
 #include <chrono>
-#include <span>
 
 namespace engine::scene {
     struct Bounds;
@@ -15,12 +17,30 @@ namespace engine::scene {
 
 namespace engine::graphics {
 
+namespace draw_helper {
+    struct Uniform {
+        Uniform() = default;
+        Uniform(stl::span<const std::byte> data, rhi::shaders::Stages stages) :
+            data(data),
+            stages(stages) {
+            assert(data.size() <= 128u);
+        }
+
+        bool empty() const noexcept {
+            return data.empty();
+        }
+
+        stl::span<const std::byte> data = {};
+        rhi::shaders::Stages stages = rhi::shaders::Stages::eNone;
+    };
+}
+
 class DrawHelper {
 public:
     enum class Type : uint8_t {
-        eLines = 1u,
+        eLine = 1u,
         eFill = 2u,
-        eFull = eLines | eFill
+        eFull = eLine | eFill
     };
 
     // system
@@ -36,7 +56,8 @@ public:
         rhi::runtime::Device & device);
 
     void prepare(rhi::runtime::CommandList & commandList, uint8_t frame);
-    void draw(rhi::runtime::CommandList & commandList, uint8_t frame, std::chrono::time_point<std::chrono::steady_clock> now) noexcept;
+    void draw(rhi::runtime::CommandList & commandList, uint8_t frame, std::chrono::time_point<std::chrono::steady_clock> now,
+        draw_helper::Uniform uniform = {}) noexcept;
 
     // user
     void drawSquare(vec2f corner0, vec2f corner1, uint32_t color, const mat4f & transform = mat4f{1.0f}, Type t = Type::eFull);

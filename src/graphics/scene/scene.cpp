@@ -87,7 +87,7 @@ namespace engine::scene {
 
     // times
     constexpr float kAnimBlendTime = 0.35f; // in seconds
-    constexpr float kShaderTimeMultiplier = 0.001f;
+    constexpr float kShaderTimeMultiplier = 1e-3f;
 
     // global objects:
     FramesSequenceAnimator gSequenceAnimator{1.0f / 30.0f};
