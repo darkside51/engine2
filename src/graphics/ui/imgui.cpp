@@ -19,7 +19,7 @@ namespace engine {
         rhi::MemoryPropertyFlags::eDeviceLocal
     };
 
-    ImGuiSystem::ImGuiSystem() {
+    ImGuiSystem::ImGuiSystem(Theme theme) : _theme(theme) {
         ImGui::CreateContext();
         ImGuiIO &io = ImGui::GetIO();
         io.DisplayFramebufferScale = ImVec2(1.0f, 1.0f);
@@ -30,12 +30,21 @@ namespace engine {
 
         setupKeyMap();
 
-        // Set the standard dark theme (Default)
-        //ImGui::StyleColorsDark();
-        // Set the light theme
-        //ImGui::StyleColorsLight();
-        // Set the retro/classic ImGui theme
-        //ImGui::StyleColorsClassic();
+        switch (_theme) {
+        case Theme::eDefault:
+            ImGui::StyleColorsDark();
+        break;
+        case Theme::eLight:
+            ImGui::StyleColorsLight();
+        break;
+        case Theme::eDark:
+            ImGui::StyleColorsClassic();
+        break;
+        case Theme::eCustom:
+        break;
+        default:
+        break;
+        }
     }
 
     ImGuiSystem::~ImGuiSystem() {

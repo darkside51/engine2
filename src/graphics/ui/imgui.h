@@ -17,7 +17,15 @@ namespace engine {
 
     class ImGuiSystem final : public InputObserver {
     public:
-        ImGuiSystem();
+        enum class Theme : uint8_t {
+            eDefault = 0u,
+            eLight = 1u,
+            eDark = 2u,
+            eCustom = 3u
+        };
+
+        ImGuiSystem() : ImGuiSystem(Theme::eDefault) {}
+        ImGuiSystem(Theme theme);
         ~ImGuiSystem();
 
         void destroy() noexcept;
@@ -57,6 +65,8 @@ namespace engine {
         stl::unordered_map<uint8_t, stl::pair<uint8_t, uint8_t>> _keyMap;
 
         vec4f _transform{};
+
+        Theme _theme = Theme::eDefault;
     };
 
 }
