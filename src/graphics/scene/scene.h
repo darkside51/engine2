@@ -214,11 +214,11 @@ public:
     }
 
     // custom delegates
-    void addCustomDelegate(ICustomObjectSceneDelegate * delegate) {
+    void addCustomDelegate(ICustomSceneDelegate * delegate) {
         _customDelegates.emplace_back(delegate);
     }
 
-    void removeCustomDelegate(ICustomObjectSceneDelegate * delegate) {
+    void removeCustomDelegate(ICustomSceneDelegate * delegate) {
         stl::erase(_customDelegates, delegate); 
     }
 
@@ -437,7 +437,7 @@ private:
     vec2f _colorPassScreenOffset = {0.0f, 0.0f};
 
     // custom delegates
-    stl::vector<ICustomObjectSceneDelegate *> _customDelegates;
+    stl::vector<ICustomSceneDelegate *> _customDelegates;
 };
 
 template <typename Condition>

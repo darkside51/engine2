@@ -70,12 +70,12 @@ private:
     uint8_t _sizeInCells;
 };
 
-class TerrainTileRenderer : public engine::scene::ICustomObjectSceneDelegate {
+class TerrainTileRenderer : public engine::scene::ICustomSceneDelegate {
 public:
     using object_type = TerrainTile;
-    static constexpr auto kFlags = engine::scene::CustomDelegateFlags::eDraw | engine::scene::CustomDelegateFlags::eDispatch;
+    static constexpr auto kFlags = engine::scene::CustomSceneDelegateFlags::eDraw | engine::scene::CustomSceneDelegateFlags::eDispatch;
 
-    TerrainTileRenderer() : engine::scene::ICustomObjectSceneDelegate(kFlags) {}
+    TerrainTileRenderer() : engine::scene::ICustomSceneDelegate(kFlags) {}
     void draw(
         const engine::scene::CustomSceneObject & object, const engine::scene::Scene & scene, const engine::scene::ViewParams & viewParams, 
         engine::scene::RenderPass pass, const engine::mat4f & worldTransform, 

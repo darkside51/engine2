@@ -13,21 +13,21 @@
 namespace engine::scene {
 
 class Scene;
-class ICustomObjectSceneDelegate;
+class ICustomSceneDelegate;
 
 class CustomSceneObject : public AttachmentObject {
 public:
-    template<typename T, typename = std::enable_if_t<std::is_base_of_v<ICustomObjectSceneDelegate, std::decay_t<T>>>>
+    template<typename T, typename = std::enable_if_t<std::is_base_of_v<ICustomSceneDelegate, std::decay_t<T>>>>
     CustomSceneObject(T &&, T::object_type *) = delete;
 
-    template<typename T, typename = std::enable_if_t<std::is_base_of_v<ICustomObjectSceneDelegate, std::decay_t<T>>>>
+    template<typename T, typename = std::enable_if_t<std::is_base_of_v<ICustomSceneDelegate, std::decay_t<T>>>>
     CustomSceneObject(T & delegate, T::object_type * data) : CustomSceneObject(delegate, static_cast<void*>(data)) {}
 
-    const ICustomObjectSceneDelegate & getDelegate() const noexcept {
+    const ICustomSceneDelegate & getDelegate() const noexcept {
         return _delegate;
     }
 
-    ICustomObjectSceneDelegate & getDelegate() noexcept {
+    ICustomSceneDelegate & getDelegate() noexcept {
         return _delegate;
     }
 
@@ -38,28 +38,28 @@ public:
     bool cmp(const CustomSceneObject &) const noexcept;
 
 private:
-    CustomSceneObject(ICustomObjectSceneDelegate & delegate, void * data);
-    ICustomObjectSceneDelegate & _delegate;
+    CustomSceneObject(ICustomSceneDelegate & delegate, void * data);
+    ICustomSceneDelegate & _delegate;
     void * _customData = nullptr;
 };
 
-enum CustomDelegateFlags : uint8_t {
+enum CustomSceneDelegateFlags : uint8_t {
     eNone = 0u,
     eDraw = 1u,
     eDispatch = 2u
 };
 
-inline constexpr CustomDelegateFlags operator | (CustomDelegateFlags a, CustomDelegateFlags b) noexcept {
-    return static_cast<CustomDelegateFlags>(std::to_underlying(a) | std::to_underlying(b));
+inline constexpr CustomSceneDelegateFlags operator | (CustomSceneDelegateFlags a, CustomSceneDelegateFlags b) noexcept {
+    return static_cast<CustomSceneDelegateFlags>(std::to_underlying(a) | std::to_underlying(b));
 }
-inline constexpr CustomDelegateFlags operator & (CustomDelegateFlags a, CustomDelegateFlags b) noexcept {
-    return static_cast<CustomDelegateFlags>(std::to_underlying(a) & std::to_underlying(b));
+inline constexpr CustomSceneDelegateFlags operator & (CustomSceneDelegateFlags a, CustomSceneDelegateFlags b) noexcept {
+    return static_cast<CustomSceneDelegateFlags>(std::to_underlying(a) & std::to_underlying(b));
 }
 
-class ICustomObjectSceneDelegate {
+class ICustomSceneDelegate {
 public:
-    ICustomObjectSceneDelegate(CustomDelegateFlags flags = CustomDelegateFlags::eDraw) : _flags(flags) {}
-    virtual ~ICustomObjectSceneDelegate() = default;
+    ICustomSceneDelegate(CustomSceneDelegateFlags flags = CustomSceneDelegateFlags::eDraw) : _flags(flags) {}
+    virtual ~ICustomSceneDelegate() = default;
     
     virtual void dispatch(const Scene & scene, rhi::runtime::CommandListPtr & commandList, uint8_t frame, 
         AttachmentsIterator begin, AttachmentsIterator end) {};
@@ -79,15 +79,19 @@ public:
     }
 
     inline bool isDrawEnabled() const noexcept {
-        return (_flags & CustomDelegateFlags::eDraw) != CustomDelegateFlags::eNone;
+        return (_flags & CustomSceneDelegateFlags::eDraw) != CustomSceneDelegateFlags::eNone;
     }
 
     inline bool isDispatchEnabled() const noexcept {
-        return (_flags & CustomDelegateFlags::eDispatch) != CustomDelegateFlags::eNone;
+        return (_flags & CustomSceneDelegateFlags::eDispatch) != CustomSceneDelegateFlags::eNone;
+    }
+
+    inline CustomSceneDelegateFlags getFlags() const noexcept {
+        return _flags;
     }
 
 private:
-    CustomDelegateFlags _flags = CustomDelegateFlags::eDraw;
+    CustomSceneDelegateFlags _flags = CustomSceneDelegateFlags::eDraw;
 };
 
 }

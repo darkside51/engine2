@@ -219,7 +219,7 @@ namespace example {
     engine::rhi::runtime::Pipeline* g_mapGeometryCommonAreaPipeline;
     engine::rhi::runtime::Pipeline* g_mapGeometryShadowPipeline;
 
-    class TileGeometryRenderer : public engine::scene::ICustomObjectSceneDelegate {
+    class TileGeometryRenderer : public engine::scene::ICustomSceneDelegate {
         float _extent = 8192.0f;
         engine::stl::array<const engine::graphics::ImageHandler*, 2u> _images;
 
