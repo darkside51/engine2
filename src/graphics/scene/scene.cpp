@@ -1423,13 +1423,17 @@ namespace engine::scene {
             auto * delegate2 = &object.getDelegate();
 
             if (delegate != delegate2) {
-                delegate->draw(currentIt, it, *this, viewParams, _currentPass, commandList, frame);
+                if (delegate->isDrawEnabled()) { [[likely]]
+                    delegate->draw(currentIt, it, *this, viewParams, _currentPass, commandList, frame);
+                }
                 delegate = delegate2;
                 currentIt = it;
             }
         }
 
-        delegate->draw(currentIt, end, *this, viewParams, _currentPass, commandList, frame);
+        if (delegate->isDrawEnabled()) { [[likely]]
+            delegate->draw(currentIt, end, *this, viewParams, _currentPass, commandList, frame);
+        }
     }
 
     void Scene::drawSprites(rhi::runtime::CommandListPtr & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end, 

@@ -43,9 +43,22 @@ private:
     void * _customData = nullptr;
 };
 
+enum CustomDelegateFlags : uint8_t {
+    eNone = 0u,
+    eDraw = 1u,
+    eDispatch = 2u
+};
+
+inline constexpr CustomDelegateFlags operator | (CustomDelegateFlags a, CustomDelegateFlags b) noexcept {
+    return static_cast<CustomDelegateFlags>(std::to_underlying(a) | std::to_underlying(b));
+}
+inline constexpr CustomDelegateFlags operator & (CustomDelegateFlags a, CustomDelegateFlags b) noexcept {
+    return static_cast<CustomDelegateFlags>(std::to_underlying(a) & std::to_underlying(b));
+}
+
 class ICustomObjectSceneDelegate {
 public:
-    ICustomObjectSceneDelegate(bool dispatch = false) : _dispatch(dispatch) {}
+    ICustomObjectSceneDelegate(CustomDelegateFlags flags = CustomDelegateFlags::eDraw) : _flags(flags) {}
     virtual ~ICustomObjectSceneDelegate() = default;
     
     virtual void dispatch(const Scene & scene, rhi::runtime::CommandListPtr & commandList, uint8_t frame, 
@@ -65,12 +78,16 @@ public:
         return false;
     }
 
+    inline bool isDrawEnabled() const noexcept {
+        return (_flags & CustomDelegateFlags::eDraw) != CustomDelegateFlags::eNone;
+    }
+
     inline bool isDispatchEnabled() const noexcept {
-        return _dispatch;
+        return (_flags & CustomDelegateFlags::eDispatch) != CustomDelegateFlags::eNone;
     }
 
 private:
-    bool _dispatch = false;
+    CustomDelegateFlags _flags = CustomDelegateFlags::eDraw;
 };
 
 }

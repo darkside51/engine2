@@ -73,8 +73,9 @@ private:
 class TerrainTileRenderer : public engine::scene::ICustomObjectSceneDelegate {
 public:
     using object_type = TerrainTile;
+    static constexpr auto kFlags = engine::scene::CustomDelegateFlags::eDraw | engine::scene::CustomDelegateFlags::eDispatch;
 
-    TerrainTileRenderer() : engine::scene::ICustomObjectSceneDelegate(true) {}
+    TerrainTileRenderer() : engine::scene::ICustomObjectSceneDelegate(kFlags) {}
     void draw(
         const engine::scene::CustomSceneObject & object, const engine::scene::Scene & scene, const engine::scene::ViewParams & viewParams, 
         engine::scene::RenderPass pass, const engine::mat4f & worldTransform, 

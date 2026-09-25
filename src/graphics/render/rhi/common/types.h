@@ -14,12 +14,12 @@
 
 namespace engine::rhi {
     // template <typename T>
-    // inline T operator | (T a, T b) {
+    // inline constexpr T operator | (T a, T b) noexcept {
     //     return static_cast<T>(std::to_underlying(a) | std::to_underlying(b));
     // }
 
     // template <typename T>
-    // inline T operator & (T a, T b) {
+    // inline constexpr T operator & (T a, T b) noexcept {
     //     return static_cast<T>(std::to_underlying(a) & std::to_underlying(b));
     // }
 
@@ -122,10 +122,10 @@ namespace engine::rhi {
         eLazilyAllocated = 16u,
         eProtected = 32u
     };
-    inline MemoryPropertyFlags operator | (MemoryPropertyFlags a, MemoryPropertyFlags b) {
+    inline constexpr MemoryPropertyFlags operator | (MemoryPropertyFlags a, MemoryPropertyFlags b) noexcept {
         return static_cast<MemoryPropertyFlags>(std::to_underlying(a) | std::to_underlying(b));
     }
-    inline MemoryPropertyFlags operator & (MemoryPropertyFlags a, MemoryPropertyFlags b) {
+    inline constexpr MemoryPropertyFlags operator & (MemoryPropertyFlags a, MemoryPropertyFlags b) noexcept {
         return static_cast<MemoryPropertyFlags>(std::to_underlying(a) & std::to_underlying(b));
     }
 
@@ -136,10 +136,10 @@ namespace engine::rhi {
         eMapped = 4u,
         eCan_Alias = 8u
     };
-    inline MemoryExtendedFlags operator | (MemoryExtendedFlags a, MemoryExtendedFlags b) {
+    inline constexpr MemoryExtendedFlags operator | (MemoryExtendedFlags a, MemoryExtendedFlags b) noexcept {
         return static_cast<MemoryExtendedFlags>(std::to_underlying(a) | std::to_underlying(b));
     }
-    inline MemoryExtendedFlags operator & (MemoryExtendedFlags a, MemoryExtendedFlags b) {
+    inline constexpr MemoryExtendedFlags operator & (MemoryExtendedFlags a, MemoryExtendedFlags b) noexcept {
         return static_cast<MemoryExtendedFlags>(std::to_underlying(a) & std::to_underlying(b));
     }
 
@@ -150,10 +150,10 @@ namespace engine::rhi {
         eB = 4u, 
         eA = 8u
     };
-    inline constexpr ColorComponent operator | (ColorComponent a, ColorComponent b) {
+    inline constexpr ColorComponent operator | (ColorComponent a, ColorComponent b) noexcept {
         return static_cast<ColorComponent>(std::to_underlying(a) | std::to_underlying(b));
     }
-    inline constexpr ColorComponent operator & (ColorComponent a, ColorComponent b) {
+    inline constexpr ColorComponent operator & (ColorComponent a, ColorComponent b) noexcept {
         return static_cast<ColorComponent>(std::to_underlying(a) & std::to_underlying(b));
     }
     
@@ -420,10 +420,10 @@ namespace engine::rhi {
         eFormatFeature_Fragment_Density_Map_Ext = 0x01000000u,
         eFormatFeature_Fragment_Shading_Rate_Attachment = 0x40000000u,
     };
-    inline FormatFeatureFlags operator | (FormatFeatureFlags a, FormatFeatureFlags b) {
+    inline constexpr FormatFeatureFlags operator | (FormatFeatureFlags a, FormatFeatureFlags b) noexcept {
         return static_cast<FormatFeatureFlags>(std::to_underlying(a) | std::to_underlying(b));
     }
-    inline FormatFeatureFlags operator & (FormatFeatureFlags a, FormatFeatureFlags b) {
+    inline constexpr FormatFeatureFlags operator & (FormatFeatureFlags a, FormatFeatureFlags b) noexcept {
         return static_cast<FormatFeatureFlags>(std::to_underlying(a) & std::to_underlying(b));
     }
 
@@ -503,10 +503,10 @@ namespace engine::rhi {
         eMicromap_Storage_Ext = 0x01000000u, // EXT_opacity_micromap
         eRay_Tracing_NV = eShader_Binding_Table_Khr,
     };
-    inline BufferUsageFlags operator | (BufferUsageFlags a, BufferUsageFlags b) {
+    inline constexpr BufferUsageFlags operator | (BufferUsageFlags a, BufferUsageFlags b) noexcept {
         return static_cast<BufferUsageFlags>(std::to_underlying(a) | std::to_underlying(b));
     }
-    inline BufferUsageFlags operator & (BufferUsageFlags a, BufferUsageFlags b) {
+    inline constexpr BufferUsageFlags operator & (BufferUsageFlags a, BufferUsageFlags b) noexcept {
         return static_cast<BufferUsageFlags>(std::to_underlying(a) & std::to_underlying(b));
     }
 
@@ -535,10 +535,10 @@ namespace engine::rhi {
         eMetadata = 8u,
         eDepthStencil = eDepth | eStencil
     };
-    inline ImageAspectFlags operator | (ImageAspectFlags a, ImageAspectFlags b) {
+    inline constexpr ImageAspectFlags operator | (ImageAspectFlags a, ImageAspectFlags b) noexcept {
         return static_cast<ImageAspectFlags>(std::to_underlying(a) | std::to_underlying(b));
     }
-    inline ImageAspectFlags operator & (ImageAspectFlags a, ImageAspectFlags b) {
+    inline constexpr ImageAspectFlags operator & (ImageAspectFlags a, ImageAspectFlags b) noexcept {
         return static_cast<ImageAspectFlags>(std::to_underlying(a) & std::to_underlying(b));
     }
 
@@ -553,10 +553,10 @@ namespace engine::rhi {
         eTransient_Attachment = 64u,
         eInput_Attachment = 128u,
     };
-    inline ImageUsageFlags operator | (ImageUsageFlags a, ImageUsageFlags b) {
+    inline constexpr ImageUsageFlags operator | (ImageUsageFlags a, ImageUsageFlags b) noexcept {
         return static_cast<ImageUsageFlags>(std::to_underlying(a) | std::to_underlying(b));
     }
-    inline ImageUsageFlags operator & (ImageUsageFlags a, ImageUsageFlags b) {
+    inline constexpr ImageUsageFlags operator & (ImageUsageFlags a, ImageUsageFlags b) noexcept {
         return static_cast<ImageUsageFlags>(std::to_underlying(a) & std::to_underlying(b));
     }
 
@@ -570,10 +570,10 @@ namespace engine::rhi {
         eMutable_Format = 1u,
         eCube_Compatible = 2u,
     };
-    inline ImageCreateFlags operator | (ImageCreateFlags a, ImageCreateFlags b) {
+    inline constexpr ImageCreateFlags operator | (ImageCreateFlags a, ImageCreateFlags b) noexcept {
         return static_cast<ImageCreateFlags>(std::to_underlying(a) | std::to_underlying(b));
     }
-    inline ImageCreateFlags operator & (ImageCreateFlags a, ImageCreateFlags b) {
+    inline constexpr ImageCreateFlags operator & (ImageCreateFlags a, ImageCreateFlags b) noexcept {
         return static_cast<ImageCreateFlags>(std::to_underlying(a) & std::to_underlying(b));
     }
     
@@ -661,10 +661,10 @@ namespace engine::rhi {
         eSparse_Aliased = 4u,
         eProtected = 8u
     };
-    inline BufferCreateFlags operator | (BufferCreateFlags a, BufferCreateFlags b) {
+    inline constexpr BufferCreateFlags operator | (BufferCreateFlags a, BufferCreateFlags b) noexcept {
         return static_cast<BufferCreateFlags>(std::to_underlying(a) | std::to_underlying(b));
     }
-    inline BufferCreateFlags operator & (BufferCreateFlags a, BufferCreateFlags b) {
+    inline constexpr BufferCreateFlags operator & (BufferCreateFlags a, BufferCreateFlags b) noexcept {
         return static_cast<BufferCreateFlags>(std::to_underlying(a) & std::to_underlying(b));
     }
 
@@ -693,10 +693,10 @@ namespace engine::rhi {
         eNone = 0u,
         eDeviceOnly = 1u
     };
-    inline EventCreateFlags operator | (EventCreateFlags a, EventCreateFlags b) {
+    inline constexpr EventCreateFlags operator | (EventCreateFlags a, EventCreateFlags b) noexcept {
         return static_cast<EventCreateFlags>(std::to_underlying(a) | std::to_underlying(b));
     }
-    inline EventCreateFlags operator & (EventCreateFlags a, EventCreateFlags b) {
+    inline constexpr EventCreateFlags operator & (EventCreateFlags a, EventCreateFlags b) noexcept {
         return static_cast<EventCreateFlags>(std::to_underlying(a) & std::to_underlying(b));
     }
 
@@ -707,10 +707,10 @@ namespace engine::rhi {
         eMin = 4u,
         eMax = 8u,
     };
-    inline ResolveModeFlags operator | (ResolveModeFlags a, ResolveModeFlags b) {
+    inline constexpr ResolveModeFlags operator | (ResolveModeFlags a, ResolveModeFlags b) noexcept {
         return static_cast<ResolveModeFlags>(std::to_underlying(a) | std::to_underlying(b));
     }
-    inline ResolveModeFlags operator & (ResolveModeFlags a, ResolveModeFlags b) {
+    inline constexpr ResolveModeFlags operator & (ResolveModeFlags a, ResolveModeFlags b) noexcept {
         return static_cast<ResolveModeFlags>(std::to_underlying(a) & std::to_underlying(b));
     }
 
@@ -845,10 +845,10 @@ namespace engine::rhi {
         eTast_Shader_Ext = 0x00080000u,
         eMesh_Shader_Ext = 0x00100000u,
     };
-    inline PipelineStageFlags operator | (PipelineStageFlags a, PipelineStageFlags b) {
+    inline constexpr PipelineStageFlags operator | (PipelineStageFlags a, PipelineStageFlags b) noexcept {
         return static_cast<PipelineStageFlags>(std::to_underlying(a) | std::to_underlying(b));
     }
-    inline PipelineStageFlags operator & (PipelineStageFlags a, PipelineStageFlags b) {
+    inline constexpr PipelineStageFlags operator & (PipelineStageFlags a, PipelineStageFlags b) noexcept {
         return static_cast<PipelineStageFlags>(std::to_underlying(a) & std::to_underlying(b));
     }
 
@@ -883,10 +883,10 @@ namespace engine::rhi {
         eCommand_Preprocess_Read_Ext = 0x00020000u,
         eCommand_Preprocess_Write_Ext = 0x00040000u,
     };
-    inline AccessFlags operator | (AccessFlags a, AccessFlags b) {
+    inline constexpr AccessFlags operator | (AccessFlags a, AccessFlags b) noexcept {
         return static_cast<AccessFlags>(std::to_underlying(a) | std::to_underlying(b));
     }
-    inline AccessFlags operator & (AccessFlags a, AccessFlags b) {
+    inline constexpr AccessFlags operator & (AccessFlags a, AccessFlags b) noexcept {
         return static_cast<AccessFlags>(std::to_underlying(a) & std::to_underlying(b));
     }
 
@@ -898,10 +898,10 @@ namespace engine::rhi {
         eFeedback_Loop_Ext = 0x00000008u,
         eQueue_Family_Ownership_Transfer_Use_All_Stages = 0x00000020u,
     };
-    inline DependencyFlags operator | (DependencyFlags a, DependencyFlags b) {
+    inline constexpr DependencyFlags operator | (DependencyFlags a, DependencyFlags b) noexcept {
         return static_cast<DependencyFlags>(std::to_underlying(a) | std::to_underlying(b));
     }
-    inline DependencyFlags operator & (DependencyFlags a, DependencyFlags b) {
+    inline constexpr DependencyFlags operator & (DependencyFlags a, DependencyFlags b) noexcept {
         return static_cast<DependencyFlags>(std::to_underlying(a) & std::to_underlying(b));
     }
 
@@ -911,10 +911,10 @@ namespace engine::rhi {
         eReset_Command_Buffer = 2u,
         eProtected = 4u,
     };
-    inline CommandPoolCreateFlags operator | (CommandPoolCreateFlags a, CommandPoolCreateFlags b) {
+    inline constexpr CommandPoolCreateFlags operator | (CommandPoolCreateFlags a, CommandPoolCreateFlags b) noexcept {
         return static_cast<CommandPoolCreateFlags>(std::to_underlying(a) | std::to_underlying(b));
     }
-    inline CommandPoolCreateFlags operator & (CommandPoolCreateFlags a, CommandPoolCreateFlags b) {
+    inline constexpr CommandPoolCreateFlags operator & (CommandPoolCreateFlags a, CommandPoolCreateFlags b) noexcept {
         return static_cast<CommandPoolCreateFlags>(std::to_underlying(a) & std::to_underlying(b));
     }
 
@@ -929,10 +929,10 @@ namespace engine::rhi {
         eRender_pass_Continue = 2u,
         eSimultaneous_Use = 4u,
     };
-    inline CommandBufferUsageFlags operator | (CommandBufferUsageFlags a, CommandBufferUsageFlags b) {
+    inline constexpr CommandBufferUsageFlags operator | (CommandBufferUsageFlags a, CommandBufferUsageFlags b) noexcept {
         return static_cast<CommandBufferUsageFlags>(std::to_underlying(a) | std::to_underlying(b));
     }
-    inline CommandBufferUsageFlags operator & (CommandBufferUsageFlags a, CommandBufferUsageFlags b) {
+    inline constexpr CommandBufferUsageFlags operator & (CommandBufferUsageFlags a, CommandBufferUsageFlags b) noexcept {
         return static_cast<CommandBufferUsageFlags>(std::to_underlying(a) & std::to_underlying(b));
     }
 
@@ -944,10 +944,10 @@ namespace engine::rhi {
         ePartial = 8u,
         eWith_Status = 16u,
     };
-    inline QueryResultFlags operator | (QueryResultFlags a, QueryResultFlags b) {
+    inline constexpr QueryResultFlags operator | (QueryResultFlags a, QueryResultFlags b) noexcept {
         return static_cast<QueryResultFlags>(std::to_underlying(a) | std::to_underlying(b));
     }
-    inline QueryResultFlags operator & (QueryResultFlags a, QueryResultFlags b) {
+    inline constexpr QueryResultFlags operator & (QueryResultFlags a, QueryResultFlags b) noexcept {
         return static_cast<QueryResultFlags>(std::to_underlying(a) & std::to_underlying(b));
     }
 
@@ -986,10 +986,10 @@ namespace engine::rhi {
         eTaskShaderInvocationsEXT = 0x00000800u,
         eMeshShaderInvocationsEXT = 0x00001000u
     };
-    inline QueryPipelineStatisticFlags operator | (QueryPipelineStatisticFlags a, QueryPipelineStatisticFlags b) {
+    inline constexpr QueryPipelineStatisticFlags operator | (QueryPipelineStatisticFlags a, QueryPipelineStatisticFlags b) noexcept {
         return static_cast<QueryPipelineStatisticFlags>(std::to_underlying(a) | std::to_underlying(b));
     }
-    inline QueryPipelineStatisticFlags operator & (QueryPipelineStatisticFlags a, QueryPipelineStatisticFlags b) {
+    inline constexpr QueryPipelineStatisticFlags operator & (QueryPipelineStatisticFlags a, QueryPipelineStatisticFlags b) noexcept {
         return static_cast<QueryPipelineStatisticFlags>(std::to_underlying(a) & std::to_underlying(b));
     }
 
@@ -997,10 +997,10 @@ namespace engine::rhi {
         eNone = 0u,
         ePrecise = 0x00000001u
     };
-    inline QueryControlFlags operator | (QueryControlFlags a, QueryControlFlags b) {
+    inline constexpr QueryControlFlags operator | (QueryControlFlags a, QueryControlFlags b) noexcept {
         return static_cast<QueryControlFlags>(std::to_underlying(a) | std::to_underlying(b));
     }
-    inline QueryControlFlags operator & (QueryControlFlags a, QueryControlFlags b) {
+    inline constexpr QueryControlFlags operator & (QueryControlFlags a, QueryControlFlags b) noexcept {
         return static_cast<QueryControlFlags>(std::to_underlying(a) & std::to_underlying(b));
     }
 
@@ -1014,10 +1014,10 @@ namespace engine::rhi {
         eNone = 0u,
         eRelease_Resources = 1u
     };
-    inline CommandBufferResetFlags operator | (CommandBufferResetFlags a, CommandBufferResetFlags b) {
+    inline constexpr CommandBufferResetFlags operator | (CommandBufferResetFlags a, CommandBufferResetFlags b) noexcept {
         return static_cast<CommandBufferResetFlags>(std::to_underlying(a) | std::to_underlying(b));
     }
-    inline CommandBufferResetFlags operator & (CommandBufferResetFlags a, CommandBufferResetFlags b) {
+    inline constexpr CommandBufferResetFlags operator & (CommandBufferResetFlags a, CommandBufferResetFlags b) noexcept {
         return static_cast<CommandBufferResetFlags>(std::to_underlying(a) & std::to_underlying(b));
     }
 
@@ -1276,10 +1276,10 @@ namespace engine::rhi {
         ePrimitive_Restart_Enable = 1u << 23u,
         eAll = 0x7f'ff'ff'ffu
     };
-    inline DynamicState operator | (DynamicState a, DynamicState b) {
+    inline constexpr DynamicState operator | (DynamicState a, DynamicState b) noexcept {
         return static_cast<DynamicState>(std::to_underlying(a) | std::to_underlying(b));
     }
-    inline DynamicState operator & (DynamicState a, DynamicState b) {
+    inline constexpr DynamicState operator & (DynamicState a, DynamicState b) noexcept {
         return static_cast<DynamicState>(std::to_underlying(a) & std::to_underlying(b));
     }
 
@@ -1382,10 +1382,10 @@ namespace engine::rhi {
             eFree_Descriptor_Set = 1u,
             eUpdate_After_Bind = 2u
         };
-        inline DescriptorPoolFlags operator | (DescriptorPoolFlags a, DescriptorPoolFlags b) {
+        inline constexpr DescriptorPoolFlags operator | (DescriptorPoolFlags a, DescriptorPoolFlags b) noexcept {
             return static_cast<DescriptorPoolFlags>(std::to_underlying(a) | std::to_underlying(b));
         }
-        inline DescriptorPoolFlags operator & (DescriptorPoolFlags a, DescriptorPoolFlags b) {
+        inline constexpr DescriptorPoolFlags operator & (DescriptorPoolFlags a, DescriptorPoolFlags b) noexcept {
             return static_cast<DescriptorPoolFlags>(std::to_underlying(a) & std::to_underlying(b));
         }
 
@@ -1396,10 +1396,10 @@ namespace engine::rhi {
             eDescriptor_Buffer = 3u, // _descriptor_buffer
             eEmbedded_Immutable_Samplers = 4u, // _descriptor_buffer
         };
-        inline DescriptorSetLayoutFlags operator | (DescriptorSetLayoutFlags a, DescriptorSetLayoutFlags b) {
+        inline constexpr DescriptorSetLayoutFlags operator | (DescriptorSetLayoutFlags a, DescriptorSetLayoutFlags b) noexcept {
             return static_cast<DescriptorSetLayoutFlags>(std::to_underlying(a) | std::to_underlying(b));
         }
-        inline DescriptorSetLayoutFlags operator & (DescriptorSetLayoutFlags a, DescriptorSetLayoutFlags b) {
+        inline constexpr DescriptorSetLayoutFlags operator & (DescriptorSetLayoutFlags a, DescriptorSetLayoutFlags b) noexcept {
             return static_cast<DescriptorSetLayoutFlags>(std::to_underlying(a) & std::to_underlying(b));
         }
 
@@ -1420,10 +1420,10 @@ namespace engine::rhi {
             eTask = 4096u,          // mesh_shader
             eMesh = 8192u,          // mesh_shader
         };
-        inline Stages operator | (Stages a, Stages b) {
+        inline constexpr Stages operator | (Stages a, Stages b) noexcept {
             return static_cast<Stages>(std::to_underlying(a) | std::to_underlying(b));
         }
-        inline Stages operator & (Stages a, Stages b) {
+        inline constexpr Stages operator & (Stages a, Stages b) noexcept {
             return static_cast<Stages>(std::to_underlying(a) & std::to_underlying(b));
         }
         inline constexpr uint8_t kStagesCount = 15u;
