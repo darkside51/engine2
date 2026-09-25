@@ -44,6 +44,13 @@ vec3 sampleSkyColorByRadians3(vec3 nightColor, vec3 sunsetColor, vec3 dayColor, 
     return mix(base, nightColor, tNight);
 }
 
+vec3 sampleSkyColorByRadians4(vec3 nightColor, vec3 sunsetColor, vec3 dayColor, float angle) {
+    const float tDay = smoothstep(0.0f, 0.75f, angle);
+    const float tNight = smoothstep(0.0f, -0.55f, angle);
+    const vec3 base = mix(sunsetColor, dayColor, tDay);
+    return mix(base, nightColor, tNight);
+}
+
 SkyColors simpleSky(const vec3 viewDir, const vec3 sunViewDir, const vec3 sunWorldDir) {
     // palettes in linear space
     const vec3 dayTop       = vec3(0.05f, 0.21f, 0.53f);
@@ -151,9 +158,9 @@ SkyColors simpleSky3(
 
     const float sunHeightWorld = sunDirWorld.z; 
 
-    const vec3 skyColorTop    = sampleSkyColorByRadians3(nightTop, sunsetTop, dayTop, sunHeightWorld);
-    const vec3 skyColorBottom = sampleSkyColorByRadians3(nightBottom, sunsetBottom, dayBottom, sunHeightWorld);
-    const vec3 sunColor       = sampleSkyColorByRadians3(nightSun, sunsetSun, daySun, sunHeightWorld);
+    const vec3 skyColorTop    = sampleSkyColorByRadians4(nightTop, sunsetTop, dayTop, sunHeightWorld);
+    const vec3 skyColorBottom = sampleSkyColorByRadians4(nightBottom, sunsetBottom, dayBottom, sunHeightWorld);
+    const vec3 sunColor       = sampleSkyColorByRadians4(nightSun, sunsetSun, daySun, sunHeightWorld);
 
     // sky height: calculated using projection onto the true world’s top in view space
     // this ensures stable horizon when camera tilts
