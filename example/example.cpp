@@ -214,7 +214,11 @@ namespace example {
         uint8_t renderPassMask = 1u << static_cast<uint8_t>(engine::scene::RenderPass::eCommon);
     };
 
-    std::vector<MapPolygonGeometry> g_mapGeometry;
+    struct MapPolygonGeometrySceneAttachment : public engine::scene::AttachmentImpl {
+        std::vector<MapPolygonGeometry> geometry;
+    };
+
+    MapPolygonGeometrySceneAttachment g_mapGeometry;
     engine::rhi::runtime::Pipeline* g_mapGeometryCommonPipeline;
     engine::rhi::runtime::Pipeline* g_mapGeometryCommonAreaPipeline;
     engine::rhi::runtime::Pipeline* g_mapGeometryShadowPipeline;
@@ -224,7 +228,7 @@ namespace example {
         engine::stl::array<const engine::graphics::ImageHandler*, 2u> _images;
 
     public:
-        using object_type = std::vector<MapPolygonGeometry>;
+        using object_type = MapPolygonGeometrySceneAttachment;
 
         void setExtent(float extent) noexcept {
             _extent = extent;
@@ -259,7 +263,8 @@ namespace example {
             };
 
             auto const sceneViewParamBufferOffset = scene.getCurrentViewParamsBufferOffset();
-            const auto & geometry = *static_cast<std::vector<MapPolygonGeometry>*>(object.getData());
+            const auto & mapGeometry = static_cast<const MapPolygonGeometrySceneAttachment&>(object.getImpl());
+            const auto & geometry = mapGeometry.geometry;
             switch (pass) {
                 case engine::scene::RenderPass::eCommon:
                 {
@@ -901,7 +906,7 @@ namespace example {
                                 }
 
                                 callbacks.emplace_back([mapGeometry = std::move(mapGeometry), device, tileHeight, extent]() mutable {
-                                    g_mapGeometry = std::move(mapGeometry);
+                                    g_mapGeometry.geometry = std::move(mapGeometry);
 
                                     auto * node = scene->createNode();
                                     node->setScale(engine::vec3f{16.0f});
@@ -924,7 +929,7 @@ namespace example {
                                     gTileGeometryRenderer.setImage(brikcsImageHandler, 0u);
                                     gTileGeometryRenderer.setImage(interriorImageHandler, 1u);
 
-                                    auto * object = scene->createObject<engine::scene::CustomSceneObject>(gTileGeometryRenderer, &g_mapGeometry);
+                                    auto * object = scene->createObject<engine::scene::CustomSceneObject>(gTileGeometryRenderer, g_mapGeometry);
                                     engine::scene::attachObjectToNode(*object, *node);
                                     sceneWorldRoot->addChild(node);
                                 });
@@ -1044,7 +1049,7 @@ namespace example {
         g_mapGeometryCommonPipeline = nullptr;
         g_mapGeometryCommonAreaPipeline = nullptr;
         g_mapGeometryShadowPipeline = nullptr;
-        g_mapGeometry.clear();
+        g_mapGeometry.geometry.clear();
 
         terrainTile.destroy();
         
@@ -2248,7 +2253,7 @@ namespace example {
             scene->rootNode()->addChild(sceneWorldRoot);
 
             {
-                auto * object = scene->createObject<engine::scene::CustomSceneObject>(gTerrainTileRenderer, &terrainTile);
+                auto * object = scene->createObject<engine::scene::CustomSceneObject>(gTerrainTileRenderer, terrainTile);
                 const float tileSize = static_cast<float>(terrainTile.getSize());
 
                 auto * node = scene->createNode();

@@ -15,13 +15,18 @@ namespace engine::scene {
 class Scene;
 class ICustomSceneDelegate;
 
+class AttachmentImpl {
+public:
+    virtual ~AttachmentImpl() = default;
+};
+
 class CustomSceneObject : public AttachmentObject {
 public:
     template<typename T, typename = std::enable_if_t<std::is_base_of_v<ICustomSceneDelegate, std::decay_t<T>>>>
-    CustomSceneObject(T &&, T::object_type *) = delete;
+    CustomSceneObject(T &&, const T::object_type &) = delete;
 
     template<typename T, typename = std::enable_if_t<std::is_base_of_v<ICustomSceneDelegate, std::decay_t<T>>>>
-    CustomSceneObject(T & delegate, T::object_type * data) : CustomSceneObject(delegate, static_cast<void*>(data)) {}
+    CustomSceneObject(T & delegate, const T::object_type & impl) : CustomSceneObject(delegate, static_cast<const AttachmentImpl&>(impl)) {}
 
     const ICustomSceneDelegate & getDelegate() const noexcept {
         return _delegate;
@@ -31,16 +36,16 @@ public:
         return _delegate;
     }
 
-    void * getData() const noexcept {
-        return _customData;
+    const AttachmentImpl & getImpl() const noexcept {
+        return _impl;
     }
 
     bool cmp(const CustomSceneObject &) const noexcept;
 
 private:
-    CustomSceneObject(ICustomSceneDelegate & delegate, void * data);
+    CustomSceneObject(ICustomSceneDelegate & delegate, const AttachmentImpl & impl);
     ICustomSceneDelegate & _delegate;
-    void * _customData = nullptr;
+    const AttachmentImpl & _impl;
 };
 
 enum CustomSceneDelegateFlags : uint8_t {

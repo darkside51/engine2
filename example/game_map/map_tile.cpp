@@ -115,7 +115,7 @@ namespace g_map {
         const engine::scene::CustomSceneObject & object, const engine::scene::Scene & scene, const engine::mat4f & worldTransform,
         engine::rhi::runtime::CommandListPtr & commandList, uint8_t frameId
     ) const {
-        const auto & geometry = *static_cast<TerrainTile*>(object.getData());
+        const auto & geometry = static_cast<const TerrainTile &>(object.getImpl());
         engine::rhi::runtime::Pipeline * pipeline = geometry.getComputeHeightPipeline();
         assert(pipeline != nullptr);
 
@@ -152,7 +152,7 @@ namespace g_map {
         };
 
         auto const sceneViewParamBufferOffset = scene.getCurrentViewParamsBufferOffset();
-        const auto & geometry = *static_cast<TerrainTile*>(object.getData());
+        const auto & geometry = static_cast<const TerrainTile&>(object.getImpl());
         const float cellSize = static_cast<float>(geometry.getSize()) / geometry.getSizeInCells();
 
         Uniform uniform {

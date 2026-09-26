@@ -5,10 +5,10 @@
 
 namespace engine::scene {
 
-CustomSceneObject::CustomSceneObject(ICustomSceneDelegate & delegate, void * data) : 
+CustomSceneObject::CustomSceneObject(ICustomSceneDelegate & delegate, const AttachmentImpl & impl) : 
     AttachmentObject(ctti::typeIndex<AttachmentObject, CustomSceneObject>()), 
     _delegate(delegate),
-    _customData(data) { }
+    _impl(impl) { }
 
 bool CustomSceneObject::cmp(const CustomSceneObject & other) const noexcept {
     if (&_delegate != &other._delegate) {

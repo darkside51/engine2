@@ -7,7 +7,7 @@
 
 namespace g_map {
     
-class TerrainTile {
+class TerrainTile : public engine::scene::AttachmentImpl {
 public:
     TerrainTile(uint16_t size, uint8_t sizeInCells);
     void buildBuffers(engine::rhi::runtime::Rhi & api, engine::rhi::runtime::Device & device);
