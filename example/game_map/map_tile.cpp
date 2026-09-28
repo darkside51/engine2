@@ -210,4 +210,162 @@ namespace g_map {
         }
     }
 
+
+    /////////////////////////
+    constexpr size_t kVerticesInRow = 32u;
+    constexpr size_t kCellsInRow = kVerticesInRow - 1u;
+
+    Terrain::Terrain(TerrainSceneDelegate & sceneDelegate, engine::scene::Scene & scene, uint8_t w, uint8_t h) :
+    _scene(scene),
+    _width(w),
+    _height(h),
+    _tiles(w * h) {
+        const auto terrainW = _width * kVerticesInRow;
+        const auto terrainH = _height * kVerticesInRow;
+        _terrainNode = scene.createNode();
+        _terrainNode->setPivot({terrainW * 0.5f, terrainH * 0.5f, 0.0f}); // center of tile        
+        _terrainNode->setBounds(
+            engine::scene::Bounds::createCube(
+                engine::vec3f{terrainW, terrainH, -static_cast<float>(kVerticesInRow) * 0.5f}, 
+                engine::vec3f{0.0f, 0.0f, static_cast<float>(kVerticesInRow) * 0.5f}
+            )
+        );
+
+        for (uint8_t i = 0u; i < _height; ++i) {
+            for (uint8_t j = 0u; j < _width; ++j) {
+                auto & tile = _tiles[i * _width + j];
+                tile.imageIndex = 0u;
+                tile.x = j;
+                tile.y = i;
+                
+                auto * tileNode = scene.createNode();
+                tileNode->setPosition({j * kVerticesInRow, i * kVerticesInRow, 0.0f});
+
+                tileNode->setBounds(
+                    engine::scene::Bounds::createCube(
+                        engine::vec3f{kVerticesInRow, kVerticesInRow, -static_cast<float>(kVerticesInRow) * 0.5f}, 
+                        engine::vec3f{0.0f, 0.0f, static_cast<float>(kVerticesInRow) * 0.5f}
+                    )
+                );
+
+                _terrainNode->addChild(tileNode);
+
+                auto * object = scene.createObject<engine::scene::CustomSceneObject>(sceneDelegate, tile);
+                engine::scene::attachObjectToNode(*object, *tileNode);
+            }   
+        }
+    }
+
+    Terrain::~Terrain() {
+        _scene.destroyNode(_terrainNode);
+    }
+
+    // scene delegate
+    void TerrainSceneDelegate::buildBuffers(engine::rhi::runtime::Rhi & api, engine::rhi::runtime::Device & device,
+        uint16_t mapImageWidth, uint16_t mapImageHeight) {
+        using namespace engine;
+        using namespace engine::rhi;
+
+        const BufferInfo vBufferInfo {
+            BufferUsageFlags::eVertex_Buffer | BufferUsageFlags::eStorage_Buffer | BufferUsageFlags::eTransfer_Dst,
+            MemoryPropertyFlags::eDeviceLocal
+        };
+
+        const BufferInfo iBufferInfo {
+            BufferUsageFlags::eIndex_Buffer | BufferUsageFlags::eStorage_Buffer | BufferUsageFlags::eTransfer_Dst,
+            MemoryPropertyFlags::eDeviceLocal
+        };
+
+        // const size_t mapImageWidth = _width * kVerticesInRow;
+        // const size_t mapImageHeight = _height * kVerticesInRow;
+
+        const ImageInfo normalsImageInfo{
+            engine::rhi::ImageUsageFlags::eStorage | engine::rhi::ImageUsageFlags::eSampled,
+            engine::rhi::Format::eR8G8B8A8_Snorm, {mapImageWidth, mapImageHeight, 1u}
+        };
+
+        const ImageInfo heightsImageInfo{
+            engine::rhi::ImageUsageFlags::eStorage | engine::rhi::ImageUsageFlags::eSampled,
+            engine::rhi::Format::eR16_Sfloat, {mapImageWidth, mapImageHeight, 1u}
+        };
+
+        const size_t vBufferSize = kVerticesInRow * kVerticesInRow * sizeof(Vertex);
+        const size_t iBufferSize = kCellsInRow * kCellsInRow * 6u * sizeof(uint16_t); // all cells count * 6u
+        _tileCommonVertices = api.createBuffer(device, vBufferInfo, vBufferSize);
+        _tileCommonIndices = api.createBuffer(device, iBufferInfo, iBufferSize);
+
+        auto & terrainMaps0 = _terrainMaps[0u];
+
+        terrainMaps0.normals = api.createImage(device, normalsImageInfo);
+        terrainMaps0.heights = api.createImage(device, heightsImageInfo);
+    }
+
+    void TerrainSceneDelegate::buildGeometry(engine::rhi::runtime::CommandList & cmd) {
+        using namespace engine;
+        using namespace engine::rhi;
+
+        {
+            stl::vector<std::byte> vertices(kVerticesInRow * kVerticesInRow * sizeof(Vertex));
+            auto * verticeView = reinterpret_cast<Vertex*>(vertices.data());
+
+            for (size_t i = 0u; i < kVerticesInRow; ++i) {
+                for (size_t j = 0u; j < kVerticesInRow; ++j) {
+                    verticeView[i * kVerticesInRow + j] = {
+                        .position = {static_cast<float>(j), static_cast<float>(i)}
+                    };
+                }
+            }
+            cmd.updateBuffer(_tileCommonVertices, 0u, std::move(vertices));
+        }
+        {
+            stl::vector<std::byte> indices(kCellsInRow * kCellsInRow * 6u * sizeof(uint16_t));
+            auto * indicesView = reinterpret_cast<uint16_t*>(indices.data());
+
+            uint16_t n = 0u;
+            for (size_t i = 0u; i < kCellsInRow; ++i) {
+                for (size_t j = 0u; j < kCellsInRow; ++j) {
+                    auto idx = i * kVerticesInRow + j;
+                    if (idx & 1) {
+                        indicesView[n + 0u] = idx;
+                        indicesView[n + 1u] = idx + 1u;
+                        indicesView[n + 2u] = idx + kVerticesInRow + 1u;
+
+                        indicesView[n + 3u] = idx;
+                        indicesView[n + 4u] = idx + kVerticesInRow + 1u;
+                        indicesView[n + 5u] = idx + kVerticesInRow;
+                    } else {
+                        indicesView[n + 0u] = idx;
+                        indicesView[n + 1u] = idx + 1u;
+                        indicesView[n + 2u] = idx + kVerticesInRow;
+
+                        indicesView[n + 3u] = idx + kVerticesInRow;
+                        indicesView[n + 4u] = idx + 1u;
+                        indicesView[n + 5u] = idx + kVerticesInRow + 1u;
+                    }
+
+                    n += 6u;
+                }
+            }
+            cmd.updateBuffer(_tileCommonIndices, 0u, std::move(indices));
+        }
+    }
+
+    bool TerrainSceneDelegate::compare(const engine::scene::CustomSceneObject & object0, 
+        const engine::scene::CustomSceneObject & object1) const noexcept {
+            const auto & tile0 = static_cast<const TerrainTile2 &>(object0.getImpl());
+            const auto & tile1 = static_cast<const TerrainTile2 &>(object1.getImpl());
+            return tile0.imageIndex < tile1.imageIndex;
+    }
+
+    void TerrainSceneDelegate::dispatch(const engine::scene::Scene & scene, engine::rhi::runtime::CommandListPtr & commandList, uint8_t frame, 
+        engine::scene::AttachmentsIterator begin, engine::scene::AttachmentsIterator end) {
+
+    }
+
+    void TerrainSceneDelegate::draw(engine::scene::AttachmentsIterator begin, engine::scene::AttachmentsIterator end, 
+        const engine::scene::Scene & scene, const engine::scene::ViewParams & viewParams, engine::scene::RenderPass pass, 
+        engine::rhi::runtime::CommandListPtr & commandList, uint8_t frame) {
+
+    }
+
 }

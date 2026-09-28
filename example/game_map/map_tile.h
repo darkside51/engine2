@@ -3,6 +3,11 @@
 #include "engine/src/math/math.h"
 #include "engine/src/graphics/render/rhi/common/runtime.h"
 #include "engine/src/graphics/scene/objects/custom_object.h"
+
+#include "engine/src/graphics/scene/node.h"
+#include "engine/src/stl/array.h"
+#include "engine/src/stl/vector.h"
+
 #include <cstdint>
 
 namespace g_map {
@@ -76,6 +81,7 @@ public:
     static constexpr auto kFlags = engine::scene::CustomSceneDelegateFlags::eDraw | engine::scene::CustomSceneDelegateFlags::eDispatch;
 
     TerrainTileRenderer() : engine::scene::ICustomSceneDelegate(kFlags) {}
+
     void draw(
         const engine::scene::CustomSceneObject & object, const engine::scene::Scene & scene, const engine::scene::ViewParams & viewParams, 
         engine::scene::RenderPass pass, const engine::mat4f & worldTransform, 
@@ -94,5 +100,81 @@ public:
         const engine::scene::Scene & scene, const engine::scene::ViewParams & viewParams, engine::scene::RenderPass pass, 
         engine::rhi::runtime::CommandListPtr & commandList, uint8_t frame) override;
 };
+
+///////////////////////
+// revision
+struct TerrainTile2 : public engine::scene::AttachmentImpl {
+    uint8_t imageIndex = 0u;
+    uint8_t x = 0u;
+    uint8_t y = 0u;
+};
+
+class TerrainSceneDelegate : public engine::scene::ICustomSceneDelegate {
+    static constexpr auto kFlags = engine::scene::CustomSceneDelegateFlags::eDraw | engine::scene::CustomSceneDelegateFlags::eDispatch;
+
+public:
+    enum class PipelineId : uint8_t {
+        eTilesDraw = 0u,
+        eHeightsCompute = 1u,
+        eNormalsCompute = 2u, 
+        eCount
+    };
+
+    using object_type = TerrainTile2;
+
+    void buildBuffers(engine::rhi::runtime::Rhi & api, engine::rhi::runtime::Device & device, 
+        uint16_t mapImageWidth, uint16_t mapImageHeight);
+    void buildGeometry(engine::rhi::runtime::CommandList & cmd);
+
+    void setPipeline(engine::rhi::runtime::Pipeline * p, PipelineId pid) noexcept {
+        _pipelines[static_cast<uint8_t>(pid)] = p;
+    }
+
+    const engine::rhi::runtime::Pipeline * getPipeline(PipelineId pid) const noexcept {
+        return _pipelines[static_cast<uint8_t>(pid)];
+    }
+
+    bool compare(const engine::scene::CustomSceneObject & object0, 
+        const engine::scene::CustomSceneObject & object1) const noexcept override;
+
+    void dispatch(const engine::scene::Scene & scene, engine::rhi::runtime::CommandListPtr & commandList, uint8_t frame, 
+        engine::scene::AttachmentsIterator begin, engine::scene::AttachmentsIterator end) override;
+
+    void draw(engine::scene::AttachmentsIterator begin, engine::scene::AttachmentsIterator end, 
+        const engine::scene::Scene & scene, const engine::scene::ViewParams & viewParams, engine::scene::RenderPass pass, 
+        engine::rhi::runtime::CommandListPtr & commandList, uint8_t frame) override;
+
+private:
+
+    engine::stl::array<engine::rhi::runtime::Pipeline *, static_cast<uint8_t>(PipelineId::eCount)>  _pipelines;
+    engine::rhi::runtime::BufferPtr _tileCommonVertices = nullptr;
+    engine::rhi::runtime::BufferPtr _tileCommonIndices = nullptr;
+
+    struct TerrainMaps {
+        engine::rhi::runtime::ImagePtr heights = nullptr;
+        engine::rhi::runtime::ImagePtr normals = nullptr;
+        engine::rhi::runtime::ImagePtr splatMap = nullptr;
+    };
+
+    engine::stl::array<TerrainMaps, 16u> _terrainMaps; // 4 x 4 maps maximum
+};
+
+class Terrain {
+public:
+    Terrain(TerrainSceneDelegate & sceneDelegate, engine::scene::Scene & scene, uint8_t w, uint8_t h);
+    ~Terrain();
+
+    engine::scene::Node * getNode() const noexcept {
+        return _terrainNode;
+    }
+
+private:
+    engine::scene::Scene & _scene;
+    engine::scene::Node * _terrainNode = nullptr; // terrain root node
+    engine::stl::vector<TerrainTile2> _tiles;
+    uint8_t _width;
+    uint8_t _height;
+};
+
 
 }

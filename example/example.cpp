@@ -330,6 +330,9 @@ namespace example {
     uint8_t gTerrainComputePipeline;
     uint8_t gTerrainComputeNormalsPipeline;
 
+    g_map::TerrainSceneDelegate terrainSceneDelegate{};
+    std::optional<g_map::Terrain> terrain{};
+
     void optionsWindow() {
         ImGui::SetNextWindowSize(ImVec2(540, 840), ImGuiCond_FirstUseEver);
         if (!ImGui::Begin("options", &showOptions, 0)) {
@@ -1744,6 +1747,9 @@ namespace example {
         gTerrainComputePipeline = _pipelines.size() - 2u;
         gTerrainComputeNormalsPipeline = _pipelines.size() - 1u;
         terrainTile.buildBuffers(*_api, *_device);
+
+        //
+        terrain.emplace(terrainSceneDelegate, *scene, 4u, 4u);
     }
 
     void Example::createDefaultResources() {
@@ -2360,6 +2366,12 @@ namespace example {
                 sprite->setOrder(0);
 
                 sceneWorldRoot->addChild(node);
+
+                //
+                auto * terrainNode = terrain->getNode();
+                terrainNode->setPosition({-28.0f, 0.0f, 1.7f});
+                terrainNode->setScale(0.1f);
+                sceneWorldRoot->addChild(terrainNode);
             }
 
             { // test
