@@ -1872,6 +1872,7 @@ namespace example {
                             }
 
                             auto * anim0 = scene->createAnimInfo<engine::scene::SkeletalAnimation>(animId, engine::common::random(0.25f, 1.7f));
+                            // anim0->current.speed = i == 5u ? 1.5f: 1.0f;
                             scene->destroyAnimInfo(skeleton->setAnimation(anim0));
                         }
 
@@ -2689,11 +2690,12 @@ namespace example {
                 auto * attachment = underCursorNode->getAttachment();
                 if (attachment->typeIndex == engine::ctti::typeIndex<engine::scene::AttachmentObject, engine::scene::Skeleton>()) {
                     auto * skeleton = static_cast<engine::scene::Skeleton *>(attachment);
+                    const auto nowAnimTime = scene->getAnimationClock();
                     if (skeleton->getAnimMix() == 0.0f) {
                         if (skeleton->getAnimationId() == 6) {
-                            skeleton->setAnimation(5, 1.0f);
+                            skeleton->setAnimation(nowAnimTime, 5, 1.0f);
                         } else if (skeleton->getAnimationId() == 5) {
-                            skeleton->setAnimation(6, 1.0f);
+                            skeleton->setAnimation(nowAnimTime, 6, 1.0f);
                         }
                     }
                 }
@@ -2752,7 +2754,7 @@ namespace example {
         shadowMapUniformBuffer->commit(*transferCommandList, frameId);
 
         // render
-        scene->beginFrame(now);
+        scene->beginFrame(now, delta);
 
         // scene->fillAttachmentsArray(viewParams, sceneWorldRoot, [](engine::scene::AttachmentObject* object) {
         //     if (object->typeIndex == ctti::typeIndex<engine::scene::AttachmentObject, engine::scene::Mesh>()) {

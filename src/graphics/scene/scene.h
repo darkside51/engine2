@@ -154,7 +154,7 @@ public:
     const rhi::runtime::PipelinePtr & getComputePipeline(uint32_t pipelineId) const noexcept;
 
     void initRenderData(rhi::runtime::Rhi & api, rhi::runtime::Device & device);
-    void beginFrame(std::chrono::time_point<std::chrono::steady_clock> now) noexcept;
+    void beginFrame(std::chrono::time_point<std::chrono::steady_clock> now, float delta) noexcept;
     void endFrame(rhi::runtime::CommandListPtr & commandList, rhi::runtime::CommandListPtr & transferCommandList, uint8_t frame);
 
     template <typename Condition>
@@ -192,7 +192,8 @@ public:
     }
 
     float getShadersTime() const noexcept { return _shadersTime; }
-
+    float getAnimationClock() const noexcept { return _animationClock; }
+    
     const rhi::runtime::BufferPtr & getViewParamsUniformBuffer(uint8_t frame) const noexcept {
         return (*_viewParamsUniformBuffer)(frame);
     }
@@ -292,6 +293,8 @@ private:
 
     float _animationSpeed = 1.0f;
     float _shadersTime = 0.0f;
+    float _animationClock = 0.0f;
+
     uint32_t _frameNumber = 0u;
     Node * _rootNode = nullptr;
 

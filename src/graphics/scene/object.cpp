@@ -60,7 +60,7 @@ namespace engine::scene {
         animInfo->mix = mix;
     }
 
-    void AttachmentObject::setAnimation(uint16_t animationId, float speed, float mix) noexcept {
+    void AttachmentObject::setAnimation(float nowTime, uint16_t animationId, float speed, float mix) noexcept {
         if (animInfo == nullptr) {
             return;
         }
@@ -68,9 +68,7 @@ namespace engine::scene {
         animInfo->target.animationId = animationId;
         animInfo->target.animationType = animInfo->current.animationType;
 
-        const auto now = std::chrono::steady_clock::now();
-        const std::chrono::duration<float> nowDuration = now.time_since_epoch();
-        animInfo->target.startTime = nowDuration.count();
+        animInfo->target.startTime = nowTime;
         animInfo->target.speed = speed;
         animInfo->mix = mix;
     }
