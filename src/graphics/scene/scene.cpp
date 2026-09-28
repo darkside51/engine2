@@ -97,7 +97,8 @@ namespace engine::scene {
     stl::array<SkeletalAnimator, kAnimationCalculationThreadsCount> gSkeletalAnimatorsMT;
 
     // quality
-    constexpr stl::array<float, 7u> kDefaultQualityLevels = {2.0f, 4.0f, 16.0f, 36.0f, 64.0f, 100.0f, 144.0f};
+    //constexpr stl::array<float, 7u> kDefaultQualityLevels = {2.0f, 4.0f, 16.0f, 36.0f, 64.0f, 100.0f, 144.0f};
+    constexpr stl::array<float, 7u> kDefaultQualityLevels = {4.0f, 16.0f, 36.0f, 64.0f, 100.0f, 144.0f, 256.0f};
 
     // struct ColoredVertex {
     //     stl::array<float, 3u> coord;
@@ -1309,23 +1310,50 @@ namespace engine::scene {
                 continue;
             }
 
-            uint32_t color = 0xff'00'ff'00u;
+            // uint32_t color = 0xff'00'ff'00u;
+            // if (object) {
+            //     switch (object->typeIndex) {
+            //     case ctti::typeIndex<AttachmentObject, Skeleton>():
+            //         color = 0xff'77'ff'00u;
+            //         break;
+            //     case ctti::typeIndex<AttachmentObject, Mesh>():
+            //         color = 0xff'77'ff'00u;
+            //         break;
+            //     case ctti::typeIndex<AttachmentObject, Sprite>():
+            //         color = 0xff'ff'77'00u;
+            //         break;
+            //     case ctti::typeIndex<AttachmentObject, CustomSceneObject>():
+            //         color = 0xff'00'00'ffu;
+            //         break;
+            //     default:
+            //         break;
+            //     }
+            // }
+
+            uint32_t color = 0xff'ff'ff'ffu;
             if (object) {
-                switch (object->typeIndex) {
-                case ctti::typeIndex<AttachmentObject, Skeleton>():
-                    color = 0xff'77'ff'00u;
-                    break;
-                case ctti::typeIndex<AttachmentObject, Mesh>():
-                    color = 0xff'77'ff'00u;
-                    break;
-                case ctti::typeIndex<AttachmentObject, Sprite>():
-                    color = 0xff'ff'77'00u;
-                    break;
-                case ctti::typeIndex<AttachmentObject, CustomSceneObject>():
+                switch (object->animationQualityFactor) {
+                case 0u :
                     color = 0xff'00'00'ffu;
-                    break;
+                break;
+                case 1u :
+                    color = 0xff'00'00'22u;
+                break;
+                case 2u :
+                    color = 0xff'00'ff'00u;
+                break;
+                case 3u :
+                    color = 0xff'00'22'00u;
+                break;
+                case 4u :
+                    color = 0xff'ff'00'00u;
+                break;
+                case 5u :
+                    color = 0xff'22'00'00u;
+                break;
                 default:
-                    break;
+                    color = 0xff'00'00'00u;
+                break;
                 }
             }
 
