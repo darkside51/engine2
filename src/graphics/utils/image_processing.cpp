@@ -25,33 +25,43 @@ namespace engine::graphics {
         }
     };
 
-    void extractBlock4x4(const std::byte * srcRgba, uint32_t width, uint32_t height, 
+    // this function extracts a 4x4 pixel block from a flat RGBA array.
+    // it automatically fills pixels outside the texture boundaries using the clamp method (edge ​​repetition).
+    void extractBlock4x4(const std::byte * srcData, uint8_t bytesPepPixel, uint32_t width, uint32_t height, 
         uint32_t blockX, uint32_t blockY, ColorRGBA dstBlock[16u]) {
         for (uint32_t y = 0u; y < 4u; ++y) {
             const uint32_t pixelY = std::min(blockY * 4u + y, height - 1u);
             for (uint32_t x = 0u; x < 4u; ++x) {
                 const uint32_t pixelX = std::min(blockX * 4u + x, width - 1u);
             
-                uint32_t srcIdx = (pixelY * width + pixelX) * 4;
+                uint32_t srcIdx = (pixelY * width + pixelX) * bytesPepPixel;
                 
                 dstBlock[y * 4u + x] = {
-                    srcRgba[srcIdx + 0u],
-                    srcRgba[srcIdx + 1u],
-                    srcRgba[srcIdx + 2u],
-                    srcRgba[srcIdx + 3u]
+                    srcData[srcIdx + 0u],
+                    srcData[srcIdx + 1u],
+                    srcData[srcIdx + 2u],
+                    bytesPepPixel == 4u ? srcData[srcIdx + 3u] : std::byte{0xffu}
                 };
             }
         }
     }
 
-    stl::vector<std::byte> CompressToBC7(const std::byte * srcRgba, uint32_t width, uint32_t height, 
-        int32_t maxPartitionsToScan = BC7ENC_MAX_PARTITIONS1, int32_t uberLevel = BC7ENC_MAX_UBER_LEVEL) {
-            
+    stl::vector<std::byte> CompressToBC7(
+        const std::byte * srcData, uint8_t bytesPepPixel, 
+        uint32_t width, uint32_t height, 
+        int32_t maxPartitionsToScan = BC7ENC_MAX_PARTITIONS1, int32_t uberLevel = BC7ENC_MAX_UBER_LEVEL
+    ) {
         bc7enc_compress_block_params params;
+        bc7enc_compress_block_params_init(&params);
+
         params.m_max_partitions_mode = std::min(BC7ENC_MAX_PARTITIONS1, maxPartitionsToScan);
         params.m_uber_level = std::min(BC7ENC_MAX_UBER_LEVEL, uberLevel);
 
-        bc7enc_compress_block_params_init(&params);
+        if (bytesPepPixel == 3u) {
+            // inform the encoder that the alpha channel is 255 everywhere.
+            // this allows bc7enc to avoid wasting bits and time encoding transparency.
+            bc7enc_compress_block_params_init_linear_weights(&params);
+        }
 
         const uint32_t blocksX = (width + 3u) / 4u;
         const uint32_t blocksY = (height + 3u) / 4u;
@@ -63,15 +73,20 @@ namespace engine::graphics {
 
         for (uint32_t by = 0u; by < blocksY; ++by) {
             for (uint32_t bx = 0u; bx < blocksX; ++bx) {
-                extractBlock4x4(srcRgba, width, height, bx, by, rgbaBlock);
+                extractBlock4x4(srcData, bytesPepPixel, width, height, bx, by, rgbaBlock);
                 auto * dstPtr = &outData[(by * blocksX + bx) * 16u];
-                bc7enc_compress_block(dstPtr, &rgbaBlock, &params);
+                bc7enc_compress_block(dstPtr, &rgbaBlock[0u], &params);
             }
         }
+
         return outData;
     }
 
-    stl::vector<std::byte> CompressToBC1Or3(const std::byte * srcRgba, uint32_t width, uint32_t height, bool useBc3, uint32_t qualityLevel = 10) {
+    stl::vector<std::byte> CompressToBC1Or3(
+        const std::byte * srcData, uint8_t bytesPepPixel,
+        uint32_t width, uint32_t height, 
+        bool useBc3, uint32_t qualityLevel = 10
+    ) {
         // quality level for color tuple selection (0 to 18, where 18 is maximum / excessive)
         // the optimal speed / quality balance is level 10 - 12.
 
@@ -85,7 +100,7 @@ namespace engine::graphics {
         
         for (uint32_t by = 0u; by < blocksY; ++by) {
             for (uint32_t bx = 0u; bx < blocksX; ++bx) {
-                extractBlock4x4(srcRgba, width, height, bx, by, rgbaBlock);
+                extractBlock4x4(srcData, bytesPepPixel, width, height, bx, by, rgbaBlock);
                 auto * dstPtr = &outData[(by * blocksX + bx) * bytesPerBlock];
 
                 if (useBc3) {
@@ -98,10 +113,13 @@ namespace engine::graphics {
                 }
             }
         }
+
         return outData;
     }
 
-    stl::vector<std::byte> CompressToBC4Or5(const std::byte * srcRgba, uint32_t width, uint32_t height, bool useBc5) {
+    stl::vector<std::byte> CompressToBC4Or5(
+        const std::byte * srcData, uint8_t bytesPepPixel, 
+        uint32_t width, uint32_t height, bool useBc5) {
         const uint32_t blocksX = (width + 3u) / 4u;
         const uint32_t blocksY = (height + 3u) / 4u;
         
@@ -112,7 +130,7 @@ namespace engine::graphics {
 
         for (uint32_t by = 0u; by < blocksY; ++by) {
             for (uint32_t bx = 0u; bx < blocksX; ++bx) {
-                extractBlock4x4(srcRgba, width, height, bx, by, rgbaBlock);
+                extractBlock4x4(srcData, bytesPepPixel, width, height, bx, by, rgbaBlock);
                 auto * dstPtr = &outData[(by * blocksX + bx) * bytesPerBlock];
 
                 if (useBc5) {
@@ -125,26 +143,30 @@ namespace engine::graphics {
                 }
             }
         }
+
         return outData;
     }
 
-    stl::vector<std::byte> compressToBC(const std::byte * srcRgba, uint32_t width, uint32_t height, BC_Compression compression) {
+    stl::vector<std::byte> compressToBC(
+        const std::byte * srcData, uint8_t bytesPepPixel, 
+        uint32_t width, uint32_t height, BC_Compression compression
+    ) {
         BCCompressionManager::instance();
 
         switch (compression) {
             case BC_Compression::eBC1:
-                return CompressToBC1Or3(srcRgba, width, height, false);
+                return CompressToBC1Or3(srcData, bytesPepPixel, width, height, false);
             case BC_Compression::eBC3:
-                return CompressToBC1Or3(srcRgba, width, height, true);
+                return CompressToBC1Or3(srcData, bytesPepPixel, width, height, true);
             case BC_Compression::eBC4:
-                return CompressToBC4Or5(srcRgba, width, height, false);
+                return CompressToBC4Or5(srcData, bytesPepPixel, width, height, false);
             case BC_Compression::eBC5:
-                return CompressToBC4Or5(srcRgba, width, height, true);
+                return CompressToBC4Or5(srcData, bytesPepPixel, width, height, true);
             case BC_Compression::eBC6:
                 assert(false); // unsupported now!
                 return {};
             case BC_Compression::eBC7:
-                return CompressToBC7(srcRgba, width, height);
+                return CompressToBC7(srcData, bytesPepPixel, width, height);
         }
 
         assert(false);

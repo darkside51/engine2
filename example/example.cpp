@@ -522,6 +522,65 @@ namespace example {
         return imageHandler;
     };
 
+    auto loadRawImageAsync(
+        engine::rhi::runtime::Device & device, 
+        engine::FileManager & fileManager, 
+        engine::graphics::TextureManager & textureManager, 
+        std::string imageKey, 
+        std::string path, 
+        engine::graphics::TextureFlags flags,
+        engine::rhi::Format format,
+        engine::vec3u size
+    ) -> engine::graphics::ImageHandler * {
+        using namespace engine;
+        const auto & [imageHandler, isNew] = textureManager.addImage(imageKey);
+
+        if (isNew) {
+            gpuTasks.emplace_back(BackgroundWorker::GpuJob{[&device, &fileManager, &textureManager, 
+                imageKey = std::move(imageKey), path = std::move(path), 
+                flags, format, size]
+                (engine::rhi::runtime::CommandList & commandList, engine::stl::vector<threads::WorkerTask> & callbacks) mutable {
+
+                const auto imageBytes = fileManager.readFile(path);
+                engine::graphics::TextureCreateInfo textureData = {
+                    .metaInfo = {
+                        .size = size,
+                        .bytesPerRow = 0u,
+                        .format = format,
+                        .bitsPerPixel = 0u,
+                        .numLevels = 1u,
+                        .hasPalette = false,
+                        .parserType = engine::graphics::TextureLoaderType::eRaw, 
+                        .flags = flags
+                    },
+                    .data = engine::stl::vector<engine::graphics::TextureLevelData>{
+                        std::move(imageBytes)
+                    }
+                };
+
+                const auto formatSupport = device.isFormatSupported(
+                    textureData.metaInfo.format, 
+                    rhi::FormatFeatureFlags::eFormatFeature_Sampled_Image
+                );
+
+                const bool sampledSupport = formatSupport.checkBit(rhi::FormatFeatureAccess::Bit::eOptimalTilingFeaturesBit);
+
+                if (!sampledSupport) {
+                    const bool srgb = static_cast<uint8_t>(flags & engine::graphics::TextureFlags::eAllowSrgbColorSpace) != 0u;
+                    convertTextureDataFormat(srgb ? rhi::Format::eR8G8B8A8_Srgb : rhi::Format::eR8G8B8A8_Unorm, textureData);
+                }
+
+                auto image = textureManager.generateImage(std::move(textureData), commandList);
+
+                callbacks.emplace_back([&textureManager, image = std::move(image), imageKey = std::move(imageKey)](){
+                    textureManager.getImageHandler(imageKey)->image = std::move(image);
+                });
+            }});
+        }
+
+        return imageHandler;
+    };
+
     uint32_t loadModelAsync(
         engine::rhi::runtime::Rhi & api,
         engine::rhi::runtime::Device & device, 
@@ -2360,9 +2419,25 @@ namespace example {
                 // const auto * imageHandler = loadImageAsync(*_device, fileManager, *textureManager, "asyncTest", "assets/ground0.jpg", 
                 //     engine::graphics::TextureFlags::eAllowSrgbColorSpace | engine::graphics::TextureFlags::eUseMipMaps);
 
-                //const auto imageBytes = fileManager.readFile("assets/ground0.jpg");
-                //auto bc7Bytes = engine::graphics::compressToBC(imageBytes.data(), 512, 512, engine::graphics::BC_Compression::eBC7);
-                //fileManager.getFileSystem("common_fs0")->writeFile("assets/ground0.bc7", bc7Bytes.data(), bc7Bytes.size());
+                // const auto imageBytes = fileManager.readFile("assets/ground0.jpg");
+                // auto textureData = engine::graphics::parseTextureData(imageBytes, {
+                //         .flags = engine::graphics::TextureFlags::eNone
+                //     }
+                // );
+                
+                // auto bc7Bytes = engine::graphics::compressToBC(
+                //     textureData.data[0u].data(), textureData.metaInfo.bitsPerPixel / 8u, 
+                //     textureData.metaInfo.size.x, textureData.metaInfo.size.y, 
+                //     engine::graphics::BC_Compression::eBC7
+                // );
+                // fileManager.getFileSystem("common_fs0")->writeFile("assets/ground0.bc7", bc7Bytes.data(), bc7Bytes.size());
+
+                // const auto * imageHandler = loadRawImageAsync(
+                //     *_device, fileManager, *textureManager, 
+                //     "asyncTest", "assets/ground0.bc7", 
+                //      engine::graphics::TextureFlags::eNone, 
+                //      engine::rhi::Format::eBC7_Srgb_Block,
+                //      engine::vec3u{textureData.metaInfo.size.x, textureData.metaInfo.size.y, 1u});
 
                 const auto frame = engine::graphics::ImageFrame2D{
                     textureManager->getDefaultImageHandler(), 
