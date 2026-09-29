@@ -4,7 +4,7 @@
 #include "runtime.h"
 
 #include "allocators/stack_allocator.h"
-#include "utils/dynamic_array.h"
+#include "common/dynamic_array.h"
 
 #include <array>
 #include <cstddef>

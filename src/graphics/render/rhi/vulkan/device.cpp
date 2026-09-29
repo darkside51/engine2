@@ -3,7 +3,7 @@
 #include "physical_device.h"
 #include "vk_types.h"
 
-#include "utils/dynamic_array.h"
+#include "common/dynamic_array.h"
 #include "log/log.h"
 
 #include <algorithm>

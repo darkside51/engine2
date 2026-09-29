@@ -3,7 +3,7 @@
 #include "graphics/render/rhi/common/device.h"
 #include "graphics/render/rhi/common/types.h"
 
-#include "utils/dynamic_array.h"
+#include "common/dynamic_array.h"
 
 #include <vulkan/vulkan.h>
 

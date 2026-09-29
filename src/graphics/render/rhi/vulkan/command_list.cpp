@@ -15,7 +15,7 @@
 
 #include "graphics/render/rhi/common/commands.h"
 
-#include "utils/dynamic_array.h"
+#include "common/dynamic_array.h"
 
 #include <array>
 #include <cassert>

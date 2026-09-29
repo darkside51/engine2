@@ -1,7 +1,7 @@
 #pragma once
 
 #include "common/hash.h"
-#include "utils/dynamic_array.h"
+#include "common/dynamic_array.h"
 #include "stl/algorithm.h"
 #include "stl/array.h"
 #include "stl/utility.h"

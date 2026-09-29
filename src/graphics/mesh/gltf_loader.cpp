@@ -1,11 +1,11 @@
 #include "gltf_loader.h"
 
 #include "common/hash.h"
+#include "core/system.h"
 #include "math/math.h"
 #include "file/file_manager.h"
 #include "utils/base64.h"
 #include "utils/json.h"
-#include "utils/system.h"
 
 #include <algorithm>
 #include <cassert>

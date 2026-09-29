@@ -7,7 +7,7 @@
 #include "graphics/render/rhi/common/runtime.h"
 #include "vk_types.h"
 
-#include "utils/dynamic_array.h"
+#include "common/dynamic_array.h"
 
 #include <vulkan/vulkan.h>
 

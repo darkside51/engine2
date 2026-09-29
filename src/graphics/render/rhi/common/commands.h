@@ -8,7 +8,7 @@
 #include "stl/array.h"
 #include "stl/span.h"
 #include "stl/vector.h"
-#include "utils/dynamic_array.h"
+#include "common/dynamic_array.h"
 
 #include <cstddef>
 #include <cstdint>

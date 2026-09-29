@@ -5,7 +5,7 @@
 #include "vk_types.h"
 
 #include "log/log.h"
-#include "utils/dynamic_array.h"
+#include "common/dynamic_array.h"
 
 #include <cassert>
 
