@@ -234,6 +234,7 @@ namespace g_map {
         for (uint8_t i = 0u; i < _height; ++i) {
             for (uint8_t j = 0u; j < _width; ++j) {
                 auto & tile = _tiles[i * _width + j];
+                tile.terrain = this;
                 tile.imageIndex = 0u;
                 tile.x = j;
                 tile.y = i;
@@ -357,9 +358,47 @@ namespace g_map {
             return tile0.imageIndex < tile1.imageIndex;
     }
 
+    void TerrainSceneDelegate::beginFrame(std::chrono::time_point<std::chrono::steady_clock> now) {
+        _tmpTilesCount = 0u;
+        _tileIdsDirty = false;
+    }
+
+    void TerrainSceneDelegate::endFrame(
+        engine::rhi::runtime::CommandListPtr & commandList, 
+        engine::rhi::runtime::CommandListPtr & transferCommandList, 
+        uint8_t frame) {
+
+        const auto targetSize = _tmpTilesCount * 2u;
+        if (_visibleTileIds.size() > targetSize) {
+            _visibleTileIds.resize(targetSize);
+        }
+
+        if (_tileIdsDirty) {
+            // printf("tileIdsDirty\n");
+        }
+    }
+
     void TerrainSceneDelegate::dispatch(const engine::scene::Scene & scene, engine::rhi::runtime::CommandListPtr & commandList, uint8_t frame, 
         engine::scene::AttachmentsIterator begin, engine::scene::AttachmentsIterator end) {
 
+        const std::ptrdiff_t objectsCount = end - begin;
+        const auto targetSize = _tmpTilesCount + objectsCount;
+        if (_visibleTileIds.size() < targetSize) {
+            _visibleTileIds.resize(targetSize);
+            _tileIdsDirty = true;
+        }
+
+        for (auto it = begin; it != end; ++it) {    
+            const auto & object = *static_cast<const engine::scene::CustomSceneObject*>(*it);
+            const auto & tile = static_cast<const TerrainTile2 &>(object.getImpl());
+            const auto tileId = tile.y * tile.terrain->width() + tile.x;
+            if (_visibleTileIds[_tmpTilesCount] != tileId) {
+                _visibleTileIds[_tmpTilesCount] = tileId;
+                _tileIdsDirty = true;
+            }
+
+            ++_tmpTilesCount;
+        }
     }
 
     void TerrainSceneDelegate::draw(engine::scene::AttachmentsIterator begin, engine::scene::AttachmentsIterator end, 

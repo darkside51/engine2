@@ -103,7 +103,10 @@ public:
 
 ///////////////////////
 // revision
+class Terrain;
+
 struct TerrainTile2 : public engine::scene::AttachmentImpl {
+    const Terrain * terrain = nullptr;
     uint8_t imageIndex = 0u;
     uint8_t x = 0u;
     uint8_t y = 0u;
@@ -121,6 +124,7 @@ public:
     };
 
     using object_type = TerrainTile2;
+    TerrainSceneDelegate() : engine::scene::ICustomSceneDelegate(kFlags) {}
 
     void buildBuffers(engine::rhi::runtime::Rhi & api, engine::rhi::runtime::Device & device, 
         uint16_t mapImageWidth, uint16_t mapImageHeight);
@@ -137,6 +141,13 @@ public:
     bool compare(const engine::scene::CustomSceneObject & object0, 
         const engine::scene::CustomSceneObject & object1) const noexcept override;
 
+    void beginFrame(std::chrono::time_point<std::chrono::steady_clock> now);
+
+    void endFrame(
+        engine::rhi::runtime::CommandListPtr & commandList, 
+        engine::rhi::runtime::CommandListPtr & transferCommandList, 
+        uint8_t frame) override;
+
     void dispatch(const engine::scene::Scene & scene, engine::rhi::runtime::CommandListPtr & commandList, uint8_t frame, 
         engine::scene::AttachmentsIterator begin, engine::scene::AttachmentsIterator end) override;
 
@@ -145,7 +156,6 @@ public:
         engine::rhi::runtime::CommandListPtr & commandList, uint8_t frame) override;
 
 private:
-
     engine::stl::array<engine::rhi::runtime::Pipeline *, static_cast<uint8_t>(PipelineId::eCount)>  _pipelines;
     engine::rhi::runtime::BufferPtr _tileCommonVertices = nullptr;
     engine::rhi::runtime::BufferPtr _tileCommonIndices = nullptr;
@@ -157,6 +167,9 @@ private:
     };
 
     engine::stl::array<TerrainMaps, 16u> _terrainMaps; // 4 x 4 maps maximum
+    engine::stl::vector<uint16_t> _visibleTileIds;
+    uint16_t _tmpTilesCount = 0u;
+    bool _tileIdsDirty = false;
 };
 
 class Terrain {
@@ -167,6 +180,9 @@ public:
     engine::scene::Node * getNode() const noexcept {
         return _terrainNode;
     }
+
+    uint8_t width() const noexcept { return _width; }
+    uint8_t height() const noexcept { return _height; }
 
 private:
     engine::scene::Scene & _scene;

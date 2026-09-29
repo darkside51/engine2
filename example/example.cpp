@@ -1749,6 +1749,7 @@ namespace example {
         terrainTile.buildBuffers(*_api, *_device);
 
         //
+        scene->addCustomDelegate(&terrainSceneDelegate);
         terrain.emplace(terrainSceneDelegate, *scene, 4u, 4u);
     }
 
