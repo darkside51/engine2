@@ -1027,6 +1027,9 @@ namespace example {
 
         _queryPool = nullptr;
 
+        terrainSceneDelegate.destroy();
+        terrain = std::nullopt;
+
         scene->destroy();
 
         textureViewer.destroy();

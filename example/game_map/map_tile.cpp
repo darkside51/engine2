@@ -234,7 +234,7 @@ namespace g_map {
         for (uint8_t i = 0u; i < _height; ++i) {
             for (uint8_t j = 0u; j < _width; ++j) {
                 auto & tile = _tiles[i * _width + j];
-                tile.terrain = this;
+                tile.terrainRowWidth = _width;
                 tile.imageIndex = 0u;
                 tile.x = j;
                 tile.y = i;
@@ -262,6 +262,15 @@ namespace g_map {
     }
 
     // scene delegate
+    void TerrainSceneDelegate::destroy() noexcept {
+        _tileCommonVertices = nullptr;
+        _tileCommonIndices = nullptr;
+
+        for (auto & tm : _terrainMaps) {
+            tm.clear();
+        }
+    }
+
     void TerrainSceneDelegate::buildBuffers(engine::rhi::runtime::Rhi & api, engine::rhi::runtime::Device & device,
         uint16_t mapImageWidth, uint16_t mapImageHeight) {
         using namespace engine;
@@ -391,7 +400,7 @@ namespace g_map {
         for (auto it = begin; it != end; ++it) {    
             const auto & object = *static_cast<const engine::scene::CustomSceneObject*>(*it);
             const auto & tile = static_cast<const TerrainTile2 &>(object.getImpl());
-            const auto tileId = tile.y * tile.terrain->width() + tile.x;
+            const auto tileId = tile.y * tile.terrainRowWidth + tile.x;
             if (_visibleTileIds[_tmpTilesCount] != tileId) {
                 _visibleTileIds[_tmpTilesCount] = tileId;
                 _tileIdsDirty = true;

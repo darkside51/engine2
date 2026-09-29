@@ -106,7 +106,7 @@ public:
 class Terrain;
 
 struct TerrainTile2 : public engine::scene::AttachmentImpl {
-    const Terrain * terrain = nullptr;
+    uint8_t terrainRowWidth = 0u;
     uint8_t imageIndex = 0u;
     uint8_t x = 0u;
     uint8_t y = 0u;
@@ -124,7 +124,13 @@ public:
     };
 
     using object_type = TerrainTile2;
+    
     TerrainSceneDelegate() : engine::scene::ICustomSceneDelegate(kFlags) {}
+    ~TerrainSceneDelegate() {
+        destroy();
+    }
+
+    void destroy() noexcept;
 
     void buildBuffers(engine::rhi::runtime::Rhi & api, engine::rhi::runtime::Device & device, 
         uint16_t mapImageWidth, uint16_t mapImageHeight);
@@ -164,6 +170,12 @@ private:
         engine::rhi::runtime::ImagePtr heights = nullptr;
         engine::rhi::runtime::ImagePtr normals = nullptr;
         engine::rhi::runtime::ImagePtr splatMap = nullptr;
+
+        void clear() noexcept {
+            heights = nullptr;
+            normals = nullptr;
+            splatMap = nullptr;
+        }
     };
 
     engine::stl::array<TerrainMaps, 16u> _terrainMaps; // 4 x 4 maps maximum
