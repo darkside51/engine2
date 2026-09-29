@@ -9,15 +9,15 @@
 
 namespace engine::graphics {
 
-    class BCCompressionManager {
+    class BCXCompression {
     public:
-        static BCCompressionManager & instance() noexcept {
-            static BCCompressionManager instance;
+        static BCXCompression & instance() noexcept {
+            static BCXCompression instance;
             return instance;
         }
 
     private:
-        BCCompressionManager() {
+        BCXCompression() {
             // initialization of global tables (called once before compression)
             bc7enc_compress_block_init();
             // initialization global tables rgbcx
@@ -85,7 +85,7 @@ namespace engine::graphics {
     stl::vector<std::byte> CompressToBC1Or3(
         const std::byte * srcData, uint8_t bytesPepPixel,
         uint32_t width, uint32_t height, 
-        bool useBc3, uint32_t qualityLevel = 10
+        bool useBc3, uint32_t qualityLevel = 10u
     ) {
         // quality level for color tuple selection (0 to 18, where 18 is maximum / excessive)
         // the optimal speed / quality balance is level 10 - 12.
@@ -151,7 +151,7 @@ namespace engine::graphics {
         const std::byte * srcData, uint8_t bytesPepPixel, 
         uint32_t width, uint32_t height, BC_Compression compression
     ) {
-        BCCompressionManager::instance();
+        BCXCompression::instance();
 
         switch (compression) {
             case BC_Compression::eBC1:
