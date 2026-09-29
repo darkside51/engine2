@@ -330,7 +330,14 @@ message("eastl library end")
 target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../3rd_party/glm)
 
 # bc7enc
+message("bc7enc library begin")
+add_3rdparty_project(${CMAKE_CURRENT_SOURCE_DIR}/../3rd_party/bc7enc ${CMAKE_BINARY_DIR}/3rd_party/bc7enc)
 target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../3rd_party/bc7enc)
+set(
+	USED_FRAMEWORKS ${USED_FRAMEWORKS}
+	bc7enc_lib
+)
+message("bc7enc library end")
 
 #imgui
 target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../3rd_party/imgui)

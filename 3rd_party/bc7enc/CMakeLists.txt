@@ -46,13 +46,15 @@ set (BC7ENC_SRC_LIST ${COMMON_SRC_LIST}
 	bc7enc.c
 	bc7decomp.cpp
 	lodepng.cpp	
-	test.cpp
+	#test.cpp
 	)
 	
-add_executable(bc7enc ${BC7ENC_SRC_LIST})
+#add_executable(bc7enc ${BC7ENC_SRC_LIST})
 
-if (NOT MSVC)
-	target_link_libraries(bc7enc m)
-endif()
+add_library(bc7enc_lib STATIC ${BC7ENC_SRC_LIST})
+
+#if (NOT MSVC)
+#	target_link_libraries(bc7enc m)
+#endif()
 
 

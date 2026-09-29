@@ -42,6 +42,8 @@
 #include "engine/src/graphics/render/features/ssao.h"
 #include "engine/src/graphics/render/features/color_picker.h"
 
+#include "engine/src/graphics/utils/image_processing.h"
+
 #include "engine/src/network/network_service_curl.h"
 
 #include "engine/src/stl/helper.h"
@@ -2357,6 +2359,10 @@ namespace example {
 
                 // const auto * imageHandler = loadImageAsync(*_device, fileManager, *textureManager, "asyncTest", "assets/ground0.jpg", 
                 //     engine::graphics::TextureFlags::eAllowSrgbColorSpace | engine::graphics::TextureFlags::eUseMipMaps);
+
+                //const auto imageBytes = fileManager.readFile("assets/ground0.jpg");
+                //auto bc7Bytes = engine::graphics::compressToBC(imageBytes.data(), 512, 512, engine::graphics::BC_Compression::eBC7);
+                //fileManager.getFileSystem("common_fs0")->writeFile("assets/ground0.bc7", bc7Bytes.data(), bc7Bytes.size());
 
                 const auto frame = engine::graphics::ImageFrame2D{
                     textureManager->getDefaultImageHandler(), 
