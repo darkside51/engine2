@@ -1,5 +1,6 @@
 #include "map_tile.h"
 
+#include "common/align.h"
 #include "graphics/common/graphics_service.h"
 #include "graphics/render/rhi/common/command_list.h"
 #include "graphics/scene/scene.h"
@@ -10,7 +11,8 @@
 #include <cstddef>
 
 namespace g_map {
-    
+    constexpr uint16_t kMaxTileIds = 4096u;
+
     struct Vertex{
         engine::stl::array<float, 2u>(position);
     };
@@ -286,6 +288,11 @@ namespace g_map {
             MemoryPropertyFlags::eDeviceLocal
         };
 
+        const BufferInfo idsBufferInfo {
+            BufferUsageFlags::eUniform_Texel_Buffer | BufferUsageFlags::eTransfer_Dst,
+            MemoryPropertyFlags::eDeviceLocal
+        };
+
         // const size_t mapImageWidth = _width * kVerticesInRow;
         // const size_t mapImageHeight = _height * kVerticesInRow;
 
@@ -303,6 +310,9 @@ namespace g_map {
         const size_t iBufferSize = kCellsInRow * kCellsInRow * 6u * sizeof(uint16_t); // all cells count * 6u
         _tileCommonVertices = api.createBuffer(device, vBufferInfo, vBufferSize);
         _tileCommonIndices = api.createBuffer(device, iBufferInfo, iBufferSize);
+
+        const size_t idsBufferSize = kMaxTileIds * sizeof(uint16_t);
+        _tileIDs = api.createBuffer(device, idsBufferInfo, idsBufferSize);
 
         auto & terrainMaps0 = _terrainMaps[0u];
 
@@ -383,6 +393,9 @@ namespace g_map {
         }
 
         if (_tileIdsDirty) {
+            const auto bufferUpdateDataSize = engine::align_value(_tmpTilesCount * sizeof(uint16_t), 4u);
+            assert(bufferUpdateDataSize <= kMaxTileIds * sizeof(uint16_t));
+            transferCommandList->updateBuffer(_tileIDs, 0u, bufferUpdateDataSize, _visibleTileIds.data());
             // printf("tileIdsDirty\n");
         }
     }

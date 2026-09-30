@@ -165,6 +165,7 @@ private:
     engine::stl::array<engine::rhi::runtime::Pipeline *, static_cast<uint8_t>(PipelineId::eCount)>  _pipelines;
     engine::rhi::runtime::BufferPtr _tileCommonVertices = nullptr;
     engine::rhi::runtime::BufferPtr _tileCommonIndices = nullptr;
+    engine::rhi::runtime::BufferPtr _tileIDs = nullptr;
 
     struct TerrainMaps {
         engine::rhi::runtime::ImagePtr heights = nullptr;

@@ -598,6 +598,9 @@ namespace engine::vulkan::runtime {
                 const auto * command = static_cast<UpdateBufferCommand*>(cmd);
                 assert(command->dataSize < command_limits::kMaxMemoryBytesToCopyCommand);
                 
+                // for vulkan dataSize must be a multiple of 4
+                assert((command->dataSize & 3u) == 0u);
+                
                 const auto & vkDstBuffer = *static_cast<const Buffer*>(command->dst);
                 _commandbuffer.updateBuffer(vkDstBuffer, command->dstOffset, command->dataSize, command->pData);
             }

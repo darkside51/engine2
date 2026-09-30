@@ -310,7 +310,8 @@ namespace engine::rhi::runtime {
 
         UpdateBufferCommand(Buffer * dst, uint32_t dstOffset, uint32_t dataSize, const void* pData) : 
             Command(CommandType::eUpdateBuffer, sizeof(UpdateBufferCommand)),
-            dst(dst), dstOffset(dstOffset), dataSize(dataSize), pData(pData) {}
+            dst(dst), dstOffset(dstOffset), dataSize(dataSize), pData(pData) {
+            }
     };
 
     struct CopyBuffer2BufferCommand : Command {

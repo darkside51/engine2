@@ -311,6 +311,10 @@ namespace engine::rhi::runtime {
 
     // update data
     void CommandList::updateBuffer(BufferPtr & dst, uint32_t dstOffset, uint32_t dataSize, const void* pData) noexcept {
+        assert(dataSize < command_limits::kMaxMemoryBytesToCopyCommand);
+        // for vulkan dataSize must be a multiple of 4
+        assert((dataSize & 3u) == 0u);
+        
         _resources.push_back(dst);
         _commands->create<UpdateBufferCommand>(dst.get(), dstOffset, dataSize, pData);
   
