@@ -474,7 +474,7 @@ namespace g_map {
 
         auto currentIt = begin;
         const auto & object = *static_cast<const engine::scene::CustomSceneObject*>(*currentIt);
-        auto & tile = static_cast<const TerrainTile2 &>(object.getImpl());
+        const auto & tile = static_cast<const TerrainTile2 &>(object.getImpl());
         auto imageId = tile.imageIndex;
         auto * parentNode = object.node->parent;
 
