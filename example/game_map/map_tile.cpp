@@ -370,11 +370,21 @@ namespace g_map {
         }
     }
 
-    bool TerrainSceneDelegate::compare(const engine::scene::CustomSceneObject & object0, 
-        const engine::scene::CustomSceneObject & object1) const noexcept {
+    bool TerrainSceneDelegate::compare(
+        const engine::scene::CustomSceneObject & object0, 
+        const engine::scene::CustomSceneObject & object1
+    ) const noexcept {
             const auto & tile0 = static_cast<const TerrainTile2 &>(object0.getImpl());
             const auto & tile1 = static_cast<const TerrainTile2 &>(object1.getImpl());
-            return tile0.imageIndex < tile1.imageIndex;
+            
+            if (tile0.imageIndex != tile1.imageIndex) {
+                return tile0.imageIndex < tile1.imageIndex;
+            }
+
+            const auto * p0 = object0.node->parent;
+            const auto * p1 = object1.node->parent;
+
+            return std::less<const engine::scene::Node*>{}(p0, p1);
     }
 
     void TerrainSceneDelegate::beginFrame(std::chrono::time_point<std::chrono::steady_clock> now) {
@@ -396,7 +406,6 @@ namespace g_map {
             const auto bufferUpdateDataSize = engine::align_value(_tmpTilesCount * sizeof(uint16_t), 4u);
             assert(bufferUpdateDataSize <= kMaxTileIds * sizeof(uint16_t));
             transferCommandList->updateBuffer(_tileIDs, 0u, bufferUpdateDataSize, _visibleTileIds.data());
-            // printf("tileIdsDirty\n");
         }
     }
 
@@ -423,10 +432,67 @@ namespace g_map {
         }
     }
 
+    void TerrainSceneDelegate::drawSame(engine::scene::AttachmentsIterator begin, engine::scene::AttachmentsIterator end, 
+        const engine::scene::Scene & scene, const engine::scene::ViewParams & viewParams, engine::scene::RenderPass pass, 
+        engine::rhi::runtime::CommandListPtr & commandList, uint8_t frame) {
+        // switch (pass) {
+        //     case engine::scene::RenderPass::eCommon:
+        //     {
+        //         const auto & gs = scene.getGraphicsService();
+        //         const auto * pipeline = _pipelines[std::to_underlying(PipelineId::eTilesDraw)];
+        //         // assert(pipeline != nullptr);
+
+        //         // if (commandList->bindPipeline(*pipeline)) {
+        //             // commandList->pushConstants(
+        //             //     engine::rhi::shaders::Stages::eVertex | engine::rhi::shaders::Stages::eFragment, 
+        //             //     0u, 72u, &uniform
+        //             // );
+        //             // commandList->bindBuffer(0u, scene.getViewParamsUniformBuffer(frameId), 0u, sceneViewParamBufferOffset);
+        //         // }
+
+        //         // const auto & ib = geometry.getIndicesBuffer();
+
+        //         // commandList->bindStorageImage(1u, geometry.getHeightsImage(), std::nullopt, 0u);
+        //         // commandList->bindImage(2u, geometry.getNormalsImage(), scene.getLinearSampler(), 0u);
+        //         // commandList->bindImage(3u, gs.getTextureManager().getDefaultImage(), scene.getNearestSampler(), 0u);
+
+        //         // commandList->bindVertexBuffer(0u, geometry.getVerticesBuffer());
+        //         // commandList->bindIndexBuffer(ib, 0u, engine::rhi::IndexType::eU16);
+        //         // commandList->drawIndexed(ib->sizeInBytes() / sizeof(uint16_t));
+        //     }
+        //     break;
+        //     case engine::scene::RenderPass::eShadow:
+        //     break;
+        //     case engine::scene::RenderPass::eColorId:
+        //     break;
+        // }
+    }
+
     void TerrainSceneDelegate::draw(engine::scene::AttachmentsIterator begin, engine::scene::AttachmentsIterator end, 
         const engine::scene::Scene & scene, const engine::scene::ViewParams & viewParams, engine::scene::RenderPass pass, 
         engine::rhi::runtime::CommandListPtr & commandList, uint8_t frame) {
 
+        auto currentIt = begin;
+        const auto & object = *static_cast<const engine::scene::CustomSceneObject*>(*currentIt);
+        auto & tile = static_cast<const TerrainTile2 &>(object.getImpl());
+        auto imageId = tile.imageIndex;
+        auto * parentNode = object.node->parent;
+
+        for (auto it = begin + 1; it != end; ++it) {
+            const auto & object = *static_cast<const engine::scene::CustomSceneObject*>(*it);
+            const auto & tile = static_cast<const TerrainTile2 &>(object.getImpl());
+            auto currentImageId = tile.imageIndex;
+            auto * currentParentNode = object.node->parent;
+
+            if (imageId != currentImageId || parentNode != currentParentNode) {
+                drawSame(currentIt, it, scene, viewParams, pass, commandList, frame);
+                imageId = currentImageId;
+                parentNode = currentParentNode;
+                currentIt = it;
+            }
+        }
+
+        drawSame(currentIt, end, scene, viewParams, pass, commandList, frame);
     }
 
 }
