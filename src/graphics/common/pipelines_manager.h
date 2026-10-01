@@ -56,7 +56,7 @@ namespace engine::graphics {
         rhi::shaders::Stages stage;
     };
 
-    class PipelinesManager {
+    class PipelinesManager final {
         using ProgramsMap = stl::unordered_map<std::string, uint32_t, hash::String_hash, std::equal_to<>>;
 
     public:

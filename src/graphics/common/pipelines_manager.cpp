@@ -19,6 +19,7 @@ namespace engine::graphics {
         _graphicsPipelines.clear();
         _computesPipelines.clear();
         _programs.clear();
+        _programsMap.clear();
         _shaderModulesManager.clear();
     }
 
