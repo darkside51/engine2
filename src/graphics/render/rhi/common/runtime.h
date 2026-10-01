@@ -9,13 +9,14 @@
 #include "types.h"
 #include "shared_ref.h"
 
+#include "stl/span.h"
+#include "stl/vector.h"
+
 #include <cstddef>
 #include <cstdint>
 #include <memory>
-#include <span>
 #include <string_view>
 #include <utility>
-#include <vector>
 
 namespace engine::rhi {
 struct GraphicsPipelineStatesInfo;
@@ -175,14 +176,6 @@ public:
     virtual ShaderModuleView getView() const noexcept = 0;
 };
 
-class ShaderModulesManager {
-public:
-    virtual ~ShaderModulesManager() = default;
-    virtual const ShaderModule & registerModule(std::string key, const Device & device, 
-        rhi::shaders::Stages stage, stl::span<const std::byte> code) = 0;
-    virtual const ShaderModule * getModule(std::string_view key) const noexcept = 0;
-};
-
 class GpuProgram {
 public:
     virtual ~GpuProgram() = default;
@@ -237,7 +230,7 @@ using ImagePtr = sh_ptr<Image>;//std::unique_ptr<Image>;
 using SwapchainPtr = std::unique_ptr<Swapchain>;
 using FrameBufferPtr = sh_ptr<FrameBuffer>;//std::unique_ptr<FrameBuffer>;
 using QueuePtr = std::unique_ptr<Queue>;
-using ShaderModulesManagerPtr = std::unique_ptr<ShaderModulesManager>;
+using ShaderModulePtr = std::unique_ptr<ShaderModule>;
 using GpuProgramPtr = std::unique_ptr<GpuProgram>;
 using PipelinePtr = std::unique_ptr<Pipeline>;
 using PipelinesManagerPtr = std::unique_ptr<PipelinesManager>;
@@ -272,8 +265,7 @@ public:
     virtual Semaphore createSemaphore(const Device & device) const noexcept = 0;
     virtual Event createEvent(const Device & device, EventCreateFlags flags) const noexcept = 0;
 
-    virtual void waitFence(const rhi::runtime::Device & device, 
-            const rhi::runtime::Fence & fence, uint64_t timeout) const noexcept = 0;
+    virtual void waitFence(const Device & device, const Fence & fence, uint64_t timeout) const noexcept = 0;
 
     virtual void resetFence(const Device & device, const Fence & fence) const noexcept = 0;
     virtual void destroyFence(const Device & device, const Fence & fence) const noexcept = 0;
@@ -282,7 +274,8 @@ public:
 
     virtual void resetEvent(const Device & device, const Event & event) const noexcept = 0;
 
-    virtual ShaderModulesManagerPtr createShaderModulesManager() const = 0;
+    virtual ShaderModulePtr createShaderModule(const rhi::runtime::Device & device, 
+        shaders::Stages stage, stl::span<const std::byte> code) const = 0;
 
     virtual GpuProgramPtr createProgram(Device & device, stl::span<const ShaderModuleView> moduleViews, 
         shaders::SpecializationInfo && specializationInfo = {}) const = 0;

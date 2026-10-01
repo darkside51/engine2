@@ -56,8 +56,6 @@ private:
     void prepareFrameDrawData(engine::rhi::runtime::CommandListPtr & commandList, uint8_t frame, float delta);
 
     // engine::FileManager _fileManager;
-    engine::rhi::runtime::ShaderModulesManagerPtr _shaderModulesManager;
-
     engine::stl::vector<engine::rhi::runtime::GpuProgramPtr> _programs;
     engine::stl::vector<engine::rhi::runtime::PipelinePtr> _pipelines;
 

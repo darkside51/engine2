@@ -15,14 +15,14 @@ namespace engine::vulkan {
 class Device;
 
 struct ModuleReflection {
-    struct InValue {
-        uint32_t location = 0u;
-        rhi::Format format = rhi::Format::eUndefined;
-    };
+    // struct InValue {
+    //     uint32_t location = 0u;
+    //     rhi::Format format = rhi::Format::eUndefined;
+    // };
 
     ModuleReflection() = default;
     ModuleReflection(rhi::shaders::Stages stage, stl::span<const std::byte> code);
-    stl::vector<InValue> in;
+    // stl::vector<InValue> in;
     stl::vector<stl::pair<rhi::shaders::BindingSetLayout, uint8_t>> sets; // pair of BindingSetLayout and set id
     stl::vector<VkPushConstantRange> pushConstants;
     rhi::shaders::Stages stage = rhi::shaders::Stages::eNone;

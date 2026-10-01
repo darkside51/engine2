@@ -97,10 +97,10 @@ namespace engine::vulkan {
         stl::vector<SpvReflectInterfaceVariable*> reflectAttributes(attributesCount);
         spvReflectEnumerateInputVariables(&reflectedModule, &attributesCount, reflectAttributes.data());
 
-        in.reserve(attributesCount);
-        for (const auto & attribute : reflectAttributes) {
-            in.emplace_back(attribute->location, convert2Rhi(attribute->format));
-        }
+        //in.reserve(attributesCount);
+        //for (const auto & attribute : reflectAttributes) {
+            //in.emplace_back(attribute->location, convert2Rhi(attribute->format));
+        //}
 
         // descriptor sets
 		uint32_t setsCount = 0u;

@@ -7,7 +7,8 @@
 #include "graphics/render/rhi/common/shared_ref.h"
 
 #include "allocators/pool_allocator_chain.h"
-#include <vector>
+#include "stl/span.h"
+#include "stl/vector.h"
 
 namespace engine::vulkan::runtime {
 
@@ -64,7 +65,8 @@ namespace engine::vulkan::runtime {
 
         void resetEvent(const rhi::runtime::Device & device, const rhi::runtime::Event & event) const noexcept override;
     
-        rhi::runtime::ShaderModulesManagerPtr createShaderModulesManager() const override;
+        rhi::runtime::ShaderModulePtr createShaderModule(const rhi::runtime::Device & device, 
+            rhi::shaders::Stages stage, stl::span<const std::byte> code) const override;
     
         rhi::runtime::GpuProgramPtr createProgram(
             rhi::runtime::Device & device, 

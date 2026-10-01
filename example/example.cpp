@@ -1097,7 +1097,6 @@ namespace example {
 
         textureViewer.destroy();
 
-        _shaderModulesManager = nullptr;
         _imgui.destroy();
         drawHelper.destroy();
         
@@ -1481,14 +1480,14 @@ namespace example {
     }
 
     void Example::loadShaders() {
-        _shaderModulesManager = _api->createShaderModulesManager();
+        auto & shaderModulesManager = pipelinesManager->getShaderModulesManager();
 
         { // kImguiProgram
             auto const vBytes = fileManager.readFile("shaders/imgui.vert.spv");
             auto const fBytes = fileManager.readFile("shaders/imgui.frag.spv");
 
-            const auto & vsModule = _shaderModulesManager->registerModule("imgui.vert", *_device, engine::rhi::shaders::Stages::eVertex, vBytes);
-            const auto & fsModule = _shaderModulesManager->registerModule("imgui.frag", *_device, engine::rhi::shaders::Stages::eFragment, fBytes);
+            const auto & vsModule = shaderModulesManager.registerModule("imgui.vert", engine::rhi::shaders::Stages::eVertex, vBytes);
+            const auto & fsModule = shaderModulesManager.registerModule("imgui.frag", engine::rhi::shaders::Stages::eFragment, fBytes);
 
             _programs.emplace_back(_api->createProgram(*_device, engine::stl::array{vsModule.getView(), fsModule.getView()}));
         }
@@ -1496,8 +1495,8 @@ namespace example {
             auto const vBytes = fileManager.readFile("shaders/postEffect.vert.spv");
             auto const fBytes = fileManager.readFile("shaders/postEffect.frag.spv");
 
-            const auto & vsModule = _shaderModulesManager->registerModule("postEffect.vert", *_device, engine::rhi::shaders::Stages::eVertex, vBytes);
-            const auto & fsModule = _shaderModulesManager->registerModule("postEffect.frag", *_device, engine::rhi::shaders::Stages::eFragment, fBytes);
+            const auto & vsModule = shaderModulesManager.registerModule("postEffect.vert", engine::rhi::shaders::Stages::eVertex, vBytes);
+            const auto & fsModule = shaderModulesManager.registerModule("postEffect.frag", engine::rhi::shaders::Stages::eFragment, fBytes);
 
             _programs.emplace_back(_api->createProgram(*_device, engine::stl::array{vsModule.getView(), fsModule.getView()}));
         }
@@ -1506,8 +1505,8 @@ namespace example {
             auto const vBytes = fileManager.readFile("shaders/debug.vert.spv");
             auto const fBytes = fileManager.readFile("shaders/debug.frag.spv");
 
-            const auto & vsModule = _shaderModulesManager->registerModule("debug.vert", *_device, engine::rhi::shaders::Stages::eVertex, vBytes);
-            const auto & fsModule = _shaderModulesManager->registerModule("debug.frag", *_device, engine::rhi::shaders::Stages::eFragment, fBytes);
+            const auto & vsModule = shaderModulesManager.registerModule("debug.vert", engine::rhi::shaders::Stages::eVertex, vBytes);
+            const auto & fsModule = shaderModulesManager.registerModule("debug.frag", engine::rhi::shaders::Stages::eFragment, fBytes);
 
             _programs.emplace_back(_api->createProgram(*_device, engine::stl::array{vsModule.getView(), fsModule.getView()}));
         }
@@ -1516,8 +1515,8 @@ namespace example {
             auto const vBytes = fileManager.readFile("shaders/sprite.vert.spv");
             auto const fBytes = fileManager.readFile("shaders/sprite.frag.spv");
 
-            const auto & vsModule = _shaderModulesManager->registerModule("sprite.vert", *_device, engine::rhi::shaders::Stages::eVertex, vBytes);
-            const auto & fsModule = _shaderModulesManager->registerModule("sprite.frag", *_device, engine::rhi::shaders::Stages::eFragment, fBytes);
+            const auto & vsModule = shaderModulesManager.registerModule("sprite.vert", engine::rhi::shaders::Stages::eVertex, vBytes);
+            const auto & fsModule = shaderModulesManager.registerModule("sprite.frag", engine::rhi::shaders::Stages::eFragment, fBytes);
 
             _programs.emplace_back(_api->createProgram(*_device, engine::stl::array{vsModule.getView(), fsModule.getView()}));
         }
@@ -1526,8 +1525,8 @@ namespace example {
             auto const vBytes = fileManager.readFile("shaders/mesh.vert.spv");
             auto const fBytes = fileManager.readFile("shaders/mesh.frag.spv");
 
-            const auto & vsModule = _shaderModulesManager->registerModule("mesh.vert", *_device, engine::rhi::shaders::Stages::eVertex, vBytes);
-            const auto & fsModule = _shaderModulesManager->registerModule("mesh.frag", *_device, engine::rhi::shaders::Stages::eFragment, fBytes);
+            const auto & vsModule = shaderModulesManager.registerModule("mesh.vert", engine::rhi::shaders::Stages::eVertex, vBytes);
+            const auto & fsModule = shaderModulesManager.registerModule("mesh.frag", engine::rhi::shaders::Stages::eFragment, fBytes);
 
             _programs.emplace_back(_api->createProgram(*_device, engine::stl::array{vsModule.getView(), fsModule.getView()}));
         }
@@ -1536,8 +1535,8 @@ namespace example {
         //     auto const vBytes = fileManager.readFile("shaders/mesh_skeletal_instanced.vert.spv");
         //     auto const fBytes = fileManager.readFile("shaders/mesh.frag.spv");
 
-        //     const auto & vsModule = _shaderModulesManager->registerModule("mesh_skeletal_instanced.vert", *_device, engine::rhi::shaders::Stages::eVertex, vBytes);
-        //     const auto & fsModule = _shaderModulesManager->registerModule("mesh.frag", *_device, engine::rhi::shaders::Stages::eFragment, fBytes);
+        //     const auto & vsModule = shaderModulesManager.registerModule("mesh_skeletal_instanced.vert", engine::rhi::shaders::Stages::eVertex, vBytes);
+        //     const auto & fsModule = shaderModulesManager.registerModule("mesh.frag", engine::rhi::shaders::Stages::eFragment, fBytes);
 
         //     _programs.emplace_back(_api->createProgram(*_device, engine::stl::array{vsModule.getView(), fsModule.getView()}, {.dynamicDescriptorsMask = 0x0u}));
         // }
@@ -1546,23 +1545,23 @@ namespace example {
             auto const vBytes = fileManager.readFile("shaders/mesh_instanced.vert.spv");
             auto const fBytes = fileManager.readFile("shaders/mesh.frag.spv");
 
-            const auto & vsModule = _shaderModulesManager->registerModule("mesh_instanced.vert", *_device, engine::rhi::shaders::Stages::eVertex, vBytes);
-            const auto & fsModule = _shaderModulesManager->registerModule("mesh.frag", *_device, engine::rhi::shaders::Stages::eFragment, fBytes);
+            const auto & vsModule = shaderModulesManager.registerModule("mesh_instanced.vert", engine::rhi::shaders::Stages::eVertex, vBytes);
+            const auto & fsModule = shaderModulesManager.registerModule("mesh.frag", engine::rhi::shaders::Stages::eFragment, fBytes);
 
             _programs.emplace_back(_api->createProgram(*_device, engine::stl::array{vsModule.getView(), fsModule.getView()}));
         }
 
         { // kComputeProgram
             auto const cBytes = fileManager.readFile("shaders/mesh_skin_compute.comp.spv");
-            const auto & compModule = _shaderModulesManager->registerModule("mesh_skin_compute.comp", *_device, engine::rhi::shaders::Stages::eCompute, cBytes);
+            const auto & compModule = shaderModulesManager.registerModule("mesh_skin_compute.comp", engine::rhi::shaders::Stages::eCompute, cBytes);
             _programs.emplace_back(_api->createProgram(*_device, engine::stl::array{compModule.getView()}));
         }
 
         { // kMeshAfterComputeProgram
             auto const vBytes = fileManager.readFile("shaders/mesh_after_compute.vert.spv");
 
-            const auto & vsModule = _shaderModulesManager->registerModule("mesh_after_compute.vert", *_device, engine::rhi::shaders::Stages::eVertex, vBytes);
-            const auto & fsModule = _shaderModulesManager->registerModule("mesh.frag", *_device, engine::rhi::shaders::Stages::eFragment, {});
+            const auto & vsModule = shaderModulesManager.registerModule("mesh_after_compute.vert", engine::rhi::shaders::Stages::eVertex, vBytes);
+            const auto & fsModule = shaderModulesManager.registerModule("mesh.frag", engine::rhi::shaders::Stages::eFragment, {});
 
             _programs.emplace_back(_api->createProgram(*_device, engine::stl::array{vsModule.getView(), fsModule.getView()}));
         }
@@ -1571,8 +1570,8 @@ namespace example {
             auto const vBytes = fileManager.readFile("shaders/ssao.vert.spv");
             auto const fBytes = fileManager.readFile("shaders/ssao.frag.spv");
 
-            const auto & vsModule = _shaderModulesManager->registerModule("ssao.vert", *_device, engine::rhi::shaders::Stages::eVertex, vBytes);
-            const auto & fsModule = _shaderModulesManager->registerModule("ssao.frag", *_device, engine::rhi::shaders::Stages::eFragment, fBytes);
+            const auto & vsModule = shaderModulesManager.registerModule("ssao.vert", engine::rhi::shaders::Stages::eVertex, vBytes);
+            const auto & fsModule = shaderModulesManager.registerModule("ssao.frag", engine::rhi::shaders::Stages::eFragment, fBytes);
 
             _programs.emplace_back(_api->createProgram(*_device, engine::stl::array{vsModule.getView(), fsModule.getView()}));
         }
@@ -1581,21 +1580,21 @@ namespace example {
             auto const vBytes = fileManager.readFile("shaders/gaussblur.vert.spv");
             auto const fBytes = fileManager.readFile("shaders/gaussblur.frag.spv");
 
-            const auto & vsModule = _shaderModulesManager->registerModule("gaussblur.vert", *_device, engine::rhi::shaders::Stages::eVertex, vBytes);
-            const auto & fsModule = _shaderModulesManager->registerModule("gaussblur.frag", *_device, engine::rhi::shaders::Stages::eFragment, fBytes);
+            const auto & vsModule = shaderModulesManager.registerModule("gaussblur.vert", engine::rhi::shaders::Stages::eVertex, vBytes);
+            const auto & fsModule = shaderModulesManager.registerModule("gaussblur.frag", engine::rhi::shaders::Stages::eFragment, fBytes);
 
             _programs.emplace_back(_api->createProgram(*_device, engine::stl::array{vsModule.getView(), fsModule.getView()}));
         }
 
         { // kMeshShadowProgram
             auto const vBytes = fileManager.readFile("shaders/mesh_instanced_shadow.vert.spv");
-            const auto & vsModule = _shaderModulesManager->registerModule("mesh_instanced_shadow.vert", *_device, engine::rhi::shaders::Stages::eVertex, vBytes);
+            const auto & vsModule = shaderModulesManager.registerModule("mesh_instanced_shadow.vert", engine::rhi::shaders::Stages::eVertex, vBytes);
             _programs.emplace_back(_api->createProgram(*_device, engine::stl::array{vsModule.getView()}));
         }
 
         { // kMeshAfterComputeShadowProgram
             auto const vBytes = fileManager.readFile("shaders/mesh_after_compute_shadow.vert.spv");
-            const auto & vsModule = _shaderModulesManager->registerModule("mesh_after_compute_shadow.vert", *_device, engine::rhi::shaders::Stages::eVertex, vBytes);
+            const auto & vsModule = shaderModulesManager.registerModule("mesh_after_compute_shadow.vert", engine::rhi::shaders::Stages::eVertex, vBytes);
             _programs.emplace_back(_api->createProgram(*_device, engine::stl::array{vsModule.getView()}));
         }
 
@@ -1603,8 +1602,8 @@ namespace example {
             auto const vBytes = fileManager.readFile("shaders/mesh_instanced2.vert.spv");
             auto const fBytes = fileManager.readFile("shaders/mesh2.frag.spv");
 
-            const auto & vsModule = _shaderModulesManager->registerModule("mesh_instanced2.vert", *_device, engine::rhi::shaders::Stages::eVertex, vBytes);
-            const auto & fsModule = _shaderModulesManager->registerModule("mesh2.frag", *_device, engine::rhi::shaders::Stages::eFragment, fBytes);
+            const auto & vsModule = shaderModulesManager.registerModule("mesh_instanced2.vert", engine::rhi::shaders::Stages::eVertex, vBytes);
+            const auto & fsModule = shaderModulesManager.registerModule("mesh2.frag", engine::rhi::shaders::Stages::eFragment, fBytes);
 
             _programs.emplace_back(_api->createProgram(*_device, engine::stl::array{vsModule.getView(), fsModule.getView()}));
         }
@@ -1612,8 +1611,8 @@ namespace example {
         { // kMeshAfterComputeProgramNoPbr
             auto const vBytes = fileManager.readFile("shaders/mesh_after_compute2.vert.spv");
 
-            const auto & vsModule = _shaderModulesManager->registerModule("mesh_after_compute2.vert", *_device, engine::rhi::shaders::Stages::eVertex, vBytes);
-            const auto & fsModule = _shaderModulesManager->registerModule("mesh2.frag", *_device, engine::rhi::shaders::Stages::eFragment, {});
+            const auto & vsModule = shaderModulesManager.registerModule("mesh_after_compute2.vert", engine::rhi::shaders::Stages::eVertex, vBytes);
+            const auto & fsModule = shaderModulesManager.registerModule("mesh2.frag", engine::rhi::shaders::Stages::eFragment, {});
 
             _programs.emplace_back(_api->createProgram(*_device, engine::stl::array{vsModule.getView(), fsModule.getView()}));
         }
@@ -1622,8 +1621,8 @@ namespace example {
             auto const vBytes = fileManager.readFile("shaders/sprite.vert.spv");
             auto const fBytes = fileManager.readFile("shaders/sprite2.frag.spv");
 
-            const auto & vsModule = _shaderModulesManager->registerModule("sprite.vert", *_device, engine::rhi::shaders::Stages::eVertex, vBytes);
-            const auto & fsModule = _shaderModulesManager->registerModule("sprite2.frag", *_device, engine::rhi::shaders::Stages::eFragment, fBytes);
+            const auto & vsModule = shaderModulesManager.registerModule("sprite.vert", engine::rhi::shaders::Stages::eVertex, vBytes);
+            const auto & fsModule = shaderModulesManager.registerModule("sprite2.frag", engine::rhi::shaders::Stages::eFragment, fBytes);
 
             _programs.emplace_back(_api->createProgram(*_device, engine::stl::array{vsModule.getView(), fsModule.getView()}));
         }
@@ -1632,15 +1631,15 @@ namespace example {
             auto const vBytes = fileManager.readFile("shaders/building.vert.spv");
             auto const fBytes = fileManager.readFile("shaders/building.frag.spv");
 
-            const auto & vsModule = _shaderModulesManager->registerModule("building.vert", *_device, engine::rhi::shaders::Stages::eVertex, vBytes);
-            const auto & fsModule = _shaderModulesManager->registerModule("building.frag", *_device, engine::rhi::shaders::Stages::eFragment, fBytes);
+            const auto & vsModule = shaderModulesManager.registerModule("building.vert", engine::rhi::shaders::Stages::eVertex, vBytes);
+            const auto & fsModule = shaderModulesManager.registerModule("building.frag", engine::rhi::shaders::Stages::eFragment, fBytes);
 
             _programs.emplace_back(_api->createProgram(*_device, engine::stl::array{vsModule.getView(), fsModule.getView()}));
         }
 
         { // kMapBuildingsShadowsProgram
             auto const vBytes = fileManager.readFile("shaders/building_shadow.vert.spv");
-            const auto & vsModule = _shaderModulesManager->registerModule("building_shadow.vert", *_device, engine::rhi::shaders::Stages::eVertex, vBytes);
+            const auto & vsModule = shaderModulesManager.registerModule("building_shadow.vert", engine::rhi::shaders::Stages::eVertex, vBytes);
             _programs.emplace_back(_api->createProgram(*_device, engine::stl::array{vsModule.getView()}));
         }
 
@@ -1648,8 +1647,8 @@ namespace example {
             auto const vBytes = fileManager.readFile("shaders/polygons.vert.spv");
             auto const fBytes = fileManager.readFile("shaders/polygons.frag.spv");
 
-            const auto & vsModule = _shaderModulesManager->registerModule("polygons.vert", *_device, engine::rhi::shaders::Stages::eVertex, vBytes);
-            const auto & fsModule = _shaderModulesManager->registerModule("polygons.frag", *_device, engine::rhi::shaders::Stages::eFragment, fBytes);
+            const auto & vsModule = shaderModulesManager.registerModule("polygons.vert", engine::rhi::shaders::Stages::eVertex, vBytes);
+            const auto & fsModule = shaderModulesManager.registerModule("polygons.frag", engine::rhi::shaders::Stages::eFragment, fBytes);
 
             _programs.emplace_back(_api->createProgram(*_device, engine::stl::array{vsModule.getView(), fsModule.getView()}));
         }
@@ -1658,8 +1657,8 @@ namespace example {
             auto const vBytes = fileManager.readFile("shaders/mesh_instanced_colorid.vert.spv");
             auto const fBytes = fileManager.readFile("shaders/mesh_colorid.frag.spv");
 
-            const auto & vsModule = _shaderModulesManager->registerModule("mesh_instanced_colorid.vert", *_device, engine::rhi::shaders::Stages::eVertex, vBytes);
-            const auto & fsModule = _shaderModulesManager->registerModule("mesh_colorid.frag", *_device, engine::rhi::shaders::Stages::eFragment, fBytes);
+            const auto & vsModule = shaderModulesManager.registerModule("mesh_instanced_colorid.vert", engine::rhi::shaders::Stages::eVertex, vBytes);
+            const auto & fsModule = shaderModulesManager.registerModule("mesh_colorid.frag", engine::rhi::shaders::Stages::eFragment, fBytes);
             _programs.emplace_back(_api->createProgram(*_device, engine::stl::array{vsModule.getView(), fsModule.getView()}));
         }
 
@@ -1667,8 +1666,8 @@ namespace example {
             auto const vBytes = fileManager.readFile("shaders/mesh_after_compute_colorid.vert.spv");
             auto const fBytes = fileManager.readFile("shaders/mesh_colorid.frag.spv");
 
-            const auto & vsModule = _shaderModulesManager->registerModule("mesh_after_compute_colorid.vert", *_device, engine::rhi::shaders::Stages::eVertex, vBytes);
-            const auto & fsModule = _shaderModulesManager->registerModule("mesh_colorid.frag", *_device, engine::rhi::shaders::Stages::eFragment, fBytes);
+            const auto & vsModule = shaderModulesManager.registerModule("mesh_after_compute_colorid.vert", engine::rhi::shaders::Stages::eVertex, vBytes);
+            const auto & fsModule = shaderModulesManager.registerModule("mesh_colorid.frag", engine::rhi::shaders::Stages::eFragment, fBytes);
             _programs.emplace_back(_api->createProgram(*_device, engine::stl::array{vsModule.getView(), fsModule.getView()}));
         }
 
@@ -1676,19 +1675,19 @@ namespace example {
             auto const vBytes = fileManager.readFile("shaders/terrain_tile.vert.spv");
             auto const fBytes = fileManager.readFile("shaders/terrain_tile.frag.spv");
 
-            const auto & vsModule = _shaderModulesManager->registerModule("terrain_tile.vert", *_device, engine::rhi::shaders::Stages::eVertex, vBytes);
-            const auto & fsModule = _shaderModulesManager->registerModule("terrain_tile.frag", *_device, engine::rhi::shaders::Stages::eFragment, fBytes);
+            const auto & vsModule = shaderModulesManager.registerModule("terrain_tile.vert", engine::rhi::shaders::Stages::eVertex, vBytes);
+            const auto & fsModule = shaderModulesManager.registerModule("terrain_tile.frag", engine::rhi::shaders::Stages::eFragment, fBytes);
             _programs.emplace_back(_api->createProgram(*_device, engine::stl::array{vsModule.getView(), fsModule.getView()}));
         }
 
         { // kTerrainTileComputeProgram
             auto const cBytes = fileManager.readFile("shaders/terrain_tile_compute.comp.spv");
-            const auto & compModule = _shaderModulesManager->registerModule("terrain_tile_compute.comp", *_device, engine::rhi::shaders::Stages::eCompute, cBytes);
+            const auto & compModule = shaderModulesManager.registerModule("terrain_tile_compute.comp", engine::rhi::shaders::Stages::eCompute, cBytes);
             _programs.emplace_back(_api->createProgram(*_device, engine::stl::array{compModule.getView()}));
         }
         { // kTerrainTileComputeNormalsProgram
             auto const cBytes = fileManager.readFile("shaders/terrain_tile_compute_normals.comp.spv");
-            const auto & compModule = _shaderModulesManager->registerModule("terrain_tile_compute_normals.comp", *_device, engine::rhi::shaders::Stages::eCompute, cBytes);
+            const auto & compModule = shaderModulesManager.registerModule("terrain_tile_compute_normals.comp", engine::rhi::shaders::Stages::eCompute, cBytes);
             _programs.emplace_back(_api->createProgram(*_device, engine::stl::array{compModule.getView()}));
         }
     }

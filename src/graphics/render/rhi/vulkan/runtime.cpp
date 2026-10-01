@@ -16,10 +16,8 @@
 #include "query_pool.h"
 #include "image_memory_reader.h"
 #include "vk_types.h"
+#include "stl/array.h"
 
-#include "graphics/render/rhi/common/shader_module.h"
-
-#include <array>
 #include <cassert>
 #include <utility>
 
@@ -116,8 +114,9 @@ namespace engine::vulkan::runtime {
         static_cast<const Api::Device &>(device).resetEvent(static_cast<VkEvent>(event));
     }
 
-    rhi::runtime::ShaderModulesManagerPtr Rhi::createShaderModulesManager() const {
-        return std::make_unique<engine::rhi::ShaderModulesManager<Api>>();
+    rhi::runtime::ShaderModulePtr Rhi::createShaderModule(const rhi::runtime::Device & device, 
+        rhi::shaders::Stages stage, stl::span<const std::byte> code) const {
+        return std::make_unique<Api::ShaderModule>(static_cast<const Api::Device &>(device), stage, code);
     }
 
     rhi::runtime::GpuProgramPtr Rhi::createProgram(
