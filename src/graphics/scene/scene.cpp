@@ -12,6 +12,7 @@
 
 #include "threads/thread_pool/thread_pool.h"
 
+#include "graphics/common/pipelines_manager.h"
 #include "graphics/common/material.h"
 #include "graphics/mesh/model_manager.h"
 #include "graphics/texture/texture.h"
@@ -134,10 +135,15 @@ namespace engine::scene {
         }
     }
 
-    Scene::Scene(const graphics::GraphicsService & graphicsService, graphics::DrawHelper & drawHelper) : 
+    Scene::Scene(
+        const graphics::GraphicsService & graphicsService, 
+        graphics::DrawHelper & drawHelper, 
+        const AnimationManager & animationManager
+    ) : 
         _rootNode(createNode()),
         _graphicsService(graphicsService),
-        _drawHelper(drawHelper) {
+        _drawHelper(drawHelper),
+        _animationManager(animationManager) {
         // types:
         registerTypes();
 
@@ -243,42 +249,8 @@ namespace engine::scene {
         // return result;
     }
 
-    uint32_t Scene::registerGraphicsPipeline(rhi::runtime::PipelinePtr && pipeline) {
-        if (pipeline) {
-            _graphicsPipelines.push_back(std::move(pipeline));
-            return _graphicsPipelines.size() - 1u;
-        }
-
-        return 0xff'ff'ff'ffu;
-    }
-
-    const rhi::runtime::PipelinePtr & Scene::getGraphicsPipeline(uint32_t pipelineId) const noexcept {
-        if (pipelineId >= _graphicsPipelines.size()) {
-            static constexpr rhi::runtime::PipelinePtr kNullPipeline = nullptr;
-            return kNullPipeline;
-        }
-        return _graphicsPipelines[pipelineId];
-    }
-
     void Scene::assignCommonPipeline(uint32_t pipelineId, CommonPipeline::Type type) noexcept {
         _commonPipelines.pipelines[std::to_underlying(type)] = pipelineId;
-    }
-
-    uint32_t Scene::registerComputePipeline(rhi::runtime::PipelinePtr && pipeline) {
-        if (pipeline) {
-            _computesPipelines.push_back(std::move(pipeline));
-            return _computesPipelines.size() - 1u;
-        }
-
-        return 0xff'ff'ff'ffu;
-    }
-
-    const rhi::runtime::PipelinePtr & Scene::getComputePipeline(uint32_t pipelineId) const noexcept {
-        if (pipelineId >= _computesPipelines.size()) {
-            static constexpr rhi::runtime::PipelinePtr kNullPipeline = nullptr;
-            return kNullPipeline;
-        }
-        return _computesPipelines[pipelineId];
     }
 
     bool Scene::isComputeSkinningEnabled() const noexcept {
@@ -457,8 +429,7 @@ namespace engine::scene {
         }
     }
 
-    void Scene::animate(std::chrono::time_point<std::chrono::steady_clock> now, float delta, stl::span<AttachmentObject*> objects, 
-        const AnimationManager & animationManager) {
+    void Scene::animate(std::chrono::time_point<std::chrono::steady_clock> now, float delta, stl::span<AttachmentObject*> objects) {
         //return;
         if (objects.empty()) {
             return;
@@ -547,7 +518,10 @@ namespace engine::scene {
                     const auto w8Id = _calculationWaiterPtrs.size();
                     auto * taskW8 = _calculationWaiterPtrs.emplace_back(&_calculationWaiters[w8Id]);
 
-                    gThreadPool.execute([animator = &gSkeletalAnimatorsMT[i], &animationManager, nowTime = _animationClock, animations, taskW8]() {
+                    gThreadPool.execute([
+                        animator = &gSkeletalAnimatorsMT[i], 
+                        &animationManager = _animationManager, 
+                        nowTime = _animationClock, animations, taskW8]() {
                         auto animId = kUndefinedAnimId;
                         const SkeletalAnimation * currentAnim = nullptr;
                         AttachmentObject * currentObject = nullptr;
@@ -587,7 +561,7 @@ namespace engine::scene {
                 for (const auto & [animInfo, object, mix] : _animations.skeletalAnimations) {
                     if (animInfo.animationId != animId) {
                         animId = animInfo.animationId;
-                        currentAnim = animationManager.getAnimation<SkeletalAnimation>(animId);
+                        currentAnim = _animationManager.getAnimation<SkeletalAnimation>(animId);
                     }
 
                     if (currentAnim) {
@@ -620,7 +594,7 @@ namespace engine::scene {
             for (const auto & [animInfo, object, _] : animations) {
                 if (animInfo.animationId != animId) {
                     animId = animInfo.animationId;
-                    currentAnim = animationManager.getAnimation<FramesSequence>(animId);
+                    currentAnim = _animationManager.getAnimation<FramesSequence>(animId);
                 }
 
                 if (currentAnim) {
@@ -989,7 +963,7 @@ namespace engine::scene {
 
         uint32_t count = 1u;
 
-        const auto & pipeline = getComputePipeline(getCommonPipeline(CommonPipeline::Type::eMeshSkinCompute));
+        const auto & pipeline = _graphicsService.getPipelinesManager().getComputePipeline(getCommonPipeline(CommonPipeline::Type::eMeshSkinCompute));
         assert(pipeline != nullptr);
 
         commandList->bindPipeline(pipeline);
@@ -1513,7 +1487,7 @@ namespace engine::scene {
         using namespace graphics;
 
         const auto & sprite = *static_cast<const Sprite*>(*begin);
-        const auto & pipeline = getGraphicsPipeline(sprite.getPipeline());
+        const auto & pipeline = _graphicsService.getPipelinesManager().getGraphicsPipeline(sprite.getPipeline());
         if (pipeline == nullptr) {
             return;
         }
@@ -1634,7 +1608,8 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
 
         uint32_t count = 1u;
 
-        const auto & pipeline = getGraphicsPipeline(pipelineIdx);
+        auto & pipelinesManager = _graphicsService.getPipelinesManager();
+        const auto & pipeline = pipelinesManager.getGraphicsPipeline(pipelineIdx);
         assert(pipeline != nullptr);
         commandList->bindPipeline(pipeline);
 
@@ -1681,7 +1656,7 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
                 offset += count;
 
                 if (pipelineChanged) {
-                    const auto & pipeline = getGraphicsPipeline(currentPipelineIdx);
+                    const auto & pipeline = pipelinesManager.getGraphicsPipeline(currentPipelineIdx);
                     assert(pipeline != nullptr);
                     commandList->bindPipeline(pipeline);
                     commandList->bindBuffer(0u, (*_viewParamsUniformBuffer)(frame), 0u, _currentViewParamsBufferOffset);
@@ -1751,9 +1726,11 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
         auto dataIndex = mesh.dataIndex();
         bool colorIdEnabled = mesh.isEnableColorId();
 
+        auto & pipelinesManager = _graphicsService.getPipelinesManager();
+
         if (colorIdEnabled) {
             count = 1u;
-            const auto & pipeline = getGraphicsPipeline(pipelineIdx);
+            const auto & pipeline = pipelinesManager.getGraphicsPipeline(pipelineIdx);
             assert(pipeline != nullptr);
             commandList->bindPipeline(pipeline);
             commandList->bindBuffer(0u, (*_viewParamsUniformBuffer)(frame), 0u, _currentViewParamsBufferOffset);
@@ -1781,7 +1758,7 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
             const auto currenDataIndex = mesh2.dataIndex();
 
             if (count == 0u) {
-                const auto & pipeline = getGraphicsPipeline(currentPipelineIdx);
+                const auto & pipeline = pipelinesManager.getGraphicsPipeline(currentPipelineIdx);
                 assert(pipeline != nullptr);
                 commandList->bindPipeline(pipeline);
                 commandList->bindBuffer(0u, (*_viewParamsUniformBuffer)(frame), 0u, _currentViewParamsBufferOffset);
@@ -1828,7 +1805,7 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
                 }
 
                 if (pipelineChanged) {
-                    const auto & pipeline = getGraphicsPipeline(currentPipelineIdx);
+                    const auto & pipeline = pipelinesManager.getGraphicsPipeline(currentPipelineIdx);
                     assert(pipeline != nullptr);
                     commandList->bindPipeline(pipeline);
                     commandList->bindBuffer(0u, (*_viewParamsUniformBuffer)(frame), 0u, _currentViewParamsBufferOffset);
@@ -1927,7 +1904,8 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
 
         uint32_t count = 1u;
 
-        const auto & pipeline = getGraphicsPipeline(pipelineIdx);
+        auto & pipelinesManager = _graphicsService.getPipelinesManager();
+        const auto & pipeline = pipelinesManager.getGraphicsPipeline(pipelineIdx);
         assert(pipeline != nullptr);
         
         commandList->bindPipeline(pipeline);
@@ -1980,7 +1958,7 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
                 uniform.offset.x = currentSkeletal ? skeletonsOffset : offset;
 
                 if (pipelineChanged) {
-                    const auto & pipeline = getGraphicsPipeline(currentPipelineIdx);
+                    const auto & pipeline = pipelinesManager.getGraphicsPipeline(currentPipelineIdx);
                     assert(pipeline != nullptr);
                     commandList->bindPipeline(pipeline);
                     commandList->bindBuffer(0u, (*_viewParamsUniformBuffer)(frame), 0u, _currentViewParamsBufferOffset);
@@ -2080,7 +2058,8 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
 
         uint32_t count = 1u;
 
-        const auto & pipeline = getGraphicsPipeline(pipelineIdx);
+        auto & pipelinesManager = _graphicsService.getPipelinesManager();
+        const auto & pipeline = pipelinesManager.getGraphicsPipeline(pipelineIdx);
         assert(pipeline != nullptr);
         commandList->bindPipeline(pipeline);
         
@@ -2125,7 +2104,7 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
                 offset += count;
 
                 if (pipelineChanged) {
-                    const auto & pipeline = getGraphicsPipeline(currentPipelineIdx);
+                    const auto & pipeline = pipelinesManager.getGraphicsPipeline(currentPipelineIdx);
                     assert(pipeline != nullptr);
                     commandList->bindPipeline(pipeline);
                 }

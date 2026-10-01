@@ -15,6 +15,7 @@
 
 #include "engine/src/graphics/scene/camera_controller.h"
 
+#include "engine/src/graphics/common/pipelines_manager.h"
 #include "engine/src/graphics/texture/texture_data_loader.h"
 #include "engine/src/graphics/texture/texture_manager.h"
 #include "engine/src/graphics/mesh/gltf_loader.h"
@@ -124,6 +125,7 @@ namespace example {
     engine::FileManager fileManager;
     engine::graphics::MaterialManager materialManager;
     engine::scene::AnimationManager animationManager;
+    std::optional<engine::graphics::PipelinesManager> pipelinesManager;
     std::optional<engine::graphics::ModelManager> modelManager;
     std::optional<engine::graphics::TextureManager> textureManager;
     std::optional<engine::graphics::GraphicsService> graphicsService{};
@@ -1120,6 +1122,7 @@ namespace example {
 
         terrainTile.destroy();
         
+        pipelinesManager->destroy();
         _pipelines.clear();
         _programs.clear();
         _mainFrameBuffers.clear();
@@ -1694,10 +1697,11 @@ namespace example {
         using namespace engine::rhi;
 
         //
+        pipelinesManager.emplace(*_api, *_device);
         modelManager.emplace(materialManager);
         textureManager.emplace(*_api, *_device);
-        graphicsService.emplace(*_api, *_device, *textureManager, *modelManager, materialManager);
-        scene.emplace(*graphicsService, drawHelper);
+        graphicsService.emplace(*_api, *_device, *pipelinesManager, *textureManager, *modelManager, materialManager);
+        scene.emplace(*graphicsService, drawHelper, animationManager);
         //
 
         loadShaders();
@@ -1733,24 +1737,24 @@ namespace example {
         
         // scene pipelines
         const GraphicsPipelineStatesInfo info2 = engine::parseGraphicsPipelineInfo(json["sprite_common"]);
-        scene->registerGraphicsPipeline(_api->createGraphicsPipeline(*_device, _renderPasses[kGbufferRenderPass], _programs[kSpritesProgram], info2, 0u));
+        pipelinesManager->registerGraphicsPipeline(_api->createGraphicsPipeline(*_device, _renderPasses[kGbufferRenderPass], _programs[kSpritesProgram], info2, 0u));
         
         // skeletal mesh
         // const GraphicsPipelineStatesInfo info4 = engine::parseGraphicsPipelineInfo(json["mesh_skeletal"]);
-        // scene->registerGraphicsPipeline(_api->createGraphicsPipeline(*_device, _renderPasses[kSceneRenderPass], _programs[kMeshSkeletalInstancedProgram], info4, 0u));
+        // pipelinesManager->registerGraphicsPipeline(_api->createGraphicsPipeline(*_device, _renderPasses[kSceneRenderPass], _programs[kMeshSkeletalInstancedProgram], info4, 0u));
         
         // mesh
         const GraphicsPipelineStatesInfo info5 = engine::parseGraphicsPipelineInfo(json["mesh"]);
-        scene->registerGraphicsPipeline(_api->createGraphicsPipeline(*_device, _renderPasses[kGbufferRenderPass], _programs[kMeshInstancedProgram], info5, 0u));
-        scene->registerGraphicsPipeline(_api->createGraphicsPipeline(*_device, _renderPasses[kGbufferRenderPass], _programs[kMeshInstancedProgramNoPbr], info5, 0u));
+        pipelinesManager->registerGraphicsPipeline(_api->createGraphicsPipeline(*_device, _renderPasses[kGbufferRenderPass], _programs[kMeshInstancedProgram], info5, 0u));
+        pipelinesManager->registerGraphicsPipeline(_api->createGraphicsPipeline(*_device, _renderPasses[kGbufferRenderPass], _programs[kMeshInstancedProgramNoPbr], info5, 0u));
 
         // compute
-        const uint32_t meshSkinComputePipeline = scene->registerComputePipeline(_api->createComputePipeline(*_device, _programs[kComputeProgram]));
+        const uint32_t meshSkinComputePipeline = pipelinesManager->registerComputePipeline(_api->createComputePipeline(*_device, _programs[kComputeProgram]));
         scene->assignCommonPipeline(meshSkinComputePipeline, engine::scene::Scene::CommonPipeline::Type::eMeshSkinCompute);
 
         const GraphicsPipelineStatesInfo info6 = engine::parseGraphicsPipelineInfo(json["mesh_skeletal_computed"]);
-        scene->registerGraphicsPipeline(_api->createGraphicsPipeline(*_device, _renderPasses[kGbufferRenderPass], _programs[kMeshAfterComputeProgram], info6, 0u));
-        scene->registerGraphicsPipeline(_api->createGraphicsPipeline(*_device, _renderPasses[kGbufferRenderPass], _programs[kMeshAfterComputeProgramNoPbr], info6, 0u));
+        pipelinesManager->registerGraphicsPipeline(_api->createGraphicsPipeline(*_device, _renderPasses[kGbufferRenderPass], _programs[kMeshAfterComputeProgram], info6, 0u));
+        pipelinesManager->registerGraphicsPipeline(_api->createGraphicsPipeline(*_device, _renderPasses[kGbufferRenderPass], _programs[kMeshAfterComputeProgramNoPbr], info6, 0u));
 
         // shadow
         shadowMap = std::make_unique<engine::graphics::CascadeShadowMap>(*_api, *_device, 2048u, 2u, 16u, kNearFarPlane.x, kNearFarPlane.y);
@@ -1779,15 +1783,15 @@ namespace example {
         // colorPicker->createRenderData();
         
         const GraphicsPipelineStatesInfo info7 = engine::parseGraphicsPipelineInfo(json["mesh_shadows"]);
-        const uint32_t meshShadowPipeline = scene->registerGraphicsPipeline(_api->createGraphicsPipeline(*_device, shadowMap->getRenderPass(), _programs[kMeshShadowProgram], info7, 0u));
+        const uint32_t meshShadowPipeline = pipelinesManager->registerGraphicsPipeline(_api->createGraphicsPipeline(*_device, shadowMap->getRenderPass(), _programs[kMeshShadowProgram], info7, 0u));
         scene->assignCommonPipeline(meshShadowPipeline, engine::scene::Scene::CommonPipeline::Type::eMeshShadow);
 
         const GraphicsPipelineStatesInfo info8 = engine::parseGraphicsPipelineInfo(json["mesh_skin_shadows"]);
-        const uint32_t meshSkinShadowPipeline = scene->registerGraphicsPipeline(_api->createGraphicsPipeline(*_device, shadowMap->getRenderPass(), _programs[kMeshAfterComputeShadowProgram], info8, 0u));
+        const uint32_t meshSkinShadowPipeline = pipelinesManager->registerGraphicsPipeline(_api->createGraphicsPipeline(*_device, shadowMap->getRenderPass(), _programs[kMeshAfterComputeShadowProgram], info8, 0u));
         scene->assignCommonPipeline(meshSkinShadowPipeline, engine::scene::Scene::CommonPipeline::Type::eMeshSkinnedShadow);
 
         // sprite2
-        scene->registerGraphicsPipeline(_api->createGraphicsPipeline(*_device, _renderPasses[kGbufferRenderPass], _programs[kSpritesProgram2], info2, 0u));
+        pipelinesManager->registerGraphicsPipeline(_api->createGraphicsPipeline(*_device, _renderPasses[kGbufferRenderPass], _programs[kSpritesProgram2], info2, 0u));
 
         // kMapBuildingsShadowsPipeline
         const GraphicsPipelineStatesInfo info11 = engine::parseGraphicsPipelineInfo(json["map_buildings_shadows"]);
@@ -1796,8 +1800,8 @@ namespace example {
         // mesh colorIds
         const GraphicsPipelineStatesInfo info12 = engine::parseGraphicsPipelineInfo(json["mesh_colorId"]);
         const GraphicsPipelineStatesInfo info13 = engine::parseGraphicsPipelineInfo(json["mesh_skin_colorId"]);
-        const uint32_t meshColorIdPipeline = scene->registerGraphicsPipeline(_api->createGraphicsPipeline(*_device, colorPicker->getRenderPass(), _programs[kMeshColorIdProgram], info12, 0u));
-        const uint32_t meshSkinColorIdPipeline = scene->registerGraphicsPipeline(_api->createGraphicsPipeline(*_device, colorPicker->getRenderPass(), _programs[kMeshAfterComputeColorIdProgram], info13, 0u));
+        const uint32_t meshColorIdPipeline = pipelinesManager->registerGraphicsPipeline(_api->createGraphicsPipeline(*_device, colorPicker->getRenderPass(), _programs[kMeshColorIdProgram], info12, 0u));
+        const uint32_t meshSkinColorIdPipeline = pipelinesManager->registerGraphicsPipeline(_api->createGraphicsPipeline(*_device, colorPicker->getRenderPass(), _programs[kMeshAfterComputeColorIdProgram], info13, 0u));
         scene->assignCommonPipeline(meshColorIdPipeline, engine::scene::Scene::CommonPipeline::Type::eMeshColorId);
         scene->assignCommonPipeline(meshSkinColorIdPipeline, engine::scene::Scene::CommonPipeline::Type::eMeshSkinColorId);
 
@@ -2878,7 +2882,7 @@ namespace example {
 
         engine::scene::Scene::sortObjectsForDraw(shadowObjects);
 
-        scene->animate(now, delta, objects, animationManager); // after fillAttachmentsArrays and after beginFrame for correct
+        scene->animate(now, delta, objects); // after fillAttachmentsArrays and after beginFrame for correct
 
         // auto o0 = engine::stl::span<engine::scene::AttachmentObject*>{objects.begin(), objects.begin() + objects.size() / 2};
         // auto o1 = engine::stl::span<engine::scene::AttachmentObject*>{objects.begin() + objects.size() / 2, objects.end()};

@@ -94,7 +94,7 @@ public:
         uint32_t computeSkinVerticesOffset = 0u;
     };
 
-    Scene(const graphics::GraphicsService & graphicsService, graphics::DrawHelper & drawHelper);
+    Scene(const graphics::GraphicsService & graphicsService, graphics::DrawHelper & drawHelper, const AnimationManager & animationManager);
     ~Scene();
 
     void destroy() noexcept;
@@ -141,16 +141,10 @@ public:
     stl::span<const float> getQualityLevels(uint16_t idx) const noexcept;
 
     // render & compute
-    uint32_t registerGraphicsPipeline(rhi::runtime::PipelinePtr && pipeline);
-    const rhi::runtime::PipelinePtr & getGraphicsPipeline(uint32_t pipelineId) const noexcept;
-
     void assignCommonPipeline(uint32_t pipelineId, CommonPipeline::Type type) noexcept;
     uint32_t getCommonPipeline(CommonPipeline::Type type) const noexcept {
         return _commonPipelines.pipelines[std::to_underlying(type)];
     }
-
-    uint32_t registerComputePipeline(rhi::runtime::PipelinePtr && pipeline);
-    const rhi::runtime::PipelinePtr & getComputePipeline(uint32_t pipelineId) const noexcept;
 
     void initRenderData(rhi::runtime::Rhi & api, rhi::runtime::Device & device);
     void beginFrame(std::chrono::time_point<std::chrono::steady_clock> now, float delta) noexcept;
@@ -161,8 +155,7 @@ public:
         stl::vector<AttachmentObject*> & objects, FillAttachmentFlags flags);
     DrawDataOffsets prepareDrawData(stl::span<AttachmentObject*> objects, uint8_t frame) noexcept;
 
-    void animate(std::chrono::time_point<std::chrono::steady_clock> now, float delta, stl::span<AttachmentObject*> objects, 
-        const AnimationManager & animationManager);
+    void animate(std::chrono::time_point<std::chrono::steady_clock> now, float delta, stl::span<AttachmentObject*> objects);
     void draw(RenderPass pass, rhi::runtime::CommandListPtr & commandList, rhi::runtime::CommandListPtr & transferCommandList, uint8_t frame, 
         const ViewParams & viewParams, stl::span<AttachmentObject*> objects, const DrawDataOffsets & offsets, const void * uniformData = nullptr);
     void drawDebug(const ViewParams & viewParams, stl::span<AttachmentObject*> objects);
@@ -340,6 +333,7 @@ private:
 
     const graphics::GraphicsService & _graphicsService;
     graphics::DrawHelper & _drawHelper;
+    const AnimationManager & _animationManager;
     std::chrono::time_point<std::chrono::steady_clock> _tryReduceUsedMemoryTime;
 
     uint32_t _currentViewParamsBufferOffset = 0u;

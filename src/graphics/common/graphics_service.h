@@ -10,18 +10,21 @@ namespace engine::graphics {
     class TextureManager;
     class ModelManager;
     class MaterialManager;
+    class PipelinesManager;
 
     class GraphicsService {
     public:
         GraphicsService(
             rhi::runtime::Rhi & rhi, 
-            rhi::runtime::Device & device, 
+            rhi::runtime::Device & device,
+            PipelinesManager & pipelinesManager, 
             TextureManager & textureManager, 
             ModelManager & modelManager,
             MaterialManager & materialManager
         ) :
             _rhi(rhi), 
-            _device(device), 
+            _device(device),
+            _pipelinesManager(pipelinesManager),
             _textureManager(textureManager), 
             _modelManager(modelManager),
             _materialManager(materialManager) {}
@@ -31,6 +34,9 @@ namespace engine::graphics {
 
         const rhi::runtime::Device & getDevice() const noexcept { return _device; }
         rhi::runtime::Device & getDevice() noexcept { return _device; }
+
+        const PipelinesManager & getPipelinesManager() const noexcept { return _pipelinesManager; }
+        PipelinesManager & getPipelinesManager() noexcept { return _pipelinesManager; }
 
         const TextureManager & getTextureManager() const noexcept { return _textureManager; }
         TextureManager & getTextureManager() noexcept { return _textureManager; }
@@ -44,6 +50,7 @@ namespace engine::graphics {
     private:
         rhi::runtime::Rhi & _rhi;
         rhi::runtime::Device & _device;
+        PipelinesManager & _pipelinesManager;
         TextureManager & _textureManager;
         ModelManager & _modelManager;
         MaterialManager & _materialManager;

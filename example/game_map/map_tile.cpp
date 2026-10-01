@@ -267,6 +267,7 @@ namespace g_map {
     void TerrainSceneDelegate::destroy() noexcept {
         _tileCommonVertices = nullptr;
         _tileCommonIndices = nullptr;
+        _tileIDs = nullptr;
 
         for (auto & tm : _terrainMaps) {
             tm.clear();
