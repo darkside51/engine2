@@ -12,6 +12,21 @@
 
 namespace engine::graphics {
 
+    class RenderPassManager final {
+        using PassesMap = stl::unordered_map<std::string, uint32_t, hash::String_hash, std::equal_to<>>;
+        
+    public:
+
+    void destroy() noexcept {
+        _passes.clear();
+        _passesMap.clear();
+    }
+
+    private:
+        stl::vector<rhi::runtime::RenderPass> _passes;
+        PassesMap _passesMap;
+    };
+
     class ShaderModulesManager final {
         using ModulesMap = stl::unordered_map<std::string, rhi::runtime::ShaderModulePtr, hash::String_hash, std::equal_to<>>;
 
@@ -65,7 +80,7 @@ namespace engine::graphics {
         PipelinesManager(rhi::runtime::Rhi & api, rhi::runtime::Device & device);
         ~PipelinesManager() { destroy(); }
 
-        void destroy();
+        void destroy() noexcept;
 
         uint32_t registerGraphicsPipeline(rhi::runtime::PipelinePtr && pipeline);
         const rhi::runtime::PipelinePtr & getGraphicsPipeline(uint32_t pipelineId) const noexcept;

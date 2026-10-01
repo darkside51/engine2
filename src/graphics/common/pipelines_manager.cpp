@@ -15,7 +15,7 @@ namespace engine::graphics {
         _device(device),
         _shaderModulesManager(api, device) {}
 
-    void PipelinesManager::destroy() {
+    void PipelinesManager::destroy() noexcept {
         _graphicsPipelines.clear();
         _computesPipelines.clear();
         _programs.clear();
