@@ -50,8 +50,18 @@ namespace engine::graphics {
         rhi::runtime::Device & _device;
     };
 
+    struct ShaderModuleDescriptor {
+        stl::span<const std::byte> data;
+        std::string_view name;
+        rhi::shaders::Stages stage;
+    };
+
     class PipelinesManager {
+        using ProgramsMap = stl::unordered_map<std::string, uint32_t, hash::String_hash, std::equal_to<>>;
+
     public:
+        static constexpr uint32_t kNullPipelineID = 0xff'ff'ff'ffu;
+
         PipelinesManager(rhi::runtime::Rhi & api, rhi::runtime::Device & device);
         ~PipelinesManager() { destroy(); }
 
@@ -67,16 +77,27 @@ namespace engine::graphics {
         uint32_t createGraphicsPipeline(const rhi::runtime::GpuProgramPtr & program, rhi::runtime::RenderPass renderPass,
             const rhi::GraphicsPipelineStatesInfo & info, uint32_t subpass = 0u);
 
-        struct ShaderModuleDescriptor {
-            stl::span<const std::byte> data;
-            std::string_view name;
-            rhi::shaders::Stages stage;
-        };
+        uint32_t createComputePipeline(uint32_t programIndex);
+        uint32_t createGraphicsPipeline(uint32_t programIndex, rhi::runtime::RenderPass renderPass,
+            const rhi::GraphicsPipelineStatesInfo & info, uint32_t subpass = 0u);
 
-        rhi::runtime::GpuProgramPtr & createProgram(
+        uint32_t createComputePipeline(std::string_view programName);
+        uint32_t createGraphicsPipeline(std::string_view programName, rhi::runtime::RenderPass renderPass,
+            const rhi::GraphicsPipelineStatesInfo & info, uint32_t subpass = 0u);
+
+        const rhi::runtime::GpuProgramPtr & createProgram(
             stl::span<const ShaderModuleDescriptor> moduleDescriptors,
             rhi::shaders::SpecializationInfo && specializationInfo = {}
         );
+
+        const rhi::runtime::GpuProgramPtr & createProgram(
+            std::string_view programName,
+            stl::span<const ShaderModuleDescriptor> moduleDescriptors,
+            rhi::shaders::SpecializationInfo && specializationInfo = {}
+        );
+
+        const rhi::runtime::GpuProgramPtr & getProgramByIndex(uint32_t idx) const noexcept;
+        const rhi::runtime::GpuProgramPtr & getProgramByName(std::string_view name) const noexcept;
 
         ShaderModulesManager & getShaderModulesManager() noexcept {
             return _shaderModulesManager;
@@ -95,6 +116,7 @@ namespace engine::graphics {
 
         ShaderModulesManager _shaderModulesManager;
         stl::vector<rhi::runtime::GpuProgramPtr> _programs;
+        ProgramsMap _programsMap;
     };
 
 }

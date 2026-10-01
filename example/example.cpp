@@ -1748,8 +1748,23 @@ namespace example {
         pipelinesManager->registerGraphicsPipeline(_api->createGraphicsPipeline(*_device, _renderPasses[kGbufferRenderPass], _programs[kMeshInstancedProgramNoPbr], info5, 0u));
 
         // compute
-        const uint32_t meshSkinComputePipeline = pipelinesManager->registerComputePipeline(_api->createComputePipeline(*_device, _programs[kComputeProgram]));
-        scene->assignCommonPipeline(meshSkinComputePipeline, engine::scene::Scene::CommonPipeline::Type::eMeshSkinCompute);
+        // const uint32_t meshSkinComputePipeline = pipelinesManager->registerComputePipeline(_api->createComputePipeline(*_device, _programs[kComputeProgram]));
+        // scene->assignCommonPipeline(meshSkinComputePipeline, engine::scene::Scene::CommonPipeline::Type::eMeshSkinCompute);
+
+        { // mesh skin compute
+            auto const cBytes = fileManager.readFile("shaders/mesh_skin_compute.comp.spv");
+            pipelinesManager->createProgram("mesh_skin_compute", engine::stl::array{
+                engine::graphics::ShaderModuleDescriptor{
+                    .data = cBytes,
+                    .name = "mesh_skin_compute.comp",
+                    .stage = engine::rhi::shaders::Stages::eCompute
+                }
+            });
+            scene->assignCommonPipeline(
+                pipelinesManager->createComputePipeline("mesh_skin_compute"), 
+                engine::scene::Scene::CommonPipeline::Type::eMeshSkinCompute
+            );
+        }
 
         const GraphicsPipelineStatesInfo info6 = engine::parseGraphicsPipelineInfo(json["mesh_skeletal_computed"]);
         pipelinesManager->registerGraphicsPipeline(_api->createGraphicsPipeline(*_device, _renderPasses[kGbufferRenderPass], _programs[kMeshAfterComputeProgram], info6, 0u));
