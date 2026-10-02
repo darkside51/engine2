@@ -1842,34 +1842,34 @@ namespace example {
 
         //
         scene->addCustomDelegate(&terrainSceneDelegate);
-        terrainSceneDelegate.buildBuffers(*_api, *_device, 128u, 128u);
-        terrain.emplace(terrainSceneDelegate, *scene, 4u, 4u);
+        terrainSceneDelegate.buildBuffers(*_api, *_device, 256u, 256u);
+        terrain.emplace(terrainSceneDelegate, *scene, 8u, 8u);
 
-        // { // terrainSceneDelegate drawPipeline
-        //     { 
-        //         auto const vBytes = fileManager.readFile("shaders/terrain_tile.vert.spv");
-        //         auto const fBytes = fileManager.readFile("shaders/terrain_tile.frag.spv");
-        //         pipelinesManager->createProgram("terrain_tiles_render", engine::stl::array{
-        //             engine::graphics::ShaderModuleDescriptor{
-        //                 .data = vBytes,
-        //                 .name = "terrain_tile.vert",
-        //                 .stage = engine::rhi::shaders::Stages::eVertex
-        //             },
-        //             engine::graphics::ShaderModuleDescriptor{
-        //                 .data = fBytes,
-        //                 .name = "terrain_tile.frag",
-        //                 .stage = engine::rhi::shaders::Stages::eFragment
-        //             }
-        //         });
+        { // terrainSceneDelegate drawPipeline
+            { 
+                auto const vBytes = fileManager.readFile("shaders/terrain.vert.spv");
+                auto const fBytes = fileManager.readFile("shaders/terrain.frag.spv");
+                pipelinesManager->createProgram("terrain_tiles_render", engine::stl::array{
+                    engine::graphics::ShaderModuleDescriptor{
+                        .data = vBytes,
+                        .name = "terrain.vert",
+                        .stage = engine::rhi::shaders::Stages::eVertex
+                    },
+                    engine::graphics::ShaderModuleDescriptor{
+                        .data = fBytes,
+                        .name = "terrain.frag",
+                        .stage = engine::rhi::shaders::Stages::eFragment
+                    }
+                });
 
-        //         const GraphicsPipelineStatesInfo info = engine::parseGraphicsPipelineInfo(json["terrain_tiles"]);
-        //         const uint32_t terrainDrawPipelineIdx = pipelinesManager->createGraphicsPipeline("terrain_tiles_render", gbufferRenderPass, info, 0u);
-        //         terrainSceneDelegate.setPipeline(
-        //             pipelinesManager->getGraphicsPipeline(terrainDrawPipelineIdx).get(), 
-        //             g_map::TerrainSceneDelegate::PipelineId::eTilesDraw
-        //         );
-        //     }
-        // }
+                const GraphicsPipelineStatesInfo info = engine::parseGraphicsPipelineInfo(json["terrain_tile"]);
+                const uint32_t terrainDrawPipelineIdx = pipelinesManager->createGraphicsPipeline("terrain_tiles_render", gbufferRenderPass, info, 0u);
+                terrainSceneDelegate.setPipeline(
+                    pipelinesManager->getGraphicsPipeline(terrainDrawPipelineIdx).get(), 
+                    g_map::TerrainSceneDelegate::PipelineId::eTilesDraw
+                );
+            }
+        }
     }
 
     void Example::createDefaultResources() {
@@ -2354,6 +2354,9 @@ namespace example {
         terrainTile.setGraphicsPipeline(_pipelines[gTerrainPipeline].get());
         terrainTile.setComputeHeightPipeline(_pipelines[gTerrainComputePipeline].get());
         terrainTile.setComputeNormalsPipeline(_pipelines[gTerrainComputeNormalsPipeline].get());
+
+        //
+        terrainSceneDelegate.buildGeometry(*tmpCommandList);
 
         tmpCommandList->end();
         tmpCommandList->record(0u);

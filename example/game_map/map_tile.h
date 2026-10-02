@@ -161,7 +161,7 @@ public:
         const engine::scene::Scene & scene, const engine::scene::ViewParams & viewParams, engine::scene::RenderPass pass, 
         engine::rhi::runtime::CommandListPtr & commandList, uint8_t frame) override;
 
-    void drawSame(engine::scene::AttachmentsIterator begin, engine::scene::AttachmentsIterator end, 
+    void drawSame(engine::scene::AttachmentsIterator begin, engine::scene::AttachmentsIterator end, uint32_t instanceOffset,
         const engine::scene::Scene & scene, const engine::scene::ViewParams & viewParams, engine::scene::RenderPass pass, 
         engine::rhi::runtime::CommandListPtr & commandList, uint8_t frame);
 
@@ -185,6 +185,7 @@ private:
 
     engine::stl::array<TerrainMaps, 16u> _terrainMaps; // 4 x 4 maps maximum
     engine::stl::vector<uint16_t> _visibleTileIds;
+    uint16_t _mapImageMaxSize = 0u;
     uint16_t _tmpTilesCount = 0u;
     bool _tileIdsDirty = false;
 };

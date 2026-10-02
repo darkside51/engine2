@@ -214,22 +214,22 @@ namespace g_map {
 
 
     /////////////////////////
-    constexpr size_t kVerticesInRow = 32u;
-    constexpr size_t kCellsInRow = kVerticesInRow - 1u;
-
+    constexpr size_t kCellsInRow = 32u;
+    constexpr size_t kVerticesInRow = kCellsInRow + 1u;
+    
     Terrain::Terrain(TerrainSceneDelegate & sceneDelegate, engine::scene::Scene & scene, uint8_t w, uint8_t h) :
     _scene(scene),
     _width(w),
     _height(h),
     _tiles(w * h) {
-        const auto terrainW = _width * kVerticesInRow;
-        const auto terrainH = _height * kVerticesInRow;
+        const auto terrainW = _width * kCellsInRow;
+        const auto terrainH = _height * kCellsInRow;
         _terrainNode = scene.createNode();
         _terrainNode->setPivot({terrainW * 0.5f, terrainH * 0.5f, 0.0f}); // center of tile        
         _terrainNode->setBounds(
             engine::scene::Bounds::createCube(
-                engine::vec3f{terrainW, terrainH, -static_cast<float>(kVerticesInRow) * 0.5f}, 
-                engine::vec3f{0.0f, 0.0f, static_cast<float>(kVerticesInRow) * 0.5f}
+                engine::vec3f{terrainW, terrainH, -static_cast<float>(kCellsInRow) * 0.5f}, 
+                engine::vec3f{0.0f, 0.0f, static_cast<float>(kCellsInRow) * 0.5f}
             )
         );
 
@@ -242,12 +242,12 @@ namespace g_map {
                 tile.y = i;
                 
                 auto * tileNode = scene.createNode();
-                tileNode->setPosition({j * kVerticesInRow, i * kVerticesInRow, 0.0f});
+                tileNode->setPosition({j * kCellsInRow, i * kCellsInRow, 0.0f});
 
                 tileNode->setBounds(
                     engine::scene::Bounds::createCube(
-                        engine::vec3f{kVerticesInRow, kVerticesInRow, -static_cast<float>(kVerticesInRow) * 0.5f}, 
-                        engine::vec3f{0.0f, 0.0f, static_cast<float>(kVerticesInRow) * 0.5f}
+                        engine::vec3f{kCellsInRow, kCellsInRow, -static_cast<float>(kCellsInRow) * 0.5f}, 
+                        engine::vec3f{0.0f, 0.0f, static_cast<float>(kCellsInRow) * 0.5f}
                     )
                 );
 
@@ -279,6 +279,8 @@ namespace g_map {
         using namespace engine;
         using namespace engine::rhi;
 
+        _mapImageMaxSize = std::max(mapImageWidth, mapImageHeight);
+
         const BufferInfo vBufferInfo {
             BufferUsageFlags::eVertex_Buffer | BufferUsageFlags::eStorage_Buffer | BufferUsageFlags::eTransfer_Dst,
             MemoryPropertyFlags::eDeviceLocal
@@ -293,9 +295,6 @@ namespace g_map {
             BufferUsageFlags::eUniform_Texel_Buffer | BufferUsageFlags::eTransfer_Dst,
             MemoryPropertyFlags::eDeviceLocal
         };
-
-        // const size_t mapImageWidth = _width * kVerticesInRow;
-        // const size_t mapImageHeight = _height * kVerticesInRow;
 
         const ImageInfo normalsImageInfo{
             engine::rhi::ImageUsageFlags::eStorage | engine::rhi::ImageUsageFlags::eSampled,
@@ -433,40 +432,57 @@ namespace g_map {
         }
     }
 
-    void TerrainSceneDelegate::drawSame(engine::scene::AttachmentsIterator begin, engine::scene::AttachmentsIterator end, 
-        const engine::scene::Scene & scene, const engine::scene::ViewParams & viewParams, engine::scene::RenderPass pass, 
-        engine::rhi::runtime::CommandListPtr & commandList, uint8_t frame) {
-        // switch (pass) {
-        //     case engine::scene::RenderPass::eCommon:
-        //     {
-        //         const auto & gs = scene.getGraphicsService();
-        //         const auto * pipeline = _pipelines[std::to_underlying(PipelineId::eTilesDraw)];
-        //         // assert(pipeline != nullptr);
+    void TerrainSceneDelegate::drawSame(engine::scene::AttachmentsIterator begin, engine::scene::AttachmentsIterator end,
+        uint32_t instanceOffset, const engine::scene::Scene & scene, const engine::scene::ViewParams & viewParams,
+        engine::scene::RenderPass pass, engine::rhi::runtime::CommandListPtr & commandList, uint8_t frame) {
+        switch (pass) {
+            case engine::scene::RenderPass::eCommon:
+            {
+                struct Uniform {
+                    engine::mat4f model;
+                    uint32_t instanceOffset;
+                    uint32_t tileSize;
+                    uint32_t width;
+                };
 
-        //         // if (commandList->bindPipeline(*pipeline)) {
-        //             // commandList->pushConstants(
-        //             //     engine::rhi::shaders::Stages::eVertex | engine::rhi::shaders::Stages::eFragment, 
-        //             //     0u, 72u, &uniform
-        //             // );
-        //             // commandList->bindBuffer(0u, scene.getViewParamsUniformBuffer(frameId), 0u, sceneViewParamBufferOffset);
-        //         // }
+                const auto & gs = scene.getGraphicsService();
+                const auto * pipeline = _pipelines[std::to_underlying(PipelineId::eTilesDraw)];
+                assert(pipeline != nullptr);
 
-        //         // const auto & ib = geometry.getIndicesBuffer();
+                const auto objectsCount = static_cast<uint32_t>(end - begin);
+                const auto & object = *static_cast<const engine::scene::CustomSceneObject*>(*begin);
+                const auto & tile = static_cast<const TerrainTile2 &>(object.getImpl());
+                const auto & terrainNode = *object.node->parent;
 
-        //         // commandList->bindStorageImage(1u, geometry.getHeightsImage(), std::nullopt, 0u);
-        //         // commandList->bindImage(2u, geometry.getNormalsImage(), scene.getLinearSampler(), 0u);
-        //         // commandList->bindImage(3u, gs.getTextureManager().getDefaultImage(), scene.getNearestSampler(), 0u);
+                Uniform uniform{
+                    .model = terrainNode.getWorldTransform(),
+                    .instanceOffset = instanceOffset,
+                    .tileSize = static_cast<uint32_t>(_mapImageMaxSize) / static_cast<uint32_t>(tile.terrainRowWidth),
+                    .width = tile.terrainRowWidth,
+                };
 
-        //         // commandList->bindVertexBuffer(0u, geometry.getVerticesBuffer());
-        //         // commandList->bindIndexBuffer(ib, 0u, engine::rhi::IndexType::eU16);
-        //         // commandList->drawIndexed(ib->sizeInBytes() / sizeof(uint16_t));
-        //     }
-        //     break;
-        //     case engine::scene::RenderPass::eShadow:
-        //     break;
-        //     case engine::scene::RenderPass::eColorId:
-        //     break;
-        // }
+                if (commandList->bindPipeline(*pipeline)) {
+                    auto const sceneViewParamBufferOffset = scene.getCurrentViewParamsBufferOffset();
+                    commandList->bindBuffer(0u, scene.getViewParamsUniformBuffer(frame), 0u, sceneViewParamBufferOffset);
+                    commandList->bindTexelBuffer(1u, _tileIDs, engine::rhi::Format::eR16_Uint, 0u);
+                    commandList->bindImage(2u, gs.getTextureManager().getDefaultImage(), scene.getNearestSampler(), 0u);
+                }
+
+                commandList->pushConstants(
+                    engine::rhi::shaders::Stages::eVertex, 
+                    0u, 76u, &uniform
+                );
+
+                commandList->bindVertexBuffer(0u, _tileCommonVertices);
+                commandList->bindIndexBuffer(_tileCommonIndices, 0u, engine::rhi::IndexType::eU16);
+                commandList->drawIndexed(_tileCommonIndices->sizeInBytes() / sizeof(uint16_t), objectsCount);
+            }
+            break;
+            case engine::scene::RenderPass::eShadow:
+            break;
+            case engine::scene::RenderPass::eColorId:
+            break;
+        }
     }
 
     void TerrainSceneDelegate::draw(engine::scene::AttachmentsIterator begin, engine::scene::AttachmentsIterator end, 
@@ -478,6 +494,7 @@ namespace g_map {
         const auto & tile = static_cast<const TerrainTile2 &>(object.getImpl());
         auto imageId = tile.imageIndex;
         auto * parentNode = object.node->parent;
+        uint32_t instanceOffset = 0u;
 
         for (auto it = begin + 1; it != end; ++it) {
             const auto & object = *static_cast<const engine::scene::CustomSceneObject*>(*it);
@@ -486,14 +503,15 @@ namespace g_map {
             auto * currentParentNode = object.node->parent;
 
             if (imageId != currentImageId || parentNode != currentParentNode) {
-                drawSame(currentIt, it, scene, viewParams, pass, commandList, frame);
+                drawSame(currentIt, it, instanceOffset, scene, viewParams, pass, commandList, frame);
                 imageId = currentImageId;
                 parentNode = currentParentNode;
+                instanceOffset += static_cast<uint32_t>(it - currentIt);
                 currentIt = it;
             }
         }
 
-        drawSame(currentIt, end, scene, viewParams, pass, commandList, frame);
+        drawSame(currentIt, end, instanceOffset, scene, viewParams, pass, commandList, frame);
     }
 
 }
