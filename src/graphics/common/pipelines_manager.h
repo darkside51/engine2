@@ -8,24 +8,12 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <string>
 #include <string_view>
 
 namespace engine::graphics {
 
-    class RenderPassManager final {
-        using PassesMap = stl::unordered_map<std::string, uint32_t, hash::String_hash, std::equal_to<>>;
-        
-    public:
-
-    void destroy() noexcept {
-        _passes.clear();
-        _passesMap.clear();
-    }
-
-    private:
-        stl::vector<rhi::runtime::RenderPass> _passes;
-        PassesMap _passesMap;
-    };
+    class RenderPassManager;
 
     class ShaderModulesManager final {
         using ModulesMap = stl::unordered_map<std::string, rhi::runtime::ShaderModulePtr, hash::String_hash, std::equal_to<>>;
@@ -111,8 +99,8 @@ namespace engine::graphics {
             rhi::shaders::SpecializationInfo && specializationInfo = {}
         );
 
-        const rhi::runtime::GpuProgramPtr & getProgramByIndex(uint32_t idx) const noexcept;
-        const rhi::runtime::GpuProgramPtr & getProgramByName(std::string_view name) const noexcept;
+        const rhi::runtime::GpuProgramPtr & getProgram(uint32_t idx) const noexcept;
+        const rhi::runtime::GpuProgramPtr & getProgram(std::string_view name) const noexcept;
 
         ShaderModulesManager & getShaderModulesManager() noexcept {
             return _shaderModulesManager;

@@ -1,7 +1,6 @@
 #include "pipelines_manager.h"
+#include "render_pass_manager.h"
 #include "log/log.h"
-
-#include <string>
 
 namespace engine::graphics {
 
@@ -79,7 +78,7 @@ namespace engine::graphics {
             stl::span<const ShaderModuleDescriptor> moduleDescriptors,
             rhi::shaders::SpecializationInfo && specializationInfo
     ) {
-        if (auto & p = getProgramByName(programName); p != kNullProgram) {
+        if (auto & p = getProgram(programName); p != kNullProgram) {
             LOG_D("PipelinesManager::createProgram: program with name %s, already exists", programName.data());
             return p;
         }
@@ -88,14 +87,14 @@ namespace engine::graphics {
         return createProgram(moduleDescriptors, std::move(specializationInfo));
     }
 
-    const rhi::runtime::GpuProgramPtr & PipelinesManager::getProgramByIndex(uint32_t idx) const noexcept {
+    const rhi::runtime::GpuProgramPtr & PipelinesManager::getProgram(uint32_t idx) const noexcept {
         assert(_programs.size() >= idx);
         return _programs[idx];
     }
 
-    const rhi::runtime::GpuProgramPtr & PipelinesManager::getProgramByName(std::string_view name) const noexcept {
+    const rhi::runtime::GpuProgramPtr & PipelinesManager::getProgram(std::string_view name) const noexcept {
         if (auto it = _programsMap.find(name); it != _programsMap.end()) {
-            return getProgramByIndex(it->second);
+            return getProgram(it->second);
         }
 
         LOG_E("PipelinesManager::getProgramByName: no program with name %s", name.data());
@@ -112,16 +111,16 @@ namespace engine::graphics {
     }
 
     uint32_t PipelinesManager::createComputePipeline(uint32_t programIndex) {
-        return createComputePipeline(getProgramByIndex(programIndex));
+        return createComputePipeline(getProgram(programIndex));
     }
 
     uint32_t PipelinesManager::createGraphicsPipeline(uint32_t programIndex, rhi::runtime::RenderPass renderPass,
         const rhi::GraphicsPipelineStatesInfo & info, uint32_t subpass) {
-        return createGraphicsPipeline(getProgramByIndex(programIndex), renderPass, info, subpass);
+        return createGraphicsPipeline(getProgram(programIndex), renderPass, info, subpass);
     }
 
     uint32_t PipelinesManager::createComputePipeline(std::string_view programName) {
-        if (const auto & p = getProgramByName(programName); p != kNullProgram) {
+        if (const auto & p = getProgram(programName); p != kNullProgram) {
             return createComputePipeline(p);
         }
         return kNullPipelineID;
@@ -129,7 +128,7 @@ namespace engine::graphics {
 
     uint32_t PipelinesManager::createGraphicsPipeline(std::string_view programName, rhi::runtime::RenderPass renderPass,
         const rhi::GraphicsPipelineStatesInfo & info, uint32_t subpass) {
-        if (const auto & p = getProgramByName(programName); p != kNullProgram) {
+        if (const auto & p = getProgram(programName); p != kNullProgram) {
             return createGraphicsPipeline(p, renderPass, info, subpass);
         }
         return kNullPipelineID;
