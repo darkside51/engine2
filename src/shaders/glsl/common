@@ -41,23 +41,24 @@ mat2 buildRotationMatrix(vec2 from, vec2 to) {
 
 mat3 buildRotationMatrix(vec3 from, vec3 to) {
 	const vec3 v = cross(to, from);
-    const float c = dot(to, from);
+   const float c = dot(to, from);
 
-    const float k = 1.0f / (1.0f + c);
-    return mat3(
-	    v.x * v.x * k + c, 		v.y * v.x * k - v.z, 	v.z * v.x * k + v.y,
-        v.x * v.y * k + v.z, 	v.y * v.y * k + c, 		v.z * v.y * k - v.x,
-        v.x * v.z * k - v.y, 	v.y * v.z * k + v.x, 	v.z * v.z * k + c
-    );
+   const float k = 1.0f / (1.0f + c);
+   return mat3(
+	   v.x * v.x * k + c, 		v.y * v.x * k - v.z, 	v.z * v.x * k + v.y,
+      v.x * v.y * k + v.z, 	v.y * v.y * k + c, 		v.z * v.y * k - v.x,
+      v.x * v.z * k - v.y, 	v.y * v.z * k + v.x, 	v.z * v.z * k + c
+   );
 }
 
 vec3 normalZFromXY(vec2 packedNormal) { // packedNormal coords in [0.0f, 1.0f]
-    // translate to [-1.0f, 1.0f]
-    const vec2 xy = packedNormal * 2.0f - 1.0f;
+   // translate to [-1.0f, 1.0f]
+   const vec2 xy = packedNormal * 2.0f - 1.0f;
     
-    const float dotXY = clamp(dot(xy, xy), 0.0f, 1.0f);
-    const float z = sqrt(1.0f - dotXY);
-    return vec3(xy, z);
+   const float dotXY = clamp(dot(xy, xy), 0.0f, 1.0f);
+   const float invZ = inversesqrt(1.0f - dotXY + 0.00001f); // 0.00001f - fix for null division
+	const float z = (1.0f - dotXY) * invZ; // optimal way with invers sqrt
+   return vec3(xy, z);
 }
 
 #endif
