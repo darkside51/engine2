@@ -74,10 +74,10 @@
 namespace example {
     constexpr uint8_t kDepthFormatTargetBits = 32u;
 
-    constexpr uint8_t kScreenRenderPass = 0u;
-    constexpr uint8_t kSceneRenderPass = 1u;
-    constexpr uint8_t kGbufferRenderPass = 2u;
-    constexpr uint8_t kBlurRenderPass = 3u;
+    uint8_t gScreenRenderPass = 0u;
+    uint8_t gSceneRenderPass = 0u;
+    uint8_t gGbufferRenderPass = 0u;
+    uint8_t gBlurRenderPass = 0u;
 
     constexpr uint8_t kImguiProgram = 0u;
     constexpr uint8_t kPostEffectProgram = 1u;
@@ -1123,7 +1123,6 @@ namespace example {
         _pipelines.clear();
         _programs.clear();
         _mainFrameBuffers.clear();
-        _renderPasses.clear();
         _depthImages.clear();
         _swapchain = nullptr;
     }
@@ -1213,6 +1212,14 @@ namespace example {
         const bool isSupportShaderIndexLayer = _device->isExtensionSupported(VK_EXT_SHADER_VIEWPORT_INDEX_LAYER_EXTENSION_NAME);
 
         backgroundgWorker.emplace(_api.get(), _device.get());
+
+        renderPassManager.emplace(*_api, *_device);
+        pipelinesManager.emplace(*_api, *_device);
+        modelManager.emplace(materialManager);
+        textureManager.emplace(*_api, *_device);
+        graphicsService.emplace(*_api, *_device, 
+            *renderPassManager, *pipelinesManager, 
+            *textureManager, materialManager, *modelManager);
     }
 
     void Example::createSwapchain() {
@@ -1263,26 +1270,28 @@ namespace example {
             _colorAttachmentImages.emplace_back(std::move(_api->createImage(*_device, colorImageInfo)));
         }
 
-        _sceneFrameBuffers.clear();
-        _sceneFrameBuffers.reserve(framesCount);
-        for (uint32_t i = 0u; i < framesCount; ++i) {
-            engine::stl::vector<engine::rhi::FrameBufferAttachment> fbAttachemnts{2u};
+        // _sceneFrameBuffers.clear();
+        // _sceneFrameBuffers.reserve(framesCount);
+        // auto && sceneRenderPass = graphicsService->getRenderPassManager().getRenderPass(gSceneRenderPass);
+        // for (uint32_t i = 0u; i < framesCount; ++i) {
+        //     engine::stl::vector<engine::rhi::FrameBufferAttachment> fbAttachemnts{2u};
 
-            auto & colorImage = _colorAttachmentImages[i];
-            fbAttachemnts[0u].image = colorImage.get();
-            fbAttachemnts[0u].imageSize = {colorImage->getExtent().width, colorImage->getExtent().height};
-            fbAttachemnts[0u].aspect = engine::rhi::ImageAspectFlags::eColor;  // can get it from colorImage?
+        //     auto & colorImage = _colorAttachmentImages[i];
+        //     fbAttachemnts[0u].image = colorImage.get();
+        //     fbAttachemnts[0u].imageSize = {colorImage->getExtent().width, colorImage->getExtent().height};
+        //     fbAttachemnts[0u].aspect = engine::rhi::ImageAspectFlags::eColor;  // can get it from colorImage?
 
-            auto & depthImage = _depthImages[i];
-            fbAttachemnts[1u].image = depthImage.get();
-            fbAttachemnts[1u].imageSize = {depthImage->getExtent().width, depthImage->getExtent().height};
-            fbAttachemnts[1u].aspect = engine::rhi::ImageAspectFlags::eDepth;  // can get it from depthImage?
+        //     auto & depthImage = _depthImages[i];
+        //     fbAttachemnts[1u].image = depthImage.get();
+        //     fbAttachemnts[1u].imageSize = {depthImage->getExtent().width, depthImage->getExtent().height};
+        //     fbAttachemnts[1u].aspect = engine::rhi::ImageAspectFlags::eDepth;  // can get it from depthImage?
 
-            _sceneFrameBuffers.emplace_back(_api->createFrameBuffer(*_device, std::move(fbAttachemnts), _renderPasses[kSceneRenderPass]));
-        }
+        //     _sceneFrameBuffers.emplace_back(_api->createFrameBuffer(*_device, std::move(fbAttachemnts), sceneRenderPass));
+        // }
 
         _mainFrameBuffers.clear();
         _mainFrameBuffers.reserve(swapchainImagesCount);
+        auto && screenRenderPass = graphicsService->getRenderPassManager().getRenderPass(gScreenRenderPass);
         for (uint32_t i = 0u; i < swapchainImagesCount; ++i) {
             auto & image = _swapchain->getImage(i);
 
@@ -1290,7 +1299,7 @@ namespace example {
             fbAttachemnts[0u].image = &image;
             fbAttachemnts[0u].imageSize = {image.getExtent().width, image.getExtent().height};
 
-            _mainFrameBuffers.emplace_back(_api->createFrameBuffer(*_device, std::move(fbAttachemnts), _renderPasses[kScreenRenderPass]));
+            _mainFrameBuffers.emplace_back(_api->createFrameBuffer(*_device, std::move(fbAttachemnts), screenRenderPass));
         }
 
         // ssao:
@@ -1349,6 +1358,7 @@ namespace example {
         _gBuffers.clear();
         _gBuffers.reserve(framesCount);
 
+        auto && gbufferRenderPass = graphicsService->getRenderPassManager().getRenderPass(gGbufferRenderPass);
         for (uint32_t i = 0u; i < framesCount; ++i) {
             {
                 engine::stl::vector<engine::rhi::FrameBufferAttachment> fbAttachemnts{6u};
@@ -1383,19 +1393,20 @@ namespace example {
                 fbAttachemnts[5u].imageSize = {depthImage->getExtent().width, depthImage->getExtent().height};
                 fbAttachemnts[5u].aspect = engine::rhi::ImageAspectFlags::eDepth;
 
-                _gBuffers.emplace_back(_api->createFrameBuffer(*_device, std::move(fbAttachemnts), _renderPasses[kGbufferRenderPass]));
+                _gBuffers.emplace_back(_api->createFrameBuffer(*_device, std::move(fbAttachemnts), gbufferRenderPass));
             }
         }
 
         _emissiveBluredBuffers.clear();
         _emissiveBluredBuffers.reserve(framesCount * 2u);
+        auto && blurRenderPass = graphicsService->getRenderPassManager().getRenderPass(gBlurRenderPass);
         for (uint32_t i = 0u; i < framesCount; ++i) {
             engine::stl::vector<engine::rhi::FrameBufferAttachment> fbAttachemnts{1u};
             auto & image = _gBufferAttachments[i].emissive;
             fbAttachemnts[0u].image = image.get();
             fbAttachemnts[0u].imageSize = {image->getExtent().width, image->getExtent().height};
 
-            _emissiveBluredBuffers.emplace_back(_api->createFrameBuffer(*_device, std::move(fbAttachemnts), _renderPasses[kBlurRenderPass]));
+            _emissiveBluredBuffers.emplace_back(_api->createFrameBuffer(*_device, std::move(fbAttachemnts), blurRenderPass));
         }
 
         for (uint32_t i = 0u; i < framesCount; ++i) {
@@ -1404,7 +1415,7 @@ namespace example {
             fbAttachemnts[0u].image = image.get();
             fbAttachemnts[0u].imageSize = {image->getExtent().width, image->getExtent().height};
 
-            _emissiveBluredBuffers.emplace_back(_api->createFrameBuffer(*_device, std::move(fbAttachemnts), _renderPasses[kBlurRenderPass]));
+            _emissiveBluredBuffers.emplace_back(_api->createFrameBuffer(*_device, std::move(fbAttachemnts), blurRenderPass));
         }
 
         // texture viewer images set
@@ -1452,8 +1463,8 @@ namespace example {
         const auto formats0 = engine::stl::array{engine::rhi::Format::eB8G8R8A8_Unorm};
         const auto formats1 = engine::stl::array{engine::rhi::Format::eR8G8B8A8_Unorm, depthFormat};
 
-        _renderPasses.emplace_back(_api->getRenderPass(*_device, engine::parseRenderPass(json["screen"], formats0))); // kScreenPass
-        _renderPasses.emplace_back(_api->getRenderPass(*_device, engine::parseRenderPass(json["scene"], formats1))); // kScenePass
+        gScreenRenderPass = graphicsService->getRenderPassManager().registerRenderPass(engine::parseRenderPass(json["screen"], formats0));
+        gSceneRenderPass = graphicsService->getRenderPassManager().registerRenderPass(engine::parseRenderPass(json["scene"], formats1));
 
         { // gbuffer
             const auto formatsGBuffer = engine::stl::array {
@@ -1465,12 +1476,12 @@ namespace example {
                 depthFormat
             };
 
-            _renderPasses.emplace_back(_api->getRenderPass(*_device, engine::parseRenderPass(json["gBuffer"], formatsGBuffer))); // kGbufferRenderPass
+            gGbufferRenderPass = graphicsService->getRenderPassManager().registerRenderPass(engine::parseRenderPass(json["gBuffer"], formatsGBuffer));
         }
 
         { // blur
             const auto formatsEmissiveBlur = engine::stl::array{engine::rhi::Format::eR8G8B8A8_Unorm};
-            _renderPasses.emplace_back(_api->getRenderPass(*_device, engine::parseRenderPass(json["blur"], formatsEmissiveBlur))); // kBlurRenderPass
+            gBlurRenderPass = graphicsService->getRenderPassManager().registerRenderPass(engine::parseRenderPass(json["blur"], formatsEmissiveBlur));
         }
 
         // ssao
@@ -1694,21 +1705,19 @@ namespace example {
         using namespace engine::rhi;
 
         //
-        renderPassManager.emplace(*_api, *_device);
-        pipelinesManager.emplace(*_api, *_device);
-        modelManager.emplace(materialManager);
-        textureManager.emplace(*_api, *_device);
-        graphicsService.emplace(*_api, *_device, 
-            *renderPassManager, *pipelinesManager, 
-            *textureManager, materialManager, *modelManager);
+        
         scene.emplace(*graphicsService, drawHelper, animationManager);
         //
 
+        auto && screenRenderPass = graphicsService->getRenderPassManager().getRenderPass(gScreenRenderPass);
+        auto && gbufferRenderPass = graphicsService->getRenderPassManager().getRenderPass(gGbufferRenderPass);
+        auto && blurRenderPass = graphicsService->getRenderPassManager().getRenderPass(gBlurRenderPass);
+
         loadShaders();
-        _imgui.createPipeline(*_api, *_device, _programs[kImguiProgram], _renderPasses[kScreenRenderPass], 0u);
+        _imgui.createPipeline(*_api, *_device, _programs[kImguiProgram], screenRenderPass, 0u);
         drawHelper.createPipelines(
             *_api, *_device, 
-            _programs[kDebugProgram], _renderPasses[kGbufferRenderPass], 
+            _programs[kDebugProgram], gbufferRenderPass, 
             5u, // attachmentsCount 
             2u, // colorAttachmentIdx
             0u, true);
@@ -1720,33 +1729,33 @@ namespace example {
 
         // kPostEffectPipeline
         const GraphicsPipelineStatesInfo info0 = engine::parseGraphicsPipelineInfo(json["postEffect"]);
-        _pipelines.emplace_back(_api->createGraphicsPipeline(*_device, _renderPasses[kScreenRenderPass], _programs[kPostEffectProgram], info0, 0u));
+        _pipelines.emplace_back(_api->createGraphicsPipeline(*_device, screenRenderPass, _programs[kPostEffectProgram], info0, 0u));
 
         // kSsaoPipeline
         _pipelines.emplace_back(_api->createGraphicsPipeline(*_device, ssao.getRenderPass(), _programs[kSsaoProgram], info0, 0u));
 
         // kEmissiveBlurPipeline
-        _pipelines.emplace_back(_api->createGraphicsPipeline(*_device, _renderPasses[kBlurRenderPass], _programs[kEmissiveBlurProgram], info0, 0u));
+        _pipelines.emplace_back(_api->createGraphicsPipeline(*_device, blurRenderPass, _programs[kEmissiveBlurProgram], info0, 0u));
 
         // kMapBuildingsPipeline
         const GraphicsPipelineStatesInfo info9 = engine::parseGraphicsPipelineInfo(json["map_buildings"]);
-        g_mapGeometryCommonPipeline = _pipelines.emplace_back(_api->createGraphicsPipeline(*_device, _renderPasses[kGbufferRenderPass], _programs[kMapBuildingsProgram], info9, 0u)).get();
+        g_mapGeometryCommonPipeline = _pipelines.emplace_back(_api->createGraphicsPipeline(*_device, gbufferRenderPass, _programs[kMapBuildingsProgram], info9, 0u)).get();
         // kMapAreaPipeline
         const GraphicsPipelineStatesInfo info10 = engine::parseGraphicsPipelineInfo(json["map_area"]);
-        g_mapGeometryCommonAreaPipeline = _pipelines.emplace_back(_api->createGraphicsPipeline(*_device, _renderPasses[kGbufferRenderPass], _programs[kMapPolygonsProgram], info10, 0u)).get();
+        g_mapGeometryCommonAreaPipeline = _pipelines.emplace_back(_api->createGraphicsPipeline(*_device, gbufferRenderPass, _programs[kMapPolygonsProgram], info10, 0u)).get();
         
         // scene pipelines
         const GraphicsPipelineStatesInfo info2 = engine::parseGraphicsPipelineInfo(json["sprite_common"]);
-        pipelinesManager->registerGraphicsPipeline(_api->createGraphicsPipeline(*_device, _renderPasses[kGbufferRenderPass], _programs[kSpritesProgram], info2, 0u));
+        pipelinesManager->registerGraphicsPipeline(_api->createGraphicsPipeline(*_device, gbufferRenderPass, _programs[kSpritesProgram], info2, 0u));
         
         // skeletal mesh
         // const GraphicsPipelineStatesInfo info4 = engine::parseGraphicsPipelineInfo(json["mesh_skeletal"]);
-        // pipelinesManager->registerGraphicsPipeline(_api->createGraphicsPipeline(*_device, _renderPasses[kSceneRenderPass], _programs[kMeshSkeletalInstancedProgram], info4, 0u));
+        // pipelinesManager->registerGraphicsPipeline(_api->createGraphicsPipeline(*_device, gbufferRenderPass, _programs[kMeshSkeletalInstancedProgram], info4, 0u));
         
         // mesh
         const GraphicsPipelineStatesInfo info5 = engine::parseGraphicsPipelineInfo(json["mesh"]);
-        pipelinesManager->registerGraphicsPipeline(_api->createGraphicsPipeline(*_device, _renderPasses[kGbufferRenderPass], _programs[kMeshInstancedProgram], info5, 0u));
-        pipelinesManager->registerGraphicsPipeline(_api->createGraphicsPipeline(*_device, _renderPasses[kGbufferRenderPass], _programs[kMeshInstancedProgramNoPbr], info5, 0u));
+        pipelinesManager->registerGraphicsPipeline(_api->createGraphicsPipeline(*_device, gbufferRenderPass, _programs[kMeshInstancedProgram], info5, 0u));
+        pipelinesManager->registerGraphicsPipeline(_api->createGraphicsPipeline(*_device, gbufferRenderPass, _programs[kMeshInstancedProgramNoPbr], info5, 0u));
 
         // compute
         // const uint32_t meshSkinComputePipeline = pipelinesManager->registerComputePipeline(_api->createComputePipeline(*_device, _programs[kComputeProgram]));
@@ -1768,8 +1777,8 @@ namespace example {
         }
 
         const GraphicsPipelineStatesInfo info6 = engine::parseGraphicsPipelineInfo(json["mesh_skeletal_computed"]);
-        pipelinesManager->registerGraphicsPipeline(_api->createGraphicsPipeline(*_device, _renderPasses[kGbufferRenderPass], _programs[kMeshAfterComputeProgram], info6, 0u));
-        pipelinesManager->registerGraphicsPipeline(_api->createGraphicsPipeline(*_device, _renderPasses[kGbufferRenderPass], _programs[kMeshAfterComputeProgramNoPbr], info6, 0u));
+        pipelinesManager->registerGraphicsPipeline(_api->createGraphicsPipeline(*_device, gbufferRenderPass, _programs[kMeshAfterComputeProgram], info6, 0u));
+        pipelinesManager->registerGraphicsPipeline(_api->createGraphicsPipeline(*_device, gbufferRenderPass, _programs[kMeshAfterComputeProgramNoPbr], info6, 0u));
 
         // shadow
         shadowMap = std::make_unique<engine::graphics::CascadeShadowMap>(*_api, *_device, 2048u, 2u, 16u, kNearFarPlane.x, kNearFarPlane.y);
@@ -1806,7 +1815,7 @@ namespace example {
         scene->assignCommonPipeline(meshSkinShadowPipeline, engine::scene::Scene::CommonPipeline::Type::eMeshSkinnedShadow);
 
         // sprite2
-        pipelinesManager->registerGraphicsPipeline(_api->createGraphicsPipeline(*_device, _renderPasses[kGbufferRenderPass], _programs[kSpritesProgram2], info2, 0u));
+        pipelinesManager->registerGraphicsPipeline(_api->createGraphicsPipeline(*_device, gbufferRenderPass, _programs[kSpritesProgram2], info2, 0u));
 
         // kMapBuildingsShadowsPipeline
         const GraphicsPipelineStatesInfo info11 = engine::parseGraphicsPipelineInfo(json["map_buildings_shadows"]);
@@ -1822,7 +1831,7 @@ namespace example {
 
         // kTerrainTilePipeline
         const GraphicsPipelineStatesInfo info14 = engine::parseGraphicsPipelineInfo(json["terrain_tile"]);
-        _pipelines.emplace_back(_api->createGraphicsPipeline(*_device, _renderPasses[kGbufferRenderPass], _programs[kTerrainTileProgram], info14, 0u));
+        _pipelines.emplace_back(_api->createGraphicsPipeline(*_device, gbufferRenderPass, _programs[kTerrainTileProgram], info14, 0u));
         _pipelines.emplace_back(_api->createComputePipeline(*_device, _programs[kTerrainTileComputeProgram]));
         _pipelines.emplace_back(_api->createComputePipeline(*_device, _programs[kTerrainTileComputeNormalsProgram]));
 
@@ -2942,8 +2951,12 @@ namespace example {
         commandList->setViewport(0.0f, 0.0f, width, height);
         commandList->setScissor({{0, 0}, {width, height}});
 
+        auto && screenRenderPass = graphicsService->getRenderPassManager().getRenderPass(gScreenRenderPass);
+        auto && gbufferRenderPass = graphicsService->getRenderPassManager().getRenderPass(gGbufferRenderPass);
+        auto && blurRenderPass = graphicsService->getRenderPassManager().getRenderPass(gBlurRenderPass);
+
         // scene pass
-        commandList->beginRenderPass(_renderPasses[kGbufferRenderPass], _gBuffers[frameId], gBufferClearValues, {{0, 0}, {width, height}});
+        commandList->beginRenderPass(gbufferRenderPass, _gBuffers[frameId], gBufferClearValues, {{0, 0}, {width, height}});
         // scene->dispatch(commandList, frameId, objects, offsets);
         // sceneViewParamBufferOffset = scene->getCurrentViewParamsBufferOffset();
         scene->draw(engine::scene::RenderPass::eCommon, commandList, transferCommandList, frameId, viewParams, objects, offsets1);
@@ -3029,7 +3042,7 @@ namespace example {
             const auto imagesCount = _gBufferAttachments.size();
             for (uint8_t i = 0u; i < 2u * emissiveBlurSteps; ++i) { // ping - pong
                 blurUniform.z = horizontal ? 1.0f : 0.0f;
-                commandList->beginRenderPass(_renderPasses[kBlurRenderPass], _emissiveBluredBuffers[frameId + (horizontal ? imagesCount : 0u)], clearValues, {{0, 0}, {width, height}});
+                commandList->beginRenderPass(blurRenderPass, _emissiveBluredBuffers[frameId + (horizontal ? imagesCount : 0u)], clearValues, {{0, 0}, {width, height}});
 
                 commandList->bindPipeline(_pipelines[kEmissiveBlurPipeline]);
                 commandList->bindVertexBuffer(0u, _postPositions);
@@ -3059,7 +3072,7 @@ namespace example {
 
         // final pass
         // engine::stl::array images2Shaders{rhi::runtime::ImageTransitionInfo{_colorAttachmentImages[imageIndex].get()}};
-        commandList->beginRenderPass(_renderPasses[kScreenRenderPass], _mainFrameBuffers[imageIndex], clearValues, {{0, 0}, {width, height}});
+        commandList->beginRenderPass(screenRenderPass, _mainFrameBuffers[imageIndex], clearValues, {{0, 0}, {width, height}});
 
         // draw with postEffect
         struct PostParams {

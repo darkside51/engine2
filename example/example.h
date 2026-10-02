@@ -70,7 +70,6 @@ private:
     engine::stl::vector<engine::rhi::runtime::ImagePtr> _colorAttachmentImages;
     engine::stl::vector<engine::rhi::runtime::ImagePtr> _depthImages;
 
-    engine::stl::vector<engine::rhi::runtime::RenderPass> _renderPasses;
     engine::stl::vector<engine::rhi::runtime::FrameBufferPtr> _mainFrameBuffers;
     engine::stl::vector<engine::rhi::runtime::FrameBufferPtr> _sceneFrameBuffers;
 
