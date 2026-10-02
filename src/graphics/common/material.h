@@ -57,7 +57,7 @@ class MaterialManager {
     using Materials = stl::vector<Material*>;
 
 public:
-    void destroy();
+    void destroy() noexcept;
     stl::vector<uint32_t> prepareMaterials(std::string_view name, const models::Layout & layout, 
         TextureManager & textureManager, stl::vector<MaterialTextureLoadingData> & texturesToLoad);
 

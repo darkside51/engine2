@@ -13,8 +13,6 @@
 
 namespace engine::graphics {
 
-    class RenderPassManager;
-
     class ShaderModulesManager final {
         using ModulesMap = stl::unordered_map<std::string, rhi::runtime::ShaderModulePtr, hash::String_hash, std::equal_to<>>;
 

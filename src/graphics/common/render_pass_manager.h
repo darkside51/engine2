@@ -30,10 +30,10 @@ namespace engine::graphics {
         rhi::runtime::RenderPass getRenderPass(uint32_t idx) const noexcept;
         rhi::runtime::RenderPass getRenderPass(std::string_view name) const noexcept;
 
-    void destroy() noexcept {
-        _passes.clear();
-        _passesMap.clear();
-    }
+        void destroy() noexcept {
+            _passes.clear();
+            _passesMap.clear();
+        }
 
     private:
         rhi::runtime::Rhi & _api;

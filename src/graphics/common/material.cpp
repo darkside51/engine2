@@ -9,7 +9,7 @@
 
 namespace engine::graphics {
 
-    void MaterialManager::destroy() {
+    void MaterialManager::destroy() noexcept {
         for (auto * data : _materials) {
             if (data) {
                 _allocator.destroy(data);

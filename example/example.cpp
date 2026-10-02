@@ -15,6 +15,7 @@
 
 #include "engine/src/graphics/scene/camera_controller.h"
 
+#include "engine/src/graphics/common/render_pass_manager.h"
 #include "engine/src/graphics/common/pipelines_manager.h"
 #include "engine/src/graphics/texture/texture_data_loader.h"
 #include "engine/src/graphics/texture/texture_manager.h"
@@ -125,6 +126,7 @@ namespace example {
     engine::FileManager fileManager;
     engine::graphics::MaterialManager materialManager;
     engine::scene::AnimationManager animationManager;
+    std::optional<engine::graphics::RenderPassManager> renderPassManager;
     std::optional<engine::graphics::PipelinesManager> pipelinesManager;
     std::optional<engine::graphics::ModelManager> modelManager;
     std::optional<engine::graphics::TextureManager> textureManager;
@@ -1100,11 +1102,6 @@ namespace example {
         _imgui.destroy();
         drawHelper.destroy();
         
-        animationManager.destroy();
-        modelManager->destroy();
-        materialManager.destroy();
-        textureManager->destroy();
-
         ssao.destroy();
 
         shadowMapUniformBuffer = nullptr;
@@ -1121,7 +1118,8 @@ namespace example {
 
         terrainTile.destroy();
         
-        pipelinesManager->destroy();
+        graphicsService->destroy();
+
         _pipelines.clear();
         _programs.clear();
         _mainFrameBuffers.clear();
@@ -1696,10 +1694,13 @@ namespace example {
         using namespace engine::rhi;
 
         //
+        renderPassManager.emplace(*_api, *_device);
         pipelinesManager.emplace(*_api, *_device);
         modelManager.emplace(materialManager);
         textureManager.emplace(*_api, *_device);
-        graphicsService.emplace(*_api, *_device, *pipelinesManager, *textureManager, *modelManager, materialManager);
+        graphicsService.emplace(*_api, *_device, 
+            *renderPassManager, *pipelinesManager, 
+            *textureManager, materialManager, *modelManager);
         scene.emplace(*graphicsService, drawHelper, animationManager);
         //
 

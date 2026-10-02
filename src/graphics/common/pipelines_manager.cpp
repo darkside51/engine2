@@ -1,5 +1,4 @@
 #include "pipelines_manager.h"
-#include "render_pass_manager.h"
 #include "log/log.h"
 
 namespace engine::graphics {

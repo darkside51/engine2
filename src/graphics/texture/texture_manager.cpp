@@ -12,7 +12,7 @@ namespace engine::graphics {
 
     TextureManager::TextureManager(rhi::runtime::Rhi & api, rhi::runtime::Device & device) : _api(api), _device(device) {}
 
-    void TextureManager::destroy() {
+    void TextureManager::destroy() noexcept {
         _imagesSet.clear();
         _frames2D.clear();
         _images.clear();

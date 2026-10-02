@@ -16,7 +16,7 @@ namespace engine::graphics {
         _tmpData.reserve(1024u);
     }
 
-    void ModelManager::destroy() {
+    void ModelManager::destroy() noexcept {
         for (auto & [data, _] : _models) {
             _allocator.destroy(data);
         }

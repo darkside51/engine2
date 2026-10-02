@@ -57,7 +57,7 @@ public:
 
     ModelManager(MaterialManager & materialManager);
     ~ModelManager() { destroy(); }
-    void destroy();
+    void destroy() noexcept;
 
     stl::pair<uint32_t, bool> addModel(std::string_view name, models::Layout && layout, 
         GraphicsService & graphicsService, const FileManager & fileManager,

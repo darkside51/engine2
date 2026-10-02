@@ -63,7 +63,7 @@ public:
     TextureManager(rhi::runtime::Rhi & api, rhi::runtime::Device & device);
     ~TextureManager() { destroy(); }
     void createDefaultResources(const rhi::runtime::CommandListPtr & commandList);
-    void destroy();
+    void destroy() noexcept;
 
     const ImageFrame2D & addFrame(std::string_view name, TextureCreateInfo && info, const Frame2D & frame = {});
     const ImageFrame2D & addFrame(std::string_view name, const rhi::runtime::ImagePtr & image, const Frame2D & frame = {});
