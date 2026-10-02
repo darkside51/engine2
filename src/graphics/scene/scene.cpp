@@ -370,6 +370,7 @@ namespace engine::scene {
             // _computedVertices    - data vec4 - r32g32b32a32 as texelbuffer
             // _computedNormals     - data vec4 - r8g8b8a8 as texelbuffer
             // _computedTangents    - data vec4 - r8g8b8a8 as texelbuffer
+            // todo: store normals and tangents in r8g8b8a8 data for xy components and get z into shader?
 
             for (uint8_t i = 0u; i < buffersCount; ++i) {
                 _computedVertices.emplace_back(api.createBuffer(device, computeVerticesInfo, kMeshComputeVerticesBufferBytesCount));
