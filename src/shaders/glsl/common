@@ -51,4 +51,13 @@ mat3 buildRotationMatrix(vec3 from, vec3 to) {
     );
 }
 
+vec3 normalZFromXY(vec2 packedNormal) { // packedNormal coords in [0.0f, 1.0f]
+    // translate to [-1.0f, 1.0f]
+    const vec2 xy = packedNormal * 2.0f - 1.0f;
+    
+    const float dotXY = clamp(dot(xy, xy), 0.0f, 1.0f);
+    const float z = sqrt(1.0f - dotXY);
+    return vec3(xy, z);
+}
+
 #endif
