@@ -61,4 +61,14 @@ struct TextureLoadInfo {
 TextureCreateInfo parseTextureData(stl::span<const std::byte> bytes, const TextureLoadInfo & info = {});
 TextureMetaInfo parseTextureMetaInfoOnly(stl::span<const std::byte> bytes, const TextureLoadInfo & info = {});
 bool convertTextureDataFormat(rhi::Format format, TextureCreateInfo & info);
+
+enum class ImageByteEncoder : uint8_t {
+    eJpg = 0u,
+    ePng = 1u,
+    eWebp = 2u,
+    // ...
+    eCount
+};
+
+std::vector<uint8_t> encodeBytes(stl::span<std::byte> bytes, rhi::Format format, ImageByteEncoder encoder, uint16_t w, uint16_t h);
 }

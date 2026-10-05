@@ -629,4 +629,41 @@ namespace sail_format {
             default: return false;
         }
     }
+
+    std::vector<uint8_t> encodeBytes(stl::span<std::byte> bytes, rhi::Format format, ImageByteEncoder encoder, uint16_t w, uint16_t h) {
+        TextureLoaderType type = TextureLoaderType::eSail; // todo: get from format
+        if (type == TextureLoaderType::eSail) {
+            const auto sailFormat = sail_format::convert(format, false);
+            sail::image image{bytes.data(), sailFormat, w, h};
+            sail::codec_info codec;
+            switch (encoder) {
+            case ImageByteEncoder::eJpg:
+                codec = sail::codec_info::from_extension("jpg");
+            break;
+            case ImageByteEncoder::ePng:
+                codec = sail::codec_info::from_extension("png");
+            break;
+            case ImageByteEncoder::eWebp:
+                codec = sail::codec_info::from_extension("webp");
+            break;
+            default:
+                return {};
+            }
+            
+            auto dynamic_data = sail::arbitrary_data(bytes.size());
+            sail::image_output output(&dynamic_data, codec);
+
+            if (output.next_frame(image) != SAIL_OK) {
+                return {};
+            }
+
+            if (output.finish() != SAIL_OK) {
+                return {};
+            }
+
+            return dynamic_data;
+        }
+
+        return {};
+    }
 }
