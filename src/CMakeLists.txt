@@ -209,6 +209,8 @@ target_compile_options(${PROJECT_NAME} PRIVATE -fno-exceptions)
 target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/)
 
 if (VULKAN_AVAILABLE) #### vulkan lib
+	#find_package(Vulkan REQUIRED)
+
 	if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
 		set(
 			USED_FRAMEWORKS
@@ -218,6 +220,7 @@ if (VULKAN_AVAILABLE) #### vulkan lib
 	elseif (CMAKE_SYSTEM_NAME STREQUAL "Linux")
 		set(
 			USED_FRAMEWORKS
+			#Vulkan::Vulkan
 			general $ENV{VULKAN_SDK}/lib/libvulkan.so
 		)
 		target_include_directories(${PROJECT_NAME} PUBLIC $ENV{VULKAN_SDK}/include)
@@ -242,6 +245,9 @@ message("meshoptimizer library end")
 
 # ktx
 message("ktx library begin")
+set(KTX_FEATURE_TOOLS OFF CACHE BOOL "Build KTX tools" FORCE)
+set(KTX_FEATURE_TESTS OFF CACHE BOOL "Build KTX tests" FORCE)
+set(KTX_FEATURE_STATIC_LIBRARY ON CACHE BOOL "Build KTX static library" FORCE)
 add_3rdparty_project (${CMAKE_CURRENT_SOURCE_DIR}/../3rd_party/KTX-Software ${CMAKE_BINARY_DIR}/3rd_party/KTX-Software)
 target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../3rd_party/KTX-Software/include)
 target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../3rd_party/KTX-Software/lib)

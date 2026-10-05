@@ -49,9 +49,6 @@ option( KTX_FEATURE_ETC_UNPACK "ETC decoding support." ON )
 if(KTX_FEATURE_TOOLS_CTS AND NOT KTX_FEATURE_TOOLS)
     message(WARNING "KTX_FEATURE_TOOLS is not set -> disabling KTX_FEATURE_TOOLS_CTS.")
     set(KTX_FEATURE_TOOLS_CTS "OFF")
-elseif(KTX_FEATURE_TOOLS_CTS AND NOT KTX_FEATURE_TESTS)
-    message(WARNING "KTX_FEATURE_TESTS is not set -> disabling KTX_FEATURE_TOOLS_CTS.")
-    set(KTX_FEATURE_TOOLS_CTS "OFF")
 endif()
 
 if(POLICY CMP0127)
@@ -261,6 +258,14 @@ if(KTX_GENERATE_VK_FILES)
 endif()
 
 # EMSCRIPTEN is not set until project so all these must be after.
+if(KTX_FEATURE_TESTS AND (APPLE_LOCKED_OS OR ANDROID OR EMSCRIPTEN))
+    message(WARNING "Building unit tests for Android, Apple locked OSes or the web is not supported -> disabling KTX_FEATURE_TESTS.")
+    set(KTX_FEATURE_TESTS "OFF")
+endif()
+if(KTX_FEATURE_TOOLS_CTS AND NOT KTX_FEATURE_TESTS)
+    message(WARNING "KTX_FEATURE_TESTS is not set -> disabling KTX_FEATURE_TOOLS_CTS.")
+    set(KTX_FEATURE_TOOLS_CTS "OFF")
+endif()
 if(APPLE_LOCKED_OS OR EMSCRIPTEN)
     set( LIB_TYPE_DEFAULT OFF )
 else()
@@ -372,6 +377,7 @@ set(KTX_BUILD_DIR "${CMAKE_BINARY_DIR}")
 set(KTX_MAIN_SRC
     include/KHR/khr_df.h
     include/ktx.h
+    lib/astc_codec.cpp
     lib/basis_sgd.h
     lib/basis_transcode.cpp
     lib/miniz_wrapper.cpp
@@ -400,6 +406,7 @@ set(KTX_MAIN_SRC
     lib/filestream.h
     lib/formatsize.h
     lib/gl_format.h
+    lib/glformat_str.c
     lib/hashlist.c
     lib/info.c
     lib/ktxint.h
@@ -426,9 +433,9 @@ set(KTX_MAIN_SRC
     )
 
 if (KTX_FEATURE_ETC_UNPACK)
-	list(APPEND KTX_MAIN_SRC 
-		external/etcdec/etcdec.cxx
-	)
+    list(APPEND KTX_MAIN_SRC 
+        external/etcdec/etcdec.cxx
+    )
 endif()
 
 set(BASISU_ENCODER_CXX_SRC
@@ -480,20 +487,34 @@ if(KTX_FEATURE_GL_UPLOAD)
     )
 endif()
 
-if(APPLE_MAC_OS OR LINUX OR WIN32)
+if(APPLE OR LINUX OR WIN32)
     # By wrapping in generator expression we force multi configuration
     # generators (like Visual Studio, Xcode or Ninja multi-config) to
     # take the exact path and not change it.
     set(CMAKE_RUNTIME_OUTPUT_DIRECTORY $<1:${KTX_BUILD_DIR}/$<CONFIG>>)
-    if(APPLE_MAC_OS OR LINUX)
+    if(APPLE OR LINUX)
         # Use a common RUNTIME_OUTPUT_DIR and LIBRARY_OUTPUT_DIR for all
-        # targets so that INSTALL RPATH is functional in build directory
-        # as well. BUILD_WITH_INSTALL_RPATH is necessary for working code
-        # signing. Signing happens at build time so the binary must not
-        # be altered during install. Although Linux code is not yet being
-        # signed, make it symmetrical with macOS.
+        # targets so that the INSTALL RPATH we need for installed binaries
+        # is functional in the build directory as well. INSTALL_RPATH cannot
+        # be altered during install because that would break code signing
+        # which happens after building. Therefore BUILD_WITH_INSTALL_RPATH
+        # is necessary for working code signing. Although Linux code is not
+        # yet being signed, make it symmetrical with macOS.
         set(CMAKE_LIBRARY_OUTPUT_DIRECTORY $<1:${KTX_BUILD_DIR}/$<CONFIG>>)
         set(CMAKE_BUILD_WITH_INSTALL_RPATH ON)
+
+        # Notes about install names, rpaths and code signing
+        # --------------------------------------------------
+        # Changing the install name of a library by setting INSTALL_NAME_DIR
+        # on a library target will invalidate the signature as it causes
+        # cmake to run `install_name_tool` after building and signing. The
+        # default install name is the library target's name prefixed by
+        # `@rpath/`. With this, `dyld` will load the library provided it is
+        # in one of the directories specified by a program's INSTALL_RPATH
+        # or is in the directory part of a full-path name passed to `dlopen`.
+        #
+        # A bad signature in either executable or shared library is
+        # indicated by the executable exiting with "Killed: 9".
     endif()
 endif()
 
@@ -763,8 +784,6 @@ macro(common_libktx_settings target enable_write library_type)
             ${target}
         PRIVATE
             lib/basis_encode.cpp
-            lib/astc_codec.cpp
-            ${BASISU_ENCODER_C_SRC}
             ${BASISU_ENCODER_CXX_SRC}
             lib/writer1.c
             lib/writer2.c
@@ -838,6 +857,30 @@ PRIVATE
     BASISD_SUPPORT_KTX2=0
 )
 
+# helper function to append COMPILE_OPTIONS to source file properties
+# !! if SRCFILES is a list, remember to quote it                              !!
+# !! like add_source_file_compile_options("${MY_SRC_LIST}"  "-Wall")          !!
+# !! or add_source_file_compile_options("dir/foo.cpp;dir/bar.cpp"  "-Wextra") !!
+function(add_source_file_compile_options SRCFILES OPTIONS)
+    foreach(src_file ${SRCFILES})
+        get_source_file_property(cur_options
+            "${src_file}"
+            COMPILE_OPTIONS
+        )
+        if(cur_options)
+            set_source_files_properties(
+                "${src_file}"
+                PROPERTIES COMPILE_OPTIONS "${cur_options};${OPTIONS}"
+            )
+        else() # if cur_options were undefined or empty ("")
+            set_source_files_properties(
+                "${src_file}"
+                PROPERTIES COMPILE_OPTIONS "${OPTIONS}"
+            )
+        endif()
+    endforeach()
+endfunction()
+
 # Turn off these warnings until Rich fixes the occurences.
 # It it not clear to me if generator expressions can be used here
 # hence the long-winded way.
@@ -848,26 +891,22 @@ elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
         # It's too much work to discriminate which files need which warnings
         # disabled.
         ${BASISU_ENCODER_CXX_SRC}
-        PROPERTIES COMPILE_OPTIONS "-Wno-sign-compare;-Wno-unused-variable;-Wno-class-memaccess;-Wno-misleading-indentation;-Wno-extra;-Wno-deprecated-copy;-Wno-parentheses;-Wno-strict-aliasing"
+        PROPERTIES COMPILE_OPTIONS "-fno-strict-aliasing;-Wno-sign-compare;-Wno-unused-variable;-Wno-class-memaccess;-Wno-misleading-indentation;-Wno-extra;-Wno-deprecated-copy;-Wno-parentheses"
     )
     set_source_files_properties(
         external/basisu/transcoder/basisu_transcoder.cpp
-        PROPERTIES COMPILE_OPTIONS "-Wno-sign-compare;-Wno-unused-function;-Wno-unused-variable;-Wno-class-memaccess;-Wno-maybe-uninitialized"
+        PROPERTIES COMPILE_OPTIONS "-fno-strict-aliasing;-Wno-sign-compare;-Wno-unused-function;-Wno-unused-variable;-Wno-class-memaccess;-Wno-maybe-uninitialized"
     )
     if (${CMAKE_CXX_COMPILER_VERSION} VERSION_GREATER_EQUAL "11")
         if (${CMAKE_CXX_COMPILER_VERSION} VERSION_LESS "12" )
-        # Version 11 raises several stringop-overflow warnings in some
-        # very hard to decipher code. They appear to be bogus based on
-        # the facts that we have never seen a crash and version 12 no
-        # longer raises the warnings.
-        get_source_file_property(cur_options
-            external/basisu/encoder/basisu_comp.cpp
-            COMPILE_OPTIONS
-        )
-        set_source_files_properties(
-            external/basisu/encoder/basisu_comp.cpp
-            PROPERTIES COMPILE_OPTIONS "${cur_options};-Wno-stringop-overflow"
-        )
+            # Version 11 raises several stringop-overflow warnings in some
+            # very hard to decipher code. They appear to be bogus based on
+            # the facts that we have never seen a crash and version 12 no
+            # longer raises the warnings.
+            add_source_file_compile_options(
+                external/basisu/encoder/basisu_comp.cpp
+                "-Wno-stringop-overflow"
+            )
         endif()
     endif()
     if (${CMAKE_CXX_COMPILER_VERSION} VERSION_GREATER_EQUAL "12.0")
@@ -875,28 +914,16 @@ elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
         # There seems no way for the index calculated by the code at
         # line 326, where the error is raised, to be > the array length.
         # Also we have never seen any crashes.
-        set_source_files_properties(
+        add_source_file_compile_options(
             external/basisu/encoder/basisu_uastc_enc.cpp
-            PROPERTIES COMPILE_OPTIONS "-Wno-stringop-overflow"
+            "-Wno-stringop-overflow"
         )
     endif()
     if (${CMAKE_CXX_COMPILER_VERSION} VERSION_GREATER_EQUAL "14.0")
         # Version 14 raises stringop-overflow on these files.
-        get_source_file_property(cur_options
-            external/basisu/encoder/basisu_comp.cpp
-            COMPILE_OPTIONS
-        )
-        set_source_files_properties(
-            external/basisu/transcoder/basisu_transcoder.cpp
-            PROPERTIES COMPILE_OPTIONS  "${cur_options};-Wno-stringop-overflow"
-        )
-        get_source_file_property(cur_options
-            external/basisu/encoder/basisu_bc7enc.cpp
-            COMPILE_OPTIONS
-        )
-        set_source_files_properties(
-            external/basisu/encoder/basisu_bc7enc.cpp
-            PROPERTIES COMPILE_OPTIONS  "${cur_options};-Wno-stringop-overflow"
+        add_source_file_compile_options(
+            "external/basisu/transcoder/basisu_transcoder.cpp;external/basisu/encoder/basisu_bc7enc.cpp"
+            "-Wno-stringop-overflow"
         )
     endif()
 elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
@@ -919,23 +946,31 @@ elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
         set( clang_version ${CMAKE_CXX_COMPILER_VERSION} )
     endif()
     # BEWARE: set_source_files_properties is not additive; it replaces.
+    set_source_files_properties(
+        ${BASISU_ENCODER_CXX_SRC}
+        PROPERTIES COMPILE_OPTIONS "-fno-strict-aliasing"
+    )
+    set_source_files_properties(
+        external/basisu/transcoder/basisu_transcoder.cpp
+        PROPERTIES COMPILE_OPTIONS "-fno-strict-aliasing"
+    )
     if (${clang_version} VERSION_GREATER_EQUAL "12.0.0")
-        set_source_files_properties( external/basisu/encoder/basisu_kernels_sse.cpp
-            PROPERTIES COMPILE_OPTIONS "-Wno-unused-parameter;-Wno-deprecated-copy;-Wno-uninitialized-const-reference"
+        add_source_file_compile_options( external/basisu/encoder/basisu_kernels_sse.cpp
+            "-Wno-unused-parameter;-Wno-deprecated-copy;-Wno-uninitialized-const-reference"
         )
     else()
-        set_source_files_properties( external/basisu/encoder/basisu_kernels_sse.cpp
-            PROPERTIES COMPILE_OPTIONS "-Wno-unused-parameter"
+        add_source_file_compile_options( external/basisu/encoder/basisu_kernels_sse.cpp
+            "-Wno-unused-parameter"
         )
     endif()
     if (${clang_version} VERSION_GREATER_EQUAL "14.0")
-        set_source_files_properties(
-            ${BASISU_ENCODER_CXX_SRC}
-            PROPERTIES COMPILE_OPTIONS "-Wno-sign-compare;-Wno-unused-variable;-Wno-unused-parameter;-Wno-deprecated-copy-with-user-provided-copy"
+        add_source_file_compile_options(
+            "${BASISU_ENCODER_CXX_SRC}"
+            "-Wno-sign-compare;-Wno-unused-variable;-Wno-unused-parameter;-Wno-deprecated-copy-with-user-provided-copy"
         )
-        set_source_files_properties(
+        add_source_file_compile_options(
             external/basisu/transcoder/basisu_transcoder.cpp
-            PROPERTIES COMPILE_OPTIONS "-Wno-sign-compare;-Wno-unused-function;-Wno-unused-variable"
+            "-Wno-sign-compare;-Wno-unused-function;-Wno-unused-variable"
         )
         set_source_files_properties(
             external/basisu/zstd/zstd.c
@@ -948,7 +983,7 @@ endif()
 
 # Retrieve the final set of properties for use by the transcodetests.
 # We do this because the CMake feature that would allow the transcodetests
-# target to retrieve these from the ktx target are not available until
+# target to retrieve these from the ktx target is not available until
 # v18 and we still need to work with v16 in the Emscripten Docker image.
 get_source_file_property(transcoder_options
     external/basisu/transcoder/basisu_transcoder.cpp
@@ -961,7 +996,7 @@ if(EMSCRIPTEN)
         KTX_EM_COMMON_LINK_FLAGS
         --bind
         "SHELL:-s MODULARIZE=1"
-        "SHELL:-s EXPORTED_RUNTIME_METHODS=[\'GL\']"
+        "SHELL:-s EXPORTED_RUNTIME_METHODS=[\'GL,HEAP8\']"
         "SHELL:-s GL_PREINITIALIZED_CONTEXT=1"
     )
 
@@ -1233,6 +1268,9 @@ if(NOT ${universal_build})
     endif()
 endif()
 
+# setting ASTCENC_DECOMPRESSOR to ON breaks the build, so force it to OFF
+# and hide it from cmake-gui (by using type INTERNAL)
+set(ASTCENC_DECOMPRESSOR OFF CACHE INTERNAL "")
 set(ASTCENC_CLI OFF) # Only build as library not the CLI astcencoder
 # Force static build for astc-encoder
 set(BUILD_SHARED_LIBS OFF)
@@ -1243,27 +1281,31 @@ target_compile_definitions(
     ${ASTCENC_LIB_TARGET}
 PRIVATE
     # ASTC encoder uses std::mutex. For more info. see comment about
-    # same setting in libktx starting about line 618. To be eventually
+    # same setting in libktx starting about line 633. To be eventually
     # removed as noted in that comment.
     $<$<AND:${is_msvccl},$<VERSION_GREATER_EQUAL:$<CXX_COMPILER_VERSION>,19.40.33811>>:_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR>
     $<$<AND:${is_clangcl},$<VERSION_GREATER_EQUAL:$<CXX_COMPILER_VERSION>,17.0.3>>:_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR>
 )
 
-if(NOT BUILD_SHARED_LIBS AND APPLE)
-    # Make a single static library to simplify linking.
-    add_dependencies(ktx ${ASTCENC_LIB_TARGET})
-    add_custom_command( TARGET ktx
-        POST_BUILD
-        COMMAND libtool -static -o $<TARGET_FILE:ktx> $<TARGET_FILE:ktx> $<TARGET_FILE:${ASTCENC_LIB_TARGET}>
-    )
+macro(set_astc_dependencies target)
+    if(NOT BUILD_SHARED_LIBS AND APPLE)
+        # Make a single static library to simplify linking.
+        add_dependencies(${target} ${ASTCENC_LIB_TARGET})
+        add_custom_command( TARGET ${target}
+            POST_BUILD
+            COMMAND libtool -static -o $<TARGET_FILE:${target}> $<TARGET_FILE:ktx> $<TARGET_FILE:${ASTCENC_LIB_TARGET}>
+        )
 
-    # Don't know libtool equivalent on Windows or Emscripten. Applications
-    # will have to link with  both ktx and ${ASTCENC_LIB_TARGET}. Static libs
-    # are unlikely to be used on Windows so not a problem there. For Emscripten
-    # everything is built into the JS module so not an issue there either.
-else()
-    target_link_libraries(ktx PRIVATE ${ASTCENC_LIB_TARGET})
-endif()
+        # Don't know libtool equivalent on Windows or Emscripten. Applications
+        # will have to link with  both ktx and ${ASTCENC_LIB_TARGET}. Static libs
+        # are unlikely to be used on Windows so not a problem there. For Emscripten
+        # everything is built into the JS module so not an issue there either.
+    else()
+        target_link_libraries(${target} PRIVATE ${ASTCENC_LIB_TARGET})
+    endif()
+endmacro(set_astc_dependencies)
+set_astc_dependencies(ktx)
+set_astc_dependencies(ktx_read)
 
 # Other external projects
 # `NOT TARGET`s here are a precaution. They would only be exercised if

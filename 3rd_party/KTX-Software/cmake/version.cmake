@@ -43,10 +43,10 @@ function(git_describe_raw _var)
         res
         OUTPUT_VARIABLE
         out
-        ERROR_QUIET
+        #ERROR_QUIET
         OUTPUT_STRIP_TRAILING_WHITESPACE)
     if(NOT res EQUAL 0)
-        set(out "${out}-${res}-NOTFOUND")
+        set(out "exitcode-${res}-NOTFOUND")
     endif()
 
     set(${_var} "${out}" PARENT_SCOPE)
@@ -166,7 +166,10 @@ set(KTX_VERSION_FULL ${KTX_VERSION}${KTX_VERSION_TWEAK})
 
 
 #
-# Create a version.h header file using the mkversion shell script
+# Create a version.h header file using the mkversion shell script.
+# Dignum memoria (worth remembering): you need to run CMake config
+# after adding a new tag or making a software change in order for the
+# version to be updated.
 #
 
 function( create_version_header dest_path target )

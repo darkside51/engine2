@@ -98,5 +98,5 @@ int main() {
 
     LOG_I("application finished!");
 
-    return 1;
+    return 0; // no errors
 }
