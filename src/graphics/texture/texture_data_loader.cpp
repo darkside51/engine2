@@ -630,7 +630,7 @@ namespace sail_format {
         }
     }
 
-    std::vector<uint8_t> encodeBytes(stl::span<std::byte> bytes, rhi::Format format, ImageByteEncoder encoder, uint16_t w, uint16_t h) {
+    stl::vector<std::byte> encodeBytes(stl::span<std::byte> bytes, rhi::Format format, ImageByteEncoder encoder, uint16_t w, uint16_t h) {
         TextureLoaderType type = TextureLoaderType::eSail; // todo: get from format
         if (type == TextureLoaderType::eSail) {
             const auto sailFormat = sail_format::convert(format, false);
@@ -650,8 +650,8 @@ namespace sail_format {
                 return {};
             }
             
-            auto dynamic_data = sail::arbitrary_data(bytes.size());
-            sail::image_output output(&dynamic_data, codec);
+            auto dynamicData = sail::arbitrary_data(bytes.size());
+            sail::image_output output(&dynamicData, codec);
 
             if (output.next_frame(image) != SAIL_OK) {
                 return {};
@@ -661,7 +661,8 @@ namespace sail_format {
                 return {};
             }
 
-            return dynamic_data;
+            const auto * bytesPtr = reinterpret_cast<std::byte*>(dynamicData.data());
+            return {bytesPtr, bytesPtr + dynamicData.size()};
         }
 
         return {};

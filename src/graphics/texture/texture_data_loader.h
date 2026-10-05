@@ -70,5 +70,5 @@ enum class ImageByteEncoder : uint8_t {
     eCount
 };
 
-std::vector<uint8_t> encodeBytes(stl::span<std::byte> bytes, rhi::Format format, ImageByteEncoder encoder, uint16_t w, uint16_t h);
+stl::vector<std::byte> encodeBytes(stl::span<std::byte> bytes, rhi::Format format, ImageByteEncoder encoder, uint16_t w, uint16_t h);
 }
