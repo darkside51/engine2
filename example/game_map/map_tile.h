@@ -121,10 +121,39 @@ public:
         eHeightsCompute = 1u,
         eNormalsCompute = 2u, 
         eCount
-    };
+    }; 
 
     using object_type = TerrainTile2;
     
+    struct TerrainMaps {
+        enum class DirtyFlags : uint8_t {
+            eNone = 0u,
+            eHeights = 1u,
+            eNormals = 2u,
+            eSplat = 3u
+        };
+
+        engine::rhi::runtime::ImagePtr heights = nullptr;
+        engine::rhi::runtime::ImagePtr normals = nullptr;
+        engine::rhi::runtime::ImagePtr splatMap = nullptr;
+
+        engine::stl::vector<engine::Flags<DirtyFlags>> dirty;
+
+        void initFlags(uint16_t size, DirtyFlags value) {
+            dirty.resize(size);
+            for (auto & d : dirty) {
+                d = value;
+            }
+        } 
+
+        void clear() noexcept {
+            dirty.clear();
+            heights = nullptr;
+            normals = nullptr;
+            splatMap = nullptr;
+        }
+    };
+
     TerrainSceneDelegate() : engine::scene::ICustomSceneDelegate(kFlags) {}
     ~TerrainSceneDelegate() {
         destroy();
@@ -161,48 +190,23 @@ public:
         const engine::scene::Scene & scene, const engine::scene::ViewParams & viewParams, engine::scene::RenderPass pass, 
         engine::rhi::runtime::CommandListPtr & commandList, uint8_t frame) override;
 
+    const TerrainMaps & getMaps(uint8_t idx) const noexcept {
+        return _terrainMaps[idx];
+    }
+
 private:
     void drawSame(engine::scene::AttachmentsIterator begin, engine::scene::AttachmentsIterator end, uint32_t instanceOffset,
         const engine::scene::Scene & scene, const engine::scene::ViewParams & viewParams, engine::scene::RenderPass pass, 
         engine::rhi::runtime::CommandListPtr & commandList, uint8_t frame);
 
     void dispatchNormals(const engine::scene::Scene & scene, engine::rhi::runtime::CommandListPtr & commandList, 
-        uint8_t imageId, uint16_t offset, uint16_t count);
+        uint8_t imageId, uint16_t offset, uint16_t count, uint8_t tileInRaw);
 
     engine::stl::array<engine::rhi::runtime::Pipeline *, static_cast<uint8_t>(PipelineId::eCount)>  _pipelines;
     engine::rhi::runtime::BufferPtr _tileCommonVertices = nullptr;
     engine::rhi::runtime::BufferPtr _tileCommonIndices = nullptr;
     engine::rhi::runtime::BufferPtr _tileIDs = nullptr;
     engine::rhi::runtime::BufferPtr _updateNormalTileIDs = nullptr;
-
-    struct TerrainMaps {
-        enum class DirtyFlags : uint8_t {
-            eNone = 0u,
-            eHeights = 1u,
-            eNormals = 2u,
-            eSplat = 3u
-        };
-
-        engine::rhi::runtime::ImagePtr heights = nullptr;
-        engine::rhi::runtime::ImagePtr normals = nullptr;
-        engine::rhi::runtime::ImagePtr splatMap = nullptr;
-
-        engine::stl::vector<engine::Flags<DirtyFlags>> dirty;
-
-        void initFlags(uint16_t size, DirtyFlags value) {
-            dirty.reserve(size);
-            for (uint16_t i = 0u; i < size; ++i) {
-                dirty[i] = value;
-            }
-        } 
-
-        void clear() noexcept {
-            dirty.clear();
-            heights = nullptr;
-            normals = nullptr;
-            splatMap = nullptr;
-        }
-    };
 
     engine::stl::array<TerrainMaps, 16u> _terrainMaps; // 4 x 4 maps maximum
     engine::stl::vector<uint16_t> _visibleTileIds;

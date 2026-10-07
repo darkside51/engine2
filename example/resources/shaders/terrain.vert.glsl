@@ -1,7 +1,9 @@
 #version 450
 
 layout (location = 0) in vec2 a_position;
-layout (location = 0) out vec2 v_uv;
+
+layout (location = 0) out vec2 v_tileUv;
+layout (location = 1) out vec2 v_globalUv;
 
 layout(push_constant, std430) uniform Transform {
 	mat4 model;
@@ -33,5 +35,6 @@ void main() {
  	const vec4 heightTexel = vec4(0.0f);//imageLoad(heights, ivec2(a_position.xy));
 	vec4 worldPosition = push.model * vec4(a_position.xy + vec2(x, y), heightTexel.x * push.tileSize, 1.0f);
 	gl_Position = u_viewParams.viewProjection * worldPosition;
-	v_uv = a_position.xy / push.tileSize;
+	v_tileUv = a_position.xy / push.tileSize;
+	v_globalUv = a_position.xy + vec2(x, y);
 }

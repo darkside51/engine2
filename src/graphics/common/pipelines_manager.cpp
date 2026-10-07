@@ -96,7 +96,7 @@ namespace engine::graphics {
             return getProgram(it->second);
         }
 
-        LOG_E("PipelinesManager::getProgramByName: no program with name %s", name.data());
+        // LOG_E("PipelinesManager::getProgramByName: no program with name %s", name.data());
         return kNullProgram;
     }
 

@@ -214,7 +214,7 @@ namespace g_map {
 
 
     /////////////////////////
-    constexpr size_t kCellsInRow = 32u;
+    constexpr size_t kCellsInRow = 31u;
     constexpr size_t kVerticesInRow = kCellsInRow + 1u;
     
     Terrain::Terrain(TerrainSceneDelegate & sceneDelegate, engine::scene::Scene & scene, uint8_t w, uint8_t h) :
@@ -322,7 +322,7 @@ namespace g_map {
         terrainMaps0.heights = api.createImage(device, heightsImageInfo);
 
         const auto flagsCount = static_cast<uint16_t>(mapImageWidth / kCellsInRow * mapImageHeight / kCellsInRow);
-        terrainMaps0.initFlags(flagsCount, TerrainMaps::DirtyFlags::eNone);
+        terrainMaps0.initFlags(flagsCount, TerrainMaps::DirtyFlags::eNormals);
     }
 
     void TerrainSceneDelegate::buildGeometry(engine::rhi::runtime::CommandList & cmd) {
@@ -425,7 +425,7 @@ namespace g_map {
     }
 
     void TerrainSceneDelegate::dispatchNormals(const engine::scene::Scene & scene, engine::rhi::runtime::CommandListPtr & commandList, 
-        uint8_t imageId, uint16_t offset, uint16_t count) {
+        uint8_t imageId, uint16_t offset, uint16_t count, uint8_t tileInRaw) {
         using namespace engine;
 
         constexpr uint16_t kTileLocalGroupSize = 32u;
@@ -437,8 +437,12 @@ namespace g_map {
 
         const struct Uniform {
             uint32_t idsBufferOffset = 0u;
+            uint32_t tilesInRaw = 0u;
+            uint32_t groupWidth = 0u;
         } uniform = {
-            .idsBufferOffset = offset
+            .idsBufferOffset = offset,
+            .tilesInRaw = tileInRaw,
+            .groupWidth = static_cast<uint32_t>(groupX)
         };
 
         const auto * pipeline = _pipelines[std::to_underlying(PipelineId::eNormalsCompute)];
@@ -447,7 +451,7 @@ namespace g_map {
         commandList->bindPipeline(*pipeline);
         commandList->pushConstants(rhi::shaders::Stages::eCompute, 0u, sizeof(Uniform), &uniform);
         commandList->bindTexelBuffer(0u, _updateNormalTileIDs, rhi::Format::eR16_Uint, 0u);
-        commandList->bindImage(1u, maps.normals, scene.getLinearSampler(), 0u);
+        commandList->bindImage(1u, maps.heights, scene.getLinearSampler(), 0u);
         commandList->bindStorageImage(2u, maps.normals, std::nullopt, 0u);
         commandList->dispatch(groupX, groupY, 1u);
     }
@@ -481,6 +485,7 @@ namespace g_map {
         uint16_t dispatchNormalsCounter = 0u;
         bool hasDirtyNormals = false;
         auto * maps = &_terrainMaps[tile.imageIndex];
+        uint16_t offset = _tmpDirtyNormalTilesCount;
         if (maps->dirty[tileId] & TerrainMaps::DirtyFlags::eNormals) {
             _dirtyNormalTileIds[_tmpDirtyNormalTilesCount] = tileId;
             maps->dirty[tileId].disable(TerrainMaps::DirtyFlags::eNormals);
@@ -501,9 +506,10 @@ namespace g_map {
             maps = &_terrainMaps[tile.imageIndex];
             if (maps->dirty[tileId] & TerrainMaps::DirtyFlags::eNormals) {
                 if (tile.imageIndex != imageId) {
-                    dispatchNormals(scene, commandList, imageId, _tmpDirtyNormalTilesCount, dispatchNormalsCounter);
+                    dispatchNormals(scene, commandList, imageId, offset, dispatchNormalsCounter, tile.terrainRowWidth);
                     imageId = tile.imageIndex;
                     dispatchNormalsCounter = 0u;
+                    offset = _tmpDirtyNormalTilesCount;
                 } 
 
                 _dirtyNormalTileIds[_tmpDirtyNormalTilesCount] = tileId;
@@ -517,7 +523,7 @@ namespace g_map {
         }
 
         if (hasDirtyNormals) {
-            dispatchNormals(scene, commandList, imageId, _tmpDirtyNormalTilesCount, dispatchNormalsCounter);
+            dispatchNormals(scene, commandList, imageId, offset, dispatchNormalsCounter, tile.terrainRowWidth);
         }
 
         _hasDirtyNormals |= hasDirtyNormals;
@@ -548,15 +554,17 @@ namespace g_map {
             Uniform uniform{
                 .model = terrainNode.getWorldTransform(),
                 .instanceOffset = instanceOffset,
-                .tileSize = static_cast<uint32_t>(_mapImageMaxSize) / static_cast<uint32_t>(tile.terrainRowWidth),
+                .tileSize = static_cast<uint32_t>(_mapImageMaxSize) / static_cast<uint32_t>(tile.terrainRowWidth) - 1u,
                 .width = tile.terrainRowWidth,
             };
 
             if (commandList->bindPipeline(*pipeline)) {
+                auto & maps = _terrainMaps[tile.imageIndex];
                 auto const sceneViewParamBufferOffset = scene.getCurrentViewParamsBufferOffset();
                 commandList->bindBuffer(0u, scene.getViewParamsUniformBuffer(frame), 0u, sceneViewParamBufferOffset);
                 commandList->bindTexelBuffer(1u, _tileIDs, engine::rhi::Format::eR16_Uint, 0u);
                 commandList->bindImage(2u, gs.getTextureManager().getDefaultImage(), scene.getNearestSampler(), 0u);
+                commandList->bindImage(3u, maps.normals, scene.getLinearSampler(), 0u);
             }
 
             commandList->pushConstants(

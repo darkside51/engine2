@@ -1871,6 +1871,21 @@ namespace example {
                     g_map::TerrainSceneDelegate::PipelineId::eTilesDraw
                 );
             }
+            {
+                auto const cBytes = fileManager.readFile("shaders/terrain_compute_normals.comp.spv");
+                pipelinesManager->createProgram("terrain_normals_compute", engine::stl::array{
+                    engine::graphics::ShaderModuleDescriptor{
+                        .data = cBytes,
+                        .name = "terrain_normals.comp",
+                        .stage = engine::rhi::shaders::Stages::eCompute
+                    }
+                });
+                const uint32_t terrainNormalsComputePipelineIdx = pipelinesManager->createComputePipeline("terrain_normals_compute");
+                terrainSceneDelegate.setPipeline(
+                    pipelinesManager->getComputePipeline(terrainNormalsComputePipelineIdx).get(), 
+                    g_map::TerrainSceneDelegate::PipelineId::eNormalsCompute
+                );
+            }
         }
     }
 
