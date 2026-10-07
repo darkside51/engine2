@@ -392,7 +392,9 @@ namespace g_map {
 
     void TerrainSceneDelegate::beginFrame(std::chrono::time_point<std::chrono::steady_clock> now) {
         _tmpTilesCount = 0u;
+        _tmpDirtyNormalsTilesCount = 0u;
         _tileIdsDirty = false;
+        _hasDirtyNormals = false;
     }
 
     void TerrainSceneDelegate::endFrame(
@@ -404,11 +406,17 @@ namespace g_map {
         if (_visibleTileIds.size() > targetSize) {
             _visibleTileIds.resize(targetSize);
         }
+        if (_dirtyNormalTileIds.size() > targetSize) {
+            _dirtyNormalTileIds.resize(targetSize);
+        }
 
         if (_tileIdsDirty) {
             const auto bufferUpdateDataSize = engine::align_value(_tmpTilesCount * sizeof(uint16_t), 4u);
             assert(bufferUpdateDataSize <= kMaxTileIds * sizeof(uint16_t));
             transferCommandList->updateBuffer(_tileIDs, 0u, bufferUpdateDataSize, _visibleTileIds.data());
+        }
+        if (_hasDirtyNormals) {
+
         }
     }
 
@@ -422,7 +430,33 @@ namespace g_map {
             _tileIdsDirty = true;
         }
 
-        for (auto it = begin; it != end; ++it) {    
+        if (_dirtyNormalTileIds.size() < targetSize) {
+            _dirtyNormalTileIds.resize(targetSize);
+        }
+
+        auto currentIt = begin;
+        const auto & object = *static_cast<const engine::scene::CustomSceneObject*>(*currentIt);
+        const auto & tile = static_cast<const TerrainTile2 &>(object.getImpl());
+        const auto tileId = tile.y * tile.terrainRowWidth + tile.x;
+        auto imageId = tile.imageIndex;
+
+        if (_visibleTileIds[_tmpTilesCount] != tileId) {
+            _visibleTileIds[_tmpTilesCount] = tileId;
+            _tileIdsDirty = true;
+        }
+        ++_tmpTilesCount;
+
+        uint16_t dispatchNormalsCounter = 0u;
+        auto * maps = &_terrainMaps[tile.imageIndex];
+        if (maps->dirty[tileId] & TerrainMaps::DirtyFlags::eNormals) {
+            _dirtyNormalTileIds[_tmpDirtyNormalsTilesCount] = tileId;
+            maps->dirty[tileId].disable(TerrainMaps::DirtyFlags::eNormals);
+            ++_tmpDirtyNormalsTilesCount;
+            dispatchNormalsCounter = 1u;
+            _hasDirtyNormals = true;
+        }
+
+        for (auto it = begin + 1; it != end; ++it) {    
             const auto & object = *static_cast<const engine::scene::CustomSceneObject*>(*it);
             const auto & tile = static_cast<const TerrainTile2 &>(object.getImpl());
             const auto tileId = tile.y * tile.terrainRowWidth + tile.x;
@@ -431,16 +465,28 @@ namespace g_map {
                 _tileIdsDirty = true;
             }
 
-            auto & maps = _terrainMaps[tile.imageIndex];
-            if (maps.dirty[tileId] & TerrainMaps::DirtyFlags::eNormals) {
-                //...
-                maps.dirty[tileId].disable(TerrainMaps::DirtyFlags::eNormals);
+            maps = &_terrainMaps[tile.imageIndex];
+            if (maps->dirty[tileId] & TerrainMaps::DirtyFlags::eNormals) {
+                if (tile.imageIndex != imageId) {
+                    // dispatch, offset = _tmpDirtyNormalsTilesCount, count = dispatchNormalsCounter;
+                    //...
+                    //
+                    imageId = tile.imageIndex;
+                    dispatchNormalsCounter = 0u;
+                } 
+
+                _dirtyNormalTileIds[_tmpDirtyNormalsTilesCount] = tileId;
+                maps->dirty[tileId].disable(TerrainMaps::DirtyFlags::eNormals);
+                ++_tmpDirtyNormalsTilesCount;
+                ++dispatchNormalsCounter;
+                _hasDirtyNormals = true;
             }
-            
+
             ++_tmpTilesCount;
         }
 
-        // dispatch
+        // dispatch, offset = _tmpDirtyNormalsTilesCount, count = dispatchNormalsCounter
+        //...
     }
 
     void TerrainSceneDelegate::drawSame(engine::scene::AttachmentsIterator begin, engine::scene::AttachmentsIterator end,

@@ -214,9 +214,12 @@ private:
 
     engine::stl::array<TerrainMaps, 16u> _terrainMaps; // 4 x 4 maps maximum
     engine::stl::vector<uint16_t> _visibleTileIds;
+    engine::stl::vector<uint16_t> _dirtyNormalTileIds;
     uint16_t _mapImageMaxSize = 0u;
     uint16_t _tmpTilesCount = 0u;
+    uint16_t _tmpDirtyNormalsTilesCount = 0u;
     bool _tileIdsDirty = false;
+    bool _hasDirtyNormals = false;
 };
 
 class Terrain {
