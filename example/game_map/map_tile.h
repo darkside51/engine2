@@ -173,15 +173,19 @@ public:
         const engine::scene::Scene & scene, const engine::scene::ViewParams & viewParams, engine::scene::RenderPass pass, 
         engine::rhi::runtime::CommandListPtr & commandList, uint8_t frame) override;
 
+private:
     void drawSame(engine::scene::AttachmentsIterator begin, engine::scene::AttachmentsIterator end, uint32_t instanceOffset,
         const engine::scene::Scene & scene, const engine::scene::ViewParams & viewParams, engine::scene::RenderPass pass, 
         engine::rhi::runtime::CommandListPtr & commandList, uint8_t frame);
 
-private:
+    void dispatchNormals(const engine::scene::Scene & scene, engine::rhi::runtime::CommandListPtr & commandList, 
+        uint8_t imageId, uint16_t offset, uint16_t count);
+
     engine::stl::array<engine::rhi::runtime::Pipeline *, static_cast<uint8_t>(PipelineId::eCount)>  _pipelines;
     engine::rhi::runtime::BufferPtr _tileCommonVertices = nullptr;
     engine::rhi::runtime::BufferPtr _tileCommonIndices = nullptr;
     engine::rhi::runtime::BufferPtr _tileIDs = nullptr;
+    engine::rhi::runtime::BufferPtr _updateNormalTileIDs = nullptr;
 
     struct TerrainMaps {
         enum class DirtyFlags : uint8_t {
@@ -217,7 +221,7 @@ private:
     engine::stl::vector<uint16_t> _dirtyNormalTileIds;
     uint16_t _mapImageMaxSize = 0u;
     uint16_t _tmpTilesCount = 0u;
-    uint16_t _tmpDirtyNormalsTilesCount = 0u;
+    uint16_t _tmpDirtyNormalTilesCount = 0u;
     bool _tileIdsDirty = false;
     bool _hasDirtyNormals = false;
 };

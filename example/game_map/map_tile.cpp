@@ -125,8 +125,8 @@ namespace g_map {
         const auto cellsCountInRow = geometry.getSizeInCells();
         const uint16_t verticesInRow = cellsCountInRow + 1u;
 
-        const auto groupX = (verticesInRow + kTileLocalGroupSize - 1u) / kTileLocalGroupSize;
-        const auto groupY = (verticesInRow + kTileLocalGroupSize - 1u) / kTileLocalGroupSize;
+        const auto groupX = engine::div_ceil(verticesInRow, kTileLocalGroupSize);
+        const auto groupY = engine::div_ceil(verticesInRow, kTileLocalGroupSize);
 
         const auto time = scene.getShadersTime();
         commandList->bindPipeline(*pipeline);
@@ -268,6 +268,7 @@ namespace g_map {
         _tileCommonVertices = nullptr;
         _tileCommonIndices = nullptr;
         _tileIDs = nullptr;
+        _updateNormalTileIDs = nullptr;
 
         for (auto & tm : _terrainMaps) {
             tm.clear();
@@ -313,6 +314,7 @@ namespace g_map {
 
         const size_t idsBufferSize = kMaxTileIds * sizeof(uint16_t);
         _tileIDs = api.createBuffer(device, idsBufferInfo, idsBufferSize);
+        _updateNormalTileIDs = api.createBuffer(device, idsBufferInfo, idsBufferSize);
 
         auto & terrainMaps0 = _terrainMaps[0u];
 
@@ -392,7 +394,7 @@ namespace g_map {
 
     void TerrainSceneDelegate::beginFrame(std::chrono::time_point<std::chrono::steady_clock> now) {
         _tmpTilesCount = 0u;
-        _tmpDirtyNormalsTilesCount = 0u;
+        _tmpDirtyNormalTilesCount = 0u;
         _tileIdsDirty = false;
         _hasDirtyNormals = false;
     }
@@ -416,8 +418,38 @@ namespace g_map {
             transferCommandList->updateBuffer(_tileIDs, 0u, bufferUpdateDataSize, _visibleTileIds.data());
         }
         if (_hasDirtyNormals) {
-
+            const auto bufferUpdateDataSize = engine::align_value(_tmpDirtyNormalTilesCount * sizeof(uint16_t), 4u);
+            assert(bufferUpdateDataSize <= kMaxTileIds * sizeof(uint16_t));
+            transferCommandList->updateBuffer(_updateNormalTileIDs, 0u, bufferUpdateDataSize, _dirtyNormalTileIds.data());
         }
+    }
+
+    void TerrainSceneDelegate::dispatchNormals(const engine::scene::Scene & scene, engine::rhi::runtime::CommandListPtr & commandList, 
+        uint8_t imageId, uint16_t offset, uint16_t count) {
+        using namespace engine;
+
+        constexpr uint16_t kTileLocalGroupSize = 32u;
+        const auto verticesCount = kVerticesInRow * count; 
+        const auto groupX = div_ceil(verticesCount, kTileLocalGroupSize);
+        const auto groupY = div_ceil(verticesCount, kTileLocalGroupSize);
+
+        const auto & maps = _terrainMaps[imageId];
+
+        const struct Uniform {
+            uint32_t idsBufferOffset = 0u;
+        } uniform = {
+            .idsBufferOffset = offset
+        };
+
+        const auto * pipeline = _pipelines[std::to_underlying(PipelineId::eNormalsCompute)];
+        assert(pipeline != nullptr);
+
+        commandList->bindPipeline(*pipeline);
+        commandList->pushConstants(rhi::shaders::Stages::eCompute, 0u, sizeof(Uniform), &uniform);
+        commandList->bindTexelBuffer(0u, _updateNormalTileIDs, rhi::Format::eR16_Uint, 0u);
+        commandList->bindImage(1u, maps.normals, scene.getLinearSampler(), 0u);
+        commandList->bindStorageImage(2u, maps.normals, std::nullopt, 0u);
+        commandList->dispatch(groupX, groupY, 1u);
     }
 
     void TerrainSceneDelegate::dispatch(const engine::scene::Scene & scene, engine::rhi::runtime::CommandListPtr & commandList, uint8_t frame, 
@@ -447,13 +479,14 @@ namespace g_map {
         ++_tmpTilesCount;
 
         uint16_t dispatchNormalsCounter = 0u;
+        bool hasDirtyNormals = false;
         auto * maps = &_terrainMaps[tile.imageIndex];
         if (maps->dirty[tileId] & TerrainMaps::DirtyFlags::eNormals) {
-            _dirtyNormalTileIds[_tmpDirtyNormalsTilesCount] = tileId;
+            _dirtyNormalTileIds[_tmpDirtyNormalTilesCount] = tileId;
             maps->dirty[tileId].disable(TerrainMaps::DirtyFlags::eNormals);
-            ++_tmpDirtyNormalsTilesCount;
+            ++_tmpDirtyNormalTilesCount;
             dispatchNormalsCounter = 1u;
-            _hasDirtyNormals = true;
+            hasDirtyNormals = true;
         }
 
         for (auto it = begin + 1; it != end; ++it) {    
@@ -468,76 +501,77 @@ namespace g_map {
             maps = &_terrainMaps[tile.imageIndex];
             if (maps->dirty[tileId] & TerrainMaps::DirtyFlags::eNormals) {
                 if (tile.imageIndex != imageId) {
-                    // dispatch, offset = _tmpDirtyNormalsTilesCount, count = dispatchNormalsCounter;
-                    //...
-                    //
+                    dispatchNormals(scene, commandList, imageId, _tmpDirtyNormalTilesCount, dispatchNormalsCounter);
                     imageId = tile.imageIndex;
                     dispatchNormalsCounter = 0u;
                 } 
 
-                _dirtyNormalTileIds[_tmpDirtyNormalsTilesCount] = tileId;
+                _dirtyNormalTileIds[_tmpDirtyNormalTilesCount] = tileId;
                 maps->dirty[tileId].disable(TerrainMaps::DirtyFlags::eNormals);
-                ++_tmpDirtyNormalsTilesCount;
+                ++_tmpDirtyNormalTilesCount;
                 ++dispatchNormalsCounter;
-                _hasDirtyNormals = true;
+                hasDirtyNormals = true;
             }
 
             ++_tmpTilesCount;
         }
 
-        // dispatch, offset = _tmpDirtyNormalsTilesCount, count = dispatchNormalsCounter
-        //...
+        if (hasDirtyNormals) {
+            dispatchNormals(scene, commandList, imageId, _tmpDirtyNormalTilesCount, dispatchNormalsCounter);
+        }
+
+        _hasDirtyNormals |= hasDirtyNormals;
     }
 
     void TerrainSceneDelegate::drawSame(engine::scene::AttachmentsIterator begin, engine::scene::AttachmentsIterator end,
         uint32_t instanceOffset, const engine::scene::Scene & scene, const engine::scene::ViewParams & viewParams,
         engine::scene::RenderPass pass, engine::rhi::runtime::CommandListPtr & commandList, uint8_t frame) {
         switch (pass) {
-            case engine::scene::RenderPass::eCommon:
-            {
-                struct Uniform {
-                    engine::mat4f model;
-                    uint32_t instanceOffset;
-                    uint32_t tileSize;
-                    uint32_t width;
-                };
+        case engine::scene::RenderPass::eCommon:
+        {
+            struct Uniform {
+                engine::mat4f model;
+                uint32_t instanceOffset;
+                uint32_t tileSize;
+                uint32_t width;
+            };
 
-                const auto & gs = scene.getGraphicsService();
-                const auto * pipeline = _pipelines[std::to_underlying(PipelineId::eTilesDraw)];
-                assert(pipeline != nullptr);
+            const auto & gs = scene.getGraphicsService();
+            const auto * pipeline = _pipelines[std::to_underlying(PipelineId::eTilesDraw)];
+            assert(pipeline != nullptr);
 
-                const auto objectsCount = static_cast<uint32_t>(end - begin);
-                const auto & object = *static_cast<const engine::scene::CustomSceneObject*>(*begin);
-                const auto & tile = static_cast<const TerrainTile2 &>(object.getImpl());
-                const auto & terrainNode = *object.node->parent;
+            const auto objectsCount = static_cast<uint32_t>(end - begin);
+            const auto & object = *static_cast<const engine::scene::CustomSceneObject*>(*begin);
+            const auto & tile = static_cast<const TerrainTile2 &>(object.getImpl());
+            const auto & terrainNode = *object.node->parent;
 
-                Uniform uniform{
-                    .model = terrainNode.getWorldTransform(),
-                    .instanceOffset = instanceOffset,
-                    .tileSize = static_cast<uint32_t>(_mapImageMaxSize) / static_cast<uint32_t>(tile.terrainRowWidth),
-                    .width = tile.terrainRowWidth,
-                };
+            Uniform uniform{
+                .model = terrainNode.getWorldTransform(),
+                .instanceOffset = instanceOffset,
+                .tileSize = static_cast<uint32_t>(_mapImageMaxSize) / static_cast<uint32_t>(tile.terrainRowWidth),
+                .width = tile.terrainRowWidth,
+            };
 
-                if (commandList->bindPipeline(*pipeline)) {
-                    auto const sceneViewParamBufferOffset = scene.getCurrentViewParamsBufferOffset();
-                    commandList->bindBuffer(0u, scene.getViewParamsUniformBuffer(frame), 0u, sceneViewParamBufferOffset);
-                    commandList->bindTexelBuffer(1u, _tileIDs, engine::rhi::Format::eR16_Uint, 0u);
-                    commandList->bindImage(2u, gs.getTextureManager().getDefaultImage(), scene.getNearestSampler(), 0u);
-                }
-
-                commandList->pushConstants(
-                    engine::rhi::shaders::Stages::eVertex, 
-                    0u, 76u, &uniform
-                );
-
-                commandList->bindVertexBuffer(0u, _tileCommonVertices);
-                commandList->bindIndexBuffer(_tileCommonIndices, 0u, engine::rhi::IndexType::eU16);
-                commandList->drawIndexed(_tileCommonIndices->sizeInBytes() / sizeof(uint16_t), objectsCount);
+            if (commandList->bindPipeline(*pipeline)) {
+                auto const sceneViewParamBufferOffset = scene.getCurrentViewParamsBufferOffset();
+                commandList->bindBuffer(0u, scene.getViewParamsUniformBuffer(frame), 0u, sceneViewParamBufferOffset);
+                commandList->bindTexelBuffer(1u, _tileIDs, engine::rhi::Format::eR16_Uint, 0u);
+                commandList->bindImage(2u, gs.getTextureManager().getDefaultImage(), scene.getNearestSampler(), 0u);
             }
+
+            commandList->pushConstants(
+                engine::rhi::shaders::Stages::eVertex, 
+                0u, 76u, &uniform
+            );
+
+            commandList->bindVertexBuffer(0u, _tileCommonVertices);
+            commandList->bindIndexBuffer(_tileCommonIndices, 0u, engine::rhi::IndexType::eU16);
+            commandList->drawIndexed(_tileCommonIndices->sizeInBytes() / sizeof(uint16_t), objectsCount);
+        }
             break;
-            case engine::scene::RenderPass::eShadow:
+        case engine::scene::RenderPass::eShadow:
             break;
-            case engine::scene::RenderPass::eColorId:
+        case engine::scene::RenderPass::eColorId:
             break;
         }
     }

@@ -2404,14 +2404,14 @@ namespace example {
                 sceneWorldRoot->addChild(node);
             }
 
-            auto m0 = engine::makeMatrix(0.5F);
-            engine::rotateMatrix_z(m0, 1.57f);
+            auto m0 = engine::make_matrix(0.5F);
+            engine::rotate_matrix_z(m0, 1.57f);
             m0[3] = {1.0f, 0.0f, 0.0f, 1.0f};
 
-            auto m1 = engine::makeMatrix(0.75F);
+            auto m1 = engine::make_matrix(0.75F);
             m1[3] = {1.5f, 0.0f, 0.0f, 1.0f};
 
-            engine::rotateMatrix_y(m0, -0.76f);
+            engine::rotate_matrix_y(m0, -0.76f);
             m0[3] = {-1.0f, 2.0f, 0.0f, 1.0f};
 
             auto * node3 = scene->createNode();
@@ -2419,7 +2419,7 @@ namespace example {
             node3->setRotation(engine::vec3f{1.0f, 0.0f, 0.0f});
             node3->setPosition(engine::vec3f(3.5f, 1.0f, 0.0f));
 
-            auto m2 = engine::makeMatrix(0.01F);
+            auto m2 = engine::make_matrix(0.01F);
             auto * sprite = scene->createObject<engine::scene::Sprite>(textureManager->findFrame("hero_head"), 0u);
             engine::scene::attachObjectToNode(*sprite, *node3);
             sprite->setOrder(1u);

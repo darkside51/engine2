@@ -67,13 +67,9 @@ public:
     }
 
     void apply(mat4f & matrix) const noexcept {
-        matrix = mat4FromQuat(_rotation);
-
-        matrix[0u] *= _scale.x;
-        matrix[1u] *= _scale.y;
-        matrix[2u] *= _scale.z;
-
-        matrix[3u] = {_position - mat3f(matrix) * _pivot, 1.0f};
+        matrix = mat4_from_quat(_rotation);
+        scale_matrix(matrix, _scale);
+        translate_matrix_to(matrix, _position - mat3f(matrix) * _pivot);
     }
 
 private:

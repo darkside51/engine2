@@ -64,15 +64,15 @@ public:
 		mat4f view{1.0f};
 		
 		if (_scale != unitVec3) {
-			scaleMatrix(view, _scale);
+			scale_matrix(view, _scale);
 		}
 
 		if (_rotation != emptyVec3) {
-			rotateMatrix_byOrder(view, _rotation, _rotationOrder);
+			rotate_matrix_by_order(view, _rotation, _rotationOrder);
 		}
 
 		if (_position != emptyVec3) {
-			translateMatrix(view, -_position);
+			translate_matrix(view, -_position);
 		}
 
         _camera.setView(view);
@@ -119,11 +119,11 @@ public:
 		mat4f view{1.0f};
 		
 		if (_scale != unitVec3) {
-			scaleMatrix(view, _scale);
+			scale_matrix(view, _scale);
 		}
 
 		if (_rotation != emptyVec3) {
-			rotateMatrix_byOrder(view, _rotation, _rotationOrder);
+			rotate_matrix_by_order(view, _rotation, _rotationOrder);
 		}
 
         const float rx = _rotation.x;
@@ -145,7 +145,7 @@ public:
         }
 
         if (_cameraPosition != emptyVec3) {
-			translateMatrix(view, -_cameraPosition);
+			translate_matrix(view, -_cameraPosition);
 		}
 
         _camera.setView(view);
