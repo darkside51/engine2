@@ -21,7 +21,10 @@ namespace engine {
             eDefault = 0u,
             eLight = 1u,
             eDark = 2u,
-            eCustom = 3u
+            eDracula = 3u,
+            eRed = 4u,
+            eWhite = 5u,
+            eCustom = 6u
         };
 
         ImGuiSystem() : ImGuiSystem(Theme::eDefault) {}

@@ -105,18 +105,6 @@ public:
 // revision
 class Terrain;
 
-// enum class DirtyFlags : uint8_t {
-
-// };
-// inline constexpr DirtyFlags operator | (DirtyFlags a, DirtyFlags b) noexcept {
-//     return static_cast<DirtyFlags>(std::to_underlying(a) | std::to_underlying(b));
-// }
-// inline constexpr DirtyFlags operator & (DirtyFlags a, DirtyFlags b) noexcept {
-//     return static_cast<DirtyFlags>(std::to_underlying(a) & std::to_underlying(b));
-// }
-
-
-
 struct TerrainTile2 : public engine::scene::AttachmentImpl {
     uint8_t terrainRowWidth = 0u;
     uint8_t imageIndex = 0u;

@@ -1053,7 +1053,7 @@ namespace example {
         }
     } sceneEventHandler;
 
-    Example::Example() : _imgui(engine::ImGuiSystem(engine::ImGuiSystem::Theme::eLight)) {
+    Example::Example() : _imgui(engine::ImGuiSystem(engine::ImGuiSystem::Theme::eWhite)) {
         using namespace engine;
         
         fileManager.createFileSystem<CommonFileSystem>("common_fs0", CommonFileSystem::getCurrentDirectory() + "./resources/");
