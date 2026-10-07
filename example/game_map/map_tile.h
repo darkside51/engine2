@@ -1,10 +1,10 @@
 #pragma once
 
-#include "engine/src/math/math.h"
+#include "engine/src/common/flags.h"
 #include "engine/src/graphics/render/rhi/common/runtime.h"
 #include "engine/src/graphics/scene/objects/custom_object.h"
-
 #include "engine/src/graphics/scene/node.h"
+#include "engine/src/math/math.h"
 #include "engine/src/stl/array.h"
 #include "engine/src/stl/vector.h"
 
@@ -105,6 +105,18 @@ public:
 // revision
 class Terrain;
 
+// enum class DirtyFlags : uint8_t {
+
+// };
+// inline constexpr DirtyFlags operator | (DirtyFlags a, DirtyFlags b) noexcept {
+//     return static_cast<DirtyFlags>(std::to_underlying(a) | std::to_underlying(b));
+// }
+// inline constexpr DirtyFlags operator & (DirtyFlags a, DirtyFlags b) noexcept {
+//     return static_cast<DirtyFlags>(std::to_underlying(a) & std::to_underlying(b));
+// }
+
+
+
 struct TerrainTile2 : public engine::scene::AttachmentImpl {
     uint8_t terrainRowWidth = 0u;
     uint8_t imageIndex = 0u;
@@ -172,11 +184,28 @@ private:
     engine::rhi::runtime::BufferPtr _tileIDs = nullptr;
 
     struct TerrainMaps {
+        enum class DirtyFlags : uint8_t {
+            eNone = 0u,
+            eHeights = 1u,
+            eNormals = 2u,
+            eSplat = 3u
+        };
+
         engine::rhi::runtime::ImagePtr heights = nullptr;
         engine::rhi::runtime::ImagePtr normals = nullptr;
         engine::rhi::runtime::ImagePtr splatMap = nullptr;
 
+        engine::stl::vector<engine::Flags<DirtyFlags>> dirty;
+
+        void initFlags(uint16_t size, DirtyFlags value) {
+            dirty.reserve(size);
+            for (uint16_t i = 0u; i < size; ++i) {
+                dirty[i] = value;
+            }
+        } 
+
         void clear() noexcept {
+            dirty.clear();
             heights = nullptr;
             normals = nullptr;
             splatMap = nullptr;

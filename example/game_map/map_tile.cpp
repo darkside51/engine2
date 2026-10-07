@@ -318,6 +318,9 @@ namespace g_map {
 
         terrainMaps0.normals = api.createImage(device, normalsImageInfo);
         terrainMaps0.heights = api.createImage(device, heightsImageInfo);
+
+        const auto flagsCount = static_cast<uint16_t>(mapImageWidth / kCellsInRow * mapImageHeight / kCellsInRow);
+        terrainMaps0.initFlags(flagsCount, TerrainMaps::DirtyFlags::eNone);
     }
 
     void TerrainSceneDelegate::buildGeometry(engine::rhi::runtime::CommandList & cmd) {
@@ -428,8 +431,16 @@ namespace g_map {
                 _tileIdsDirty = true;
             }
 
+            auto & maps = _terrainMaps[tile.imageIndex];
+            if (maps.dirty[tileId] & TerrainMaps::DirtyFlags::eNormals) {
+                //...
+                maps.dirty[tileId].disable(TerrainMaps::DirtyFlags::eNormals);
+            }
+            
             ++_tmpTilesCount;
         }
+
+        // dispatch
     }
 
     void TerrainSceneDelegate::drawSame(engine::scene::AttachmentsIterator begin, engine::scene::AttachmentsIterator end,

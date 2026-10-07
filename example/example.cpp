@@ -54,6 +54,8 @@
 #include "engine/src/stl/vector.h"
 #include "engine/src/stl/unordered_map.h"
 
+#include "engine/src/common/flags.h"
+
 #include "map/tile_id.h"
 #include "map/geography.h"
 #include "map/vector_tile_parser.h"
