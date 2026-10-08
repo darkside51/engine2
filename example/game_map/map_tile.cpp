@@ -387,17 +387,17 @@ namespace g_map {
         const engine::scene::CustomSceneObject & object0, 
         const engine::scene::CustomSceneObject & object1
     ) const noexcept {
-            const auto & tile0 = static_cast<const TerrainTile2 &>(object0.getImpl());
-            const auto & tile1 = static_cast<const TerrainTile2 &>(object1.getImpl());
-            
-            if (tile0.imageIndex != tile1.imageIndex) {
-                return tile0.imageIndex < tile1.imageIndex;
-            }
+        const auto & tile0 = static_cast<const TerrainTile2 &>(object0.getImpl());
+        const auto & tile1 = static_cast<const TerrainTile2 &>(object1.getImpl());
+        
+        if (tile0.imageIndex != tile1.imageIndex) {
+            return tile0.imageIndex < tile1.imageIndex;
+        }
 
-            const auto * p0 = object0.node->parent;
-            const auto * p1 = object1.node->parent;
+        const auto * p0 = object0.node->parent;
+        const auto * p1 = object1.node->parent;
 
-            return std::less<const engine::scene::Node*>{}(p0, p1);
+        return std::less<const engine::scene::Node*>{}(p0, p1);
     }
 
     void TerrainSceneDelegate::beginFrame(std::chrono::time_point<std::chrono::steady_clock> now) {
