@@ -1844,7 +1844,7 @@ namespace example {
 
         //
         scene->addCustomDelegate(&terrainSceneDelegate);
-        terrainSceneDelegate.buildBuffers(*_api, *_device, 256u, 256u);
+        terrainSceneDelegate.buildBuffers(*_api, *_device, 8u, 8u);
         terrain.emplace(terrainSceneDelegate, *scene, 8u, 8u);
 
         { // terrainSceneDelegate drawPipeline

@@ -214,8 +214,10 @@ namespace g_map {
 
 
     /////////////////////////
-    constexpr size_t kCellsInRow = 31u;
-    constexpr size_t kVerticesInRow = kCellsInRow + 1u;
+    constexpr uint32_t kCellsInRow = 31u;
+    constexpr uint32_t kVerticesInRow = kCellsInRow + 1u;
+    constexpr uint32_t kTileSize = 32u;
+    constexpr float kTileScale = static_cast<float>(kTileSize) / kCellsInRow; // scale up the tile so that it occupies a 32x32 area with 31x31 cells
     
     Terrain::Terrain(TerrainSceneDelegate & sceneDelegate, engine::scene::Scene & scene, uint8_t w, uint8_t h) :
     _scene(scene),
@@ -228,8 +230,8 @@ namespace g_map {
         _terrainNode->setPivot({terrainW * 0.5f, terrainH * 0.5f, 0.0f}); // center of tile        
         _terrainNode->setBounds(
             engine::scene::Bounds::createCube(
-                engine::vec3f{terrainW, terrainH, -static_cast<float>(kCellsInRow) * 0.5f}, 
-                engine::vec3f{0.0f, 0.0f, static_cast<float>(kCellsInRow) * 0.5f}
+                engine::vec3f{terrainW, terrainH, -static_cast<float>(kTileSize) * 0.5f}, 
+                engine::vec3f{0.0f, 0.0f, static_cast<float>(kTileSize) * 0.5f}
             )
         );
 
@@ -242,12 +244,12 @@ namespace g_map {
                 tile.y = i;
                 
                 auto * tileNode = scene.createNode();
-                tileNode->setPosition({j * kCellsInRow, i * kCellsInRow, 0.0f});
+                tileNode->setPosition({j * kTileSize, i * kTileSize, 0.0f});
 
                 tileNode->setBounds(
                     engine::scene::Bounds::createCube(
-                        engine::vec3f{kCellsInRow, kCellsInRow, -static_cast<float>(kCellsInRow) * 0.5f}, 
-                        engine::vec3f{0.0f, 0.0f, static_cast<float>(kCellsInRow) * 0.5f}
+                        engine::vec3f{kTileSize, kTileSize, -static_cast<float>(kTileSize) * 0.5f}, 
+                        engine::vec3f{0.0f, 0.0f, static_cast<float>(kTileSize) * 0.5f}
                     )
                 );
 
@@ -276,11 +278,12 @@ namespace g_map {
     }
 
     void TerrainSceneDelegate::buildBuffers(engine::rhi::runtime::Rhi & api, engine::rhi::runtime::Device & device,
-        uint16_t mapImageWidth, uint16_t mapImageHeight) {
+        uint16_t mapTilesWidth, uint16_t mapTilesHeight) {
         using namespace engine;
         using namespace engine::rhi;
 
-        _mapImageMaxSize = std::max(mapImageWidth, mapImageHeight);
+        const auto mapImageWidth = mapTilesWidth * kTileSize;
+        const auto mapImageHeight = mapTilesHeight * kTileSize;
 
         const BufferInfo vBufferInfo {
             BufferUsageFlags::eVertex_Buffer | BufferUsageFlags::eStorage_Buffer | BufferUsageFlags::eTransfer_Dst,
@@ -298,13 +301,13 @@ namespace g_map {
         };
 
         const ImageInfo normalsImageInfo{
-            engine::rhi::ImageUsageFlags::eStorage | engine::rhi::ImageUsageFlags::eSampled,
-            engine::rhi::Format::eR8G8B8A8_Snorm, {mapImageWidth, mapImageHeight, 1u}
+            ImageUsageFlags::eStorage | ImageUsageFlags::eSampled,
+            Format::eR8G8B8A8_Snorm, {mapImageWidth, mapImageHeight, 1u}
         };
 
         const ImageInfo heightsImageInfo{
-            engine::rhi::ImageUsageFlags::eStorage | engine::rhi::ImageUsageFlags::eSampled,
-            engine::rhi::Format::eR16_Sfloat, {mapImageWidth, mapImageHeight, 1u}
+            ImageUsageFlags::eTransfer_Dst | ImageUsageFlags::eStorage | ImageUsageFlags::eSampled,
+            Format::eR16_Sfloat, {mapImageWidth, mapImageHeight, 1u}
         };
 
         const size_t vBufferSize = kVerticesInRow * kVerticesInRow * sizeof(Vertex);
@@ -336,7 +339,7 @@ namespace g_map {
             for (size_t i = 0u; i < kVerticesInRow; ++i) {
                 for (size_t j = 0u; j < kVerticesInRow; ++j) {
                     verticeView[i * kVerticesInRow + j] = {
-                        .position = {static_cast<float>(j), static_cast<float>(i)}
+                        .position = {static_cast<float>(j) * kTileScale, static_cast<float>(i) * kTileScale}
                     };
                 }
             }
@@ -373,6 +376,11 @@ namespace g_map {
             }
             cmd.updateBuffer(_tileCommonIndices, 0u, std::move(indices));
         }
+    }
+
+    void TerrainSceneDelegate::uploadHeightData(engine::rhi::runtime::CommandListPtr & commandList, engine::rhi::Format format,
+        uint8_t mapIdx, engine::stl::span<std::byte> bytes, engine::vec2u xy, engine::vec2u size) {
+        // ...
     }
 
     bool TerrainSceneDelegate::compare(
@@ -428,7 +436,7 @@ namespace g_map {
         uint8_t imageId, uint16_t offset, uint16_t count, uint8_t tileInRaw) {
         using namespace engine;
 
-        constexpr uint16_t kTileLocalGroupSize = 32u;
+        constexpr uint16_t kTileLocalGroupSize = kTileSize;
         const auto verticesCount = kVerticesInRow * count; 
         const auto groupX = div_ceil(verticesCount, kTileLocalGroupSize);
         const auto groupY = div_ceil(verticesCount, kTileLocalGroupSize);
@@ -554,7 +562,7 @@ namespace g_map {
             Uniform uniform{
                 .model = terrainNode.getWorldTransform(),
                 .instanceOffset = instanceOffset,
-                .tileSize = static_cast<uint32_t>(_mapImageMaxSize) / static_cast<uint32_t>(tile.terrainRowWidth) - 1u,
+                .tileSize = kTileSize,
                 .width = tile.terrainRowWidth,
             };
 

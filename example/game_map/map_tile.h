@@ -6,8 +6,10 @@
 #include "engine/src/graphics/scene/node.h"
 #include "engine/src/math/math.h"
 #include "engine/src/stl/array.h"
+#include "engine/src/stl/span.h"
 #include "engine/src/stl/vector.h"
 
+#include <cstddef>
 #include <cstdint>
 
 namespace g_map {
@@ -162,7 +164,7 @@ public:
     void destroy() noexcept;
 
     void buildBuffers(engine::rhi::runtime::Rhi & api, engine::rhi::runtime::Device & device, 
-        uint16_t mapImageWidth, uint16_t mapImageHeight);
+        uint16_t mapTilesWidth, uint16_t mapTilesHeight);
     void buildGeometry(engine::rhi::runtime::CommandList & cmd);
 
     void setPipeline(engine::rhi::runtime::Pipeline * p, PipelineId pid) noexcept {
@@ -190,6 +192,9 @@ public:
         const engine::scene::Scene & scene, const engine::scene::ViewParams & viewParams, engine::scene::RenderPass pass, 
         engine::rhi::runtime::CommandListPtr & commandList, uint8_t frame) override;
 
+    void uploadHeightData(engine::rhi::runtime::CommandListPtr & commandList, engine::rhi::Format format, 
+        uint8_t mapIdx, engine::stl::span<std::byte> bytes, engine::vec2u xy, engine::vec2u size);
+
     const TerrainMaps & getMaps(uint8_t idx) const noexcept {
         return _terrainMaps[idx];
     }
@@ -211,7 +216,6 @@ private:
     engine::stl::array<TerrainMaps, 16u> _terrainMaps; // 4 x 4 maps maximum
     engine::stl::vector<uint16_t> _visibleTileIds;
     engine::stl::vector<uint16_t> _dirtyNormalTileIds;
-    uint16_t _mapImageMaxSize = 0u;
     uint16_t _tmpTilesCount = 0u;
     uint16_t _tmpDirtyNormalTilesCount = 0u;
     bool _tileIdsDirty = false;
