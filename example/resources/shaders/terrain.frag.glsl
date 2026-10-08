@@ -2,16 +2,16 @@
 
 #include "common"
 
-layout (location = 0) in vec2 v_tileUv;
-layout (location = 1) in vec2 v_globalUv;
+layout(location = 0) in vec2 v_tileUv;
+layout(location = 1) in vec2 v_globalUv;
 
-layout (location = 0) out float out_position;
-layout (location = 1) out vec4 out_normal;
-layout (location = 2) out vec4 out_albedo;
-layout (location = 3) out vec4 out_emissive;
-layout (location = 4) out vec2 out_metalicRoughness;
+layout(location = 0) out float out_position;
+layout(location = 1) out vec4 out_normal;
+layout(location = 2) out vec4 out_albedo;
+layout(location = 3) out vec4 out_emissive;
+layout(location = 4) out vec2 out_metalicRoughness;
 
-layout (set = 0, binding = 0) uniform UniformBuffer {
+layout(set = 0, binding = 0) uniform UniformBuffer {
 	mat4 view;
 	mat4 projection;
 	mat4 viewProjection;
@@ -22,9 +22,8 @@ layout (set = 0, binding = 0) uniform UniformBuffer {
 	float time;
 } u_viewParams;
 
-
-layout(set = 0, binding = 2) uniform sampler2D u_colors;
 layout(set = 0, binding = 3) uniform sampler2D u_normals;
+layout(set = 0, binding = 4) uniform sampler2D u_colors;
 
 void main() {
 	const float depthLinear = linearDepth(gl_FragCoord.z, u_viewParams.nearFarPlanes.x, u_viewParams.nearFarPlanes.y);

@@ -571,8 +571,9 @@ namespace g_map {
                 auto const sceneViewParamBufferOffset = scene.getCurrentViewParamsBufferOffset();
                 commandList->bindBuffer(0u, scene.getViewParamsUniformBuffer(frame), 0u, sceneViewParamBufferOffset);
                 commandList->bindTexelBuffer(1u, _tileIDs, engine::rhi::Format::eR16_Uint, 0u);
-                commandList->bindImage(2u, gs.getTextureManager().getDefaultImage(), scene.getNearestSampler(), 0u);
+                commandList->bindImage(2u, maps.heights, std::nullopt, 0u);
                 commandList->bindImage(3u, maps.normals, scene.getLinearSampler(), 0u);
+                commandList->bindImage(4u, gs.getTextureManager().getDefaultImage(), scene.getNearestSampler(), 0u);
             }
 
             commandList->pushConstants(
