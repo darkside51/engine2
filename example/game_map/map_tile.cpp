@@ -12,6 +12,7 @@
 
 namespace g_map {
     constexpr uint16_t kMaxTileIds = 4096u;
+    constexpr size_t kFloat16Size = 2u;
 
     struct Vertex{
         engine::stl::array<float, 2u>(position);
@@ -271,6 +272,7 @@ namespace g_map {
         _tileCommonIndices = nullptr;
         _tileIDs = nullptr;
         _updateNormalTileIDs = nullptr;
+        _stagingBuffer = std::nullopt;
 
         for (auto & tm : _terrainMaps) {
             tm.clear();
@@ -309,6 +311,8 @@ namespace g_map {
             ImageUsageFlags::eTransfer_Dst | ImageUsageFlags::eStorage | ImageUsageFlags::eSampled,
             Format::eR16_Sfloat, {mapImageWidth, mapImageHeight, 1u}
         };
+
+        _stagingBuffer.emplace(api, device, mapImageWidth * mapImageHeight * kFloat16Size);
 
         const size_t vBufferSize = kVerticesInRow * kVerticesInRow * sizeof(Vertex);
         const size_t iBufferSize = kCellsInRow * kCellsInRow * 6u * sizeof(uint16_t); // all cells count * 6u
@@ -378,9 +382,43 @@ namespace g_map {
         }
     }
 
-    void TerrainSceneDelegate::uploadHeightData(engine::rhi::runtime::CommandListPtr & commandList, engine::rhi::Format format,
-        uint8_t mapIdx, engine::stl::span<std::byte> bytes, engine::vec2u xy, engine::vec2u size) {
-        // ...
+    void TerrainSceneDelegate::uploadHeightData(engine::rhi::runtime::CommandList & commandList, engine::rhi::Format format,
+        uint8_t mapIdx, engine::stl::span<const std::byte> bytes, engine::vec2u xy, engine::vec2u size) {
+        if (!_stagingBuffer.has_value()) {
+            return;
+        }
+
+        auto & staging = *_stagingBuffer;
+        std::byte * memory = staging.map();
+        const auto offset = staging.requestBytes(size.x * size.y * kFloat16Size);
+        auto * dst = reinterpret_cast<uint16_t*>(memory + offset);
+        // copy data
+        const uint32_t pixelsCount = size.x * size.y;
+        for (uint32_t i = 0; i < pixelsCount; ++i) {
+            uint32_t srcByteId = i * 4u; // format depended
+            // const uint32_t value = static_cast<uint32_t>(bytes[srcByteId + 0u]) << 24u |
+            //                        static_cast<uint32_t>(bytes[srcByteId + 1u]) << 16u |
+            //                        static_cast<uint32_t>(bytes[srcByteId + 2u]) << 8u |
+            //                        static_cast<uint32_t>(bytes[srcByteId + 3u]) << 0u;
+
+            const float value = static_cast<float>(bytes[srcByteId + 0u]) / 4.0f;
+            dst[i] = engine::toFloat16(value);
+        }
+        //
+        
+        auto & maps = _terrainMaps[mapIdx];
+
+        commandList.copyBuffer2Image(
+            staging.getBuffer(), maps.heights, 
+            {
+                .bufferOffset = offset,
+                .bufferRowLength = 0u,
+                .bufferImageHeight = 0u,
+                .imageSubresource = {.aspectMask = engine::rhi::ImageAspectFlags::eColor},
+                .imageOffset = {static_cast<int32_t>(xy.x), static_cast<int32_t>(xy.y), 0},
+                .imageExtent = {size.x, size.y, 1u}
+            }
+        );
     }
 
     bool TerrainSceneDelegate::compare(
@@ -411,6 +449,10 @@ namespace g_map {
         engine::rhi::runtime::CommandListPtr & commandList, 
         engine::rhi::runtime::CommandListPtr & transferCommandList, 
         uint8_t frame) {
+
+        if (_stagingBuffer.has_value()) {
+            _stagingBuffer->flush();
+        }
 
         const auto targetSize = _tmpTilesCount * 2u;
         if (_visibleTileIds.size() > targetSize) {
@@ -559,7 +601,7 @@ namespace g_map {
             const auto & tile = static_cast<const TerrainTile2 &>(object.getImpl());
             const auto & terrainNode = *object.node->parent;
 
-            Uniform uniform{
+            Uniform uniform {
                 .model = terrainNode.getWorldTransform(),
                 .instanceOffset = instanceOffset,
                 .tileSize = kTileSize,

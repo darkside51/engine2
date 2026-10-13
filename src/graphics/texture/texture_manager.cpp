@@ -46,12 +46,12 @@ namespace engine::graphics {
         _transparentImage = _api.createImage(_device, imageInfo1);
 
 
-        auto & handler = _images.emplace_back(rhi::runtime::sh_ptr<engine::graphics::ImageHandler>::make(_defaultImage));
+        auto & handler = _images.emplace_back(rhi::runtime::sh_ptr<ImageHandler>::make(_defaultImage));
         _defaultFrame = {handler.get(), {}};
 
-        _images.emplace_back(rhi::runtime::sh_ptr<engine::graphics::ImageHandler>::make(_whiteImage));
-        _images.emplace_back(rhi::runtime::sh_ptr<engine::graphics::ImageHandler>::make(_blackImage));
-        _images.emplace_back(rhi::runtime::sh_ptr<engine::graphics::ImageHandler>::make(_transparentImage));
+        _images.emplace_back(rhi::runtime::sh_ptr<ImageHandler>::make(_whiteImage));
+        _images.emplace_back(rhi::runtime::sh_ptr<ImageHandler>::make(_blackImage));
+        _images.emplace_back(rhi::runtime::sh_ptr<ImageHandler>::make(_transparentImage));
 
         constexpr auto stagingSize = sizeof(uint32_t) * 4u + 
                                      sizeof(uint32_t) * 1u + 
@@ -154,7 +154,7 @@ namespace engine::graphics {
         _defaultCubeMapImage = generateImage(Format::eR8G8B8A8_Unorm, {1u, 1u, 1u}, TextureFlags::eNone, layers, 
             rhi::ImageCreateFlags::eCube_Compatible, *commandList);
 
-        _images.emplace_back(rhi::runtime::sh_ptr<engine::graphics::ImageHandler>::make(_defaultCubeMapImage));
+        _images.emplace_back(rhi::runtime::sh_ptr<ImageHandler>::make(_defaultCubeMapImage));
     }
 
     const ImageFrame2D & TextureManager::addFrame(std::string_view name, TextureCreateInfo && info, const Frame2D & frame) {
@@ -178,7 +178,7 @@ namespace engine::graphics {
         if (image) {
             auto it = _imagesSet.find(image.get());
             if (it == _imagesSet.end()) {
-                handler = _images.emplace_back(rhi::runtime::sh_ptr<engine::graphics::ImageHandler>::make(image)).get();
+                handler = _images.emplace_back(rhi::runtime::sh_ptr<ImageHandler>::make(image)).get();
                 _imagesSet.emplace(handler, 1u);
             } else {
                 ++const_cast<ImageHolder&>(*it).count;
@@ -203,14 +203,14 @@ namespace engine::graphics {
         if (image) {
             auto it = _imagesSet.find(image.get());
             if (it == _imagesSet.end()) {
-                handler = _images.emplace_back(rhi::runtime::sh_ptr<engine::graphics::ImageHandler>::make(image)).get();
+                handler = _images.emplace_back(rhi::runtime::sh_ptr<ImageHandler>::make(image)).get();
                 _imagesSet.emplace(handler, 1u);
             } else {
                 ++const_cast<ImageHolder&>(*it).count;
                 handler = it->image;
             }
         } else {
-            handler = _images.emplace_back(rhi::runtime::sh_ptr<engine::graphics::ImageHandler>::make(_defaultImage)).get();
+            handler = _images.emplace_back(rhi::runtime::sh_ptr<ImageHandler>::make(_defaultImage)).get();
             _imagesSet.emplace(handler, 1u);
         }
 
@@ -227,7 +227,7 @@ namespace engine::graphics {
         ImageHandler * handler = nullptr;
         auto it = _imagesSet.find(image.get());
         if (it == _imagesSet.end()) {
-            handler = _images.emplace_back(rhi::runtime::sh_ptr<engine::graphics::ImageHandler>::make(image)).get();
+            handler = _images.emplace_back(rhi::runtime::sh_ptr<ImageHandler>::make(image)).get();
             it = _imagesSet.emplace(handler, 0u).first;
         } else {
             handler = it->image;
@@ -382,7 +382,7 @@ namespace engine::graphics {
             }
         }
         
-        engine::graphics::StagingBuffer staging{_api, _device, stagingSize}; // use general InflightStagingBuffer ?
+        StagingBuffer staging{_api, _device, stagingSize}; // use general InflightStagingBuffer ?
 
         auto * memory = staging.map();
         const auto readyMipLevels = layersData[0u].size();

@@ -63,10 +63,16 @@ namespace engine {
         return { normal.x, normal.y, normal.z, -glm::dot(normal, point) };
     }
 
-     inline float lenFromPointToLine(const vec3f & begin, const vec3f & end, const vec3f & p) noexcept {
+    inline float lenFromPointToLine(const vec3f & begin, const vec3f & end, const vec3f & p) noexcept {
         const vec3f direction = glm::normalize(end - begin);
         const vec3f directionToVec = p - begin;
         return glm::length(glm::cross(direction, directionToVec));
+    }
+
+    inline float len2FromPointToLine(const vec3f & begin, const vec3f & end, const vec3f & p) noexcept {
+        const vec3f direction = glm::normalize(end - begin);
+        const vec3f directionToVec = p - begin;
+        return glm::length2(glm::cross(direction, directionToVec));
     }
 
     inline float lenFromPointToPlane(const vec4f & plane, const vec3f & p) noexcept {

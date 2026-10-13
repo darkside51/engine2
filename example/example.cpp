@@ -2375,6 +2375,15 @@ namespace example {
         //
         terrainSceneDelegate.buildGeometry(*tmpCommandList);
 
+        {
+            const auto imageBytes = fileManager.readFile("assets/heightmap_part256.png");
+            const auto textureData = engine::graphics::parseTextureData(imageBytes, {});
+
+            terrainSceneDelegate.uploadHeightData(*tmpCommandList, textureData.metaInfo.format, 0u, 
+                textureData.data[0u], {0u, 0u}, {256u, 256u});
+
+        }
+
         tmpCommandList->end();
         tmpCommandList->record(0u);
 

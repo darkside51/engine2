@@ -24,6 +24,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/matrix_decompose.hpp>
 #include <glm/gtx/norm.hpp>
+#include <glm/gtc/packing.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
@@ -128,6 +129,10 @@ namespace engine {
     inline static const vec2f emptyVec2     = vec2f(0.0f, 0.0f);
     inline static const vec3f emptyVec3     = vec3f(0.0f, 0.0f, 0.0f);
     inline static const vec3f unitVec3      = vec3f(1.0f, 1.0f, 1.0f);
+
+    inline constexpr uint16_t toFloat16(float value) noexcept {
+        return glm::packHalf1x16(value);
+    }
 
     template <typename T>
     inline mat4<T> make_matrix(T scale) noexcept {

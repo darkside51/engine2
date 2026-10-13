@@ -4,6 +4,7 @@
 #include "engine/src/graphics/render/rhi/common/runtime.h"
 #include "engine/src/graphics/scene/objects/custom_object.h"
 #include "engine/src/graphics/scene/node.h"
+#include "graphics/render/staging_buffer.h"
 #include "engine/src/math/math.h"
 #include "engine/src/stl/array.h"
 #include "engine/src/stl/span.h"
@@ -11,6 +12,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 
 namespace g_map {
     
@@ -192,8 +194,8 @@ public:
         const engine::scene::Scene & scene, const engine::scene::ViewParams & viewParams, engine::scene::RenderPass pass, 
         engine::rhi::runtime::CommandListPtr & commandList, uint8_t frame) override;
 
-    void uploadHeightData(engine::rhi::runtime::CommandListPtr & commandList, engine::rhi::Format format, 
-        uint8_t mapIdx, engine::stl::span<std::byte> bytes, engine::vec2u xy, engine::vec2u size);
+    void uploadHeightData(engine::rhi::runtime::CommandList & commandList, engine::rhi::Format format, 
+        uint8_t mapIdx, engine::stl::span<const std::byte> bytes, engine::vec2u xy, engine::vec2u size);
 
     const TerrainMaps & getMaps(uint8_t idx) const noexcept {
         return _terrainMaps[idx];
@@ -212,6 +214,7 @@ private:
     engine::rhi::runtime::BufferPtr _tileCommonIndices = nullptr;
     engine::rhi::runtime::BufferPtr _tileIDs = nullptr;
     engine::rhi::runtime::BufferPtr _updateNormalTileIDs = nullptr;
+    std::optional<engine::graphics::StagingBuffer> _stagingBuffer = std::nullopt;
 
     engine::stl::array<TerrainMaps, 16u> _terrainMaps; // 4 x 4 maps maximum
     engine::stl::vector<uint16_t> _visibleTileIds;

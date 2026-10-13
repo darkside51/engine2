@@ -36,6 +36,6 @@ void main() {
 	v_globalUv = a_position + vec2(x, y);
 
  	const vec4 heightTexel = texelFetch(heights, ivec2(v_globalUv), 0);
-	vec4 worldPosition = push.model * vec4(a_position + vec2(x, y), heightTexel.x * push.tileSize, 1.0f);
+	vec4 worldPosition = push.model * vec4(a_position + vec2(x, y), heightTexel.x, 1.0f);
 	gl_Position = u_viewParams.viewProjection * worldPosition;
 }
