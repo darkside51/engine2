@@ -33,7 +33,7 @@ void main() {
 	const float x = float(texel & (push.width - 1u)) * push.tileSize; // texel % w for pow2
 
 	v_tileUv = a_position / push.tileSize;
-	v_globalUv = clamp(a_position + vec2(x, y), 0.0, 255.0f);
+	v_globalUv = clamp(a_position + vec2(x, y), 0.0f, float(push.width * push.tileSize - 1u));
 
  	const vec4 heightTexel = texelFetch(heights, ivec2(v_globalUv), 0);
 	vec4 worldPosition = push.model * vec4(a_position + vec2(x, y), heightTexel.x, 1.0f);
