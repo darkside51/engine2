@@ -11,6 +11,7 @@ layout(push_constant, std430) uniform Transform {
 	uint instanceOffset;
 	uint tileSize;
 	uint width;
+	uint tileUvSize;
 } push;
 
 layout(set = 0, binding = 0) uniform UniformBuffer {
@@ -32,7 +33,7 @@ void main() {
 	const float y = float(texel / push.width) * push.tileSize;
 	const float x = float(texel & (push.width - 1u)) * push.tileSize; // texel % w for pow2
 
-	v_tileUv = a_position / push.tileSize;
+	v_tileUv = a_position * push.tileUvSize / push.tileSize;
 	v_globalUv = clamp(a_position + vec2(x, y), 0.0f, float(push.width * push.tileSize - 1u));
 
  	const vec4 heightTexel = texelFetch(heights, ivec2(v_globalUv), 0);

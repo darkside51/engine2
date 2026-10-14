@@ -30,13 +30,13 @@ void main() {
    }
 
    const vec2 texelSize = 1.0f / vec2(texSize);
-   const vec2 uv = (vec2(texCoord) + 0.5f) * texelSize;
+   const vec2 uv = vec2(texCoord) * texelSize;
 
-   const float hCenter  = texture(heights, uv).r;
-   const float hLeft  = texCoord.x > 0 ? textureOffset(heights, uv, ivec2(-1,  0)).r : hCenter;
+   const float hCenter = texture(heights, (vec2(texCoord) + 0.5f) * texelSize).r;
+   const float hLeft  = texCoord.x > 1 ? textureOffset(heights, uv, ivec2(-1,  0)).r : hCenter;
    const float hRight = texCoord.x < texSize.x - 1 ? textureOffset(heights, uv, ivec2( 1,  0)).r : hCenter;
-   const float hDown  = texCoord.y > 0 ? textureOffset(heights, uv, ivec2( 0, -1)).r : hCenter;
-   const float hUp    = texCoord.y < texSize.y - 1 ?textureOffset(heights, uv, ivec2( 0,  1)).r : hCenter;
+   const float hDown  = texCoord.y > 1 ? textureOffset(heights, uv, ivec2( 0, -1)).r : hCenter;
+   const float hUp    = texCoord.y < texSize.y - 1 ? textureOffset(heights, uv, ivec2( 0,  1)).r : hCenter;
    
    const vec3 tangent   = vec3(2.0f * cellSize, 0.0f, hRight - hLeft);
    const vec3 bitangent = vec3(0.0f, 2.0f * cellSize, hUp - hDown);

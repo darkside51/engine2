@@ -12,6 +12,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <limits>
 #include <optional>
 
 namespace g_map {
@@ -137,14 +138,21 @@ public:
             eSplat = 3u
         };
 
+        struct HeightBounds {
+            int16_t min = std::numeric_limits<int16_t>::max();
+            int16_t max = std::numeric_limits<int16_t>::lowest();
+        };
+
         engine::rhi::runtime::ImagePtr heights = nullptr;
         engine::rhi::runtime::ImagePtr normals = nullptr;
         engine::rhi::runtime::ImagePtr splatMap = nullptr;
 
         engine::stl::vector<engine::Flags<DirtyFlags>> dirty;
+        engine::stl::vector<HeightBounds> heightBounds;
 
         void initFlags(uint16_t size, DirtyFlags value) {
             dirty.resize(size);
+            heightBounds.resize(size);
             for (auto & d : dirty) {
                 d = value;
             }
@@ -221,6 +229,10 @@ private:
     engine::stl::vector<uint16_t> _dirtyNormalTileIds;
     uint16_t _tmpTilesCount = 0u;
     uint16_t _tmpDirtyNormalTilesCount = 0u;
+
+    uint16_t _tilesW = 0u;
+    uint16_t _tilesH = 0u;
+
     bool _tileIdsDirty = false;
     bool _hasDirtyNormals = false;
 };

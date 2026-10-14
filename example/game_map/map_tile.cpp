@@ -284,6 +284,9 @@ namespace g_map {
         using namespace engine;
         using namespace engine::rhi;
 
+        _tilesW = mapTilesWidth;
+        _tilesH = mapTilesHeight;
+
         const auto mapImageWidth = mapTilesWidth * kTileSize;
         const auto mapImageHeight = mapTilesHeight * kTileSize;
 
@@ -384,37 +387,53 @@ namespace g_map {
 
     void TerrainSceneDelegate::uploadHeightData(engine::rhi::runtime::CommandList & commandList, engine::rhi::Format format,
         uint8_t mapIdx, engine::stl::span<const std::byte> bytes, engine::vec2u xy, engine::vec2u size) {
+        using namespace engine;
         if (!_stagingBuffer.has_value()) {
             return;
         }
+
+        auto & maps = _terrainMaps[mapIdx];
+        const auto startTile = xy / vec2u{kTileSize};
+        const auto finishTile = (xy + size) / vec2u{kTileSize};
 
         auto & staging = *_stagingBuffer;
         std::byte * memory = staging.map();
         const auto offset = staging.requestBytes(size.x * size.y * kFloat16Size);
         auto * dst = reinterpret_cast<uint16_t*>(memory + offset);
-        // copy data
         const uint32_t pixelsCount = size.x * size.y;
-        for (uint32_t i = 0; i < pixelsCount; ++i) {
+
+        for (uint32_t i = 0u; i < pixelsCount; ++i) {
             uint32_t srcByteId = i * 4u; // format depended
-            // const uint32_t value = static_cast<uint32_t>(bytes[srcByteId + 0u]) << 24u |
-            //                        static_cast<uint32_t>(bytes[srcByteId + 1u]) << 16u |
-            //                        static_cast<uint32_t>(bytes[srcByteId + 2u]) << 8u |
-            //                        static_cast<uint32_t>(bytes[srcByteId + 3u]) << 0u;
+            const float value = static_cast<float>(bytes[srcByteId + 0u]) * 0.25f;
+            // const float value = (static_cast<float>(bytes[srcByteId + 0u]) +
+            //                      static_cast<float>(bytes[srcByteId + 1u]) +
+            //                      static_cast<float>(bytes[srcByteId + 2u]) +
+            //                      static_cast<float>(bytes[srcByteId + 3u]));
+            
+            dst[i] = toFloat16(value);
 
-            const float value = static_cast<float>(bytes[srcByteId + 0u]) / 4.0f;
-            dst[i] = engine::toFloat16(value);
+            { // flags and heights
+                const uint32_t x = i % size.x;
+                const uint32_t y = i / size.x;
+
+                const auto tileX = x / kTileSize;
+                const auto tileY = y / kTileSize;
+                const auto tileId = tileY * _tilesW + tileX;
+
+                const auto valuei = static_cast<int16_t>(value + 0.5f);
+                maps.heightBounds[tileId].min = std::min(maps.heightBounds[tileId].min, valuei);
+                maps.heightBounds[tileId].max = std::max(maps.heightBounds[tileId].max, valuei);
+                maps.dirty[tileId].enable(TerrainMaps::DirtyFlags::eNormals);
+            }
         }
-        //
         
-        auto & maps = _terrainMaps[mapIdx];
-
         commandList.copyBuffer2Image(
             staging.getBuffer(), maps.heights, 
             {
                 .bufferOffset = offset,
                 .bufferRowLength = 0u,
                 .bufferImageHeight = 0u,
-                .imageSubresource = {.aspectMask = engine::rhi::ImageAspectFlags::eColor},
+                .imageSubresource = {.aspectMask = rhi::ImageAspectFlags::eColor},
                 .imageOffset = {static_cast<int32_t>(xy.x), static_cast<int32_t>(xy.y), 0},
                 .imageExtent = {size.x, size.y, 1u}
             }
@@ -425,6 +444,7 @@ namespace g_map {
         const engine::scene::CustomSceneObject & object0, 
         const engine::scene::CustomSceneObject & object1
     ) const noexcept {
+        using namespace engine;
         const auto & tile0 = static_cast<const TerrainTile2 &>(object0.getImpl());
         const auto & tile1 = static_cast<const TerrainTile2 &>(object1.getImpl());
         
@@ -435,7 +455,7 @@ namespace g_map {
         const auto * p0 = object0.node->parent;
         const auto * p1 = object1.node->parent;
 
-        return std::less<const engine::scene::Node*>{}(p0, p1);
+        return std::less<const scene::Node*>{}(p0, p1);
     }
 
     void TerrainSceneDelegate::beginFrame(std::chrono::time_point<std::chrono::steady_clock> now) {
@@ -449,6 +469,7 @@ namespace g_map {
         engine::rhi::runtime::CommandListPtr & commandList, 
         engine::rhi::runtime::CommandListPtr & transferCommandList, 
         uint8_t frame) {
+        using namespace engine;
 
         if (_stagingBuffer.has_value()) {
             _stagingBuffer->flush();
@@ -463,12 +484,12 @@ namespace g_map {
         }
 
         if (_tileIdsDirty) {
-            const auto bufferUpdateDataSize = engine::align_value(_tmpTilesCount * sizeof(uint16_t), 4u);
+            const auto bufferUpdateDataSize = align_value(_tmpTilesCount * sizeof(uint16_t), 4u);
             assert(bufferUpdateDataSize <= kMaxTileIds * sizeof(uint16_t));
             transferCommandList->updateBuffer(_tileIDs, 0u, bufferUpdateDataSize, _visibleTileIds.data());
         }
         if (_hasDirtyNormals) {
-            const auto bufferUpdateDataSize = engine::align_value(_tmpDirtyNormalTilesCount * sizeof(uint16_t), 4u);
+            const auto bufferUpdateDataSize = align_value(_tmpDirtyNormalTilesCount * sizeof(uint16_t), 4u);
             assert(bufferUpdateDataSize <= kMaxTileIds * sizeof(uint16_t));
             transferCommandList->updateBuffer(_updateNormalTileIDs, 0u, bufferUpdateDataSize, _dirtyNormalTileIds.data());
         }
@@ -542,6 +563,14 @@ namespace g_map {
             ++_tmpDirtyNormalTilesCount;
             dispatchNormalsCounter = 1u;
             hasDirtyNormals = true;
+
+            const auto & [minH, maxH] = maps->heightBounds[tileId];
+            object.node->setBounds(
+                engine::scene::Bounds::createCube(
+                    engine::vec3f{kTileSize, kTileSize, minH}, 
+                    engine::vec3f{0.0f, 0.0f, maxH}
+                )
+            );
         }
 
         for (auto it = begin + 1; it != end; ++it) {    
@@ -567,6 +596,14 @@ namespace g_map {
                 ++_tmpDirtyNormalTilesCount;
                 ++dispatchNormalsCounter;
                 hasDirtyNormals = true;
+
+                const auto & [minH, maxH] = maps->heightBounds[tileId];
+                object.node->setBounds(
+                    engine::scene::Bounds::createCube(
+                        engine::vec3f{kTileSize, kTileSize, minH}, 
+                        engine::vec3f{0.0f, 0.0f, maxH}
+                    )
+                );
             }
 
             ++_tmpTilesCount;
@@ -590,6 +627,7 @@ namespace g_map {
                 uint32_t instanceOffset;
                 uint32_t tileSize;
                 uint32_t width;
+                uint32_t tileUvSize;
             };
 
             const auto & gs = scene.getGraphicsService();
@@ -606,6 +644,7 @@ namespace g_map {
                 .instanceOffset = instanceOffset,
                 .tileSize = kTileSize,
                 .width = tile.terrainRowWidth,
+                .tileUvSize = 8u
             };
 
             if (commandList->bindPipeline(*pipeline)) {
@@ -620,7 +659,7 @@ namespace g_map {
 
             commandList->pushConstants(
                 engine::rhi::shaders::Stages::eVertex, 
-                0u, 76u, &uniform
+                0u, sizeof(Uniform), &uniform
             );
 
             commandList->bindVertexBuffer(0u, _tileCommonVertices);
