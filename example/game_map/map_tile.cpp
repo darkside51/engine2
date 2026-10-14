@@ -5,10 +5,12 @@
 #include "graphics/render/rhi/common/command_list.h"
 #include "graphics/scene/scene.h"
 #include "graphics/texture/texture_manager.h"
+#include "graphics/utils/vertex_processing.h"
 #include "stl/array.h"
 #include "stl/vector.h"
 
 #include <cstddef>
+#include <limits>
 
 namespace g_map {
     constexpr uint16_t kMaxTileIds = 4096u;
@@ -249,8 +251,8 @@ namespace g_map {
 
                 tileNode->setBounds(
                     engine::scene::Bounds::createCube(
-                        engine::vec3f{kTileSize, kTileSize, -static_cast<float>(kTileSize) * 0.5f}, 
-                        engine::vec3f{0.0f, 0.0f, static_cast<float>(kTileSize) * 0.5f}
+                        engine::vec3f{kTileSize, kTileSize, 0.0f}, 
+                        engine::vec3f{0.0f, 0.0f, 0.0f}
                     )
                 );
 
@@ -283,9 +285,6 @@ namespace g_map {
         uint16_t mapTilesWidth, uint16_t mapTilesHeight) {
         using namespace engine;
         using namespace engine::rhi;
-
-        _tilesW = mapTilesWidth;
-        _tilesH = mapTilesHeight;
 
         const auto mapImageWidth = mapTilesWidth * kTileSize;
         const auto mapImageHeight = mapTilesHeight * kTileSize;
@@ -393,45 +392,59 @@ namespace g_map {
         }
 
         auto & maps = _terrainMaps[mapIdx];
+        const auto textureWidth = maps.normals->getInfo().extent.width;
+        const auto tilesW = textureWidth / kTileSize;
+
         const auto startTile = xy / vec2u{kTileSize};
         const auto finishTile = (xy + size) / vec2u{kTileSize};
 
-        auto & staging = *_stagingBuffer;
-        std::byte * memory = staging.map();
-        const auto offset = staging.requestBytes(size.x * size.y * kFloat16Size);
-        auto * dst = reinterpret_cast<uint16_t*>(memory + offset);
-        const uint32_t pixelsCount = size.x * size.y;
-
-        for (uint32_t i = 0u; i < pixelsCount; ++i) {
-            uint32_t srcByteId = i * 4u; // format depended
-            const float value = static_cast<float>(bytes[srcByteId + 0u]) * 0.25f;
-            // const float value = (static_cast<float>(bytes[srcByteId + 0u]) +
-            //                      static_cast<float>(bytes[srcByteId + 1u]) +
-            //                      static_cast<float>(bytes[srcByteId + 2u]) +
-            //                      static_cast<float>(bytes[srcByteId + 3u]));
-            
-            dst[i] = toFloat16(value);
-
-            { // flags and heights
-                const uint32_t x = i % size.x;
-                const uint32_t y = i / size.x;
-
-                const auto tileX = x / kTileSize;
-                const auto tileY = y / kTileSize;
-                const auto tileId = tileY * _tilesW + tileX;
-
-                const auto valuei = static_cast<int16_t>(value + 0.5f);
-                maps.heightBounds[tileId].min = std::min(maps.heightBounds[tileId].min, valuei);
-                maps.heightBounds[tileId].max = std::max(maps.heightBounds[tileId].max, valuei);
-                maps.dirty[tileId].enable(TerrainMaps::DirtyFlags::eNormals);
+        for (auto y = startTile.y; y < finishTile.y; ++y) {
+            for (auto x = startTile.x; x < finishTile.x; ++x) {
+                const auto tileId = y * tilesW + x;
+                maps.heightBounds[tileId].min = std::numeric_limits<int16_t>::max();
+                maps.heightBounds[tileId].max = std::numeric_limits<int16_t>::lowest();
             }
         }
-        
+
+        const uint32_t pixelsCount = size.x * size.y;
+        auto & staging = *_stagingBuffer;
+        std::byte * memory = staging.map();
+        const auto offset = staging.requestBytes(pixelsCount * kFloat16Size);
+        auto * dst = reinterpret_cast<uint16_t*>(memory + offset);
+        constexpr float hScale = 0.25f;
+
+        for (uint32_t i = 0u; i < size.y; ++i) {
+            for (uint32_t j = 0u; j < size.x; ++j) {
+                const auto b = j + i * textureWidth;
+                uint32_t srcByteId = b * 4u; // format depended
+                const float value = static_cast<float>(bytes[srcByteId + 0u]) * hScale;
+                // const float value = (static_cast<float>(bytes[srcByteId + 0u]) +
+                //                 static_cast<float>(bytes[srcByteId + 1u]) +
+                //                 static_cast<float>(bytes[srcByteId + 2u]) +
+                //                 static_cast<float>(bytes[srcByteId + 3u])) * hScale;
+                dst[b] = graphics::float_to_uint16(value);
+
+                { // flags and heights
+                    const uint32_t x = j + xy.x;
+                    const uint32_t y = i + xy.y;
+
+                    const auto tileX = x / kTileSize;
+                    const auto tileY = y / kTileSize;
+                    const auto tileId = tileY * tilesW + tileX;
+
+                    const auto valuei = static_cast<int16_t>(value + 0.5f);
+                    maps.heightBounds[tileId].min = std::min(maps.heightBounds[tileId].min, valuei);
+                    maps.heightBounds[tileId].max = std::max(maps.heightBounds[tileId].max, valuei);
+                    maps.dirty[tileId].enable(TerrainMaps::DirtyFlags::eNormals);
+                }
+            }
+        }
+
         commandList.copyBuffer2Image(
             staging.getBuffer(), maps.heights, 
             {
                 .bufferOffset = offset,
-                .bufferRowLength = 0u,
+                .bufferRowLength = textureWidth,
                 .bufferImageHeight = 0u,
                 .imageSubresource = {.aspectMask = rhi::ImageAspectFlags::eColor},
                 .imageOffset = {static_cast<int32_t>(xy.x), static_cast<int32_t>(xy.y), 0},
@@ -644,7 +657,7 @@ namespace g_map {
                 .instanceOffset = instanceOffset,
                 .tileSize = kTileSize,
                 .width = tile.terrainRowWidth,
-                .tileUvSize = 8u
+                .tileUvSize = 16u
             };
 
             if (commandList->bindPipeline(*pipeline)) {
@@ -654,7 +667,7 @@ namespace g_map {
                 commandList->bindTexelBuffer(1u, _tileIDs, engine::rhi::Format::eR16_Uint, 0u);
                 commandList->bindImage(2u, maps.heights, std::nullopt, 0u);
                 commandList->bindImage(3u, maps.normals, scene.getLinearSampler(), 0u);
-                commandList->bindImage(4u, gs.getTextureManager().getDefaultImage(), scene.getNearestSampler(), 0u);
+                commandList->bindImage(4u, gs.getTextureManager().getWhiteImage(), scene.getLinearSampler(), 0u);
             }
 
             commandList->pushConstants(

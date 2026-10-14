@@ -1844,8 +1844,8 @@ namespace example {
 
         //
         scene->addCustomDelegate(&terrainSceneDelegate);
-        terrainSceneDelegate.buildBuffers(*_api, *_device, 8u, 8u);
-        terrain.emplace(terrainSceneDelegate, *scene, 8u, 8u);
+        terrainSceneDelegate.buildBuffers(*_api, *_device, 32u, 32u);
+        terrain.emplace(terrainSceneDelegate, *scene, 32u, 32u);
 
         { // terrainSceneDelegate drawPipeline
             { 
@@ -2376,11 +2376,11 @@ namespace example {
         terrainSceneDelegate.buildGeometry(*tmpCommandList);
 
         {
-            const auto imageBytes = fileManager.readFile("assets/heightmap_part256.png");
+            const auto imageBytes = fileManager.readFile("assets/heightmap2.png");
             const auto textureData = engine::graphics::parseTextureData(imageBytes, {});
 
             terrainSceneDelegate.uploadHeightData(*tmpCommandList, textureData.metaInfo.format, 0u, 
-                textureData.data[0u], {0u, 0u}, {256u, 256u});
+                textureData.data[0u], {0u, 0u}, {1024u, 1024u});
 
         }
 
@@ -2538,8 +2538,8 @@ namespace example {
 
                 //
                 auto * terrainNode = terrain->getNode();
-                terrainNode->setPosition({-28.0f, 0.0f, 1.7f});
-                terrainNode->setScale(0.1f);
+                terrainNode->setPosition({-50.0f, 0.0f, 0.7f});
+                terrainNode->setScale(0.05f);
                 sceneWorldRoot->addChild(terrainNode);
             }
 

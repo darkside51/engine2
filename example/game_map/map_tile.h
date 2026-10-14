@@ -12,7 +12,6 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <limits>
 #include <optional>
 
 namespace g_map {
@@ -139,8 +138,8 @@ public:
         };
 
         struct HeightBounds {
-            int16_t min = std::numeric_limits<int16_t>::max();
-            int16_t max = std::numeric_limits<int16_t>::lowest();
+            int16_t min = 0;
+            int16_t max = 0;
         };
 
         engine::rhi::runtime::ImagePtr heights = nullptr;
@@ -229,9 +228,6 @@ private:
     engine::stl::vector<uint16_t> _dirtyNormalTileIds;
     uint16_t _tmpTilesCount = 0u;
     uint16_t _tmpDirtyNormalTilesCount = 0u;
-
-    uint16_t _tilesW = 0u;
-    uint16_t _tilesH = 0u;
 
     bool _tileIdsDirty = false;
     bool _hasDirtyNormals = false;
