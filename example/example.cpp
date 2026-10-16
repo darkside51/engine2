@@ -2365,7 +2365,6 @@ namespace example {
         tmpCommandList->copyBuffer2Buffer(staging.getBuffer(), _postIndices, 
             {.srcOffset = idxOffset, .dstOffset = 0u, .size = _postIndices->sizeInBytes()});
         
-
         //
         terrainTile.buildGeometry(*tmpCommandList);
         terrainTile.setGraphicsPipeline(_pipelines[gTerrainPipeline].get());
