@@ -174,7 +174,6 @@ public:
 
     void buildBuffers(engine::rhi::runtime::Rhi & api, engine::rhi::runtime::Device & device, 
         uint16_t mapTilesWidth, uint16_t mapTilesHeight);
-    void buildGeometry(engine::rhi::runtime::CommandList & cmd);
 
     void setPipeline(engine::rhi::runtime::Pipeline * p, PipelineId pid) noexcept {
         _pipelines[static_cast<uint8_t>(pid)] = p;
@@ -209,6 +208,8 @@ public:
     }
 
 private:
+    void buildGeometry(engine::rhi::runtime::CommandList & cmd);
+
     void drawSame(engine::scene::AttachmentsIterator begin, engine::scene::AttachmentsIterator end, uint32_t instanceOffset,
         const engine::scene::Scene & scene, const engine::scene::ViewParams & viewParams, engine::scene::RenderPass pass, 
         engine::rhi::runtime::CommandList & commandList, uint8_t frame);
@@ -229,6 +230,7 @@ private:
     uint16_t _tmpTilesCount = 0u;
     uint16_t _tmpDirtyNormalTilesCount = 0u;
 
+    bool _dirtyGeometry = true;;
     bool _tileIdsDirty = false;
     bool _hasDirtyNormals = false;
 };

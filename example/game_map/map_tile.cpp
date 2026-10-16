@@ -13,9 +13,6 @@
 #include <limits>
 
 namespace g_map {
-    constexpr uint16_t kMaxTileIds = 4096u;
-    constexpr size_t kFloat16Size = 2u;
-
     struct Vertex{
         engine::stl::array<float, 2u>(position);
     };
@@ -217,8 +214,10 @@ namespace g_map {
 
 
     /////////////////////////
-    constexpr uint32_t kCellsInRow = 31u;
-    constexpr uint32_t kVerticesInRow = kCellsInRow + 1u;
+    constexpr uint16_t kMaxTileIds = 4096u;
+    constexpr size_t kFloat16Size = 2u;
+    constexpr uint32_t kVerticesInRow = 16u;
+    constexpr uint32_t kCellsInRow = kVerticesInRow - 1u;
     constexpr uint32_t kTileSize = 32u;
     constexpr float kTileScale = static_cast<float>(kTileSize) / kCellsInRow; // scale up the tile so that it occupies a 32x32 area with 31x31 cells
     
@@ -227,8 +226,8 @@ namespace g_map {
     _width(w),
     _height(h),
     _tiles(w * h) {
-        const auto terrainW = _width * kCellsInRow;
-        const auto terrainH = _height * kCellsInRow;
+        const auto terrainW = _width * kTileSize;
+        const auto terrainH = _height * kTileSize;
         _terrainNode = scene.createNode();
         _terrainNode->setPivot({terrainW * 0.5f, terrainH * 0.5f, 0.0f}); // center of tile        
         _terrainNode->setBounds(
@@ -382,6 +381,8 @@ namespace g_map {
             }
             cmd.updateBuffer(_tileCommonIndices, 0u, std::move(indices));
         }
+
+        _dirtyGeometry = false;
     }
 
     void TerrainSceneDelegate::uploadHeightData(engine::rhi::runtime::CommandList & commandList, engine::rhi::Format format,
@@ -484,6 +485,10 @@ namespace g_map {
         uint8_t frame) {
         using namespace engine;
 
+        if (_dirtyGeometry) { [[unlikely]]
+            buildGeometry(transferCommandList);
+        }
+
         if (_stagingBuffer.has_value()) {
             _stagingBuffer->flush();
         }
@@ -513,9 +518,9 @@ namespace g_map {
         using namespace engine;
 
         constexpr uint16_t kTileLocalGroupSize = kTileSize;
-        const auto verticesCount = kVerticesInRow * count; 
-        const auto groupX = div_ceil(verticesCount, kTileLocalGroupSize);
-        const auto groupY = div_ceil(verticesCount, kTileLocalGroupSize);
+        const auto pointsCount = kTileLocalGroupSize * count; 
+        const auto groupX = count;// == div_ceil(pointsCount, kTileLocalGroupSize);
+        const auto groupY = count;// == div_ceil(pointsCount, kTileLocalGroupSize);
 
         const auto & maps = _terrainMaps[imageId];
 

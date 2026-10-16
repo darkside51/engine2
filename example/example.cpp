@@ -2372,9 +2372,6 @@ namespace example {
         terrainTile.setComputeHeightPipeline(_pipelines[gTerrainComputePipeline].get());
         terrainTile.setComputeNormalsPipeline(_pipelines[gTerrainComputeNormalsPipeline].get());
 
-        //
-        terrainSceneDelegate.buildGeometry(*tmpCommandList);
-
         {
             const auto imageBytes = fileManager.readFile("assets/heightmap2.png");
             const auto textureData = engine::graphics::parseTextureData(imageBytes, {});
