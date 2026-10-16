@@ -15,15 +15,6 @@ public:
     virtual void onCameraChanged(const Camera & camera) = 0;
 };
 
-struct Ray {
-    vec3f begin;
-    vec3f end;
-    Ray(
-        float sx, float sy, float sz,
-        float fx, float fy, float fz
-    ) : begin(sx, sy, sz), end(fx, fy, fz) {}
-};
-
 enum class ProjectionType : uint8_t {
     eOrtho = 0u,
     ePerspective = 1u,
@@ -73,7 +64,7 @@ public:
 
     bool transformDirty() const noexcept { return _dirty->transform != 0u; }
     vec2f worldToScreen(const vec3f & p) const noexcept;
-    Ray screenToWorld(const vec2f & screenCoord) noexcept;
+    Interval<3u, float> screenToWorld(vec2f screenCoord) noexcept;
 
     bool calculateTransform() noexcept;
 

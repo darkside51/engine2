@@ -29,26 +29,33 @@
 #include <glm/gtc/type_ptr.hpp>
 
 #include <algorithm>
+#include <concepts>
 #include <cstdint>
 #include <cmath>
 #include <numbers>
 
 namespace engine {
     
+    template<typename T>
+    concept is_number = std::integral<T> || std::floating_point<T>;
+
     template <typename T>
     constexpr auto pi_v = std::numbers::pi_v<T>;
 
     constexpr auto pi = pi_v<float>;
     constexpr auto pi2 = pi / 2.0f;
 
-    template <typename T>
-    using vec2 = glm::vec<2, T, glm::defaultp>;
+    template <uint8_t d, typename T>
+    using vec = glm::vec<d, T, glm::defaultp>;
 
     template <typename T>
-    using vec3 = glm::vec<3, T, glm::defaultp>;
+    using vec2 = vec<2, T>;
 
     template <typename T>
-    using vec4 = glm::vec<4, T, glm::defaultp>;
+    using vec3 = vec<3, T>;
+
+    template <typename T>
+    using vec4 = vec<4, T>;
 
     template <typename T>
     using mat2 = glm::mat<2, 2, T, glm::defaultp>;
@@ -130,7 +137,7 @@ namespace engine {
     inline static const vec3f emptyVec3     = vec3f(0.0f, 0.0f, 0.0f);
     inline static const vec3f unitVec3      = vec3f(1.0f, 1.0f, 1.0f);
 
-    inline constexpr uint16_t toFloat16(float value) noexcept {
+    inline constexpr uint16_t to_float16(float value) noexcept {
         return glm::packHalf1x16(value);
     }
 
@@ -214,6 +221,47 @@ namespace engine {
         }
         return false;
     }
+
+    template <uint8_t d, is_number T = float>
+    struct Ray {
+        vec<d, T> origin;
+        vec<d, T> direction;
+    };
+
+    template<uint8_t d, is_number T = float>
+    struct Interval {
+        vec<d, T> begin;
+        vec<d, T> end;
+    };
+
+    using ray2f = Ray<2u, float>;
+    using ray3f = Ray<3u, float>;
+    using ray2d = Ray<2u, double>;
+    using ray3d = Ray<3u, double>;
+    using ray2i = Ray<2u, int32_t>;
+    using ray3i = Ray<3u, int32_t>;
+    using ray2u = Ray<2u, uint32_t>;
+    using ray3u = Ray<3u, uint32_t>;
+
+    inline vec2f worldToNdc(const mat4f & viewProjection, const vec3f & p) noexcept {
+		vec4f v = viewProjection * vec4f(p, 1.0f);
+		v /= v.w;
+		return v;
+	}
+
+	inline Interval<3u, float> ndcToWorld(const mat4f & invViewProjection, vec2f p) noexcept {
+		vec4f v{p.x, p.y, 0.0f, 1.0f};
+
+		vec4f sp = invViewProjection * v;
+		sp /= sp.w;
+
+		v.z = 1.0f;
+
+		vec4f fp = invViewProjection * v;
+		fp /= fp.w;
+
+		return {sp, fp};
+	}
 
     enum class RotationsOrder : uint8_t {
         eXYZ = 0u,

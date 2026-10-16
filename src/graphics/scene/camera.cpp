@@ -48,31 +48,11 @@ namespace engine::scene {
 	}
 
     vec2f Camera::worldToScreen(const vec3f & p) const noexcept {
-		vec4f v = _transform * vec4f(p, 1.0f);
-		v /= v.w;
-
-		v.x = (0.5f + v.x * 0.5f) * _size.x;
-		v.y = (0.5f + v.y * 0.5f) * _size.y;
-
-		return vec2f(v.x, v.y);
+		return (worldToNdc(_transform, p) * 0.5f + 0.5f) * _size;
 	}
 
-	Ray Camera::screenToWorld(const vec2f & screenCoord) noexcept {
-		vec4f v;
-		v.x = (((2.0f * screenCoord.x) / _size.x) - 1.0f);
-		v.y = (((2.0f * screenCoord.y) / _size.y) - 1.0f);
-		v.z = 0.0f;
-		v.w = 1.0f;
-
-		vec4f sp = getInvTransform() * v;
-		sp /= sp.w;
-
-		v.z = 1.0f;
-
-		vec4f fp = _inverseTransform * v;
-		fp /= fp.w;
-
-		return Ray(sp.x, sp.y, sp.z, fp.x, fp.y, fp.z);
+	Interval<3u, float> Camera::screenToWorld(vec2f screenCoord) noexcept {
+		return ndcToWorld(getInvTransform(), ((2.0f * screenCoord) / _size) - 1.0f);
 	}
 
     void Camera::setView(const mat4f & view) noexcept {
