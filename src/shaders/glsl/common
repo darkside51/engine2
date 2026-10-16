@@ -1,6 +1,18 @@
 #ifndef COMMON_HEADER
 #define COMMON_HEADER
 
+float length2(vec2 v) {
+    return dot(v, v);
+}
+
+float length2(vec3 v) {
+    return dot(v, v);
+}
+
+float length2(vec4 v) {
+    return dot(v, v);
+}
+
 float min3(vec3 v) {
 	return min(min(v.x, v.y), v.z);
 }
