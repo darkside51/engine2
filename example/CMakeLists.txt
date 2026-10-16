@@ -103,6 +103,7 @@ set(resources_src_dir "${CMAKE_CURRENT_SOURCE_DIR}/resources")
 if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
 	set(resources_dst_dir "${PROJECT_BINARY_DIR}/$<CONFIG>/resources")
 elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mavx2")
 	set(resources_dst_dir "${PROJECT_BINARY_DIR}/resources")
 endif()
 

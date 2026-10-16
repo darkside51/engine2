@@ -1,22 +1,21 @@
 #pragma once
 
 // glm options
+#define SIMD_MATH // has positive effect on scenes with a large number of objects
+
 #define GLM_FORCE_INLINE
 #define GLM_ENABLE_EXPERIMENTAL
 #define GLM_FORCE_CXX20
 #define GLM_FORCE_MESSAGES
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#define GLM_FORCE_XYZW_ONLY
-
-#define SIMD_MATH // has positive effect on scenes with a large number of objects
 
 #ifdef SIMD_MATH
 // glm options for enable vectorisation
 #define GLM_FORCE_INTRINSICS
-#define GLM_FORCE_ALIGNED
-#define GLM_FORCE_ALIGNED_GENTYPES
 #define GLM_FORCE_DEFAULT_ALIGNED_GENTYPES
 #undef GLM_FORCE_XYZW_ONLY // do not enable it - it will break SIMD.
+#else
+#define GLM_FORCE_XYZW_ONLY
 #endif
 // glm options
 

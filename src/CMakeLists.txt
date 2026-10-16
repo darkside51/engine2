@@ -26,6 +26,9 @@ if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
 	set(USE_GLFW ON)
 	set(VULKAN_AVAILABLE ON)
 elseif (CMAKE_SYSTEM_NAME STREQUAL "Linux")
+	# add_compile_options(-mavx2) ## use it?
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mavx2")
+
 	add_definitions(-DENGINE_PLATFORM_LINUX)
 	add_definitions(-DVK_USE_PLATFORM_XCB_KHR=1)
 	add_definitions(-DGLFW_EXPOSE_NATIVE_X11)
