@@ -248,7 +248,7 @@ namespace example {
 
         void draw(engine::scene::AttachmentsIterator begin, engine::scene::AttachmentsIterator end, 
             const engine::scene::Scene & scene, const engine::scene::ViewParams & viewParams, engine::scene::RenderPass pass, 
-            engine::rhi::runtime::CommandListPtr & commandList, uint8_t frame) override {
+            engine::rhi::runtime::CommandList & commandList, uint8_t frame) override {
             for (auto it = begin; it != end; ++it) { // dirty!!!
                 const auto & object = *static_cast<const engine::scene::CustomSceneObject*>(*it);
                 draw(object, scene, viewParams, pass, object.node->getWorldTransform(), commandList, frame);
@@ -258,7 +258,7 @@ namespace example {
         void draw(
             const engine::scene::CustomSceneObject & object, const engine::scene::Scene & scene, const engine::scene::ViewParams & viewParams, 
             engine::scene::RenderPass pass, const engine::mat4f & worldTransform, 
-            engine::rhi::runtime::CommandListPtr & commandList, uint8_t frameId
+            engine::rhi::runtime::CommandList & commandList, uint8_t frameId
         ) const {
             struct TileUniform {
                 engine::mat4f worldTransform;
@@ -292,35 +292,35 @@ namespace example {
                             pipeline = g_mapGeometryCommonAreaPipeline;
                         }
 
-                        if (commandList->bindPipeline(*pipeline)) {
-                            commandList->pushConstants(
+                        if (commandList.bindPipeline(*pipeline)) {
+                            commandList.pushConstants(
                                 engine::rhi::shaders::Stages::eVertex, 
                                 0u, sizeof(TileUniform), &uniform
                             );
-                            commandList->bindBuffer(0u, scene.getViewParamsUniformBuffer(frameId), 0u, sceneViewParamBufferOffset);
-                            commandList->bindImage(1u, _images[0u]->image, sampler, 0u);
-                            commandList->bindImage(2u, _images[1u]->image, sampler, 0u, 
+                            commandList.bindBuffer(0u, scene.getViewParamsUniformBuffer(frameId), 0u, sceneViewParamBufferOffset);
+                            commandList.bindImage(1u, _images[0u]->image, sampler, 0u);
+                            commandList.bindImage(2u, _images[1u]->image, sampler, 0u, 
                                 engine::rhi::ImageAspectFlags::eColor, engine::rhi::ImageViewType::eType_Cube);
                         }
 
-                        commandList->bindVertexBuffer(0u, g.positions);
-                        commandList->bindVertexBuffer(1u, g.colors);
-                        commandList->bindIndexBuffer(g.indices, 0u, engine::rhi::IndexType::eU32);
-                        commandList->drawIndexed(g.indices->sizeInBytes() / sizeof(uint32_t));
+                        commandList.bindVertexBuffer(0u, g.positions);
+                        commandList.bindVertexBuffer(1u, g.colors);
+                        commandList.bindIndexBuffer(g.indices, 0u, engine::rhi::IndexType::eU32);
+                        commandList.drawIndexed(g.indices->sizeInBytes() / sizeof(uint32_t));
                     }
                 }
                 break;
                 case engine::scene::RenderPass::eShadow:
                 {
-                    commandList->bindPipeline(*g_mapGeometryShadowPipeline);
-                    commandList->bindBuffer(0u, scene.getViewParamsUniformBuffer(frameId), 0u, sceneViewParamBufferOffset);
-                    commandList->pushConstants(engine::rhi::shaders::Stages::eVertex, 0u, sizeof(TileUniform), &uniform);
+                    commandList.bindPipeline(*g_mapGeometryShadowPipeline);
+                    commandList.bindBuffer(0u, scene.getViewParamsUniformBuffer(frameId), 0u, sceneViewParamBufferOffset);
+                    commandList.pushConstants(engine::rhi::shaders::Stages::eVertex, 0u, sizeof(TileUniform), &uniform);
 
                     for (const auto & g : geometry) {
                         if (g.renderPassMask & (1u << static_cast<uint8_t>(engine::scene::RenderPass::eShadow))) {
-                            commandList->bindVertexBuffer(0u, g.positions);
-                            commandList->bindIndexBuffer(g.indices, 0u, engine::rhi::IndexType::eU32);
-                            commandList->drawIndexed(g.indices->sizeInBytes() / sizeof(uint32_t), 2u);
+                            commandList.bindVertexBuffer(0u, g.positions);
+                            commandList.bindIndexBuffer(g.indices, 0u, engine::rhi::IndexType::eU32);
+                            commandList.drawIndexed(g.indices->sizeInBytes() / sizeof(uint32_t), 2u);
                         }
                     }
                 }
@@ -2538,7 +2538,7 @@ namespace example {
 
                 //
                 auto * terrainNode = terrain->getNode();
-                terrainNode->setPosition({-50.0f, 0.0f, 0.7f});
+                terrainNode->setPosition({-64.0f, 0.0f, 0.0f});
                 terrainNode->setScale(0.05f);
                 sceneWorldRoot->addChild(terrainNode);
             }
@@ -2973,7 +2973,7 @@ namespace example {
         // auto offsets1 = scene->prepareDrawData(o1, frameId);
 
         //const auto result0 = scene->dispatch(commandList, frameId, shadowObjects, offsets0);
-        const auto result1 = scene->dispatch(commandList, frameId, objects, offsets1);
+        const auto result1 = scene->dispatch(*commandList, frameId, objects, offsets1);
         //printf("computeSkinVerticesOffset %d\n", result1);
     
         // const auto result = scene->dispatch(commandList, frameId, o0, offsets0);
@@ -2985,7 +2985,7 @@ namespace example {
         // ...
         // auto sceneViewParamBufferOffset = scene->getCurrentViewParamsBufferOffset();
         const auto cascadeMatrices = shadowMap->getCascadeMatrices();
-        scene->draw(engine::scene::RenderPass::eShadow, commandList, transferCommandList, frameId, viewParams, shadowObjects, offsets1, &cascadeMatrices);
+        scene->draw(engine::scene::RenderPass::eShadow, *commandList, frameId, viewParams, shadowObjects, offsets1, &cascadeMatrices);
         shadowMap->endRenderPass(*commandList);
 
         // draw scene
@@ -3014,7 +3014,7 @@ namespace example {
         commandList->beginRenderPass(gbufferRenderPass, _gBuffers[frameId], gBufferClearValues, {{0, 0}, {width, height}});
         // scene->dispatch(commandList, frameId, objects, offsets);
         // sceneViewParamBufferOffset = scene->getCurrentViewParamsBufferOffset();
-        scene->draw(engine::scene::RenderPass::eCommon, commandList, transferCommandList, frameId, viewParams, objects, offsets1);
+        scene->draw(engine::scene::RenderPass::eCommon, *commandList, frameId, viewParams, objects, offsets1);
         // scene->draw(commandList, transferCommandList, frameId, viewParams, o1, offsets1);
         // scene->draw(commandList, transferCommandList, frameId, viewParams, o0, offsets0);   
         
@@ -3119,7 +3119,7 @@ namespace example {
         colorPicker->beginRenderPass(*commandList, frameId, {width, height}, {cursor});
         cursor = -2.0f * vec2f{cursor.x / width, cursor.y / height};
         //...
-        scene->draw(engine::scene::RenderPass::eColorId, commandList, transferCommandList, frameId, viewParams, objects, offsets1, &cursor);
+        scene->draw(engine::scene::RenderPass::eColorId, *commandList, frameId, viewParams, objects, offsets1, &cursor);
         colorPicker->endRenderPass(*commandList);
         colorPicker->prepareResults(*commandList, frameId);
         commandList->setViewport(0.0f, 0.0f, width, height);
@@ -3192,7 +3192,7 @@ namespace example {
 
         commandList->endRenderPass();
 
-        scene->endFrame(commandList, transferCommandList, frameId);
+        scene->endFrame(*commandList, *transferCommandList, frameId);
 
         commandList->writeTimestamp(_queryPool.get(), rhi::PipelineStageFlags::eBottom_Of_Pipe, frameId * 2u + 1u);
         commandList->end();

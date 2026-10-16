@@ -118,7 +118,7 @@ namespace g_map {
     //
     void TerrainTileRenderer::dispatch(
         const engine::scene::CustomSceneObject & object, const engine::scene::Scene & scene, const engine::mat4f & worldTransform,
-        engine::rhi::runtime::CommandListPtr & commandList, uint8_t frameId
+        engine::rhi::runtime::CommandList & commandList, uint8_t frameId
     ) const {
         const auto & geometry = static_cast<const TerrainTile &>(object.getImpl());
         engine::rhi::runtime::Pipeline * pipeline = geometry.getComputeHeightPipeline();
@@ -132,23 +132,23 @@ namespace g_map {
         const auto groupY = engine::div_ceil(verticesInRow, kTileLocalGroupSize);
 
         const auto time = scene.getShadersTime();
-        commandList->bindPipeline(*pipeline);
-        commandList->pushConstants(engine::rhi::shaders::Stages::eCompute, 0u, sizeof(float), &time);
-        commandList->bindStorageImage(0u, geometry.getHeightsImage(), std::nullopt, 0u);
-        commandList->dispatch(groupX, groupY, 1u);
+        commandList.bindPipeline(*pipeline);
+        commandList.pushConstants(engine::rhi::shaders::Stages::eCompute, 0u, sizeof(float), &time);
+        commandList.bindStorageImage(0u, geometry.getHeightsImage(), std::nullopt, 0u);
+        commandList.dispatch(groupX, groupY, 1u);
 
         pipeline = geometry.getComputeNormalsPipeline();
         assert(pipeline != nullptr);
-        commandList->bindPipeline(*pipeline);
-        commandList->bindStorageImage(0u, geometry.getNormalsImage(), std::nullopt, 0u);
-        commandList->bindImage(1u, geometry.getHeightsImage(), scene.getLinearSampler(), 0u);
-        commandList->dispatch(groupX, groupY, 1u);
+        commandList.bindPipeline(*pipeline);
+        commandList.bindStorageImage(0u, geometry.getNormalsImage(), std::nullopt, 0u);
+        commandList.bindImage(1u, geometry.getHeightsImage(), scene.getLinearSampler(), 0u);
+        commandList.dispatch(groupX, groupY, 1u);
     }
 
     void TerrainTileRenderer::draw(
             const engine::scene::CustomSceneObject & object, const engine::scene::Scene & scene, const engine::scene::ViewParams & viewParams, 
             engine::scene::RenderPass pass, const engine::mat4f & worldTransform, 
-            engine::rhi::runtime::CommandListPtr & commandList, uint8_t frameId
+            engine::rhi::runtime::CommandList & commandList, uint8_t frameId
         ) const {
         struct Uniform {
             engine::mat4f worldTransform;
@@ -172,23 +172,23 @@ namespace g_map {
                 const auto & gs = scene.getGraphicsService();
                 const auto * pipeline = geometry.getGraphicsPipeline();
 
-                if (commandList->bindPipeline(*pipeline)) {
-                    commandList->pushConstants(
+                if (commandList.bindPipeline(*pipeline)) {
+                    commandList.pushConstants(
                         engine::rhi::shaders::Stages::eVertex | engine::rhi::shaders::Stages::eFragment, 
                         0u, 72u, &uniform
                     );
-                    commandList->bindBuffer(0u, scene.getViewParamsUniformBuffer(frameId), 0u, sceneViewParamBufferOffset);
+                    commandList.bindBuffer(0u, scene.getViewParamsUniformBuffer(frameId), 0u, sceneViewParamBufferOffset);
                 }
 
                 const auto & ib = geometry.getIndicesBuffer();
 
-                commandList->bindStorageImage(1u, geometry.getHeightsImage(), std::nullopt, 0u);
-                commandList->bindImage(2u, geometry.getNormalsImage(), scene.getLinearSampler(), 0u);
-                commandList->bindImage(3u, gs.getTextureManager().getDefaultImage(), scene.getNearestSampler(), 0u);
+                commandList.bindStorageImage(1u, geometry.getHeightsImage(), std::nullopt, 0u);
+                commandList.bindImage(2u, geometry.getNormalsImage(), scene.getLinearSampler(), 0u);
+                commandList.bindImage(3u, gs.getTextureManager().getDefaultImage(), scene.getNearestSampler(), 0u);
 
-                commandList->bindVertexBuffer(0u, geometry.getVerticesBuffer());
-                commandList->bindIndexBuffer(ib, 0u, engine::rhi::IndexType::eU16);
-                commandList->drawIndexed(ib->sizeInBytes() / sizeof(uint16_t));
+                commandList.bindVertexBuffer(0u, geometry.getVerticesBuffer());
+                commandList.bindIndexBuffer(ib, 0u, engine::rhi::IndexType::eU16);
+                commandList.drawIndexed(ib->sizeInBytes() / sizeof(uint16_t));
             }
             break;
             case engine::scene::RenderPass::eShadow:
@@ -198,7 +198,7 @@ namespace g_map {
         }
     }
 
-    void TerrainTileRenderer::dispatch(const engine::scene::Scene & scene, engine::rhi::runtime::CommandListPtr & commandList, uint8_t frame, 
+    void TerrainTileRenderer::dispatch(const engine::scene::Scene & scene, engine::rhi::runtime::CommandList & commandList, uint8_t frame, 
         engine::scene::AttachmentsIterator begin, engine::scene::AttachmentsIterator end) {
         for (auto it = begin; it != end; ++it) { // dirty!!!
             const auto & object = *static_cast<const engine::scene::CustomSceneObject*>(*it);
@@ -208,7 +208,7 @@ namespace g_map {
 
     void TerrainTileRenderer::draw(engine::scene::AttachmentsIterator begin, engine::scene::AttachmentsIterator end, 
         const engine::scene::Scene & scene, const engine::scene::ViewParams & viewParams, engine::scene::RenderPass pass, 
-        engine::rhi::runtime::CommandListPtr & commandList, uint8_t frame) {
+        engine::rhi::runtime::CommandList & commandList, uint8_t frame) {
         for (auto it = begin; it != end; ++it) { // dirty!!!
             const auto & object = *static_cast<const engine::scene::CustomSceneObject*>(*it);
             draw(object, scene, viewParams, pass, object.node->getWorldTransform(), commandList, frame);
@@ -411,7 +411,7 @@ namespace g_map {
         std::byte * memory = staging.map();
         const auto offset = staging.requestBytes(pixelsCount * kFloat16Size);
         auto * dst = reinterpret_cast<uint16_t*>(memory + offset);
-        constexpr float hScale = 0.25f;
+        constexpr float hScale = 0.2f;
 
         for (uint32_t i = 0u; i < size.y; ++i) {
             for (uint32_t j = 0u; j < size.x; ++j) {
@@ -479,8 +479,8 @@ namespace g_map {
     }
 
     void TerrainSceneDelegate::endFrame(
-        engine::rhi::runtime::CommandListPtr & commandList, 
-        engine::rhi::runtime::CommandListPtr & transferCommandList, 
+        engine::rhi::runtime::CommandList & commandList, 
+        engine::rhi::runtime::CommandList & transferCommandList, 
         uint8_t frame) {
         using namespace engine;
 
@@ -499,16 +499,16 @@ namespace g_map {
         if (_tileIdsDirty) {
             const auto bufferUpdateDataSize = align_value(_tmpTilesCount * sizeof(uint16_t), 4u);
             assert(bufferUpdateDataSize <= kMaxTileIds * sizeof(uint16_t));
-            transferCommandList->updateBuffer(_tileIDs, 0u, bufferUpdateDataSize, _visibleTileIds.data());
+            transferCommandList.updateBuffer(_tileIDs, 0u, bufferUpdateDataSize, _visibleTileIds.data());
         }
         if (_hasDirtyNormals) {
             const auto bufferUpdateDataSize = align_value(_tmpDirtyNormalTilesCount * sizeof(uint16_t), 4u);
             assert(bufferUpdateDataSize <= kMaxTileIds * sizeof(uint16_t));
-            transferCommandList->updateBuffer(_updateNormalTileIDs, 0u, bufferUpdateDataSize, _dirtyNormalTileIds.data());
+            transferCommandList.updateBuffer(_updateNormalTileIDs, 0u, bufferUpdateDataSize, _dirtyNormalTileIds.data());
         }
     }
 
-    void TerrainSceneDelegate::dispatchNormals(const engine::scene::Scene & scene, engine::rhi::runtime::CommandListPtr & commandList, 
+    void TerrainSceneDelegate::dispatchNormals(const engine::scene::Scene & scene, engine::rhi::runtime::CommandList & commandList, 
         uint8_t imageId, uint16_t offset, uint16_t count, uint8_t tileInRaw) {
         using namespace engine;
 
@@ -532,15 +532,15 @@ namespace g_map {
         const auto * pipeline = _pipelines[std::to_underlying(PipelineId::eNormalsCompute)];
         assert(pipeline != nullptr);
 
-        commandList->bindPipeline(*pipeline);
-        commandList->pushConstants(rhi::shaders::Stages::eCompute, 0u, sizeof(Uniform), &uniform);
-        commandList->bindTexelBuffer(0u, _updateNormalTileIDs, rhi::Format::eR16_Uint, 0u);
-        commandList->bindImage(1u, maps.heights, scene.getLinearSampler(), 0u);
-        commandList->bindStorageImage(2u, maps.normals, std::nullopt, 0u);
-        commandList->dispatch(groupX, groupY, 1u);
+        commandList.bindPipeline(*pipeline);
+        commandList.pushConstants(rhi::shaders::Stages::eCompute, 0u, sizeof(Uniform), &uniform);
+        commandList.bindTexelBuffer(0u, _updateNormalTileIDs, rhi::Format::eR16_Uint, 0u);
+        commandList.bindImage(1u, maps.heights, scene.getLinearSampler(), 0u);
+        commandList.bindStorageImage(2u, maps.normals, std::nullopt, 0u);
+        commandList.dispatch(groupX, groupY, 1u);
     }
 
-    void TerrainSceneDelegate::dispatch(const engine::scene::Scene & scene, engine::rhi::runtime::CommandListPtr & commandList, uint8_t frame, 
+    void TerrainSceneDelegate::dispatch(const engine::scene::Scene & scene, engine::rhi::runtime::CommandList & commandList, uint8_t frame, 
         engine::scene::AttachmentsIterator begin, engine::scene::AttachmentsIterator end) {
 
         const std::ptrdiff_t objectsCount = end - begin;
@@ -631,7 +631,7 @@ namespace g_map {
 
     void TerrainSceneDelegate::drawSame(engine::scene::AttachmentsIterator begin, engine::scene::AttachmentsIterator end,
         uint32_t instanceOffset, const engine::scene::Scene & scene, const engine::scene::ViewParams & viewParams,
-        engine::scene::RenderPass pass, engine::rhi::runtime::CommandListPtr & commandList, uint8_t frame) {
+        engine::scene::RenderPass pass, engine::rhi::runtime::CommandList & commandList, uint8_t frame) {
         switch (pass) {
         case engine::scene::RenderPass::eCommon:
         {
@@ -660,24 +660,24 @@ namespace g_map {
                 .tileUvSize = 16u
             };
 
-            if (commandList->bindPipeline(*pipeline)) {
+            if (commandList.bindPipeline(*pipeline)) {
                 auto & maps = _terrainMaps[tile.imageIndex];
                 auto const sceneViewParamBufferOffset = scene.getCurrentViewParamsBufferOffset();
-                commandList->bindBuffer(0u, scene.getViewParamsUniformBuffer(frame), 0u, sceneViewParamBufferOffset);
-                commandList->bindTexelBuffer(1u, _tileIDs, engine::rhi::Format::eR16_Uint, 0u);
-                commandList->bindImage(2u, maps.heights, std::nullopt, 0u);
-                commandList->bindImage(3u, maps.normals, scene.getLinearSampler(), 0u);
-                commandList->bindImage(4u, gs.getTextureManager().getWhiteImage(), scene.getLinearSampler(), 0u);
+                commandList.bindBuffer(0u, scene.getViewParamsUniformBuffer(frame), 0u, sceneViewParamBufferOffset);
+                commandList.bindTexelBuffer(1u, _tileIDs, engine::rhi::Format::eR16_Uint, 0u);
+                commandList.bindImage(2u, maps.heights, std::nullopt, 0u);
+                commandList.bindImage(3u, maps.normals, scene.getLinearSampler(), 0u);
+                commandList.bindImage(4u, gs.getTextureManager().getWhiteImage(), scene.getLinearSampler(), 0u);
             }
 
-            commandList->pushConstants(
+            commandList.pushConstants(
                 engine::rhi::shaders::Stages::eVertex, 
                 0u, sizeof(Uniform), &uniform
             );
 
-            commandList->bindVertexBuffer(0u, _tileCommonVertices);
-            commandList->bindIndexBuffer(_tileCommonIndices, 0u, engine::rhi::IndexType::eU16);
-            commandList->drawIndexed(_tileCommonIndices->sizeInBytes() / sizeof(uint16_t), objectsCount);
+            commandList.bindVertexBuffer(0u, _tileCommonVertices);
+            commandList.bindIndexBuffer(_tileCommonIndices, 0u, engine::rhi::IndexType::eU16);
+            commandList.drawIndexed(_tileCommonIndices->sizeInBytes() / sizeof(uint16_t), objectsCount);
         }
             break;
         case engine::scene::RenderPass::eShadow:
@@ -689,7 +689,7 @@ namespace g_map {
 
     void TerrainSceneDelegate::draw(engine::scene::AttachmentsIterator begin, engine::scene::AttachmentsIterator end, 
         const engine::scene::Scene & scene, const engine::scene::ViewParams & viewParams, engine::scene::RenderPass pass, 
-        engine::rhi::runtime::CommandListPtr & commandList, uint8_t frame) {
+        engine::rhi::runtime::CommandList & commandList, uint8_t frame) {
 
         auto currentIt = begin;
         const auto & object = *static_cast<const engine::scene::CustomSceneObject*>(*currentIt);

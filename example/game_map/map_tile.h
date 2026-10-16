@@ -89,20 +89,20 @@ public:
     void draw(
         const engine::scene::CustomSceneObject & object, const engine::scene::Scene & scene, const engine::scene::ViewParams & viewParams, 
         engine::scene::RenderPass pass, const engine::mat4f & worldTransform, 
-        engine::rhi::runtime::CommandListPtr & commandList, uint8_t frameId
+        engine::rhi::runtime::CommandList & commandList, uint8_t frameId
     ) const;
 
     void dispatch(
         const engine::scene::CustomSceneObject & object, const engine::scene::Scene & scene, const engine::mat4f & worldTransform,
-        engine::rhi::runtime::CommandListPtr & commandList, uint8_t frameId
+        engine::rhi::runtime::CommandList & commandList, uint8_t frameId
     ) const;
 
-    void dispatch(const engine::scene::Scene & scene, engine::rhi::runtime::CommandListPtr & commandList, uint8_t frame, 
+    void dispatch(const engine::scene::Scene & scene, engine::rhi::runtime::CommandList & commandList, uint8_t frame, 
         engine::scene::AttachmentsIterator begin, engine::scene::AttachmentsIterator end) override;
 
     void draw(engine::scene::AttachmentsIterator begin, engine::scene::AttachmentsIterator end, 
         const engine::scene::Scene & scene, const engine::scene::ViewParams & viewParams, engine::scene::RenderPass pass, 
-        engine::rhi::runtime::CommandListPtr & commandList, uint8_t frame) override;
+        engine::rhi::runtime::CommandList & commandList, uint8_t frame) override;
 };
 
 ///////////////////////
@@ -190,16 +190,16 @@ public:
     void beginFrame(std::chrono::time_point<std::chrono::steady_clock> now);
 
     void endFrame(
-        engine::rhi::runtime::CommandListPtr & commandList, 
-        engine::rhi::runtime::CommandListPtr & transferCommandList, 
+        engine::rhi::runtime::CommandList & commandList, 
+        engine::rhi::runtime::CommandList & transferCommandList, 
         uint8_t frame) override;
 
-    void dispatch(const engine::scene::Scene & scene, engine::rhi::runtime::CommandListPtr & commandList, uint8_t frame, 
+    void dispatch(const engine::scene::Scene & scene, engine::rhi::runtime::CommandList & commandList, uint8_t frame, 
         engine::scene::AttachmentsIterator begin, engine::scene::AttachmentsIterator end) override;
 
     void draw(engine::scene::AttachmentsIterator begin, engine::scene::AttachmentsIterator end, 
         const engine::scene::Scene & scene, const engine::scene::ViewParams & viewParams, engine::scene::RenderPass pass, 
-        engine::rhi::runtime::CommandListPtr & commandList, uint8_t frame) override;
+        engine::rhi::runtime::CommandList & commandList, uint8_t frame) override;
 
     void uploadHeightData(engine::rhi::runtime::CommandList & commandList, engine::rhi::Format format, 
         uint8_t mapIdx, engine::stl::span<const std::byte> bytes, engine::vec2u xy, engine::vec2u size);
@@ -211,9 +211,9 @@ public:
 private:
     void drawSame(engine::scene::AttachmentsIterator begin, engine::scene::AttachmentsIterator end, uint32_t instanceOffset,
         const engine::scene::Scene & scene, const engine::scene::ViewParams & viewParams, engine::scene::RenderPass pass, 
-        engine::rhi::runtime::CommandListPtr & commandList, uint8_t frame);
+        engine::rhi::runtime::CommandList & commandList, uint8_t frame);
 
-    void dispatchNormals(const engine::scene::Scene & scene, engine::rhi::runtime::CommandListPtr & commandList, 
+    void dispatchNormals(const engine::scene::Scene & scene, engine::rhi::runtime::CommandList & commandList, 
         uint8_t imageId, uint16_t offset, uint16_t count, uint8_t tileInRaw);
 
     engine::stl::array<engine::rhi::runtime::Pipeline *, static_cast<uint8_t>(PipelineId::eCount)>  _pipelines;

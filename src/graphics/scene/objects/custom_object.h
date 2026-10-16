@@ -66,17 +66,17 @@ public:
     ICustomSceneDelegate(CustomSceneDelegateFlags flags = CustomSceneDelegateFlags::eDraw) : _flags(flags) {}
     virtual ~ICustomSceneDelegate() = default;
     
-    virtual void dispatch(const Scene & scene, rhi::runtime::CommandListPtr & commandList, uint8_t frame, 
+    virtual void dispatch(const Scene & scene, rhi::runtime::CommandList & commandList, uint8_t frame, 
         AttachmentsIterator begin, AttachmentsIterator end) {};
 
     virtual void draw(AttachmentsIterator begin, AttachmentsIterator end, 
         const Scene & scene, const ViewParams & viewParams, RenderPass pass, 
-        rhi::runtime::CommandListPtr & commandList, uint8_t frame) = 0;
+        rhi::runtime::CommandList & commandList, uint8_t frame) = 0;
 
     virtual void beginFrame(std::chrono::time_point<std::chrono::steady_clock> now) {}
     virtual void endFrame(
-        rhi::runtime::CommandListPtr & commandList, 
-        rhi::runtime::CommandListPtr & transferCommandList, 
+        rhi::runtime::CommandList & commandList, 
+        rhi::runtime::CommandList & transferCommandList, 
         uint8_t frame) {}
 
     virtual bool compare(const CustomSceneObject & object0, const CustomSceneObject & object1) const noexcept {

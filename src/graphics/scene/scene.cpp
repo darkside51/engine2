@@ -841,7 +841,7 @@ namespace engine::scene {
         };
     }
 
-    void Scene::dispatchObjects(rhi::runtime::CommandListPtr & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end, 
+    void Scene::dispatchObjects(rhi::runtime::CommandList & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end, 
         uint16_t typeIdx, DrawDataOffsets & offsets) {
 
         switch (typeIdx) {
@@ -872,7 +872,7 @@ namespace engine::scene {
         }
     }
 
-    void Scene::dispatchCustomObjects(rhi::runtime::CommandListPtr & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end, 
+    void Scene::dispatchCustomObjects(rhi::runtime::CommandList & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end, 
         DrawDataOffsets & offsets) {
 
         auto currentIt = begin;
@@ -897,7 +897,7 @@ namespace engine::scene {
         }
     }
 
-    void Scene::dispatchMeshes(rhi::runtime::CommandListPtr & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end, 
+    void Scene::dispatchMeshes(rhi::runtime::CommandList & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end, 
         DrawDataOffsets & offsets) {
             
         auto currentIt = begin;
@@ -967,23 +967,23 @@ namespace engine::scene {
         const auto & pipeline = _graphicsService.getPipelinesManager().getComputePipeline(getCommonPipeline(CommonPipeline::Type::eMeshSkinCompute));
         assert(pipeline != nullptr);
 
-        commandList->bindPipeline(pipeline);
-        commandList->bindStorageTexelBuffer(0u, _computedVertices[frame], rhi::Format::eR32G32B32A32_Sfloat, 0u, 0u);
-        commandList->bindStorageTexelBuffer(1u, _computedNormals[frame], rhi::Format::eR8G8B8A8_Snorm, 0u, 0u);
-        commandList->bindStorageTexelBuffer(2u, _computedTangents[frame], rhi::Format::eR8G8B8A8_Snorm, 0u, 0u);
+        commandList.bindPipeline(pipeline);
+        commandList.bindStorageTexelBuffer(0u, _computedVertices[frame], rhi::Format::eR32G32B32A32_Sfloat, 0u, 0u);
+        commandList.bindStorageTexelBuffer(1u, _computedNormals[frame], rhi::Format::eR8G8B8A8_Snorm, 0u, 0u);
+        commandList.bindStorageTexelBuffer(2u, _computedTangents[frame], rhi::Format::eR8G8B8A8_Snorm, 0u, 0u);
 
-        commandList->bindStorageBuffer(0u, (*_meshSkeletalTransforms)(frame), 1u, 0u);
-        commandList->bindStorageBuffer(1u, (*_meshTransformIndices)(frame), 1u, 0u);
-        commandList->bindStorageBuffer(2u, (*_skeletonIds)(frame), 1u, 0u);
+        commandList.bindStorageBuffer(0u, (*_meshSkeletalTransforms)(frame), 1u, 0u);
+        commandList.bindStorageBuffer(1u, (*_meshTransformIndices)(frame), 1u, 0u);
+        commandList.bindStorageBuffer(2u, (*_skeletonIds)(frame), 1u, 0u);
 
         auto computesDataIndex = dataIndex;
         if (skeletal) {
-            commandList->bindStorageBuffer(0u, mesh.getUniqueIndices().buffer, 2u, 0u);
-            commandList->bindTexelBuffer(1u, mesh.getAttribute(mesh::Semantic::ePosition).buffer, rhi::Format::eR16G16B16A16_Sfloat, 2u);
-            commandList->bindTexelBuffer(2u, mesh.getAttribute(mesh::Semantic::eNormal).buffer, rhi::Format::eR8G8B8A8_Snorm, 2u);
-            commandList->bindTexelBuffer(3u, mesh.getAttribute(mesh::Semantic::eJoints).buffer, rhi::Format::eR8G8B8A8_Unorm, 2u);
-            commandList->bindTexelBuffer(4u, mesh.getAttribute(mesh::Semantic::eWeights).buffer, rhi::Format::eR16G16B16A16_Sfloat, 2u);
-            commandList->bindTexelBuffer(5u, mesh.getAttribute(mesh::Semantic::eTangent).buffer, rhi::Format::eR8G8B8A8_Snorm, 2u);
+            commandList.bindStorageBuffer(0u, mesh.getUniqueIndices().buffer, 2u, 0u);
+            commandList.bindTexelBuffer(1u, mesh.getAttribute(mesh::Semantic::ePosition).buffer, rhi::Format::eR16G16B16A16_Sfloat, 2u);
+            commandList.bindTexelBuffer(2u, mesh.getAttribute(mesh::Semantic::eNormal).buffer, rhi::Format::eR8G8B8A8_Snorm, 2u);
+            commandList.bindTexelBuffer(3u, mesh.getAttribute(mesh::Semantic::eJoints).buffer, rhi::Format::eR8G8B8A8_Unorm, 2u);
+            commandList.bindTexelBuffer(4u, mesh.getAttribute(mesh::Semantic::eWeights).buffer, rhi::Format::eR16G16B16A16_Sfloat, 2u);
+            commandList.bindTexelBuffer(5u, mesh.getAttribute(mesh::Semantic::eTangent).buffer, rhi::Format::eR8G8B8A8_Snorm, 2u);
         }
 
         for (; it != end; ++it, ++i) {
@@ -1048,12 +1048,12 @@ namespace engine::scene {
 
                 if (skeletal && computesDataIndex != dataIndex) {
                     computesDataIndex = dataIndex;
-                    commandList->bindStorageBuffer(0u, mesh2.getUniqueIndices().buffer, 2u, 0u);
-                    commandList->bindTexelBuffer(1u, mesh2.getAttribute(mesh::Semantic::ePosition).buffer, rhi::Format::eR16G16B16A16_Sfloat, 2u);
-                    commandList->bindTexelBuffer(2u, mesh2.getAttribute(mesh::Semantic::eNormal).buffer, rhi::Format::eR8G8B8A8_Snorm, 2u);
-                    commandList->bindTexelBuffer(3u, mesh2.getAttribute(mesh::Semantic::eJoints).buffer, rhi::Format::eR8G8B8A8_Unorm, 2u);
-                    commandList->bindTexelBuffer(4u, mesh2.getAttribute(mesh::Semantic::eWeights).buffer, rhi::Format::eR16G16B16A16_Sfloat, 2u);
-                    commandList->bindTexelBuffer(5u, mesh2.getAttribute(mesh::Semantic::eTangent).buffer, rhi::Format::eR8G8B8A8_Snorm, 2u);
+                    commandList.bindStorageBuffer(0u, mesh2.getUniqueIndices().buffer, 2u, 0u);
+                    commandList.bindTexelBuffer(1u, mesh2.getAttribute(mesh::Semantic::ePosition).buffer, rhi::Format::eR16G16B16A16_Sfloat, 2u);
+                    commandList.bindTexelBuffer(2u, mesh2.getAttribute(mesh::Semantic::eNormal).buffer, rhi::Format::eR8G8B8A8_Snorm, 2u);
+                    commandList.bindTexelBuffer(3u, mesh2.getAttribute(mesh::Semantic::eJoints).buffer, rhi::Format::eR8G8B8A8_Unorm, 2u);
+                    commandList.bindTexelBuffer(4u, mesh2.getAttribute(mesh::Semantic::eWeights).buffer, rhi::Format::eR16G16B16A16_Sfloat, 2u);
+                    commandList.bindTexelBuffer(5u, mesh2.getAttribute(mesh::Semantic::eTangent).buffer, rhi::Format::eR8G8B8A8_Snorm, 2u);
                 }
             } else {
                 ++count;
@@ -1093,7 +1093,7 @@ namespace engine::scene {
         }
     }
 
-    void Scene::dispatchSameMeshes(rhi::runtime::CommandListPtr & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end, 
+    void Scene::dispatchSameMeshes(rhi::runtime::CommandList & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end, 
         uint32_t count, uint32_t transformIndex, uint32_t skeletonsOffset) {
 
         constexpr auto kMaxExecutionCount = 0xff'ffu; // 65535u
@@ -1126,17 +1126,17 @@ namespace engine::scene {
             auto const maxCount = std::min(kMaxExecutionCount / threadsPerObject, count);
             uniform.objectsCount = maxCount;
 
-            commandList->pushConstants(rhi::shaders::Stages::eCompute, 0u, sizeof(Uniform), &uniform);
+            commandList.pushConstants(rhi::shaders::Stages::eCompute, 0u, sizeof(Uniform), &uniform);
 
             const auto executeCount = maxCount * threadsPerObject;
-            commandList->dispatch(executeCount, 1u, 1u);
+            commandList.dispatch(executeCount, 1u, 1u);
 
             count -= maxCount;
             uniform.firstObject += maxCount;
         }
     }
 
-    Scene::DispatchResult Scene::dispatch(rhi::runtime::CommandListPtr & commandList, uint8_t frame, stl::span<AttachmentObject*> objects, const DrawDataOffsets & offsets) {
+    Scene::DispatchResult Scene::dispatch(rhi::runtime::CommandList & commandList, uint8_t frame, stl::span<AttachmentObject*> objects, const DrawDataOffsets & offsets) {
         if constexpr (!kComputeSkinningAvailable) {
             return {};
         }
@@ -1164,7 +1164,7 @@ namespace engine::scene {
         };
     }
 
-    void Scene::drawObjects(rhi::runtime::CommandListPtr & commandList, uint8_t frame, 
+    void Scene::drawObjects(rhi::runtime::CommandList & commandList, uint8_t frame, 
         const ViewParams & viewParams, AttachmentsIterator begin, AttachmentsIterator end, 
         uint16_t typeIdx, DrawDataOffsets & offsets) {
         switch(_currentPass) {
@@ -1180,7 +1180,7 @@ namespace engine::scene {
         }
     }
 
-    void Scene::drawCommon(rhi::runtime::CommandListPtr & commandList, uint8_t frame, 
+    void Scene::drawCommon(rhi::runtime::CommandList & commandList, uint8_t frame, 
         const ViewParams & viewParams, AttachmentsIterator begin, AttachmentsIterator end, 
         uint16_t typeIdx, DrawDataOffsets & offsets) {
         switch (typeIdx) {
@@ -1213,7 +1213,7 @@ namespace engine::scene {
         }
     }
 
-    void Scene::drawShadows(rhi::runtime::CommandListPtr & commandList, uint8_t frame, 
+    void Scene::drawShadows(rhi::runtime::CommandList & commandList, uint8_t frame, 
         const ViewParams & viewParams, AttachmentsIterator begin, AttachmentsIterator end, 
         uint16_t typeIdx, DrawDataOffsets & offsets) {
         switch (typeIdx) {
@@ -1240,7 +1240,7 @@ namespace engine::scene {
         }
     }
 
-    void Scene::drawColorIds(rhi::runtime::CommandListPtr & commandList, uint8_t frame, 
+    void Scene::drawColorIds(rhi::runtime::CommandList & commandList, uint8_t frame, 
         const ViewParams & viewParams, AttachmentsIterator begin, AttachmentsIterator end, 
         uint16_t typeIdx, DrawDataOffsets & offsets) {
         // todo!
@@ -1330,8 +1330,8 @@ namespace engine::scene {
         }
     }
 
-    void Scene::draw(RenderPass pass, rhi::runtime::CommandListPtr & commandList, rhi::runtime::CommandListPtr & transferCommandList, uint8_t frame, 
-        const ViewParams & viewParams, stl::span<AttachmentObject*> objects, const DrawDataOffsets & offsets, const void * uniformData) {
+    void Scene::draw(RenderPass pass, rhi::runtime::CommandList & commandList, uint8_t frame, const ViewParams & viewParams, 
+        stl::span<AttachmentObject*> objects, const DrawDataOffsets & offsets, const void * uniformData) {
         if (objects.empty()) {
             return;
         }
@@ -1409,7 +1409,7 @@ namespace engine::scene {
 
     void Scene::drawCustomObjects(
         AttachmentsIterator begin, AttachmentsIterator end, 
-        const ViewParams & viewParams, rhi::runtime::CommandListPtr & commandList, uint8_t frame
+        const ViewParams & viewParams, rhi::runtime::CommandList & commandList, uint8_t frame
     ) {
         auto currentIt = begin;
         auto & object0 = *static_cast<CustomSceneObject*>(*currentIt);
@@ -1433,7 +1433,7 @@ namespace engine::scene {
         }
     }
 
-    void Scene::drawSprites(rhi::runtime::CommandListPtr & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end, 
+    void Scene::drawSprites(rhi::runtime::CommandList & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end, 
         const ViewParams & viewParams, uint32_t & vtxOffset, uint32_t & idxOffset) {
         auto currentIt = begin;
         auto it = currentIt;
@@ -1479,7 +1479,7 @@ namespace engine::scene {
         idxOffset += batchIndicesCount;
     }
 
-    void Scene::drawSpritesBatch(rhi::runtime::CommandListPtr & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end, 
+    void Scene::drawSpritesBatch(rhi::runtime::CommandList & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end, 
         const ViewParams & viewParams, uint32_t batchVertexesCount, uint32_t batchIndicesCount, uint32_t vtxOffset, uint32_t idxOffset) {
         using namespace graphics;
 
@@ -1558,29 +1558,29 @@ namespace engine::scene {
 
         if (auto & vertexBuffer = (*_spritesVertices)(frame)) { // hmmm, must be after buffer resize!
             auto & indexBuffer = (*_spritesIndices)(frame);
-            commandList->bindPipeline(pipeline);
-            commandList->bindVertexBuffer(0u, vertexBuffer, 0u);
-            commandList->bindIndexBuffer(indexBuffer, 0u, rhi::IndexType::eU32);
-            commandList->bindImage(1u, image, sprite.getFilter() == SpriteTextureFilter::eLinear ? _linearSampler : _nearestSampler);
+            commandList.bindPipeline(pipeline);
+            commandList.bindVertexBuffer(0u, vertexBuffer, 0u);
+            commandList.bindIndexBuffer(indexBuffer, 0u, rhi::IndexType::eU32);
+            commandList.bindImage(1u, image, sprite.getFilter() == SpriteTextureFilter::eLinear ? _linearSampler : _nearestSampler);
 
             uint8_t imageSlot = 1u;
             for (const auto & [imgHandler, viewType] : sprite.getSubImages()) {
                 if (imgHandler == nullptr) {
                     break;
                 }
-                commandList->bindImage(++imageSlot, imgHandler->image, 
+                commandList.bindImage(++imageSlot, imgHandler->image, 
                     sprite.getFilter() == SpriteTextureFilter::eLinear ? _linearSampler : _nearestSampler, 
                     0u, rhi::ImageAspectFlags::eColor, viewType);
             }
 
-            commandList->bindBuffer(0u, (*_viewParamsUniformBuffer)(frame), 0u, _currentViewParamsBufferOffset);
-            //commandList->pushConstants(rhi::shaders::Stages::eVertex, 0u, sizeof(mat4f), &viewParams.cameraTransform);
+            commandList.bindBuffer(0u, (*_viewParamsUniformBuffer)(frame), 0u, _currentViewParamsBufferOffset);
+            //commandList.pushConstants(rhi::shaders::Stages::eVertex, 0u, sizeof(mat4f), &viewParams.cameraTransform);
 
-            commandList->drawIndexed(batchIndicesCount, 1u, idxOffset);
+            commandList.drawIndexed(batchIndicesCount, 1u, idxOffset);
         }
     }
 
-void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_t frame, 
+void Scene::drawMeshes2Shadow(rhi::runtime::CommandList & commandList, uint8_t frame, 
         AttachmentsIterator begin, AttachmentsIterator end, const ViewParams & viewParams, uint32_t & offset, uint32_t & skeletonsOffset) {
         if (getCommonPipeline(CommonPipeline::Type::eMeshShadow) == 0xff'ff'ff'ffu || 
             getCommonPipeline(CommonPipeline::Type::eMeshSkinnedShadow) == 0xff'ff'ff'ffu) {
@@ -1608,16 +1608,16 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
         auto & pipelinesManager = _graphicsService.getPipelinesManager();
         const auto & pipeline = pipelinesManager.getGraphicsPipeline(pipelineIdx);
         assert(pipeline != nullptr);
-        commandList->bindPipeline(pipeline);
+        commandList.bindPipeline(pipeline);
 
-        commandList->bindBuffer(0u, (*_viewParamsUniformBuffer)(frame), 0u, _currentViewParamsBufferOffset);
+        commandList.bindBuffer(0u, (*_viewParamsUniformBuffer)(frame), 0u, _currentViewParamsBufferOffset);
 
         if (skeletal) {
-            commandList->bindStorageTexelBuffer(0u, _computedVertices[frame], rhi::Format::eR32G32B32A32_Sfloat, 1u, 0u);
-            commandList->bindStorageBuffer(1u, (*_skeletonIds)(frame), 1u, 0u);
+            commandList.bindStorageTexelBuffer(0u, _computedVertices[frame], rhi::Format::eR32G32B32A32_Sfloat, 1u, 0u);
+            commandList.bindStorageBuffer(1u, (*_skeletonIds)(frame), 1u, 0u);
         } else {
-            commandList->bindStorageBuffer(0u, (*_meshTransforms)(frame), 1u, 0u);
-            commandList->bindStorageBuffer(1u, (*_meshTransformIndices)(frame), 1u, 0u);
+            commandList.bindStorageBuffer(0u, (*_meshTransforms)(frame), 1u, 0u);
+            commandList.bindStorageBuffer(1u, (*_meshTransformIndices)(frame), 1u, 0u);
         }
 
         for (auto it = currentIt + 1u; it != end; ++it) {
@@ -1642,12 +1642,12 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
                 // draw
                 if (skeletal) {
                     uniform.offset_and_count = {skeletonsOffset, count, 0u, 0u};
-                    commandList->pushConstants(rhi::shaders::Stages::eVertex, 0u, sizeof(Uniform), &uniform);
+                    commandList.pushConstants(rhi::shaders::Stages::eVertex, 0u, sizeof(Uniform), &uniform);
                     drawSameMeshes(commandList, frame, currentIt, it, count * _shadowCascades, true);
                     skeletonsOffset += count;
                 } else {
                     uniform.offset_and_count = {offset, count, 0u, 0u};
-                    commandList->pushConstants(rhi::shaders::Stages::eVertex, 0u, sizeof(Uniform), &uniform);
+                    commandList.pushConstants(rhi::shaders::Stages::eVertex, 0u, sizeof(Uniform), &uniform);
                     drawSameMeshes(commandList, frame, currentIt, it, count * _shadowCascades, false);
                 }
                 offset += count;
@@ -1655,17 +1655,17 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
                 if (pipelineChanged) {
                     const auto & pipeline = pipelinesManager.getGraphicsPipeline(currentPipelineIdx);
                     assert(pipeline != nullptr);
-                    commandList->bindPipeline(pipeline);
-                    commandList->bindBuffer(0u, (*_viewParamsUniformBuffer)(frame), 0u, _currentViewParamsBufferOffset);
+                    commandList.bindPipeline(pipeline);
+                    commandList.bindBuffer(0u, (*_viewParamsUniformBuffer)(frame), 0u, _currentViewParamsBufferOffset);
                 }
 
                 if (currentSkeletal != skeletal || pipelineChanged) {
                     if (currentSkeletal) {
-                        commandList->bindStorageTexelBuffer(0u, _computedVertices[frame], rhi::Format::eR32G32B32A32_Sfloat, 1u, 0u);
-                        commandList->bindStorageBuffer(1u, (*_skeletonIds)(frame), 1u, 0u);
+                        commandList.bindStorageTexelBuffer(0u, _computedVertices[frame], rhi::Format::eR32G32B32A32_Sfloat, 1u, 0u);
+                        commandList.bindStorageBuffer(1u, (*_skeletonIds)(frame), 1u, 0u);
                     } else {
-                        commandList->bindStorageBuffer(0u, (*_meshTransforms)(frame), 1u, 0u);
-                        commandList->bindStorageBuffer(1u, (*_meshTransformIndices)(frame), 1u, 0u);
+                        commandList.bindStorageBuffer(0u, (*_meshTransforms)(frame), 1u, 0u);
+                        commandList.bindStorageBuffer(1u, (*_meshTransformIndices)(frame), 1u, 0u);
                     }
                 }
 
@@ -1684,18 +1684,18 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
 
         if (skeletal) {
             uniform.offset_and_count = {skeletonsOffset, count, 0u, 0u};
-            commandList->pushConstants(rhi::shaders::Stages::eVertex, 0u, sizeof(Uniform), &uniform);
+            commandList.pushConstants(rhi::shaders::Stages::eVertex, 0u, sizeof(Uniform), &uniform);
             drawSameMeshes(commandList, frame, currentIt, end, count * _shadowCascades, true);
             skeletonsOffset += count;
         } else {
             uniform.offset_and_count = {offset, count, 0u, 0u};
-            commandList->pushConstants(rhi::shaders::Stages::eVertex, 0u, sizeof(Uniform), &uniform);
+            commandList.pushConstants(rhi::shaders::Stages::eVertex, 0u, sizeof(Uniform), &uniform);
             drawSameMeshes(commandList, frame, currentIt, end, count * _shadowCascades, false);
         }
         offset += count;
     }
 
-    void Scene::drawMeshes2ColorIds(rhi::runtime::CommandListPtr & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end,
+    void Scene::drawMeshes2ColorIds(rhi::runtime::CommandList & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end,
         const ViewParams & viewParams, uint32_t & offset, uint32_t & skeletonsOffset) {
         if (getCommonPipeline(CommonPipeline::Type::eMeshColorId) == 0xff'ff'ff'ffu || 
             getCommonPipeline(CommonPipeline::Type::eMeshSkinColorId) == 0xff'ff'ff'ffu) {
@@ -1729,15 +1729,15 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
             count = 1u;
             const auto & pipeline = pipelinesManager.getGraphicsPipeline(pipelineIdx);
             assert(pipeline != nullptr);
-            commandList->bindPipeline(pipeline);
-            commandList->bindBuffer(0u, (*_viewParamsUniformBuffer)(frame), 0u, _currentViewParamsBufferOffset);
+            commandList.bindPipeline(pipeline);
+            commandList.bindBuffer(0u, (*_viewParamsUniformBuffer)(frame), 0u, _currentViewParamsBufferOffset);
             
             if (skeletal) {
-                commandList->bindStorageTexelBuffer(0u, _computedVertices[frame], rhi::Format::eR32G32B32A32_Sfloat, 1u, 0u);
-                commandList->bindStorageBuffer(1u, (*_colorIdSkeletalMeshesIds)(frame), 1u, 0u);
+                commandList.bindStorageTexelBuffer(0u, _computedVertices[frame], rhi::Format::eR32G32B32A32_Sfloat, 1u, 0u);
+                commandList.bindStorageBuffer(1u, (*_colorIdSkeletalMeshesIds)(frame), 1u, 0u);
             } else {
-                commandList->bindStorageBuffer(0u, (*_meshTransforms)(frame), 1u, 0u);
-                commandList->bindStorageBuffer(1u, (*_colorIdMeshesIds)(frame), 1u, 0u);
+                commandList.bindStorageBuffer(0u, (*_meshTransforms)(frame), 1u, 0u);
+                commandList.bindStorageBuffer(1u, (*_colorIdMeshesIds)(frame), 1u, 0u);
             }
         }
 
@@ -1757,15 +1757,15 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
             if (count == 0u) {
                 const auto & pipeline = pipelinesManager.getGraphicsPipeline(currentPipelineIdx);
                 assert(pipeline != nullptr);
-                commandList->bindPipeline(pipeline);
-                commandList->bindBuffer(0u, (*_viewParamsUniformBuffer)(frame), 0u, _currentViewParamsBufferOffset);
+                commandList.bindPipeline(pipeline);
+                commandList.bindBuffer(0u, (*_viewParamsUniformBuffer)(frame), 0u, _currentViewParamsBufferOffset);
                 
                 if (currentSkeletal) {
-                    commandList->bindStorageTexelBuffer(0u, _computedVertices[frame], rhi::Format::eR32G32B32A32_Sfloat, 1u, 0u);
-                    commandList->bindStorageBuffer(1u, (*_colorIdSkeletalMeshesIds)(frame), 1u, 0u);
+                    commandList.bindStorageTexelBuffer(0u, _computedVertices[frame], rhi::Format::eR32G32B32A32_Sfloat, 1u, 0u);
+                    commandList.bindStorageBuffer(1u, (*_colorIdSkeletalMeshesIds)(frame), 1u, 0u);
                 } else {
-                    commandList->bindStorageBuffer(0u, (*_meshTransforms)(frame), 1u, 0u);
-                    commandList->bindStorageBuffer(1u, (*_colorIdMeshesIds)(frame), 1u, 0u);
+                    commandList.bindStorageBuffer(0u, (*_meshTransforms)(frame), 1u, 0u);
+                    commandList.bindStorageBuffer(1u, (*_colorIdMeshesIds)(frame), 1u, 0u);
                 }
 
                 pipelineIdx = currentPipelineIdx;
@@ -1786,11 +1786,11 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
                 if (colorIdEnabled) {
                     if (skeletal) {
                         uniform.offset = skeletonsOffset;
-                        commandList->pushConstants(rhi::shaders::Stages::eVertex, 0u, sizeof(Uniform), &uniform);
+                        commandList.pushConstants(rhi::shaders::Stages::eVertex, 0u, sizeof(Uniform), &uniform);
                         drawSameMeshes(commandList, frame, currentIt, it, count, true);
                     } else {
                         uniform.offset = offset;
-                        commandList->pushConstants(rhi::shaders::Stages::eVertex, 0u, sizeof(Uniform), &uniform);
+                        commandList.pushConstants(rhi::shaders::Stages::eVertex, 0u, sizeof(Uniform), &uniform);
                         drawSameMeshes(commandList, frame, currentIt, it, count, false);
                     }
                 }
@@ -1804,17 +1804,17 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
                 if (pipelineChanged) {
                     const auto & pipeline = pipelinesManager.getGraphicsPipeline(currentPipelineIdx);
                     assert(pipeline != nullptr);
-                    commandList->bindPipeline(pipeline);
-                    commandList->bindBuffer(0u, (*_viewParamsUniformBuffer)(frame), 0u, _currentViewParamsBufferOffset);
+                    commandList.bindPipeline(pipeline);
+                    commandList.bindBuffer(0u, (*_viewParamsUniformBuffer)(frame), 0u, _currentViewParamsBufferOffset);
                 }
 
                 if (currentSkeletal != skeletal || pipelineChanged) {
                     if (currentSkeletal) {
-                        commandList->bindStorageTexelBuffer(0u, _computedVertices[frame], rhi::Format::eR32G32B32A32_Sfloat, 1u, 0u);
-                        commandList->bindStorageBuffer(1u, (*_colorIdSkeletalMeshesIds)(frame), 1u, 0u);
+                        commandList.bindStorageTexelBuffer(0u, _computedVertices[frame], rhi::Format::eR32G32B32A32_Sfloat, 1u, 0u);
+                        commandList.bindStorageBuffer(1u, (*_colorIdSkeletalMeshesIds)(frame), 1u, 0u);
                     } else {
-                        commandList->bindStorageBuffer(0u, (*_meshTransforms)(frame), 1u, 0u);
-                        commandList->bindStorageBuffer(1u, (*_colorIdMeshesIds)(frame), 1u, 0u);
+                        commandList.bindStorageBuffer(0u, (*_meshTransforms)(frame), 1u, 0u);
+                        commandList.bindStorageBuffer(1u, (*_colorIdMeshesIds)(frame), 1u, 0u);
                     }
                 }
 
@@ -1838,18 +1838,18 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
 
         if (skeletal) {
             uniform.offset = skeletonsOffset;
-            commandList->pushConstants(rhi::shaders::Stages::eVertex, 0u, sizeof(Uniform), &uniform);
+            commandList.pushConstants(rhi::shaders::Stages::eVertex, 0u, sizeof(Uniform), &uniform);
             drawSameMeshes(commandList, frame, currentIt, end, count, true);
             skeletonsOffset += count;
         } else {
             uniform.offset = offset;
-            commandList->pushConstants(rhi::shaders::Stages::eVertex, 0u, sizeof(Uniform), &uniform);
+            commandList.pushConstants(rhi::shaders::Stages::eVertex, 0u, sizeof(Uniform), &uniform);
             drawSameMeshes(commandList, frame, currentIt, end, count, false);
             offset += count;
         }
     }
 
-    void Scene::drawMeshes2(rhi::runtime::CommandListPtr & commandList, uint8_t frame, 
+    void Scene::drawMeshes2(rhi::runtime::CommandList & commandList, uint8_t frame, 
         AttachmentsIterator begin, AttachmentsIterator end, const ViewParams & viewParams, uint32_t & offset, uint32_t & skeletonsOffset) {
         auto currentIt = begin;
         const auto & mesh = *static_cast<const Mesh*>(*currentIt);
@@ -1890,10 +1890,10 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
             assert(image4 != nullptr);
 
             // textures change more often than storage buffers - setId #2u used
-            commandList->bindImage(0u, image->image, _linearSampler, 2u); 
-            commandList->bindImage(1u, image2->image, _linearSampler, 2u);
-            commandList->bindImage(2u, image3->image, _linearSampler, 2u);
-            commandList->bindImage(3u, image4->image, _linearSampler, 2u);
+            commandList.bindImage(0u, image->image, _linearSampler, 2u); 
+            commandList.bindImage(1u, image2->image, _linearSampler, 2u);
+            commandList.bindImage(2u, image3->image, _linearSampler, 2u);
+            commandList.bindImage(3u, image4->image, _linearSampler, 2u);
             uniform.color = material.baseColorFactor;
             uniform.emissive = vec4f{material.emissiveFactor, 0.0f};
             uniform.metalicRoughnessAlphaCut = vec4f(material.metallicFactor, material.roughnessFactor, material.alphaCutoff, 1.0f);
@@ -1905,23 +1905,23 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
         const auto & pipeline = pipelinesManager.getGraphicsPipeline(pipelineIdx);
         assert(pipeline != nullptr);
         
-        commandList->bindPipeline(pipeline);
-        commandList->bindBuffer(0u, (*_viewParamsUniformBuffer)(frame), 0u, _currentViewParamsBufferOffset);
+        commandList.bindPipeline(pipeline);
+        commandList.bindBuffer(0u, (*_viewParamsUniformBuffer)(frame), 0u, _currentViewParamsBufferOffset);
 
         if (skeletal) {
-            commandList->bindStorageTexelBuffer(0u, _computedVertices[frame], rhi::Format::eR32G32B32A32_Sfloat, 1u, 0u);
-            commandList->bindStorageTexelBuffer(1u, _computedNormals[frame], rhi::Format::eR8G8B8A8_Snorm, 1u, 0u);
-            commandList->bindStorageTexelBuffer(2u, _computedTangents[frame], rhi::Format::eR8G8B8A8_Snorm, 1u, 0u);
-            commandList->bindStorageBuffer(3u, (*_skeletonIds)(frame), 1u, 0u);
+            commandList.bindStorageTexelBuffer(0u, _computedVertices[frame], rhi::Format::eR32G32B32A32_Sfloat, 1u, 0u);
+            commandList.bindStorageTexelBuffer(1u, _computedNormals[frame], rhi::Format::eR8G8B8A8_Snorm, 1u, 0u);
+            commandList.bindStorageTexelBuffer(2u, _computedTangents[frame], rhi::Format::eR8G8B8A8_Snorm, 1u, 0u);
+            commandList.bindStorageBuffer(3u, (*_skeletonIds)(frame), 1u, 0u);
         } else {
-            commandList->bindStorageBuffer(0u, (*_meshTransforms)(frame), 1u, 0u);
-            commandList->bindStorageBuffer(1u, (*_meshTransformIndices)(frame), 1u, 0u);
+            commandList.bindStorageBuffer(0u, (*_meshTransforms)(frame), 1u, 0u);
+            commandList.bindStorageBuffer(1u, (*_meshTransformIndices)(frame), 1u, 0u);
         }
 
         uniform.offset.x = skeletal ? skeletonsOffset : offset;
 
         applyMaterial(materialIndex);
-        commandList->pushConstants(rhi::shaders::Stages::eVertex | rhi::shaders::Stages::eFragment, 0u, sizeof(Uniform), &uniform);
+        commandList.pushConstants(rhi::shaders::Stages::eVertex | rhi::shaders::Stages::eFragment, 0u, sizeof(Uniform), &uniform);
 
         for (auto it = currentIt + 1u; it != end; ++it) {
             const auto & mesh2 = *static_cast<const Mesh*>(*it);
@@ -1957,28 +1957,28 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
                 if (pipelineChanged) {
                     const auto & pipeline = pipelinesManager.getGraphicsPipeline(currentPipelineIdx);
                     assert(pipeline != nullptr);
-                    commandList->bindPipeline(pipeline);
-                    commandList->bindBuffer(0u, (*_viewParamsUniformBuffer)(frame), 0u, _currentViewParamsBufferOffset);
+                    commandList.bindPipeline(pipeline);
+                    commandList.bindBuffer(0u, (*_viewParamsUniformBuffer)(frame), 0u, _currentViewParamsBufferOffset);
                 }
 
                 if (pipelineChanged || materialChanged) {
                     applyMaterial(currenMaterialIndex);
-                    commandList->pushConstants(rhi::shaders::Stages::eVertex | rhi::shaders::Stages::eFragment, 
+                    commandList.pushConstants(rhi::shaders::Stages::eVertex | rhi::shaders::Stages::eFragment, 
                         0u, sizeof(Uniform), &uniform);
                 } else {
-                    commandList->pushConstants(rhi::shaders::Stages::eVertex | rhi::shaders::Stages::eFragment, 
+                    commandList.pushConstants(rhi::shaders::Stages::eVertex | rhi::shaders::Stages::eFragment, 
                         offset_of(&Uniform::offset), sizeof(vec4u), &uniform.offset);
                 }
 
                 if (currentSkeletal != skeletal || pipelineChanged) {
                     if (currentSkeletal) {
-                        commandList->bindStorageTexelBuffer(0u, _computedVertices[frame], rhi::Format::eR32G32B32A32_Sfloat, 1u, 0u);
-                        commandList->bindStorageTexelBuffer(1u, _computedNormals[frame], rhi::Format::eR8G8B8A8_Snorm, 1u, 0u);
-                        commandList->bindStorageTexelBuffer(2u, _computedTangents[frame], rhi::Format::eR8G8B8A8_Snorm, 1u, 0u);
-                        commandList->bindStorageBuffer(3u, (*_skeletonIds)(frame), 1u, 0u);
+                        commandList.bindStorageTexelBuffer(0u, _computedVertices[frame], rhi::Format::eR32G32B32A32_Sfloat, 1u, 0u);
+                        commandList.bindStorageTexelBuffer(1u, _computedNormals[frame], rhi::Format::eR8G8B8A8_Snorm, 1u, 0u);
+                        commandList.bindStorageTexelBuffer(2u, _computedTangents[frame], rhi::Format::eR8G8B8A8_Snorm, 1u, 0u);
+                        commandList.bindStorageBuffer(3u, (*_skeletonIds)(frame), 1u, 0u);
                     } else {
-                        commandList->bindStorageBuffer(0u, (*_meshTransforms)(frame), 1u, 0u);
-                        commandList->bindStorageBuffer(1u, (*_meshTransformIndices)(frame), 1u, 0u);
+                        commandList.bindStorageBuffer(0u, (*_meshTransforms)(frame), 1u, 0u);
+                        commandList.bindStorageBuffer(1u, (*_meshTransformIndices)(frame), 1u, 0u);
                     }
                 }
 
@@ -2004,7 +2004,7 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
         offset += count;
     }
 
-    void Scene::drawMeshes(rhi::runtime::CommandListPtr & commandList, uint8_t frame, 
+    void Scene::drawMeshes(rhi::runtime::CommandList & commandList, uint8_t frame, 
         AttachmentsIterator begin, AttachmentsIterator end, const ViewParams & viewParams, uint32_t & offset) {
         auto currentIt = begin;
         auto it = currentIt;
@@ -2047,8 +2047,8 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
             assert(image2 != nullptr);
 
             // textures change more often than storage buffers - setId #2u used
-            commandList->bindImage(0u, image->image, _linearSampler, 2u);
-            commandList->bindImage(1u, image2->image, _linearSampler, 2u); 
+            commandList.bindImage(0u, image->image, _linearSampler, 2u);
+            commandList.bindImage(1u, image2->image, _linearSampler, 2u); 
             uniform.color = material.baseColorFactor;
             uniform.emissive = vec4f{material.emissiveFactor, 0.0f};
         };
@@ -2058,17 +2058,17 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
         auto & pipelinesManager = _graphicsService.getPipelinesManager();
         const auto & pipeline = pipelinesManager.getGraphicsPipeline(pipelineIdx);
         assert(pipeline != nullptr);
-        commandList->bindPipeline(pipeline);
+        commandList.bindPipeline(pipeline);
         
-        commandList->bindBuffer(0u, (*_viewParamsUniformBuffer)(frame), 0u, _currentViewParamsBufferOffset);
+        commandList.bindBuffer(0u, (*_viewParamsUniformBuffer)(frame), 0u, _currentViewParamsBufferOffset);
 
         applyMaterial(materialIndex);
-        commandList->pushConstants(rhi::shaders::Stages::eVertex | rhi::shaders::Stages::eFragment, 0u, sizeof(Uniform), &uniform);
+        commandList.pushConstants(rhi::shaders::Stages::eVertex | rhi::shaders::Stages::eFragment, 0u, sizeof(Uniform), &uniform);
 
         if (skeletal) {
-            commandList->bindBuffer(0u, (*_meshSkeletalTransforms)(frame), 1u, 0u);
+            commandList.bindBuffer(0u, (*_meshSkeletalTransforms)(frame), 1u, 0u);
         } else {
-            commandList->bindBuffer(0u, (*_meshTransforms)(frame), 1u, 0u);
+            commandList.bindBuffer(0u, (*_meshTransforms)(frame), 1u, 0u);
         }
         
         for (; it != end; ++it, ++i) {
@@ -2103,19 +2103,19 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
                 if (pipelineChanged) {
                     const auto & pipeline = pipelinesManager.getGraphicsPipeline(currentPipelineIdx);
                     assert(pipeline != nullptr);
-                    commandList->bindPipeline(pipeline);
+                    commandList.bindPipeline(pipeline);
                 }
 
                 if (pipelineChanged || materialChanged) {
                     applyMaterial(currenMaterialIndex);
-                    commandList->pushConstants(rhi::shaders::Stages::eVertex | rhi::shaders::Stages::eFragment, 0u, sizeof(Uniform), &uniform);
+                    commandList.pushConstants(rhi::shaders::Stages::eVertex | rhi::shaders::Stages::eFragment, 0u, sizeof(Uniform), &uniform);
                 }
 
                 if (currentSkeletal != skeletal || pipelineChanged) {
                     if (currentSkeletal) {
-                        commandList->bindBuffer(0u, (*_meshSkeletalTransforms)(frame), 1u, 0u);
+                        commandList.bindBuffer(0u, (*_meshSkeletalTransforms)(frame), 1u, 0u);
                     } else {
-                        commandList->bindBuffer(0u, (*_meshTransforms)(frame), 1u, 0u);
+                        commandList.bindBuffer(0u, (*_meshTransforms)(frame), 1u, 0u);
                     }
                 }
 
@@ -2138,7 +2138,7 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
         _meshTransformIndices->modify(sizeof(uint32_t) * i, sizeof(uint32_t) * startOffset);
     }
 
-    void Scene::drawSameMeshes(rhi::runtime::CommandListPtr & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end,
+    void Scene::drawSameMeshes(rhi::runtime::CommandList & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end,
         uint32_t count, bool skeletal) {
         const auto & mesh = *static_cast<const Mesh*>(*begin);
 
@@ -2146,34 +2146,34 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
             if (skeletal) { // skinning with compute shader
                 uint32_t binding_v = 0u;
                 if (_currentPass == RenderPass::eCommon) {
-                    commandList->bindVertexBuffer(binding_v++, mesh.getAttribute(mesh::Semantic::eUv0).buffer, 0u);
+                    commandList.bindVertexBuffer(binding_v++, mesh.getAttribute(mesh::Semantic::eUv0).buffer, 0u);
                 }
-                commandList->bindIndexBuffer(mesh.getIndices().buffer, 0u, rhi::IndexType::eU32);
+                commandList.bindIndexBuffer(mesh.getIndices().buffer, 0u, rhi::IndexType::eU32);
 
                 const auto & g = mesh.geometry();
-                commandList->drawIndexed(g.indexCount, count, g.firstIndex);
+                commandList.drawIndexed(g.indexCount, count, g.firstIndex);
                 return;
             }
         }
 
         uint32_t binding_v = 0u;
-        commandList->bindVertexBuffer(binding_v++, mesh.getAttribute(mesh::Semantic::ePosition).buffer, 0u);
+        commandList.bindVertexBuffer(binding_v++, mesh.getAttribute(mesh::Semantic::ePosition).buffer, 0u);
         if (_currentPass == RenderPass::eCommon) {
-            commandList->bindVertexBuffer(binding_v++, mesh.getAttribute(mesh::Semantic::eNormal).buffer, 0u);
-            commandList->bindVertexBuffer(binding_v++, mesh.getAttribute(mesh::Semantic::eUv0).buffer, 0u);
-            commandList->bindVertexBuffer(binding_v++, mesh.getAttribute(mesh::Semantic::eTangent).buffer, 0u);
+            commandList.bindVertexBuffer(binding_v++, mesh.getAttribute(mesh::Semantic::eNormal).buffer, 0u);
+            commandList.bindVertexBuffer(binding_v++, mesh.getAttribute(mesh::Semantic::eUv0).buffer, 0u);
+            commandList.bindVertexBuffer(binding_v++, mesh.getAttribute(mesh::Semantic::eTangent).buffer, 0u);
         }
 
         if (skeletal) { // skeletalMesh
             // skinning in vertex shader impl
-            commandList->bindVertexBuffer(binding_v++, mesh.getAttribute(mesh::Semantic::eJoints).buffer, 0u);
-            commandList->bindVertexBuffer(binding_v++, mesh.getAttribute(mesh::Semantic::eWeights).buffer, 0u);
+            commandList.bindVertexBuffer(binding_v++, mesh.getAttribute(mesh::Semantic::eJoints).buffer, 0u);
+            commandList.bindVertexBuffer(binding_v++, mesh.getAttribute(mesh::Semantic::eWeights).buffer, 0u);
         }
 
-        commandList->bindIndexBuffer(mesh.getIndices().buffer, 0u, rhi::IndexType::eU32);
+        commandList.bindIndexBuffer(mesh.getIndices().buffer, 0u, rhi::IndexType::eU32);
 
         const auto & geometry = mesh.geometry();
-        commandList->drawIndexed(geometry.indexCount, count, geometry.firstIndex);
+        commandList.drawIndexed(geometry.indexCount, count, geometry.firstIndex);
     }
 
     void Scene::reduceUsedMemory(std::chrono::time_point<std::chrono::steady_clock> now) noexcept {
@@ -2315,7 +2315,7 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
         ++_frameNumber;
     }
 
-    void Scene::endFrame(rhi::runtime::CommandListPtr & commandList, rhi::runtime::CommandListPtr & transferCommandList, uint8_t frame) {
+    void Scene::endFrame(rhi::runtime::CommandList & commandList, rhi::runtime::CommandList & transferCommandList, uint8_t frame) {
         for (auto * delegate : _customDelegates) {
             delegate->endFrame(commandList, transferCommandList, frame);
         }
@@ -2335,15 +2335,15 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_
                bufferTargetSize(*_colorIdMeshesIds) + bufferTargetSize(*_colorIdSkeletalMeshesIds);
     }
 
-    void Scene::performCommits(rhi::runtime::CommandListPtr & commandList, uint8_t frame) {
-        _viewParamsUniformBuffer->commit(*commandList, frame);
-        _spritesVertices->commit(*commandList, frame);
-        _spritesIndices->commit(*commandList, frame);
-        _meshTransforms->commit(*commandList, frame);
-        _meshSkeletalTransforms->commit(*commandList, frame);
-        _meshTransformIndices->commit(*commandList, frame);
-        _skeletonIds->commit(*commandList, frame);
-        _colorIdMeshesIds->commit(*commandList, frame);
-        _colorIdSkeletalMeshesIds->commit(*commandList, frame);
+    void Scene::performCommits(rhi::runtime::CommandList & commandList, uint8_t frame) {
+        _viewParamsUniformBuffer->commit(commandList, frame);
+        _spritesVertices->commit(commandList, frame);
+        _spritesIndices->commit(commandList, frame);
+        _meshTransforms->commit(commandList, frame);
+        _meshSkeletalTransforms->commit(commandList, frame);
+        _meshTransformIndices->commit(commandList, frame);
+        _skeletonIds->commit(commandList, frame);
+        _colorIdMeshesIds->commit(commandList, frame);
+        _colorIdSkeletalMeshesIds->commit(commandList, frame);
     }
 }

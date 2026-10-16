@@ -148,7 +148,7 @@ public:
 
     void initRenderData(rhi::runtime::Rhi & api, rhi::runtime::Device & device);
     void beginFrame(std::chrono::time_point<std::chrono::steady_clock> now, float delta) noexcept;
-    void endFrame(rhi::runtime::CommandListPtr & commandList, rhi::runtime::CommandListPtr & transferCommandList, uint8_t frame);
+    void endFrame(rhi::runtime::CommandList & commandList, rhi::runtime::CommandList & transferCommandList, uint8_t frame);
 
     template <typename Condition>
     void fillAttachmentsArray(const ViewParams & viewParams, Node * root, Condition && condition, 
@@ -156,10 +156,10 @@ public:
     DrawDataOffsets prepareDrawData(stl::span<AttachmentObject*> objects, uint8_t frame) noexcept;
 
     void animate(std::chrono::time_point<std::chrono::steady_clock> now, float delta, stl::span<AttachmentObject*> objects);
-    void draw(RenderPass pass, rhi::runtime::CommandListPtr & commandList, rhi::runtime::CommandListPtr & transferCommandList, uint8_t frame, 
-        const ViewParams & viewParams, stl::span<AttachmentObject*> objects, const DrawDataOffsets & offsets, const void * uniformData = nullptr);
+    void draw(RenderPass pass, rhi::runtime::CommandList & commandList, uint8_t frame, const ViewParams & viewParams, 
+        stl::span<AttachmentObject*> objects, const DrawDataOffsets & offsets, const void * uniformData = nullptr);
     void drawDebug(const ViewParams & viewParams, stl::span<AttachmentObject*> objects);
-    DispatchResult dispatch(rhi::runtime::CommandListPtr & commandList, uint8_t frame, stl::span<AttachmentObject*> objects, const DrawDataOffsets & offsets);
+    DispatchResult dispatch(rhi::runtime::CommandList & commandList, uint8_t frame, stl::span<AttachmentObject*> objects, const DrawDataOffsets & offsets);
 
     // getters
     bool isComputeSkinningEnabled() const noexcept;
@@ -221,58 +221,58 @@ private:
     void calculateQualityFactors(engine::scene::AttachmentObject* object, const ViewParams & viewParams) const noexcept;
     
     uint32_t calculateTargetStagingSize() const noexcept;
-    void performCommits(rhi::runtime::CommandListPtr & commandList, uint8_t frame);
+    void performCommits(rhi::runtime::CommandList & commandList, uint8_t frame);
     void reduceUsedMemory(std::chrono::time_point<std::chrono::steady_clock> now) noexcept;
 
     // dispatch
-    void dispatchObjects(rhi::runtime::CommandListPtr & commandList, uint8_t frame, 
+    void dispatchObjects(rhi::runtime::CommandList & commandList, uint8_t frame, 
         AttachmentsIterator begin, AttachmentsIterator end, uint16_t typeIdx, DrawDataOffsets & offsets);
 
-    void dispatchMeshes(rhi::runtime::CommandListPtr & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end, 
+    void dispatchMeshes(rhi::runtime::CommandList & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end, 
         DrawDataOffsets & offsets);
-    void dispatchSameMeshes(rhi::runtime::CommandListPtr & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end, 
+    void dispatchSameMeshes(rhi::runtime::CommandList & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end, 
         uint32_t count, uint32_t transformIndex, uint32_t skeletonsOffset);
 
-    void dispatchCustomObjects(rhi::runtime::CommandListPtr & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end, 
+    void dispatchCustomObjects(rhi::runtime::CommandList & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end, 
         DrawDataOffsets & offsets);        
 
     // draw
-    void drawObjects(rhi::runtime::CommandListPtr & commandList, uint8_t frame, 
+    void drawObjects(rhi::runtime::CommandList & commandList, uint8_t frame, 
         const ViewParams & viewParams, AttachmentsIterator begin, AttachmentsIterator end, 
         uint16_t typeIdx, DrawDataOffsets & offsets);
 
-    void drawCommon(rhi::runtime::CommandListPtr & commandList, uint8_t frame, 
+    void drawCommon(rhi::runtime::CommandList & commandList, uint8_t frame, 
         const ViewParams & viewParams, AttachmentsIterator begin, AttachmentsIterator end, 
         uint16_t typeIdx, DrawDataOffsets & offsets);
 
-    void drawShadows(rhi::runtime::CommandListPtr & commandList, uint8_t frame, 
+    void drawShadows(rhi::runtime::CommandList & commandList, uint8_t frame, 
         const ViewParams & viewParams, AttachmentsIterator begin, AttachmentsIterator end, 
         uint16_t typeIdx, DrawDataOffsets & offsets);
 
-    void drawColorIds(rhi::runtime::CommandListPtr & commandList, uint8_t frame, 
+    void drawColorIds(rhi::runtime::CommandList & commandList, uint8_t frame, 
         const ViewParams & viewParams, AttachmentsIterator begin, AttachmentsIterator end, 
         uint16_t typeIdx, DrawDataOffsets & offsets);
 
     void drawDummies(AttachmentsIterator begin, AttachmentsIterator end, const ViewParams & viewParams, uint32_t color);
-    void drawSprites(rhi::runtime::CommandListPtr & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end,
+    void drawSprites(rhi::runtime::CommandList & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end,
         const ViewParams & viewParams, uint32_t & vtxOffset, uint32_t & idxOffset);
-    void drawSpritesBatch(rhi::runtime::CommandListPtr & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end, 
+    void drawSpritesBatch(rhi::runtime::CommandList & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end, 
         const ViewParams & viewParams, uint32_t batchVertexesCount, uint32_t batchIndicesCount, uint32_t vtxOffset, uint32_t idxOffset);
 
-    void drawMeshes(rhi::runtime::CommandListPtr & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end,
+    void drawMeshes(rhi::runtime::CommandList & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end,
         const ViewParams & viewParams, uint32_t & offset);
-    void drawMeshes2(rhi::runtime::CommandListPtr & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end,
+    void drawMeshes2(rhi::runtime::CommandList & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end,
         const ViewParams & viewParams, uint32_t & offset, uint32_t & skeletonsOffset);
-    void drawMeshes2Shadow(rhi::runtime::CommandListPtr & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end,
+    void drawMeshes2Shadow(rhi::runtime::CommandList & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end,
         const ViewParams & viewParams, uint32_t & offset, uint32_t & skeletonsOffset);
-    void drawMeshes2ColorIds(rhi::runtime::CommandListPtr & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end,
+    void drawMeshes2ColorIds(rhi::runtime::CommandList & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end,
         const ViewParams & viewParams, uint32_t & offset, uint32_t & skeletonsOffset);
-    void drawSameMeshes(rhi::runtime::CommandListPtr & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end,
+    void drawSameMeshes(rhi::runtime::CommandList & commandList, uint8_t frame, AttachmentsIterator begin, AttachmentsIterator end,
         uint32_t count, bool skeletal);
     // todo: void drawSameMeshesShadow(...);
 
     void drawCustomObjects(AttachmentsIterator begin, AttachmentsIterator end, const ViewParams & viewParams, 
-        rhi::runtime::CommandListPtr & commandList, uint8_t frame);
+        rhi::runtime::CommandList & commandList, uint8_t frame);
 
     using NodesAllocator = allocators::PoolAllocatorChain<sizeof(Node), alignof(Node), false, false>;
     NodesAllocator _nodeAllocator{512u, 256u};
