@@ -48,7 +48,7 @@ public:
 
     const mat4f & getInvTransform() noexcept {
         if (_dirty->inverseTransform) {
-            _inverseTransform = glm::inverse(_transform);
+            _inverseTransform = math::inverse(_transform);
             _dirty->inverseTransform = 0u;
         }
         return _inverseTransform;
@@ -56,7 +56,7 @@ public:
 
     const mat4f & getInvViewTransform() noexcept {
         if (_dirty->inverseView) {
-            _inverseView = glm::inverse(_view);
+            _inverseView = math::inverse(_view);
             _dirty->inverseView = 0u;
         }
         return _inverseView;

@@ -24,8 +24,8 @@ namespace engine {
     }
 
     inline vec3f projection(const vec3f & a, const vec3f & b) noexcept { // project a to b
-        const vec3f axis = glm::normalize(b);
-        return axis * glm::dot(axis, a);
+        const vec3f axis = math::normalize(b);
+        return axis * math::dot(axis, a);
     }
 
     inline void normalizePlane(vec4f & plane) noexcept { // plane normalization
@@ -51,19 +51,19 @@ namespace engine {
     }
 
     inline vec4f planeForm(const vec3f & normal, const vec3f & point) noexcept { // general plane equation with normal and point
-        return { normal.x, normal.y, normal.z, -glm::dot(normal, point) };
+        return { normal.x, normal.y, normal.z, -math::dot(normal, point) };
     }
 
     inline float lenFromPointToLine(const vec3f & begin, const vec3f & end, const vec3f & p) noexcept {
-        const vec3f direction = glm::normalize(end - begin);
+        const vec3f direction = math::normalize(end - begin);
         const vec3f directionToVec = p - begin;
-        return glm::length(glm::cross(direction, directionToVec));
+        return math::length(math::cross(direction, directionToVec));
     }
 
     inline float len2FromPointToLine(const vec3f & begin, const vec3f & end, const vec3f & p) noexcept {
-        const vec3f direction = glm::normalize(end - begin);
+        const vec3f direction = math::normalize(end - begin);
         const vec3f directionToVec = p - begin;
-        return glm::length2(glm::cross(direction, directionToVec));
+        return math::length2(math::cross(direction, directionToVec));
     }
 
     inline float lenFromPointToPlane(const vec4f & plane, const vec3f & p) noexcept {
@@ -73,15 +73,15 @@ namespace engine {
     inline float lenFromLineToLine(const vec3f & begin, const vec3f & end, const vec3f & begin2, const vec3f & end2) noexcept {
         // http://www.cleverstudents.ru/line_and_plane/distance_between_skew_lines.html
 
-        const vec3f direction = glm::normalize(end - begin); // line0 direction
+        const vec3f direction = math::normalize(end - begin); // line0 direction
         const vec3f direction2 = normalize(end2 - begin2); // line1 direction
 
-        const vec3f cross = glm::cross(direction, direction2); // будет нормальный вектор плоскости, проходящей через прямую b параллельно прямой a
+        const vec3f cross = math::cross(direction, direction2); // будет нормальный вектор плоскости, проходящей через прямую b параллельно прямой a
 
         const float D = -cross.x * begin2.x - cross.y * begin2.y - cross.z * begin2.z; // это чтобы проходил через b
-        const float nMult = 1.0f / glm::length(cross); // нормирующий множитель
+        const float nMult = 1.0f / math::length(cross); // нормирующий множитель
 
-        const float len = glm::abs(cross.x * begin.x + cross.y * begin.y + cross.z * begin.z + D) * nMult; // чтобы параллельно a и длину сразу посчитаем
+        const float len = math::abs(cross.x * begin.x + cross.y * begin.y + cross.z * begin.z + D) * nMult; // чтобы параллельно a и длину сразу посчитаем
 
         return len;
     }
@@ -95,13 +95,13 @@ namespace engine {
     }
 
     inline vec3f intersectionLinePlane(const vec3f & a, const vec3f & b, const vec4f & plane) noexcept {
-        const vec3f d = glm::normalize(b - a);
+        const vec3f d = math::normalize(b - a);
         const float t = -(plane.x * a.x + plane.y * a.y + plane.z * a.z + plane.w) / (plane.x * d.x + plane.y * d.y + plane.z * d.z);
         return { a.x + d.x * t, a.y + d.y * t, a.z + d.z * t };
     }
 
     inline vec3f crossingLinesPoint(const vec3f & a, const vec3f & b, const vec3f & c, const vec3f & d, const float eps) noexcept {
-        const vec3f v_v = c + glm::cross(d - c, b - a);
+        const vec3f v_v = c + math::cross(d - c, b - a);
         const vec4f pl = planeForm(c, d, v_v);
         const vec3f crossing = intersectionLinePlane(a, b, pl);
         return lenFromPointToLine(c, d, crossing) <= eps ? crossing : vec3f(std::numeric_limits<float>::max());
@@ -147,17 +147,17 @@ namespace engine {
             auto const idx1 = indices[i + 1u];
             auto const idx2 = indices[i + 2u];
 
-            auto const v02 = glm::normalize(vertices[idx0].position - vertices[idx2].position);
-            auto const v10 = glm::normalize(vertices[idx1].position - vertices[idx0].position);
-            auto const v21 = glm::normalize(vertices[idx2].position - vertices[idx1].position);
+            auto const v02 = math::normalize(vertices[idx0].position - vertices[idx2].position);
+            auto const v10 = math::normalize(vertices[idx1].position - vertices[idx0].position);
+            auto const v21 = math::normalize(vertices[idx2].position - vertices[idx1].position);
 
-            vertices[idx0].normal += glm::normalize(glm::cross(v02, v10));
-            vertices[idx1].normal += glm::normalize(glm::cross(v10, v21));
-            vertices[idx2].normal += glm::normalize(glm::cross(v21, v02));
+            vertices[idx0].normal += math::normalize(math::cross(v02, v10));
+            vertices[idx1].normal += math::normalize(math::cross(v10, v21));
+            vertices[idx2].normal += math::normalize(math::cross(v21, v02));
         }
 
         for (auto & v : vertices) {
-            v.normal = glm::normalize(v.normal);
+            v.normal = math::normalize(v.normal);
         }
     }
 }
