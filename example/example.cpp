@@ -3113,7 +3113,8 @@ namespace example {
         // color picker pass
         vec2f cursor = viewParams.cursorPosition;
         colorPicker->beginRenderPass(*commandList, frameId, {width, height}, {cursor});
-        cursor = -2.0f * vec2f{cursor.x / width, cursor.y / height};
+        cursor = engine::screenToNdc(cursor, {width, height});
+
         //...
         scene->draw(engine::scene::RenderPass::eColorId, *commandList, frameId, viewParams, objects, offsets1, &cursor);
         colorPicker->endRenderPass(*commandList);

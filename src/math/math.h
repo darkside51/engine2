@@ -242,6 +242,14 @@ namespace engine {
     using ray2u = Ray<2u, uint32_t>;
     using ray3u = Ray<3u, uint32_t>;
 
+    inline constexpr vec2f ndcToScreen(vec2f p, vec2f size) noexcept {
+        return (p * 0.5f + 0.5f) * size;
+    } 
+
+    inline constexpr vec2f screenToNdc(vec2f p, vec2f size) noexcept {
+        return (2.0f * p / size) - 1.0f;
+    } 
+
     inline vec2f worldToNdc(const mat4f & viewProjection, const vec3f & p) noexcept {
 		vec4f v = viewProjection * vec4f(p, 1.0f);
 		v /= v.w;

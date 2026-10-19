@@ -48,11 +48,11 @@ namespace engine::scene {
 	}
 
     vec2f Camera::worldToScreen(const vec3f & p) const noexcept {
-		return (worldToNdc(_transform, p) * 0.5f + 0.5f) * _size;
+		return ndcToScreen(worldToNdc(_transform, p), _size);
 	}
 
 	Interval<3u, float> Camera::screenToWorld(vec2f screenCoord) noexcept {
-		return ndcToWorld(getInvTransform(), ((2.0f * screenCoord) / _size) - 1.0f);
+		return ndcToWorld(getInvTransform(), screenToNdc(screenCoord, _size));
 	}
 
     void Camera::setView(const mat4f & view) noexcept {

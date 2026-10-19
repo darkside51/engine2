@@ -1371,7 +1371,7 @@ namespace engine::scene {
                 auto * uniform = _viewParamsUniformBuffer->memory2<std::byte>() + _currentViewParamsBufferOffset;
                 memcpy(uniform , &viewParams.cameraTransform, uniformBufferSize);
                 _viewParamsUniformBuffer->modify(uniformBufferSize, _currentViewParamsBufferOffset);
-                _colorPassScreenOffset = *static_cast<const vec2f*>(uniformData);
+                _colorPassScreenOffset = -(*static_cast<const vec2f*>(uniformData)) + vec2f(-1.0f, -1.0f);
             }
                 break;
             default: 
