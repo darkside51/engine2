@@ -215,7 +215,7 @@ public:
         stl::erase(_customDelegates, delegate); 
     }
 
-    ViewParams buildViewParams(const GraphicsParams & params) noexcept;
+    ViewParams buildViewParams(const GraphicsParams & params) const noexcept;
 
 private:
     // attachments

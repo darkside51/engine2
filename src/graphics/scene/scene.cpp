@@ -1330,7 +1330,7 @@ namespace engine::scene {
         }
     }
 
-    ViewParams Scene::buildViewParams(const GraphicsParams & params) noexcept {
+    ViewParams Scene::buildViewParams(const GraphicsParams & params) const noexcept {
         // memcpy will be faster?
         return {
             .cameraView = params.cameraView,

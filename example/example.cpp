@@ -3111,7 +3111,6 @@ namespace example {
                 commandList->endRenderPass();
                 horizontal = !horizontal;
             }
-
         }
 
         // color picker pass
