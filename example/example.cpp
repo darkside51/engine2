@@ -2675,7 +2675,8 @@ namespace example {
         if (_renderThread) {
             controller.calculateTransform();
             _renderThread->emplaceTask(threads::WorkerTask{[
-                transform = camera.getTransform(), 
+                transform = camera.getTransform(),
+                invTransform = camera.getInvTransform(),
                 view = camera.getView(), 
                 projection = camera.getProjection(),
                 cameraPos = controller.cameraPosition(),
@@ -2684,6 +2685,7 @@ namespace example {
                 sceneGraphicsParams.cameraView = view;
                 sceneGraphicsParams.cameraProjection = projection;
                 sceneGraphicsParams.cameraTransform = transform;
+                sceneGraphicsParams.invCameraTransform = invTransform;
                 sceneGraphicsParams.viewTransposeInverse = glm::transpose(glm::inverse(engine::mat3f(view)));
                 sceneGraphicsParams.cameraPosition = cameraPos; 
                 sceneGraphicsParams.nearFarPlanes = kNearFarPlane;
@@ -2933,6 +2935,8 @@ namespace example {
         shadowMapUniformBuffer->commit(*transferCommandList, frameId);
 
         engine::scene::ViewParams viewParams = scene->buildViewParams(sceneGraphicsParams);
+        const vec2f ndcCursor = engine::screenToNdc(sceneGraphicsParams.cursorPosition, {width, height});
+        const auto cursorWorldInterval = engine::ndcToWorld(sceneGraphicsParams.invCameraTransform, ndcCursor);
 
         // render
         scene->beginFrame(now, delta);
@@ -3114,12 +3118,10 @@ namespace example {
         }
 
         // color picker pass
-        vec2f cursor = sceneGraphicsParams.cursorPosition;
-        colorPicker->beginRenderPass(*commandList, frameId, {width, height}, {cursor});
-        cursor = engine::screenToNdc(cursor, {width, height});
+        colorPicker->beginRenderPass(*commandList, frameId, {width, height}, {sceneGraphicsParams.cursorPosition});
 
         //...
-        scene->draw(engine::scene::RenderPass::eColorId, *commandList, frameId, viewParams, objects, offsets1, &cursor);
+        scene->draw(engine::scene::RenderPass::eColorId, *commandList, frameId, viewParams, objects, offsets1, &ndcCursor);
         colorPicker->endRenderPass(*commandList);
         colorPicker->prepareResults(*commandList, frameId);
         commandList->setViewport(0.0f, 0.0f, width, height);

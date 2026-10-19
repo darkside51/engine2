@@ -18,6 +18,7 @@ struct GraphicsParams {
     mat4f cameraView;
     mat4f cameraProjection;
     mat4f cameraTransform;
+    mat4f invCameraTransform;
     mat3f viewTransposeInverse;
     vec3f cameraPosition;
     vec2f nearFarPlanes;
