@@ -726,7 +726,7 @@ namespace g_map {
         return 0.0f;
     }
 
-    engine::vec3f TerrainSceneDelegate::getIntersect(const engine::interval3f & interval, uint8_t imageIndex) const noexcept {
+    engine::vec3f TerrainSceneDelegate::getIntersection(const engine::interval3f & interval, uint8_t imageIndex) const noexcept {
         using namespace engine;
         return vec3f{std::numeric_limits<float>::infinity()};
     }

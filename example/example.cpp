@@ -2945,7 +2945,7 @@ namespace example {
                 .end = engine::scene::worldToNode(farPoint, terrainNode)
             };
             const auto h = terrainSceneDelegate.getHeight({0.0f, 0.0f}, 0u);
-            const auto intersectionPoint = terrainSceneDelegate.getIntersect(interval, 0u);
+            const auto intersectionPoint = terrainSceneDelegate.getIntersection(interval, 0u);
         }
         // LOG_I("cursorWorldInterval: from %fx%fx%f to %fx%fx%f", nearPoint.x, nearPoint.y, nearPoint.z, farPoint.x, farPoint.y, farPoint.z);
 
