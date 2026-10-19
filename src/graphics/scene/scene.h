@@ -215,6 +215,8 @@ public:
         stl::erase(_customDelegates, delegate); 
     }
 
+    ViewParams buildViewParams(const GraphicsParams & params) noexcept;
+
 private:
     // attachments
     static bool compareAttachmentsForDraw(const AttachmentObject & a, const AttachmentObject & b) noexcept;

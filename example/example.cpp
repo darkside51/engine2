@@ -680,7 +680,7 @@ namespace example {
         return modelIdx;
     }
 
-    engine::scene::ViewParams viewParams;
+    engine::scene::GraphicsParams sceneGraphicsParams;
     bool viewParamsUpdated = false;
 
     struct Stats {
@@ -2678,15 +2678,17 @@ namespace example {
                 transform = camera.getTransform(), 
                 view = camera.getView(), 
                 projection = camera.getProjection(),
-                cameraPos = controller.cameraPosition()
+                cameraPos = controller.cameraPosition(),
+                screenSize = camera.getSize()
             ](){
-                viewParams.cameraView = view;
-                viewParams.cameraProjection = projection;
-                viewParams.cameraTransform = transform;
-                viewParams.viewTransposeInverse = glm::transpose(glm::inverse(engine::mat3f(view)));
-                viewParams.cameraPosition = cameraPos; 
-                viewParams.nearFarPlanes = kNearFarPlane;
-                viewParams.cursorPosition = sceneEventHandler.getCursorPosition();
+                sceneGraphicsParams.cameraView = view;
+                sceneGraphicsParams.cameraProjection = projection;
+                sceneGraphicsParams.cameraTransform = transform;
+                sceneGraphicsParams.viewTransposeInverse = glm::transpose(glm::inverse(engine::mat3f(view)));
+                sceneGraphicsParams.cameraPosition = cameraPos; 
+                sceneGraphicsParams.nearFarPlanes = kNearFarPlane;
+                sceneGraphicsParams.cursorPosition = sceneEventHandler.getCursorPosition();
+                sceneGraphicsParams.screenSize = screenSize;
                 viewParamsUpdated = true;
             }}, 0u);
         }
@@ -2901,13 +2903,13 @@ namespace example {
         if (viewParamsUpdated || lightDirty) { // viewParams has been changed
             shadowMap->setDirection(glm::normalize(lightDir));
 
-            const auto viewInverseMatrix = glm::inverse(viewParams.cameraView);
-            const auto invMatrix = glm::inverse(viewParams.cameraTransform);
+            const auto viewInverseMatrix = glm::inverse(sceneGraphicsParams.cameraView);
+            const auto invMatrix = glm::inverse(sceneGraphicsParams.cameraTransform);
 
             //shadowMap->updateCascades(
             //    viewInverseMatrix, 
             //    engine::pi_v<float> / 3.0f, 
-            //    viewParams.cameraTransform[0u][0u] / viewParams.cameraTransform[1u][1u]
+            //    sceneGraphicsParams.cameraTransform[0u][0u] / sceneGraphicsParams.cameraTransform[1u][1u]
             //);
 
             shadowMap->updateCascades(invMatrix);
@@ -2929,6 +2931,8 @@ namespace example {
         }
 
         shadowMapUniformBuffer->commit(*transferCommandList, frameId);
+
+        engine::scene::ViewParams viewParams = scene->buildViewParams(sceneGraphicsParams);
 
         // render
         scene->beginFrame(now, delta);
@@ -3111,7 +3115,7 @@ namespace example {
         }
 
         // color picker pass
-        vec2f cursor = viewParams.cursorPosition;
+        vec2f cursor = sceneGraphicsParams.cursorPosition;
         colorPicker->beginRenderPass(*commandList, frameId, {width, height}, {cursor});
         cursor = engine::screenToNdc(cursor, {width, height});
 

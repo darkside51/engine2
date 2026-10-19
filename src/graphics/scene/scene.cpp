@@ -1330,6 +1330,19 @@ namespace engine::scene {
         }
     }
 
+    ViewParams Scene::buildViewParams(const GraphicsParams & params) noexcept {
+        // memcpy will be faster?
+        return {
+            .cameraView = params.cameraView,
+            .cameraProjection = params.cameraProjection,
+            .cameraTransform = params.cameraTransform,
+            .viewTransposeInverse = params.viewTransposeInverse,
+            .cameraPosition = params.cameraPosition,
+            .nearFarPlanes = params.nearFarPlanes,
+            .time = _shadersTime
+        };
+    }
+
     void Scene::draw(RenderPass pass, rhi::runtime::CommandList & commandList, uint8_t frame, const ViewParams & viewParams, 
         stl::span<AttachmentObject*> objects, const DrawDataOffsets & offsets, const void * uniformData) {
         if (objects.empty()) {
@@ -1349,7 +1362,6 @@ namespace engine::scene {
                 uniformBufferSize = sizeof(ViewParams);
                 auto * uniform = _viewParamsUniformBuffer->memory2<std::byte>() + _currentViewParamsBufferOffset;
                 memcpy(uniform , &viewParams, uniformBufferSize);
-                reinterpret_cast<ViewParams*>(uniform)->time = _shadersTime;
                 _viewParamsUniformBuffer->modify(uniformBufferSize, _currentViewParamsBufferOffset);
             }
                 break;

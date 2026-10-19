@@ -14,7 +14,7 @@ struct ShadowViewParams {
     stl::span<const mat4f> cascadeMatrices;
 };
 
-struct ViewParams {
+struct GraphicsParams {
     mat4f cameraView;
     mat4f cameraProjection;
     mat4f cameraTransform;
@@ -22,6 +22,16 @@ struct ViewParams {
     vec3f cameraPosition;
     vec2f nearFarPlanes;
     vec2f cursorPosition;
+    vec2f screenSize;
+};
+
+struct ViewParams {
+    mat4f cameraView;
+    mat4f cameraProjection;
+    mat4f cameraTransform;
+    mat3f viewTransposeInverse;
+    vec3f cameraPosition;
+    vec2f nearFarPlanes;
     float time = 0.0f;
 };
 

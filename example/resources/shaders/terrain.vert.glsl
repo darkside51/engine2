@@ -5,6 +5,8 @@ layout(location = 0) in vec2 a_position;
 
 layout(location = 0) out vec2 v_tileUv;
 layout(location = 1) out vec2 v_globalUv;
+layout(location = 2) out vec3 v_vertexPosition;
+layout(location = 3) out vec3 v_worldPosition;
 
 layout(push_constant, std430) uniform Transform {
 	mat4 model;
@@ -21,7 +23,6 @@ layout(set = 0, binding = 0) uniform UniformBuffer {
 	mat3 viewTransposeInverse;
 	vec3 cameraPosition;
 	vec2 nearFarPlanes;
-	vec2 cursorPosition;
 	float time;
 } u_viewParams;
 
@@ -39,4 +40,6 @@ void main() {
  	const vec4 heightTexel = texelFetch(heights, ivec2(v_globalUv), 0);
 	vec4 worldPosition = push.model * vec4(a_position + vec2(x, y), heightTexel.x, 1.0f);
 	gl_Position = u_viewParams.viewProjection * worldPosition;
+	v_vertexPosition = vec3(a_position, heightTexel.x / 64.0f);
+	v_worldPosition = worldPosition.xyz / worldPosition.w;
 }
