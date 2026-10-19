@@ -51,7 +51,7 @@ namespace engine::scene {
 		return ndcToScreen(worldToNdc(_transform, p), _size);
 	}
 
-	Interval<3u, float> Camera::screenToWorld(vec2f screenCoord) noexcept {
+	interval3f Camera::screenToWorld(vec2f screenCoord) noexcept {
 		return ndcToWorld(getInvTransform(), screenToNdc(screenCoord, _size));
 	}
 

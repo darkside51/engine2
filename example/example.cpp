@@ -2936,7 +2936,18 @@ namespace example {
 
         engine::scene::ViewParams viewParams = scene->buildViewParams(sceneGraphicsParams);
         const vec2f ndcCursor = engine::screenToNdc(sceneGraphicsParams.cursorPosition, {width, height});
-        const auto cursorWorldInterval = engine::ndcToWorld(sceneGraphicsParams.invCameraTransform, ndcCursor);
+        const auto [farPoint, nearPoint] = engine::ndcToWorld(sceneGraphicsParams.invCameraTransform, ndcCursor);
+
+        if constexpr (false) {
+            const auto & terrainNode = *terrain->getNode();
+            const engine::interval3f interval{
+                .begin = engine::scene::worldToNode(nearPoint, terrainNode),
+                .end = engine::scene::worldToNode(farPoint, terrainNode)
+            };
+            const auto h = terrainSceneDelegate.getHeight({0.0f, 0.0f}, 0u);
+            const auto intersectionPoint = terrainSceneDelegate.getIntersect(interval, 0u);
+        }
+        // LOG_I("cursorWorldInterval: from %fx%fx%f to %fx%fx%f", nearPoint.x, nearPoint.y, nearPoint.z, farPoint.x, farPoint.y, farPoint.z);
 
         // render
         scene->beginFrame(now, delta);

@@ -224,25 +224,34 @@ namespace engine {
     }
 
     template <uint8_t d, is_number T = float>
-    struct Ray {
+    struct ray {
         vec<d, T> origin;
         vec<d, T> direction;
     };
 
     template<uint8_t d, is_number T = float>
-    struct Interval {
+    struct interval {
         vec<d, T> begin;
         vec<d, T> end;
     };
 
-    using ray2f = Ray<2u, float>;
-    using ray3f = Ray<3u, float>;
-    using ray2d = Ray<2u, double>;
-    using ray3d = Ray<3u, double>;
-    using ray2i = Ray<2u, int32_t>;
-    using ray3i = Ray<3u, int32_t>;
-    using ray2u = Ray<2u, uint32_t>;
-    using ray3u = Ray<3u, uint32_t>;
+    using ray2f = ray<2u, float>;
+    using ray3f = ray<3u, float>;
+    using ray2d = ray<2u, double>;
+    using ray3d = ray<3u, double>;
+    using ray2i = ray<2u, int32_t>;
+    using ray3i = ray<3u, int32_t>;
+    using ray2u = ray<2u, uint32_t>;
+    using ray3u = ray<3u, uint32_t>;
+
+    using interval2f = interval<2u, float>;
+    using interval3f = interval<3u, float>;
+    using interval2d = interval<2u, double>;
+    using interval3d = interval<3u, double>;
+    using interval2i = interval<2u, int32_t>;
+    using interval3i = interval<3u, int32_t>;
+    using interval2u = interval<2u, uint32_t>;
+    using interval3u = interval<3u, uint32_t>;
 
     inline constexpr vec2f ndcToScreen(vec2f p, vec2f size) noexcept {
         return (p * 0.5f + 0.5f) * size;
@@ -258,7 +267,7 @@ namespace engine {
 		return v;
 	}
 
-	inline Interval<3u, float> ndcToWorld(const mat4f & invViewProjection, vec2f p) noexcept {
+	inline interval<3u, float> ndcToWorld(const mat4f & invViewProjection, vec2f p) noexcept {
 		vec4f v{p.x, p.y, 0.0f, 1.0f};
 
 		vec4f sp = invViewProjection * v;

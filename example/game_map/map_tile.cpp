@@ -721,4 +721,14 @@ namespace g_map {
         drawSame(currentIt, end, instanceOffset, scene, viewParams, pass, commandList, frame);
     }
 
+    float TerrainSceneDelegate::getHeight(const engine::vec2f & p, uint8_t imageIndex) const noexcept {
+        using namespace engine;
+        return 0.0f;
+    }
+
+    engine::vec3f TerrainSceneDelegate::getIntersect(const engine::interval3f & interval, uint8_t imageIndex) const noexcept {
+        using namespace engine;
+        return vec3f{std::numeric_limits<float>::infinity()};
+    }
+
 }

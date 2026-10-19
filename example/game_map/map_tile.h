@@ -207,6 +207,9 @@ public:
         return _terrainMaps[idx];
     }
 
+    float getHeight(const engine::vec2f & p, uint8_t imageIndex) const noexcept;
+    engine::vec3f getIntersect(const engine::interval3f & interval, uint8_t imageIndex) const noexcept;
+
 private:
     void buildGeometry(engine::rhi::runtime::CommandList & cmd);
 

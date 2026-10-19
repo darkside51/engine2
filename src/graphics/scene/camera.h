@@ -64,7 +64,7 @@ public:
 
     bool transformDirty() const noexcept { return _dirty->transform != 0u; }
     vec2f worldToScreen(const vec3f & p) const noexcept;
-    Interval<3u, float> screenToWorld(vec2f screenCoord) noexcept;
+    interval3f screenToWorld(vec2f screenCoord) noexcept;
 
     bool calculateTransform() noexcept;
 
