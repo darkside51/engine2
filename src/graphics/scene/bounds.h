@@ -25,9 +25,9 @@ namespace engine::scene {
 
     struct Bounds {
         enum class Type : uint8_t {
-                eNone = 0u,
-                eCube = 1u,
-                eSphere = 2u
+            eNone = 0u,
+            eCube = 1u,
+            eSphere = 2u
         } type = Type::eNone;
         Volume volume;
 

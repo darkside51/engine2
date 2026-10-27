@@ -244,7 +244,7 @@ void hierarchyPass(Node * root, Function && f) noexcept {
 }
 
 template <typename VisibleChecker>
-void recalculateHierarchy(Node * root, VisibleChecker && v, bool const forceRecalculate = false) noexcept {
+void recalculateHierarchy(Node * root, VisibleChecker && v) noexcept {
     Node * node = root;
     bool process = true;
 
@@ -253,7 +253,7 @@ void recalculateHierarchy(Node * root, VisibleChecker && v, bool const forceReca
             node->applyTransformations();
             
             const bool parentDirty = node->parent && node->parent->isChildrenTransformsDirty();
-            if (node->calculateWorldTransform(forceRecalculate || parentDirty)) {
+            if (node->calculateWorldTransform(parentDirty)) {
                 node->setChildrenTransformsDirty(true);
             }
             

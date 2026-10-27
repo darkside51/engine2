@@ -326,8 +326,9 @@ namespace g_map {
 
         auto & terrainMaps0 = _terrainMaps[0u];
 
-        terrainMaps0.normals = api.createImage(device, normalsImageInfo);
-        terrainMaps0.heights = api.createImage(device, heightsImageInfo);
+        terrainMaps0.normalMap = api.createImage(device, normalsImageInfo);
+        terrainMaps0.heightMap = api.createImage(device, heightsImageInfo);
+        terrainMaps0.heights.resize(mapImageWidth * mapImageHeight);
 
         const auto flagsCount = static_cast<uint16_t>(mapImageWidth / kCellsInRow * mapImageHeight / kCellsInRow);
         terrainMaps0.initFlags(flagsCount, TerrainMaps::DirtyFlags::eNormals);
@@ -393,7 +394,7 @@ namespace g_map {
         }
 
         auto & maps = _terrainMaps[mapIdx];
-        const auto textureWidth = maps.normals->getInfo().extent.width;
+        const auto textureWidth = maps.normalMap->getInfo().extent.width;
         const auto tilesW = textureWidth / kTileSize;
 
         const auto startTile = xy / vec2u{kTileSize};
@@ -417,12 +418,12 @@ namespace g_map {
         for (uint32_t i = 0u; i < size.y; ++i) {
             for (uint32_t j = 0u; j < size.x; ++j) {
                 const auto b = j + i * textureWidth;
-                uint32_t srcByteId = b * 4u; // format depended
-                const float value = static_cast<float>(bytes[srcByteId + 0u]) * hScale;
-                // const float value = (static_cast<float>(bytes[srcByteId + 0u]) +
-                //                 static_cast<float>(bytes[srcByteId + 1u]) +
-                //                 static_cast<float>(bytes[srcByteId + 2u]) +
-                //                 static_cast<float>(bytes[srcByteId + 3u])) * hScale;
+                const uint32_t srcByte = b * 4u; // format depended
+                const auto value = static_cast<float>(bytes[srcByte + 0u]) * hScale;
+                // const float value = (static_cast<float>(bytes[srcByte + 0u]) +
+                //                 static_cast<float>(bytes[srcByte + 1u]) +
+                //                 static_cast<float>(bytes[srcByte + 2u]) +
+                //                 static_cast<float>(bytes[srcByte + 3u])) * hScale;
                 dst[b] = graphics::float_to_uint16(value);
 
                 { // flags and heights
@@ -437,12 +438,15 @@ namespace g_map {
                     maps.heightBounds[tileId].min = std::min(maps.heightBounds[tileId].min, valuei);
                     maps.heightBounds[tileId].max = std::max(maps.heightBounds[tileId].max, valuei);
                     maps.dirty[tileId].enable(TerrainMaps::DirtyFlags::eNormals);
+
+                    const auto hOffset = x + y * textureWidth;
+                    maps.heights[hOffset] = value;
                 }
             }
         }
 
         commandList.copyBuffer2Image(
-            staging.getBuffer(), maps.heights, 
+            staging.getBuffer(), maps.heightMap, 
             {
                 .bufferOffset = offset,
                 .bufferRowLength = textureWidth,
@@ -540,8 +544,8 @@ namespace g_map {
         commandList.bindPipeline(*pipeline);
         commandList.pushConstants(rhi::shaders::Stages::eCompute, 0u, sizeof(Uniform), &uniform);
         commandList.bindTexelBuffer(0u, _updateNormalTileIDs, rhi::Format::eR16_Uint, 0u);
-        commandList.bindImage(1u, maps.heights, scene.getLinearSampler(), 0u);
-        commandList.bindStorageImage(2u, maps.normals, std::nullopt, 0u);
+        commandList.bindImage(1u, maps.heightMap, scene.getLinearSampler(), 0u);
+        commandList.bindStorageImage(2u, maps.normalMap, std::nullopt, 0u);
         commandList.dispatch(groupX, groupY, 1u);
     }
 
@@ -670,8 +674,8 @@ namespace g_map {
                 auto const sceneViewParamBufferOffset = scene.getCurrentViewParamsBufferOffset();
                 commandList.bindBuffer(0u, scene.getViewParamsUniformBuffer(frame), 0u, sceneViewParamBufferOffset);
                 commandList.bindTexelBuffer(1u, _tileIDs, engine::rhi::Format::eR16_Uint, 0u);
-                commandList.bindImage(2u, maps.heights, std::nullopt, 0u);
-                commandList.bindImage(3u, maps.normals, scene.getLinearSampler(), 0u);
+                commandList.bindImage(2u, maps.heightMap, std::nullopt, 0u);
+                commandList.bindImage(3u, maps.normalMap, scene.getLinearSampler(), 0u);
                 commandList.bindImage(4u, gs.getTextureManager().getWhiteImage(), scene.getLinearSampler(), 0u);
             }
 
@@ -721,8 +725,55 @@ namespace g_map {
         drawSame(currentIt, end, instanceOffset, scene, viewParams, pass, commandList, frame);
     }
 
-    float TerrainSceneDelegate::getHeight(const engine::vec2f & p, uint8_t imageIndex) const noexcept {
+    float TerrainSceneDelegate::getHeight(engine::vec2f p, uint8_t imageIndex) const noexcept {
         using namespace engine;
+
+        auto & maps = _terrainMaps[imageIndex];
+        const auto & extent = maps.normalMap->getInfo().extent;
+        const auto textureWidth = extent.width;
+        const auto textureHeight = extent.height;
+        // const auto tilesW = textureWidth / kTileSize;
+
+        if (p.x < 0.0f || p.x > textureWidth || p.y < 0.0f || p.y > textureHeight) {
+            return 0.0f;
+        }
+
+        // for (size_t i = 0u; i < kCellsInRow; ++i) {
+        //     for (size_t j = 0u; j < kCellsInRow; ++j) {
+        //         auto idx = i * kVerticesInRow + j;
+        //         if (idx & 1) {
+        //             indicesView[n + 0u] = idx;
+        //             indicesView[n + 1u] = idx + 1u;
+        //             indicesView[n + 2u] = idx + kVerticesInRow + 1u;
+
+        //             indicesView[n + 3u] = idx;
+        //             indicesView[n + 4u] = idx + kVerticesInRow + 1u;
+        //             indicesView[n + 5u] = idx + kVerticesInRow;
+        //         } else {
+        //             indicesView[n + 0u] = idx;
+        //             indicesView[n + 1u] = idx + 1u;
+        //             indicesView[n + 2u] = idx + kVerticesInRow;
+
+        //             indicesView[n + 3u] = idx + kVerticesInRow;
+        //             indicesView[n + 4u] = idx + 1u;
+        //             indicesView[n + 5u] = idx + kVerticesInRow + 1u;
+        //         }
+
+        //         n += 6u;
+        //     }
+        // }
+
+        constexpr auto kStep = kTileSize / kVerticesInRow;
+        const auto idxH0 = static_cast<uint16_t>(p.x) + static_cast<uint16_t>(p.y) * textureWidth;
+        const auto idxH1 = static_cast<uint16_t>(p.x + kStep) + static_cast<uint16_t>(p.y) * textureWidth;
+        uint32_t idxH2;
+        if (idxH0 & 1) {
+
+        } else {
+            
+        }
+        //maps.heights[h0];
+
         return 0.0f;
     }
 

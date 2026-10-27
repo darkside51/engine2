@@ -142,12 +142,14 @@ public:
             int16_t max = 0;
         };
 
-        engine::rhi::runtime::ImagePtr heights = nullptr;
-        engine::rhi::runtime::ImagePtr normals = nullptr;
+        engine::rhi::runtime::ImagePtr heightMap = nullptr;
+        engine::rhi::runtime::ImagePtr normalMap = nullptr;
         engine::rhi::runtime::ImagePtr splatMap = nullptr;
 
         engine::stl::vector<engine::Flags<DirtyFlags>> dirty;
         engine::stl::vector<HeightBounds> heightBounds;
+
+        engine::stl::vector<float> heights;
 
         void initFlags(uint16_t size, DirtyFlags value) {
             dirty.resize(size);
@@ -159,8 +161,8 @@ public:
 
         void clear() noexcept {
             dirty.clear();
-            heights = nullptr;
-            normals = nullptr;
+            heightMap = nullptr;
+            normalMap = nullptr;
             splatMap = nullptr;
         }
     };
@@ -207,7 +209,7 @@ public:
         return _terrainMaps[idx];
     }
 
-    float getHeight(const engine::vec2f & p, uint8_t imageIndex) const noexcept;
+    float getHeight(engine::vec2f p, uint8_t imageIndex) const noexcept;
     engine::vec3f getIntersection(const engine::interval3f & interval, uint8_t imageIndex) const noexcept;
 
 private:
