@@ -2950,7 +2950,8 @@ namespace example {
                 .begin = engine::scene::worldToNode(nearPoint, terrainNode),
                 .end = engine::scene::worldToNode(farPoint, terrainNode)
             };
-            engine::vec3f p{5.8f, 35.2f, 0.0f};
+            static engine::vec3f p{0.0f, 35.6f, 0.0f};
+            p.x += 1.0f * delta;
             p.z = terrainSceneDelegate.getHeight(p, 0u);
             const auto intersectionPoint = terrainSceneDelegate.getIntersection(interval, 0u);
             testDummyNode->setPosition(p);

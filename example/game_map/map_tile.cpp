@@ -739,20 +739,33 @@ namespace g_map {
 
         constexpr auto kStep = kTileSize / kVerticesInRow;
 
-        vec2f v0{static_cast<uint32_t>(p.x) / kStep, static_cast<uint32_t>(p.y) / kStep};
-        //v0 *= kTileScale;
-        const auto idxH0 = static_cast<uint32_t>(v0.x) + static_cast<uint32_t>(v0.y) * textureWidth;
+        const auto xx = static_cast<uint32_t>(p.x) / kStep;
+        const auto yy = static_cast<uint32_t>(p.y) / kStep;
 
-        vec2f v1{v0.x + kStep, v0.y};
-        const auto idxH1 = static_cast<uint32_t>(v1.x) + static_cast<uint32_t>(v1.y) * textureWidth;
-
+        vec2f v0;
+        vec2f v1;
         vec2f v2;
 
-        if (idxH0 & 1) {
-            v2 = {v0.x + kStep, v0.y + kStep};
+        if (xx & 1) {
+            v0 = {xx, yy};
+            v2 = {xx + kStep, yy + kStep};
+            if (fract(p.x) > fract(p.y)) {
+                v1 = {xx + kStep, yy};
+            } else {
+                v1 = {xx, yy + kStep};
+            }
         } else {
-            v2 = {v0.x, v0.y + kStep};
+            v0 = {xx, yy + kStep};
+            v2 = {xx + kStep, yy};
+            if ((1.0f - fract(p.x)) > fract(p.y)) {
+                v1 = {xx, yy};
+            } else {
+                v1 = {xx + kStep, yy + kStep};
+            }
         }
+
+        const auto idxH0 = static_cast<uint32_t>(v0.x) + static_cast<uint32_t>(v0.y) * textureWidth;
+        const auto idxH1 = static_cast<uint32_t>(v1.x) + static_cast<uint32_t>(v1.y) * textureWidth;
         const auto idxH2 = static_cast<uint32_t>(v2.x) + static_cast<uint32_t>(v2.y) * textureWidth;
 
         // v0 *= kTileScale;
@@ -767,7 +780,8 @@ namespace g_map {
         const auto lambda2 = ((v2.y - v0.y) * (p.x - v2.x) + (v0.x - v2.x) * (p.y - v2.y)) / denom;
         const auto lambda3 = 1.0f - lambda1 - lambda2;
 
-        return lambda1 * maps.heights[idxH0] + lambda2 * maps.heights[idxH1] + lambda3 * maps.heights[idxH2];
+        const float result = lambda1 * maps.heights[idxH0] + lambda2 * maps.heights[idxH1] + lambda3 * maps.heights[idxH2];
+        return result;
     }
 
     engine::vec3f TerrainSceneDelegate::getIntersection(const engine::interval3f & interval, uint8_t imageIndex) const noexcept {

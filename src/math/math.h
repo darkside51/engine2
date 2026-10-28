@@ -209,7 +209,7 @@ namespace engine {
     }
 
     template<typename T>
-    inline constexpr T fract(T && x) noexcept {
+    inline constexpr T fract(T x) noexcept {
         return x - std::floor(x);
     }
 
