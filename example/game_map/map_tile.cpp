@@ -746,23 +746,33 @@ namespace g_map {
         vec2f v2;
 
         const auto p1 = p * (1.0f / kStep);
-        const auto idx = yy / kStep * kVerticesInRow + xx / kStep;
-        if (idx & 1) {
-            v0 = {xx, yy};
-            v2 = {xx + kStep, yy + kStep};
-            if (fract(p1.x) > fract(p1.y)) {
-                v1 = {xx + kStep, yy};
-            } else {
-                v1 = {xx, yy + kStep};
-            }
-        } else {
-            v0 = {xx, yy + kStep};
-            v2 = {xx + kStep, yy};
-            if ((1.0f - fract(p1.x)) > fract(p1.y)) {
-                v1 = {xx, yy};
-            } else {
-                v1 = {xx + kStep, yy + kStep};
-            }
+        const auto fx = fract(p1.x);
+        const auto fy = fract(p1.y);
+
+        const auto idx = (yy / kStep) * kVerticesInRow + (xx / kStep);
+        // { // v1 - simple
+        // if (idx & 1) {
+        //     v0 = {xx, yy};
+        //     v2 = {xx + kStep, yy + kStep};
+        //     v1 = (fx > fy) ? vec2f{xx + kStep, yy} : vec2f{xx, yy + kStep};
+        // } else {
+        //     v0 = {xx, yy + kStep};
+        //     v2 = {xx + kStep, yy};
+        //     v1 = ((1.0f - fx) > fy) ? vec2f{xx, yy} : vec2f{xx + kStep, yy + kStep};
+        // }
+        // }
+        { // v2 - more optimal?
+            const auto cond_idx = ((yy / kStep) * kVerticesInRow + (xx / kStep)) & 1;
+            const auto cond_f1  = (fx > fy);
+            const auto cond_f2  = ((1.0f - fx) > fy);
+
+            v0 = { xx, yy + kStep * (1 - cond_idx) };
+            v2 = { xx + kStep, yy + kStep * cond_idx };
+
+            const auto choose_x = cond_idx ? cond_f1 : (1 - cond_f2);
+            const auto choose_y = cond_idx ? (1 - cond_f1) : (1 - cond_f2);
+
+            v1 = { xx + kStep * choose_x, yy + kStep * choose_y };
         }
 
         const auto idxH0 = static_cast<uint32_t>(v0.x) + static_cast<uint32_t>(v0.y) * textureWidth;
