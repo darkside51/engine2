@@ -216,10 +216,10 @@ namespace g_map {
     /////////////////////////
     constexpr uint16_t kMaxTileIds = 4096u;
     constexpr size_t kFloat16Size = 2u;
-    constexpr uint32_t kVerticesInRow = 16u;
+    constexpr uint32_t kVerticesInRow = 32u;
     constexpr uint32_t kCellsInRow = kVerticesInRow - 1u;
     constexpr uint32_t kTileSize = 32u;
-    constexpr float kTileScale = static_cast<float>(kTileSize) / kCellsInRow; // scale up the tile so that it occupies a 32x32 area with 31x31 cells
+    constexpr float kTileScale = 1.0f;//static_cast<float>(kTileSize) / kCellsInRow; // scale up the tile so that it occupies a 32x32 area with 31x31 cells
     
     Terrain::Terrain(TerrainSceneDelegate & sceneDelegate, engine::scene::Scene & scene, uint8_t w, uint8_t h) :
     _scene(scene),
@@ -732,49 +732,42 @@ namespace g_map {
         const auto & extent = maps.normalMap->getInfo().extent;
         const auto textureWidth = extent.width;
         const auto textureHeight = extent.height;
-        // const auto tilesW = textureWidth / kTileSize;
 
         if (p.x < 0.0f || p.x > textureWidth || p.y < 0.0f || p.y > textureHeight) {
             return 0.0f;
         }
 
-        // for (size_t i = 0u; i < kCellsInRow; ++i) {
-        //     for (size_t j = 0u; j < kCellsInRow; ++j) {
-        //         auto idx = i * kVerticesInRow + j;
-        //         if (idx & 1) {
-        //             indicesView[n + 0u] = idx;
-        //             indicesView[n + 1u] = idx + 1u;
-        //             indicesView[n + 2u] = idx + kVerticesInRow + 1u;
-
-        //             indicesView[n + 3u] = idx;
-        //             indicesView[n + 4u] = idx + kVerticesInRow + 1u;
-        //             indicesView[n + 5u] = idx + kVerticesInRow;
-        //         } else {
-        //             indicesView[n + 0u] = idx;
-        //             indicesView[n + 1u] = idx + 1u;
-        //             indicesView[n + 2u] = idx + kVerticesInRow;
-
-        //             indicesView[n + 3u] = idx + kVerticesInRow;
-        //             indicesView[n + 4u] = idx + 1u;
-        //             indicesView[n + 5u] = idx + kVerticesInRow + 1u;
-        //         }
-
-        //         n += 6u;
-        //     }
-        // }
-
         constexpr auto kStep = kTileSize / kVerticesInRow;
-        const auto idxH0 = static_cast<uint16_t>(p.x) + static_cast<uint16_t>(p.y) * textureWidth;
-        const auto idxH1 = static_cast<uint16_t>(p.x + kStep) + static_cast<uint16_t>(p.y) * textureWidth;
-        uint32_t idxH2;
+
+        vec2f v0{static_cast<uint32_t>(p.x) / kStep, static_cast<uint32_t>(p.y) / kStep};
+        //v0 *= kTileScale;
+        const auto idxH0 = static_cast<uint32_t>(v0.x) + static_cast<uint32_t>(v0.y) * textureWidth;
+
+        vec2f v1{v0.x + kStep, v0.y};
+        const auto idxH1 = static_cast<uint32_t>(v1.x) + static_cast<uint32_t>(v1.y) * textureWidth;
+
+        vec2f v2;
+
         if (idxH0 & 1) {
-
+            v2 = {v0.x + kStep, v0.y + kStep};
         } else {
-            
+            v2 = {v0.x, v0.y + kStep};
         }
-        //maps.heights[h0];
+        const auto idxH2 = static_cast<uint32_t>(v2.x) + static_cast<uint32_t>(v2.y) * textureWidth;
 
-        return 0.0f;
+        // v0 *= kTileScale;
+        // v1 *= kTileScale;
+        // v2 *= kTileScale;
+
+        const auto denom = (v1.y - v2.y) * (v0.x - v2.x) + (v2.x - v1.x) * (v0.y - v2.y);
+        assert(abs(denom) > 1e-7f); // the triangle projects onto a line in the XOY plane
+
+        // calculate the barycentric weights
+        const auto lambda1 = ((v1.y - v2.y) * (p.x - v2.x) + (v2.x - v1.x) * (p.y - v2.y)) / denom;
+        const auto lambda2 = ((v2.y - v0.y) * (p.x - v2.x) + (v0.x - v2.x) * (p.y - v2.y)) / denom;
+        const auto lambda3 = 1.0f - lambda1 - lambda2;
+
+        return lambda1 * maps.heights[idxH0] + lambda2 * maps.heights[idxH1] + lambda3 * maps.heights[idxH2];
     }
 
     engine::vec3f TerrainSceneDelegate::getIntersection(const engine::interval3f & interval, uint8_t imageIndex) const noexcept {

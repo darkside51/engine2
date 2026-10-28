@@ -142,6 +142,7 @@ namespace example {
     engine::scene::Node * sceneWorldRoot = nullptr;
     engine::scene::Node * swordNode = nullptr;
     engine::scene::Node * underCursorNode = nullptr;
+    engine::scene::Node * testDummyNode = nullptr;
 
     engine::stl::vector<engine::scene::AttachmentObject*> shadowObjects(1024u);
     engine::stl::vector<engine::scene::AttachmentObject*> objects(1024u);
@@ -2460,6 +2461,10 @@ namespace example {
             swordNode = node4;
             sceneWorldRoot->addChild(node4);
 
+            testDummyNode = scene->createNode();
+            auto * dummy0 = scene->createObject<engine::scene::Dummy>();
+            engine::scene::attachObjectToNode(*dummy0, *testDummyNode);
+
             {
                 m2[0][0] *= 0.25f;
                 m2[1][1] *= -0.25f;
@@ -2536,6 +2541,7 @@ namespace example {
                 auto * terrainNode = terrain->getNode();
                 terrainNode->setPosition({-64.0f, 0.0f, 0.0f});
                 terrainNode->setScale(0.05f);
+                terrainNode->addChild(testDummyNode);
                 sceneWorldRoot->addChild(terrainNode);
             }
 
@@ -2938,14 +2944,16 @@ namespace example {
         const vec2f ndcCursor = engine::screenToNdc(sceneGraphicsParams.cursorPosition, {width, height});
         const auto [farPoint, nearPoint] = engine::ndcToWorld(sceneGraphicsParams.invCameraTransform, ndcCursor);
 
-        if constexpr (false) {
+        if constexpr (true) {
             const auto & terrainNode = *terrain->getNode();
             const engine::interval3f interval{
                 .begin = engine::scene::worldToNode(nearPoint, terrainNode),
                 .end = engine::scene::worldToNode(farPoint, terrainNode)
             };
-            const auto h = terrainSceneDelegate.getHeight({0.0f, 0.0f}, 0u);
+            engine::vec3f p{5.8f, 35.2f, 0.0f};
+            p.z = terrainSceneDelegate.getHeight(p, 0u);
             const auto intersectionPoint = terrainSceneDelegate.getIntersection(interval, 0u);
+            testDummyNode->setPosition(p);
         }
         // LOG_I("cursorWorldInterval: from %fx%fx%f to %fx%fx%f", nearPoint.x, nearPoint.y, nearPoint.z, farPoint.x, farPoint.y, farPoint.z);
 
