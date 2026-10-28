@@ -216,11 +216,11 @@ namespace g_map {
     /////////////////////////
     constexpr uint16_t kMaxTileIds = 4096u;
     constexpr size_t kFloat16Size = 2u;
-    constexpr uint32_t kVerticesInRow = 32u;
+    constexpr uint32_t kVerticesInRow = 16u;
     constexpr uint32_t kCellsInRow = kVerticesInRow - 1u;
     constexpr uint32_t kTileSize = 32u;
-    constexpr float kTileScale = 1.0f;//static_cast<float>(kTileSize) / kCellsInRow; // scale up the tile so that it occupies a 32x32 area with 31x31 cells
-    
+    constexpr float kTileScale = 2.0f;//kTileSize / kVerticesInRow;//static_cast<float>(kTileSize) / kCellsInRow; // scale up the tile so that it occupies a 32x32 area with 31x31 cells
+
     Terrain::Terrain(TerrainSceneDelegate & sceneDelegate, engine::scene::Scene & scene, uint8_t w, uint8_t h) :
     _scene(scene),
     _width(w),
@@ -738,18 +738,18 @@ namespace g_map {
         }
 
         constexpr auto kStep = kTileSize / kVerticesInRow;
-
-        const auto xx = static_cast<uint32_t>(p.x) / kStep;
-        const auto yy = static_cast<uint32_t>(p.y) / kStep;
+        const auto xx = (static_cast<uint32_t>(p.x) / kStep) * kStep;
+        const auto yy = (static_cast<uint32_t>(p.y) / kStep) * kStep;
 
         vec2f v0;
         vec2f v1;
         vec2f v2;
 
-        if (xx & 1) {
+        const auto p1 = p * (1.0f / kStep);
+        if ((xx / kStep) & 1) {
             v0 = {xx, yy};
             v2 = {xx + kStep, yy + kStep};
-            if (fract(p.x) > fract(p.y)) {
+            if (fract(p1.x) > fract(p1.y)) {
                 v1 = {xx + kStep, yy};
             } else {
                 v1 = {xx, yy + kStep};
@@ -757,7 +757,7 @@ namespace g_map {
         } else {
             v0 = {xx, yy + kStep};
             v2 = {xx + kStep, yy};
-            if ((1.0f - fract(p.x)) > fract(p.y)) {
+            if ((1.0f - fract(p1.x)) > fract(p1.y)) {
                 v1 = {xx, yy};
             } else {
                 v1 = {xx + kStep, yy + kStep};
@@ -767,10 +767,6 @@ namespace g_map {
         const auto idxH0 = static_cast<uint32_t>(v0.x) + static_cast<uint32_t>(v0.y) * textureWidth;
         const auto idxH1 = static_cast<uint32_t>(v1.x) + static_cast<uint32_t>(v1.y) * textureWidth;
         const auto idxH2 = static_cast<uint32_t>(v2.x) + static_cast<uint32_t>(v2.y) * textureWidth;
-
-        // v0 *= kTileScale;
-        // v1 *= kTileScale;
-        // v2 *= kTileScale;
 
         const auto denom = (v1.y - v2.y) * (v0.x - v2.x) + (v2.x - v1.x) * (v0.y - v2.y);
         assert(abs(denom) > 1e-7f); // the triangle projects onto a line in the XOY plane
