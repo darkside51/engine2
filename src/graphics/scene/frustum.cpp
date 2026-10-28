@@ -26,8 +26,12 @@ namespace engine::scene {
         _frustum[4u] = {clip[0u][3u] - clip[0u][2u], clip[1u][3u] - clip[1u][2u], clip[2u][3u] - clip[2u][2u],
                         clip[3u][3u] - clip[3u][2u]};
         // get A,B,C,D for front plane
-        _frustum[5u] = {clip[0u][3u] + clip[0u][2u], clip[1u][3u] + clip[1u][2u], clip[2u][3u] + clip[2u][2u],
-                        clip[3u][3u] + clip[3u][2u]};
+        // _frustum[5u] = {clip[0u][3u] + clip[0u][2u], clip[1u][3u] + clip[1u][2u], clip[2u][3u] + clip[2u][2u],
+        //                 clip[3u][3u] + clip[3u][2u]};
+
+        // fix for NDC Z [0, 1]
+        // get A,B,C,D for front plane
+        _frustum[5u] = {clip[0u][2u], clip[1u][2u], clip[2u][2u], clip[3u][2u]};
 
         // normalize planes:
         for (auto & plane : _frustum) { // bring the equations of the planes to normal form
