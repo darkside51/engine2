@@ -216,10 +216,10 @@ namespace g_map {
     /////////////////////////
     constexpr uint16_t kMaxTileIds = 4096u;
     constexpr size_t kFloat16Size = 2u;
-    constexpr uint32_t kVerticesInRow = 16u;
+    constexpr uint32_t kVerticesInRow = 17u;
     constexpr uint32_t kCellsInRow = kVerticesInRow - 1u;
     constexpr uint32_t kTileSize = 32u;
-    constexpr float kTileScale = 2.0f;//kTileSize / kVerticesInRow;//static_cast<float>(kTileSize) / kCellsInRow; // scale up the tile so that it occupies a 32x32 area with 31x31 cells
+    constexpr float kTileScale = static_cast<float>(kTileSize) / kCellsInRow; // scale up the tile
 
     Terrain::Terrain(TerrainSceneDelegate & sceneDelegate, engine::scene::Scene & scene, uint8_t w, uint8_t h) :
     _scene(scene),
@@ -737,7 +737,7 @@ namespace g_map {
             return 0.0f;
         }
 
-        constexpr auto kStep = kTileSize / kVerticesInRow;
+        constexpr auto kStep = kTileSize / kCellsInRow;
         const auto xx = (static_cast<uint32_t>(p.x) / kStep) * kStep;
         const auto yy = (static_cast<uint32_t>(p.y) / kStep) * kStep;
 
@@ -746,7 +746,8 @@ namespace g_map {
         vec2f v2;
 
         const auto p1 = p * (1.0f / kStep);
-        if ((xx / kStep) & 1) {
+        const auto idx = yy / kStep * kVerticesInRow + xx / kStep;
+        if (idx & 1) {
             v0 = {xx, yy};
             v2 = {xx + kStep, yy + kStep};
             if (fract(p1.x) > fract(p1.y)) {
