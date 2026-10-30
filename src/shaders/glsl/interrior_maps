@@ -1,6 +1,8 @@
 #ifndef INTERRIOR_MAP_HEADER
 #define INTERRIOR_MAP_HEADER
 
+#include "common"
+
 // common impl
 vec4 calculateRooms (
 		in sampler2D textureMap,
@@ -74,28 +76,28 @@ vec3 calculateCubeDirection(
     vec3 dimensions) {
     // https://github.com/kylebakerio/aframe-interior-parallax-mapping
     uv = fract(uv * 1.0f / vec2(dimensions.x, dimensions.z));
-	const vec3 pos = vec3(uv.x * 2.0f - 1.0f, -1.0f, -uv.y * 2.0f + 1.0f);
+	vec3 pos = vec3(uv.x * 2.0f - 1.0f, -1.0f, -uv.y * 2.0f + 1.0f);
 
-	const mat3 m = mat3(-normal.y,  normal.x, 	0.0f,
-				  		-normal.x, -normal.y, 	0.0f,
-				  		0.0f, 		0.0f, 		1.0f);
+	mat3 m = mat3(-normal.y,  normal.x, 	0.0f,
+				  -normal.x, -normal.y, 	0.0f,
+				  0.0f, 		0.0f, 		1.0f);
 
-	const vec3 direction = (normalize(position - cameraPosition) * m) / dimensions;
-	const vec3 viewInv = 1.0f / direction;
-	const float fmin = min3(abs(viewInv) - viewInv * pos);
+	vec3 direction = (normalize(position - cameraPosition) * m) / dimensions;
+	vec3 viewInv = 1.0f / direction;
+	float fmin = min3(abs(viewInv) - viewInv * pos);
 
 	return direction * fmin + pos;
 }
 
 vec4 calculateInteriorLight(vec3 direction, vec3 lightDir, vec4 ambient) {
-	const vec3 absDir = abs(direction);
-	const vec3 interiorNormal = normalize(vec3(
+	vec3 absDir = abs(direction);
+	vec3 interiorNormal = normalize(vec3(
 		step(absDir.y, absDir.x) * step(absDir.z, absDir.x),
 		step(absDir.x, absDir.y) * step(absDir.z, absDir.y),
 		step(absDir.x, absDir.z) * step(absDir.y, absDir.z)
 	) * direction);
 
-	const float lightStrength = dot(interiorNormal, lightDir);
+	float lightStrength = dot(interiorNormal, lightDir);
 	return clamp(lightStrength, 0.0f, 1.0f) + ambient;
 }
 
@@ -107,8 +109,8 @@ vec4 calculateRoomCube(
     vec2 uv,
     vec3 dimensions,
     vec4 ambient) {
-	const vec3 direction = calculateCubeDirection(position, cameraPosition, normal, uv, dimensions);
-	const vec4 interiorLight = calculateInteriorLight(direction, normalize(vec3(0.2f, 0.3f, -1.0f)), ambient);
+	vec3 direction = calculateCubeDirection(position, cameraPosition, normal, uv, dimensions);
+	vec4 interiorLight = calculateInteriorLight(direction, normalize(vec3(0.2f, 0.3f, -1.0f)), ambient);
 	return interiorLight * texture(cubeMap, direction);
 }
 
@@ -123,7 +125,7 @@ vec4 calculateRoomCube(
     vec3 orientation) {
 
 	vec3 direction = calculateCubeDirection(position, cameraPosition, normal, uv, dimensions);
-	const vec4 interiorLight = calculateInteriorLight(direction, normalize(vec3(0.2f, 0.3f, -1.0f)), ambient);
+	vec4 interiorLight = calculateInteriorLight(direction, normalize(vec3(0.2f, 0.3f, -1.0f)), ambient);
 
 	direction.xy = direction.xy * buildRotationMatrix(normal.xy, orientation.xy);
 	//direction = direction * buildRotationMatrix(normal, orientation);
