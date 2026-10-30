@@ -137,6 +137,42 @@ namespace engine {
         return result;
     }
 
+    // Moller - Trumbore test
+    inline bool rayTriangleIntersect(const vec3f & orig, const vec3f & dir,
+                            const vec3f & v0, const vec3f & v1, const vec3f & v2,
+                            float & t, vec3f & hitPoint) noexcept {
+        constexpr float kEps = 1e-7f;
+        const vec3f edge1 = v1 - v0;
+        const vec3f edge2 = v2 - v0;
+        const vec3f h = cross(dir, edge2);
+        const float a = dot(edge1, h);
+        if (a > -kEps && a < kEps) {
+            return false;
+        }
+
+        const float f = 1.0f / a;
+        const vec3f s = orig - v0;
+        const float u = f * dot(s, h);
+        if (u < 0.0f || u > 1.0f) {
+            return false;
+        }
+
+        const vec3f q = cross(s, edge1);
+        const float v = f * dot(dir, q);
+        if (v < 0.0f || u + v > 1.0f) {
+            return false;
+        }
+
+        const float intersection_t = f * dot(edge2, q);
+        if (intersection_t > kEps) {
+            t = intersection_t;
+            hitPoint = orig + dir * t;
+            return true;
+        }
+
+        return false;
+    }
+
     template<typename T>
     void calculateNormals(stl::span<T> vertices, stl::span<const uint32_t> indices) noexcept {
         for (auto & v : vertices) {
