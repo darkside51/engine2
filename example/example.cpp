@@ -2953,9 +2953,10 @@ namespace example {
             static engine::vec3f p{0.0f, 35.6f, 0.0f};
             p.x += 1.0f * delta * sceneAnimationSpeed;
             p.y += 1.0f * delta * sceneAnimationSpeed;
-            p.z = terrainSceneDelegate.getHeight(p, 0u) + 0.1f;
-            const auto intersectionPoint = terrainSceneDelegate.getIntersection(interval, 0u);
+            p.z = terrainSceneDelegate.getHeight(p, 0u);// + 0.1f;
             testDummyNode->setPosition(p);
+            //const auto intersectionPoint = terrainSceneDelegate.getIntersection(interval, 0u);
+            //testDummyNode->setPosition(intersectionPoint);
         }
         // LOG_I("cursorWorldInterval: from %fx%fx%f to %fx%fx%f", nearPoint.x, nearPoint.y, nearPoint.z, farPoint.x, farPoint.y, farPoint.z);
 

@@ -7,7 +7,7 @@
 
 namespace engine {
     
-    bool intersectRays2D(const ray2f & r1, const ray2f & r2, vec2f & outPoint) noexcept {
+    inline bool intersectRays2D(const ray2f & r1, const ray2f & r2, vec2f & outPoint) noexcept {
         const auto cross = r1.direction.x * r2.direction.y - r1.direction.y * r2.direction.x;
         if (abs(cross) < 1e-7f) {
             return false; // the rays are parallel

@@ -1,13 +1,14 @@
 #include "map_tile.h"
 
-#include "common/align.h"
-#include "graphics/common/graphics_service.h"
-#include "graphics/render/rhi/common/command_list.h"
-#include "graphics/scene/scene.h"
-#include "graphics/texture/texture_manager.h"
-#include "graphics/utils/vertex_processing.h"
-#include "stl/array.h"
-#include "stl/vector.h"
+#include "engine/src/common/align.h"
+#include "engine/src/graphics/common/graphics_service.h"
+#include "engine/src/graphics/render/rhi/common/command_list.h"
+#include "engine/src/graphics/scene/scene.h"
+#include "engine/src/graphics/texture/texture_manager.h"
+#include "engine/src/graphics/utils/vertex_processing.h"
+#include "engine/src/math/geometry.h"
+#include "engine/src/stl/array.h"
+#include "engine/src/stl/vector.h"
 
 #include <cstddef>
 #include <limits>
@@ -791,9 +792,113 @@ namespace g_map {
         return result;
     }
 
+    // ray casting along the XY grid
+    bool castRay(const engine::vec3f & orig, const engine::vec3f & dir, 
+        const engine::vec2i size, engine::stl::span<const float> heights, 
+        engine::vec3f & result) noexcept {
+        constexpr auto kCellSize = kTileScale;
+
+        const auto getHeight = [heights, size](int x, int y) noexcept -> float {
+            if (x < 0 || x >= size.x || y < 0 || y >= size.y) return 0.0f;
+            return heights[y * size.x + x];
+        };
+
+        const auto getVertex = [&](int x, int y) noexcept -> engine::vec3f {
+            x *= kCellSize;
+            y *= kCellSize;
+            return {x, y, getHeight(x, y)};
+        };
+
+        // transform starting coordinates into grid space (indices)
+        const float startX = orig.x / kCellSize;
+        const float startY = orig.y / kCellSize;
+
+        int cx = static_cast<int>(std::floor(startX));
+        int cy = static_cast<int>(std::floor(startY));
+
+        // step direction along X and Y axes
+        const int stepX = (dir.x > 0) ? 1 : ((dir.x < 0) ? -1 : 0);
+        const int stepY = (dir.y > 0) ? 1 : ((dir.y < 0) ? -1 : 0);
+
+        // ray distance to the nearest cell boundaries
+        float tMaxX = (dir.x != 0) ? ((cx + (stepX > 0 ? 1 : 0)) - startX) / (dir.x / kCellSize) : 1e9f;
+        float tMaxY = (dir.y != 0) ? ((cy + (stepY > 0 ? 1 : 0)) - startY) / (dir.y / kCellSize) : 1e9f;
+
+        // distance the ray needs to travel to cross one full cell
+        const float tDeltaX = (dir.x != 0) ? std::abs(1.0f / (dir.x / kCellSize)) : 1e9f;
+        const float tDeltaY = (dir.y != 0) ? std::abs(1.0f / (dir.y / kCellSize)) : 1e9f;
+
+        float t = 0.0f;
+        
+        // loop runs while the ray is inside the terrain grid boundaries
+        while (cx >= 0 && cx < size.x - 1 && cy >= 0 && cy < size.y - 1) {
+            
+            // get the 4 vertices of the current quad on the XY grid
+            const auto v00 = getVertex(cx, cy);
+            const auto v10 = getVertex(cx + 1, cy);
+            const auto v01 = getVertex(cx, cy + 1);
+            const auto v11 = getVertex(cx + 1, cy + 1);
+
+            // current height of the ray when entering this cell
+            const float rayZ = orig.z + dir.z * t;
+            
+            // find the maximum height (Z) among the 4 cell vertices
+            const float maxZ = std::max({v00.z, v10.z, v01.z, v11.z});
+            
+            // if the ray points downwards (dir.z < 0) and is still above the highest peak of this cell,
+            // we can safely skip the precise triangle intersection test.
+            // (a safety margin of +10.0f is needed if the ray is almost horizontal or moving upwards)
+            if (dir.z > 0 || rayZ <= maxZ + 10.0f) { 
+                float tHit;
+                engine::vec3f hitPoint;
+                bool hit = false;
+
+                // check the first triangle of the quad
+                if (engine::rayTriangleIntersect(orig, dir, v00, v10, v11, tHit, hitPoint)) {
+                    result = hitPoint; 
+                    hit = true;
+                }
+                // check the second triangle of the quad
+                if (engine::rayTriangleIntersect(orig, dir, v00, v11, v01, tHit, hitPoint)) {
+                    if (!hit || tHit < t) { 
+                        result = hitPoint; 
+                        hit = true;
+                    }
+                }
+
+                if (hit) {
+                    return true; // success
+                }
+            }
+
+            // Amanatides-Woo algorithm: select which grid boundary the ray intersects first
+            if (tMaxX < tMaxY) {
+                t = tMaxX;
+                tMaxX += tDeltaX;
+                cx += stepX;
+            } else {
+                t = tMaxY;
+                tMaxY += tDeltaY;
+                cy += stepY;
+            }
+        }
+        return false;
+    }
+
     engine::vec3f TerrainSceneDelegate::getIntersection(const engine::interval3f & interval, uint8_t imageIndex) const noexcept {
         using namespace engine;
-        return vec3f{std::numeric_limits<float>::infinity()};
+
+        const auto & maps = _terrainMaps[imageIndex];
+        const auto & extent = maps.normalMap->getInfo().extent;
+        const auto textureWidth = extent.width;
+        const auto textureHeight = extent.height;
+
+        engine::vec3f result;
+        castRay(interval.begin, engine::math::normalize(interval.end - interval.begin), {textureWidth, textureHeight}, maps.heights, result);
+
+        // LOG_I("intersectiorn point is: %fx%fx%f", result.x, result.y, result.z);
+
+        return result;//vec3f{std::numeric_limits<float>::infinity()};
     }
 
 }
