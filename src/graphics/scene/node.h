@@ -280,14 +280,22 @@ void recalculateHierarchy(Node * root, VisibleChecker && v) noexcept {
     }
 }
 
-inline vec3f nodeToWorld(const vec3f point, const Node & node) noexcept {
-    const auto v = node.getWorldTransform() * vec4f{point, 1.0f};
+inline vec3f toWorld(const vec3f & point, const mat4f & worldTransform) noexcept {
+    const auto v = worldTransform * vec4f{point, 1.0f};
     return v / v.w;
 }
 
-inline vec3f worldToNode(const vec3f worldPoint, const Node & node) noexcept {
-    const auto v = glm::inverse(node.getWorldTransform()) * vec4f{worldPoint, 1.0f};
+inline vec3f toNode(const vec3f & worldPoint, const mat4f & inverseWorldTransform) noexcept {
+    const auto v = inverseWorldTransform * vec4f{worldPoint, 1.0f};
     return v / v.w;
+}
+
+inline vec3f nodeToWorld(const vec3f & point, const Node & node) noexcept {
+    return toWorld(point, node.getWorldTransform());
+}
+
+inline vec3f worldToNode(const vec3f & worldPoint, const Node & node) noexcept {
+    return toNode(worldPoint, glm::inverse(node.getWorldTransform()));
 }
 
 }
