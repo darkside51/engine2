@@ -342,12 +342,24 @@ namespace example {
     g_map::TerrainSceneDelegate terrainSceneDelegate{};
     std::optional<g_map::Terrain> terrain{};
 
-    void optionsWindow() {
+    void optionsWindow(threads::ExecutionContext * mainThread) {
         ImGui::SetNextWindowSize(ImVec2(540, 840), ImGuiCond_FirstUseEver);
         if (!ImGui::Begin("options", &showOptions, 0)) {
             // early out if the window is collapsed, as an optimization.
             ImGui::End();
             return;
+        }
+
+        if (mainThread) {
+            if (ImGui::Button("reset camera")) {
+                mainThread->emplaceTask(threads::WorkerTask{
+                        []() noexcept {
+                            controller.setDistance(10.0f);
+                            controller.setPosition({0.0f, 0.0f, 0.0f});
+                        }
+                    }
+                );
+            }
         }
 
         static float color[3u] = {
@@ -2539,8 +2551,8 @@ namespace example {
 
                 //
                 auto * terrainNode = terrain->getNode();
-                terrainNode->setPosition({-64.0f, 0.0f, 0.0f});
-                terrainNode->setScale(0.05f);
+                terrainNode->setPosition({-150.0f, 0.0f, 0.0f});
+                terrainNode->setScale(0.2f);
                 terrainNode->addChild(testDummyNode);
                 sceneWorldRoot->addChild(terrainNode);
             }
@@ -2722,7 +2734,7 @@ namespace example {
         }
 
         if (showOptions) {
-            optionsWindow();
+            optionsWindow(_mainThread);
         }
 
         if (ImGui::BeginMainMenuBar()) {
@@ -2955,8 +2967,8 @@ namespace example {
             p.y += 1.0f * delta * sceneAnimationSpeed;
             p.z = terrainSceneDelegate.getHeight(p, 0u);// + 0.1f;
             testDummyNode->setPosition(p);
-            //const auto intersectionPoint = terrainSceneDelegate.getIntersection(interval, 0u);
-            //testDummyNode->setPosition(intersectionPoint);
+            const auto intersectionPoint = terrainSceneDelegate.getIntersection(interval, 0u);
+            testDummyNode->setPosition(intersectionPoint);
         }
         // LOG_I("cursorWorldInterval: from %fx%fx%f to %fx%fx%f", nearPoint.x, nearPoint.y, nearPoint.z, farPoint.x, farPoint.y, farPoint.z);
 

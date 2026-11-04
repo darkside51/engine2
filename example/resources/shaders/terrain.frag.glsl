@@ -54,14 +54,14 @@ vec3 getAdvancedTerrainColor(float height, float moisture, vec3 normal, vec2 wor
     // 3. Базовое процедурное смешивание по высоте и влажности
     vec3 biomeColor = vec3(0.0);
 
-    if (height < 0.2) {
+    if (height < 0.15) {
         // Вода
-        float t = smoothstep(0.0, 0.2, height);
+        float t = smoothstep(0.0, 0.15, height);
         biomeColor = mix(deepWater, shallow, t);
     } 
-    else if (height < 0.25) {
+    else if (height < 0.2) {
         // Пляж
-        float t = smoothstep(0.2, 0.25, height);
+        float t = smoothstep(0.15, 0.2, height);
         biomeColor = mix(shallow, sand, t);
     } 
     else {
@@ -72,17 +72,17 @@ vec3 getAdvancedTerrainColor(float height, float moisture, vec3 normal, vec2 wor
         vec3 landBase = mix(sand, vegetation, smoothstep(0.15, 0.4, moisture));
         
         // Плавный переход от пляжа к суше
-        float landT = smoothstep(0.25, 0.325, height);
+        float landT = smoothstep(0.2, 0.325, height);
         biomeColor = mix(sand, landBase, landT);
 
         // По мере подъема плавно подмешиваем камень к суше перед полноценными скалами
-        if (height > 0.6) {
+        if (height > 0.5) {
             float rockT = smoothstep(0.6, 0.82, height);
             biomeColor = mix(biomeColor, rock, rockT);
         }
         
         // Самые вершины покрываются снегом
-        if (height > 0.8) {
+        if (height > 0.7) {
             float snowT = smoothstep(0.8, 0.95, height);
             biomeColor = mix(biomeColor, snow, snowT);
         }
@@ -90,7 +90,7 @@ vec3 getAdvancedTerrainColor(float height, float moisture, vec3 normal, vec2 wor
 
     // 4. УЛУЧШЕНИЕ 1: Зависимость от наклона (Склоны сбрасывают снег и траву)
     // Если склон крутой, мы принудительно заменяем цвет на голые скалы (rock)
-    if (height >= 0.2) { // Применяем только для суши, воду не трогаем
+    if (height >= 0.15) { // Применяем только для суши, воду не трогаем
         // Склоны становятся каменными при крутизне выше 0.35 (примерно 20 градусов)
         float slopeFactor = smoothstep(0.35, 0.7, steepness);
         
@@ -108,7 +108,7 @@ vec3 getAdvancedTerrainColor(float height, float moisture, vec3 normal, vec2 wor
     
     // Мягко накладываем шум, слегка изменяя яркость (в пределах 5%)
     // Воду шумим меньше, сушу чуть сильнее
-    //float noiseStrength = (height < 0.2) ? 0.02 : 0.05;
+    //float noiseStrength = (height < 0.15) ? 0.02 : 0.05;
     //biomeColor += microDetail * noiseStrength;
 
     // Гарантируем, что при операциях сложения цвета не вышли за рамки [0, 1]

@@ -414,7 +414,7 @@ namespace g_map {
         std::byte * memory = staging.map();
         const auto offset = staging.requestBytes(pixelsCount * kFloat16Size);
         auto * dst = reinterpret_cast<uint16_t*>(memory + offset);
-        constexpr float hScale = 0.2f;
+        constexpr float hScale = 0.25f;
 
         for (uint32_t i = 0u; i < size.y; ++i) {
             for (uint32_t j = 0u; j < size.x; ++j) {
@@ -794,7 +794,7 @@ namespace g_map {
 
     // ray casting along the XY grid
     bool castRay(const engine::vec3f & orig, const engine::vec3f & dir, 
-        const engine::vec2i size, engine::stl::span<const float> heights, 
+        engine::vec2i size, engine::stl::span<const float> heights, 
         engine::vec3f & result) noexcept {
         constexpr auto kCellSize = kTileScale;
 
@@ -829,9 +829,13 @@ namespace g_map {
         const float tDeltaY = (dir.y != 0) ? std::abs(1.0f / (dir.y / kCellSize)) : 1e9f;
 
         float t = 0.0f;
+        size /= kCellSize;
+
+        constexpr int kWHMargin = 16;
+        constexpr float kHeightMargin = 4.0f;
         
         // loop runs while the ray is inside the terrain grid boundaries
-        while (cx >= 0 && cx < size.x - 1 && cy >= 0 && cy < size.y - 1) {
+        while (cx >= -kWHMargin && cx < size.x - 1 + kWHMargin && cy >= -kWHMargin && cy < size.y - 1 + kWHMargin) {
             
             // get the 4 vertices of the current quad on the XY grid
             const auto v00 = getVertex(cx, cy);
@@ -847,8 +851,8 @@ namespace g_map {
             
             // if the ray points downwards (dir.z < 0) and is still above the highest peak of this cell,
             // we can safely skip the precise triangle intersection test.
-            // (a safety margin of +10.0f is needed if the ray is almost horizontal or moving upwards)
-            if (dir.z > 0 || rayZ <= maxZ + 10.0f) { 
+            // (a safety margin of kHeightMargin is needed if the ray is almost horizontal or moving upwards)
+            if (dir.z > 0 || rayZ <= maxZ + kHeightMargin) { 
                 float tHit;
                 engine::vec3f hitPoint;
                 bool hit = false;
