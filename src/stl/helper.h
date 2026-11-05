@@ -22,10 +22,16 @@ namespace engine::stl {
             stl::make_move_iterator(a.end())};
     }
 
+    template <typename InputIterator, typename T>
+	inline InputIterator
+	find(InputIterator first, InputIterator last, const T & value) {
+		return eastl::find(first, last, value);
+	}
+
     template <typename InputIterator, typename Predicate>
 	inline InputIterator
 	find_if(InputIterator first, InputIterator last, Predicate predicate) {
-		return eastl::find_if(std::forward<InputIterator>(first), std::forward<InputIterator>(last), std::forward<Predicate>(predicate));
+		return eastl::find_if(first, last, std::move(predicate));
 	}
 
     template<class... T>

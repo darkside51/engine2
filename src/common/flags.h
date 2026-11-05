@@ -15,6 +15,14 @@ namespace engine {
         explicit operator bool() const noexcept { return std::to_underlying(_value) != 0; }
         T operator~() const noexcept { return static_cast<T>(~std::to_underlying(_value)); }
 
+        void enable(Flags other) noexcept {
+            _value = static_cast<T>(std::to_underlying(_value) | std::to_underlying(other._value));
+        }
+
+        void disable(Flags other) noexcept {
+            _value = static_cast<T>(std::to_underlying(_value) & ~std::to_underlying(other._value));
+        }
+
         void enable(T value) noexcept {
             _value = static_cast<T>(std::to_underlying(_value) | std::to_underlying(value));
         }

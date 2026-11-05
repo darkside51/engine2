@@ -85,82 +85,69 @@ namespace engine::vulkan::runtime {
 
         { // pass barriers
             // buffers
+            const VkPipelineStageFlags shaderStage = (pass.type == rhi::runtime::Pass::Type::eRender) 
+                ? VkPipelineStageFlagBits::VK_PIPELINE_STAGE_VERTEX_SHADER_BIT 
+                : VkPipelineStageFlagBits::VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+
             const auto & buffers = pass.buffers.view();
             for (const auto & buffer : buffers) {
                 auto * vkBuffer = static_cast<vulkan::Buffer*>(buffer.buffer);
-                if ((buffer.flags & (rhi::BufferUsageFlags::eTransfer_Src)) != rhi::BufferUsageFlags::eNone) {
-                    vkBuffer->transition(_barriers, 
-                        VkPipelineStageFlagBits::VK_PIPELINE_STAGE_TRANSFER_BIT, 
-                        VkAccessFlagBits::VK_ACCESS_TRANSFER_READ_BIT,
-                        buffer.offset, buffer.size
-                    );
-                }
-                
-                if ((buffer.flags & (rhi::BufferUsageFlags::eTransfer_Dst)) != rhi::BufferUsageFlags::eNone) {
-                    vkBuffer->transition(_barriers,
-                        VkPipelineStageFlagBits::VK_PIPELINE_STAGE_TRANSFER_BIT,
-                        VkAccessFlagBits::VK_ACCESS_TRANSFER_WRITE_BIT,
-                        buffer.offset, buffer.size
-                    );
+                const auto flags = buffer.flags;
+
+                VkPipelineStageFlags dstStage = 0;
+                VkAccessFlags accessFlags = 0;
+
+                // transfer src / dst
+                if (rhi::any(flags & (rhi::BufferUsageFlags::eTransfer_Src | rhi::BufferUsageFlags::eTransfer_Dst))) {
+                    dstStage |= VkPipelineStageFlagBits::VK_PIPELINE_STAGE_TRANSFER_BIT;
+                    accessFlags |= rhi::any(flags & rhi::BufferUsageFlags::eTransfer_Src) ? VkAccessFlagBits::VK_ACCESS_TRANSFER_READ_BIT : 0;
+                    accessFlags |= rhi::any(flags & rhi::BufferUsageFlags::eTransfer_Dst) ? VkAccessFlagBits::VK_ACCESS_TRANSFER_WRITE_BIT : 0;
                 }
 
-                if ((buffer.flags & rhi::BufferUsageFlags::eVertex_Buffer) != rhi::BufferUsageFlags::eNone) {
-                    auto const dstStage = VkPipelineStageFlagBits::VK_PIPELINE_STAGE_VERTEX_INPUT_BIT;
-                    vkBuffer->transition(_barriers,
-                        dstStage,
-                        VkAccessFlagBits::VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT,
-                        buffer.offset, buffer.size
-                    );
+                // vertex / index buffers
+                if (rhi::any(flags & (rhi::BufferUsageFlags::eVertex_Buffer | rhi::BufferUsageFlags::eIndex_Buffer))) {
+                    dstStage |= VkPipelineStageFlagBits::VK_PIPELINE_STAGE_VERTEX_INPUT_BIT;
+                    accessFlags |= rhi::any(flags & rhi::BufferUsageFlags::eVertex_Buffer) ? VkAccessFlagBits::VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT : 0;
+                    accessFlags |= rhi::any(flags & rhi::BufferUsageFlags::eIndex_Buffer) ? VkAccessFlagBits::VK_ACCESS_INDEX_READ_BIT : 0;
                 }
 
-                if ((buffer.flags & rhi::BufferUsageFlags::eIndex_Buffer) != rhi::BufferUsageFlags::eNone) {
-                    auto const dstStage = VkPipelineStageFlagBits::VK_PIPELINE_STAGE_VERTEX_INPUT_BIT;
-                    vkBuffer->transition(_barriers,
-                        dstStage,
-                        VkAccessFlagBits::VK_ACCESS_INDEX_READ_BIT,
-                        buffer.offset, buffer.size
-                    );
+                // uniform buffers
+                if (rhi::any(flags & (rhi::BufferUsageFlags::eUniform_Buffer | rhi::BufferUsageFlags::eUniform_Texel_Buffer))) {
+                    dstStage |= shaderStage;
+                    accessFlags |= (VkAccessFlagBits::VK_ACCESS_UNIFORM_READ_BIT | VkAccessFlagBits::VK_ACCESS_SHADER_READ_BIT);
                 }
 
-                if ((buffer.flags & (rhi::BufferUsageFlags::eUniform_Buffer | 
-                                rhi::BufferUsageFlags::eUniform_Texel_Buffer)) != rhi::BufferUsageFlags::eNone) {
-                    auto const dstStage = pass.type == rhi::runtime::Pass::Type::eRender ? 
-                                        VkPipelineStageFlagBits::VK_PIPELINE_STAGE_VERTEX_SHADER_BIT /*|
-                                        VkPipelineStageFlagBits::VK_PIPELINE_STAGE_MESH_SHADER_BIT_EXT*/ : 
-                                        VkPipelineStageFlagBits::VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
-
-                    vkBuffer->transition(_barriers,
-                        dstStage,
-                        VkAccessFlagBits::VK_ACCESS_UNIFORM_READ_BIT | VkAccessFlagBits::VK_ACCESS_SHADER_READ_BIT, // correct?
-                        buffer.offset, buffer.size
-                    );
+                // storage buffers
+                if (rhi::any(flags & (rhi::BufferUsageFlags::eStorage_Buffer | rhi::BufferUsageFlags::eStorage_Texel_Buffer))) {
+                    dstStage |= shaderStage;
+                    accessFlags |= (buffer.accessFlags & rhi::runtime::StorageAccessFlagBits::eRead)  ? VkAccessFlagBits::VK_ACCESS_SHADER_READ_BIT  : 0;
+                    accessFlags |= (buffer.accessFlags & rhi::runtime::StorageAccessFlagBits::eWrite) ? VkAccessFlagBits::VK_ACCESS_SHADER_WRITE_BIT : 0;
                 }
 
-                if ((buffer.flags & (rhi::BufferUsageFlags::eStorage_Buffer | 
-                                rhi::BufferUsageFlags::eStorage_Texel_Buffer)) != rhi::BufferUsageFlags::eNone) {
-                    auto const dstStage = pass.type == rhi::runtime::Pass::Type::eRender ? 
-                                            VkPipelineStageFlagBits::VK_PIPELINE_STAGE_VERTEX_SHADER_BIT /*|
-                                            VkPipelineStageFlagBits::VK_PIPELINE_STAGE_MESH_SHADER_BIT_EXT*/ : 
-                                            VkPipelineStageFlagBits::VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
-
-                    vkBuffer->transition(_barriers,
-                        dstStage,
-                        VkAccessFlagBits::VK_ACCESS_SHADER_READ_BIT | VkAccessFlagBits::VK_ACCESS_SHADER_WRITE_BIT, // need to specify read or write?
-                        buffer.offset, buffer.size
-                    );
+                // indirect buffers
+                if (rhi::any(flags & rhi::BufferUsageFlags::eIndirect_Buffer)) {
+                    // todo:
+                    // dstStage |= VkPipelineStageFlagBits::VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT;
+                    // accessFlags |= VkAccessFlagBits::VK_ACCESS_INDIRECT_COMMAND_READ_BIT;
                 }
 
-                // rhi::BufferUsageFlags::eIndirect_Buffer
+                if (dstStage == 0) { // set TOP_OF_PIPE(no wait, immidiate run), if mask is 0 
+                    dstStage = VkPipelineStageFlagBits::VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+                }
+
+                vkBuffer->transition(
+                    _barriers, 
+                    dstStage, 
+                    accessFlags, 
+                    buffer.offset, buffer.size);
             }
 
             // images
             const auto & images = pass.images.view();
-            // size_t imn = 0u;
             for (const auto & image : images) {
                 auto * vkImage = static_cast<vulkan::Image*>(image.image);
-                auto const usage = vkImage->usage();
-                // ++imn;
-                if ((image.flags & rhi::ImageUsageFlags::eTransfer_Src) != rhi::ImageUsageFlags::eNone) {
+                //auto const usage = vkImage->usage();
+                if (rhi::any(image.flags & rhi::ImageUsageFlags::eTransfer_Src)) {
                     vkImage->transition(
                         _barriers,
                         VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, 
@@ -173,7 +160,7 @@ namespace engine::vulkan::runtime {
                         // command->info.imageSubresource.layerCount,
                         // 1u
                     );
-                } else if ((image.flags & rhi::ImageUsageFlags::eTransfer_Dst) != rhi::ImageUsageFlags::eNone) {
+                } else if (rhi::any(image.flags & rhi::ImageUsageFlags::eTransfer_Dst)) {
                     vkImage->transition(
                         _barriers,
                         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 
@@ -186,7 +173,7 @@ namespace engine::vulkan::runtime {
                         // command->info.imageSubresource.layerCount,
                         // 1u
                     );
-                } else if ((image.flags & rhi::ImageUsageFlags::eSampled) != rhi::ImageUsageFlags::eNone) {
+                } else if (rhi::any(image.flags & rhi::ImageUsageFlags::eSampled)) {
                     auto const dstStage = pass.type == rhi::runtime::Pass::Type::eRender ? VkPipelineStageFlagBits::VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | 
                                                                                         VkPipelineStageFlagBits::VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT :
                                                                                         VkPipelineStageFlagBits::VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
@@ -199,7 +186,7 @@ namespace engine::vulkan::runtime {
                         0u, 0u, 
                         0u, 0u
                     );  
-                } else if ((image.flags & rhi::ImageUsageFlags::eStorage) != rhi::ImageUsageFlags::eNone) {
+                } else if (rhi::any(image.flags & rhi::ImageUsageFlags::eStorage)) {
                     auto const dstStage = pass.type == rhi::runtime::Pass::Type::eRender ? VkPipelineStageFlagBits::VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | 
                                                                                         VkPipelineStageFlagBits::VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT :
                                                                                         VkPipelineStageFlagBits::VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;

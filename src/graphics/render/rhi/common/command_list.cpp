@@ -1,8 +1,46 @@
 #include "command_list.h"
+#include "stl/helper.h"
 
 namespace engine::rhi::runtime {
 
     constexpr bool kStatisticsEnable = true;
+
+    void Pass::emplaceBuffer(
+        Buffer * buffer, BufferUsageFlags flags, PipelineBindPoint pipelineType,
+        uint64_t offset, uint64_t size, StorageAccessFlags accessFlags
+    ) {
+        const auto view = buffers.view();
+        auto it = stl::find_if(view.begin(), view.end(), [&](const auto & b) noexcept { 
+            return b.buffer == buffer && b.offset == offset && b.size == size; 
+        });
+
+        if (it != view.end()) {
+            it->flags = it->flags | flags;
+            it->accessFlags.enable(accessFlags);
+        } else {
+            buffers.emplace_back(buffer, flags, pipelineType, offset, size, accessFlags);
+        }
+    }
+
+    void Pass::emplaceImage(
+        Image * image,
+        ImageUsageFlags flags,
+        PipelineBindPoint pipelineType
+    ) {
+        // todo: complete impl and use it!
+        
+        const auto view = images.view();
+        auto it = stl::find_if(view.begin(), view.end(), [&](const auto & i) noexcept {
+            // can check miplevels and layers!
+            return i.image == image; 
+        });
+
+        if (it != view.end()) {
+            it->flags = it->flags | flags;
+        } else {
+            images.emplace_back(image, flags, pipelineType);
+        }
+    }
 
     void CommandList::clear() noexcept {
         auto commandsCount = _commandsCount;
@@ -168,7 +206,7 @@ namespace engine::rhi::runtime {
             _resources.push_back(buffer);
             _commands->create<BindVertexBufferCommand>(binding, buffer.get(), offset);
 
-            _currentPass->buffers.emplace_back(buffer.get(), BufferUsageFlags::eVertex_Buffer, _pipelineType, offset);
+            _currentPass->emplaceBuffer(buffer.get(), BufferUsageFlags::eVertex_Buffer, _pipelineType, offset, kWholeSize64, StorageAccessFlagBits::eRead);
             ++_commandsCount;
         }
     }
@@ -178,7 +216,7 @@ namespace engine::rhi::runtime {
             _resources.push_back(buffer);
             _commands->create<BindIndexBufferCommand>(buffer.get(), offset, type);
 
-            _currentPass->buffers.emplace_back(buffer.get(), BufferUsageFlags::eIndex_Buffer, _pipelineType, offset);
+            _currentPass->emplaceBuffer(buffer.get(), BufferUsageFlags::eIndex_Buffer, _pipelineType, offset, kWholeSize64, StorageAccessFlagBits::eRead);
             ++_commandsCount;
         }
     }
@@ -188,16 +226,16 @@ namespace engine::rhi::runtime {
         _resources.push_back(buffer);
         _commands->create<BindBufferCommand>(binding, buffer.get(), setId, offset, range, false);
 
-        _currentPass->buffers.emplace_back(buffer.get(), BufferUsageFlags::eUniform_Buffer, _pipelineType, offset, range); // not only uniform, correct usage check into implementation of commandlist
+        _currentPass->emplaceBuffer(buffer.get(), BufferUsageFlags::eUniform_Buffer, _pipelineType, offset, range, StorageAccessFlagBits::eRead); // not only uniform, correct usage check into implementation of commandlist
         ++_commandsCount;
     }
 
-    void CommandList::bindStorageBuffer(uint16_t binding, const BufferPtr & buffer, uint8_t setId, uint64_t offset, uint64_t range) noexcept {
+    void CommandList::bindStorageBuffer(StorageAccessFlags access, uint16_t binding, const BufferPtr & buffer, uint8_t setId, uint64_t offset, uint64_t range) noexcept {
         // no check it with state, correct check into record function!
         _resources.push_back(buffer);
         _commands->create<BindBufferCommand>(binding, buffer.get(), setId, offset, range, false);
 
-        _currentPass->buffers.emplace_back(buffer.get(), BufferUsageFlags::eStorage_Buffer, _pipelineType, offset, range); // not only uniform, correct usage check into implementation of commandlist
+        _currentPass->emplaceBuffer(buffer.get(), BufferUsageFlags::eStorage_Buffer, _pipelineType, offset, range, access); // not only uniform, correct usage check into implementation of commandlist
         ++_commandsCount;
     }
 
@@ -206,16 +244,16 @@ namespace engine::rhi::runtime {
         _resources.push_back(buffer);
         _commands->create<BindBufferCommand>(binding, buffer.get(), setId, offset, range, true);
 
-        _currentPass->buffers.emplace_back(buffer.get(), BufferUsageFlags::eUniform_Buffer, _pipelineType, offset, range); // not only uniform, correct usage check into implementation of commandlist
+        _currentPass->emplaceBuffer(buffer.get(), BufferUsageFlags::eUniform_Buffer, _pipelineType, offset, range, StorageAccessFlagBits::eRead); // not only uniform, correct usage check into implementation of commandlist
         ++_commandsCount;
     }
 
-    void CommandList::bindStorageBufferDynamic(uint16_t binding, const BufferPtr & buffer, uint8_t setId, uint64_t offset, uint64_t range) noexcept {
+    void CommandList::bindStorageBufferDynamic(StorageAccessFlags access, uint16_t binding, const BufferPtr & buffer, uint8_t setId, uint64_t offset, uint64_t range) noexcept {
         // no check it with state, correct check into record function!
         _resources.push_back(buffer);
         _commands->create<BindBufferCommand>(binding, buffer.get(), setId, offset, range, true);
 
-        _currentPass->buffers.emplace_back(buffer.get(), BufferUsageFlags::eStorage_Buffer, _pipelineType, offset, range); // not only uniform, correct usage check into implementation of commandlist
+        _currentPass->emplaceBuffer(buffer.get(), BufferUsageFlags::eStorage_Buffer, _pipelineType, offset, range, access); // not only uniform, correct usage check into implementation of commandlist
         ++_commandsCount;
     }
 
@@ -223,15 +261,15 @@ namespace engine::rhi::runtime {
         _resources.push_back(buffer);
         _commands->create<BindTexelBufferCommand>(binding, buffer.get(), format, setId, offset, range);
 
-        _currentPass->buffers.emplace_back(buffer.get(), BufferUsageFlags::eUniform_Texel_Buffer, _pipelineType, offset, range); // ...
+        _currentPass->emplaceBuffer(buffer.get(), BufferUsageFlags::eUniform_Texel_Buffer, _pipelineType, offset, range, StorageAccessFlagBits::eRead); // ...
         ++_commandsCount;
     }
 
-    void CommandList::bindStorageTexelBuffer(uint16_t binding, const BufferPtr & buffer, Format format, uint8_t setId, uint64_t offset, uint64_t range) noexcept {
+    void CommandList::bindStorageTexelBuffer(StorageAccessFlags access, uint16_t binding, const BufferPtr & buffer, Format format, uint8_t setId, uint64_t offset, uint64_t range) noexcept {
         _resources.push_back(buffer);
         _commands->create<BindTexelBufferCommand>(binding, buffer.get(), format, setId, offset, range);
 
-        _currentPass->buffers.emplace_back(buffer.get(), BufferUsageFlags::eStorage_Texel_Buffer, _pipelineType, offset, range); // ...
+        _currentPass->emplaceBuffer(buffer.get(), BufferUsageFlags::eStorage_Texel_Buffer, _pipelineType, offset, range, access); // ...
         ++_commandsCount;
     }
 
@@ -326,7 +364,7 @@ namespace engine::rhi::runtime {
             _currentPass = &_passes.emplace_back(Pass::Type::eTransfer, _commandsCount);
         }
 
-        _currentPass->buffers.emplace_back(dst.get(), BufferUsageFlags::eTransfer_Dst, _pipelineType); // ...
+        _currentPass->emplaceBuffer(dst.get(), BufferUsageFlags::eTransfer_Dst, _pipelineType); // ...
         ++_commandsCount;
     }
 
@@ -349,8 +387,8 @@ namespace engine::rhi::runtime {
             _currentPass = &_passes.emplace_back(Pass::Type::eTransfer, _commandsCount);
         }
 
-        _currentPass->buffers.emplace_back(src.get(), BufferUsageFlags::eTransfer_Src, _pipelineType); // ...
-        _currentPass->buffers.emplace_back(dst.get(), BufferUsageFlags::eTransfer_Dst, _pipelineType); // ...
+        _currentPass->emplaceBuffer(src.get(), BufferUsageFlags::eTransfer_Src, _pipelineType); // ...
+        _currentPass->emplaceBuffer(dst.get(), BufferUsageFlags::eTransfer_Dst, _pipelineType); // ...
         ++_commandsCount;
     }
 
@@ -367,7 +405,7 @@ namespace engine::rhi::runtime {
             _currentPass = &_passes.emplace_back(Pass::Type::eTransfer, _commandsCount);
         }
 
-        _currentPass->buffers.emplace_back(src.get(), BufferUsageFlags::eTransfer_Src, _pipelineType); // ...
+        _currentPass->emplaceBuffer(src.get(), BufferUsageFlags::eTransfer_Src, _pipelineType); // ...
         _currentPass->images.emplace_back(dst.get(), ImageUsageFlags::eTransfer_Dst, _pipelineType); // ...
         ++_commandsCount;
     }
@@ -386,7 +424,7 @@ namespace engine::rhi::runtime {
         }
 
         _currentPass->images.emplace_back(src.get(), ImageUsageFlags::eTransfer_Src, _pipelineType); // ...
-        _currentPass->buffers.emplace_back(dst.get(), BufferUsageFlags::eTransfer_Dst, _pipelineType); // ...
+        _currentPass->emplaceBuffer(dst.get(), BufferUsageFlags::eTransfer_Dst, _pipelineType); // ...
         ++_commandsCount;
     }
 

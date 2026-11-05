@@ -509,6 +509,9 @@ namespace engine::rhi {
     inline constexpr BufferUsageFlags operator & (BufferUsageFlags a, BufferUsageFlags b) noexcept {
         return static_cast<BufferUsageFlags>(std::to_underlying(a) & std::to_underlying(b));
     }
+    inline constexpr bool any(BufferUsageFlags a) noexcept {
+        return std::to_underlying(a) != 0u;
+    }
 
     enum class ImageType : uint8_t {
         eType_1D = 0u,
@@ -558,6 +561,9 @@ namespace engine::rhi {
     }
     inline constexpr ImageUsageFlags operator & (ImageUsageFlags a, ImageUsageFlags b) noexcept {
         return static_cast<ImageUsageFlags>(std::to_underlying(a) & std::to_underlying(b));
+    }
+    inline constexpr bool any(ImageUsageFlags a) noexcept {
+        return std::to_underlying(a) != 0u;
     }
 
     enum class ImageTiling : uint8_t {
