@@ -31,10 +31,10 @@ namespace engine::rhi::runtime {
 
     struct BufferUsage {
         Buffer* buffer = nullptr;
-        BufferUsageFlags flags = BufferUsageFlags::eNone;
-        PipelineBindPoint pipelineType = PipelineBindPoint::eCompute;
         uint64_t offset = 0u;
         uint64_t size = kWholeSize64;
+        BufferUsageFlags flags = BufferUsageFlags::eNone;
+        PipelineBindPoint pipelineType = PipelineBindPoint::eCompute;
         StorageAccessFlags accessFlags = StorageAccessFlagBits::eNone;
     };
 

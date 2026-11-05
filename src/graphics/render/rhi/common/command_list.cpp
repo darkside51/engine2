@@ -18,7 +18,7 @@ namespace engine::rhi::runtime {
             it->flags = it->flags | flags;
             it->accessFlags.enable(accessFlags);
         } else {
-            buffers.emplace_back(buffer, flags, pipelineType, offset, size, accessFlags);
+            buffers.emplace_back(buffer, offset, size, flags, pipelineType, accessFlags);
         }
     }
 
@@ -28,7 +28,7 @@ namespace engine::rhi::runtime {
         PipelineBindPoint pipelineType
     ) {
         // todo: complete impl and use it!
-        
+
         const auto view = images.view();
         auto it = stl::find_if(view.begin(), view.end(), [&](const auto & i) noexcept {
             // can check miplevels and layers!
