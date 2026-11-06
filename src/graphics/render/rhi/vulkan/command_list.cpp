@@ -131,8 +131,8 @@ namespace engine::vulkan::runtime {
                     // accessFlags |= VkAccessFlagBits::VK_ACCESS_INDIRECT_COMMAND_READ_BIT;
                 }
 
-                if (dstStage == 0) { // set TOP_OF_PIPE(no wait, immidiate run), if mask is 0 
-                    dstStage = VkPipelineStageFlagBits::VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+                if (dstStage == 0) { // set BOTTOM_OF_PIPE(no wait, immidiate run), if mask is 0 
+                    dstStage = VkPipelineStageFlagBits::VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
                 }
 
                 vkBuffer->transition(

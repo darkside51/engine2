@@ -58,7 +58,7 @@ namespace engine::rhi::runtime {
         Pass(Type t, uint32_t number) : type(t), commandNumber(number) {}
         ~Pass() = default;
 
-        void emplaceBuffer(
+        bool emplaceBuffer(
             Buffer * buffer, 
             BufferUsageFlags flags,
             PipelineBindPoint pipelineType,
@@ -66,7 +66,7 @@ namespace engine::rhi::runtime {
             StorageAccessFlags accessFlags = StorageAccessFlagBits::eNone
         );
 
-        void emplaceImage(
+        bool emplaceImage(
             Image * image,
             ImageUsageFlags flags,
             PipelineBindPoint pipelineType

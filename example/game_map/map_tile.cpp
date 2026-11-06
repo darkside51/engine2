@@ -398,16 +398,16 @@ namespace g_map {
         const auto textureWidth = maps.normalMap->getInfo().extent.width;
         const auto tilesW = textureWidth / kTileSize;
 
-        const auto startTile = xy / vec2u{kTileSize};
-        const auto finishTile = (xy + size) / vec2u{kTileSize};
-
-        for (auto y = startTile.y; y < finishTile.y; ++y) {
-            for (auto x = startTile.x; x < finishTile.x; ++x) {
-                const auto tileId = y * tilesW + x;
-                maps.heightBounds[tileId].min = std::numeric_limits<int16_t>::max();
-                maps.heightBounds[tileId].max = std::numeric_limits<int16_t>::lowest();
-            }
-        }
+        // const auto startTile = xy / vec2u{kTileSize};
+        // const auto finishTile = (xy + size) / vec2u{kTileSize};
+        // 
+        // for (auto y = startTile.y; y < finishTile.y; ++y) {
+        //     for (auto x = startTile.x; x < finishTile.x; ++x) {
+        //         const auto tileId = y * tilesW + x;
+        //         maps.heightBounds[tileId].min = std::numeric_limits<int16_t>::max();
+        //         maps.heightBounds[tileId].max = std::numeric_limits<int16_t>::lowest();
+        //     }
+        // }
 
         const uint32_t pixelsCount = size.x * size.y;
         auto & staging = *_stagingBuffer;

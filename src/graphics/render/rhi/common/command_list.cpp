@@ -5,12 +5,14 @@ namespace engine::rhi::runtime {
 
     constexpr bool kStatisticsEnable = true;
 
-    void Pass::emplaceBuffer(
+    bool Pass::emplaceBuffer(
         Buffer * buffer, BufferUsageFlags flags, PipelineBindPoint pipelineType,
         uint64_t offset, uint64_t size, StorageAccessFlags accessFlags
     ) {
+        bool hasBuffer = false;
         const auto view = buffers.view();
-        auto it = stl::find_if(view.begin(), view.end(), [&](const auto & b) noexcept { 
+        auto it = stl::find_if(view.begin(), view.end(), [&](const auto & b) noexcept {
+            hasBuffer |= (b.buffer == buffer);
             return b.buffer == buffer && b.offset == offset && b.size == size; 
         });
 
@@ -20,18 +22,21 @@ namespace engine::rhi::runtime {
         } else {
             buffers.emplace_back(buffer, offset, size, flags, pipelineType, accessFlags);
         }
+
+        return hasBuffer;
     }
 
-    void Pass::emplaceImage(
+    bool Pass::emplaceImage(
         Image * image,
         ImageUsageFlags flags,
         PipelineBindPoint pipelineType
     ) {
         // todo: complete impl and use it!
-
+        bool hasImage = false;
         const auto view = images.view();
         auto it = stl::find_if(view.begin(), view.end(), [&](const auto & i) noexcept {
             // can check miplevels and layers!
+            hasImage |= (i.image == image);
             return i.image == image; 
         });
 
@@ -40,6 +45,8 @@ namespace engine::rhi::runtime {
         } else {
             images.emplace_back(image, flags, pipelineType);
         }
+
+        return hasImage;
     }
 
     void CommandList::clear() noexcept {
@@ -203,73 +210,89 @@ namespace engine::rhi::runtime {
 /////////////////////// shared versions
     void CommandList::bindVertexBuffer(uint32_t binding, const BufferPtr & buffer, uint32_t offset) noexcept {
         if (_state.bindVertexBuffer(binding, buffer.get(), offset)) {
-            _resources.push_back(buffer);
             _commands->create<BindVertexBufferCommand>(binding, buffer.get(), offset);
 
-            _currentPass->emplaceBuffer(buffer.get(), BufferUsageFlags::eVertex_Buffer, _pipelineType, offset, kWholeSize64, StorageAccessFlagBits::eRead);
+            if (!_currentPass->emplaceBuffer(buffer.get(), BufferUsageFlags::eVertex_Buffer, 
+                _pipelineType, offset, kWholeSize64, StorageAccessFlagBits::eRead)) {
+                _resources.push_back(buffer);
+            }
             ++_commandsCount;
         }
     }
 
     void CommandList::bindIndexBuffer(const BufferPtr & buffer, uint32_t offset, IndexType type) noexcept {
         if (_state.bindIndexBuffer(buffer.get(), offset)) {
-            _resources.push_back(buffer);
             _commands->create<BindIndexBufferCommand>(buffer.get(), offset, type);
 
-            _currentPass->emplaceBuffer(buffer.get(), BufferUsageFlags::eIndex_Buffer, _pipelineType, offset, kWholeSize64, StorageAccessFlagBits::eRead);
+            if (!_currentPass->emplaceBuffer(buffer.get(), BufferUsageFlags::eIndex_Buffer,
+                _pipelineType, offset, kWholeSize64, StorageAccessFlagBits::eRead)) {
+                _resources.push_back(buffer);
+            }
             ++_commandsCount;
         }
     }
 
     void CommandList::bindBuffer(uint16_t binding, const BufferPtr & buffer, uint8_t setId, uint64_t offset, uint64_t range) noexcept {
         // no check it with state, correct check into record function!
-        _resources.push_back(buffer);
         _commands->create<BindBufferCommand>(binding, buffer.get(), setId, offset, range, false);
 
-        _currentPass->emplaceBuffer(buffer.get(), BufferUsageFlags::eUniform_Buffer, _pipelineType, offset, range, StorageAccessFlagBits::eRead); // not only uniform, correct usage check into implementation of commandlist
+        if (!_currentPass->emplaceBuffer(buffer.get(), BufferUsageFlags::eUniform_Buffer,
+            _pipelineType, offset, range, StorageAccessFlagBits::eRead)) { // not only uniform, correct usage check into implementation of commandlist
+            _resources.push_back(buffer);
+        }
         ++_commandsCount;
     }
 
     void CommandList::bindStorageBuffer(StorageAccessFlags access, uint16_t binding, const BufferPtr & buffer, uint8_t setId, uint64_t offset, uint64_t range) noexcept {
         // no check it with state, correct check into record function!
-        _resources.push_back(buffer);
         _commands->create<BindBufferCommand>(binding, buffer.get(), setId, offset, range, false);
 
-        _currentPass->emplaceBuffer(buffer.get(), BufferUsageFlags::eStorage_Buffer, _pipelineType, offset, range, access); // not only uniform, correct usage check into implementation of commandlist
+        if (!_currentPass->emplaceBuffer(buffer.get(), BufferUsageFlags::eStorage_Buffer,
+            _pipelineType, offset, range, access)) { // not only uniform, correct usage check into implementation of commandlist
+            _resources.push_back(buffer);
+        }
         ++_commandsCount;
     }
 
     void CommandList::bindBufferDynamic(uint16_t binding, const BufferPtr & buffer, uint8_t setId, uint64_t offset, uint64_t range) noexcept {
         // no check it with state, correct check into record function!
-        _resources.push_back(buffer);
         _commands->create<BindBufferCommand>(binding, buffer.get(), setId, offset, range, true);
 
-        _currentPass->emplaceBuffer(buffer.get(), BufferUsageFlags::eUniform_Buffer, _pipelineType, offset, range, StorageAccessFlagBits::eRead); // not only uniform, correct usage check into implementation of commandlist
+        if (!_currentPass->emplaceBuffer(buffer.get(), BufferUsageFlags::eUniform_Buffer,
+            _pipelineType, offset, range, StorageAccessFlagBits::eRead)) { // not only uniform, correct usage check into implementation of commandlist
+            _resources.push_back(buffer);
+        }
         ++_commandsCount;
     }
 
     void CommandList::bindStorageBufferDynamic(StorageAccessFlags access, uint16_t binding, const BufferPtr & buffer, uint8_t setId, uint64_t offset, uint64_t range) noexcept {
         // no check it with state, correct check into record function!
-        _resources.push_back(buffer);
         _commands->create<BindBufferCommand>(binding, buffer.get(), setId, offset, range, true);
 
-        _currentPass->emplaceBuffer(buffer.get(), BufferUsageFlags::eStorage_Buffer, _pipelineType, offset, range, access); // not only uniform, correct usage check into implementation of commandlist
+        if (!_currentPass->emplaceBuffer(buffer.get(), BufferUsageFlags::eStorage_Buffer,
+            _pipelineType, offset, range, access)) { // not only uniform, correct usage check into implementation of commandlist
+            _resources.push_back(buffer);
+        }
         ++_commandsCount;
     }
 
     void CommandList::bindTexelBuffer(uint16_t binding, const BufferPtr & buffer, Format format, uint8_t setId, uint64_t offset, uint64_t range) noexcept {
-        _resources.push_back(buffer);
         _commands->create<BindTexelBufferCommand>(binding, buffer.get(), format, setId, offset, range);
 
-        _currentPass->emplaceBuffer(buffer.get(), BufferUsageFlags::eUniform_Texel_Buffer, _pipelineType, offset, range, StorageAccessFlagBits::eRead); // ...
+        if (!_currentPass->emplaceBuffer(buffer.get(), BufferUsageFlags::eUniform_Texel_Buffer,
+            _pipelineType, offset, range, StorageAccessFlagBits::eRead)) { // ...
+            _resources.push_back(buffer);
+        }
         ++_commandsCount;
     }
 
     void CommandList::bindStorageTexelBuffer(StorageAccessFlags access, uint16_t binding, const BufferPtr & buffer, Format format, uint8_t setId, uint64_t offset, uint64_t range) noexcept {
-        _resources.push_back(buffer);
         _commands->create<BindTexelBufferCommand>(binding, buffer.get(), format, setId, offset, range);
 
-        _currentPass->emplaceBuffer(buffer.get(), BufferUsageFlags::eStorage_Texel_Buffer, _pipelineType, offset, range, access); // ...
+        if (!_currentPass->emplaceBuffer(buffer.get(), BufferUsageFlags::eStorage_Texel_Buffer,
+            _pipelineType, offset, range, access)) { // ...
+            _resources.push_back(buffer);
+        }
         ++_commandsCount;
     }
 
@@ -353,7 +376,6 @@ namespace engine::rhi::runtime {
         // for vulkan dataSize must be a multiple of 4
         assert((dataSize & 3u) == 0u);
         
-        _resources.push_back(dst);
         _commands->create<UpdateBufferCommand>(dst.get(), dstOffset, dataSize, pData);
   
         if constexpr (kStatisticsEnable) {
@@ -364,7 +386,9 @@ namespace engine::rhi::runtime {
             _currentPass = &_passes.emplace_back(Pass::Type::eTransfer, _commandsCount);
         }
 
-        _currentPass->emplaceBuffer(dst.get(), BufferUsageFlags::eTransfer_Dst, _pipelineType); // ...
+        if (!_currentPass->emplaceBuffer(dst.get(), BufferUsageFlags::eTransfer_Dst, _pipelineType)) { // ...
+            _resources.push_back(dst);
+        }
         ++_commandsCount;
     }
 
@@ -375,8 +399,6 @@ namespace engine::rhi::runtime {
 
     // copy commands
     void CommandList::copyBuffer2Buffer(const BufferPtr & src, BufferPtr & dst, const CopyBufferInfo & copyInfo) noexcept {
-        _resources.push_back(src);
-        _resources.push_back(dst);
         _commands->create<CopyBuffer2BufferCommand>(src.get(), dst.get(), copyInfo);
 
         if constexpr (kStatisticsEnable) {
@@ -387,13 +409,17 @@ namespace engine::rhi::runtime {
             _currentPass = &_passes.emplace_back(Pass::Type::eTransfer, _commandsCount);
         }
 
-        _currentPass->emplaceBuffer(src.get(), BufferUsageFlags::eTransfer_Src, _pipelineType); // ...
-        _currentPass->emplaceBuffer(dst.get(), BufferUsageFlags::eTransfer_Dst, _pipelineType); // ...
+        if (!_currentPass->emplaceBuffer(src.get(), BufferUsageFlags::eTransfer_Src, _pipelineType)) { // ...
+            _resources.push_back(src);
+        }
+        if (!_currentPass->emplaceBuffer(dst.get(), BufferUsageFlags::eTransfer_Dst, _pipelineType)) { // ...
+            _resources.push_back(dst);
+        }
+
         ++_commandsCount;
     }
 
     void CommandList::copyBuffer2Image(const BufferPtr & src, ImagePtr & dst, const CopyBufferImageInfo & copyInfos) noexcept {
-        _resources.push_back(src);
         _resources.push_back(dst);
         _commands->create<CopyBuffer2ImageCommand>(src.get(), dst.get(), copyInfos);
 
@@ -405,14 +431,15 @@ namespace engine::rhi::runtime {
             _currentPass = &_passes.emplace_back(Pass::Type::eTransfer, _commandsCount);
         }
 
-        _currentPass->emplaceBuffer(src.get(), BufferUsageFlags::eTransfer_Src, _pipelineType); // ...
+        if (!_currentPass->emplaceBuffer(src.get(), BufferUsageFlags::eTransfer_Src, _pipelineType)) { // ...
+            _resources.push_back(src);
+        }
         _currentPass->images.emplace_back(dst.get(), ImageUsageFlags::eTransfer_Dst, _pipelineType); // ...
         ++_commandsCount;
     }
 
     void CommandList::copyImage2Buffer(const ImagePtr & src, BufferPtr & dst, const CopyBufferImageInfo & copyInfos) {
         _resources.push_back(src);
-        _resources.push_back(dst);
         _commands->create<CopyImage2BufferCommand>(src.get(), dst.get(), copyInfos);
 
         if constexpr (kStatisticsEnable) {
@@ -424,7 +451,10 @@ namespace engine::rhi::runtime {
         }
 
         _currentPass->images.emplace_back(src.get(), ImageUsageFlags::eTransfer_Src, _pipelineType); // ...
-        _currentPass->emplaceBuffer(dst.get(), BufferUsageFlags::eTransfer_Dst, _pipelineType); // ...
+
+        if (!_currentPass->emplaceBuffer(dst.get(), BufferUsageFlags::eTransfer_Dst, _pipelineType)) { // ...
+            _resources.push_back(dst);
+        }
         ++_commandsCount;
     }
 

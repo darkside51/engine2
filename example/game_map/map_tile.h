@@ -205,6 +205,11 @@ public:
     void uploadHeightData(engine::rhi::runtime::CommandList & commandList, engine::rhi::Format format, 
         uint8_t mapIdx, engine::stl::span<const std::byte> bytes, engine::vec2u xy, engine::vec2u size);
 
+    template <typename Modifier>
+    void modifyHeights(engine::rhi::runtime::CommandList & commandList, uint8_t mapIdx, engine::vec2u xy, engine::vec2u size, Modifier && m) {
+        // m(bytes)
+    }
+
     const TerrainMaps & getMaps(uint8_t idx) const noexcept {
         return _terrainMaps[idx];
     }
