@@ -58,6 +58,7 @@ namespace engine::rhi::runtime {
     struct alignas(8) Command {
         uint16_t size = 0u;
         uint16_t align = 0u;
+        uint16_t offset = 0u;
         CommandType cmdType = CommandType::eUndefined;
         Command(CommandType type, uint16_t size, uint16_t align) : cmdType(type), size(size), align(align) {}
 

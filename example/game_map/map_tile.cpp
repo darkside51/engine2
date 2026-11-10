@@ -799,7 +799,7 @@ namespace g_map {
 
         const auto getHeight = [heights, size](int x, int y) noexcept -> float {
             if (x < 0 || x >= size.x || y < 0 || y >= size.y) {
-                //printf("%fx%f %fx%f\n", x, y, size.x, size.y);
+                // LOG_I("%dx%d %dx%d", x, y, size.x, size.y);
                 return 0.0f;
             }
             return heights[y * size.x + x];
@@ -823,18 +823,18 @@ namespace g_map {
         const int stepY = (dir.y > 0) ? 1 : ((dir.y < 0) ? -1 : 0);
 
         // ray distance to the nearest cell boundaries
-        float tMaxX = (dir.x != 0) ? ((cx + (stepX > 0 ? 1 : 0)) - startX) / (dir.x / kCellSize) : 1e9f;
-        float tMaxY = (dir.y != 0) ? ((cy + (stepY > 0 ? 1 : 0)) - startY) / (dir.y / kCellSize) : 1e9f;
+        float tMaxX = (dir.x != 0) ? ((cx + (stepX > 0 ? 1 : 0)) - startX) / (dir.x / kCellSize) : 1e7f;
+        float tMaxY = (dir.y != 0) ? ((cy + (stepY > 0 ? 1 : 0)) - startY) / (dir.y / kCellSize) : 1e7f;
 
         // distance the ray needs to travel to cross one full cell
-        const float tDeltaX = (dir.x != 0) ? std::abs(1.0f / (dir.x / kCellSize)) : 1e9f;
-        const float tDeltaY = (dir.y != 0) ? std::abs(1.0f / (dir.y / kCellSize)) : 1e9f;
+        const float tDeltaX = (dir.x != 0) ? std::abs(1.0f / (dir.x / kCellSize)) : 1e7f;
+        const float tDeltaY = (dir.y != 0) ? std::abs(1.0f / (dir.y / kCellSize)) : 1e7f;
 
         float t = 0.0f;
         size /= kCellSize;
 
         constexpr int kWHMargin = 16;
-        constexpr float kHeightMargin = 4.0f;
+        constexpr float kHeightMargin = 16.0f;
         
         // loop runs while the ray is inside the terrain grid boundaries
         while (cx >= -kWHMargin && cx < size.x - 1 + kWHMargin && cy >= -kWHMargin && cy < size.y - 1 + kWHMargin) {

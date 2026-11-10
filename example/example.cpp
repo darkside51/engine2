@@ -136,7 +136,8 @@ namespace example {
     std::optional<engine::scene::Scene> scene{};
 
     // engine::vec2f kNearFarPlane = {0.001f, 100.0f}; // common depth
-    engine::vec2f kNearFarPlane = {50.0f, 0.01f}; // reverse depth
+    // engine::vec2f kNearFarPlane = {50.0f, 0.01f}; // reverse depth
+    engine::vec2f kNearFarPlane = {300.0f, 0.01f}; // reverse depth
     engine::scene::Camera camera;
     engine::scene::SphereCameraController controller{camera};
     engine::scene::Node * sceneWorldRoot = nullptr;
@@ -1797,7 +1798,7 @@ namespace example {
 
         // shadow
         shadowMap = std::make_unique<engine::graphics::CascadeShadowMap>(*_api, *_device, 2048u, 2u, 16u, kNearFarPlane.x, kNearFarPlane.y);
-        shadowMap->initCascadeSplits({0.95f, 0.4f, -40.0f});
+        shadowMap->initCascadeSplits({0.95f, 0.4f, -290.0f});
         shadowMap->createRenderData();
         shadowMap->setDirection(glm::normalize(lightDir));
 
