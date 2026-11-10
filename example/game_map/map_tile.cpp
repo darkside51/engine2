@@ -728,7 +728,7 @@ namespace g_map {
     float TerrainSceneDelegate::getHeight(engine::vec2f p, uint8_t imageIndex) const noexcept {
         using namespace engine;
 
-        auto & maps = _terrainMaps[imageIndex];
+        const auto & maps = _terrainMaps[imageIndex];
         const auto & extent = maps.normalMap->getInfo().extent;
         const auto textureWidth = extent.width;
         const auto textureHeight = extent.height;
@@ -762,15 +762,15 @@ namespace g_map {
         // }
         // }
         { // v2 - more optimal?
-            const auto cond_idx = ((yy / kStep) * kVerticesInRow + (xx / kStep)) & 1;
-            const auto cond_f1  = (fx > fy);
-            const auto cond_f2  = ((1.0f - fx) > fy);
+            const auto condIdx = ((yy / kStep) * kVerticesInRow + (xx / kStep)) & 1;
+            const auto condF1  = (fx > fy);
+            const auto condF2  = ((1.0f - fx) > fy);
 
-            v0 = { xx, yy + kStep * (1 - cond_idx) };
-            v2 = { xx + kStep, yy + kStep * cond_idx };
+            v0 = { xx, yy + kStep * (1 - condIdx) };
+            v2 = { xx + kStep, yy + kStep * condIdx };
 
-            const auto choose_x = cond_idx ? cond_f1 : (1 - cond_f2);
-            const auto choose_y = cond_idx ? (1 - cond_f1) : (1 - cond_f2);
+            const auto choose_x = condIdx ? condF1 : (1 - condF2);
+            const auto choose_y = condIdx ? (1 - condF1) : (1 - condF2);
 
             v1 = { xx + kStep * choose_x, yy + kStep * choose_y };
         }
@@ -838,7 +838,6 @@ namespace g_map {
         
         // loop runs while the ray is inside the terrain grid boundaries
         while (cx >= -kWHMargin && cx < size.x - 1 + kWHMargin && cy >= -kWHMargin && cy < size.y - 1 + kWHMargin) {
-            
             // get the 4 vertices of the current quad on the XY grid
             const auto v00 = getVertex(cx, cy);
             const auto v10 = getVertex(cx + 1, cy);

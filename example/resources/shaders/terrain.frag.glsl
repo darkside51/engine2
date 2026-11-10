@@ -76,14 +76,14 @@ vec3 getAdvancedTerrainColor(float height, float moisture, vec3 normal, vec2 wor
         biomeColor = mix(sand, landBase, landT);
 
         // По мере подъема плавно подмешиваем камень к суше перед полноценными скалами
-        if (height > 0.5) {
-            float rockT = smoothstep(0.6, 0.82, height);
+        if (height > 1.25) {
+            float rockT = smoothstep(0.6, 0.82, height * 0.45);
             biomeColor = mix(biomeColor, rock, rockT);
         }
         
         // Самые вершины покрываются снегом
-        if (height > 0.7) {
-            float snowT = smoothstep(0.8, 0.95, height);
+        if (height > 2.25) {
+            float snowT = smoothstep(0.92, 1.0, height * 0.33);
             biomeColor = mix(biomeColor, snow, snowT);
         }
     }
