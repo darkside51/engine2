@@ -414,17 +414,16 @@ namespace g_map {
         std::byte * memory = staging.map();
         const auto offset = staging.requestBytes(pixelsCount * kFloat16Size);
         auto * dst = reinterpret_cast<uint16_t*>(memory + offset);
-        constexpr float hScale = 0.25f;
-
+        
         for (uint32_t i = 0u; i < size.y; ++i) {
             for (uint32_t j = 0u; j < size.x; ++j) {
                 const auto b = j + i * textureWidth;
                 const uint32_t srcByte = b * 4u; // format depended
-                const auto value = static_cast<float>(bytes[srcByte + 0u]) * hScale;
+                const auto value = static_cast<float>(bytes[srcByte + 0u]);
                 // const float value = (static_cast<float>(bytes[srcByte + 0u]) +
                 //                 static_cast<float>(bytes[srcByte + 1u]) +
                 //                 static_cast<float>(bytes[srcByte + 2u]) +
-                //                 static_cast<float>(bytes[srcByte + 3u])) * hScale;
+                //                 static_cast<float>(bytes[srcByte + 3u]));
                 dst[b] = graphics::float_to_uint16(value);
 
                 { // flags and heights
@@ -750,7 +749,7 @@ namespace g_map {
         const auto fx = fract(p1.x);
         const auto fy = fract(p1.y);
 
-        const auto idx = (yy / kStep) * kVerticesInRow + (xx / kStep);
+        // const auto idx = (yy / kStep) * kVerticesInRow + (xx / kStep);
         // { // v1 - simple
         // if (idx & 1) {
         //     v0 = {xx, yy};
@@ -799,7 +798,10 @@ namespace g_map {
         constexpr auto kCellSize = kTileScale;
 
         const auto getHeight = [heights, size](int x, int y) noexcept -> float {
-            if (x < 0 || x >= size.x || y < 0 || y >= size.y) return 0.0f;
+            if (x < 0 || x >= size.x || y < 0 || y >= size.y) {
+                //printf("%fx%f %fx%f\n", x, y, size.x, size.y);
+                return 0.0f;
+            }
             return heights[y * size.x + x];
         };
 

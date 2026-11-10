@@ -1066,7 +1066,7 @@ namespace example {
         }
     } sceneEventHandler;
 
-    Example::Example() : _imgui(engine::ImGuiSystem(engine::ImGuiSystem::Theme::eWhite)) {
+    Example::Example() : _imgui() {
         using namespace engine;
         
         fileManager.createFileSystem<CommonFileSystem>("common_fs0", CommonFileSystem::getCurrentDirectory() + "./resources/");
@@ -2552,7 +2552,8 @@ namespace example {
                 //
                 auto * terrainNode = terrain->getNode();
                 terrainNode->setPosition({-150.0f, 0.0f, 0.0f});
-                terrainNode->setScale(0.2f);
+                terrainNode->setScale(engine::vec3f{0.2f, 0.2f, 0.05f});
+                testDummyNode->setScale(0.1f / terrainNode->getScale());
                 terrainNode->addChild(testDummyNode);
                 sceneWorldRoot->addChild(terrainNode);
             }
