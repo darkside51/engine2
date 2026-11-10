@@ -68,6 +68,14 @@ namespace allocators {
             }
         }
 
+        inline bool empty() const noexcept {
+            if constexpr (top_down) {
+                return _head == sizeInBytes;
+            } else {
+                return _head == 0u;
+            }
+        }
+
         [[nodiscard]] inline size_t head() const noexcept { return _head; }
 
         [[nodiscard]] inline size_t freeBytesCount() const noexcept {
@@ -76,6 +84,10 @@ namespace allocators {
             } else {
                 return sizeInBytes - _head;
             }
+        }
+
+        inline void * extractPointer(void * mptr, size_t align) const noexcept {
+            return reinterpret_cast<void*>(alignedAddress(reinterpret_cast<uintptr_t>(mptr), align));
         }
 
     private:

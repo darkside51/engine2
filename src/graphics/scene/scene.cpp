@@ -1415,7 +1415,7 @@ namespace engine::scene {
     void Scene::drawDummies(AttachmentsIterator begin, AttachmentsIterator end, const ViewParams & viewParams, uint32_t color) {
         for (auto it = begin; it != end; ++it) {
             const auto & object = *it;
-            _drawHelper.drawSphere(vec3f{0.0f}, 0.1f, color, 32u, viewParams.cameraTransform * object->node->getWorldTransform());
+            _drawHelper.drawSphere(vec3f{0.0f}, 1.0f, color, 32u, viewParams.cameraTransform * object->node->getWorldTransform());
         }
     }
 

@@ -50,8 +50,18 @@ namespace engine::rhi::runtime {
     }
 
     void CommandList::clear() noexcept {
+        if (_commands->empty()) [[unlikely]] {
+            return;
+        }
+        
         auto commandsCount = _commandsCount;
         std::byte * memory = _commands.memory().data();
+
+        const Command * firstCmd = reinterpret_cast<Command*>(memory);
+        assert(firstCmd->cmdType == CommandType::eBegin);
+        // sizeof(BeginCommand), alignof(BeginCommand)
+        // _commands->extractPointer(memory, alignof(BeginCommand))
+
         while ((commandsCount--) > 0u) {
             Command * cmd = reinterpret_cast<Command*>(memory);
             memory += cmd->size;

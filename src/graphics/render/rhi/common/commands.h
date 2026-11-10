@@ -55,28 +55,33 @@ namespace engine::rhi::runtime {
 
     class CommandList;
 
-    struct Command {
-        uint32_t size = 0u;
+    struct alignas(8) Command {
+        uint16_t size = 0u;
+        uint16_t align = 0u;
         CommandType cmdType = CommandType::eUndefined;
-        Command(CommandType type, uint32_t size) : cmdType(type), size(size) {}
+        Command(CommandType type, uint16_t size, uint16_t align) : cmdType(type), size(size), align(align) {}
 
         inline constexpr void destroy() const noexcept;
+
+        inline uint32_t alignedSize() const noexcept { // for no use alignas(8) - may be need to impl it!
+            return size + align - 1u; // see stackAllocator allocAligned
+        }
     };
 
     struct BeginCommand : Command {
         CommandBufferUsageFlags flags;
         BeginCommand(CommandBufferUsageFlags flags = CommandBufferUsageFlags::eOne_Time_Submit) : 
-            Command(CommandType::eBegin, sizeof(BeginCommand)), flags(flags) {}
+            Command(CommandType::eBegin, sizeof(BeginCommand), alignof(BeginCommand)), flags(flags) {}
     };
 
     struct EndCommand : Command {
-        EndCommand() : Command(CommandType::eEnd, sizeof(EndCommand)) {}
+        EndCommand() : Command(CommandType::eEnd, sizeof(EndCommand), alignof(EndCommand)) {}
     };
 
     struct ResetCommand : Command {
         CommandBufferResetFlags flags;
         ResetCommand(CommandBufferResetFlags flags) : 
-            Command(CommandType::eReset, sizeof(ResetCommand)),
+            Command(CommandType::eReset, sizeof(ResetCommand), alignof(ResetCommand)),
             flags(flags) {}
     };
 
@@ -108,7 +113,7 @@ namespace engine::rhi::runtime {
             RenderPass renderPass, FrameBufferPtr & framebuffer, 
             stl::span<const ClearValue> clearValues, const Rect2D & area
         ) : 
-            Command(CommandType::eBeginRenderPass, sizeof(BeginRenderPassCommand)),
+            Command(CommandType::eBeginRenderPass, sizeof(BeginRenderPassCommand), alignof(BeginRenderPassCommand)),
             renderPass(renderPass),
             framebuffer(framebuffer.get()),
             clearValues(clearValues),
@@ -116,7 +121,7 @@ namespace engine::rhi::runtime {
     };
 
     struct EndRenderPassCommand : Command {
-        EndRenderPassCommand() : Command(CommandType::eEndRenderPass, sizeof(EndRenderPassCommand)) {}
+        EndRenderPassCommand() : Command(CommandType::eEndRenderPass, sizeof(EndRenderPassCommand), alignof(EndRenderPassCommand)) {}
     };
 
     struct NextSubpassCommand : Command {
@@ -126,7 +131,7 @@ namespace engine::rhi::runtime {
         NextSubpassCommand(SubpassContents contents,
             stl::span<ImageTransitionInfo> imageTransitionInfo = {},
             stl::span<BufferTransitionInfo> bufferTransitionInfo = {}) : 
-            Command(CommandType::eNextSubpass, sizeof(NextSubpassCommand)),
+            Command(CommandType::eNextSubpass, sizeof(NextSubpassCommand), alignof(NextSubpassCommand)),
             contents(contents),
             imageTransitionInfo(imageTransitionInfo),
             bufferTransitionInfo(bufferTransitionInfo) {}
@@ -134,14 +139,14 @@ namespace engine::rhi::runtime {
 
     struct ExecuteCommandsCommand : Command { // todo!
         ExecuteCommandsCommand(stl::span<const CommandList*> secondaryCommandLists) : 
-            Command(CommandType::eExecuteCommands, sizeof(ExecuteCommandsCommand)) {}
+            Command(CommandType::eExecuteCommands, sizeof(ExecuteCommandsCommand), alignof(ExecuteCommandsCommand)) {}
     };
 
     struct SetViewportCommand : Command {
         float x, y, w, h, minDepth = 0.0f, maxDepth = 1.0f;
         uint32_t viewportIdx = 0u;
         SetViewportCommand(float x, float y, float w, float h, float minDepth = 0.0f, float maxDepth = 1.0f, uint32_t viewportIdx = 0u) : 
-            Command(CommandType::eSetViewport, sizeof(SetViewportCommand)),
+            Command(CommandType::eSetViewport, sizeof(SetViewportCommand), alignof(SetViewportCommand)),
             x(x), y(y), w(w), h(h), minDepth(minDepth), maxDepth(maxDepth), viewportIdx(viewportIdx) {}
     };
 
@@ -149,18 +154,18 @@ namespace engine::rhi::runtime {
         Rect2D area{};
         uint32_t scissorIdx = 0u;
         SetScissorCommand(const rhi::Rect2D & area, uint32_t scissorIdx = 0u) : 
-            Command(CommandType::eSetScissor, sizeof(SetScissorCommand)),
+            Command(CommandType::eSetScissor, sizeof(SetScissorCommand), alignof(SetScissorCommand)),
             area(area), scissorIdx(scissorIdx) {}
     };
 
     struct BindPipelineCommand : Command {
         const Pipeline * pipeline = nullptr;
         BindPipelineCommand(const PipelinePtr & pipeline) : 
-            Command(CommandType::eBindPipeline, sizeof(BindPipelineCommand)), 
+            Command(CommandType::eBindPipeline, sizeof(BindPipelineCommand), alignof(BindPipelineCommand)), 
             pipeline(pipeline.get()) {}
             
         BindPipelineCommand(const Pipeline & pipeline) : 
-            Command(CommandType::eBindPipeline, sizeof(BindPipelineCommand)), 
+            Command(CommandType::eBindPipeline, sizeof(BindPipelineCommand), alignof(BindPipelineCommand)), 
             pipeline(&pipeline) {}
     };
 
@@ -169,7 +174,7 @@ namespace engine::rhi::runtime {
         uint32_t binding = 0u;
         uint32_t offset = 0u;
         BindVertexBufferCommand(uint32_t binding, Buffer * buffer, uint32_t offset = 0u) : 
-            Command(CommandType::eBindVertexBuffer, sizeof(BindVertexBufferCommand)), 
+            Command(CommandType::eBindVertexBuffer, sizeof(BindVertexBufferCommand), alignof(BindVertexBufferCommand)), 
             binding(binding), buffer(buffer), offset(offset) {}
     };
 
@@ -178,7 +183,7 @@ namespace engine::rhi::runtime {
         uint32_t offset = 0u;
         IndexType type = rhi::IndexType::eU32;
         BindIndexBufferCommand(const Buffer * buffer, uint32_t offset = 0u, IndexType type = rhi::IndexType::eU32) : 
-            Command(CommandType::eBindIndexBuffer, sizeof(BindIndexBufferCommand)), 
+            Command(CommandType::eBindIndexBuffer, sizeof(BindIndexBufferCommand), alignof(BindIndexBufferCommand)), 
             buffer(buffer), offset(offset), type(type) {}
     };
 
@@ -191,7 +196,7 @@ namespace engine::rhi::runtime {
         bool dynamic = false;
         
         BindBufferCommand(uint16_t binding, const Buffer * buffer, uint8_t setId = 0u, uint64_t offset = 0u, uint64_t range = kWholeSize64, bool dynamic = false) : 
-            Command(CommandType::eBindBuffer, sizeof(BindBufferCommand)), 
+            Command(CommandType::eBindBuffer, sizeof(BindBufferCommand), alignof(BindBufferCommand)), 
             buffer(buffer),
             binding(binding),
             setId(setId), 
@@ -217,7 +222,7 @@ namespace engine::rhi::runtime {
         std::optional<rhi::SamplerValue> samplerValue = {};
 
         BindImageSamplerCommand(rhi::ImageViewType viewType, uint16_t binding, Image * image, std::optional<rhi::SamplerValue> sampler, uint8_t setId = 0u) : 
-            Command(CommandType::eBindImageSampler, sizeof(BindImageSamplerCommand)),
+            Command(CommandType::eBindImageSampler, sizeof(BindImageSamplerCommand), alignof(BindImageSamplerCommand)),
             image(image),
             layersCount(image->getInfo().arrayLayers),
             levelsCount(image->getInfo().mipLevels),
@@ -230,7 +235,7 @@ namespace engine::rhi::runtime {
         BindImageSamplerCommand(
             rhi::ImageViewType viewType, rhi::ImageAspectFlags aspectFlags, uint16_t binding, 
             Image * image, std::optional<rhi::SamplerValue> sampler, uint8_t setId = 0u) : 
-            Command(CommandType::eBindImageSampler, sizeof(BindImageSamplerCommand)),
+            Command(CommandType::eBindImageSampler, sizeof(BindImageSamplerCommand), alignof(BindImageSamplerCommand)),
             image(image),
             layersCount(image->getInfo().arrayLayers),
             levelsCount(image->getInfo().mipLevels),
@@ -250,7 +255,7 @@ namespace engine::rhi::runtime {
         Format format = Format::eUndefined;
         
         BindTexelBufferCommand(uint16_t binding, Buffer * buffer, Format format, uint8_t setId = 0u, uint64_t offset = 0u, uint64_t range = kWholeSize64) : 
-            Command(CommandType::eBindTexelBuffer, sizeof(BindBufferCommand)), 
+            Command(CommandType::eBindTexelBuffer, sizeof(BindTexelBufferCommand), alignof(BindTexelBufferCommand)), 
             buffer(buffer),
             offset(offset),
             range(range),
@@ -260,16 +265,16 @@ namespace engine::rhi::runtime {
     };
 
     struct PushConstantsCommand : Command {
-        uint32_t offset = 0u;
-        uint32_t size = 0u;
+        uint32_t dataOffset = 0u;
+        uint32_t dataSize = 0u;
         shaders::Stages stages = shaders::Stages::eNone;
         stl::array<std::byte, 128u> data;
         PushConstantsCommand(shaders::Stages stages, uint32_t offset, uint32_t size, const void * bytes) : 
-            Command(CommandType::ePushConstants, sizeof(PushConstantsCommand)),
+            Command(CommandType::ePushConstants, sizeof(PushConstantsCommand), alignof(PushConstantsCommand)),
             stages(stages),
-            offset(offset),
-            size(size) {
-                memcpy(data.data(), bytes, size);
+            dataOffset(offset),
+            dataSize(size) {
+                memcpy(data.data(), bytes, dataSize);
             }
     };
 
@@ -279,7 +284,7 @@ namespace engine::rhi::runtime {
         uint32_t firstVertex = 0u;
         uint32_t firstInstance = 0u;
         DrawCommand(uint32_t vertexCount, uint32_t instanceCount = 1u, uint32_t firstVertex = 0u, uint32_t firstInstance = 0u) : 
-            Command(CommandType::eDraw, sizeof(DrawCommand)),
+            Command(CommandType::eDraw, sizeof(DrawCommand), alignof(DrawCommand)),
             vertexCount(vertexCount),
             instanceCount(instanceCount),
             firstVertex(firstVertex),
@@ -294,7 +299,7 @@ namespace engine::rhi::runtime {
         uint32_t firstInstance = 0u;
         DrawIndexedCommand(uint32_t indexCount, uint32_t instanceCount = 1u, uint32_t firstIndex = 0u, int32_t vertexOffset = 0u, 
             uint32_t firstInstance = 0u) : 
-            Command(CommandType::eDrawIndexed, sizeof(DrawIndexedCommand)),
+            Command(CommandType::eDrawIndexed, sizeof(DrawIndexedCommand), alignof(DrawIndexedCommand)),
             indexCount(indexCount),
             instanceCount(instanceCount),
             firstIndex(firstIndex),
@@ -309,7 +314,7 @@ namespace engine::rhi::runtime {
         const void* pData;
 
         UpdateBufferCommand(Buffer * dst, uint32_t dstOffset, uint32_t dataSize, const void* pData) : 
-            Command(CommandType::eUpdateBuffer, sizeof(UpdateBufferCommand)),
+            Command(CommandType::eUpdateBuffer, sizeof(UpdateBufferCommand), alignof(UpdateBufferCommand)),
             dst(dst), dstOffset(dstOffset), dataSize(dataSize), pData(pData) {
             }
     };
@@ -319,7 +324,7 @@ namespace engine::rhi::runtime {
         Buffer * src = nullptr;
         Buffer * dst = nullptr;
         CopyBuffer2BufferCommand(Buffer * src, Buffer * dst, const CopyBufferInfo & info) : 
-            Command(CommandType::eCopyBuffer2Buffer, sizeof(CopyBuffer2BufferCommand)),
+            Command(CommandType::eCopyBuffer2Buffer, sizeof(CopyBuffer2BufferCommand), alignof(CopyBuffer2BufferCommand)),
             info(info),
             src(src), 
             dst(dst) {}
@@ -330,7 +335,7 @@ namespace engine::rhi::runtime {
         Buffer * src = nullptr;
         Image * dst = nullptr;
         CopyBuffer2ImageCommand(Buffer * src, Image * dst, const CopyBufferImageInfo & info) : 
-            Command(CommandType::eCopyBuffer2Image, sizeof(CopyBuffer2ImageCommand)),
+            Command(CommandType::eCopyBuffer2Image, sizeof(CopyBuffer2ImageCommand), alignof(CopyBuffer2ImageCommand)),
             info(info),
             src(src), 
             dst(dst) {}
@@ -341,7 +346,7 @@ namespace engine::rhi::runtime {
         Image * src = nullptr;
         Image * dst = nullptr;
         CopyImage2ImageCommand(Image * src, Image * dst, const CopyImage2ImageInfo & info) : 
-            Command(CommandType::eCopyImage2Image, sizeof(CopyImage2ImageCommand)),
+            Command(CommandType::eCopyImage2Image, sizeof(CopyImage2ImageCommand), alignof(CopyImage2ImageCommand)),
             info(info),
             src(src), 
             dst(dst) {}
@@ -352,7 +357,7 @@ namespace engine::rhi::runtime {
         Image * src = nullptr;
         Buffer * dst = nullptr;
         CopyImage2BufferCommand(Image * src, Buffer * dst, const CopyBufferImageInfo & info) : 
-            Command(CommandType::eCopyImage2Buffer, sizeof(CopyImage2BufferCommand)),
+            Command(CommandType::eCopyImage2Buffer, sizeof(CopyImage2BufferCommand), alignof(CopyImage2BufferCommand)),
             info(info),
             src(src), 
             dst(dst) {}
@@ -361,7 +366,7 @@ namespace engine::rhi::runtime {
     struct PrepareImage2HostRead : Command {
         Image * img = nullptr;
         PrepareImage2HostRead(Image * img) : 
-            Command(CommandType::ePrepareImage2HostRead, sizeof(PrepareImage2HostRead)),
+            Command(CommandType::ePrepareImage2HostRead, sizeof(PrepareImage2HostRead), alignof(PrepareImage2HostRead)),
             img(img) {}
     };
 
@@ -370,22 +375,22 @@ namespace engine::rhi::runtime {
         Image * src = nullptr;
         Image * dst = nullptr;
         BlitImageCommand(Image * src, Image * dst, const BlitImageInfo & info) : 
-            Command(CommandType::eBlitImage, sizeof(BlitImageCommand)),
+            Command(CommandType::eBlitImage, sizeof(BlitImageCommand), alignof(BlitImageCommand)),
             info(info),
             src(src), 
             dst(dst) {}
     };
 
     struct PipelineBarriersCommand : Command { // todo!
-        PipelineBarriersCommand() : Command(CommandType::ePipelineBarriers, sizeof(PipelineBarriersCommand)) {}
+        PipelineBarriersCommand() : Command(CommandType::ePipelineBarriers, sizeof(PipelineBarriersCommand), alignof(PipelineBarriersCommand)) {}
     };
 
     struct SetEventCommand : Command { // todo!
-        SetEventCommand() : Command(CommandType::eSetEvent, sizeof(SetEventCommand)) {}
+        SetEventCommand() : Command(CommandType::eSetEvent, sizeof(SetEventCommand), alignof(SetEventCommand)) {}
     };
 
     struct WaitEventsCommand : Command { // todo!
-        WaitEventsCommand() : Command(CommandType::eWaitEvents, sizeof(WaitEventsCommand)) {}
+        WaitEventsCommand() : Command(CommandType::eWaitEvents, sizeof(WaitEventsCommand), alignof(WaitEventsCommand)) {}
     };
 
     struct ResetQueryPoolCommand : Command {
@@ -393,7 +398,7 @@ namespace engine::rhi::runtime {
         uint16_t firstQuery;
         uint16_t queryCount;
         ResetQueryPoolCommand(QueryPool *pool, uint16_t firstQuery, uint16_t queryCount) : 
-            Command(CommandType::eResetQueryPool, sizeof(ResetQueryPoolCommand)), 
+            Command(CommandType::eResetQueryPool, sizeof(ResetQueryPoolCommand), alignof(ResetQueryPoolCommand)), 
             pool(pool), 
             firstQuery(firstQuery),
             queryCount(queryCount) {}
@@ -404,14 +409,14 @@ namespace engine::rhi::runtime {
         PipelineStageFlags stage;
         uint16_t query;
         WriteTimestampCommand(QueryPool *pool, PipelineStageFlags stage, uint16_t query) :
-            Command(CommandType::eWriteTimestamp, sizeof(WriteTimestampCommand)), 
+            Command(CommandType::eWriteTimestamp, sizeof(WriteTimestampCommand), alignof(WriteTimestampCommand)), 
             pool(pool), 
             stage(stage),
             query(query) {}
     };
 
     struct CopyQueryPoolResults : Command { // todo!
-        CopyQueryPoolResults() : Command(CommandType::eCopyQueryPoolResults, sizeof(CopyQueryPoolResults)) {}
+        CopyQueryPoolResults() : Command(CommandType::eCopyQueryPoolResults, sizeof(CopyQueryPoolResults), alignof(CopyQueryPoolResults)) {}
     };
 
     struct DispatchCommand : Command {
@@ -419,7 +424,7 @@ namespace engine::rhi::runtime {
         uint16_t groupCountY;
         uint16_t groupCountZ;
         DispatchCommand(uint16_t groupCountX, uint16_t groupCountY, uint16_t groupCountZ) :
-            Command(CommandType::eDispatch, sizeof(DispatchCommand)),
+            Command(CommandType::eDispatch, sizeof(DispatchCommand), alignof(DispatchCommand)),
             groupCountX(groupCountX),
             groupCountY(groupCountY),
             groupCountZ(groupCountZ) {}
