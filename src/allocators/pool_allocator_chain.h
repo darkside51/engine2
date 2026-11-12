@@ -2,12 +2,12 @@
 
 #include "pool_allocator.h"
 #include "threads/threads.h"
+#include "stl/list.h"
 
 #include <atomic>
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
-#include <list>
 
 namespace allocators {
 
@@ -188,7 +188,7 @@ namespace allocators {
         }
 
         inline size_t used_memory() const noexcept { // in bytes
-            const size_t staticMemory = sizeof(std::list<ChainedPool*>) + sizeof(ChainedPool*) +
+            const size_t staticMemory = sizeof(engine::stl::list<ChainedPool*>) + sizeof(ChainedPool*) +
                                         sizeof(size_t) * 2u + _pools.used_memory();
             const size_t poolsCount = _poolsChain.size();
             const size_t usefulMemory = (poolsCount + (_reservedPool ? 1u : 0u)) * _chunkMemorySize;
@@ -215,7 +215,7 @@ namespace allocators {
         size_t _chunkMemorySize = 0u;
         size_t _poolCapacity = 0u;
         PoolAllocator<sizeof(ChainedPool), alignof(ChainedPool), false> _pools;
-        std::list<ChainedPool*> _poolsChain;
+        engine::stl::list<ChainedPool*> _poolsChain;
         ChainedPool* _reservedPool = nullptr;
     };
 
@@ -380,7 +380,7 @@ namespace allocators {
 
         size_t _poolCapacity = 0u;
         PoolAllocator<sizeof(ChainedPool), alignof(ChainedPool), false> _pools;
-        std::list<ChainedPool*> _poolsChain;
+        engine::stl::list<ChainedPool*> _poolsChain;
         ChainedPool* _reservedPool = nullptr;
         std::atomic<int32_t> _rwLock = {0};
     };

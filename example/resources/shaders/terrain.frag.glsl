@@ -92,7 +92,7 @@ vec3 getAdvancedTerrainColor(float height, float moisture, vec3 normal, vec2 wor
     // Если склон крутой, мы принудительно заменяем цвет на голые скалы (rock)
     if (height >= 0.15) { // Применяем только для суши, воду не трогаем
         // Склоны становятся каменными при крутизне выше 0.35 (примерно 20 градусов)
-        float slopeFactor = smoothstep(0.35, 0.7, steepness);
+        float slopeFactor = smoothstep(0.45, 0.7, steepness);
         
         // Ослабляем влияние камня на экстремальных высотах (где лежит вечный снег), 
         // но на совсем вертикальных стенах (steepness > 0.8) даже снег срезается.

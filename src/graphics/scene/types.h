@@ -1,5 +1,6 @@
 #pragma once
 
+#include "common/flags.h"
 #include "math/math.h"
 #include "stl/span.h"
 
@@ -15,6 +16,12 @@ struct ShadowViewParams {
 };
 
 struct GraphicsParams {
+    enum class DirtyBits : uint8_t {
+        eNone = 0u,
+        eCamera = 1u,
+        eCursor = 2u
+    };
+
     mat4f cameraView;
     mat4f cameraProjection;
     mat4f cameraTransform;
@@ -24,6 +31,7 @@ struct GraphicsParams {
     vec2f nearFarPlanes;
     vec2f cursorPosition;
     vec2f screenSize;
+    Flags<DirtyBits> dirtyFlags;
 };
 
 struct ViewParams {

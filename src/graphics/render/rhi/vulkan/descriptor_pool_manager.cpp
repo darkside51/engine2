@@ -4,7 +4,6 @@
 #include "common/align.h"
 
 #include <cassert>
-#include <vector>
 
 namespace engine::vulkan {
     
@@ -69,7 +68,7 @@ namespace engine::vulkan {
             resources[std::to_underlying(setLayout.type)] += setLayout.count;
         }
 
-        const auto findSuitablePool = [&](std::list<DescriptorPool> & pools) noexcept -> DescriptorPool* {
+        const auto findSuitablePool = [&](stl::list<DescriptorPool> & pools) noexcept -> DescriptorPool* {
             for (auto & pool : pools) {
                 if (bool suitable = (pool.maxSets() < pool.allocatedSets())) {
                     for (size_t i = 0u; i < std::to_underlying(rhi::shaders::ResourceType::eCount); ++i) {

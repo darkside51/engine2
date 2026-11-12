@@ -1,6 +1,7 @@
 #include "leaks.h"
 
 #include "../../log/log.h"
+#include "stl/vector.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -12,10 +13,8 @@
 #include <tuple>
 
 #include <algorithm>
-#include <array>
 #include <cassert>
 #include <limits>
-#include <vector>
 
 #ifdef CHECK_MEMORY_LEAKS
 
@@ -216,7 +215,7 @@ namespace engine::leaks {
             };
 
             constexpr size_t kShowLeaksCount = 1024u;
-            std::vector<Leak, Mallocator<Leak>> leaks;
+            stl::vector<Leak, Mallocator<Leak>> leaks;
             leaks.reserve(kShowLeaksCount);
         
             // collect leaks

@@ -448,7 +448,7 @@ namespace engine::rhi::runtime {
         ++_commandsCount;
     }
 
-    void CommandList::copyImage2Buffer(const ImagePtr & src, BufferPtr & dst, const CopyBufferImageInfo & copyInfos) {
+    void CommandList::copyImage2Buffer(const ImagePtr & src, BufferPtr & dst, const CopyBufferImageInfo & copyInfos) noexcept {
         _resources.push_back(src);
         _commands->create<CopyImage2BufferCommand>(src.get(), dst.get(), copyInfos);
 

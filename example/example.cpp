@@ -56,6 +56,8 @@
 
 #include "engine/src/common/flags.h"
 
+#include "engine/src/threads/snapshots.h"
+
 #include "map/tile_id.h"
 #include "map/geography.h"
 #include "map/vector_tile_parser.h"
@@ -122,6 +124,8 @@ namespace example {
 
     constexpr uint8_t kSsaoKernelSize = 32u;
     constexpr uint8_t kSsaoNoiseDim = 4u;
+
+    threads::SnapshotManager<engine::scene::GraphicsParams> snaphots;
 
     engine::graphics::DrawHelper drawHelper;
     
@@ -212,7 +216,7 @@ namespace example {
     engine::vec4f directionalLightColor = {1.0f, 1.0f, 1.0f, 1.600f};
     engine::vec3f lightDir = {0.26f, 0.15f, -0.75f};
     engine::vec4f shadowsOptions = {0.0f, 0.0f, 0.0f, 0.0f};
-    bool lightDirty = false;
+    bool lightDirty = true;
     float saturation = 1.0f;
 
     engine::network::CurlNetworkService curlNetworkService;
@@ -694,8 +698,8 @@ namespace example {
         return modelIdx;
     }
 
-    engine::scene::GraphicsParams sceneGraphicsParams;
-    bool viewParamsUpdated = false;
+    // engine::scene::GraphicsParams sceneGraphicsParams;
+    // bool viewParamsUpdated = false;
 
     struct Stats {
         float cpuFrameTime = 0.0f;
@@ -1907,7 +1911,7 @@ namespace example {
         using namespace engine::rhi;
         using namespace engine::graphics;
 
-        auto * commandPool = _device->acquireCommandPool(engine::rhi::queue_flags::transfrer);
+        auto * commandPool = _device->acquireCommandPool(engine::rhi::queue_flags::transfer);
         auto tmpCommandList = _api->createCommandList(commandPool, engine::rhi::CommandBufferLevel::ePrimary);
 
         tmpCommandList->begin(engine::rhi::CommandBufferUsageFlags::eOne_Time_Submit);
@@ -2693,26 +2697,57 @@ namespace example {
 
     void Example::deviceProcess() {
         if (_renderThread) {
-            controller.calculateTransform();
-            _renderThread->emplaceTask(threads::WorkerTask{[
+            const bool cameraDirty = controller.calculateTransform();
+            snaphots.produce([
                 transform = camera.getTransform(),
                 invTransform = camera.getInvTransform(),
                 view = camera.getView(), 
                 projection = camera.getProjection(),
                 cameraPos = controller.cameraPosition(),
-                screenSize = camera.getSize()
-            ](){
-                sceneGraphicsParams.cameraView = view;
-                sceneGraphicsParams.cameraProjection = projection;
-                sceneGraphicsParams.cameraTransform = transform;
-                sceneGraphicsParams.invCameraTransform = invTransform;
-                sceneGraphicsParams.viewTransposeInverse = glm::transpose(glm::inverse(engine::mat3f(view)));
-                sceneGraphicsParams.cameraPosition = cameraPos; 
-                sceneGraphicsParams.nearFarPlanes = kNearFarPlane;
-                sceneGraphicsParams.cursorPosition = sceneEventHandler.getCursorPosition();
-                sceneGraphicsParams.screenSize = screenSize;
-                viewParamsUpdated = true;
-            }}, 0u);
+                screenSize = camera.getSize(),
+                cameraDirty
+            ](engine::scene::GraphicsParams & params) {
+                using namespace engine::scene;
+                params.cameraView = view;
+                params.cameraProjection = projection;
+                params.cameraTransform = transform;
+                params.invCameraTransform = invTransform;
+                params.viewTransposeInverse = glm::transpose(glm::inverse(engine::mat3f(view)));
+                params.cameraPosition = cameraPos; 
+                params.nearFarPlanes = kNearFarPlane;
+                params.cursorPosition = sceneEventHandler.getCursorPosition();
+                params.screenSize = screenSize;
+                params.dirtyFlags =  GraphicsParams::DirtyBits::eCursor;
+                if (cameraDirty) {
+                    params.dirtyFlags.enable(GraphicsParams::DirtyBits::eCamera);
+                }
+            });
+
+            // if (controller.calculateTransform()) {
+            //     _renderThread->emplaceTask(threads::WorkerTask{[
+            //         transform = camera.getTransform(),
+            //         invTransform = camera.getInvTransform(),
+            //         view = camera.getView(), 
+            //         projection = camera.getProjection(),
+            //         cameraPos = controller.cameraPosition(),
+            //         screenSize = camera.getSize()
+            //     ](){
+            //         sceneGraphicsParams.cameraView = view;
+            //         sceneGraphicsParams.cameraProjection = projection;
+            //         sceneGraphicsParams.cameraTransform = transform;
+            //         sceneGraphicsParams.invCameraTransform = invTransform;
+            //         sceneGraphicsParams.viewTransposeInverse = glm::transpose(glm::inverse(engine::mat3f(view)));
+            //         sceneGraphicsParams.cameraPosition = cameraPos; 
+            //         sceneGraphicsParams.nearFarPlanes = kNearFarPlane;
+            //         sceneGraphicsParams.cursorPosition = sceneEventHandler.getCursorPosition();
+            //         sceneGraphicsParams.screenSize = screenSize;
+            //         viewParamsUpdated = true;
+            //     }}, 0u);
+            // } else {
+            //     _renderThread->emplaceTask(threads::WorkerTask{[](){
+            //         sceneGraphicsParams.cursorPosition = sceneEventHandler.getCursorPosition();
+            //     }}, 0u);
+            // }
         }
     }
 
@@ -2922,7 +2957,11 @@ namespace example {
         // prepare frame draw data (update uniforms and copy buffers memory)
         prepareFrameDrawData(commandList, frameId, delta);
 
-        if (viewParamsUpdated || lightDirty) { // viewParams has been changed
+        auto const [sceneGraphicsParams, viewParamsUpdated] = snaphots.consume();
+        if (
+            (viewParamsUpdated && sceneGraphicsParams.dirtyFlags & engine::scene::GraphicsParams::DirtyBits::eCamera)
+            || lightDirty
+        ) { // viewParams has been changed
             shadowMap->setDirection(glm::normalize(lightDir));
 
             const auto viewInverseMatrix = glm::inverse(sceneGraphicsParams.cameraView);
@@ -2948,7 +2987,7 @@ namespace example {
             //shadowUniforms->cascades[0] = shadowUniforms->cascades[0] * viewInverseMatrix;
             //shadowUniforms->cascades[1] = shadowUniforms->cascades[1] * viewInverseMatrix;
 
-            viewParamsUpdated = false;
+            // viewParamsUpdated = false;
             lightDirty = false;
         }
 

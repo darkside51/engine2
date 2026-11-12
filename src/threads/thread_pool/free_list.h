@@ -1,9 +1,10 @@
 #pragma once
 
+#include "stl/vector.h"
+
 #include "queue.h"
 
 #include <mutex>
-#include <vector>
 
 namespace threads {
     template <typename T>
@@ -44,6 +45,6 @@ namespace threads {
         }
 
     private:
-        std::vector<Head> _heads;
+        engine::stl::vector<Head> _heads;
     };    
 }

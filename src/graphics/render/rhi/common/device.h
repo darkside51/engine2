@@ -1,10 +1,10 @@
 #pragma once
 
 #include "types.h"
+#include "stl/vector.h"
 
 #include <cstdint>
 #include <optional>
-#include <vector>
 
 namespace engine::rhi {
 
@@ -70,7 +70,7 @@ namespace queue_flags {
     using flags = uint8_t;
     constexpr uint8_t graphics = 1u;
     constexpr uint8_t compute = 2u;
-    constexpr uint8_t transfrer = 4u;
+    constexpr uint8_t transfer = 4u;
     constexpr uint8_t sparse_binding = 8u;
     constexpr uint8_t present = 16u;
 }

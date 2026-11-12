@@ -3,7 +3,6 @@
 #include "graphics/render/rhi/common/instance.h"
 #include "graphics/render/rhi/common/runtime.h"
 #include <vulkan/vulkan.h>
-#include <vector>
 
 namespace engine::vulkan {
 

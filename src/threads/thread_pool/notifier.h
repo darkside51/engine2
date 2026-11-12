@@ -1,11 +1,11 @@
 #pragma once
 
 #include "core/system.h"
+#include "stl/vector.h"
 
 #include <atomic>
 #include <cassert>
 #include <cstdint>
-#include <vector>
 
 namespace threads {
     class NotifierV1 {
@@ -42,7 +42,7 @@ namespace threads {
         // _state stores the epoch in the most significant 32 bits and the
         // waiter count in the least significant 32 bits.
         std::atomic<uint64_t> _state;
-        std::vector<Waiter> _waiters;
+        engine::stl::vector<Waiter> _waiters;
 
         static constexpr uint64_t WAITER_INC  {1};
         static constexpr size_t   EPOCH_SHIFT {32};
@@ -177,7 +177,7 @@ namespace threads {
         // _state stores the epoch in the most significant 32 bits and the
         // waiter count in the least significant 32 bits.
         std::atomic<uint64_t> _state;
-        std::vector<Waiter> _waiters;
+        engine::stl::vector<Waiter> _waiters;
     };
 
 
@@ -321,7 +321,7 @@ namespace threads {
         static_assert(kEpochBits >= 20, "not enough bits to prevent ABA problem");
 
         std::atomic<uint64_t> _state;
-        std::vector<Waiter> _waiters;
+        engine::stl::vector<Waiter> _waiters;
 
         void _park(Waiter* w) {
             #ifdef __cpp_lib_atomic_wait

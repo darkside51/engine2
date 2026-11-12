@@ -2,14 +2,13 @@
 
 #include "graphics/render/rhi/common/types.h"
 #include "descriptor_pool.h"
+#include "stl/list.h"
 #include "stl/span.h"
 #include "stl/unordered_map.h"
 #include "stl/utility.h"
 #include "stl/vector.h"
 
 #include <vulkan/vulkan.h>
-
-#include <list>
 
 namespace engine::vulkan {
 
@@ -121,7 +120,7 @@ namespace engine::vulkan {
     
     private:
         struct PoolList {
-            std::list<DescriptorPool> list;
+            stl::list<DescriptorPool> list;
             uint16_t count = 0u; // count unused in frames
         };
         using DescriptorPools = stl::unordered_map<uint32_t, PoolList>;

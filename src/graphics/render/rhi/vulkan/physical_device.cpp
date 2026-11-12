@@ -24,7 +24,7 @@ namespace engine::vulkan {
         static constexpr stl::array<uint8_t, 4u> kAllQueueFlags = {
             rhi::queue_flags::graphics,
             rhi::queue_flags::compute,
-            rhi::queue_flags::transfrer,
+            rhi::queue_flags::transfer,
             rhi::queue_flags::sparse_binding
         };
     }

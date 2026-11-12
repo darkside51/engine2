@@ -134,7 +134,7 @@ public:
             eNone = 0u,
             eHeights = 1u,
             eNormals = 2u,
-            eSplat = 3u
+            eSplat = 4u
         };
 
         struct HeightBounds {
@@ -188,7 +188,7 @@ public:
     bool compare(const engine::scene::CustomSceneObject & object0, 
         const engine::scene::CustomSceneObject & object1) const noexcept override;
 
-    void beginFrame(std::chrono::time_point<std::chrono::steady_clock> now);
+    void beginFrame(std::chrono::time_point<std::chrono::steady_clock> now) override;
 
     void endFrame(
         engine::rhi::runtime::CommandList & commandList, 

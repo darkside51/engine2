@@ -4,8 +4,6 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <utility>
-#include <vector>
 
 namespace engine::graphics {
     class StagingBuffer {

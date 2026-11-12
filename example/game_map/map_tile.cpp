@@ -34,15 +34,15 @@ namespace g_map {
             MemoryPropertyFlags::eDeviceLocal
         };
 
-        const size_t verticesInRow = _sizeInCells + 1u;
+        const uint32_t verticesInRow = _sizeInCells + 1u;
 
         const ImageInfo normalsImageInfo{
-            engine::rhi::ImageUsageFlags::eStorage | engine::rhi::ImageUsageFlags::eSampled,
+            engine::rhi::ImageUsageFlags::eStorage | ImageUsageFlags::eSampled,
             engine::rhi::Format::eR8G8B8A8_Snorm, {verticesInRow, verticesInRow, 1u}
         };
 
         const ImageInfo heightsImageInfo{
-            engine::rhi::ImageUsageFlags::eStorage | engine::rhi::ImageUsageFlags::eSampled,
+            engine::rhi::ImageUsageFlags::eStorage | ImageUsageFlags::eSampled,
             engine::rhi::Format::eR16_Sfloat, {verticesInRow, verticesInRow, 1u}
         };
 
