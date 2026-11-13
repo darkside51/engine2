@@ -24,8 +24,11 @@ namespace allocators {
         friend class PoolAllocatorChain<size, align, true, true>;
 
         static constexpr uintptr_t kMetaAlignMask = alignof(PoolChainAllocationMetaInfo) - 1u;
-        static constexpr uintptr_t kAllocationSize = ((size + sizeof(PoolChainAllocationMetaInfo)) + kMetaAlignMask) & ~kMetaAlignMask;
         static constexpr uintptr_t kAllocationAlign = std::max(align, alignof(PoolChainAllocationMetaInfo));
+        // static constexpr uintptr_t kAllocationSize = ((size + sizeof(PoolChainAllocationMetaInfo)) + kMetaAlignMask) & ~kMetaAlignMask;
+        static constexpr uintptr_t kAllocationSize = 
+            (((size + sizeof(PoolChainAllocationMetaInfo) + kMetaAlignMask) & ~kMetaAlignMask) 
+            + (kAllocationAlign - 1u)) & ~(kAllocationAlign - 1u);
 
     private:
         inline static PoolChainAllocationMetaInfo * metaInfo(void * m) noexcept {

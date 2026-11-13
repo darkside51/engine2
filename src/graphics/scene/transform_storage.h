@@ -86,9 +86,9 @@ namespace engine::scene {
         }
 
     private:
-        // one TransformChunk per pool, up to 2048 chunks => 131'072 nodes
-        using Allocator = allocators::PoolAllocatorChain<sizeof(TransformChunk), alignof(TransformChunk), false, false>;
-        Allocator _allocator{1u, 2048u};
+        // 16 TransformChunk per pool of 128 chuncks, up to 2048 chunks => 131'072 nodes
+        using Allocator = allocators::PoolAllocatorChain<sizeof(TransformChunk), alignof(TransformChunk), true, false>;
+        Allocator _allocator{16u, 128u};
         stl::vector<TransformChunk*> _chunks;
         stl::vector<TransformChunk*> _freeChunks;
     };
