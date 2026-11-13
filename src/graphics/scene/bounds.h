@@ -41,6 +41,7 @@ namespace engine::scene {
         static constexpr Bounds createSphere(const vec3f & center, float radius) noexcept {
             return Bounds {
                 .type = Type::eSphere,
+                //.volume = Sphere{.center = center, .radius = radius}
                 .volume = Cube{.corner0 = center, .corner1 = {radius, 0.0f, 0.0f}}
             };
         }

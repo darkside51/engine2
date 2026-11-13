@@ -51,6 +51,9 @@ struct alignas(32) Node {
         }
 
         inline void setHidden(bool hidden) noexcept {
+            if (!hidden && isHidden()) {
+                setTransformDirty(true);
+            }
             hidden ? state |= (1u << kHiddenBit) : state &= ~(1u << kHiddenBit);
         }
 
@@ -267,8 +270,13 @@ void recalculateHierarchy(Node * root, VisibleChecker && v) noexcept {
         }
         
         if (node == root) {
+            node->setChildrenTransformsDirty(false); // root subtree has been processed
             break;
         }
+
+        // exiting the node: its subtree has been fully processed;
+        // the children have already read the flag, so it is no longer needed
+        node->setChildrenTransformsDirty(false);
         
         if (node->next != nullptr) {
             node = node->next;

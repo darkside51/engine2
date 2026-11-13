@@ -70,7 +70,9 @@ namespace engine::scene {
             return;
         }
 
+        assert(child->next == nullptr);
         child->parent = this;
+        child->setTransformDirty(true);
 
         if (firstChild == nullptr) {
             firstChild = child;
@@ -82,7 +84,6 @@ namespace engine::scene {
             n = n->next;
         }
         n->next = child;
-        child->setTransformDirty(true);
     }
 
     bool Node::removeChild(Node * child) noexcept {
@@ -90,8 +91,6 @@ namespace engine::scene {
             LOG_E("Node::removeChild: child has no parent!");
             return false;
         }
-
-        child->parent = nullptr;
 
         if (child == firstChild) {
             firstChild = child->next;
@@ -107,6 +106,10 @@ namespace engine::scene {
             }
             n = n->next;
         }
+
+        child->next = nullptr;
+        child->parent = nullptr;
+        child->setTransformDirty(true);
 
         return false;
     }
