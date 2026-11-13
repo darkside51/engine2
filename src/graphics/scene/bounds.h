@@ -34,15 +34,14 @@ namespace engine::scene {
         static constexpr Bounds createCube(const vec3f & corner0, const vec3f & corner1) noexcept {
             return Bounds {
                 .type = Type::eCube,
-                .volume = Cube{.corner0 = corner0, .corner1 = corner1}
+                .volume = Volume{.cube = {.corner0 = corner0, .corner1 = corner1}}
             };
         }
 
         static constexpr Bounds createSphere(const vec3f & center, float radius) noexcept {
             return Bounds {
                 .type = Type::eSphere,
-                //.volume = Sphere{.center = center, .radius = radius}
-                .volume = Cube{.corner0 = center, .corner1 = {radius, 0.0f, 0.0f}}
+                .volume = Volume{.sphere = {.center = center, .radius = radius}}
             };
         }
 
