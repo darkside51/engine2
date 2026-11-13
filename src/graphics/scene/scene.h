@@ -9,6 +9,7 @@
 #include "bounds.h"
 #include "frustum.h"
 #include "node.h"
+#include "transform_storage.h"
 #include "object.h"
 #include "register.h"
 #include "types.h"
@@ -278,6 +279,7 @@ private:
 
     using NodesAllocator = allocators::PoolAllocatorChain<sizeof(Node), alignof(Node), false, false>;
     NodesAllocator _nodeAllocator{512u, 256u};
+    TransformStorage _transforms;
 
     // using AnimationInfosAllocator = allocators::PoolAllocatorChain<sizeof(AnimationInfoChain), alignof(AnimationInfoChain), false, false>;
     // AnimationInfosAllocator _animationInfosAllocator{512u, 256u};
@@ -451,7 +453,7 @@ void Scene::fillAttachmentsArray(const ViewParams & viewParams, Node * root, Con
             return false;
         }
 
-        const auto & bounds = n->bounds;
+        const auto & bounds = n->getBounds();
         const auto & worldTransform = n->getWorldTransform();
         if (bounds.type != Bounds::Type::eNone) {
             if (!frustum.checkBounds(bounds.transform(worldTransform))) {

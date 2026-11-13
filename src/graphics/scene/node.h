@@ -2,10 +2,14 @@
 
 #include "math/math.h"
 #include "bounds.h"
-#include "transform.h"
+#include "core/system.h"
 
 #include <cassert>
 #include <cstdint>
+
+#if defined(_MSC_VER)
+#include <intrin.h>
+#endif
 
 namespace engine::scene {
 
@@ -21,7 +25,68 @@ constexpr uint8_t kDefaultState = 1u << kDirtyTransformBit |
 
 struct AttachmentObject;
 
-struct alignas(32) Node {
+// nodes per transform chunk (one chunk is ~11 KB, see TransformChunk below)
+constexpr uint32_t kTransformChunkSize = 64u;
+
+// SoA transform storage: one chunk keeps hot transform data of kTransformChunkSize nodes.
+// Consecutive nodes allocated from the same chunk have consecutive slots, so culling
+// and animation passes stream through the arrays instead of jumping over fat nodes.
+struct alignas(kCachelineSize) TransformChunk {
+    mat4f world[kTransformChunkSize];       // hot for culling / rendering / skinning
+    mat4f local[kTransformChunkSize];       // cached TRS composition, rebuilt only when TRS is dirty
+    vec3f position[kTransformChunkSize];    // hot for animation
+    quatf rotation[kTransformChunkSize];
+    vec3f scale[kTransformChunkSize];
+    vec3f pivot[kTransformChunkSize];
+    Bounds bounds[kTransformChunkSize];     // hot for culling
+    uint64_t occupied = 0u;                 // one bit per slot
+
+    inline bool acquire(uint16_t & slot) noexcept {
+        if (occupied == ~uint64_t{0}) {
+            return false;
+        }
+
+        // first FREE slot: ctz over the inverted mask, not over the occupied bits
+        const uint64_t freeSlots = ~occupied;
+
+#if defined(__GNUC__) || defined(__clang__)
+        slot = static_cast<uint16_t>(__builtin_ctzll(freeSlots));
+#elif defined(_MSC_VER)
+        unsigned long index = 0ul;
+        _BitScanForward64(&index, freeSlots);
+        slot = static_cast<uint16_t>(index);
+#else
+        slot = 0u;
+        while ((freeSlots & (uint64_t{1} << slot)) == 0u) {
+            ++slot;
+        }
+#endif
+        occupied |= uint64_t{1} << slot;
+        return true;
+    }
+
+    inline void release(uint16_t slot) noexcept {
+        occupied &= ~(uint64_t{1} << slot);
+    }
+
+    inline void init(uint16_t slot) noexcept {
+        world[slot] = mat4f{1.0f};
+        local[slot] = mat4f{1.0f};
+        position[slot] = vec3f{0.0f};
+        rotation[slot] = quatf{1.0f, 0.0f, 0.0f, 0.0f};
+        scale[slot] = vec3f{1.0f};
+        pivot[slot] = vec3f{0.0f};
+        bounds[slot] = Bounds{};
+    }
+
+    inline bool isFull() const noexcept {
+        return occupied == ~uint64_t{0};
+    }
+};
+
+// Hot node data: exactly one cache line, everything the hierarchy walk touches.
+// Cold transform data lives in TransformChunk and is addressed by (transforms, slot).
+struct alignas(kCachelineSize) Node {
     inline static constexpr uint32_t kUnknownId = 0xff'ff'ff'ffu;
     struct State {
         uint8_t state = kDefaultState;
@@ -70,33 +135,36 @@ struct alignas(32) Node {
         }
     };
 
-    Node() : state{kDefaultState} {}
+    Node(TransformChunk * transformChunk, uint16_t transformSlot) noexcept :
+        transforms{transformChunk}, slot{transformSlot} {}
 
-    ~Node() {
-        parent = nullptr;
-        next = nullptr;
-        firstChild = nullptr;
-    }
-    
+    Node(const Node &) = delete;
+    Node & operator=(const Node &) = delete;
+
     Node * parent = nullptr;
     Node * next = nullptr; // other childrens in parent (brothers)
     Node * firstChild = nullptr; // children begin
     AttachmentObject * attachment = nullptr;
 
-    mat4f transform{1.0F};
-    mat4f worldTransform{1.0F};
-    Transformation transformation{};
-    Bounds bounds{};
-
+    TransformChunk * transforms = nullptr; // cold transform data owner
     uint32_t id = kUnknownId;
+    uint16_t slot = 0u;
     State state{kDefaultState};
 
     uint32_t getId() const noexcept { return id; }
     void setId(uint32_t nodeId) noexcept { id = nodeId; }
 
     void setTransform(const mat4f & m) noexcept;
+    void applyTransformations() noexcept;
     bool calculateWorldTransform(bool recalculate) noexcept;
-    void setBounds(const Bounds & newBounds) noexcept;
+
+    void setBounds(const Bounds & newBounds) noexcept {
+        transforms->bounds[slot] = newBounds;
+    }
+
+    const Bounds & getBounds() const noexcept {
+        return transforms->bounds[slot];
+    }
 
     // attachment
     void setAttachment(AttachmentObject * object) noexcept;
@@ -141,12 +209,8 @@ struct alignas(32) Node {
         state.setChildrenTransformsDirty(dirty);
     }
 
-    const mat4f & getTransform() const noexcept {
-        return transform;
-    }
-
     const mat4f & getWorldTransform() const noexcept {
-        return worldTransform;
+        return transforms->world[slot];
     }
 
     // children
@@ -159,53 +223,61 @@ struct alignas(32) Node {
     Node * childAt(uint32_t index) const noexcept;
 
     // transformation
-    const quatf & getRotation() const noexcept { return transformation.getRotation(); }
-    vec3f getRotationAngles() const noexcept { return transformation.getRotationAngles(); }
-    const vec3f & getScale() const noexcept { return transformation.getScale(); }
-    const vec3f & getPosition() const noexcept { return transformation.getPosition(); }
-    const vec3f & getPivot() const noexcept { return transformation.getPivot(); }
+    const quatf & getRotation() const noexcept { return transforms->rotation[slot]; }
+    vec3f getRotationAngles() const noexcept { return glm::eulerAngles(transforms->rotation[slot]); }
+    const vec3f & getScale() const noexcept { return transforms->scale[slot]; }
+    const vec3f & getPosition() const noexcept { return transforms->position[slot]; }
+    const vec3f & getPivot() const noexcept { return transforms->pivot[slot]; }
 
     void setPosition(const vec3f & p) noexcept {
-        if (transformation.setPosition(p)) {
+        if (compare(transforms->position[slot], p, 1e-7f)) {
+            transforms->position[slot] = p;
             state.setTransformationsDirty(true);
         }
     }
 
-    template <typename T>
-    void setScale(T && s) noexcept {
-        if (transformation.setScale(s)) {
+    void setScale(const vec3f & s) noexcept {
+        if (compare(transforms->scale[slot], s, 1e-7f)) {
+            transforms->scale[slot] = s;
             state.setTransformationsDirty(true);
         }
     }
 
-    template <typename T>
-    void setRotation(T && r) noexcept {
-        if (transformation.setRotation(r)) {
+    void setScale(float s) noexcept {
+        setScale(vec3f{s});
+    }
+
+    void setRotation(const quatf & q) noexcept {
+        if (compare(transforms->rotation[slot], q, 1e-5f)) {
+            transforms->rotation[slot] = q;
             state.setTransformationsDirty(true);
         }
+    }
+
+    void setRotation(const vec3f & angles) noexcept {
+        setRotation(quatf{angles});
     }
 
     void setPivot(const vec3f & p) noexcept {
-        if (transformation.setPivot(p)) {
+        if (compare(transforms->pivot[slot], p, 1e-7f)) {
+            transforms->pivot[slot] = p;
             state.setTransformationsDirty(true);
         }
     }
-
-    void applyTransformations() noexcept;
 };
 
-// template <typename VisibleChecker>
-// void recalculateHierarchyRecursive(Node * node, bool recalculate, const VisibleChecker & v) noexcept {
-//     recalculate = node->calculateWorldTransform(recalculate);
-//     node->setVisible(v(node));
-//     if (node->isVisible() && !node->isHidden()) {
-//         Node * n = node->firstChild;
-//         while (n) {
-//             recalculateHierarchy(n, recalculate, v);
-//             n = n->next;
-//         }
-//     }
-// }
+static_assert(sizeof(Node) == kCachelineSize, "Node must fit exactly one cache line");
+static_assert(alignof(Node) == kCachelineSize, "Node must be cache line aligned");
+
+inline void prefetchNode(const Node * node) noexcept {
+#if defined(__GNUC__) || defined(__clang__)
+    if (node != nullptr) {
+        __builtin_prefetch(node, 0, 3);
+    }
+#else
+    (void)node;
+#endif
+}
 
 template <typename Function>
 void childrenPass(Node * root, Function && f) noexcept {
@@ -252,9 +324,12 @@ void recalculateHierarchy(Node * root, VisibleChecker && v) noexcept {
     bool process = true;
 
     while (node != nullptr) {
+        prefetchNode(node->next);
+        prefetchNode(node->firstChild);
+
         if (process && !node->isHidden()) {
             node->applyTransformations();
-            
+
             const bool parentDirty = node->parent && node->parent->isChildrenTransformsDirty();
             if (node->calculateWorldTransform(parentDirty)) {
                 node->setChildrenTransformsDirty(true);

@@ -92,19 +92,21 @@ namespace engine::scene {
             vec3f minCorner{std::numeric_limits<float>::max()};
             vec3f maxCorner{std::numeric_limits<float>::lowest()};
 
-            switch(node->bounds.type) {
+            const auto & nodeBounds = node->getBounds();
+
+            switch(nodeBounds.type) {
             case Bounds::Type::eNone:
             break;
             case Bounds::Type::eCube:
             {
-                const auto & cube = node->bounds.volume.cube;
+                const auto & cube = nodeBounds.volume.cube;
                 minCorner = cube.corner0;
                 maxCorner = cube.corner1;
             }
             break;
             case Bounds::Type::eSphere:
             {
-                const auto & sphere = node->bounds.volume.sphere;
+                const auto & sphere = nodeBounds.volume.sphere;
                 minCorner = sphere.center - vec3f{sphere.radius};
                 maxCorner = sphere.center + vec3f{sphere.radius};
             }

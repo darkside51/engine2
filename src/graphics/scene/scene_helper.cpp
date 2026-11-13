@@ -64,8 +64,8 @@ void loadNodes(Scene & scene, const graphics::ModelManager::ModelBuffers & gpuBu
             engine::scene::attachObjectToNode(*mesh, *current);
 
             // for calculate rootNode size
-            const vec3f corner1 = current->worldTransform * vec4f(p.minCorner, 1.0f);
-            const vec3f corner2 = current->worldTransform * vec4f(p.maxCorner, 1.0f);
+            const vec3f corner1 = current->getWorldTransform() * vec4f(p.minCorner, 1.0f);
+            const vec3f corner2 = current->getWorldTransform() * vec4f(p.maxCorner, 1.0f);
 
             minCorner.x = std::min({minCorner.x, corner1.x, corner2.x});
             minCorner.y = std::min({minCorner.y, corner1.y, corner2.y});
@@ -127,10 +127,11 @@ Node * createNodeWithSkeletalMesh(Scene & scene, const graphics::ModelManager & 
     if (layout.type != ObjectSizeLayout::Type::eNone) {
         // todo: check types!
         float scale = 1.0f;
-        if (meshRoot->bounds.type == engine::scene::Bounds::Type::eSphere) {
-            scale = 0.5f * std::min({layout.size[0u], layout.size[1u], layout.size[2u]}) / meshRoot->bounds.volume.sphere.radius;
-        } else if (meshRoot->bounds.type == engine::scene::Bounds::Type::eCube) {
-            const auto & cube = meshRoot->bounds.volume.cube;
+        const auto & meshBounds = meshRoot->getBounds();
+        if (meshBounds.type == engine::scene::Bounds::Type::eSphere) {
+            scale = 0.5f * std::min({layout.size[0u], layout.size[1u], layout.size[2u]}) / meshBounds.volume.sphere.radius;
+        } else if (meshBounds.type == engine::scene::Bounds::Type::eCube) {
+            const auto & cube = meshBounds.volume.cube;
             const auto size = cube.corner1 - cube.corner0;
             scale = std::min({layout.size[0u] / std::abs(size.x), layout.size[1u] / std::abs(size.y), layout.size[2u] / std::abs(size.z)});
         }

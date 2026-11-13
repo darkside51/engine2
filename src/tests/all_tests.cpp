@@ -10,6 +10,7 @@
 #include "t_threads.h"
 #include "t_check_leaks.h"
 #include "t_properties.h"
+#include "t_node.h"
 
 namespace engine::tests {
 
@@ -39,6 +40,7 @@ namespace engine::tests {
         engine::tests::execute("Allocator", engine::tests::AllocatorsTest{});
         engine::tests::execute("Threads", engine::tests::ThreadsTest{});
         engine::tests::execute("Properties", engine::tests::PropertyTest{});
+        engine::tests::execute("Node", engine::tests::NodeTest{});
         engine::tests::execute("Leaks", engine::tests::LeaksTest{});
         
     }

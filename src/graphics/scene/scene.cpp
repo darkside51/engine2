@@ -38,19 +38,17 @@ namespace {
         static_assert(sizeof(Mesh) == 200u);
         static_assert(sizeof(Sprite) == 136u);
 
+        // Node keeps only hot data and must fit exactly one cache line
+        static_assert(sizeof(Node) == kCachelineSize);
+        static_assert(alignof(Node) == kCachelineSize);
+
         #ifdef SIMD_MATH
-        static_assert(sizeof(Node) == 288u);
         static_assert(sizeof(Bounds) == 48u);
-        static_assert(sizeof(Transformation) == 64u);
-        static_assert(alignof(Node) == 32u);
         static_assert(alignof(void*) == 8u);
         static_assert(alignof(mat4f) == 16u);
         static_assert(alignof(Bounds) == 16u);
-        static_assert(alignof(Transformation) == 16u);
         #else
-        static_assert(sizeof(Node) == 232u);
         static_assert(sizeof(Bounds) == 28u);
-        static_assert(sizeof(Transformation) == 40u);
         #endif
         
         static_assert(sizeof(mesh::Attribute) == 8u);
@@ -162,6 +160,7 @@ namespace engine::scene {
     void Scene::destroy() noexcept {
         destroyNode(_rootNode);
         _rootNode = nullptr;
+        _transforms.clear();
 
         _animations.clear();
 
@@ -187,7 +186,8 @@ namespace engine::scene {
     }
 
     Node * Scene::createNode() noexcept {
-        return _nodeAllocator.create<Node>();
+        const auto handle = _transforms.acquire();
+        return _nodeAllocator.create<Node>(handle.chunk, handle.slot);
     }
 
     void Scene::destroyNode(Node * node) noexcept {
@@ -209,6 +209,7 @@ namespace engine::scene {
                 destroyObject(object);
             }
 
+            _transforms.release(node->transforms, node->slot);
             _nodeAllocator.destroy(node);
         }
     }
@@ -1274,7 +1275,7 @@ namespace engine::scene {
     void Scene::drawDebug(const ViewParams & viewParams, stl::span<AttachmentObject*> objects) {
         for (auto object : objects) {
             auto * node = object->node;
-            const auto & bounds = node->bounds;
+            const auto & bounds = node->getBounds();
             if (bounds.type == Bounds::Type::eNone) {
                 continue;
             }
