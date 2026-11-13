@@ -1,6 +1,11 @@
 #pragma once
 
 #include <cstdint>
+#include <utility>
+
+#if defined(_MSC_VER)
+#include <intrin.h>
+#endif
 
 inline auto constexpr isLittleEndian = []() noexcept {
 	constexpr uint32_t i = 0x01234567u;
@@ -36,5 +41,28 @@ constexpr uint32_t kCachelineSize = 64u;
 #endif
 
 namespace engine {
-    
+
+enum class MemoryPrefetchMode : uint8_t { // specifies the nature of future memory access
+	  eRead = 0u, // preparation for reading data
+	  eWrite = 1u, // preparation for a memory write (helps avoid unnecessary cache-line transfers in multiprocessor systems)
+	  eGeneral = 2u // preparation for a shared read (data will be read by other cores before being overwritten; supported in recent versions of GCC)
+};
+
+enum class MemoryLocality : uint8_t { // temporal locality — how long data should be kept in the cache after being used
+	  eOnce = 0u, // the data is needed for a one-time use (do not keep it in the cache; minimize cache pollution).
+	  eLow = 1u, // low locality (load only into L3/L2 cache)
+	  eModerate = 2u, // moderate locality
+    eHight = 3u // high locality (loading into all cache levels, including the fast L1)
+};
+
+inline void prefetchMemory(const void * ptr, MemoryPrefetchMode mode, MemoryLocality locality = MemoryLocality::eHight) noexcept {
+#if defined(__GNUC__) || defined(__clang__)
+  if (ptr != nullptr) {
+      __builtin_prefetch(ptr, std::to_underlying(mode), std::to_underlying(locality));
+  }
+#else
+  static_cast<void>(ptr);
+#endif
+}
+
 }

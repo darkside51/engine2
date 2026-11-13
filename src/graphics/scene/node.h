@@ -7,10 +7,6 @@
 #include <cassert>
 #include <cstdint>
 
-#if defined(_MSC_VER)
-#include <intrin.h>
-#endif
-
 namespace engine::scene {
 
 constexpr uint8_t kDirtyTransformBit = 0u;
@@ -42,7 +38,7 @@ struct alignas(kCachelineSize) TransformChunk {
     uint64_t occupied = 0u;                 // one bit per slot
 
     inline bool acquire(uint16_t & slot) noexcept {
-        if (occupied == ~uint64_t{0}) {
+        if (occupied == ~uint64_t{0u}) {
             return false;
         }
 
@@ -50,23 +46,23 @@ struct alignas(kCachelineSize) TransformChunk {
         const uint64_t freeSlots = ~occupied;
 
 #if defined(__GNUC__) || defined(__clang__)
-        slot = static_cast<uint16_t>(__builtin_ctzll(freeSlots));
+        slot = static_cast<uint16_t>(__builtin_ctzll(freeSlots)); // (count trailing zeros — counting the number of zeros at the end)
 #elif defined(_MSC_VER)
         unsigned long index = 0ul;
         _BitScanForward64(&index, freeSlots);
         slot = static_cast<uint16_t>(index);
 #else
         slot = 0u;
-        while ((freeSlots & (uint64_t{1} << slot)) == 0u) {
+        while ((freeSlots & (uint64_t{1u} << slot)) == 0u) {
             ++slot;
         }
 #endif
-        occupied |= uint64_t{1} << slot;
+        occupied |= uint64_t{1u} << slot;
         return true;
     }
 
     inline void release(uint16_t slot) noexcept {
-        occupied &= ~(uint64_t{1} << slot);
+        occupied &= ~(uint64_t{1u} << slot);
     }
 
     inline void init(uint16_t slot) noexcept {
@@ -80,12 +76,12 @@ struct alignas(kCachelineSize) TransformChunk {
     }
 
     inline bool isFull() const noexcept {
-        return occupied == ~uint64_t{0};
+        return occupied == ~uint64_t{0u};
     }
 };
 
-// Hot node data: exactly one cache line, everything the hierarchy walk touches.
-// Cold transform data lives in TransformChunk and is addressed by (transforms, slot).
+// hot node data: exactly one cache line, everything the hierarchy walk touches
+// cold transform data lives in TransformChunk and is addressed by (transforms, slot)
 struct alignas(kCachelineSize) Node {
     inline static constexpr uint32_t kUnknownId = 0xff'ff'ff'ffu;
     struct State {
@@ -269,16 +265,6 @@ struct alignas(kCachelineSize) Node {
 static_assert(sizeof(Node) == kCachelineSize, "Node must fit exactly one cache line");
 static_assert(alignof(Node) == kCachelineSize, "Node must be cache line aligned");
 
-inline void prefetchNode(const Node * node) noexcept {
-#if defined(__GNUC__) || defined(__clang__)
-    if (node != nullptr) {
-        __builtin_prefetch(node, 0, 3);
-    }
-#else
-    (void)node;
-#endif
-}
-
 template <typename Function>
 void childrenPass(Node * root, Function && f) noexcept {
     Node * node = root->firstChild;
@@ -324,8 +310,8 @@ void recalculateHierarchy(Node * root, VisibleChecker && v) noexcept {
     bool process = true;
 
     while (node != nullptr) {
-        prefetchNode(node->next);
-        prefetchNode(node->firstChild);
+        prefetchMemory(node->next, MemoryPrefetchMode::eRead, MemoryLocality::eHight);
+        prefetchMemory(node->firstChild, MemoryPrefetchMode::eRead, MemoryLocality::eHight);
 
         if (process && !node->isHidden()) {
             node->applyTransformations();
