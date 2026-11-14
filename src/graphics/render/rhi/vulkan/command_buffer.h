@@ -110,6 +110,8 @@ namespace engine::vulkan {
         void drawIndexed(uint32_t indexCount, uint32_t instanceCount = 1u, uint32_t firstIndex = 0u, int32_t vertexOffset = 0u,
             uint32_t firstInstance = 0u) const noexcept;
 
+        void clearAttachments(stl::span<const VkClearAttachment> attachments, stl::span<const VkClearRect> rects) const noexcept;
+
     private:
         struct UsedPipeline {
             VkPipeline pipeline = VK_NULL_HANDLE;

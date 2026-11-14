@@ -355,6 +355,14 @@ namespace engine::vulkan::runtime {
                 _commandbuffer.nextSubpass(command->contents);
             }
                 break;
+            case CommandType::eClearAttachments: 
+            {
+                const auto * command = static_cast<ClearAttachmentsCommand*>(cmd);
+                auto attachments = utils::convert2vk<8u>(command->clearAttachments.view());
+                auto rects = utils::convert2vk<8u>(command->clearRects.view());
+                _commandbuffer.clearAttachments(attachments.view(), rects.view());
+            }
+                break;
             case CommandType::eExecuteCommands:
             {
                 const auto * command = static_cast<ExecuteCommandsCommand*>(cmd);
@@ -735,7 +743,7 @@ namespace engine::vulkan::runtime {
                     }
                 }
 
-                const auto * command = static_cast<PrepareImage2HostRead*>(cmd);
+                const auto * command = static_cast<PrepareImage2HostReadCommand*>(cmd);
                 auto & vkImage = *static_cast<Image*>(command->img);
 
                 vkImage.transition(

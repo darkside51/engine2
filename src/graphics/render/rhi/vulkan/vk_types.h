@@ -47,7 +47,7 @@ inline VkClearValue convert2vk(const rhi::ClearValue & clearValue) noexcept {
 }
 
 template<size_t N>
-inline auto convert2vk(const stl::array<rhi::ClearValue, N> & array) -> stl::array<VkClearValue, N> {
+inline auto convert2vk(const stl::array<rhi::ClearValue, N> & array) noexcept -> stl::array<VkClearValue, N> {
     stl::array<VkClearValue, N> result;
     for (size_t i = 0u; i < N; ++i) {
         result[i] = convert2vk(array[i]);
@@ -1657,6 +1657,45 @@ inline auto convert2vk(stl::span<const rhi::VertexInputAttribute> array) {
     auto view = result.view();
     for (size_t i = 0u; i < array.size(); ++i) {
         view[i] = convert2vk(array[i]);
+    }
+    return result;
+}
+
+inline VkClearAttachment convert2vk(const rhi::ClearAttachment & clearAttachment) noexcept {
+    return {
+        .aspectMask = convert2vk(clearAttachment.aspectMask),
+        .colorAttachment = clearAttachment.attachmentIdx,
+        .clearValue = convert2vk(clearAttachment.clearValue)
+    };
+}
+
+template<size_t N>
+inline auto convert2vk(stl::span<const rhi::ClearAttachment> array) noexcept {
+    dynamic_array<VkClearAttachment, N> result;
+    result.resize(array.size());
+    for (size_t i = 0u; i < array.size(); ++i) {
+        result[i] = convert2vk(array[i]);
+    }
+    return result;
+}
+
+inline VkClearRect convert2vk(const rhi::ClearRect & clearRect) noexcept {
+    return {
+        .rect = {
+            .offset = convert2vk(clearRect.rect.offset),
+            .extent = convert2vk(clearRect.rect.extent)
+        },
+        .baseArrayLayer = clearRect.baseArrayLayer,
+        .layerCount = clearRect.layerCount
+    };
+}
+
+template<size_t N>
+inline auto convert2vk(stl::span<const rhi::ClearRect> array) noexcept {
+    dynamic_array<VkClearRect, N> result;
+    result.resize(array.size());
+    for (size_t i = 0u; i < array.size(); ++i) {
+        result[i] = convert2vk(array[i]);
     }
     return result;
 }

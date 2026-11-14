@@ -103,6 +103,12 @@ namespace engine::rhi {
         explicit constexpr ClearValue(const ClearDepthStencilValue & value) : depthStencil{value} {}
     };
 
+    struct ClearRect {
+        Rect2D rect{};
+        uint32_t baseArrayLayer = 0u;
+        uint32_t layerCount = 0u;
+    };
+
     struct CopyBufferInfo {
         size_t srcOffset = 0u;
         size_t dstOffset = 0u;
@@ -820,6 +826,12 @@ namespace engine::rhi {
             return attachment == other.attachment && layout == other.layout && aspectMask == other.aspectMask &&
             pNext.second == other.pNext.second;
         };
+    };
+
+    struct ClearAttachment {
+        ImageAspectFlags aspectMask;
+        uint32_t attachmentIdx;
+        ClearValue clearValue;
     };
 
     enum class PipelineStageFlags : uint32_t {

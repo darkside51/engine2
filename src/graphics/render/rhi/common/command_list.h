@@ -113,6 +113,8 @@ namespace engine::rhi::runtime {
         void nextSubpass(SubpassContents contents = SubpassContents::ePrimaryBufferInline,
             stl::span<ImageTransitionInfo> imageTransitionInfo = {},
             stl::span<BufferTransitionInfo> bufferTransitionInfo = {}) noexcept;
+            
+        void clearAttachments(stl::span<const ClearAttachment> attachments, stl::span<const ClearRect> rects) noexcept;
 
         void executeCommands(stl::span<const CommandList*> secondaryCommandLists) noexcept;
 

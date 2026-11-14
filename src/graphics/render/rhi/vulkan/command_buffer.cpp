@@ -178,4 +178,8 @@ namespace engine::vulkan {
         vkCmdDrawIndexed(_commandBuffer, indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
     }
 
+    void CommandBuffer::clearAttachments(stl::span<const VkClearAttachment> attachments, stl::span<const VkClearRect> rects) const noexcept {
+        vkCmdClearAttachments(_commandBuffer, attachments.size(), attachments.data(), rects.size(), rects.data());
+    }
+
 }

@@ -10,6 +10,7 @@
 #include "stl/vector.h"
 #include "common/dynamic_array.h"
 
+#include <cassert>
 #include <cstddef>
 #include <cstdint>
 #include <optional>
@@ -51,6 +52,7 @@ namespace engine::rhi::runtime {
         eCopyImage2Image = 30u,
         eCopyImage2Buffer = 31u,
         ePrepareImage2HostRead = 32u,
+        eClearAttachments = 33u,
     };
 
     class CommandList;
@@ -69,21 +71,32 @@ namespace engine::rhi::runtime {
         }
     };
 
+    template <typename T>
+    consteval void _check_command_alignment() noexcept {
+        static_assert((alignof(T) & (alignof(Command) - 1)) == 0);
+    }
+
     struct BeginCommand : Command {
         CommandBufferUsageFlags flags;
         BeginCommand(CommandBufferUsageFlags flags = CommandBufferUsageFlags::eOne_Time_Submit) : 
-            Command(CommandType::eBegin, sizeof(BeginCommand), alignof(BeginCommand)), flags(flags) {}
+            Command(CommandType::eBegin, sizeof(BeginCommand), alignof(BeginCommand)), flags(flags) {
+                _check_command_alignment<BeginCommand>();
+            }
     };
 
     struct EndCommand : Command {
-        EndCommand() : Command(CommandType::eEnd, sizeof(EndCommand), alignof(EndCommand)) {}
+        EndCommand() : Command(CommandType::eEnd, sizeof(EndCommand), alignof(EndCommand)) {
+            _check_command_alignment<EndCommand>();
+        }
     };
 
     struct ResetCommand : Command {
         CommandBufferResetFlags flags;
         ResetCommand(CommandBufferResetFlags flags) : 
             Command(CommandType::eReset, sizeof(ResetCommand), alignof(ResetCommand)),
-            flags(flags) {}
+            flags(flags) {
+                _check_command_alignment<ResetCommand>();
+            }
     };
 
     struct ImageTransitionInfo {
@@ -118,11 +131,26 @@ namespace engine::rhi::runtime {
             renderPass(renderPass),
             framebuffer(framebuffer.get()),
             clearValues(clearValues),
-            area(area) {}
+            area(area) {
+                _check_command_alignment<BeginRenderPassCommand>();
+            }
+    };
+
+    struct ClearAttachmentsCommand : Command {
+        dynamic_array<ClearAttachment, 8u> clearAttachments;
+        dynamic_array<ClearRect, 8u> clearRects;
+        ClearAttachmentsCommand(stl::span<const ClearAttachment> clearAttachments, stl::span<const ClearRect> clearRects) : 
+            Command(CommandType::eClearAttachments, sizeof(ClearAttachmentsCommand), alignof(ClearAttachmentsCommand)),
+            clearAttachments(clearAttachments),
+            clearRects(clearRects) {
+                _check_command_alignment<ClearAttachmentsCommand>();
+            }
     };
 
     struct EndRenderPassCommand : Command {
-        EndRenderPassCommand() : Command(CommandType::eEndRenderPass, sizeof(EndRenderPassCommand), alignof(EndRenderPassCommand)) {}
+        EndRenderPassCommand() : Command(CommandType::eEndRenderPass, sizeof(EndRenderPassCommand), alignof(EndRenderPassCommand)) {
+            _check_command_alignment<EndRenderPassCommand>();
+        }
     };
 
     struct NextSubpassCommand : Command {
@@ -135,12 +163,16 @@ namespace engine::rhi::runtime {
             Command(CommandType::eNextSubpass, sizeof(NextSubpassCommand), alignof(NextSubpassCommand)),
             contents(contents),
             imageTransitionInfo(imageTransitionInfo),
-            bufferTransitionInfo(bufferTransitionInfo) {}
+            bufferTransitionInfo(bufferTransitionInfo) {
+                _check_command_alignment<NextSubpassCommand>();
+            }
     };
 
     struct ExecuteCommandsCommand : Command { // todo!
         ExecuteCommandsCommand(stl::span<const CommandList*> secondaryCommandLists) : 
-            Command(CommandType::eExecuteCommands, sizeof(ExecuteCommandsCommand), alignof(ExecuteCommandsCommand)) {}
+            Command(CommandType::eExecuteCommands, sizeof(ExecuteCommandsCommand), alignof(ExecuteCommandsCommand)) {
+                _check_command_alignment<ExecuteCommandsCommand>();
+            }
     };
 
     struct SetViewportCommand : Command {
@@ -148,7 +180,9 @@ namespace engine::rhi::runtime {
         uint32_t viewportIdx = 0u;
         SetViewportCommand(float x, float y, float w, float h, float minDepth = 0.0f, float maxDepth = 1.0f, uint32_t viewportIdx = 0u) : 
             Command(CommandType::eSetViewport, sizeof(SetViewportCommand), alignof(SetViewportCommand)),
-            x(x), y(y), w(w), h(h), minDepth(minDepth), maxDepth(maxDepth), viewportIdx(viewportIdx) {}
+            x(x), y(y), w(w), h(h), minDepth(minDepth), maxDepth(maxDepth), viewportIdx(viewportIdx) {
+                _check_command_alignment<SetViewportCommand>();
+            }
     };
 
     struct SetScissorCommand : Command {
@@ -156,18 +190,20 @@ namespace engine::rhi::runtime {
         uint32_t scissorIdx = 0u;
         SetScissorCommand(const rhi::Rect2D & area, uint32_t scissorIdx = 0u) : 
             Command(CommandType::eSetScissor, sizeof(SetScissorCommand), alignof(SetScissorCommand)),
-            area(area), scissorIdx(scissorIdx) {}
+            area(area), scissorIdx(scissorIdx) {
+                _check_command_alignment<SetScissorCommand>();
+            }
     };
 
     struct BindPipelineCommand : Command {
         const Pipeline * pipeline = nullptr;
-        BindPipelineCommand(const PipelinePtr & pipeline) : 
-            Command(CommandType::eBindPipeline, sizeof(BindPipelineCommand), alignof(BindPipelineCommand)), 
-            pipeline(pipeline.get()) {}
+        BindPipelineCommand(const PipelinePtr & pipeline) : BindPipelineCommand(*pipeline) {}
             
         BindPipelineCommand(const Pipeline & pipeline) : 
             Command(CommandType::eBindPipeline, sizeof(BindPipelineCommand), alignof(BindPipelineCommand)), 
-            pipeline(&pipeline) {}
+            pipeline(&pipeline) {
+                _check_command_alignment<BindPipelineCommand>();
+            }
     };
 
     struct BindVertexBufferCommand : Command {
@@ -176,7 +212,9 @@ namespace engine::rhi::runtime {
         uint32_t offset = 0u;
         BindVertexBufferCommand(uint32_t binding, Buffer * buffer, uint32_t offset = 0u) : 
             Command(CommandType::eBindVertexBuffer, sizeof(BindVertexBufferCommand), alignof(BindVertexBufferCommand)), 
-            binding(binding), buffer(buffer), offset(offset) {}
+            binding(binding), buffer(buffer), offset(offset) {
+                _check_command_alignment<BindVertexBufferCommand>();
+            }
     };
 
     struct BindIndexBufferCommand : Command {
@@ -185,7 +223,9 @@ namespace engine::rhi::runtime {
         IndexType type = rhi::IndexType::eU32;
         BindIndexBufferCommand(const Buffer * buffer, uint32_t offset = 0u, IndexType type = rhi::IndexType::eU32) : 
             Command(CommandType::eBindIndexBuffer, sizeof(BindIndexBufferCommand), alignof(BindIndexBufferCommand)), 
-            buffer(buffer), offset(offset), type(type) {}
+            buffer(buffer), offset(offset), type(type) {
+                _check_command_alignment<BindIndexBufferCommand>();
+            }
     };
 
     struct BindBufferCommand : Command {
@@ -203,7 +243,9 @@ namespace engine::rhi::runtime {
             setId(setId), 
             offset(offset),
             range(range),
-            dynamic(dynamic) {}
+            dynamic(dynamic) {
+                _check_command_alignment<BindBufferCommand>();
+            }
     };
 
     struct BindImageSamplerCommand : Command { // todo!
@@ -231,7 +273,9 @@ namespace engine::rhi::runtime {
             setId(setId),
             viewType(viewType),
             aspectFlags(image->getInfo().aspectFlags),
-            samplerValue(sampler) {}
+            samplerValue(sampler) {
+                _check_command_alignment<BindImageSamplerCommand>();
+            }
 
         BindImageSamplerCommand(
             rhi::ImageViewType viewType, rhi::ImageAspectFlags aspectFlags, uint16_t binding, 
@@ -244,7 +288,9 @@ namespace engine::rhi::runtime {
             setId(setId),
             viewType(viewType),
             aspectFlags(aspectFlags),
-            samplerValue(sampler) {}
+            samplerValue(sampler) {
+                _check_command_alignment<BindImageSamplerCommand>();
+            }
     };
 
     struct BindTexelBufferCommand : Command {
@@ -262,7 +308,9 @@ namespace engine::rhi::runtime {
             range(range),
             binding(binding),
             setId(setId), 
-            format(format) {}
+            format(format) {
+                _check_command_alignment<BindTexelBufferCommand>();
+            }
     };
 
     struct PushConstantsCommand : Command {
@@ -275,6 +323,7 @@ namespace engine::rhi::runtime {
             stages(stages),
             dataOffset(offset),
             dataSize(size) {
+                _check_command_alignment<PushConstantsCommand>();
                 memcpy(data.data(), bytes, dataSize);
             }
     };
@@ -289,7 +338,9 @@ namespace engine::rhi::runtime {
             vertexCount(vertexCount),
             instanceCount(instanceCount),
             firstVertex(firstVertex),
-            firstInstance(firstInstance) {}
+            firstInstance(firstInstance) {
+                _check_command_alignment<DrawCommand>();
+            }
     };
 
     struct DrawIndexedCommand : Command {
@@ -305,7 +356,9 @@ namespace engine::rhi::runtime {
             instanceCount(instanceCount),
             firstIndex(firstIndex),
             vertexOffset(vertexOffset),
-            firstInstance(firstInstance) {}
+            firstInstance(firstInstance) {
+                _check_command_alignment<DrawIndexedCommand>();
+            }
     };
 
     struct UpdateBufferCommand : Command {
@@ -317,6 +370,7 @@ namespace engine::rhi::runtime {
         UpdateBufferCommand(Buffer * dst, uint32_t dstOffset, uint32_t dataSize, const void* pData) : 
             Command(CommandType::eUpdateBuffer, sizeof(UpdateBufferCommand), alignof(UpdateBufferCommand)),
             dst(dst), dstOffset(dstOffset), dataSize(dataSize), pData(pData) {
+                _check_command_alignment<UpdateBufferCommand>();
             }
     };
 
@@ -328,7 +382,9 @@ namespace engine::rhi::runtime {
             Command(CommandType::eCopyBuffer2Buffer, sizeof(CopyBuffer2BufferCommand), alignof(CopyBuffer2BufferCommand)),
             info(info),
             src(src), 
-            dst(dst) {}
+            dst(dst) {
+                _check_command_alignment<CopyBuffer2BufferCommand>();
+            }
     };
 
     struct CopyBuffer2ImageCommand : Command {
@@ -339,7 +395,9 @@ namespace engine::rhi::runtime {
             Command(CommandType::eCopyBuffer2Image, sizeof(CopyBuffer2ImageCommand), alignof(CopyBuffer2ImageCommand)),
             info(info),
             src(src), 
-            dst(dst) {}
+            dst(dst) {
+                _check_command_alignment<CopyBuffer2ImageCommand>();
+            }
     };
 
     struct CopyImage2ImageCommand : Command {
@@ -350,7 +408,9 @@ namespace engine::rhi::runtime {
             Command(CommandType::eCopyImage2Image, sizeof(CopyImage2ImageCommand), alignof(CopyImage2ImageCommand)),
             info(info),
             src(src), 
-            dst(dst) {}
+            dst(dst) {
+                _check_command_alignment<CopyImage2ImageCommand>();
+            }
     };
 
     struct CopyImage2BufferCommand : Command {
@@ -361,14 +421,18 @@ namespace engine::rhi::runtime {
             Command(CommandType::eCopyImage2Buffer, sizeof(CopyImage2BufferCommand), alignof(CopyImage2BufferCommand)),
             info(info),
             src(src), 
-            dst(dst) {}
+            dst(dst) {
+                _check_command_alignment<CopyImage2BufferCommand>();
+            }
     };
 
-    struct PrepareImage2HostRead : Command {
+    struct PrepareImage2HostReadCommand : Command {
         Image * img = nullptr;
-        PrepareImage2HostRead(Image * img) : 
-            Command(CommandType::ePrepareImage2HostRead, sizeof(PrepareImage2HostRead), alignof(PrepareImage2HostRead)),
-            img(img) {}
+        PrepareImage2HostReadCommand(Image * img) : 
+            Command(CommandType::ePrepareImage2HostRead, sizeof(PrepareImage2HostReadCommand), alignof(PrepareImage2HostReadCommand)),
+            img(img) {
+                _check_command_alignment<PrepareImage2HostReadCommand>();
+            }
     };
 
     struct BlitImageCommand : Command {
@@ -379,19 +443,27 @@ namespace engine::rhi::runtime {
             Command(CommandType::eBlitImage, sizeof(BlitImageCommand), alignof(BlitImageCommand)),
             info(info),
             src(src), 
-            dst(dst) {}
+            dst(dst) {
+                _check_command_alignment<BlitImageCommand>();
+            }
     };
 
     struct PipelineBarriersCommand : Command { // todo!
-        PipelineBarriersCommand() : Command(CommandType::ePipelineBarriers, sizeof(PipelineBarriersCommand), alignof(PipelineBarriersCommand)) {}
+        PipelineBarriersCommand() : Command(CommandType::ePipelineBarriers, sizeof(PipelineBarriersCommand), alignof(PipelineBarriersCommand)) {
+            _check_command_alignment<PipelineBarriersCommand>();
+        }
     };
 
     struct SetEventCommand : Command { // todo!
-        SetEventCommand() : Command(CommandType::eSetEvent, sizeof(SetEventCommand), alignof(SetEventCommand)) {}
+        SetEventCommand() : Command(CommandType::eSetEvent, sizeof(SetEventCommand), alignof(SetEventCommand)) {
+            _check_command_alignment<SetEventCommand>();
+        }
     };
 
     struct WaitEventsCommand : Command { // todo!
-        WaitEventsCommand() : Command(CommandType::eWaitEvents, sizeof(WaitEventsCommand), alignof(WaitEventsCommand)) {}
+        WaitEventsCommand() : Command(CommandType::eWaitEvents, sizeof(WaitEventsCommand), alignof(WaitEventsCommand)) {
+            _check_command_alignment<WaitEventsCommand>();
+        }
     };
 
     struct ResetQueryPoolCommand : Command {
@@ -402,7 +474,9 @@ namespace engine::rhi::runtime {
             Command(CommandType::eResetQueryPool, sizeof(ResetQueryPoolCommand), alignof(ResetQueryPoolCommand)), 
             pool(pool), 
             firstQuery(firstQuery),
-            queryCount(queryCount) {}
+            queryCount(queryCount) {
+                _check_command_alignment<ResetQueryPoolCommand>();
+            }
     };
 
     struct WriteTimestampCommand : Command {
@@ -413,11 +487,16 @@ namespace engine::rhi::runtime {
             Command(CommandType::eWriteTimestamp, sizeof(WriteTimestampCommand), alignof(WriteTimestampCommand)), 
             pool(pool), 
             stage(stage),
-            query(query) {}
+            query(query) {
+                _check_command_alignment<WriteTimestampCommand>();
+            }
     };
 
-    struct CopyQueryPoolResults : Command { // todo!
-        CopyQueryPoolResults() : Command(CommandType::eCopyQueryPoolResults, sizeof(CopyQueryPoolResults), alignof(CopyQueryPoolResults)) {}
+    struct CopyQueryPoolResultsCommand : Command { // todo!
+        CopyQueryPoolResultsCommand() : 
+            Command(CommandType::eCopyQueryPoolResults, sizeof(CopyQueryPoolResultsCommand), alignof(CopyQueryPoolResultsCommand)) {
+            _check_command_alignment<CopyQueryPoolResultsCommand>();
+        }
     };
 
     struct DispatchCommand : Command {
@@ -428,7 +507,9 @@ namespace engine::rhi::runtime {
             Command(CommandType::eDispatch, sizeof(DispatchCommand), alignof(DispatchCommand)),
             groupCountX(groupCountX),
             groupCountY(groupCountY),
-            groupCountZ(groupCountZ) {}
+            groupCountZ(groupCountZ) {
+                _check_command_alignment<DispatchCommand>();
+            }
     };
 
     ///////////////////////////////////////////////
@@ -469,6 +550,10 @@ namespace engine::rhi::runtime {
                 return;
             case CommandType::eBeginRenderPass: {
                 static_cast<const BeginRenderPassCommand*>(this)->~BeginRenderPassCommand();
+                return;
+            }
+            case CommandType::eClearAttachments: {
+                static_cast<const ClearAttachmentsCommand*>(this)->~ClearAttachmentsCommand();
                 return;
             }
         }

@@ -145,6 +145,11 @@ namespace engine::rhi::runtime {
         ++_commandsCount;
     }
 
+    void CommandList::clearAttachments(stl::span<const ClearAttachment> attachments, stl::span<const ClearRect> rects) noexcept {
+        _commands->create<ClearAttachmentsCommand>(attachments, rects);
+        ++_commandsCount;
+    }
+
     void CommandList::executeCommands(stl::span<const CommandList*> secondaryCommandLists) noexcept {
         _commands->create<ExecuteCommandsCommand>(secondaryCommandLists);
         ++_commandsCount;
@@ -509,7 +514,7 @@ namespace engine::rhi::runtime {
 
     void CommandList::prepareImage2HostRead(ImagePtr & img) noexcept {
         _resources.push_back(img);
-        _commands->create<PrepareImage2HostRead>(img.get());
+        _commands->create<PrepareImage2HostReadCommand>(img.get());
 
         if constexpr (kStatisticsEnable) {
             ++_statistics.otherCommands;
