@@ -56,16 +56,24 @@ namespace engine::leaks {
     }
 
     struct AllocationMetaInfo {
-        bool array = false;
         size_t size = 0u;
-        uint32_t line = 0u;
+        uint16_t offset = 0u;
+        uint16_t line = 0u;
         const char *file = nullptr;
         
         AllocationMetaInfo * left = nullptr;
         AllocationMetaInfo * right = nullptr;
 
+        bool array = false;
+
         AllocationMetaInfo(size_t size, uint32_t line, const char *file) :
             size(size), 
+            line(line),
+            file(file) {}
+
+        AllocationMetaInfo(size_t size, uint16_t offset, uint32_t line, const char *file) :
+            size(size),
+            offset(offset),
             line(line),
             file(file) {}
 
@@ -73,6 +81,7 @@ namespace engine::leaks {
             left = nullptr;
             right = nullptr;
             size = 0u;
+            offset = 0u;
             line = 0u;
             file = nullptr;
         }
@@ -118,7 +127,7 @@ namespace engine::leaks {
         }
     };
 
-    constexpr uint8_t kAlign = sizeof(size_t);
+    constexpr uint8_t kAlign = alignof(AllocationMetaInfo);
     constexpr uint8_t kAlignMask = kAlign - 1u;
     constexpr auto kAllocationAlign = ((sizeof(AllocationMetaInfo) + kAlignMask) & ~kAlignMask);
 
@@ -129,11 +138,11 @@ namespace engine::leaks {
     AllocationMetaInfo *gAllocationInfo = nullptr;
     std::mutex gMutex;
 
-    void poisonMemory(void * memory, size_t size, bool array = false) {
+    void poisonMemory(void * memory, size_t size, bool array = false, size_t offset = 0u) {
         //__file__=__FILE__;
         //__line__=__LINE__;
 
-        auto * meta = new(memory) AllocationMetaInfo(size, __line__, __file__);
+        auto * meta = new(memory) AllocationMetaInfo(size, offset, __line__, __file__);
         meta->array = array;
         std::lock_guard<std::mutex> lock(gMutex);
         if (gAllocationInfo != nullptr) {
@@ -146,7 +155,7 @@ namespace engine::leaks {
         __file__ = "<unknown>";
     }
 
-    bool unpoisonMemory(void* memory, bool array = false) noexcept {
+    void * unpoisonMemory(void* memory, bool array = false) noexcept {
         auto * info = static_cast<AllocationMetaInfo*>(memory);
 
         if (info->array != array) {
@@ -161,7 +170,7 @@ namespace engine::leaks {
             gAllocationInfo = info->left;
         }
 
-        return true;
+        return static_cast<std::byte*>(memory) - info->offset;
     }
 
     void sortAllocations() noexcept {
@@ -270,9 +279,7 @@ namespace engine::leaks {
 
     void dealloc(void *ptr, bool array) noexcept {
         auto * memory = getMemory(ptr);
-        if (unpoisonMemory(memory, array)) {
-            free(memory);
-        }
+        free(unpoisonMemory(memory, array));
     }
 }
 
@@ -304,7 +311,10 @@ void* operator new[](size_t size, size_t alignment, size_t alignmentOffset,
     void * memory = nullptr;
     posix_memalign(&memory, alignment, allocationSize);
 
-    engine::leaks::poisonMemory(memory, size, true);
+    engine::leaks::poisonMemory(
+        (static_cast<std::byte*>(memory) + allocationAlign - engine::leaks::kAllocationAlign), 
+        size, true, 
+        allocationAlign - engine::leaks::kAllocationAlign);
 
     return static_cast<std::byte*>(memory) + allocationAlign;
 }
