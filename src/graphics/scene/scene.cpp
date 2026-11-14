@@ -671,7 +671,7 @@ namespace engine::scene {
             assert(success);
             skeletalTransformsInFrame += skeleton->skinMatricesCount();
             ++_uniqueSkeletons;
-            _computedSkinVerticesSizeInFrame += skeleton->meshData().verticesCount;
+            // _computedSkinVerticesSizeInFrame += skeleton->meshData().verticesCount;
             return result;
         };
 
@@ -704,6 +704,8 @@ namespace engine::scene {
                             skeletalTransformIndex = transfromIndex;
                             skeletonId = skeletonIndex;
                         }
+
+                        _computedSkinVerticesSizeInFrame += mesh->geometry().uniqueIndicesCount;
 
                         if (colorIdEnabled) {
                             ++_colorIdSkeletalMeshesIndicesInFrame;
