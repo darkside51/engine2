@@ -117,6 +117,7 @@ namespace models {
 		// stl::vector<MeshMaterial> materials;
 		stl::vector<uint16_t> primitiveBegins;
 
+		uint32_t verticesCount = 0u;
 		uint32_t skinMatricesCount = 0u;
 
 		void loadSkins(const Layout & layout);

@@ -310,8 +310,8 @@ void recalculateHierarchy(Node * root, VisibleChecker && v) noexcept {
     bool process = true;
 
     while (node != nullptr) {
-        prefetchMemory(node->next, MemoryPrefetchMode::eRead, MemoryLocality::eHight);
-        prefetchMemory(node->firstChild, MemoryPrefetchMode::eRead, MemoryLocality::eHight);
+        prefetchMemory<MemoryPrefetchMode::eRead, MemoryLocality::eHigh>(node->next);
+        prefetchMemory<MemoryPrefetchMode::eRead, MemoryLocality::eHigh>(node->firstChild);
 
         if (process && !node->isHidden()) {
             node->applyTransformations();

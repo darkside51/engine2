@@ -376,6 +376,8 @@ namespace engine::graphics::models {
             });
         }
 
+        verticesCount = vertexBuffersData[0u].size() / kOptimalSemanticsSizeBytes[0u];
+
         return result;
     }
 
@@ -568,6 +570,8 @@ namespace engine::graphics::models {
             vertexBuffer.shrink_to_fit();
         }
         indexBufferData.shrink_to_fit();
+
+        verticesCount = vertexBuffersData[0u].size() / kOptimalSemanticsSizeBytes[0u]; // modify after recalculate!
     }
 
 	void MeshData::loadNodes(const Layout & layout) {

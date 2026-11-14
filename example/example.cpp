@@ -1226,6 +1226,7 @@ namespace example {
         deviceCreateInfo.queueFamilies.push_back({index, 1u, {1.0f}, queueFlags});
         deviceCreateInfo.commandPoolThreadsCount = 2u;
         deviceCreateInfo.inFlightFramesCount = 2u;
+        deviceCreateInfo.largeHeapBlockSize = 64u * 1024u * 1024u; // 64Mb
 
         _device = _api->createDevice(_gpu, deviceCreateInfo);
 

@@ -1,7 +1,6 @@
 #pragma once
 
 #include <cstdint>
-#include <utility>
 
 #if defined(_MSC_VER)
 #include <intrin.h>
@@ -52,16 +51,18 @@ enum class MemoryLocality : uint8_t { // temporal locality — how long data sho
 	  eOnce = 0u, // the data is needed for a one-time use (do not keep it in the cache; minimize cache pollution).
 	  eLow = 1u, // low locality (load only into L3/L2 cache)
 	  eModerate = 2u, // moderate locality
-    eHight = 3u // high locality (loading into all cache levels, including the fast L1)
+    eHigh = 3u // high locality (loading into all cache levels, including the fast L1)
 };
 
-inline void prefetchMemory(const void * ptr, MemoryPrefetchMode mode, MemoryLocality locality = MemoryLocality::eHight) noexcept {
+template <MemoryPrefetchMode Mode = MemoryPrefetchMode::eRead,
+          MemoryLocality Locality = MemoryLocality::eHigh>
+inline void prefetchMemory(const void * ptr) noexcept {
 #if defined(__GNUC__) || defined(__clang__)
-  if (ptr != nullptr) {
-      __builtin_prefetch(ptr, std::to_underlying(mode), std::to_underlying(locality));
-  }
+    if (ptr != nullptr) {
+        __builtin_prefetch(ptr, static_cast<uint8_t>(Mode), static_cast<uint8_t>(Locality));
+    }
 #else
-  static_cast<void>(ptr);
+    static_cast<void>(ptr);
 #endif
 }
 

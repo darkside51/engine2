@@ -81,7 +81,8 @@ namespace engine::scene {
     // compute skinning
     constexpr bool kComputeSkinningAvailable = true;
     constexpr uint16_t kComputeSkinningLocalGroupSize = 64u;
-    constexpr uint32_t kMeshComputeVerticesBufferBytesCount = 128u * 1024u * 1024u; // 128Mb
+    // initial size of the compute skinning output buffers; they grow on demand
+    constexpr uint32_t kInitialMeshComputeVerticesCount = 16384u;
     constexpr uint32_t kMaxSkeletonsDispatchPack = 2048u;
 
     // times
@@ -355,14 +356,8 @@ namespace engine::scene {
 
         if constexpr (kComputeSkinningAvailable) {
             // compute:
-            const rhi::BufferInfo computeVerticesInfo { 
-                rhi::BufferUsageFlags::eStorage_Texel_Buffer,
-                rhi::MemoryPropertyFlags::eDeviceLocal
-            };
-
-            // reserve 2u * kMeshComputeVerticesBufferBytesCount mb gpu memory for calculate skinnig all vertices of all meshes 
-            // maybe calculate and change this size dynamically is better way - 100%
-
+            // buffers are sized on demand in prepareDrawData(), based on the total
+            // vertex count of skeletal meshes in the frame
             const auto buffersCount = device.inFlightFramesCount();
             _computedVertices.reserve(buffersCount);
             _computedNormals.reserve(buffersCount);
@@ -373,12 +368,56 @@ namespace engine::scene {
             // _computedTangents    - data vec4 - r8g8b8a8 as texelbuffer
             // todo: store normals and tangents in r8g8b8a8 data for xy components and get z into shader?
 
+            const auto initialPositionsSize = static_cast<size_t>(kInitialMeshComputeVerticesCount) * sizeof(vec4f);
+            const auto initialAttributesSize = static_cast<size_t>(kInitialMeshComputeVerticesCount) * sizeof(uint32_t);
+
             for (uint8_t i = 0u; i < buffersCount; ++i) {
-                _computedVertices.emplace_back(api.createBuffer(device, computeVerticesInfo, kMeshComputeVerticesBufferBytesCount));
-                _computedNormals.emplace_back(api.createBuffer(device, computeVerticesInfo, kMeshComputeVerticesBufferBytesCount / 4u));
-                _computedTangents.emplace_back(api.createBuffer(device, computeVerticesInfo, kMeshComputeVerticesBufferBytesCount / 4u));
+                _computedVertices.emplace_back(createComputeBuffer(initialPositionsSize));
+                _computedNormals.emplace_back(createComputeBuffer(initialAttributesSize));
+                _computedTangents.emplace_back(createComputeBuffer(initialAttributesSize));
             }
         }
+    }
+
+    rhi::runtime::BufferPtr Scene::createComputeBuffer(size_t size) noexcept {
+        const rhi::BufferInfo info {
+            rhi::BufferUsageFlags::eStorage_Texel_Buffer,
+            rhi::MemoryPropertyFlags::eDeviceLocal
+        };
+        return _api->createBuffer(*_device, info, size);
+    }
+
+    void Scene::ensureComputeBuffers(uint8_t frame, uint32_t verticesCount) noexcept {
+        if constexpr (!kComputeSkinningAvailable) {
+            return;
+        }
+
+        if (frame >= _computedVertices.size()) {
+            return;
+        }
+
+        const auto count = std::max<size_t>(verticesCount, kInitialMeshComputeVerticesCount);
+        const auto positionsBytes = count * sizeof(vec4f);
+        const auto attributesBytes = count * sizeof(uint32_t);
+        const auto initialPositionsBytes = static_cast<size_t>(kInitialMeshComputeVerticesCount) * sizeof(vec4f);
+        const auto initialAttributesBytes = static_cast<size_t>(kInitialMeshComputeVerticesCount) * sizeof(uint32_t);
+
+        auto resize = [this, frame](stl::vector<rhi::runtime::BufferPtr> & buffers, size_t required, size_t initial) {
+            auto & buffer = buffers[frame];
+            const size_t current = buffer ? buffer->sizeInBytes() : 0u;
+
+            if (current < required) {
+                buffer = createComputeBuffer(std::max(required, current * 2u));
+            } else if (current > required * 4u && current > initial * 4u) {
+                // shrink only when the buffer is much larger than needed to avoid
+                // recreating it every frame
+                buffer = createComputeBuffer(std::max(required * 2u, initial));
+            }
+        };
+
+        resize(_computedVertices, positionsBytes, initialPositionsBytes);
+        resize(_computedNormals, attributesBytes, initialAttributesBytes);
+        resize(_computedTangents, attributesBytes, initialAttributesBytes);
     }
 
     bool Scene::compareAttachmentsForDraw(const AttachmentObject & a, const AttachmentObject & b) noexcept {
@@ -616,13 +655,14 @@ namespace engine::scene {
         const auto skeletonsInFrame = _skeletonsInFrame;
         const auto colorIdMeshesIds = _colorIdMeshesIndicesInFrame;
         const auto colorIdSkeletalMeshesIds = _colorIdSkeletalMeshesIndicesInFrame;
+        const uint32_t computedSkinVerticesSizeInFrame = _computedSkinVerticesSizeInFrame;
 
         auto skeletalTransformsInFrame = _skeletalTransformsInFrame;
         _tmpUniqueMeshes.reserve(kInitialMeshTransformsInFrameMax);
 
         auto addSkeletonToMap = [&](const Skeleton* skeleton)-> stl::pair<uint32_t, uint32_t> {
             const auto result =  stl::pair{skeletalTransformsInFrame, _uniqueSkeletons};
-            const auto [it, success] = _meshTransformIndicesMap.emplace(skeleton, 
+            const auto [it, success] = _meshTransformIndicesMap.emplace(skeleton,
                         MeshTransformsIndices{
                             .transformIndex = kUnknownTransformIndex,
                             .skeletalTransformIndex = skeletalTransformsInFrame,
@@ -631,6 +671,7 @@ namespace engine::scene {
             assert(success);
             skeletalTransformsInFrame += skeleton->skinMatricesCount();
             ++_uniqueSkeletons;
+            _computedSkinVerticesSizeInFrame += skeleton->meshData().verticesCount;
             return result;
         };
 
@@ -654,7 +695,7 @@ namespace engine::scene {
                     uint32_t skeletonId = kUnknownTransformIndex;
                     const bool colorIdEnabled = mesh->isEnableColorId();
 
-                    if (isSkeletalMesh) { 
+                    if (isSkeletalMesh) {
                         if (auto it = _meshTransformIndicesMap.find(skeleton); it != _meshTransformIndicesMap.end()) {
                             skeletalTransformIndex = it->second.skeletalTransformIndex;
                             skeletonId = it->second.skeletonId;
@@ -703,6 +744,8 @@ namespace engine::scene {
                 break;
             }
         }
+
+        ensureComputeBuffers(frame, _computedSkinVerticesSizeInFrame);
 
         {
             const auto size = static_cast<uint32_t>(_spritesVertexesCount * kSpriteVertexSize);
@@ -836,7 +879,7 @@ namespace engine::scene {
             .spriteVerticesOffset = spritesVertexesCount,
             .spriteIndicesOffset = spritesIndicesCount,
             .skeletonOffset = skeletonsInFrame,
-            .computeSkinVerticesOffset = 0u,
+            .computeSkinVerticesOffset = computedSkinVerticesSizeInFrame,
             .colorIdMeshesOffset = colorIdMeshesIds,
             .colorIdSkeletalMeshesOffset = colorIdSkeletalMeshesIds
         };
@@ -2260,6 +2303,8 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandList & commandList, uint8_t f
                 _lastFramesUsedColorIdSkeletalMeshesIndicesInFrame = _colorIdSkeletalMeshesIndicesInFrame;
             }
 
+            _lastFramesComputedSkinVerticesSize = _computedSkinVerticesSizeInFrame;
+
             // for staging buffer
             if (_staging) {
                 auto const stagingTargetSize = std::max(calculateTargetStagingSize() * kStaginBufferEnlargeSizeMult, kMinStagingSize);
@@ -2277,7 +2322,8 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandList & commandList, uint8_t f
                 _skeletalTransformsInFrame > _lastFramesUsedSkeletalTransforms ||
                 _skeletonsInFrame > _lastFramesUsedSkeletonsInFrame ||
                 _colorIdMeshesIndicesInFrame > _lastFramesUsedColorIdMeshesIndicesInFrame ||
-                _colorIdSkeletalMeshesIndicesInFrame > _lastFramesUsedColorIdSkeletalMeshesIndicesInFrame
+                _colorIdSkeletalMeshesIndicesInFrame > _lastFramesUsedColorIdSkeletalMeshesIndicesInFrame ||
+                _computedSkinVerticesSizeInFrame > _lastFramesComputedSkinVerticesSize
             ) {
                 _lastFramesUsedSpritesVertexCount = _spritesVertexesCount;
                 _lastFramesUsedSpritesIndicesCount = _spritesIndicesCount;
@@ -2287,6 +2333,7 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandList & commandList, uint8_t f
                 _lastFramesUsedSkeletonsInFrame = _skeletonsInFrame;
                 _lastFramesUsedColorIdMeshesIndicesInFrame = _colorIdMeshesIndicesInFrame;
                 _lastFramesUsedColorIdSkeletalMeshesIndicesInFrame = _colorIdSkeletalMeshesIndicesInFrame;
+                _lastFramesComputedSkinVerticesSize = _computedSkinVerticesSizeInFrame;
                 _tryReduceUsedMemoryTime = now;
             }
         }
@@ -2317,6 +2364,7 @@ void Scene::drawMeshes2Shadow(rhi::runtime::CommandList & commandList, uint8_t f
         _uniqueSkeletons = 0u;
         _colorIdMeshesIndicesInFrame = 0u;
         _colorIdSkeletalMeshesIndicesInFrame = 0u;
+        _computedSkinVerticesSizeInFrame = 0u;
 
         for (auto * delegate : _customDelegates) {
             delegate->beginFrame(now);

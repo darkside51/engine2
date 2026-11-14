@@ -1,7 +1,7 @@
 #include "leaks.h"
 
 #include "../../log/log.h"
-#include "stl/vector.h"
+// #include "stl/vector.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -15,6 +15,7 @@
 #include <algorithm>
 #include <cassert>
 #include <limits>
+#include <vector>
 
 #ifdef CHECK_MEMORY_LEAKS
 
@@ -215,7 +216,7 @@ namespace engine::leaks {
             };
 
             constexpr size_t kShowLeaksCount = 1024u;
-            stl::vector<Leak, Mallocator<Leak>> leaks;
+            std::vector<Leak, Mallocator<Leak>> leaks;
             leaks.reserve(kShowLeaksCount);
         
             // collect leaks
@@ -281,6 +282,31 @@ void* operator new(size_t size) {
 
 void* operator new[](size_t size) {
     return engine::leaks::alloc(size, true);
+}
+
+void* operator new[](size_t size, const char* pName, int flags, 
+                     unsigned int debugFlags, const char* pFile, int line) {
+    return ::operator new[](size);
+}
+
+void* operator new[](size_t size, size_t alignment, size_t alignmentOffset, 
+                     const char* pName, int flags, unsigned int debugFlags, 
+                     const char* pFile, int line) {
+    // posix_memalign requires that alignment be a power of two and no less than sizeof(void*)
+    if (alignment < sizeof(void*)) {
+        alignment = sizeof(void*);
+    }
+
+    const uint8_t alignMask = alignment - 1u;
+    const auto allocationAlign = ((sizeof(engine::leaks::AllocationMetaInfo) + alignMask) & ~alignMask);
+    const uintptr_t allocationSize = size + allocationAlign;
+
+    void * memory = nullptr;
+    posix_memalign(&memory, alignment, allocationSize);
+
+    engine::leaks::poisonMemory(memory, size, true);
+
+    return static_cast<std::byte*>(memory) + allocationAlign;
 }
 
 void operator delete(void *ptr) noexcept {

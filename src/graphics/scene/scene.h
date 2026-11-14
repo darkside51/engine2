@@ -393,12 +393,15 @@ private:
     uint32_t _lastFramesUsedColorIdMeshesIndicesInFrame = 0u;
     std::unique_ptr<graphics::InflightBuffer> _colorIdMeshesIds = nullptr;
 
-    uint32_t _computedVerticesSizeInFrame = 0u; // need resize buffers functional!
-    uint32_t _lastFramesComputedVerticesSize = 0u;
+    uint32_t _computedSkinVerticesSizeInFrame = 0u;
+    uint32_t _lastFramesComputedSkinVerticesSize = 0u;
 
     stl::vector<rhi::runtime::BufferPtr> _computedVertices = {};
     stl::vector<rhi::runtime::BufferPtr> _computedNormals = {};
     stl::vector<rhi::runtime::BufferPtr> _computedTangents = {};
+
+    void ensureComputeBuffers(uint8_t frame, uint32_t verticesCount) noexcept;
+    rhi::runtime::BufferPtr createComputeBuffer(size_t size) noexcept;
 
     // async animation calculation:
     // need use stop sources?
