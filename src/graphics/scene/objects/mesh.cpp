@@ -89,6 +89,46 @@ namespace engine::scene {
         // sizeof(stl::span<graphics::models::MeshMaterial>);
 
         if (node) {
+            vec3f geometryMinCorner = _geometry.minCorner;
+            vec3f geometryMaxCorner = _geometry.maxCorner;
+
+            // Skinned bounds are computed in the scene root space (the space the skin
+            // matrices produce), while node bounds are expected in the node local space:
+            // culling and debug drawing transform them by the node world transform.
+            // So the skinned AABB is converted with the inverse node transform.
+            if (_skin != graphics::models::kInvalidValue && _geometry.hasSkinnedBounds) {
+                const auto inverseWorldTransform = glm::inverse(node->getWorldTransform());
+
+                geometryMinCorner = vec3f{std::numeric_limits<float>::max()};
+                geometryMaxCorner = vec3f{std::numeric_limits<float>::lowest()};
+
+                const auto & skinnedMin = _geometry.skinnedMinCorner;
+                const auto & skinnedMax = _geometry.skinnedMaxCorner;
+
+                const vec3f corners[8u] = {
+                    {skinnedMin.x, skinnedMin.y, skinnedMin.z},
+                    {skinnedMax.x, skinnedMin.y, skinnedMin.z},
+                    {skinnedMin.x, skinnedMax.y, skinnedMin.z},
+                    {skinnedMax.x, skinnedMax.y, skinnedMin.z},
+                    {skinnedMin.x, skinnedMin.y, skinnedMax.z},
+                    {skinnedMax.x, skinnedMin.y, skinnedMax.z},
+                    {skinnedMin.x, skinnedMax.y, skinnedMax.z},
+                    {skinnedMax.x, skinnedMax.y, skinnedMax.z}
+                };
+
+                for (uint8_t i = 0u; i < 8u; ++i) {
+                    const vec3f corner = toWorld(corners[i], inverseWorldTransform);
+
+                    geometryMinCorner.x = std::min(geometryMinCorner.x, corner.x);
+                    geometryMinCorner.y = std::min(geometryMinCorner.y, corner.y);
+                    geometryMinCorner.z = std::min(geometryMinCorner.z, corner.z);
+
+                    geometryMaxCorner.x = std::max(geometryMaxCorner.x, corner.x);
+                    geometryMaxCorner.y = std::max(geometryMaxCorner.y, corner.y);
+                    geometryMaxCorner.z = std::max(geometryMaxCorner.z, corner.z);
+                }
+            }
+
             vec3f minCorner{std::numeric_limits<float>::max()};
             vec3f maxCorner{std::numeric_limits<float>::lowest()};
 
@@ -113,13 +153,13 @@ namespace engine::scene {
             break;
             }
 
-            minCorner.x = std::min({minCorner.x, _geometry.minCorner.x, _geometry.maxCorner.x});
-            minCorner.y = std::min({minCorner.y, _geometry.minCorner.y, _geometry.maxCorner.y});
-            minCorner.z = std::min({minCorner.z, _geometry.minCorner.z, _geometry.maxCorner.z});
+            minCorner.x = std::min({minCorner.x, geometryMinCorner.x, geometryMaxCorner.x});
+            minCorner.y = std::min({minCorner.y, geometryMinCorner.y, geometryMaxCorner.y});
+            minCorner.z = std::min({minCorner.z, geometryMinCorner.z, geometryMaxCorner.z});
 
-            maxCorner.x = std::max({maxCorner.x, _geometry.minCorner.x, _geometry.maxCorner.x});
-            maxCorner.y = std::max({maxCorner.y, _geometry.minCorner.y, _geometry.maxCorner.y});
-            maxCorner.z = std::max({maxCorner.z, _geometry.minCorner.z, _geometry.maxCorner.z});
+            maxCorner.x = std::max({maxCorner.x, geometryMinCorner.x, geometryMaxCorner.x});
+            maxCorner.y = std::max({maxCorner.y, geometryMinCorner.y, geometryMaxCorner.y});
+            maxCorner.z = std::max({maxCorner.z, geometryMinCorner.z, geometryMaxCorner.z});
 
             node->setAttachment(this);
             node->setBounds(engine::scene::Bounds::createCube(minCorner, maxCorner));

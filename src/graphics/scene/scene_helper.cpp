@@ -64,16 +64,49 @@ void loadNodes(Scene & scene, const graphics::ModelManager::ModelBuffers & gpuBu
             engine::scene::attachObjectToNode(*mesh, *current);
 
             // for calculate rootNode size
-            const vec3f corner1 = current->getWorldTransform() * vec4f(p.minCorner, 1.0f);
-            const vec3f corner2 = current->getWorldTransform() * vec4f(p.maxCorner, 1.0f);
+            //
+            // Skinned vertices are transformed by the skin matrices computed from the
+            // skeleton pose, which may differ from the bind pose, so for skinned meshes
+            // the AABB precomputed at load time from the actually skinned vertices is used.
+            // It is already in the mesh root space, so the node transform is not applied.
+            //
+            // For regular meshes all 8 corners must be transformed: transforming only
+            // min/max gives a wrong (too small and shifted) AABB as soon as the node
+            // transform contains a rotation or a non-uniform scale.
+            if (createSkeletalMesh && p.hasSkinnedBounds) {
+                minCorner.x = std::min(minCorner.x, p.skinnedMinCorner.x);
+                minCorner.y = std::min(minCorner.y, p.skinnedMinCorner.y);
+                minCorner.z = std::min(minCorner.z, p.skinnedMinCorner.z);
 
-            minCorner.x = std::min({minCorner.x, corner1.x, corner2.x});
-            minCorner.y = std::min({minCorner.y, corner1.y, corner2.y});
-            minCorner.z = std::min({minCorner.z, corner1.z, corner2.z});
+                maxCorner.x = std::max(maxCorner.x, p.skinnedMaxCorner.x);
+                maxCorner.y = std::max(maxCorner.y, p.skinnedMaxCorner.y);
+                maxCorner.z = std::max(maxCorner.z, p.skinnedMaxCorner.z);
+            } else {
+                const mat4f & worldTransform = current->getWorldTransform();
 
-            maxCorner.x = std::max({maxCorner.x, corner1.x, corner2.x});
-            maxCorner.y = std::max({maxCorner.y, corner1.y, corner2.y});
-            maxCorner.z = std::max({maxCorner.z, corner1.z, corner2.z});
+                const vec3f corners[8u] = {
+                    {p.minCorner.x, p.minCorner.y, p.minCorner.z},
+                    {p.maxCorner.x, p.minCorner.y, p.minCorner.z},
+                    {p.minCorner.x, p.maxCorner.y, p.minCorner.z},
+                    {p.maxCorner.x, p.maxCorner.y, p.minCorner.z},
+                    {p.minCorner.x, p.minCorner.y, p.maxCorner.z},
+                    {p.maxCorner.x, p.minCorner.y, p.maxCorner.z},
+                    {p.minCorner.x, p.maxCorner.y, p.maxCorner.z},
+                    {p.maxCorner.x, p.maxCorner.y, p.maxCorner.z}
+                };
+
+                for (uint8_t i = 0u; i < 8u; ++i) {
+                    const vec3f corner = toWorld(corners[i], worldTransform);
+
+                    minCorner.x = std::min(minCorner.x, corner.x);
+                    minCorner.y = std::min(minCorner.y, corner.y);
+                    minCorner.z = std::min(minCorner.z, corner.z);
+
+                    maxCorner.x = std::max(maxCorner.x, corner.x);
+                    maxCorner.y = std::max(maxCorner.y, corner.y);
+                    maxCorner.z = std::max(maxCorner.z, corner.z);
+                }
+            }
         }
     }
 
@@ -104,36 +137,53 @@ Node * createNodeWithSkeletalMesh(Scene & scene, const graphics::ModelManager & 
             modelIndex, meshRoot, nodeId, skeleton, pipelines, minCorner, maxCorner, order, nodeColorId);
     }
 
-    switch (boundsType) {
-    case Bounds::Type::eSphere:
-    {
-        auto const center = (minCorner + maxCorner) * 0.5f;
-        auto const radius = std::max({
-            std::abs(minCorner.x - center.x), std::abs(minCorner.y - center.y), std::abs(minCorner.z - center.z),
-            std::abs(maxCorner.x - center.x), std::abs(maxCorner.y - center.y), std::abs(maxCorner.z - center.z)
-        });
-        meshRoot->setBounds(engine::scene::Bounds::createSphere(center, radius));
-    }
-        break;
-    case Bounds::Type::eCube:
-    {
-        meshRoot->setBounds(engine::scene::Bounds::createCube(minCorner, maxCorner));
-    }
-        break;
-    default: 
-        break;
+    // no meshes have been found for the model: bounds cannot be built
+    const bool hasBounds = minCorner.x <= maxCorner.x && minCorner.y <= maxCorner.y && minCorner.z <= maxCorner.z;
+
+    if (hasBounds) {
+        switch (boundsType) {
+        case Bounds::Type::eSphere:
+        {
+            auto const center = (minCorner + maxCorner) * 0.5f;
+            // radius of the sphere enclosing the whole AABB (distance to the farthest corner)
+            auto const radius = glm::length(maxCorner - center);
+            meshRoot->setBounds(engine::scene::Bounds::createSphere(center, radius));
+        }
+            break;
+        case Bounds::Type::eCube:
+        {
+            meshRoot->setBounds(engine::scene::Bounds::createCube(minCorner, maxCorner));
+        }
+            break;
+        default:
+            break;
+        }
     }
 
-    if (layout.type != ObjectSizeLayout::Type::eNone) {
+    if (hasBounds && layout.type != ObjectSizeLayout::Type::eNone) {
         // todo: check types!
         float scale = 1.0f;
         const auto & meshBounds = meshRoot->getBounds();
         if (meshBounds.type == engine::scene::Bounds::Type::eSphere) {
-            scale = 0.5f * std::min({layout.size[0u], layout.size[1u], layout.size[2u]}) / meshBounds.volume.sphere.radius;
+            const auto radius = meshBounds.volume.sphere.radius;
+            if (radius > 0.0f) {
+                scale = 0.5f * std::min({layout.size[0u], layout.size[1u], layout.size[2u]}) / radius;
+            }
         } else if (meshBounds.type == engine::scene::Bounds::Type::eCube) {
             const auto & cube = meshBounds.volume.cube;
             const auto size = cube.corner1 - cube.corner0;
-            scale = std::min({layout.size[0u] / std::abs(size.x), layout.size[1u] / std::abs(size.y), layout.size[2u] / std::abs(size.z)});
+            // skip degenerate axes, otherwise the scale becomes infinite
+            float minScale = std::numeric_limits<float>::max();
+            for (uint8_t i = 0u; i < 3u; ++i) {
+                const auto extent = std::abs(size[i]);
+                if (extent > std::numeric_limits<float>::epsilon()) {
+                    minScale = std::min(minScale, layout.size[i] / extent);
+                }
+            }
+
+            if (minScale < std::numeric_limits<float>::max()) {
+                scale = minScale;
+            }
         }
 
         meshRoot->setScale(scale);

@@ -195,8 +195,8 @@ namespace example {
     bool ssaoBlur = true;
     bool showBboxes = false;
     DebugShow debugShow = DebugShow::eCommon;
-    float ssaoRadius = 0.07f;
-    float ssaoBias = 0.001f;
+    float ssaoRadius = 0.16f;
+    float ssaoBias = 0.002f;
     float ssaoRangeDepth = 5.0f;
     enum class SsaoRangeMethod : uint8_t {
         eSmoothstep = 0u,
@@ -2021,7 +2021,7 @@ namespace example {
                         
                         // meshRoot->childAt(0u)->getAttachment(1u)->setHidden(true);
 
-                        meshRoot->setRotation(engine::vec3f(1.57f, 0.0f, engine::common::random(-3.14f, 3.14f)));
+                        meshRoot->setRotation(engine::vec3f(engine::pi2, 0.0f, engine::common::random(-engine::pi, engine::pi)));
                         meshRoot->setPosition(engine::vec3f(-2.0f + i % 20 * 0.5f, 0.0f + i / 20 * -0.5f, 0.0f));
 
                         if (auto * skeleton = static_cast<engine::scene::Skeleton *>(meshRoot->getAttachment())) {
@@ -2029,7 +2029,7 @@ namespace example {
                                 auto * handBone = skeleton->node(15u);
                                 swordNode->removeFromParent();
                                 handBone->addChild(swordNode);
-                                meshRoot->setRotation(engine::vec3f(1.57f, 0.0f, 0.25f));
+                                meshRoot->setRotation(engine::vec3f(engine::pi2, 0.0f, 0.25f));
                                 // meshRoot->childAt(0u)->getAttachment(1u)->setHidden(true);
                             }
 
@@ -2065,7 +2065,7 @@ namespace example {
                             engine::scene::Bounds::Type::eCube, pipelines, 
                             {.size = {6.5f, 6.5f, 6.5f}, .type = engine::scene::ObjectSizeLayout::Type::eMin});
 
-                    meshRoot->setRotation(engine::vec3f(1.57f, 0.0f, 0.0f));
+                    meshRoot->setRotation(engine::vec3f(engine::pi2, 0.0f, 0.0f));
                     meshRoot->setPosition(engine::vec3f(0.0f, 4.0f, 0.0f));
                     sceneWorldRoot->addChild(meshRoot);
                 }
@@ -2098,7 +2098,7 @@ namespace example {
                         scene->destroyAnimInfo(skeleton->setAnimation(anim));
                     }
 
-                    meshRoot->setRotation(engine::vec3f(1.57f, 0.0f, 1.57f));
+                    meshRoot->setRotation(engine::vec3f(engine::pi2, 0.0f, engine::pi2));
                     meshRoot->setPosition(engine::vec3f(-3.0f, 2.0f, 0.0f));
                     sceneWorldRoot->addChild(meshRoot);
                 }
@@ -2175,7 +2175,7 @@ namespace example {
                             scene->destroyAnimInfo(skeleton->setAnimation(anim));
                         }
 
-                        meshRoot->setRotation(engine::vec3f(1.57f, 0.0f, engine::common::random(-3.14f, 3.14f)));
+                        meshRoot->setRotation(engine::vec3f(engine::pi2, 0.0f, engine::common::random(-engine::pi, engine::pi)));
                         meshRoot->setPosition(engine::vec3f(8.5f + i % 20 * 0.5f, 0.0f + i / 20 * -0.5f, 0.0f));
                         sceneWorldRoot->addChild(meshRoot);
                     }
@@ -2203,7 +2203,7 @@ namespace example {
                         engine::scene::Bounds::Type::eCube, pipelines,
                         {.size = {4.5f, 4.5f, 4.5f}, .type = engine::scene::ObjectSizeLayout::Type::eMin});
 
-                    meshRoot->setRotation(engine::vec3f(1.57f, 0.0f, 1.57f));
+                    meshRoot->setRotation(engine::vec3f(engine::pi2, 0.0f, engine::pi2));
                     meshRoot->setPosition(engine::vec3f(10.0f, 4.0f, 0.0f));
                     sceneWorldRoot->addChild(meshRoot);
                 }
@@ -2236,7 +2236,7 @@ namespace example {
                         scene->destroyAnimInfo(skeleton->setAnimation(anim));
                     }
 
-                    meshRoot->setRotation(engine::vec3f(1.57f, 0.0f, 0.0f));
+                    meshRoot->setRotation(engine::vec3f(engine::pi2, 0.0f, 0.0f));
                     meshRoot->setPosition(engine::vec3f(-7.0f, 2.0f, -0.1f));
                     sceneWorldRoot->addChild(meshRoot);
                 }

@@ -205,6 +205,10 @@ struct alignas(kCachelineSize) Node {
         state.setChildrenTransformsDirty(dirty);
     }
 
+    const mat4f & getLocalTransform() const noexcept {
+        return transforms->local[slot];
+    }
+
     const mat4f & getWorldTransform() const noexcept {
         return transforms->world[slot];
     }

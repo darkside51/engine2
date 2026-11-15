@@ -123,6 +123,8 @@ namespace mesh {
             return getAttribute(mesh::Semantic::ePosition).buffer->sizeInBytes() / 8u;
         }
 
+        uint16_t getSkin() const noexcept { return _skin; }
+
     private:
         const graphics::models::Primitive & _geometry;
         Skeleton * _skeleton = nullptr;

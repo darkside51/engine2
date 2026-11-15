@@ -392,9 +392,7 @@ namespace engine::scene {
             return;
         }
 
-        if (frame >= _computedVertices.size()) {
-            return;
-        }
+        assert(frame < _computedVertices.size());
 
         const auto count = std::max<size_t>(verticesCount, kInitialMeshComputeVerticesCount);
         const auto positionsBytes = count * sizeof(vec4f);

@@ -9,6 +9,7 @@
 #include "meshoptimizer.h"
 
 #include <cassert>
+#include <cstring>
 #include <string>
 #include <string_view>
 
@@ -65,6 +66,156 @@ namespace engine::graphics::models {
         2u, // eUv4
     };
 
+    namespace {
+       inline float readAccessorComponent(const std::byte * data, AccessorComponentType type, bool normalized) noexcept {
+           switch (type) {
+           case AccessorComponentType::eByte: {
+               const auto value = static_cast<int8_t>(*data);
+               return normalized ? std::max(static_cast<float>(value) / 127.0f, -1.0f) : static_cast<float>(value);
+           }
+           case AccessorComponentType::eUnsigned_Byte: {
+               const auto value = static_cast<uint8_t>(*data);
+               return normalized ? static_cast<float>(value) / 255.0f : static_cast<float>(value);
+           }
+           case AccessorComponentType::eShort: {
+               int16_t value = 0;
+               std::memcpy(&value, data, sizeof(value));
+               return normalized ? std::max(static_cast<float>(value) / 32767.0f, -1.0f) : static_cast<float>(value);
+           }
+           case AccessorComponentType::eUnsigned_Short: {
+               uint16_t value = 0u;
+               std::memcpy(&value, data, sizeof(value));
+               return normalized ? static_cast<float>(value) / 65535.0f : static_cast<float>(value);
+           }
+           case AccessorComponentType::eUnsigned_int: {
+               uint32_t value = 0u;
+               std::memcpy(&value, data, sizeof(value));
+               return static_cast<float>(value);
+           }
+           case AccessorComponentType::eFloat: {
+               float value = 0.0f;
+               std::memcpy(&value, data, sizeof(value));
+               return value;
+           }
+           default:
+               return 0.0f;
+           }
+       }
+
+       inline uint32_t readAccessorIndex(const std::byte * data, AccessorComponentType type) noexcept {
+           switch (type) {
+           case AccessorComponentType::eUnsigned_Byte:
+               return static_cast<uint32_t>(static_cast<uint8_t>(*data));
+           case AccessorComponentType::eUnsigned_Short: {
+               uint16_t value = 0u;
+               std::memcpy(&value, data, sizeof(value));
+               return value;
+           }
+           case AccessorComponentType::eUnsigned_int: {
+               uint32_t value = 0u;
+               std::memcpy(&value, data, sizeof(value));
+               return value;
+           }
+           default:
+               return 0u;
+           }
+       }
+
+       inline bool isAccessorReadable(const Layout & layout, const Accessor & accessor) noexcept {
+           return accessor.bufferView != kInvalidValue
+               && accessor.bufferView < layout.bufferViews.size()
+               && layout.bufferViews[accessor.bufferView].buffer < layout.buffers.size();
+       }
+
+       inline const std::byte * getAccessorElement(const Layout & layout, const Accessor & accessor, uint32_t index) noexcept {
+           const auto & view = layout.bufferViews[accessor.bufferView];
+           const auto & buffer = layout.buffers[view.buffer];
+           const size_t stride = view.stride != kInvalidValue ? view.stride : accessor.getElementSize();
+           return buffer.data.data() + view.offset + accessor.offset + static_cast<size_t>(index) * stride;
+       }
+
+       // Bounds of the primitive after skinning: vertices are transformed exactly as the
+       // skinning shader does (weighted sum of jointMatrix * position). This is required
+       // because the default pose of a skeleton may differ from its bind pose, so neither
+       // the raw accessor AABB nor its transform by the node describes the rendered mesh.
+       void computePrimitiveSkinnedBounds(const Layout & layout, const Primitives & srcPrimitive,
+           stl::span<const mat4f> jointMatrices, Primitive & primitive) noexcept {
+
+           uint16_t positionAccessorId = kInvalidValue;
+           uint16_t jointsAccessorId = kInvalidValue;
+           uint16_t weightsAccessorId = kInvalidValue;
+
+           for (const auto & [semantic, accessorId] : srcPrimitive.attributes) {
+               switch (semantic) {
+               case AttributeSemantic::ePosition: positionAccessorId = accessorId; break;
+               case AttributeSemantic::eJoints: jointsAccessorId = accessorId; break;
+               case AttributeSemantic::eWeights: weightsAccessorId = accessorId; break;
+               default: break;
+               }
+           }
+
+           if (positionAccessorId == kInvalidValue || jointsAccessorId == kInvalidValue || weightsAccessorId == kInvalidValue) {
+               return;
+           }
+
+           const auto & positions = layout.accessors[positionAccessorId];
+           const auto & joints = layout.accessors[jointsAccessorId];
+           const auto & weights = layout.accessors[weightsAccessorId];
+
+           if (!isAccessorReadable(layout, positions) || !isAccessorReadable(layout, joints) || !isAccessorReadable(layout, weights)) {
+               return;
+           }
+
+           const auto count = std::min({positions.count, joints.count, weights.count});
+           if (count == 0u) {
+               return;
+           }
+
+           const uint8_t positionComponents = std::min(positions.componentsCount(), uint8_t{3u});
+           const uint8_t influenceCount = std::min({joints.componentsCount(), weights.componentsCount(), uint8_t{4u}});
+
+           const auto positionTypeSize = getTypeSize(positions.componentType);
+           const auto jointsTypeSize = getTypeSize(joints.componentType);
+           const auto weightsTypeSize = getTypeSize(weights.componentType);
+
+           vec3f minCorner{std::numeric_limits<float>::max()};
+           vec3f maxCorner{std::numeric_limits<float>::lowest()};
+
+           for (uint32_t vertexIndex = 0u; vertexIndex < count; ++vertexIndex) {
+               const auto * positionData = getAccessorElement(layout, positions, vertexIndex);
+               const auto * jointsData = getAccessorElement(layout, joints, vertexIndex);
+               const auto * weightsData = getAccessorElement(layout, weights, vertexIndex);
+
+               vec3f position{0.0f};
+               for (uint8_t i = 0u; i < positionComponents; ++i) {
+                   position[i] = readAccessorComponent(positionData + i * positionTypeSize, positions.componentType, positions.normalized);
+               }
+
+               vec3f skinnedPosition{0.0f};
+               for (uint8_t i = 0u; i < influenceCount; ++i) {
+                   const auto weight = readAccessorComponent(weightsData + i * weightsTypeSize, weights.componentType, weights.normalized);
+                   if (weight == 0.0f) {
+                       continue;
+                   }
+
+                   const auto jointIndex = readAccessorIndex(jointsData + i * jointsTypeSize, joints.componentType);
+                   if (jointIndex >= jointMatrices.size()) {
+                       continue;
+                   }
+
+                   skinnedPosition += vec3f(jointMatrices[jointIndex] * vec4f{position, 1.0f}) * weight;
+               }
+
+               minCorner = glm::min(minCorner, skinnedPosition);
+               maxCorner = glm::max(maxCorner, skinnedPosition);
+           }
+
+           primitive.skinnedMinCorner = minCorner;
+           primitive.skinnedMaxCorner = maxCorner;
+           primitive.hasSkinnedBounds = true;
+       }
+   }
+
     MeshBuffersData MeshData::loadMeshes(const Layout & layout, stl::span<const AttributeSemantic> allowedAttributes) {
         meshes.reserve(layout.meshes.size());
 
@@ -77,7 +228,61 @@ namespace engine::graphics::models {
         primitiveBegins.reserve(layout.meshes.size());
         uint16_t primitiveBegin = 0u;
 
-        for (const auto & srcMesh : layout.meshes) {
+        // default-pose skin matrices, needed to compute bounds of skinned meshes
+        stl::vector<mat4f> nodeGlobals;
+        stl::vector<uint16_t> meshSkins;
+
+        if (!skins.empty() && !nodes.empty()) {
+            nodeGlobals.resize(nodes.size(), mat4f{1.0f});
+
+            const auto computeNodeGlobals = [&](const auto & self, uint16_t nodeId, const mat4f & parentTransform) noexcept -> void {
+                const auto & node = nodes[nodeId];
+                mat4f local = mat4_from_quat(quatf{node.rotation.w, node.rotation.x, node.rotation.y, node.rotation.z});
+                scale_matrix(local, vec3f{node.scale.x, node.scale.y, node.scale.z});
+                translate_matrix_to(local, vec3f{node.translation.x, node.translation.y, node.translation.z});
+
+                nodeGlobals[nodeId] = parentTransform * local;
+
+                for (const auto childId : node.children) {
+                    if (childId < nodes.size()) {
+                        self(self, childId, nodeGlobals[nodeId]);
+                    }
+                }
+            };
+
+            for (const auto rootId : sceneNodes) {
+                if (rootId < nodes.size()) {
+                    computeNodeGlobals(computeNodeGlobals, rootId, mat4f{1.0f});
+                }
+            }
+
+            meshSkins.resize(layout.meshes.size(), kInvalidValue);
+            for (const auto & node : nodes) {
+                if (node.mesh != kInvalidValue && node.skin != kInvalidValue && node.mesh < meshSkins.size()) {
+                    meshSkins[node.mesh] = node.skin;
+                }
+            }
+        }
+
+        for (size_t meshIndex = 0u; meshIndex < layout.meshes.size(); ++meshIndex) {
+            const auto & srcMesh = layout.meshes[meshIndex];
+
+            stl::vector<mat4f> jointMatrices;
+            const auto skinIndex = meshSkins.empty() ? kInvalidValue : meshSkins[meshIndex];
+            if (skinIndex != kInvalidValue && skinIndex < skins.size()) {
+                const auto & skin = skins[skinIndex];
+                const auto jointsCount = std::min(skin.joints.size(), skin.inverseBindMatrices.size());
+                jointMatrices.reserve(jointsCount);
+                for (size_t i = 0u; i < jointsCount; ++i) {
+                    const auto jointNodeId = skin.joints[i];
+                    if (jointNodeId < nodeGlobals.size()) {
+                        jointMatrices.emplace_back(nodeGlobals[jointNodeId] * skin.inverseBindMatrices[i]);
+                    } else {
+                        jointMatrices.emplace_back(mat4f{1.0f});
+                    }
+                }
+            }
+
             primitiveBegins.emplace_back(primitiveBegin);
             primitiveBegin += srcMesh.primitives.size();
 
@@ -297,6 +502,10 @@ namespace engine::graphics::models {
                         }
                     }
                     ++attributeId;
+                }
+
+                if (!jointMatrices.empty()) {
+                    computePrimitiveSkinnedBounds(layout, srcPrimitive, jointMatrices, primitive);
                 }
 
                 // optimizeBuffers(vertices, indices, allowedAttributes);
