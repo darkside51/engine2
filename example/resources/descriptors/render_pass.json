@@ -120,7 +120,7 @@
 	"blur" : {
 		"attachments" : [
 			{
-				"loadStoreOp" : ["eLoad", "eStore"],
+				"loadStoreOp" : ["eClear", "eStore"],
 				"stencilLoadStoreOp" : ["eDont_Care", "eDont_Care"],
 				"initialLayout" : "eColor_Attachment_Optimal",
 				"finalLayout" : "eShader_Read_Only_Optimal"
