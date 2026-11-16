@@ -102,8 +102,8 @@ namespace engine::scene {
                 geometryMinCorner = vec3f{std::numeric_limits<float>::max()};
                 geometryMaxCorner = vec3f{std::numeric_limits<float>::lowest()};
 
-                const auto & skinnedMin = _geometry.skinnedMinCorner;
-                const auto & skinnedMax = _geometry.skinnedMaxCorner;
+                const auto & skinnedMin = _geometry.minCorner;
+                const auto & skinnedMax = _geometry.maxCorner;
 
                 const vec3f corners[8u] = {
                     {skinnedMin.x, skinnedMin.y, skinnedMin.z},
@@ -118,14 +118,8 @@ namespace engine::scene {
 
                 for (uint8_t i = 0u; i < 8u; ++i) {
                     const vec3f corner = toWorld(corners[i], inverseWorldTransform);
-
-                    geometryMinCorner.x = std::min(geometryMinCorner.x, corner.x);
-                    geometryMinCorner.y = std::min(geometryMinCorner.y, corner.y);
-                    geometryMinCorner.z = std::min(geometryMinCorner.z, corner.z);
-
-                    geometryMaxCorner.x = std::max(geometryMaxCorner.x, corner.x);
-                    geometryMaxCorner.y = std::max(geometryMaxCorner.y, corner.y);
-                    geometryMaxCorner.z = std::max(geometryMaxCorner.z, corner.z);
+                    geometryMinCorner = min(geometryMinCorner, corner);
+                    geometryMaxCorner = max(geometryMaxCorner, corner);
                 }
             }
 

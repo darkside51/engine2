@@ -30,18 +30,16 @@ namespace models {
 		uint32_t uniqueIndexOffset = 0u;
 		uint32_t uniqueIndicesCount = 0u;
 
-		vec3f minCorner{};
-		vec3f maxCorner{};
-
 		// AABB of the primitive after applying the skin matrices of the default pose
 		// (skinned meshes only). Stored in the glTF scene root space, i.e. the space
 		// the skin matrices produce, so the node transform must not be applied to it.
-		vec3f skinnedMinCorner{};
-		vec3f skinnedMaxCorner{};
-		bool hasSkinnedBounds = false;
+		// no skinned mashse use altf accessor min/max
+		vec3f minCorner{};
+		vec3f maxCorner{};
 
 		uint16_t material = kInvalidValue;
 		PrimitiveMode primitiveMode = PrimitiveMode::eTriangles;
+		bool hasSkinnedBounds = false;
 	};
 
     struct MeshGeometry {

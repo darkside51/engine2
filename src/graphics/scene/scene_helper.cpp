@@ -74,13 +74,8 @@ void loadNodes(Scene & scene, const graphics::ModelManager::ModelBuffers & gpuBu
             // min/max gives a wrong (too small and shifted) AABB as soon as the node
             // transform contains a rotation or a non-uniform scale.
             if (createSkeletalMesh && p.hasSkinnedBounds) {
-                minCorner.x = std::min(minCorner.x, p.skinnedMinCorner.x);
-                minCorner.y = std::min(minCorner.y, p.skinnedMinCorner.y);
-                minCorner.z = std::min(minCorner.z, p.skinnedMinCorner.z);
-
-                maxCorner.x = std::max(maxCorner.x, p.skinnedMaxCorner.x);
-                maxCorner.y = std::max(maxCorner.y, p.skinnedMaxCorner.y);
-                maxCorner.z = std::max(maxCorner.z, p.skinnedMaxCorner.z);
+                minCorner = engine::math::min(minCorner, p.minCorner);
+                maxCorner = engine::math::max(maxCorner, p.maxCorner);
             } else {
                 const mat4f & worldTransform = current->getWorldTransform();
 
@@ -97,14 +92,8 @@ void loadNodes(Scene & scene, const graphics::ModelManager::ModelBuffers & gpuBu
 
                 for (uint8_t i = 0u; i < 8u; ++i) {
                     const vec3f corner = toWorld(corners[i], worldTransform);
-
-                    minCorner.x = std::min(minCorner.x, corner.x);
-                    minCorner.y = std::min(minCorner.y, corner.y);
-                    minCorner.z = std::min(minCorner.z, corner.z);
-
-                    maxCorner.x = std::max(maxCorner.x, corner.x);
-                    maxCorner.y = std::max(maxCorner.y, corner.y);
-                    maxCorner.z = std::max(maxCorner.z, corner.z);
+                    minCorner = engine::math::min(minCorner, corner);
+                    maxCorner = engine::math::max(maxCorner, corner);
                 }
             }
         }

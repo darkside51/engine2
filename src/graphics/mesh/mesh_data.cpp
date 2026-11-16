@@ -206,12 +206,12 @@ namespace engine::graphics::models {
                    skinnedPosition += vec3f(jointMatrices[jointIndex] * vec4f{position, 1.0f}) * weight;
                }
 
-               minCorner = glm::min(minCorner, skinnedPosition);
-               maxCorner = glm::max(maxCorner, skinnedPosition);
+               minCorner = min(minCorner, skinnedPosition);
+               maxCorner = max(maxCorner, skinnedPosition);
            }
 
-           primitive.skinnedMinCorner = minCorner;
-           primitive.skinnedMaxCorner = maxCorner;
+           primitive.minCorner = minCorner;
+           primitive.maxCorner = maxCorner;
            primitive.hasSkinnedBounds = true;
        }
    }
