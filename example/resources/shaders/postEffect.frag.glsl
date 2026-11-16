@@ -12,19 +12,23 @@ layout (constant_id = 0) const uint shadowCascades = 2;
 layout(set = 0, binding = 0) uniform sampler2D textureSsao;
 layout(set = 0, binding = 1) uniform sampler2D textureNormal;
 layout(set = 0, binding = 2) uniform sampler2D textureAlbedo;
-layout(set = 0, binding = 3) uniform sampler2D textureEmissive;
-layout(set = 0, binding = 4) uniform sampler2D texturePositionDepth;
-layout(set = 0, binding = 5) uniform sampler2D textureMetallicRoughness;
-layout(set = 0, binding = 6) uniform sampler2DArrayShadow textureShadowMap;
-//layout(set = 0, binding = 6) uniform sampler2DArray textureShadowMap;
+layout(set = 0, binding = 3) uniform sampler2D texturePositionDepth;
+layout(set = 0, binding = 4) uniform sampler2D textureMetallicRoughness;
+layout(set = 0, binding = 5) uniform sampler2DArrayShadow textureShadowMap;
 
-layout (set = 0, binding = 7) uniform shadowsUniformBuffer {
+//layout(set = 0, binding = 5) uniform sampler2DArray textureShadowMap;
+
+layout (set = 0, binding = 6) uniform shadowsUniformBuffer {
 	mat4 cascades[shadowCascades];
 	mat4 viewInverse;
 	vec4 splits;
 	vec4 texelSizes;
 	vec4 options;
 } u_shadow;
+
+
+layout(set = 1, binding = 0) uniform sampler2D textureEmissive;
+layout(set = 1, binding = 1) uniform sampler2D textureEmissiveBloom;
 
 //layout(set = 1, binding = 0) uniform samplerCube textureCubeMap;
 
@@ -53,6 +57,7 @@ void main() {
 
 	/*const*/ vec4 albedo = texture(textureAlbedo, v_uv);
 	const vec4 emissive = texture(textureEmissive, v_uv);
+	const vec4 emissiveBloom = texture(textureEmissiveBloom, v_uv);
 
 	const float linearDepth = texture(texturePositionDepth, v_uv).r;
     const vec3 cameraPosition = push.view[3].xyz;
@@ -155,7 +160,8 @@ void main() {
     //vec3 baseColor = ambient + Lo;
     //baseColor = clamp(baseColor * shadowValue, ambient, baseColor);
     vec3 baseColor = ambient + (Lo * shadowValue);
-    baseColor += emissive.rgb;
+    // sharp emissive + blurred bloom halo
+    baseColor += emissive.rgb + emissiveBloom.rgb;
 	//
 
 	// 1. contrast

@@ -14,7 +14,7 @@
 namespace example {
 
 struct GBufferAttachments {
-    engine::rhi::runtime::ImagePtr position, normal, albedo, emissive, emissive2, depth, metallicRoughness;
+    engine::rhi::runtime::ImagePtr position, normal, albedo, emissive, emissive2, emissiveBloom, depth, metallicRoughness;
 };
 
 class Example : public engine::InputHandler {
