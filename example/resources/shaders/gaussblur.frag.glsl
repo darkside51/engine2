@@ -11,11 +11,9 @@ layout(push_constant) uniform Params {
 layout (location = 0) in vec2 v_uv;
 layout (location = 0) out vec4 out_color;
 
-// 13-tap separable gaussian (radius = 6 texels, sigma = 3), weights sum to 1.0
-const int kRadius = 6;
-const float weights[kRadius + 1] = float[](
-	0.137023, 0.129618, 0.109719, 0.083108, 0.056332, 0.034167, 0.018544
-);
+// Предвычисленные веса и смещения для 9-tap ядра через 5 выборок
+const float weights[3] = float[](0.22702703, 0.31621622, 0.07027027);
+const float offsets[3] = float[](0.0, 1.38461538, 3.23076923);
 
 vec3 brightPass(vec3 color) {
 	const float threshold = push.scaleStrengthDirection.w;
@@ -26,16 +24,21 @@ vec3 brightPass(vec3 color) {
 }
 
 void main() {
-	const vec2 texel = 1.0f / vec2(textureSize(u_texture, 0)) * push.scaleStrengthDirection.x;
-	const vec2 dir = push.scaleStrengthDirection.z > 0.5f ? vec2(texel.x, 0.0f) : vec2(0.0f, texel.y);
+	vec2 tex_offset = (1.0 / vec2(textureSize(u_texture, 0))) * push.scaleStrengthDirection.x;
+	vec2 dir = (push.scaleStrengthDirection.z > 0.5) ? vec2(1.0, 0.0) : vec2(0.0, 1.0);
+	vec2 step_uv = tex_offset * dir;
 
-	vec3 result = brightPass(texture(u_texture, v_uv).rgb) * weights[0];
-	for (int i = 1; i <= kRadius; ++i) {
-		const float offset = float(i);
-		result += brightPass(texture(u_texture, v_uv + dir * offset).rgb) * weights[i];
-		result += brightPass(texture(u_texture, v_uv - dir * offset).rgb) * weights[i];
+	// center sample
+	vec3 result = texture(u_texture, v_uv).rgb * weights[0];
+	const float threshold = push.scaleStrengthDirection.w;
+
+	// two iterations (2 samples in each direction = 4 samples)
+	for (int i = 1; i < 3; ++i) {
+		vec2 offset = step_uv * offsets[i];
+		result += brightPass(texture(u_texture, v_uv + offset).rgb) * weights[i];
+		result += brightPass(texture(u_texture, v_uv - offset).rgb) * weights[i];
 	}
 
-	// HDR intensity keeps the glow visible after Reinhard tonemapping
-	out_color = vec4(max(result, vec3(0.0f)) * push.scaleStrengthDirection.y, 1.0f);
+	float strength = (push.scaleStrengthDirection.z > 0.5) ? 1.0 : push.scaleStrengthDirection.y;
+	out_color = vec4(max(result, vec3(0.0)) * strength, 1.0);
 }
