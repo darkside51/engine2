@@ -61,19 +61,23 @@ public:
 
         _dirty = false;
 
-		mat4f view{1.0f};
+		//mat4f view{1.0f};
 		
-		if (_scale != unitVec3) {
-			scale_matrix(view, _scale);
-		}
+		// if (_scale != unitVec3) {
+		// 	scale_matrix(view, _scale);
+		// }
 
-		if (_rotation != emptyVec3) {
-			rotate_matrix_by_order(view, _rotation, _rotationOrder);
-		}
+		// if (_rotation != emptyVec3) {
+		// 	rotate_matrix_by_order(view, _rotation, _rotationOrder);
+		// }
 
-		if (_position != emptyVec3) {
-			translate_matrix(view, -_position);
-		}
+		// if (_position != emptyVec3) {
+		// 	translate_matrix(view, -_position);
+		// }
+
+        mat4f view = make_matrix(_scale);
+		rotate_matrix_by_order(view, _rotation, _rotationOrder);
+		translate_matrix(view, -_position);
 
         _camera.setView(view);
         
@@ -116,15 +120,15 @@ public:
 
         _dirty = false;
 
-		mat4f view{1.0f};
+		// mat4f view{1.0f};
 		
-		if (_scale != unitVec3) {
-			scale_matrix(view, _scale);
-		}
+		// if (_scale != unitVec3) {
+		// 	scale_matrix(view, _scale);
+		// }
 
-		if (_rotation != emptyVec3) {
-			rotate_matrix_by_order(view, _rotation, _rotationOrder);
-		}
+		// if (_rotation != emptyVec3) {
+		// 	rotate_matrix_by_order(view, _rotation, _rotationOrder);
+		// }
 
         const float rx = _rotation.x;
         const float rz = _rotation.z;
@@ -144,9 +148,13 @@ public:
             _cameraPosition += vec3f{ x, y, z };
         }
 
-        if (_cameraPosition != emptyVec3) {
-			translate_matrix(view, -_cameraPosition);
-		}
+        //if (_cameraPosition != emptyVec3) {
+		//	translate_matrix(view, -_cameraPosition);
+		//}
+
+        mat4f view = make_matrix(_scale);
+		rotate_matrix_by_order(view, _rotation, _rotationOrder);
+        translate_matrix(view, -_cameraPosition);
 
         _camera.setView(view);
         
