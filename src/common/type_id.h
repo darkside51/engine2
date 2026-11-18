@@ -14,19 +14,19 @@ namespace engine {
             return newId;
         }
 
-        template<typename MainType>
+        template<typename MainType, typename C = size_t>
         struct UniqueTypeId {
-            static inline size_t typeId() noexcept {
+            static inline C typeId() noexcept {
                 return typeIndex<MainType>();
             }
 
             template<typename T>
-            static inline size_t typeId() noexcept {
-                static const size_t newId = staticId.fetch_add(1u, std::memory_order_relaxed);
+            static inline C typeId() noexcept {
+                static const C newId = staticId.fetch_add(1u, std::memory_order_relaxed);
                 return newId;
             }
         private:
-            inline static std::atomic_size_t staticId = 0u;
+            inline static std::atomic<C> staticId = 0u;
         };
     }
 
@@ -65,7 +65,7 @@ namespace engine {
             }
         }
 
-        template<typename MainType>
+        template<typename MainType, typename C = size_t>
         struct UniqueTypeId {
             static consteval inline auto typeId() noexcept {
                 return typeIndex<MainType>();
@@ -73,7 +73,7 @@ namespace engine {
 
             template<typename T>
             static consteval inline auto typeId() noexcept {
-                return typeIndex<MainType, T>();
+                return static_cast<C>(typeIndex<MainType, T>());
             }
         };
     }
