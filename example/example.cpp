@@ -2575,7 +2575,7 @@ namespace example {
                 //
                 auto * terrainNode = terrain->getNode();
                 terrainNode->setPosition({-150.0f, 0.0f, 0.0f});
-                terrainNode->setScale(engine::vec3f{0.2f, 0.2f, 0.05f});
+                terrainNode->setScale(engine::vec3f{0.2f, 0.2f, 0.035f});
                 testDummyNode->setScale(0.1f / terrainNode->getScale());
                 terrainNode->addChild(testDummyNode);
                 sceneWorldRoot->addChild(terrainNode);

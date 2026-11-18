@@ -7,6 +7,7 @@ layout(location = 0) out vec2 v_tileUv;
 layout(location = 1) out vec2 v_globalUv;
 layout(location = 2) out vec3 v_vertexPosition;
 layout(location = 3) out vec3 v_worldPosition;
+layout(location = 4) out vec3 v_normalUnscale;
 
 layout(push_constant, std430) uniform Transform {
 	mat4 model;
@@ -42,4 +43,5 @@ void main() {
 	gl_Position = u_viewParams.viewProjection * worldPosition;
 	v_vertexPosition = vec3(a_position, heightTexel.x / 64.0f);
 	v_worldPosition = worldPosition.xyz / worldPosition.w;
+	v_normalUnscale = 1.0f / vec3(length(push.model[0]), length(push.model[1]), length(push.model[2]));
 }

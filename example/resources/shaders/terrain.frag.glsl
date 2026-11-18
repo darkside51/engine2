@@ -6,6 +6,7 @@ layout(location = 0) in vec2 v_tileUv;
 layout(location = 1) in vec2 v_globalUv;
 layout(location = 2) in vec3 v_vertexPosition;
 layout(location = 3) in vec3 v_worldPosition;
+layout(location = 4) in vec3 v_normalUnscale;
 
 layout(location = 0) out float out_position;
 layout(location = 1) out vec4 out_normal;
@@ -59,20 +60,20 @@ vec3 getAdvancedTerrainColor(float height, float moisture, vec3 normal, vec2 wor
         float t = smoothstep(0.0, 0.15, height);
         biomeColor = mix(deepWater, shallow, t);
     } 
-    else if (height < 0.2) {
+    else if (height < 0.4) {
         // Пляж
-        float t = smoothstep(0.15, 0.2, height);
+        float t = smoothstep(0.15, 0.4, height);
         biomeColor = mix(shallow, sand, t);
     } 
     else {
         // Суша (Равнины, леса, пустыни)
         // Определяем цвет растительности по влажности
-        vec3 vegetation = mix(grass, forest, smoothstep(0.4, 0.8, moisture));
+        vec3 vegetation = mix(grass, forest, smoothstep(0.4, 0.6, moisture));
         // Если влажность низкая — уходим в пустынный песок
-        vec3 landBase = mix(sand, vegetation, smoothstep(0.15, 0.4, moisture));
+        vec3 landBase = mix(sand, vegetation, smoothstep(0.15, 0.6, moisture));
         
         // Плавный переход от пляжа к суше
-        float landT = smoothstep(0.2, 0.325, height);
+        float landT = smoothstep(0.4, 0.625, height);
         biomeColor = mix(sand, landBase, landT);
 
         // По мере подъема плавно подмешиваем камень к суше перед полноценными скалами
@@ -121,7 +122,7 @@ void main() {
 	out_position = depthLinear;
 
 	const vec2 gtexSize = vec2(textureSize(u_normals, 0));
-	const vec3 n = -texture(u_normals, v_globalUv / gtexSize).xyz;
+	const vec3 n = -texture(u_normals, v_globalUv / gtexSize).xyz * v_normalUnscale;
 	const vec3 normal = normalize(u_viewParams.viewTransposeInverse * n);
 
 	/////
@@ -129,16 +130,17 @@ void main() {
 
 	// 2. Корректируем по высоте: 
 	// Чем ближе к уровню воды (например, 0.3), тем влажнее. Чем выше в горы, тем суше.
-	float heightFactor = 1.0 - smoothstep(0.3, 0.8, v_vertexPosition.z);
+	float heightFactor = 1.0 - smoothstep(0.5, 0.9, v_vertexPosition.z);
 	// 3. Соединяем
 	float moisture = clamp(baseMoisture * 0.7 + heightFactor * 0.3, 0.0, 1.0);
 
 	vec3 color = getAdvancedTerrainColor(v_vertexPosition.z, moisture, n, v_vertexPosition.xy);
 	
 	out_normal = vec4(normal * 0.5f + 0.5f, 0.0f);
-	out_albedo = texture(u_colors, v_tileUv);
+	//out_albedo = texture(u_colors, v_tileUv);
+    out_albedo = vec4(color, 1.0f);
 	//out_albedo.xyz = mix(color * vec3(1.0, 0.0, 0.0), color, smoothstep(0.0f, 4.0f, length2(vec2(-64.0, 0.0) - v_worldPosition.xy)));
-    out_albedo.xyz = mix(color * vec3(1.0, 0.0, 0.0), color, smoothstep(0.0f, 0.005f, length2(vec2(0.5, 0.5) - v_globalUv / gtexSize)));
+    //out_albedo.xyz = mix(color * vec3(1.0, 0.0, 0.0), color, smoothstep(0.0f, 0.005f, length2(vec2(0.5, 0.5) - v_globalUv / gtexSize)));
 	out_emissive = vec4(0.0f, 0.0f, 0.0f, 0.f);
 	out_metalicRoughness = vec2(0.0f, 1.0f);
 }
