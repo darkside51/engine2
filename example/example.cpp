@@ -1358,9 +1358,9 @@ namespace example {
 
         auto colorImageInfoHDR2 = engine::rhi::ImageInfo{
             engine::rhi::ImageUsageFlags::eColor_Attachment | engine::rhi::ImageUsageFlags::eSampled,
-            engine::rhi::Format::eR16G16B16A16_Sfloat, {size.width / 2, size.height / 2, 1u}
+            engine::rhi::Format::eR16G16B16A16_Sfloat, {size.width / 4u, size.height / 4u, 1u}
         };
-        colorImageInfoHDR2.memoryExtFlags = engine::rhi::MemoryExtendedFlags::eDedicated;
+        //colorImageInfoHDR2.memoryExtFlags = engine::rhi::MemoryExtendedFlags::eDedicated;
 
         auto depthImageInfo = engine::rhi::ImageInfo{
             engine::rhi::ImageUsageFlags::eDepth_Stencil_Attachment | 
@@ -3193,8 +3193,9 @@ namespace example {
         const auto imagesCount = _gBufferAttachments.size();
 
         if (bloomPassesCount > 0u) {
-            // x - radius scale, y - intensity (applied on the last pass only), z - direction, w - bright pass threshold (first pass only)
-            engine::vec4f blurUniform{emissiveBlurScale, 1.0f, 1.0f, 0.0f};
+            // x - radius scale (in target texels), y - intensity (applied on the last pass only),
+            // z - direction, w - bright pass threshold (first pass only)
+            engine::vec4f blurUniform;
 
             bool horizontal = true;
             for (uint8_t i = 0u; i < bloomPassesCount; ++i) { // ping - pong between emissiveBloom2 and emissiveBloom
@@ -3202,22 +3203,30 @@ namespace example {
                 const bool isLastPass = (i + 1u == bloomPassesCount);
                 const bool targetBloom = (i & 1u) != 0u;
 
-                blurUniform.x = emissiveBlurScale * static_cast<float>(i / 2u + 1u); // progressive radius
-                blurUniform.y = isLastPass ? emissiveBlurStrength : 1.0f;
-                blurUniform.z = horizontal ? 1.0f : 0.0f;
-                blurUniform.w = isFirstPass ? emissiveBloomThreshold : 0.0f;
-
                 auto & target = _emissiveBluredBuffers[frameId + (targetBloom ? imagesCount : 0u)];
                 const auto & source = isFirstPass
                     ? _gBufferAttachments[frameId].emissive
                     : (targetBloom ? _gBufferAttachments[frameId].emissiveBloom : _gBufferAttachments[frameId].emissiveBloom2);
 
-                const auto & extent = _gBufferAttachments[frameId].emissiveBloom->getExtent();
+                // both bloom targets are half resolution
+                const auto & targetExtent = _gBufferAttachments[frameId].emissiveBloom->getExtent();
+                const auto & sourceExtent = source->getExtent();
 
-                commandList->setViewport(0.0f, 0.0f, extent.width, extent.height);
-                commandList->setScissor({{0, 0}, {extent.width, extent.height}});
+                // gaussblur computes its step from the source texture size, while the radius is
+                // defined in target texels. The first pass reads the full resolution emissive and
+                // writes into the half resolution bloom target, so compensate for that ratio.
+                const auto sourceToTargetScale = static_cast<float>(sourceExtent.width) /
+                    static_cast<float>(targetExtent.width);
 
-                commandList->beginRenderPass(blurRenderPass, target, clearValues, {{0, 0}, {extent.width, extent.height}});
+                blurUniform.x = emissiveBlurScale * static_cast<float>(i / 2u + 1u) * sourceToTargetScale; // progressive radius
+                blurUniform.y = isLastPass ? emissiveBlurStrength : 1.0f;
+                blurUniform.z = horizontal ? 1.0f : 0.0f;
+                blurUniform.w = isFirstPass ? emissiveBloomThreshold : 0.0f;
+
+                commandList->setViewport(0.0f, 0.0f, targetExtent.width, targetExtent.height);
+                commandList->setScissor({{0, 0}, {targetExtent.width, targetExtent.height}});
+
+                commandList->beginRenderPass(blurRenderPass, target, clearValues, {{0, 0}, {targetExtent.width, targetExtent.height}});
 
                 commandList->bindPipeline(_pipelines[kEmissiveBlurPipeline]);
                 commandList->bindVertexBuffer(0u, _postPositions);
