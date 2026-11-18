@@ -14,6 +14,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <optional>
+#include <type_traits>
 #include <utility>
 
 namespace engine::rhi::runtime {
@@ -76,7 +77,7 @@ namespace engine::rhi::runtime {
         static_assert((alignof(T) & (alignof(Command) - 1)) == 0);
     }
 
-    struct BeginCommand : Command {
+    struct BeginCommand final : Command {
         CommandBufferUsageFlags flags;
         BeginCommand(CommandBufferUsageFlags flags = CommandBufferUsageFlags::eOne_Time_Submit) : 
             Command(CommandType::eBegin, sizeof(BeginCommand), alignof(BeginCommand)), flags(flags) {
@@ -84,13 +85,13 @@ namespace engine::rhi::runtime {
             }
     };
 
-    struct EndCommand : Command {
+    struct EndCommand final : Command {
         EndCommand() : Command(CommandType::eEnd, sizeof(EndCommand), alignof(EndCommand)) {
             _check_command_alignment<EndCommand>();
         }
     };
 
-    struct ResetCommand : Command {
+    struct ResetCommand final : Command {
         CommandBufferResetFlags flags;
         ResetCommand(CommandBufferResetFlags flags) : 
             Command(CommandType::eReset, sizeof(ResetCommand), alignof(ResetCommand)),
@@ -118,7 +119,7 @@ namespace engine::rhi::runtime {
         size_t size = kWholeSize;
     };
 
-    struct BeginRenderPassCommand : Command {
+    struct BeginRenderPassCommand final : Command {
         RenderPass renderPass{};
         FrameBuffer * framebuffer = nullptr; 
         dynamic_array<ClearValue, 8u> clearValues;
@@ -136,7 +137,7 @@ namespace engine::rhi::runtime {
             }
     };
 
-    struct ClearAttachmentsCommand : Command {
+    struct ClearAttachmentsCommand final : Command {
         dynamic_array<ClearAttachment, 8u> clearAttachments;
         dynamic_array<ClearRect, 8u> clearRects;
         ClearAttachmentsCommand(stl::span<const ClearAttachment> clearAttachments, stl::span<const ClearRect> clearRects) : 
@@ -147,13 +148,13 @@ namespace engine::rhi::runtime {
             }
     };
 
-    struct EndRenderPassCommand : Command {
+    struct EndRenderPassCommand final : Command {
         EndRenderPassCommand() : Command(CommandType::eEndRenderPass, sizeof(EndRenderPassCommand), alignof(EndRenderPassCommand)) {
             _check_command_alignment<EndRenderPassCommand>();
         }
     };
 
-    struct NextSubpassCommand : Command {
+    struct NextSubpassCommand final : Command {
         SubpassContents contents;
         stl::span<ImageTransitionInfo> imageTransitionInfo;
         stl::span<BufferTransitionInfo> bufferTransitionInfo;
@@ -168,14 +169,14 @@ namespace engine::rhi::runtime {
             }
     };
 
-    struct ExecuteCommandsCommand : Command { // todo!
+    struct ExecuteCommandsCommand final : Command { // todo!
         ExecuteCommandsCommand(stl::span<const CommandList*> secondaryCommandLists) : 
             Command(CommandType::eExecuteCommands, sizeof(ExecuteCommandsCommand), alignof(ExecuteCommandsCommand)) {
                 _check_command_alignment<ExecuteCommandsCommand>();
             }
     };
 
-    struct SetViewportCommand : Command {
+    struct SetViewportCommand final : Command {
         float x, y, w, h, minDepth = 0.0f, maxDepth = 1.0f;
         uint32_t viewportIdx = 0u;
         SetViewportCommand(float x, float y, float w, float h, float minDepth = 0.0f, float maxDepth = 1.0f, uint32_t viewportIdx = 0u) : 
@@ -185,7 +186,7 @@ namespace engine::rhi::runtime {
             }
     };
 
-    struct SetScissorCommand : Command {
+    struct SetScissorCommand final : Command {
         Rect2D area{};
         uint32_t scissorIdx = 0u;
         SetScissorCommand(const rhi::Rect2D & area, uint32_t scissorIdx = 0u) : 
@@ -195,7 +196,7 @@ namespace engine::rhi::runtime {
             }
     };
 
-    struct BindPipelineCommand : Command {
+    struct BindPipelineCommand final : Command {
         const Pipeline * pipeline = nullptr;
         BindPipelineCommand(const PipelinePtr & pipeline) : BindPipelineCommand(*pipeline) {}
             
@@ -206,7 +207,7 @@ namespace engine::rhi::runtime {
             }
     };
 
-    struct BindVertexBufferCommand : Command {
+    struct BindVertexBufferCommand final : Command {
         Buffer * buffer = nullptr;
         uint32_t binding = 0u;
         uint32_t offset = 0u;
@@ -217,7 +218,7 @@ namespace engine::rhi::runtime {
             }
     };
 
-    struct BindIndexBufferCommand : Command {
+    struct BindIndexBufferCommand final : Command {
         const Buffer * buffer = nullptr;
         uint32_t offset = 0u;
         IndexType type = rhi::IndexType::eU32;
@@ -228,7 +229,7 @@ namespace engine::rhi::runtime {
             }
     };
 
-    struct BindBufferCommand : Command {
+    struct BindBufferCommand final : Command {
         const Buffer * buffer = nullptr;
         uint64_t offset = 0u;
         uint64_t range = kWholeSize64;
@@ -248,7 +249,7 @@ namespace engine::rhi::runtime {
             }
     };
 
-    struct BindImageSamplerCommand : Command { // todo!
+    struct BindImageSamplerCommand final : Command { // todo!
         Image * image = nullptr;
         
         uint32_t baseLayer = 0u;
@@ -293,7 +294,7 @@ namespace engine::rhi::runtime {
             }
     };
 
-    struct BindTexelBufferCommand : Command {
+    struct BindTexelBufferCommand final : Command {
         Buffer * buffer = nullptr;
         uint64_t offset = 0u;
         uint64_t range = kWholeSize64;
@@ -313,7 +314,7 @@ namespace engine::rhi::runtime {
             }
     };
 
-    struct PushConstantsCommand : Command {
+    struct PushConstantsCommand final : Command {
         uint32_t dataOffset = 0u;
         uint32_t dataSize = 0u;
         shaders::Stages stages = shaders::Stages::eNone;
@@ -328,7 +329,7 @@ namespace engine::rhi::runtime {
             }
     };
 
-    struct DrawCommand : Command {
+    struct DrawCommand final : Command {
         uint32_t vertexCount = 0u;
         uint32_t instanceCount = 1u;
         uint32_t firstVertex = 0u;
@@ -343,7 +344,7 @@ namespace engine::rhi::runtime {
             }
     };
 
-    struct DrawIndexedCommand : Command {
+    struct DrawIndexedCommand final : Command {
         uint32_t indexCount = 0u;
         uint32_t instanceCount = 1u;
         uint32_t firstIndex = 0u;
@@ -361,7 +362,7 @@ namespace engine::rhi::runtime {
             }
     };
 
-    struct UpdateBufferCommand : Command {
+    struct UpdateBufferCommand final : Command {
         Buffer * dst = nullptr;
         uint32_t dstOffset;
         uint32_t dataSize;
@@ -374,7 +375,7 @@ namespace engine::rhi::runtime {
             }
     };
 
-    struct CopyBuffer2BufferCommand : Command {
+    struct CopyBuffer2BufferCommand final : Command {
         CopyBufferInfo info{}; // todo: support array of CopyBufferInfo
         Buffer * src = nullptr;
         Buffer * dst = nullptr;
@@ -387,7 +388,7 @@ namespace engine::rhi::runtime {
             }
     };
 
-    struct CopyBuffer2ImageCommand : Command {
+    struct CopyBuffer2ImageCommand final : Command {
         CopyBufferImageInfo info{}; // todo: support array of CopyBufferImageInfo
         Buffer * src = nullptr;
         Image * dst = nullptr;
@@ -400,7 +401,7 @@ namespace engine::rhi::runtime {
             }
     };
 
-    struct CopyImage2ImageCommand : Command {
+    struct CopyImage2ImageCommand final : Command {
         CopyImage2ImageInfo info{}; // todo: support array of CopyImage2ImageInfo
         Image * src = nullptr;
         Image * dst = nullptr;
@@ -413,7 +414,7 @@ namespace engine::rhi::runtime {
             }
     };
 
-    struct CopyImage2BufferCommand : Command {
+    struct CopyImage2BufferCommand final : Command {
         CopyBufferImageInfo info{}; // todo: support array of CopyImage2ImageInfo
         Image * src = nullptr;
         Buffer * dst = nullptr;
@@ -426,7 +427,7 @@ namespace engine::rhi::runtime {
             }
     };
 
-    struct PrepareImage2HostReadCommand : Command {
+    struct PrepareImage2HostReadCommand final : Command {
         Image * img = nullptr;
         PrepareImage2HostReadCommand(Image * img) : 
             Command(CommandType::ePrepareImage2HostRead, sizeof(PrepareImage2HostReadCommand), alignof(PrepareImage2HostReadCommand)),
@@ -435,7 +436,7 @@ namespace engine::rhi::runtime {
             }
     };
 
-    struct BlitImageCommand : Command {
+    struct BlitImageCommand final : Command {
         BlitImageInfo info{};
         Image * src = nullptr;
         Image * dst = nullptr;
@@ -448,25 +449,25 @@ namespace engine::rhi::runtime {
             }
     };
 
-    struct PipelineBarriersCommand : Command { // todo!
+    struct PipelineBarriersCommand final : Command { // todo!
         PipelineBarriersCommand() : Command(CommandType::ePipelineBarriers, sizeof(PipelineBarriersCommand), alignof(PipelineBarriersCommand)) {
             _check_command_alignment<PipelineBarriersCommand>();
         }
     };
 
-    struct SetEventCommand : Command { // todo!
+    struct SetEventCommand final : Command { // todo!
         SetEventCommand() : Command(CommandType::eSetEvent, sizeof(SetEventCommand), alignof(SetEventCommand)) {
             _check_command_alignment<SetEventCommand>();
         }
     };
 
-    struct WaitEventsCommand : Command { // todo!
+    struct WaitEventsCommand final : Command { // todo!
         WaitEventsCommand() : Command(CommandType::eWaitEvents, sizeof(WaitEventsCommand), alignof(WaitEventsCommand)) {
             _check_command_alignment<WaitEventsCommand>();
         }
     };
 
-    struct ResetQueryPoolCommand : Command {
+    struct ResetQueryPoolCommand final : Command {
         QueryPool *pool;
         uint16_t firstQuery;
         uint16_t queryCount;
@@ -479,7 +480,7 @@ namespace engine::rhi::runtime {
             }
     };
 
-    struct WriteTimestampCommand : Command {
+    struct WriteTimestampCommand final : Command {
         QueryPool *pool;
         PipelineStageFlags stage;
         uint16_t query;
@@ -492,14 +493,14 @@ namespace engine::rhi::runtime {
             }
     };
 
-    struct CopyQueryPoolResultsCommand : Command { // todo!
+    struct CopyQueryPoolResultsCommand final : Command { // todo!
         CopyQueryPoolResultsCommand() : 
             Command(CommandType::eCopyQueryPoolResults, sizeof(CopyQueryPoolResultsCommand), alignof(CopyQueryPoolResultsCommand)) {
             _check_command_alignment<CopyQueryPoolResultsCommand>();
         }
     };
 
-    struct DispatchCommand : Command {
+    struct DispatchCommand final : Command {
         uint16_t groupCountX;
         uint16_t groupCountY;
         uint16_t groupCountZ;
@@ -514,46 +515,50 @@ namespace engine::rhi::runtime {
 
     ///////////////////////////////////////////////
     inline constexpr void Command::destroy() const noexcept {
+        const auto destroy_command = [this]<typename T>(std::type_identity<T>) noexcept {
+            static_cast<const T*>(this)->~T();
+        };
+
         switch (cmdType) {
-            case CommandType::eUndefined: [[fallthrough]];
-            case CommandType::eBegin: [[fallthrough]];
-            case CommandType::eEnd: [[fallthrough]];
-            case CommandType::eReset: [[fallthrough]];
-            case CommandType::eEndRenderPass: [[fallthrough]];
-            case CommandType::eNextSubpass: [[fallthrough]];
-            case CommandType::eExecuteCommands: [[fallthrough]];
-            case CommandType::eSetViewport: [[fallthrough]];
-            case CommandType::eSetScissor: [[fallthrough]];
-            case CommandType::eBindPipeline: [[fallthrough]];
-            case CommandType::eBindVertexBuffer: [[fallthrough]];
-            case CommandType::eBindIndexBuffer: [[fallthrough]];
-            case CommandType::eBindBuffer: [[fallthrough]];
-            case CommandType::eBindImageSampler: [[fallthrough]];
-            case CommandType::eDraw: [[fallthrough]];
-            case CommandType::eDrawIndexed: [[fallthrough]];
-            case CommandType::eCopyBuffer2Buffer: [[fallthrough]];
-            case CommandType::eCopyBuffer2Image: [[fallthrough]];
-            case CommandType::ePipelineBarriers: [[fallthrough]];
-            case CommandType::eSetEvent: [[fallthrough]];
-            case CommandType::eWaitEvents: [[fallthrough]];
-            case CommandType::eResetQueryPool: [[fallthrough]];
-            case CommandType::eWriteTimestamp: [[fallthrough]];
-            case CommandType::eCopyQueryPoolResults: [[fallthrough]];
-            case CommandType::eDispatch: [[fallthrough]];
-            case CommandType::eUpdateBuffer: [[fallthrough]];
-            case CommandType::ePushConstants: [[fallthrough]];
-            case CommandType::eBindTexelBuffer: [[fallthrough]];
-            case CommandType::eBlitImage: [[fallthrough]];
-            case CommandType::eCopyImage2Image: [[fallthrough]];
-            case CommandType::eCopyImage2Buffer: [[fallthrough]];
+            case CommandType::eUndefined:               [[fallthrough]];
+            case CommandType::eBegin:                   [[fallthrough]];
+            case CommandType::eEnd:                     [[fallthrough]];
+            case CommandType::eReset:                   [[fallthrough]];
+            case CommandType::eEndRenderPass:           [[fallthrough]];
+            case CommandType::eNextSubpass:             [[fallthrough]];
+            case CommandType::eExecuteCommands:         [[fallthrough]];
+            case CommandType::eSetViewport:             [[fallthrough]];
+            case CommandType::eSetScissor:              [[fallthrough]];
+            case CommandType::eBindPipeline:            [[fallthrough]];
+            case CommandType::eBindVertexBuffer:        [[fallthrough]];
+            case CommandType::eBindIndexBuffer:         [[fallthrough]];
+            case CommandType::eBindBuffer:              [[fallthrough]];
+            case CommandType::eBindImageSampler:        [[fallthrough]];
+            case CommandType::eDraw:                    [[fallthrough]];
+            case CommandType::eDrawIndexed:             [[fallthrough]];
+            case CommandType::eCopyBuffer2Buffer:       [[fallthrough]];
+            case CommandType::eCopyBuffer2Image:        [[fallthrough]];
+            case CommandType::ePipelineBarriers:        [[fallthrough]];
+            case CommandType::eSetEvent:                [[fallthrough]];
+            case CommandType::eWaitEvents:              [[fallthrough]];
+            case CommandType::eResetQueryPool:          [[fallthrough]];
+            case CommandType::eWriteTimestamp:          [[fallthrough]];
+            case CommandType::eCopyQueryPoolResults:    [[fallthrough]];
+            case CommandType::eDispatch:                [[fallthrough]];
+            case CommandType::eUpdateBuffer:            [[fallthrough]];
+            case CommandType::ePushConstants:           [[fallthrough]];
+            case CommandType::eBindTexelBuffer:         [[fallthrough]];
+            case CommandType::eBlitImage:               [[fallthrough]];
+            case CommandType::eCopyImage2Image:         [[fallthrough]];
+            case CommandType::eCopyImage2Buffer:        [[fallthrough]];
             case CommandType::ePrepareImage2HostRead:
                 return;
             case CommandType::eBeginRenderPass: {
-                static_cast<const BeginRenderPassCommand*>(this)->~BeginRenderPassCommand();
+                destroy_command(std::type_identity<BeginRenderPassCommand>{});
                 return;
             }
             case CommandType::eClearAttachments: {
-                static_cast<const ClearAttachmentsCommand*>(this)->~ClearAttachmentsCommand();
+                destroy_command(std::type_identity<ClearAttachmentsCommand>{});
                 return;
             }
         }
