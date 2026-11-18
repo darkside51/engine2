@@ -54,6 +54,6 @@ void main() {
 		
 		const mat3 model3x3 = mat3(model);
 		const vec3 normal = normalize(a_normal * model3x3);
-		v_normal = u_viewParams.viewTransposeInverse * normal;
+		v_normal = u_viewParams.viewTransposeInverse * normal + a_tangent.xyz * 1e-9f;
 	}
 }

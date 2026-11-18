@@ -1358,7 +1358,7 @@ namespace example {
 
         auto colorImageInfoHDR2 = engine::rhi::ImageInfo{
             engine::rhi::ImageUsageFlags::eColor_Attachment | engine::rhi::ImageUsageFlags::eSampled,
-            engine::rhi::Format::eR16G16B16A16_Sfloat, {size.width / 4u, size.height / 4u, 1u}
+            engine::rhi::Format::eR16G16B16A16_Sfloat, {size.width / 2u, size.height / 2u, 1u}
         };
         //colorImageInfoHDR2.memoryExtFlags = engine::rhi::MemoryExtendedFlags::eDedicated;
 
