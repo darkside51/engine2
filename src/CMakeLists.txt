@@ -84,6 +84,9 @@ set(
 	common
 	core
 	device
+
+	ecs
+
 	file
 	graphics
 	graphics/render
