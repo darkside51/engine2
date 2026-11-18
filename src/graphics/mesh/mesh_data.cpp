@@ -12,6 +12,7 @@
 #include <cstring>
 #include <string>
 #include <string_view>
+#include <utility>
 
 namespace engine::graphics::models {
     
@@ -415,9 +416,6 @@ namespace engine::graphics::models {
                     }
                 }
 
-                // stl::vector<uint32_t> indices;
-                // stl::vector<stl::vector<std::byte>> vertices(allowedAttributes.size());
-
                 { // indices
                     const Accessor & accessor = layout.accessors[srcPrimitive.indices];
                     const BufferView & view = layout.bufferViews[accessor.bufferView];
@@ -427,8 +425,6 @@ namespace engine::graphics::models {
                     primitive.firstIndex = static_cast<uint32_t>(indexBufferData.size());
 
                     indexBufferData.resize(primitive.firstIndex + primitive.indexCount);
-                    // indices.resize(primitive.indexCount);
-                    // const auto vertexCount = vertexBuffersData[0u].size() / kDefaultSemanticsSizeBytes[0u];
                     const auto vertexCount = vertexBuffersData[0u].size() / kOptimalSemanticsSizeBytes[0u];
 
                     switch (accessor.componentType) {
@@ -443,7 +439,6 @@ namespace engine::graphics::models {
 									(static_cast<uint32_t>(v2) << 8) | (static_cast<uint32_t>(v3) << 16) | 
 									(static_cast<uint32_t>(v4) << 24));
 								indexBufferData[primitive.firstIndex + index] = v + vertexCount;
-                                // indices[index] = v;
 							}
 								break;
 						case AccessorComponentType::eUnsigned_Short:
@@ -454,13 +449,11 @@ namespace engine::graphics::models {
 								const auto v = static_cast<uint16_t>((static_cast<uint16_t>(v1) << 0) | 
 									(static_cast<uint16_t>(v2) << 8));
 								indexBufferData[primitive.firstIndex + index] = v + vertexCount;
-                                // indices[index] = v;
 							}
 								break;
 						case AccessorComponentType::eUnsigned_Byte:
 							for (uint32_t index = 0u; index < accessor.count; ++index) {
 								indexBufferData[primitive.firstIndex + index] = static_cast<uint32_t>(buffer.data[accessor.offset + view.offset + index]) + vertexCount;
-                                // indices[index] = static_cast<uint32_t>(buffer.data[accessor.offset + view.offset + index]);
 							}
 							break;
 						default:
@@ -488,16 +481,12 @@ namespace engine::graphics::models {
 
                         const auto count = accessor.count;
                         const auto semanticId = std::to_underlying(semantic);
-                        // const auto semanticDimension = kDefaultSemanticsSizeBytes[semanticId];
                         const auto semanticDimension = kOptimalSemanticsSizeBytes[semanticId];
                         const auto targetDataSize = count * semanticDimension;
 
                         auto & vbData = vertexBuffersData[i];
                         const auto currentBufferOffset = vbData.size();
                         vbData.resize(vbData.size() + targetDataSize);
-
-                        // auto & vbData = vertices[i];
-                        // vbData.resize(targetDataSize);
 
                         const BufferView & view = layout.bufferViews[accessor.bufferView];
                         stl::span<const std::byte> bufferViewData = {&layout.buffers[view.buffer].data[accessor.offset + view.offset], count}; // const vector<byte> &
@@ -530,39 +519,39 @@ namespace engine::graphics::models {
                                     switch (targetComponentDimension) {
                                     case 2u:
                                     {
-                                        if (accessor.componentType == AccessorComponentType::eByte || accessor.componentType == AccessorComponentType::eUnsigned_Byte) {
+                                        if (componentType == AccessorComponentType::eByte || componentType == AccessorComponentType::eUnsigned_Byte) {
                                             dst16[targetIndex + j] = src8[sourceIndex + j];
-                                        } else if (accessor.componentType == AccessorComponentType::eShort || accessor.componentType == AccessorComponentType::eUnsigned_Short) {
+                                        } else if (componentType == AccessorComponentType::eShort || componentType == AccessorComponentType::eUnsigned_Short) {
                                             dst16[targetIndex + j] = src16[sourceIndex + j];
-                                        } else if (accessor.componentType == AccessorComponentType::eUnsigned_int) {
+                                        } else if (componentType == AccessorComponentType::eUnsigned_int) {
                                             dst16[targetIndex + j] = static_cast<uint16_t>(src32[sourceIndex + j]);
-                                        }  else if (accessor.componentType == AccessorComponentType::eFloat) {
+                                        }  else if (componentType == AccessorComponentType::eFloat) {
                                             dst16[targetIndex + j] = float_to_uint16(srcf[sourceIndex + j]);
                                         }
                                     }
                                         break;
                                     case 1u:
                                     {
-                                        if (accessor.componentType == AccessorComponentType::eByte || accessor.componentType == AccessorComponentType::eUnsigned_Byte) {
+                                        if (componentType == AccessorComponentType::eByte || componentType == AccessorComponentType::eUnsigned_Byte) {
                                             dst8[targetIndex + j] = src8[sourceIndex + j];
-                                        } else if (accessor.componentType == AccessorComponentType::eShort || accessor.componentType == AccessorComponentType::eUnsigned_Short) {
+                                        } else if (componentType == AccessorComponentType::eShort || componentType == AccessorComponentType::eUnsigned_Short) {
                                             dst8[targetIndex + j] = static_cast<uint8_t>(src16[sourceIndex + j]);
-                                        } else if (accessor.componentType == AccessorComponentType::eUnsigned_int) {
+                                        } else if (componentType == AccessorComponentType::eUnsigned_int) {
                                             dst8[targetIndex + j] = static_cast<uint8_t>(src32[sourceIndex + j]);
-                                        }  else if (accessor.componentType == AccessorComponentType::eFloat) {
+                                        }  else if (componentType == AccessorComponentType::eFloat) {
                                             dst8[targetIndex + j] = float_to_snorm(srcf[sourceIndex + j], 8u);
                                         }
                                     }
                                         break;
                                     case 4u:
                                     {
-                                        if (accessor.componentType == AccessorComponentType::eByte || accessor.componentType == AccessorComponentType::eUnsigned_Byte) {
+                                        if (componentType == AccessorComponentType::eByte || componentType == AccessorComponentType::eUnsigned_Byte) {
                                             dst32[targetIndex + j] = src8[sourceIndex + j];
-                                        } else if (accessor.componentType == AccessorComponentType::eShort || accessor.componentType == AccessorComponentType::eUnsigned_Short) {
+                                        } else if (componentType == AccessorComponentType::eShort || componentType == AccessorComponentType::eUnsigned_Short) {
                                             dst32[targetIndex + j] = src16[sourceIndex + j];
-                                        } else if (accessor.componentType == AccessorComponentType::eUnsigned_int) {
+                                        } else if (componentType == AccessorComponentType::eUnsigned_int) {
                                             dst32[targetIndex + j] = src32[sourceIndex + j];
-                                        }  else if (accessor.componentType == AccessorComponentType::eFloat) {
+                                        }  else if (componentType == AccessorComponentType::eFloat) {
                                             dstf[targetIndex + j] = srcf[sourceIndex + j];
                                         }
                                     }
@@ -583,43 +572,6 @@ namespace engine::graphics::models {
                                     }
                                 }
                             }
-
-
-
-                        // if (accessor.getElementSize() == semanticDimension) {
-                        //     memcpy(&vbData[currentBufferOffset], &bufferViewData[0u], targetDataSize);
-                        //     // memcpy(vbData.data(), bufferViewData.data(), targetDataSize);
-                        // } else { // attribute convertion
-                        //     // assert(false); // need impl
-                        //     switch (acessorType) {
-                        //     case AccessorType::eScalar: {
-                        //         assert(false); // need impl
-                        //     }
-                        //         break;
-                        //     case AccessorType::eVec2: {
-                        //         assert(false); // need impl
-                        //     }
-                        //         break;
-                        //     case AccessorType::eVec3: {
-                        //         assert(false); // need impl
-                        //     }
-                        //         break;
-                        //     case AccessorType::eVec4: {
-                        //         // for unsigned byte
-                        //         uint16_t * target = reinterpret_cast<uint16_t*>(&vbData[currentBufferOffset]);
-                        //         for (uint32_t i = 0u; i < accessor.count; ++i) {
-                        //             const size_t offset = accessor.offset + view.offset + i * 4u;
-                        //             target[i * 4u + 0u] = static_cast<uint16_t>(bufferViewData[i * 4u + 0u]);
-                        //             target[i * 4u + 1u] = static_cast<uint16_t>(bufferViewData[i * 4u + 1u]);
-                        //             target[i * 4u + 2u] = static_cast<uint16_t>(bufferViewData[i * 4u + 2u]);
-                        //             target[i * 4u + 3u] = static_cast<uint16_t>(bufferViewData[i * 4u + 3u]);
-                        //         }
-                        //     }
-                        //         break;
-                            
-                        //     default:
-                        //         break;
-                        //     }
                         }
                     }
                     ++attributeId;
@@ -642,77 +594,6 @@ namespace engine::graphics::models {
                 if (!jointMatrices.empty()) {
                     computePrimitiveSkinnedBounds(layout, srcPrimitive, jointMatrices, primitive);
                 }
-
-                // optimizeBuffers(vertices, indices, allowedAttributes);
-
-                // indexBufferData.reserve(indexBufferData.size() + indices.size());
-                // const auto vertexCount = vertexBuffersData[0u].size() / kDefaultSemanticsSizeBytes[0u];
-                // for (size_t i = 0; i < indices.size(); ++i) {
-                //     indexBufferData.push_back(indices[i] + vertexCount);
-                // }
-
-                // size_t j = 0;
-                // for (auto & vertexBuffer : vertexBuffersData) {
-                //     vertexBuffer.reserve(vertexBuffer.size() + vertices[j].size());
-                //     for (size_t i = 0; i < vertices[j].size(); ++i) {
-                //         vertexBuffer.push_back(vertices[j][i]);
-                //     }
-                //     ++j;
-                // }
-
-////
-
-                // stl::array<stl::pair<size_t, uint32_t>, std::to_underlying(AttributeSemantic::eSemanticsCount)> counts{}; 
-                // for (const auto & [semantic, accessorId] : srcPrimitive.attributes) {
-                //     size_t i = 0u;
-                //     for (auto attributeSemantic : allowedAttributes) {
-                //         if ((attributeSemantic & semantic) == semantic) {
-                //             break;
-                //         }
-                //         ++i;
-                //     }
-
-                //     if (i < allowedAttributes.size()) {
-                //         const Accessor & accessor = layout.accessors[accessorId];
-                //         // counts[i].first += accessor.getElementSize() * accessor.count; // need to get element size from in params (use predefined size for attributes (12 bytes for position, 4 bytes for color...))
-                //         // need to convert data after
-                //         const auto count = accessor.count;
-                //         const auto semanticDimension = kDefaultSemanticsSizeBytes[std::log2(std::to_underlying(semantic))];
-                //         counts[i].first += semanticDimension * count;
-                //         counts[i].second |= 1u << attributeId;
-
-                //         //auto & vbOffset = primitive.vbOffsets[i];
-                //         //auto & vbData = vertexBuffersData[i];
-                //         //vbOffset.offset = vbData.size();
-                //         //vbData.resize(vbData.size() + count * semanticDimension);
-
-                //         // const BufferView & view = layout.bufferViews[accessor.bufferView];
-                //         // const auto componentType = accessor.componentType;
-                //         // const auto type = accessor.type;
-                //     }
-                //     ++attributeId;
-                // }
-
-                // for (size_t j = 0u; j < allowedAttributes.size(); ++j) {
-                //     auto & vbData = vertexBuffersData[j];
-                //     auto & vbOffset = primitive.vbOffsets[j];
-                //     vbOffset.offset = vbData.size();
-                //     vbData.resize(vbData.size() + counts[j].first);
-
-                //     uint32_t attributeId = 0u;
-                //     for (const auto & [semantic, accessorId] : srcPrimitive.attributes) {
-                //         if (counts[j].second & (1u << attributeId)) {
-                //             const Accessor & accessor = layout.accessors[accessorId];
-                //             const BufferView & view = layout.bufferViews[accessor.bufferView];
-
-                //             const auto dataSize = accessor.getElementSize() * accessor.count; // 
-
-                //             // copy per elements data
-                //         }
-                //         ++attributeId;
-                //     }
-                // }
-                // break;
             }
 
             stl::sort(mesh.primitives.begin(), mesh.primitives.end(), [](const auto & a, const auto & b) noexcept {
@@ -778,127 +659,6 @@ namespace engine::graphics::models {
             ++j;
         }
       
-        // for (auto & mesh : meshes) {
-        //     for (auto & primitive : mesh.primitives) {
-                //primitive.firstIndex = remap[primitive.firstIndex];
-        //     }
-        // }
-
-        // // quantize attributes
-        // for (size_t i = 0u; i < allowedAttributes.size(); ++i) {
-        //     if (allowedAttributes[i] == AttributeSemantic::ePosition) {
-        //         constexpr auto quantizePositionSemanticSize = 8u; // eR16G16B16A16_Sfloat // for 4 bytes align
-        //         constexpr auto defaultPositionSemanticSize = kDefaultSemanticsSizeBytes[0u];
-        //         stl::vector<std::byte> vertices(vertexCount * quantizePositionSemanticSize);
-        //         auto & vb = vertexBuffersData[i];
-        //         if (vb.empty()) {
-        //             continue;
-        //         }
-
-        //         for (size_t n = 0u; n < vertexCount; ++n) {
-        //             const float * position = reinterpret_cast<const float*>(&vb[n * defaultPositionSemanticSize]);
-        //             uint16_t * targetPosition = reinterpret_cast<uint16_t*>(&vertices[n * quantizePositionSemanticSize]);
-
-        //             targetPosition[0u] = float_to_uint16(position[0u]);
-        //             targetPosition[1u] = float_to_uint16(position[1u]);
-        //             targetPosition[2u] = float_to_uint16(position[2u]);
-        //             targetPosition[3u] = 0u;
-        //         }
-        //         std::swap(vertices, vb);
-        //     }
-
-        //     if (allowedAttributes[i] == AttributeSemantic::eNormal) {
-        //         constexpr auto quantizeNormalSemanticSize = 4u; // eR8G8B8A8_Snorm // for 4 bytes align
-        //         constexpr auto defaultNormalSemanticSize = kDefaultSemanticsSizeBytes[1u];
-        //         stl::vector<std::byte> vertices(vertexCount * quantizeNormalSemanticSize);
-        //         auto & vb = vertexBuffersData[i];
-        //         if (vb.empty()) {
-        //             continue;
-        //         }
-
-        //         for (size_t n = 0u; n < vertexCount; ++n) {
-        //             const float * normal = reinterpret_cast<const float*>(&vb[n * defaultNormalSemanticSize]);
-
-        //             vertices[n * quantizeNormalSemanticSize + 0u] = static_cast<std::byte>(float_to_snorm(normal[0u], 8u));
-        //             vertices[n * quantizeNormalSemanticSize + 1u] = static_cast<std::byte>(float_to_snorm(normal[1u], 8u));
-        //             vertices[n * quantizeNormalSemanticSize + 2u] = static_cast<std::byte>(float_to_snorm(normal[2u], 8u));
-        //             vertices[n * quantizeNormalSemanticSize + 3u] = std::byte{0u};
-        //         }
-        //         std::swap(vertices, vb);
-        //     }
-
-        //     if (allowedAttributes[i] == AttributeSemantic::eUv0) {
-        //         constexpr auto quantizeUvSemanticSize = 4u; // eR16G16_Sfloat
-        //         constexpr auto defaultUvSemanticSize = kDefaultSemanticsSizeBytes[9u];
-        //         stl::vector<std::byte> vertices(vertexCount * quantizeUvSemanticSize);
-        //         auto & vb = vertexBuffersData[i];
-        //         if (vb.empty()) {
-        //             continue;
-        //         }
-
-        //         for (size_t n = 0u; n < vertexCount; ++n) {
-        //             const float * uv = reinterpret_cast<const float*>(&vb[n * defaultUvSemanticSize]);
-        //             uint16_t * targetUv = reinterpret_cast<uint16_t*>(&vertices[n * quantizeUvSemanticSize]);
-        //             targetUv[0u] = float_to_uint16(uv[0u]);
-        //             targetUv[1u] = float_to_uint16(uv[1u]);
-        //             // const uint16_t u = float_to_unorm(uv[0u], 16u);
-        //             // const uint16_t v = float_to_unorm(uv[1u], 16u);
-
-        //             // vertices[n * quantizeUvSemanticSize + 0u] = static_cast<std::byte>(u);
-        //             // vertices[n * quantizeUvSemanticSize + 1u] = static_cast<std::byte>(u >> 8u);
-        //             // vertices[n * quantizeUvSemanticSize + 2u] = static_cast<std::byte>(v);
-        //             // vertices[n * quantizeUvSemanticSize + 3u] = static_cast<std::byte>(v >> 8u);
-        //         }
-        //         std::swap(vertices, vb);
-        //     }
-
-        //     if (allowedAttributes[i] == AttributeSemantic::eJoints) { // support 256 bones max if it enabled!
-        //         constexpr auto quantizeSemanticSize = 4u; // eR8G8B8A8_Uint
-        //         constexpr auto defaultSemanticSize = kDefaultSemanticsSizeBytes[7u];
-        //          stl::vector<std::byte> vertices(vertexCount * quantizeSemanticSize);
-        //         auto & vb = vertexBuffersData[i];
-        //         if (vb.empty()) {
-        //             continue;
-        //         }
-
-        //         for (size_t n = 0u; n < vertexCount; ++n) {
-        //             const auto * value = reinterpret_cast<const uint16_t*>(&vb[n * defaultSemanticSize]);
-        //             auto * targetValue = reinterpret_cast<uint8_t*>(&vertices[n * quantizeSemanticSize]);
-
-        //             targetValue[0u] = static_cast<uint8_t>(value[0u]);
-        //             targetValue[1u] = static_cast<uint8_t>(value[1u]);
-        //             targetValue[2u] = static_cast<uint8_t>(value[2u]);
-        //             targetValue[3u] = static_cast<uint8_t>(value[3u]);
-        //         }
-        //         std::swap(vertices, vb);
-        //     }
-
-        //     if (allowedAttributes[i] == AttributeSemantic::eWeights) {
-        //         constexpr auto quantizeSemanticSize = 8u; // eR16G16B16A16_Sfloat
-        //         constexpr auto defaultSemanticSize = kDefaultSemanticsSizeBytes[8u];
-        //          stl::vector<std::byte> vertices(vertexCount * quantizeSemanticSize);
-        //         auto & vb = vertexBuffersData[i];
-        //         if (vb.empty()) {
-        //             continue;
-        //         }
-
-        //         for (size_t n = 0u; n < vertexCount; ++n) {
-        //             const float * value = reinterpret_cast<const float*>(&vb[n * defaultSemanticSize]);
-        //             uint16_t * targetValue = reinterpret_cast<uint16_t*>(&vertices[n * quantizeSemanticSize]);
-
-        //             targetValue[0u] = float_to_uint16(value[0u]);
-        //             targetValue[1u] = float_to_uint16(value[1u]);
-        //             targetValue[2u] = float_to_uint16(value[2u]);
-        //             targetValue[3u] = float_to_uint16(value[3u]);
-        //         }
-        //         std::swap(vertices, vb);
-        //     }
-        // }
-
-        // NOTE: tangents are generated in loadMeshes, before the vertex streams are remapped,
-        // because the quantized buffers (snorm8 normals, half float positions/uvs) are not
-        // precise enough to build a good tangent basis.
-
         ////
         for (auto & vertexBuffer : vertexBuffersData) {
             vertexBuffer.shrink_to_fit();
@@ -911,23 +671,6 @@ namespace engine::graphics::models {
 	void MeshData::loadNodes(const Layout & layout) {
 		sceneNodes = layout.scenes[layout.scene].nodes;
 		nodes = layout.nodes; // copy data
-
-        // auto loadMeshNode = [&](const auto & self, uint16_t nodeId) noexcept -> void {
-        //     const auto & node = nodes[nodeId];
-
-        //     // if (node.mesh != kInvalidValue) {
-        //     //     meshes[node.mesh].nodeIndex = nodeId;
-        //     //     meshes[node.mesh].skinIndex = node.skin;
-        //     // }
-
-        //     for (uint16_t cNodeId : node.children) {
-		// 	    self(self, cNodeId);
-		//     }
-        // };
-
-		// for (uint16_t nodeId : sceneNodes) {
-		// 	loadMeshNode(loadMeshNode, nodeId);
-		// }
 	}
 
     void MeshData::loadSkins(const Layout & layout) {
@@ -946,7 +689,7 @@ namespace engine::graphics::models {
                 skinMatricesCount += accessor.count;
             }
         }
-        assert(skinMatricesCount <= 0xffu); // support 256 bones max if enabled uint8_t joints!
+        assert(skinMatricesCount <= 0xffu); // support 256u bones max if enabled uint8_t joints!
     }
 
     void MeshData::loadAnimations(const Layout & layout) {
@@ -1050,80 +793,5 @@ namespace engine::graphics::models {
             ++i;
         }
 	}
-
-    // void MeshData::loadMaterials(const Layout & layout, const FileManager & fileManager, TextureManager & textureManager, std::string_view name) {
-    //     auto const loadTexture = [&layout, &fileManager, &textureManager](uint16_t index, std::string_view name) -> ImageFrame2D {
-    //         if (index == kInvalidValue) {
-    //             return {};
-    //         }
-
-    //         const auto & texture = layout.textures[index];
-    //         const auto & image = layout.images[texture.source];
-
-    //         if (image.bufferView != kInvalidValue) {
-    //             const auto & bufferView = layout.bufferViews[image.bufferView];
-    //             const auto & buffer = layout.buffers[bufferView.buffer];
-    //             const std::byte * begin = &buffer.data[bufferView.offset];
-    //             auto textureData = engine::graphics::parseTextureData({begin, begin + bufferView.length});
-    //             engine::graphics::convertTextureDataFormat(engine::rhi::Format::eR8G8B8A8_Unorm, textureData); // ??
-    //             if (!image.name.empty()) {
-    //                 return textureManager.addFrame(image.name, std::move(textureData));
-    //             } else {
-    //                 return textureManager.addFrame(std::string{name} + std::to_string(index), std::move(textureData));
-    //             }
-    //         }
-    //         if (!image.uri.empty()) {
-    //             auto const imageBytes = fileManager.readFile(image.uri);
-    //             auto textureData = engine::graphics::parseTextureData(imageBytes);
-    //             engine::graphics::convertTextureDataFormat(engine::rhi::Format::eR8G8B8A8_Unorm, textureData); // ??
-    //             if (!image.name.empty()) {
-    //                 return textureManager.addFrame(image.name, std::move(textureData));
-    //             } else {
-    //                 return textureManager.addFrame(std::string{name} + std::to_string(index), std::move(textureData));
-    //             }
-    //         }
-
-    //         return {};
-    //     };
-
-    //     materials.reserve(layout.materials.size());
-
-    //     for (const auto & srcMaterial : layout.materials) {
-    //         auto & material = materials.emplace_back();
-    //         material.baseColorFactor = {
-    //             srcMaterial.pbrMetallicRoughness.baseColorFactor.x,
-    //             srcMaterial.pbrMetallicRoughness.baseColorFactor.y,
-    //             srcMaterial.pbrMetallicRoughness.baseColorFactor.z,
-    //             srcMaterial.pbrMetallicRoughness.baseColorFactor.w
-    //         };
-    //         material.emissiveFactor = {
-    //             srcMaterial.emissiveFactor.x,
-    //             srcMaterial.emissiveFactor.y,
-    //             srcMaterial.emissiveFactor.z,
-    //         };
-    //         material.metallicFactor = srcMaterial.pbrMetallicRoughness.metallicFactor;
-    //         material.roughnessFactor = srcMaterial.pbrMetallicRoughness.roughnessFactor;
-    //         material.alphaCutoff = srcMaterial.alphaCutoff;
-    //         switch (srcMaterial.alphaMode) {
-    //         case AlphaMode::eOpaque:
-    //             material.blendMode = rhi::common_blend_modes::blend_none;
-    //             break;
-    //         case AlphaMode::eMask:
-    //             material.blendMode = rhi::common_blend_modes::blend_multiply; // ?
-    //             break;
-    //         case AlphaMode::eBlend:
-    //             material.blendMode = rhi::common_blend_modes::blend_alpha_pma; // ?
-    //             break;
-    //         }
-
-    //         material.cullMode = srcMaterial.doubleSided ? rhi::CullMode::eNone : rhi::CullMode::eBack;
-
-    //         material.textures[static_cast<uint8_t>(TextureId::eBaseColor)] = loadTexture(srcMaterial.pbrMetallicRoughness.baseColorTexture.index, name);
-    //         material.textures[static_cast<uint8_t>(TextureId::eNormal)] = loadTexture(srcMaterial.normalTexture.index, name);
-    //         material.textures[static_cast<uint8_t>(TextureId::eMetallicRoughness)] = loadTexture(srcMaterial.pbrMetallicRoughness.metallicRoughnessTexture.index, name);
-    //         material.textures[static_cast<uint8_t>(TextureId::eOccolusion)] = loadTexture(srcMaterial.occlusionTexture.index, name);
-    //         material.textures[static_cast<uint8_t>(TextureId::eEmissive)] = loadTexture(srcMaterial.emissiveTexture.index, name);
-    //     }
-    // }
 
 }
