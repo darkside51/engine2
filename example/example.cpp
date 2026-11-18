@@ -1356,6 +1356,12 @@ namespace example {
         };
         colorImageInfoHDR.memoryExtFlags = engine::rhi::MemoryExtendedFlags::eDedicated;
 
+        auto colorImageInfoHDR2 = engine::rhi::ImageInfo{
+            engine::rhi::ImageUsageFlags::eColor_Attachment | engine::rhi::ImageUsageFlags::eSampled,
+            engine::rhi::Format::eR16G16B16A16_Sfloat, {size.width / 2, size.height / 2, 1u}
+        };
+        colorImageInfoHDR2.memoryExtFlags = engine::rhi::MemoryExtendedFlags::eDedicated;
+
         auto depthImageInfo = engine::rhi::ImageInfo{
             engine::rhi::ImageUsageFlags::eDepth_Stencil_Attachment | 
             /*engine::rhi::ImageUsageFlags::eTransient_Attachment |*/ 
@@ -1377,8 +1383,8 @@ namespace example {
                 _api->createImage(*_device, colorImageInfo8888),                // normal
                 _api->createImage(*_device, colorImageInfo8888),                // albedo
                 _api->createImage(*_device, colorImageInfoHDR),                 // emissive (sharp)
-                _api->createImage(*_device, colorImageInfoHDR),                 // emissive2 (bloom ping-pong)
-                _api->createImage(*_device, colorImageInfoHDR),                 // emissiveBloom (bloom result)
+                _api->createImage(*_device, colorImageInfoHDR2),                // emissiveBloom (bloom ping-pong)
+                _api->createImage(*_device, colorImageInfoHDR2),                // emissiveBloom2 (bloom result)
                 _api->createImage(*_device, depthImageInfo),                    // depth
                 _api->createImage(*_device, metallicRoughnessColorImageInfo)    // metallicRoughness
             );
@@ -1430,10 +1436,10 @@ namespace example {
         _emissiveBluredBuffers.clear();
         _emissiveBluredBuffers.reserve(framesCount * 2u);
         auto && blurRenderPass = graphicsService->getRenderPassManager().getRenderPass(gBlurRenderPass);
-        // even bloom passes render into emissive2, odd ones into emissiveBloom (which keeps the final result)
+        // even bloom passes render into emissiveBloom, odd ones into emissiveBloom2 (which keeps the final result)
         for (uint32_t i = 0u; i < framesCount; ++i) {
             engine::stl::vector<engine::rhi::FrameBufferAttachment> fbAttachemnts{1u};
-            auto & image = _gBufferAttachments[i].emissive2;
+            auto & image = _gBufferAttachments[i].emissiveBloom;
             fbAttachemnts[0u].image = image.get();
             fbAttachemnts[0u].imageSize = {image->getExtent().width, image->getExtent().height};
 
@@ -1442,7 +1448,7 @@ namespace example {
 
         for (uint32_t i = 0u; i < framesCount; ++i) {
             engine::stl::vector<engine::rhi::FrameBufferAttachment> fbAttachemnts{1u};
-            auto & image = _gBufferAttachments[i].emissiveBloom;
+            auto & image = _gBufferAttachments[i].emissiveBloom2;
             fbAttachemnts[0u].image = image.get();
             fbAttachemnts[0u].imageSize = {image->getExtent().width, image->getExtent().height};
 
@@ -3191,7 +3197,7 @@ namespace example {
             engine::vec4f blurUniform{emissiveBlurScale, 1.0f, 1.0f, 0.0f};
 
             bool horizontal = true;
-            for (uint8_t i = 0u; i < bloomPassesCount; ++i) { // ping - pong between emissive2 and emissiveBloom
+            for (uint8_t i = 0u; i < bloomPassesCount; ++i) { // ping - pong between emissiveBloom2 and emissiveBloom
                 const bool isFirstPass = (i == 0u);
                 const bool isLastPass = (i + 1u == bloomPassesCount);
                 const bool targetBloom = (i & 1u) != 0u;
@@ -3204,9 +3210,14 @@ namespace example {
                 auto & target = _emissiveBluredBuffers[frameId + (targetBloom ? imagesCount : 0u)];
                 const auto & source = isFirstPass
                     ? _gBufferAttachments[frameId].emissive
-                    : (targetBloom ? _gBufferAttachments[frameId].emissive2 : _gBufferAttachments[frameId].emissiveBloom);
+                    : (targetBloom ? _gBufferAttachments[frameId].emissiveBloom : _gBufferAttachments[frameId].emissiveBloom2);
 
-                commandList->beginRenderPass(blurRenderPass, target, clearValues, {{0, 0}, {width, height}});
+                const auto & extent = _gBufferAttachments[frameId].emissiveBloom->getExtent();
+
+                commandList->setViewport(0.0f, 0.0f, extent.width, extent.height);
+                commandList->setScissor({{0, 0}, {extent.width, extent.height}});
+
+                commandList->beginRenderPass(blurRenderPass, target, clearValues, {{0, 0}, {extent.width, extent.height}});
 
                 commandList->bindPipeline(_pipelines[kEmissiveBlurPipeline]);
                 commandList->bindVertexBuffer(0u, _postPositions);
@@ -3221,9 +3232,13 @@ namespace example {
             }
         } else {
             // no bloom this frame - clear the target so the composite does not use a stale frame
-            commandList->beginRenderPass(blurRenderPass, _emissiveBluredBuffers[frameId + imagesCount], clearValues, {{0, 0}, {width, height}});
-            commandList->endRenderPass();
+           const auto & extent = _gBufferAttachments[frameId].emissiveBloom->getExtent();
+           commandList->beginRenderPass(blurRenderPass, _emissiveBluredBuffers[frameId + imagesCount], clearValues, {{0, 0}, {extent.width, extent.height}});
+           commandList->endRenderPass();
         }
+
+        commandList->setViewport(0.0f, 0.0f, width, height);
+        commandList->setScissor({{0, 0}, {width, height}});
 
         // color picker pass
         colorPicker->beginRenderPass(*commandList, frameId, {width, height}, {sceneGraphicsParams.cursorPosition});
@@ -3288,7 +3303,7 @@ namespace example {
         commandList->bindBuffer(6u, (*shadowMapUniformBuffer)(frameId), 0u, 0u);
 
         commandList->bindImage(0u, _gBufferAttachments[frameId].emissive, linearSampler, 1u);
-        commandList->bindImage(1u, _gBufferAttachments[frameId].emissiveBloom, linearSampler, 1u);
+        commandList->bindImage(1u, _gBufferAttachments[frameId].emissiveBloom2, linearSampler, 1u);
 
         // commandList->bindImage(
         //     0u, interriorCubeMapImage, linearSampler, 1u, 
