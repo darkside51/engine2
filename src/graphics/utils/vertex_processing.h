@@ -75,10 +75,13 @@ stl::vector<vec4f> generateTangents(
     stl::span<const uint32_t> indices
 );
 
+// generates 4D tangents and packs them into R8G8B8A8_Snorm (4 bytes per vertex).
+// Input data must be full precision (unquantized): using snorm8 normals or half float
+// positions/uvs for the tangent basis generation noticeably degrades its quality.
 stl::vector<std::byte> generateTangentsCompressed(
-    stl::span<const uint16_t> positions,
-    stl::span<const int8_t> normals,
-    stl::span<const uint16_t> uvs,
+    stl::span<const vec3f> positions,
+    stl::span<const vec3f> normals,
+    stl::span<const vec2f> uvs,
     stl::span<const uint32_t> indices
 );
 

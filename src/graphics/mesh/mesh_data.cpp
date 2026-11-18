@@ -134,6 +134,110 @@ namespace engine::graphics::models {
            return buffer.data.data() + view.offset + accessor.offset + static_cast<size_t>(index) * stride;
        }
 
+       // reads an accessor element as a full precision vec3 (any source component type)
+       inline vec3f readAccessorVec3(const Layout & layout, const Accessor & accessor, uint32_t index) noexcept {
+           const std::byte * data = getAccessorElement(layout, accessor, index);
+           const auto typeSize = getTypeSize(accessor.componentType);
+           const auto components = std::min(accessor.componentsCount(), uint8_t{3u});
+
+           vec3f result{0.0f};
+           for (uint8_t i = 0u; i < components; ++i) {
+               result[i] = readAccessorComponent(data + i * typeSize, accessor.componentType, accessor.normalized);
+           }
+           return result;
+       }
+
+       // reads an accessor element as a full precision vec2 (any source component type)
+       inline vec2f readAccessorVec2(const Layout & layout, const Accessor & accessor, uint32_t index) noexcept {
+           const std::byte * data = getAccessorElement(layout, accessor, index);
+           const auto typeSize = getTypeSize(accessor.componentType);
+           const auto components = std::min(accessor.componentsCount(), uint8_t{2u});
+
+           vec2f result{0.0f};
+           for (uint8_t i = 0u; i < components; ++i) {
+               result[i] = readAccessorComponent(data + i * typeSize, accessor.componentType, accessor.normalized);
+           }
+           return result;
+       }
+
+       // Generates 4D tangents packed as R8G8B8A8_Snorm (4 bytes per vertex) for the primitive.
+       // Generation is done on the original accessor data, i.e. before quantization: snorm8
+       // normals and half float positions/uvs are not precise enough to build a good TBN basis.
+       // The result is appended to the tangent vertex stream before the mesh optimizer remaps it,
+       // so the generated tangents are remapped together with all the other streams.
+       stl::vector<std::byte> generatePrimitiveTangents(const Layout & layout, const Primitives & srcPrimitive) {
+           uint16_t positionAccessorId = kInvalidValue;
+           uint16_t normalAccessorId = kInvalidValue;
+           uint16_t uvAccessorId = kInvalidValue;
+
+           for (const auto & [semantic, accessorId] : srcPrimitive.attributes) {
+               switch (semantic) {
+               case AttributeSemantic::ePosition: positionAccessorId = accessorId; break;
+               case AttributeSemantic::eNormal: normalAccessorId = accessorId; break;
+               case AttributeSemantic::eUv0: uvAccessorId = accessorId; break;
+               default: break;
+               }
+           }
+
+           if (positionAccessorId == kInvalidValue || srcPrimitive.indices == kInvalidValue) {
+               return {};
+           }
+
+           const auto & positionsAccessor = layout.accessors[positionAccessorId];
+           if (!isAccessorReadable(layout, positionsAccessor)) {
+               return {};
+           }
+
+           const auto vertexCount = positionsAccessor.count;
+
+           const bool hasNormal = normalAccessorId != kInvalidValue && normalAccessorId < layout.accessors.size()
+               && isAccessorReadable(layout, layout.accessors[normalAccessorId]);
+           const bool hasUv = uvAccessorId != kInvalidValue && uvAccessorId < layout.accessors.size()
+               && isAccessorReadable(layout, layout.accessors[uvAccessorId]);
+
+           if (!hasNormal || !hasUv) {
+               // there is no source data to build a meaningful tangent basis - emit defaults
+               // so the tangent stream stays aligned with the other vertex streams
+               stl::vector<std::byte> fallback(vertexCount * 4u);
+               for (size_t i = 0u; i < vertexCount; ++i) {
+                   fallback[i * 4u + 0u] = static_cast<std::byte>(float_to_snorm(1.0f, 8u));
+                   fallback[i * 4u + 1u] = std::byte{0u};
+                   fallback[i * 4u + 2u] = std::byte{0u};
+                   fallback[i * 4u + 3u] = static_cast<std::byte>(float_to_snorm(1.0f, 8u));
+               }
+               return fallback;
+           }
+
+           const auto & normalsAccessor = layout.accessors[normalAccessorId];
+           const auto & uvsAccessor = layout.accessors[uvAccessorId];
+
+           const auto & indicesAccessor = layout.accessors[srcPrimitive.indices];
+           if (!isAccessorReadable(layout, indicesAccessor)) {
+               return {};
+           }
+
+           stl::vector<vec3f> positions(vertexCount);
+           stl::vector<vec3f> normals(vertexCount);
+           stl::vector<vec2f> uvs(vertexCount);
+
+           for (uint32_t i = 0u; i < vertexCount; ++i) {
+               positions[i] = readAccessorVec3(layout, positionsAccessor, i);
+               normals[i] = readAccessorVec3(layout, normalsAccessor, i);
+               uvs[i] = readAccessorVec2(layout, uvsAccessor, i);
+           }
+
+           // triangle lists only (the rest of the loader makes the same assumption)
+           const auto indexCount = indicesAccessor.count - (indicesAccessor.count % 3u);
+
+           stl::vector<uint32_t> indices(indexCount);
+           for (uint32_t i = 0u; i < indexCount; ++i) {
+               const auto index = readAccessorIndex(getAccessorElement(layout, indicesAccessor, i), indicesAccessor.componentType);
+               indices[i] = index < vertexCount ? index : 0u;
+           }
+
+           return generateTangentsCompressed(positions, normals, uvs, indices);
+       }
+
        // Bounds of the primitive after skinning: vertices are transformed exactly as the
        // skinning shader does (weighted sum of jointMatrix * position). This is required
        // because the default pose of a skeleton may differ from its bind pose, so neither
@@ -293,6 +397,23 @@ namespace engine::graphics::models {
                 auto & primitive = mesh.primitives.emplace_back();
                 primitive.material = srcPrimitive.material;
                 primitive.primitiveMode = srcPrimitive.mode;
+
+                // position of the tangent stream in the vertex buffers layout
+                size_t tangentAttributeIndex = allowedAttributes.size();
+                for (size_t i = 0u; i < allowedAttributes.size(); ++i) {
+                    if (allowedAttributes[i] == AttributeSemantic::eTangent) {
+                        tangentAttributeIndex = i;
+                        break;
+                    }
+                }
+
+                bool hasSourceTangents = false;
+                for (const auto & [semantic, accessorId] : srcPrimitive.attributes) {
+                    if (semantic == AttributeSemantic::eTangent) {
+                        hasSourceTangents = true;
+                        break;
+                    }
+                }
 
                 // stl::vector<uint32_t> indices;
                 // stl::vector<stl::vector<std::byte>> vertices(allowedAttributes.size());
@@ -502,6 +623,20 @@ namespace engine::graphics::models {
                         }
                     }
                     ++attributeId;
+                }
+
+                // tangents are generated from the original full precision accessor data
+                // (instead of the quantized vertex buffers) and before the mesh optimizer
+                // remaps the vertex streams, so the optimizer remaps the generated tangents
+                // together with all the other attributes
+                if (tangentAttributeIndex < allowedAttributes.size() && !hasSourceTangents) {
+                    const auto tangents = generatePrimitiveTangents(layout, srcPrimitive);
+                    auto & tangentBuffer = vertexBuffersData[tangentAttributeIndex];
+                    const auto offset = tangentBuffer.size();
+                    tangentBuffer.resize(offset + tangents.size());
+                    if (!tangents.empty()) {
+                        std::memcpy(&tangentBuffer[offset], tangents.data(), tangents.size());
+                    }
                 }
 
                 if (!jointMatrices.empty()) {
@@ -760,19 +895,9 @@ namespace engine::graphics::models {
         //     }
         // }
 
-        const bool useTangents = std::find(allowedAttributes.begin(), allowedAttributes.end(), AttributeSemantic::eTangent) != allowedAttributes.end();
-
-        if (useTangents && vertexBuffersData[2u].empty()) { // generate tangents
-            auto src16p = stl::span(reinterpret_cast<const uint16_t*>(vertexBuffersData[0u].data()), vertexBuffersData[0u].size() / sizeof(uint16_t));
-            auto src8n = stl::span(reinterpret_cast<const int8_t*>(vertexBuffersData[1u].data()), vertexBuffersData[1u].size() / sizeof(int8_t));
-            auto src16uv = stl::span(reinterpret_cast<const uint16_t*>(vertexBuffersData[3u].data()), vertexBuffersData[3u].size() / sizeof(uint16_t));
-            vertexBuffersData[2u] = generateTangentsCompressed(
-                src16p,
-                src8n,
-                src16uv,
-                indexBufferData
-            );
-        }
+        // NOTE: tangents are generated in loadMeshes, before the vertex streams are remapped,
+        // because the quantized buffers (snorm8 normals, half float positions/uvs) are not
+        // precise enough to build a good tangent basis.
 
         ////
         for (auto & vertexBuffer : vertexBuffersData) {
