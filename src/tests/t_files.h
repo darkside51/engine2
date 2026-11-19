@@ -30,7 +30,7 @@ namespace engine::tests {
             const auto * fsystem2 = fm.getFileSystem("main");
             fm.mapFileSystem(fsystem);
 
-            ENGINE_BREAK_CONDITION(fsystem2 == fsystem);
+            ENGINE_BREAK_IF_NOT(fsystem2 == fsystem);
 
             result = fsystem->createDirectory("res/1/2");
             LOG_I("folder create: %s", result ? "success" : "error");

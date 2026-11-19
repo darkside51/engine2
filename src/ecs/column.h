@@ -15,6 +15,7 @@ namespace engine::ecs {
 
 class Column {
     using Row = uint32_t;
+    
 public:
     Column() = delete;
 

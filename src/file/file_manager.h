@@ -21,7 +21,7 @@ namespace engine {
 		T* createFileSystem(std::string_view name, Args && ...args) {
 			threads::WriteLock lock(_rwLock);
             auto [it, success] = _fileSystems.emplace(name, std::make_unique<T>(std::forward<Args>(args)...));
-			ENGINE_BREAK_CONDITION2(success, fmt_string("file system with name \"%s\" already exist", name.data()));
+			ENGINE_BREAK_IF_NOT2(success, fmt_string("file system with name \"%s\" already exist", name.data()));
 			return static_cast<T*>(it->second.get());
         }
 		

@@ -20,11 +20,11 @@ namespace engine::vulkan {
             break;
         case VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT:
             LOG_E("vulkan error: %s", pCallbackData->pMessage);
-            ENGINE_BREAK
+            ENGINE_BREAK()
             break;
         case VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT: 
             LOG_D("vulkan warning: %s", pCallbackData->pMessage);
-            ENGINE_BREAK
+            ENGINE_BREAK()
             break;
         default:
             break;

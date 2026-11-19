@@ -49,18 +49,18 @@ namespace engine::tests {
             auto * mem5 = poolChain.alloc();
             auto * mem6 = poolChain.alloc();
 
-            ENGINE_BREAK_CONDITION(mem4 == mem3);
-            ENGINE_BREAK_CONDITION(mem5 == mem1);
-            ENGINE_BREAK_CONDITION(mem6 == mem0);
+            ENGINE_BREAK_IF_NOT(mem4 == mem3);
+            ENGINE_BREAK_IF_NOT(mem5 == mem1);
+            ENGINE_BREAK_IF_NOT(mem6 == mem0);
 
             auto * val0 = new(mem6) A{10, 20, [](){ return 121; }};
             auto * val1 = new(mem5) A{11, 22, [](){ return 222; }};
 
             auto * val2 = poolChain.create<A>(12, 23, [](){ return 123; });
 
-            ENGINE_BREAK_CONDITION(val0->v2() == 121);
-            ENGINE_BREAK_CONDITION(val1->v2() == 222);
-            ENGINE_BREAK_CONDITION(val2->v2() == 123);
+            ENGINE_BREAK_IF_NOT(val0->v2() == 121);
+            ENGINE_BREAK_IF_NOT(val1->v2() == 222);
+            ENGINE_BREAK_IF_NOT(val2->v2() == 123);
         }
 
         void stackAllocator() {}
