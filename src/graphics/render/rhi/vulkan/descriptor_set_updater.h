@@ -19,7 +19,7 @@ namespace engine::vulkan {
     class Device;
     class Buffer;
     class Image;
-    class DescriptorSet;
+    struct DescriptorSet;
 
     class DescriptorSetUpdater {
     public:

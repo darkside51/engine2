@@ -27,6 +27,10 @@
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+#if defined(_MSC_VER)
+#define _USE_MATH_DEFINES
+#endif
+
 #include <algorithm>
 #include <concepts>
 #include <cstdint>
@@ -138,7 +142,7 @@ namespace engine {
     inline static const vec3f emptyVec3     = vec3f(0.0f, 0.0f, 0.0f);
     inline static const vec3f unitVec3      = vec3f(1.0f, 1.0f, 1.0f);
 
-    inline constexpr uint16_t to_float16(float value) noexcept {
+    inline uint16_t to_float16(float value) noexcept {
         return glm::packHalf1x16(value);
     }
 
@@ -170,7 +174,7 @@ namespace engine {
         return t * t * (T(3) - T(2) * t);
     }
 
-    inline constexpr float inv_sqrt(const float x) noexcept { // "инверсный(1.0f / sqrt) квадратный корень Кармака"
+    inline float inv_sqrt(const float x) noexcept { // "инверсный(1.0f / sqrt) квадратный корень Кармака"
         const float xhalf = 0.5f * x;
         union {
             float x = 0.0f;
@@ -183,15 +187,15 @@ namespace engine {
     }
 
     template <typename T, typename U>
-    inline constexpr T div_ceil(T numerator, U denominator) {
+    inline T div_ceil(T numerator, U denominator) noexcept {
         return (numerator + denominator - 1u) / denominator;
     }
 
-    inline constexpr bool is_pow2(uint32_t n) noexcept {
+    inline bool is_pow2(uint32_t n) noexcept {
         return !(n & (n - 1u));
     }
 
-    inline constexpr uint32_t next_pow2(uint32_t v) noexcept {
+    inline uint32_t next_pow2(uint32_t v) noexcept {
         if (v == 0u) return 1u;
         --v;
         v |= v >> 1u;
@@ -204,12 +208,12 @@ namespace engine {
     }
 
     template<typename T>
-    inline constexpr int32_t sign(T && val) noexcept {
+    inline int32_t sign(T && val) noexcept {
         return (T(0) < val) - (val < T(0));
     }
 
     template<typename T>
-    inline constexpr T fract(T x) noexcept {
+    inline T fract(T x) noexcept {
         return x - std::floor(x);
     }
 
@@ -253,11 +257,11 @@ namespace engine {
     using interval2u = interval<2u, uint32_t>;
     using interval3u = interval<3u, uint32_t>;
 
-    inline constexpr vec2f ndcToScreen(vec2f p, vec2f size) noexcept {
+    inline vec2f ndcToScreen(vec2f p, vec2f size) noexcept {
         return (p * 0.5f + 0.5f) * size;
     } 
 
-    inline constexpr vec2f screenToNdc(vec2f p, vec2f size) noexcept {
+    inline vec2f screenToNdc(vec2f p, vec2f size) noexcept {
         return (2.0f * p / size) - 1.0f;
     } 
 

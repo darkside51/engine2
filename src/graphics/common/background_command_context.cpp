@@ -7,14 +7,14 @@ namespace engine::graphics {
         _worker(worker), 
         _frameIndex(std::max(frames, uint8_t{2u})) // min 2u to begin new command buffer after grab task on current
     {
-        _worker->emplaceTasks(stl::make_vector(threads::WorkerTask{[this]() mutable {
+        _worker->emplaceTask(threads::WorkerTask{[this]() mutable {
                 auto * commandPool = _device.acquireCommandPool(engine::rhi::queue_flags::transfer);
                 _commandLists.resize(_frameIndex.size());
                 for (auto & commandList : _commandLists) {
                     commandList = _api.createCommandList(commandPool, engine::rhi::CommandBufferLevel::ePrimary);
                 }
                 _commandLists[0u]->begin(engine::rhi::CommandBufferUsageFlags::eOne_Time_Submit);
-            }}));
+            }});
     }
 
     BackgroundCommandContext::~BackgroundCommandContext() {

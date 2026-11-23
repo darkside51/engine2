@@ -1,5 +1,7 @@
 #pragma once
 
+#if not  defined(_MSC_VER)
+
 #ifdef CHECK_MEMORY_LEAKS
 
 #include <cstdint>
@@ -16,3 +18,4 @@ extern thread_local uint32_t __line__;
 
 #endif
 
+#endif

@@ -13,6 +13,21 @@
 
 // common
 #include <cassert>
+#include <cstring>
+#include <limits>
+
+// stb_image (fallback-декодер JPEG/PNG: в sail эти кодеки требуют libjpeg/libpng)
+#if defined(_MSC_VER)
+    #pragma warning(push, 0)
+#endif
+#define STBI_NO_STDIO
+#define STBI_ONLY_JPEG
+#define STBI_ONLY_PNG
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb_image.h>
+#if defined(_MSC_VER)
+    #pragma warning(pop)
+#endif
 
 namespace engine::graphics {
 namespace ktx_format {
@@ -532,6 +547,108 @@ namespace sail_format {
     }
 }
 
+namespace stb_format {
+    bool isSupported(stl::span<const std::byte> bytes) noexcept {
+        if (bytes.size() >= 3u) {
+            const auto * data = reinterpret_cast<const uint8_t*>(bytes.data());
+            // JPEG: FF D8 FF
+            if (data[0u] == 0xFFu && data[1u] == 0xD8u && data[2u] == 0xFFu) {
+                return true;
+            }
+        }
+
+        if (bytes.size() >= 8u) {
+            const auto * data = reinterpret_cast<const uint8_t*>(bytes.data());
+            // PNG: 89 50 4E 47 0D 0A 1A 0A
+            static constexpr uint8_t kPngMagic[8u] = {
+                0x89u, 0x50u, 0x4Eu, 0x47u, 0x0Du, 0x0Au, 0x1Au, 0x0Au
+            };
+            if (std::memcmp(data, kPngMagic, sizeof(kPngMagic)) == 0) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    TextureCreateInfo parseTextureData(stl::span<const std::byte> bytes, const TextureLoadInfo & info) {
+        if (bytes.size() > static_cast<size_t>(std::numeric_limits<int>::max())) {
+            return {};
+        }
+
+        int width = 0;
+        int height = 0;
+        int channels = 0;
+        stbi_uc * pixels = stbi_load_from_memory(
+            reinterpret_cast<const stbi_uc*>(bytes.data()),
+            static_cast<int>(bytes.size()),
+            &width, &height, &channels, STBI_rgb_alpha);
+
+        if (pixels == nullptr || width <= 0 || height <= 0) {
+            stbi_image_free(pixels);
+            return {};
+        }
+
+        const auto pixelsCount = static_cast<size_t>(width) * static_cast<size_t>(height) * 4u;
+        stl::vector<std::byte> levelData(
+            reinterpret_cast<std::byte*>(pixels),
+            reinterpret_cast<std::byte*>(pixels) + pixelsCount);
+        stbi_image_free(pixels);
+
+        stl::vector<stl::vector<std::byte>> mipLevelsData{1u};
+        mipLevelsData[0u] = std::move(levelData);
+
+        const bool allowSrgb = (info.flags & TextureFlags::eAllowSrgbColorSpace) != TextureFlags::eNone;
+
+        return {
+            .metaInfo = {
+                .size = {static_cast<uint32_t>(width), static_cast<uint32_t>(height), 1u},
+                .bytesPerRow = static_cast<uint16_t>(static_cast<uint32_t>(width) * 4u),
+                .format = allowSrgb ? rhi::Format::eR8G8B8A8_Srgb : rhi::Format::eR8G8B8A8_Unorm,
+                .bitsPerPixel = 32u,
+                .numLevels = 1u,
+                .hasPalette = false,
+                .parserType = TextureLoaderType::eStb,
+                .flags = info.flags
+            },
+            .data = std::move(mipLevelsData)
+        };
+    }
+
+    TextureMetaInfo parseTextureMetaInfoOnly(stl::span<const std::byte> bytes, const TextureLoadInfo & info) {
+        if (bytes.size() > static_cast<size_t>(std::numeric_limits<int>::max())) {
+            return {};
+        }
+
+        int width = 0;
+        int height = 0;
+        int channels = 0;
+        if (stbi_info_from_memory(
+                reinterpret_cast<const stbi_uc*>(bytes.data()),
+                static_cast<int>(bytes.size()),
+                &width, &height, &channels) == 0) {
+            return {};
+        }
+
+        if (width <= 0 || height <= 0) {
+            return {};
+        }
+
+        const bool allowSrgb = (info.flags & TextureFlags::eAllowSrgbColorSpace) != TextureFlags::eNone;
+
+        return {
+            .size = {static_cast<uint32_t>(width), static_cast<uint32_t>(height), 1u},
+            .bytesPerRow = static_cast<uint16_t>(static_cast<uint32_t>(width) * 4u),
+            .format = allowSrgb ? rhi::Format::eR8G8B8A8_Srgb : rhi::Format::eR8G8B8A8_Unorm,
+            .bitsPerPixel = 32u,
+            .numLevels = 1u,
+            .hasPalette = false,
+            .parserType = TextureLoaderType::eSail,
+            .flags = info.flags
+        };
+    }
+}
+
     struct KtxTextureHandler {
         ~KtxTextureHandler() {
             if (texture) {
@@ -554,7 +671,14 @@ namespace sail_format {
         if (result == ktxResult::KTX_SUCCESS) {
             return ktx_format::parseTextureData(textureHandler.texture, info);
         } else if (result == ktxResult::KTX_UNKNOWN_FILE_FORMAT) {
-            return sail_format::parseTextureData(bytes, info);
+            auto parseResult = sail_format::parseTextureData(bytes, info);
+            if (!parseResult.data.empty()) {
+                return parseResult;
+            }
+            // stb_image as fallback
+            if (stb_format::isSupported(bytes)) {
+                return stb_format::parseTextureData(bytes, info);
+            }
         }
 
         assert(false);
@@ -572,6 +696,9 @@ namespace sail_format {
         if (result == ktxResult::KTX_SUCCESS) {
             return ktx_format::parseTextureMetaInfoOnly(textureHandler.texture, info);
         } else if (result == ktxResult::KTX_UNKNOWN_FILE_FORMAT) {
+            if (stb_format::isSupported(bytes)) {
+                return stb_format::parseTextureMetaInfoOnly(bytes, info);
+            }
             return sail_format::parseTextureMetaInfoOnly(bytes, info);
         }
 
@@ -626,6 +753,7 @@ namespace sail_format {
             case TextureLoaderType::eSail: return sail_format::convertTextureDataFormat(format, info);
             case TextureLoaderType::eKtx: return false;
             case TextureLoaderType::eRaw: return false;
+            case TextureLoaderType::eStb: return false;
             default: return false;
         }
     }

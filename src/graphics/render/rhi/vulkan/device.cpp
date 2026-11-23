@@ -51,10 +51,9 @@ namespace engine::vulkan {
         createInfo.ppEnabledExtensionNames = extensions.data();
 
         const auto & instance = _gpu.getInstance();
-        const auto & layers = instance.getLayers();
-
-        createInfo.enabledLayerCount = layers.size();
-        createInfo.ppEnabledLayerNames = layers.data();
+   
+        createInfo.enabledLayerCount = 0u;
+        createInfo.ppEnabledLayerNames = nullptr;
         createInfo.pNext = &features;
 
         if (auto result = vkCreateDevice(_gpu(), &createInfo, instance.getAllocationCallbacks(), &_device); result != VK_SUCCESS) {

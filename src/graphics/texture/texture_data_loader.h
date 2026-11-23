@@ -14,7 +14,8 @@ namespace engine::graphics {
 enum class TextureLoaderType : uint8_t {
     eKtx = 0u,
     eSail = 1u,
-    eRaw = 2u
+    eRaw = 2u,
+    eStb = 3u,
 };
 
 enum class TextureFlags : uint8_t {

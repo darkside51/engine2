@@ -175,7 +175,7 @@ namespace threads {
             return _source.get_token();
         }
 
-        void request_stop() const noexcept {
+        void request_stop() noexcept {
             _source.request_stop();
         }
 

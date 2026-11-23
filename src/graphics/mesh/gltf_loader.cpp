@@ -208,11 +208,11 @@ namespace engine::graphics::models {
 			constexpr std::string_view bufferHeader = "data:application/gltf-buffer;base64,";
 
             if (uri.contains(octetStreamHeader)) {
-                const std::string data = base64_decode(uri.substr(octetStreamHeader.size()));
+                const std::string data = base64_decode(std::string{ uri.substr(octetStreamHeader.size()) });
                 buffer.data.resize(buffer.byteLength);
                 std::memcpy(buffer.data.data(), data.data(), buffer.byteLength);
             } else if (uri.contains(bufferHeader)) {
-                const std::string data = base64_decode(uri.substr(bufferHeader.size()));
+                const std::string data = base64_decode(std::string{ uri.substr(bufferHeader.size()) });
                 buffer.data.resize(buffer.byteLength);
                 std::memmove(buffer.data.data(), data.data(), buffer.byteLength);
             } else {

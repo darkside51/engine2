@@ -30,13 +30,13 @@ struct ImageHolder {
 struct ImageHolderEqualTo {
     using is_transparent = void;
 
-    constexpr auto operator()(const rhi::runtime::Image * img, const graphics::ImageHolder & holder) const noexcept { 
+    auto operator()(const rhi::runtime::Image * img, const graphics::ImageHolder & holder) const noexcept { 
         return img == holder.image->image.get();
     }
-    constexpr auto operator()(const ImageHandler* img, const graphics::ImageHolder & holder) const noexcept { 
+    auto operator()(const ImageHandler* img, const graphics::ImageHolder & holder) const noexcept { 
         return img == holder.image;
     }
-    constexpr auto operator()(const graphics::ImageHolder & holder0, const graphics::ImageHolder & holder1) const noexcept { 
+    auto operator()(const graphics::ImageHolder & holder0, const graphics::ImageHolder & holder1) const noexcept { 
         return holder0.image == holder1.image;
     }
 };

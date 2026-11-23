@@ -1,3 +1,6 @@
+
+#if not  defined(_MSC_VER)
+
 #include "leaks.h"
 
 #include "../../log/log.h"
@@ -342,5 +345,7 @@ void operator delete(void *ptr) noexcept {
 void operator delete[](void* ptr) noexcept {
     engine::leaks::dealloc(ptr, true);
 }
+
+#endif
 
 #endif

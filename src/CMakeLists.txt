@@ -9,6 +9,8 @@ include (${CMAKE_CURRENT_SOURCE_DIR}/../tools/cmake/utils.cmake)
 
 #add_compile_options(-fno-exceptions)
 
+set(BUILD_SHARED_LIBS OFF)
+
 #### system
 message("SYSTEM_NAME: ${CMAKE_SYSTEM_NAME}")
 
@@ -64,7 +66,7 @@ endif()
 #### flags
 add_compile_definitions(
 	$<$<CONFIG:Debug>:_DEBUG>
-	$<$<CONFIG:Debug>:CHECK_MEMORY_LEAKS>
+	#$<$<CONFIG:Debug>:CHECK_MEMORY_LEAKS>
 	$<$<NOT:$<CONFIG:Debug>>:NDEBUG>
 )
 
@@ -228,11 +230,12 @@ if (VULKAN_AVAILABLE) #### vulkan lib
 	endif()
 
 	if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
+		message(STATUS "VULKAN_SDK = '$ENV{VULKAN_SDK}'")
 		set(
 			USED_FRAMEWORKS
 			general $ENV{VULKAN_SDK}/Lib/vulkan-1.lib
 		)
-		target_include_directories(${PROJECT_NAME} PUBLIC $ENV{VULKAN_SDK}/Include)
+		target_include_directories(${PROJECT_NAME} PUBLIC "$ENV{VULKAN_SDK}/Include")
 	elseif (CMAKE_SYSTEM_NAME STREQUAL "Linux")
 		set(
 			USED_FRAMEWORKS
@@ -264,6 +267,7 @@ message("ktx library begin")
 set(KTX_FEATURE_TOOLS OFF CACHE BOOL "Build KTX tools" FORCE)
 set(KTX_FEATURE_TESTS OFF CACHE BOOL "Build KTX tests" FORCE)
 set(KTX_FEATURE_STATIC_LIBRARY ON CACHE BOOL "Build KTX static library" FORCE)
+set(KTX_FEATURE_KTX2 ON CACHE BOOL "Enable KTX2 support" FORCE)
 add_3rdparty_project (${CMAKE_CURRENT_SOURCE_DIR}/../3rd_party/KTX-Software ${CMAKE_BINARY_DIR}/3rd_party/KTX-Software)
 target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../3rd_party/KTX-Software/include)
 target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../3rd_party/KTX-Software/lib)
@@ -362,6 +366,9 @@ set(
 	bc7enc_lib
 )
 message("bc7enc library end")
+
+# stb_image (fallback-декодер JPEG/PNG, чтобы не тянуть libjpeg/libpng для sail)
+target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../3rd_party/stb)
 
 #imgui
 target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../3rd_party/imgui)

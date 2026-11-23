@@ -11,7 +11,7 @@ import subprocess
 
 def convert(inDir, fileName, outDir, glslcPath):
     fileData = ""
-    with open(os.path.join(inDir, fileName), 'r') as file:
+    with open(os.path.join(inDir, fileName), 'r', encoding='utf-8') as file:
         for line in file:
             fileData = fileData + line
             # if line.find('#import') == 0:
@@ -25,7 +25,7 @@ def convert(inDir, fileName, outDir, glslcPath):
             #     fileData = fileData + line
 
     tmpFileName = os.path.join(inDir, 'tmp', fileName.replace('.glsl', ''))
-    with open(tmpFileName, 'w') as file3:
+    with open(tmpFileName, 'w', encoding='utf-8') as file3:
         file3.write(fileData)
 
     outFile = os.path.join(outDir, fileName.replace('.glsl', '.spv'))
@@ -66,6 +66,8 @@ if __name__ == '__main__':
             outputFolder = arg
         elif opt in ("-p", "--path"):
             glslc_path = arg
+
+    # print(f'#### [shader converter] glslc path: {glslc_path}', flush=True)
 
     if os.path.exists(inputFolder):
         if not os.path.exists(outputFolder):

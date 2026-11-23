@@ -25,8 +25,6 @@ extern "C" void EASTL_EASTL_AssertionFailureHandler(const char* pExpression, voi
 //     return ::operator new[](size);
 // }
 
-#ifndef CHECK_MEMORY_LEAKS
-
 #if defined(_MSC_VER)
 
 void* operator new[](size_t size) {
@@ -56,7 +54,7 @@ void operator delete[](void* p, size_t size) noexcept {
     _aligned_free(p);
 }
 #else
-// #include <new>
+#ifndef CHECK_MEMORY_LEAKS
 
 void* operator new[](size_t size, const char* pName, int flags, 
                      unsigned int debugFlags, const char* pFile, int line) {

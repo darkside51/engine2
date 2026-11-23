@@ -1,5 +1,7 @@
 #pragma once
 
+#if not  defined(_MSC_VER)
+
 #ifdef CHECK_MEMORY_LEAKS
 
 namespace engine::leaks {
@@ -10,5 +12,7 @@ namespace engine::leaks {
     private:
     } leaksChecker;
 }
+
+#endif
 
 #endif

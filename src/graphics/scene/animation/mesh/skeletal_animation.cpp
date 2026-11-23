@@ -3,6 +3,7 @@
 #include "graphics/scene/objects/mesh.h"
 #include "graphics/mesh/gltf_loader.h"
 
+#include <algorithm>
 #include <cassert>
 
 namespace engine::scene {
@@ -30,7 +31,7 @@ namespace engine::scene {
             t.mask = TransformChangeFlags::eNone;
         }
 
-        const auto anim = animation.getAnimation();
+        const auto & anim = animation.getAnimation();
         time = glm::mod(time, anim.duration);
 
         for (const auto & channel : anim.channels) {
@@ -38,120 +39,128 @@ namespace engine::scene {
                 continue;
             }
 
-            auto & target = _transforms[channel.target_node];
             const auto & sampler = anim.samplers[channel.sampler];
+            const auto & inputs = sampler.inputs;
 
-            for (size_t i = 0u, sz = sampler.inputs.size() - 1u; i < sz; ++i) {
-                const auto t0 = sampler.inputs[i];
-                const auto t1 = sampler.inputs[i + 1u];
+            // glTF requires sampler inputs to be strictly increasing, so the key interval can be
+            // found with a binary search
+            if (inputs.size() < 2u) {
+                continue;
+            }
 
-                if ((time >= t0) && (time < t1)) {
-                    const auto & v0 = sampler.outputs[i];
+            const auto upper = std::upper_bound(inputs.begin(), inputs.end(), time);
+            if (upper == inputs.begin() || upper == inputs.end()) {
+                // time is outside of the sampler range: skip channel
+                continue;
+            }
 
-                    switch (sampler.interpolation) {
-                    case Interpolation::eLinear: {
-                        const auto & v1 = sampler.outputs[i + 1u];
-                        const auto mix = (time - t0) / (t1 - t0);
-                        switch (channel.path) {
-                        case AnimationChannelPath::eTranslation: {
-                            if (glm::all(glm::epsilonEqual(v0, v1, epsilon))) {
-                                target.position = v0;
-                            } else {
-                                target.position = glm::mix(v0, v1, mix);
-                            }
-                            target.mask = target.mask | TransformChangeFlags::ePosition;
-                        } 
-                            break;
-                        case AnimationChannelPath::eRotation: {
-                            if (glm::all(glm::epsilonEqual(v0, v1, epsilon))) {
-                                target.rotation = {v0.w, v0.x, v0.y, v0.z};
-                            } else {
-                                const quatf q0(v0.w, v0.x, v0.y, v0.z);
-                                const quatf q1(v1.w, v1.x, v1.y, v1.z);
-                                // is normalize necessary?
-                                target.rotation = glm::normalize(glm::slerp(q0, q1, mix));
-                            }
-                            target.mask = target.mask | TransformChangeFlags::eRotation;
-                        } 
-                            break;
-                        case AnimationChannelPath::eScale: {
-                            if (glm::all(glm::epsilonEqual(v0, v1, epsilon))) {
-                                target.scale = v0;
-                            } else {
-                                target.scale = glm::mix(v0, v1, mix);
-                            }
-                            target.mask = target.mask | TransformChangeFlags::eScale;
-                        } 
-                            break;
-                        }
-                    } 
-                        break;
-                    case Interpolation::eStep: {
-                        switch (channel.path) {
-                        case AnimationChannelPath::eTranslation:
-                            target.position = v0;
-                            target.mask = target.mask | TransformChangeFlags::ePosition;
-                            break;
-                        case AnimationChannelPath::eRotation:
-                            target.rotation = {v0.w, v0.x, v0.y, v0.z};
-                            target.mask = target.mask | TransformChangeFlags::eRotation;
-                            break;
-                        case AnimationChannelPath::eScale:
-                            target.scale = v0;
-                            target.mask = target.mask | TransformChangeFlags::eScale;
-                            break;
-                        }
-                    } 
-                        break;
-                    case Interpolation::eCubicSpline:
-                    {
-                        assert(false);
-                        const auto & v1 = sampler.outputs[i + 1u];
-                        const auto mix = (time - t0) / (t1 - t0);
+            const auto i = static_cast<size_t>(upper - inputs.begin()) - 1u;
+            const auto t0 = inputs[i];
+            const auto t1 = inputs[i + 1u];
+            const auto & v0 = sampler.outputs[i];
 
-                        const float t2 = mix * mix;
-                        const float t3 = t2 * mix;
+            auto & target = _transforms[channel.target_node];
 
-                        // switch (channel.path) {
-                        // case AnimationChannelPath::eTranslation: {
-                        //     if (glm::all(glm::epsilonEqual(v0, v1, epsilon))) {
-                        //         target.position = v0;
-                        //     } else {
-                        //         target.position = glm::mix(v0, v1, mix);
-                        //     }
-                        //     target.mask = target.mask | TransformChangeFlags::ePosition;
-                        // } 
-                        //     break;
-                        // case AnimationChannelPath::eRotation: {
-                        //     if (glm::all(glm::epsilonEqual(v0, v1, epsilon))) {
-                        //         target.rotation = {v0.w, v0.x, v0.y, v0.z};
-                        //     } else {
-                        //         const quatf q0(v0.w, v0.x, v0.y, v0.z);
-                        //         const quatf q1(v1.w, v1.x, v1.y, v1.z);
-                        //         // is normalize necessary?
-                        //         target.rotation = glm::normalize(glm::slerp(q0, q1, mix));
-                        //     }
-                        //     target.mask = target.mask | TransformChangeFlags::eRotation;
-                        // } 
-                        //     break;
-                        // case AnimationChannelPath::eScale: {
-                        //     if (glm::all(glm::epsilonEqual(v0, v1, epsilon))) {
-                        //         target.scale = v0;
-                        //     } else {
-                        //         target.scale = glm::mix(v0, v1, mix);
-                        //     }
-                        //     target.mask = target.mask | TransformChangeFlags::eScale;
-                        // } 
-                        //     break;
-                        // }
-
-
+            switch (sampler.interpolation) {
+            case Interpolation::eLinear: {
+                const auto & v1 = sampler.outputs[i + 1u];
+                const auto mix = (time - t0) / (t1 - t0);
+                switch (channel.path) {
+                case AnimationChannelPath::eTranslation: {
+                    if (glm::all(glm::epsilonEqual(v0, v1, epsilon))) {
+                        target.position = v0;
+                    } else {
+                        target.position = glm::mix(v0, v1, mix);
                     }
-                        break;
+                    target.mask = target.mask | TransformChangeFlags::ePosition;
+                }
+                    break;
+                case AnimationChannelPath::eRotation: {
+                    if (glm::all(glm::epsilonEqual(v0, v1, epsilon))) {
+                        target.rotation = {v0.w, v0.x, v0.y, v0.z};
+                    } else {
+                        const quatf q0(v0.w, v0.x, v0.y, v0.z);
+                        const quatf q1(v1.w, v1.x, v1.y, v1.z);
+                        // is normalize necessary?
+                        target.rotation = glm::normalize(glm::slerp(q0, q1, mix));
                     }
-
+                    target.mask = target.mask | TransformChangeFlags::eRotation;
+                }
+                    break;
+                case AnimationChannelPath::eScale: {
+                    if (glm::all(glm::epsilonEqual(v0, v1, epsilon))) {
+                        target.scale = v0;
+                    } else {
+                        target.scale = glm::mix(v0, v1, mix);
+                    }
+                    target.mask = target.mask | TransformChangeFlags::eScale;
+                }
                     break;
                 }
+            }
+                break;
+            case Interpolation::eStep: {
+                switch (channel.path) {
+                case AnimationChannelPath::eTranslation:
+                    target.position = v0;
+                    target.mask = target.mask | TransformChangeFlags::ePosition;
+                    break;
+                case AnimationChannelPath::eRotation:
+                    target.rotation = {v0.w, v0.x, v0.y, v0.z};
+                    target.mask = target.mask | TransformChangeFlags::eRotation;
+                    break;
+                case AnimationChannelPath::eScale:
+                    target.scale = v0;
+                    target.mask = target.mask | TransformChangeFlags::eScale;
+                    break;
+                }
+            }
+                break;
+            case Interpolation::eCubicSpline:
+            {
+                assert(false);
+                const auto & v1 = sampler.outputs[i + 1u];
+                const auto mix = (time - t0) / (t1 - t0);
+
+                const float t2 = mix * mix;
+                const float t3 = t2 * mix;
+
+                // switch (channel.path) {
+                // case AnimationChannelPath::eTranslation: {
+                //     if (glm::all(glm::epsilonEqual(v0, v1, epsilon))) {
+                //         target.position = v0;
+                //     } else {
+                //         target.position = glm::mix(v0, v1, mix);
+                //     }
+                //     target.mask = target.mask | TransformChangeFlags::ePosition;
+                // }
+                //     break;
+                // case AnimationChannelPath::eRotation: {
+                //     if (glm::all(glm::epsilonEqual(v0, v1, epsilon))) {
+                //         target.rotation = {v0.w, v0.x, v0.y, v0.z};
+                //     } else {
+                //         const quatf q0(v0.w, v0.x, v0.y, v0.z);
+                //         const quatf q1(v1.w, v1.x, v1.y, v1.z);
+                //         // is normalize necessary?
+                //         target.rotation = glm::normalize(glm::slerp(q0, q1, mix));
+                //     }
+                //     target.mask = target.mask | TransformChangeFlags::eRotation;
+                // }
+                //     break;
+                // case AnimationChannelPath::eScale: {
+                //     if (glm::all(glm::epsilonEqual(v0, v1, epsilon))) {
+                //         target.scale = v0;
+                //     } else {
+                //         target.scale = glm::mix(v0, v1, mix);
+                //     }
+                //     target.mask = target.mask | TransformChangeFlags::eScale;
+                // }
+                //     break;
+                // }
+
+
+            }
+                break;
             }
         }
     }
