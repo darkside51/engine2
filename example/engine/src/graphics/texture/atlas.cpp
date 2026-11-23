@@ -40,23 +40,30 @@ namespace engine::graphics {
 
     FramesParser::Result FramesParser::loadFramesSpine(stl::span<const std::byte> rawBytes, vec2u size, std::string_view prefix) {
         auto readLine = [](std::string_view data, size_t & begin) noexcept -> std::string_view {
-            auto end = data.find('\n', begin);
-            if (end != std::string_view::npos) {
-                auto result = data.substr(begin, end - begin);
-                begin = end + 1u; 
-                return result;
+            if (begin >= data.size()) {
+                return {};
             }
-            return {};
+
+            auto end = data.find('\n', begin);
+            if (end == std::string_view::npos) {
+                end = data.size();
+            }
+
+            auto result = data.substr(begin, end - begin);
+            begin = end + 1u;
+
+            // strip CR of CRLF line endings (windows checkouts)
+            if (!result.empty() && result.back() == '\r') {
+                result.remove_suffix(1u);
+            }
+
+            return result;
         };
 
         auto readEntry = [](std::string_view data, stl::array<std::string_view, 5u> & result) noexcept -> uint8_t {
             size_t begin = 0u;
-            while (true) {
-                if (data[begin] == '\t' || data[begin] == ' ') {
-                    ++begin;
-                } else {
-                    break;
-                }
+            while (begin < data.size() && (data[begin] == '\t' || data[begin] == ' ')) {
+                ++begin;
             }
             auto dots = data.find(':', begin);
             if (dots == std::string_view::npos) {
