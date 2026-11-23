@@ -66,7 +66,7 @@ endif()
 #### flags
 add_compile_definitions(
 	$<$<CONFIG:Debug>:_DEBUG>
-	#$<$<CONFIG:Debug>:CHECK_MEMORY_LEAKS>
+	$<$<CONFIG:Debug>:CHECK_MEMORY_LEAKS>
 	$<$<NOT:$<CONFIG:Debug>>:NDEBUG>
 )
 

@@ -1,4 +1,5 @@
 cmake_minimum_required(VERSION 3.22)
+
 project(demo)
 
 set(CMAKE_CXX_STANDARD 23)
@@ -9,6 +10,10 @@ if (NOT (CMAKE_SYSTEM_NAME STREQUAL "Windows"))
 	set(CMAKE_CXX_FLAGS_DEBUG "-g")
 	set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 	message("demo cmake flags (debug+release) configured")
+else()
+	set(CURL_USE_LIBPSL OFF CACHE BOOL "Disable libpsl" FORCE)
+	set(LIBPSL_INCLUDE_DIR "LIBPSL_INCLUDE_DIR-NOTFOUND" CACHE PATH "Disable libpsl" FORCE)
+	set(LIBPSL_LIBRARY "LIBPSL_LIBRARY-NOTFOUND" CACHE FILEPATH "Disable libpsl" FORCE)
 endif()
 
 if (MSVC)
@@ -23,41 +28,13 @@ endif()
 
 #add_compile_options(-fno-exceptions)
 
-# --- defining the `engine` directory -------------------------------------------
-# on Linux, `engine` is a symbolic link to the repository root. on Windows,
-# symbolic links might not be available (or Git may check them out as regular
-# files), so we use the parent directory as a fallback.
+# defining the engine directory
 set(ENGINE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/engine")
 if (NOT EXISTS "${ENGINE_DIR}/src/CMakeLists.txt")
 	get_filename_component(ENGINE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/.." ABSOLUTE)
 	message(STATUS "engine directory (symlink not found): ${ENGINE_DIR}")
 endif()
 
-if (NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/engine/src/CMakeLists.txt")
-	set(ENGINE_INCLUDE_SHIM "${CMAKE_CURRENT_BINARY_DIR}/engine_include")
-	file(MAKE_DIRECTORY "${ENGINE_INCLUDE_SHIM}")
-	set(ENGINE_SHIM_LINK "${ENGINE_INCLUDE_SHIM}/engine")
-	if (NOT EXISTS "${ENGINE_SHIM_LINK}")
-		if (WIN32)
-			file(TO_NATIVE_PATH "${ENGINE_SHIM_LINK}" _shim_link_native)
-			file(TO_NATIVE_PATH "${ENGINE_DIR}" _engine_dir_native)
-			execute_process(
-				COMMAND cmd /c mklink /J "${_shim_link_native}" "${_engine_dir_native}"
-				RESULT_VARIABLE _shim_result
-				OUTPUT_QUIET
-				ERROR_QUIET
-			)
-			if (NOT _shim_result EQUAL 0)
-				message(FATAL_ERROR
-					"Cannot create junction '${ENGINE_SHIM_LINK}' -> '${ENGINE_DIR}'. "
-					"Create it manually or enable Windows symlink support.")
-			endif()
-		else()
-			file(CREATE_LINK "${ENGINE_DIR}" "${ENGINE_SHIM_LINK}" SYMBOLIC)
-		endif()
-	endif()
-	include_directories("${ENGINE_INCLUDE_SHIM}")
-endif()
 
 ########## собираем engine
 add_subdirectory(${ENGINE_DIR}/src ${CMAKE_CURRENT_BINARY_DIR}/engine)
@@ -203,6 +180,8 @@ add_custom_target(render_pass
 				  -Ddst_dir="${resources_dst_dir}/descriptors"
 				  -P "${ENGINE_DIR}/tools/cmake/update_directory.cmake"
 )
+
+message(STATUS "GLSL_COMPILER: ${GLSL_COMPILER}")
 
 add_custom_target(shaders
                   COMMAND ${CMAKE_COMMAND} -E make_directory "${resources_dst_dir}/shaders"
