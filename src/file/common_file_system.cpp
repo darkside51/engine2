@@ -1,9 +1,15 @@
 #include "common_file_system.h"
 #include "../utils/string_utils.h"
 
+#include <cstdio>
 #include <filesystem>
 #include <sys/stat.h>
+
+#if defined(_WIN32)
+#include <direct.h>
+#else
 #include <unistd.h>
+#endif
 
 namespace engine {
 
@@ -24,8 +30,18 @@ namespace engine {
     std::string CommonFileSystem::getCurrentDirectory() noexcept {
         // return std::filesystem::current_path().string() + "/";
         char buff[FILENAME_MAX];
+#if defined(_WIN32)
+        _getcwd(buff, FILENAME_MAX);
+#else
         getcwd(buff, FILENAME_MAX);
-        return std::string(buff) + "/";
+#endif
+        std::string currentDirectory(buff);
+
+        if (currentDirectory.empty() ||
+            (currentDirectory.back() != '/' && currentDirectory.back() != '\\')) {
+            currentDirectory += '/';
+        }
+        return currentDirectory;
     }
 
 	void CommonFileSystem::createRootDirectory() const {

@@ -8,6 +8,10 @@
 #include <cstdio>
 #include <cstdlib>
 
+#if defined(_MSC_VER)
+#include <malloc.h>
+#endif
+
 #include <mutex>
 #include <string_view>
 #include <tuple>
@@ -271,7 +275,11 @@ namespace engine::leaks {
     void* alloc(size_t size, bool array) {
         const uintptr_t kAllocationSize = size + kAllocationAlign;
 
+#if defined(_MSC_VER)
+        void * memory = _aligned_malloc(kAllocationSize, alignof(std::max_align_t));
+#else
         void * memory = malloc(kAllocationSize);
+#endif
         poisonMemory(memory, size, array);
 
         return static_cast<std::byte*>(memory) + kAllocationAlign;
@@ -279,7 +287,11 @@ namespace engine::leaks {
 
     void dealloc(void *ptr, bool array) noexcept {
         auto * memory = getMemory(ptr);
+#if defined(_MSC_VER)
+        _aligned_free(unpoisonMemory(memory, array));
+#else
         free(unpoisonMemory(memory, array));
+#endif
     }
 }
 
@@ -309,7 +321,11 @@ void* operator new[](size_t size, size_t alignment, size_t alignmentOffset,
     const uintptr_t allocationSize = size + allocationAlign;
 
     void * memory = nullptr;
+#if defined(_MSC_VER)
+    memory = _aligned_malloc(allocationSize, alignment);
+#else
     posix_memalign(&memory, alignment, allocationSize);
+#endif
 
     engine::leaks::poisonMemory(
         (static_cast<std::byte*>(memory) + allocationAlign - engine::leaks::kAllocationAlign), 

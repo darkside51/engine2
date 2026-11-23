@@ -173,7 +173,7 @@ namespace example {
 
     // options
     bool showTextureViewer = false;
-    bool showOptions = false;
+    bool showOptions = true;
 
     engine::TextureViewer textureViewer;
     

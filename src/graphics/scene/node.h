@@ -47,7 +47,7 @@ struct alignas(kCachelineSize) TransformChunk {
 
 #if defined(__GNUC__) || defined(__clang__)
         slot = static_cast<uint16_t>(__builtin_ctzll(freeSlots)); // (count trailing zeros — counting the number of zeros at the end)
-#elif defined(_MSC_VER)
+#elif defined(_MSC_VER) && defined(_M_X64)
         unsigned long index = 0ul;
         _BitScanForward64(&index, freeSlots);
         slot = static_cast<uint16_t>(index);

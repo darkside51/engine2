@@ -26,9 +26,6 @@ if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
 	set(USE_GLFW ON)
 	set(VULKAN_AVAILABLE ON)
 elseif (CMAKE_SYSTEM_NAME STREQUAL "Linux")
-	# add_compile_options(-mavx2) ## use it?
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mavx2")
-
 	add_definitions(-DENGINE_PLATFORM_LINUX)
 	add_definitions(-DVK_USE_PLATFORM_XCB_KHR=1)
 	add_definitions(-DGLFW_EXPOSE_NATIVE_X11)
@@ -57,20 +54,19 @@ endif()
 if (MSVC)
 #	add_compile_options("$<$<C_COMPILER_ID:MSVC>:/utf-8>")
 #	add_compile_options("$<$<CXX_COMPILER_ID:MSVC>:/utf-8>")
-	set(CMAKE_CXX_FLAGS "/utf-8")
-	set(CMAKE_C_FLAGS "/utf-8")
+	string(FIND "${CMAKE_CXX_FLAGS}" "/utf-8" _utf8_pos)
+	if (_utf8_pos EQUAL -1)
+		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /utf-8")
+		set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /utf-8")
+	endif()
 endif()
 
 #### flags
-if (CMAKE_BUILD_TYPE MATCHES Debug)
-	message("debug_mode")
-	add_definitions(-D_DEBUG)
-
-    add_definitions(-DCHECK_MEMORY_LEAKS)
-else()
-	add_definitions(-DNDEBUG)
-	message("release_mode")
-endif(CMAKE_BUILD_TYPE MATCHES Debug)
+add_compile_definitions(
+	$<$<CONFIG:Debug>:_DEBUG>
+	$<$<CONFIG:Debug>:CHECK_MEMORY_LEAKS>
+	$<$<NOT:$<CONFIG:Debug>>:NDEBUG>
+)
 
 #### sources
 set(ENGINE_SRC_DIRS)
@@ -211,11 +207,25 @@ add_library(
 	${ENGINE_HEADERS}
 )
 
-target_compile_options(${PROJECT_NAME} PRIVATE -fno-exceptions)
+if (MSVC)
+	target_compile_definitions(${PROJECT_NAME} PRIVATE EASTL_EXCEPTIONS=0)
+	target_compile_options(${PROJECT_NAME} PRIVATE /bigobj)
+else()
+	target_compile_options(${PROJECT_NAME} PRIVATE -fno-exceptions)
+endif()
+
+# if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
+# 	target_compile_options(${PROJECT_NAME} PRIVATE -mavx2)
+# endif()
+
 target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/)
 
 if (VULKAN_AVAILABLE) #### vulkan lib
 	#find_package(Vulkan REQUIRED)
+
+	if (NOT DEFINED ENV{VULKAN_SDK})
+		message(FATAL_ERROR "VULKAN_SDK environment variable is not set. Install the Vulkan SDK.")
+	endif()
 
 	if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
 		set(
@@ -329,7 +339,9 @@ target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/..
 message("eastl library begin")
 add_3rdparty_project (${CMAKE_CURRENT_SOURCE_DIR}/../3rd_party/eastl ${CMAKE_BINARY_DIR}/3rd_party/eastl)
 target_compile_definitions(EASTL PRIVATE EASTL_EXCEPTIONS=0)
-target_compile_options(EASTL PRIVATE -fno-exceptions)
+if (NOT MSVC)
+	target_compile_options(EASTL PRIVATE -fno-exceptions)
+endif()
 
 target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../3rd_party/eastl/include)
 set(

@@ -1,5 +1,10 @@
 #include <cstddef>
 #include <cstdlib>
+#include <new>
+
+#if defined(_MSC_VER)
+#include <malloc.h>
+#endif
 
 // for eastl can usage with default allocators
 
@@ -23,7 +28,16 @@ extern "C" void EASTL_EASTL_AssertionFailureHandler(const char* pExpression, voi
 #ifndef CHECK_MEMORY_LEAKS
 
 #if defined(_MSC_VER)
-void* operator new[](size_t size, const char* pName, int flags, 
+
+void* operator new[](size_t size) {
+    void* memory = _aligned_malloc(size == 0u ? 1u : size, alignof(std::max_align_t));
+    if (memory == nullptr) {
+        throw std::bad_alloc();
+    }
+    return memory;
+}
+
+void* operator new[](size_t size, const char* pName, int flags,
                      unsigned int debugFlags, const char* pFile, int line) {
     return _aligned_malloc(size, 16);
 }

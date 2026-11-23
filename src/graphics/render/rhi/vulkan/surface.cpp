@@ -25,7 +25,7 @@ namespace engine::vulkan {
 			vk_surfaceInfo.pNext = nullptr;
 			vk_surfaceInfo.flags = 0;
 			vk_surfaceInfo.hinstance = GetModuleHandle(nullptr);
-			vk_surfaceInfo.hwnd = static_cast<HWND>(reinterpret_cast<size_t>(info.window));
+			vk_surfaceInfo.hwnd = static_cast<HWND>(info.window);
 
 			success = vkCreateWin32SurfaceKHR(instance.vkInstance(), &vk_surfaceInfo,
                                            nullptr, &surface) == VK_SUCCESS;
