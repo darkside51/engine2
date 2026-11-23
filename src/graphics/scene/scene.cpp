@@ -80,7 +80,7 @@ namespace engine::scene {
 
     // compute skinning
     constexpr bool kComputeSkinningAvailable = true;
-    constexpr uint16_t kComputeSkinningLocalGroupSize = 64u;
+    constexpr uint16_t kComputeSkinningLocalGroupSize = 256u;
     // initial size of the compute skinning output buffers; they grow on demand
     constexpr uint32_t kInitialMeshComputeVerticesCount = 16384u;
     constexpr uint32_t kMaxSkeletonsDispatchPack = 2048u;
