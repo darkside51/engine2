@@ -35,25 +35,25 @@ void main() {
 	//const float maxDepth = 5.0f;
 
 	// gBuffer values
-	//const vec3 fragPos = texture(texturePositionDepth, v_uv).rgb;
-	//const vec4 position = texture(texturePositionDepth, v_uv);
+	//vec3 fragPos = texture(texturePositionDepth, v_uv).rgb;
+	//vec4 position = texture(texturePositionDepth, v_uv);
 
-	//const vec3 fragPos = (push.view * vec4(position.rgb, 1.0f - step(position.w, 0.0))).xyz;
+	//vec3 fragPos = (push.view * vec4(position.rgb, 1.0f - step(position.w, 0.0))).xyz;
 
-	const float linearDepth = texture(texturePositionDepth, v_uv).r;
-	const vec3 fragPos = reconstructPosition(v_rayDir, vec3(0.0f), linearDepth);
-	const vec3 normal = normalize(texture(textureNormal, v_uv).rgb * 2.0 - 1.0);
+	float linearDepth = texture(texturePositionDepth, v_uv).r;
+	vec3 fragPos = reconstructPosition(v_rayDir, vec3(0.0f), linearDepth);
+	vec3 normal = normalize(texture(textureNormal, v_uv).rgb * 2.0 - 1.0);
 
 	// get a random vector using a noise lookup
-	const ivec2 texDim = textureSize(texturePositionDepth, 0); 
-	const ivec2 noiseDim = textureSize(ssaoNoise, 0);
-	const vec2 noiseUV = vec2(float(texDim.x)/float(noiseDim.x), float(texDim.y)/(noiseDim.y)) * v_uv;  
-	const vec3 randomVec = vec3(texture(ssaoNoise, noiseUV).xy * 2.0 - 1.0, 0.0);
+	ivec2 texDim = textureSize(texturePositionDepth, 0); 
+	ivec2 noiseDim = textureSize(ssaoNoise, 0);
+	vec2 noiseUV = vec2(float(texDim.x)/float(noiseDim.x), float(texDim.y)/float(noiseDim.y)) * v_uv;  
+	vec3 randomVec = texture(ssaoNoise, noiseUV).xyz * 2.0 - 1.0;
 
 	// create TBN matrix
-	const vec3 tangent = normalize(randomVec - normal * dot(randomVec, normal));
-	const vec3 bitangent = cross(tangent, normal);
-	const mat3 TBN = mat3(tangent, bitangent, normal);
+	vec3 tangent = normalize(randomVec - normal * dot(randomVec, normal));
+	vec3 bitangent = cross(tangent, normal);
+	mat3 TBN = mat3(tangent, bitangent, normal);
 
 	// calculate occlusion value
 	float occlusion = 0.0f;
@@ -65,17 +65,16 @@ void main() {
 		
 		// project
 		vec4 offset = push.projection * vec4(samplePos, 1.0f);
-		offset.xyz /= offset.w; 
-		offset.xyz = offset.xyz * 0.5f + 0.5f; 
+		offset.xy /= offset.w; 
+		offset.xy = offset.xy * 0.5f + 0.5f; 
 		
-		const float sampleDepth = -texture(texturePositionDepth, offset.xy).r; 
-		//const float rangeCheck = smoothstep(0.0f, 1.0f, radius / abs(fragPos.z - sampleDepth));
+		float sampleDepth = -texture(texturePositionDepth, offset.xy).r; 
+		//float rangeCheck = smoothstep(0.0f, 1.0f, radius / abs(fragPos.z - sampleDepth));
 		float rangeCheck = push.options.w < 0.5f ?
 								 smoothstep(0.0f, 1.0f, radius / abs(fragPos.z - sampleDepth)) :
 								 clamp(radius / abs(fragPos.z - sampleDepth), 0.0f, 1.0f);
-		rangeCheck *= rangeCheck;
 
-		occlusion += step(samplePos.z + bias, sampleDepth) * (1.0f - step(0.0f, sampleDepth)) * rangeCheck * smoothstep(0.0f, 1.0f, -maxDepth / fragPos.z);       
+		occlusion += step(samplePos.z + bias, sampleDepth) * (1.0f - step(0.0f, sampleDepth)) * rangeCheck * smoothstep(0.0f, 1.0f, -maxDepth / fragPos.z);
 	}
 	
 	out_color = 1.0f - (occlusion / float(kSsaoKernelSize));
