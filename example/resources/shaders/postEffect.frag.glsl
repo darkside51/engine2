@@ -52,7 +52,7 @@ const float biases[2] = float[](0.006f, 0.03f);
 void main() {
 	//float occlusion = push.options.x > 0.0f ? radialBlur(textureSsao, v_uv, int(push.options.x - 1.0f)) : 1.0f;
 
-	float occlusion = push.options.x > 0.0f ? bilateralBlur(
+	float occlusion = push.options.x > 0.0f ? bilateralAOBlur(
 	    textureSsao,
 	    texturePositionDepth,
 	    textureNormal,

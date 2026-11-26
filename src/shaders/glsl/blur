@@ -15,7 +15,7 @@ float radialBlur(in sampler2D tex, vec2 uv, int blurRange) {
 	return result / float(n);
 }
 
-float bilateralBlur(
+float bilateralAOBlur(
     in sampler2D ssaoTex,
     in sampler2D depthTex,
     in sampler2D normalTex,
