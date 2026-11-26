@@ -173,7 +173,7 @@ namespace example {
 
     // options
     bool showTextureViewer = false;
-    bool showOptions = true;
+    bool showOptions = false;
 
     engine::TextureViewer textureViewer;
     
@@ -1946,42 +1946,42 @@ namespace example {
         ////
         // test cubemap
         // const auto imageBytes0 = fileManager.readFile("assets/skybox/back.jpg");
-        const auto imageBytes0 = fileManager.readFile("assets/interrior/2.jpg");
+        const auto imageBytes0 = fileManager.readFile("assets/interrior2/2.jpg");
         auto textureData0 = engine::graphics::parseTextureData(imageBytes0, {
                 .flags = engine::graphics::TextureFlags::eAllowSrgbColorSpace
             }
         );
 
         // const auto imageBytes1 = fileManager.readFile("assets/skybox/front.jpg");
-        const auto imageBytes1 = fileManager.readFile("assets/interrior/0.jpg");
+        const auto imageBytes1 = fileManager.readFile("assets/interrior2/0.jpg");
         auto textureData1 = engine::graphics::parseTextureData(imageBytes1, {
                 .flags = engine::graphics::TextureFlags::eAllowSrgbColorSpace
             }
         );
 
         // const auto imageBytes2 = fileManager.readFile("assets/skybox/right.jpg");
-        const auto imageBytes2 = fileManager.readFile("assets/interrior/6.jpg");
+        const auto imageBytes2 = fileManager.readFile("assets/interrior2/6.jpg");
         auto textureData2 = engine::graphics::parseTextureData(imageBytes2, {
                 .flags = engine::graphics::TextureFlags::eAllowSrgbColorSpace
             }
         );
 
         // const auto imageBytes3 = fileManager.readFile("assets/skybox/left.jpg");
-        const auto imageBytes3 = fileManager.readFile("assets/interrior/5.jpg");
+        const auto imageBytes3 = fileManager.readFile("assets/interrior2/5.jpg");
         auto textureData3 = engine::graphics::parseTextureData(imageBytes3, {
                 .flags = engine::graphics::TextureFlags::eAllowSrgbColorSpace
             }
         );
 
         // const auto imageBytes4 = fileManager.readFile("assets/skybox/up.jpg");
-        const auto imageBytes4 = fileManager.readFile("assets/interrior/4.jpg");
+        const auto imageBytes4 = fileManager.readFile("assets/interrior2/4.jpg");
         auto textureData4 = engine::graphics::parseTextureData(imageBytes4, {
                 .flags = engine::graphics::TextureFlags::eAllowSrgbColorSpace
             }
         );
 
         // const auto imageBytes5 = fileManager.readFile("assets/skybox/down.jpg");
-        const auto imageBytes5 = fileManager.readFile("assets/interrior/3.jpg");
+        const auto imageBytes5 = fileManager.readFile("assets/interrior2/3.jpg");
         auto textureData5 = engine::graphics::parseTextureData(imageBytes5, {
                 .flags = engine::graphics::TextureFlags::eAllowSrgbColorSpace
             }
