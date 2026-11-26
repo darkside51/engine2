@@ -50,7 +50,16 @@ layout(push_constant) uniform Params {
 const float biases[2] = float[](0.006f, 0.03f);
 
 void main() {
-	float occlusion = push.options.x > 0.0f ? radialBlur(textureSsao, v_uv, int(push.options.x - 1.0f)) : 1.0f;
+	//float occlusion = push.options.x > 0.0f ? radialBlur(textureSsao, v_uv, int(push.options.x - 1.0f)) : 1.0f;
+
+	float occlusion = push.options.x > 0.0f ? bilateralBlur(
+	    textureSsao,
+	    texturePositionDepth,
+	    textureNormal,
+	    v_uv,
+	    int(push.options.x - 1.0f)
+	) : 1.0f;
+
 	vec3 normal = normalize(texture(textureNormal, v_uv).rgb * 2.0f - 1.0f);
 
 	vec2 metallicRoughness = texture(textureMetallicRoughness, v_uv).rg;

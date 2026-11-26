@@ -195,8 +195,8 @@ namespace example {
     bool ssaoBlur = true;
     bool showBboxes = false;
     DebugShow debugShow = DebugShow::eCommon;
-    float ssaoRadius = 0.42f;
-    float ssaoBias = 0.000f;
+    float ssaoRadius = 0.22f;
+    float ssaoBias = 0.001f;
     float ssaoRangeDepth = 10.0f;
     enum class SsaoRangeMethod : uint8_t {
         eSmoothstep = 0u,

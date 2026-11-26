@@ -42,14 +42,13 @@ void main() {
 
 	const float linearDepth = texture(texturePositionDepth, v_uv).r;
 	const vec3 fragPos = reconstructPosition(v_rayDir, vec3(0.0f), linearDepth);
-
-	const vec3 normal = texture(textureNormal, v_uv).rgb * 2.0 - 1.0;
+	const vec3 normal = normalize(texture(textureNormal, v_uv).rgb * 2.0 - 1.0);
 
 	// get a random vector using a noise lookup
 	const ivec2 texDim = textureSize(texturePositionDepth, 0); 
 	const ivec2 noiseDim = textureSize(ssaoNoise, 0);
 	const vec2 noiseUV = vec2(float(texDim.x)/float(noiseDim.x), float(texDim.y)/(noiseDim.y)) * v_uv;  
-	const vec3 randomVec = vec3(texture(ssaoNoise, noiseUV).xy * 2.0 - 1.0, -1.0);
+	const vec3 randomVec = vec3(texture(ssaoNoise, noiseUV).xy * 2.0 - 1.0, 0.0);
 
 	// create TBN matrix
 	const vec3 tangent = normalize(randomVec - normal * dot(randomVec, normal));
@@ -71,9 +70,10 @@ void main() {
 		
 		const float sampleDepth = -texture(texturePositionDepth, offset.xy).r; 
 		//const float rangeCheck = smoothstep(0.0f, 1.0f, radius / abs(fragPos.z - sampleDepth));
-		const float rangeCheck = push.options.w < 0.5f ?
+		float rangeCheck = push.options.w < 0.5f ?
 								 smoothstep(0.0f, 1.0f, radius / abs(fragPos.z - sampleDepth)) :
 								 clamp(radius / abs(fragPos.z - sampleDepth), 0.0f, 1.0f);
+		rangeCheck *= rangeCheck;
 
 		occlusion += step(samplePos.z + bias, sampleDepth) * (1.0f - step(0.0f, sampleDepth)) * rangeCheck * smoothstep(0.0f, 1.0f, -maxDepth / fragPos.z);       
 	}
