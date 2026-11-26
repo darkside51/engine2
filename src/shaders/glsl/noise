@@ -16,6 +16,11 @@ vec2 random2(vec2 st){
     return -1.0f + 2.0f * fract(sin(st) * 43758.5453123f);
 }
 
+float interleavedGradientNoise(vec2 pixelCoord) {
+    const vec3 magic = vec3(0.06711056, 0.00583715, 52.9829189);
+    return fract(magic.z * fract(dot(pixelCoord, magic.xy)));
+}
+
 // 2D Noise based on Morgan McGuire @morgan3d
 // https://www.shadertoy.com/view/4dS3Wd
 float noise(vec2 st) {
