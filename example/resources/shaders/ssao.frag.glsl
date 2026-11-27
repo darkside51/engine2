@@ -41,6 +41,12 @@ void main() {
 	//vec3 fragPos = (push.view * vec4(position.rgb, 1.0f - step(position.w, 0.0))).xyz;
 
 	float linearDepth = texture(texturePositionDepth, v_uv).r;
+
+	if (linearDepth <= 0.0f) {
+		out_color = 1.0f;
+		return;
+	}
+
 	vec3 fragPos = reconstructPosition(v_rayDir, vec3(0.0f), linearDepth);
 	vec3 normal = normalize(texture(textureNormal, v_uv).rgb * 2.0 - 1.0);
 
@@ -48,7 +54,7 @@ void main() {
 	ivec2 texDim = textureSize(texturePositionDepth, 0); 
 	ivec2 noiseDim = textureSize(ssaoNoise, 0);
 	vec2 noiseUV = vec2(float(texDim.x)/float(noiseDim.x), float(texDim.y)/float(noiseDim.y)) * v_uv;  
-	vec3 randomVec = texture(ssaoNoise, noiseUV).xyz * 2.0 - 1.0;
+	vec3 randomVec = vec3(texture(ssaoNoise, noiseUV).rg, 0.0f);
 
 	// create TBN matrix
 	vec3 tangent = normalize(randomVec - normal * dot(randomVec, normal));
@@ -58,7 +64,7 @@ void main() {
 	// calculate occlusion value
 	float occlusion = 0.0f;
 	// remove banding
-	for(int i = 0; i < kSsaoKernelSize; i++) {		
+	for(int i = 0; i < kSsaoKernelSize; ++i) {		
 		vec3 samplePos = TBN * uboSSAOKernel.samples[i].xyz; 
 		//samplePos = fragPos + samplePos * kSsaoRadius;
 		samplePos = fragPos + samplePos * radius;
@@ -71,8 +77,9 @@ void main() {
 		float sampleDepth = -texture(texturePositionDepth, offset.xy).r; 
 		//float rangeCheck = smoothstep(0.0f, 1.0f, radius / abs(fragPos.z - sampleDepth));
 		float rangeCheck = push.options.w < 0.5f ?
-								 smoothstep(0.0f, 1.0f, radius / abs(fragPos.z - sampleDepth)) :
-								 clamp(radius / abs(fragPos.z - sampleDepth), 0.0f, 1.0f);
+								smoothstep(0.0f, 1.0f, radius / abs(fragPos.z - sampleDepth)) :
+								clamp(radius / abs(fragPos.z - sampleDepth), 0.0f, 1.0f);
+		//float rangeCheck = abs(fragPos.z - sampleDepth) < radius ? 1.0 : 0.0;
 
 		occlusion += step(samplePos.z + bias, sampleDepth) * (1.0f - step(0.0f, sampleDepth)) * rangeCheck * smoothstep(0.0f, 1.0f, -maxDepth / fragPos.z);
 	}
