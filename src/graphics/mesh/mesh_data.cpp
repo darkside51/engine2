@@ -419,7 +419,7 @@ namespace engine::graphics::models {
                 { // indices
                     const Accessor & accessor = layout.accessors[srcPrimitive.indices];
                     const BufferView & view = layout.bufferViews[accessor.bufferView];
-                    const Buffer& buffer = layout.buffers[view.buffer];
+                    const Buffer & buffer = layout.buffers[view.buffer];
 
                     primitive.indexCount = accessor.count;
                     primitive.firstIndex = static_cast<uint32_t>(indexBufferData.size());

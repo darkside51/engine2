@@ -15,11 +15,32 @@
 
 namespace engine::graphics::models {
     
-    template <typename K, typename T>
-	using map_type = stl::unordered_map<K, T>;
+    namespace extensions {
+        constexpr auto kKtxExtension = "KHR_texture_basisu";
+        constexpr auto kMeshoptCompressionExtension = "EXT_meshopt_compression";
+        constexpr auto kMeshQuantizationExtension = "KHR_mesh_quantization";
+    }
 
-    template <typename T>
-    using string_map = stl::unordered_map<std::string_view, T, hash::String_hash, std::equal_to<>>;
+    template <typename K, typename T>
+    using map_type = stl::unordered_map<K, T>;
+
+    template <typename T, size_t N>
+    constexpr const T * findByName(const stl::array<std::pair<std::string_view, T>, N> & table, std::string_view name) noexcept {
+        for (size_t i = 0u; i < N; ++i) {
+            if (table[i].first == name) {
+                return &table[i].second;
+            }
+        }
+        return nullptr;
+    }
+
+    template <typename T, size_t N>
+    constexpr T getByName(const stl::array<std::pair<std::string_view, T>, N> & table, std::string_view name, T defaultValue) noexcept {
+        if (const T * value = findByName(table, name)) {
+            return *value;
+        }
+        return defaultValue;
+    }
 
     constexpr SamplerFilter getFilter(uint16_t f) noexcept {
 		switch (f) {
@@ -41,11 +62,11 @@ namespace engine::graphics::models {
 		}
 	};
 
-    auto constexpr swap4IfBigEndian = [](uint32_t & val) noexcept {
+    constexpr auto swap4IfBigEndian = [](uint32_t & val) noexcept {
         if constexpr (isLittleEndian) {
             return;
         }
-        //for bigendian
+        // for bigendian
         uint32_t tmp = val;
         unsigned char* dst = reinterpret_cast<unsigned char*>(&val);
         unsigned char* src = reinterpret_cast<unsigned char*>(&tmp);
@@ -56,57 +77,71 @@ namespace engine::graphics::models {
         dst[3u] = src[0u];
     };
 
-    const static string_map<AttributeSemantic> semantics = {
-        {"POSITION", AttributeSemantic::ePosition},
-        {"NORMAL", AttributeSemantic::eNormal},
-        {"TANGENT", AttributeSemantic::eTangent},
-        {"COLOR_0", AttributeSemantic::eColor0},
-        {"COLOR_1", AttributeSemantic::eColor1},
-        {"COLOR_2", AttributeSemantic::eColor2},
-        {"COLOR_3", AttributeSemantic::eColor3},
-        {"JOINTS_0", AttributeSemantic::eJoints},
-        {"WEIGHTS_0", AttributeSemantic::eWeights},
-        {"TEXCOORD_0", AttributeSemantic::eUv0},
-        {"TEXCOORD_1", AttributeSemantic::eUv1},
-        {"TEXCOORD_2", AttributeSemantic::eUv2},
-        {"TEXCOORD_3", AttributeSemantic::eUv3},
-        {"TEXCOORD_4", AttributeSemantic::eUv4}
+    constexpr stl::array<std::pair<std::string_view, AttributeSemantic>, 14u> semantics = {
+        std::pair{"POSITION", AttributeSemantic::ePosition},
+        std::pair{"NORMAL", AttributeSemantic::eNormal},
+        std::pair{"TANGENT", AttributeSemantic::eTangent},
+        std::pair{"COLOR_0", AttributeSemantic::eColor0},
+        std::pair{"COLOR_1", AttributeSemantic::eColor1},
+        std::pair{"COLOR_2", AttributeSemantic::eColor2},
+        std::pair{"COLOR_3", AttributeSemantic::eColor3},
+        std::pair{"JOINTS_0", AttributeSemantic::eJoints},
+        std::pair{"WEIGHTS_0", AttributeSemantic::eWeights},
+        std::pair{"TEXCOORD_0", AttributeSemantic::eUv0},
+        std::pair{"TEXCOORD_1", AttributeSemantic::eUv1},
+        std::pair{"TEXCOORD_2", AttributeSemantic::eUv2},
+        std::pair{"TEXCOORD_3", AttributeSemantic::eUv3},
+        std::pair{"TEXCOORD_4", AttributeSemantic::eUv4}
     };
 
-    const static string_map<AccessorType> accesorTypes = {
-        {"SCALAR", AccessorType::eScalar},
-        {"VEC2", AccessorType::eVec2},
-        {"VEC3", AccessorType::eVec3},
-        {"VEC4", AccessorType::eVec4},
-        {"MAT2", AccessorType::eMat2},
-        {"MAT3", AccessorType::eMat3},
-        {"MAT4", AccessorType::eMat4}
+    constexpr stl::array<std::pair<std::string_view, AccessorType>, 7u> accesorTypes = {
+        std::pair{"SCALAR", AccessorType::eScalar},
+        std::pair{"VEC2", AccessorType::eVec2},
+        std::pair{"VEC3", AccessorType::eVec3},
+        std::pair{"VEC4", AccessorType::eVec4},
+        std::pair{"MAT2", AccessorType::eMat2},
+        std::pair{"MAT3", AccessorType::eMat3},
+        std::pair{"MAT4", AccessorType::eMat4}
     };
 
-    const static string_map<AnimationChannelPath> animChannelTypes = {
-        {"translation", AnimationChannelPath::eTranslation},
-        {"rotation", AnimationChannelPath::eRotation},
-        {"scale", AnimationChannelPath::eScale},
-        {"weights", AnimationChannelPath::eWeights}
+    constexpr stl::array<std::pair<std::string_view, AnimationChannelPath>, 4u> animChannelTypes = {
+        std::pair{"translation", AnimationChannelPath::eTranslation},
+        std::pair{"rotation", AnimationChannelPath::eRotation},
+        std::pair{"scale", AnimationChannelPath::eScale},
+        std::pair{"weights", AnimationChannelPath::eWeights}
     };
 
-    const static string_map<Interpolation> interpolationTypes = {
-        {"LINEAR", Interpolation::eLinear},
-        {"STEP", Interpolation::eStep},
-        {"CUBICSPLINE", Interpolation::eCubicSpline}
+    constexpr stl::array<std::pair<std::string_view, Interpolation>, 3u> interpolationTypes = {
+        std::pair{"LINEAR", Interpolation::eLinear},
+        std::pair{"STEP", Interpolation::eStep},
+        std::pair{"CUBICSPLINE", Interpolation::eCubicSpline}
     };
 
-    const static string_map<MimeType> mimeTypes = {
-        {"image/jpeg", MimeType::eJpeg},
-        {"image/png", MimeType::ePng},
-        {"image/ktx2", MimeType::eKtx2},
-        {"undefined", MimeType::eOther}
+    constexpr stl::array<std::pair<std::string_view, MimeType>, 4u> mimeTypes = {
+        std::pair{"image/jpeg", MimeType::eJpeg},
+        std::pair{"image/png", MimeType::ePng},
+        std::pair{"image/ktx2", MimeType::eKtx2},
+        std::pair{"undefined", MimeType::eOther}
     };
 
-    const static string_map<AlphaMode> alphaModes = {
-        {"OPAQUE", AlphaMode::eOpaque},
-        {"BLEND", AlphaMode::eBlend},
-        {"MASK", AlphaMode::eMask}
+    constexpr stl::array<std::pair<std::string_view, AlphaMode>, 3u> alphaModes = {
+        std::pair{"OPAQUE", AlphaMode::eOpaque},
+        std::pair{"BLEND", AlphaMode::eBlend},
+        std::pair{"MASK", AlphaMode::eMask}
+    };
+
+    constexpr stl::array<std::pair<std::string_view, MeshoptMode>, 4u> meshoptModes = {
+        std::pair{"", MeshoptMode::eUndefined},
+        std::pair{"ATTRIBUTES", MeshoptMode::eAttributes}, 
+        std::pair{"INDICES", MeshoptMode::eIndices}, 
+        std::pair{"TRIANGLES", MeshoptMode::eTriangles}
+    };
+
+    constexpr stl::array<std::pair<std::string_view, MeshoptFilter>, 4u> meshoptFilters = {
+        std::pair{"NONE", MeshoptFilter::eNone},
+        std::pair{"OCTAHEDRAL", MeshoptFilter::eOctahedral}, 
+        std::pair{"QUATERNION", MeshoptFilter::eQuaternion}, 
+        std::pair{"EXPONENTIAL", MeshoptFilter::eExponential}
     };
 
     template <typename T, typename F, typename... Args>
@@ -187,8 +222,8 @@ namespace engine::graphics::models {
 
             auto const & attributesArray = primitive["attributes"].get_object();
             for (const auto & [key, attribute] : attributesArray) {
-                if (auto it = semantics.find(key); it != semantics.end()) {
-                    meshPrimitive.attributes.emplace_back(it->second, attribute.as<uint16_t>());
+                if (const auto * semantic = findByName(semantics, key)) {
+                    meshPrimitive.attributes.emplace_back(*semantic, attribute.as<uint16_t>());
                 }
             }
 
@@ -226,18 +261,42 @@ namespace engine::graphics::models {
 	}
 
     void parseBufferView(BufferView & bufferView, const json::Json & object) {
-		bufferView.name = json::getValue(object, "name", std::string_view(""));
-		bufferView.buffer = json::getValue(object, "buffer", kInvalidValue);
-		bufferView.length = json::getValue(object, "byteLength", 0u);
-		bufferView.stride = json::getValue(object, "byteStride", kInvalidValue);
-		bufferView.offset = json::getValue(object, "byteOffset", 0u);
 
-		const auto target = json::getValue<uint16_t>(object, "target", 0u);
-		switch (target) {
-		case 34962: bufferView.target = BufferTarget::eArray_Buffer; break;
-		case 34963: bufferView.target = BufferTarget::eElement_Array_Buffer; break;
-		default: break;
-		}
+        bufferView.name = json::getValue(object, "name", std::string_view(""));
+
+        if (auto * ext = json::findChild(object, "extensions")) {
+            if (auto * mExt = json::findChild(*ext, extensions::kMeshoptCompressionExtension)) {
+                bufferView.buffer = json::getValue(*mExt, "buffer", kInvalidValue);
+                bufferView.length = json::getValue(*mExt, "byteLength", 0u);
+                bufferView.stride = json::getValue(*mExt, "byteStride", kInvalidValue);
+                bufferView.offset = json::getValue(*mExt, "byteOffset", 0u);
+
+                const auto target = json::getValue<uint16_t>(*mExt, "target", 0u);
+                switch (target) {
+                case 34962: bufferView.target = BufferTarget::eArray_Buffer; break;
+                case 34963: bufferView.target = BufferTarget::eElement_Array_Buffer; break;
+                default: break;
+                }
+
+                const auto modeName = json::getValue(*mExt, "mode", std::string_view(""));
+                bufferView.mode = getByName(meshoptModes, modeName, MeshoptMode::eUndefined);
+
+                const auto filterName = json::getValue(*mExt, "filter", std::string_view("NONE"));
+                bufferView.filter = getByName(meshoptFilters, filterName, MeshoptFilter::eNone);
+            }
+        } else {
+            bufferView.buffer = json::getValue(object, "buffer", kInvalidValue);
+            bufferView.length = json::getValue(object, "byteLength", 0u);
+            bufferView.stride = json::getValue(object, "byteStride", kInvalidValue);
+            bufferView.offset = json::getValue(object, "byteOffset", 0u);
+
+            const auto target = json::getValue<uint16_t>(object, "target", 0u);
+            switch (target) {
+            case 34962: bufferView.target = BufferTarget::eArray_Buffer; break;
+            case 34963: bufferView.target = BufferTarget::eElement_Array_Buffer; break;
+            default: break;
+            }
+        }
 	}
 
     void parseAccessor(Accessor & accessor, const json::Json & object) {
@@ -257,7 +316,7 @@ namespace engine::graphics::models {
 		default: break;
 		}
 
-        accessor.type = accesorTypes.at(object["type"].as<std::string_view>());
+        accessor.type = getByName(accesorTypes, object["type"].as<std::string_view>(), AccessorType::eScalar);
         accessor.min = json::getArray<float>(object, "min");
         accessor.max = json::getArray<float>(object, "max");
 
@@ -294,7 +353,7 @@ namespace engine::graphics::models {
             animation.channels.emplace_back(
                 json::getValue(channel, "sampler", 0u),
                 json::getValue(target, "node", kInvalidValue),
-                animChannelTypes.at(target["path"].as<std::string_view>())
+                getByName(animChannelTypes, target["path"].as<std::string_view>(), AnimationChannelPath::eTranslation)
             );
         }
 
@@ -305,7 +364,7 @@ namespace engine::graphics::models {
             animation.samplers.emplace_back(
                 json::getValue(sampler, "input", kInvalidValue),
                 json::getValue(sampler, "output", kInvalidValue),
-                interpolationTypes.at(json::getValue(sampler, "interpolation", std::string_view("LINEAR")))
+                getByName(interpolationTypes, json::getValue(sampler, "interpolation", std::string_view("LINEAR")), Interpolation::eLinear)
             );
         }
 	}
@@ -327,7 +386,7 @@ namespace engine::graphics::models {
 
     void parseTexture(Texture & texture, const json::Json & object) {
         if (auto * ext = json::findChild(object, "extensions")) {
-            if (auto * ktxExt = json::findChild(*ext, "KHR_texture_basisu")) {
+            if (auto * ktxExt = json::findChild(*ext, extensions::kKtxExtension)) {
                 texture.source = json::getValue(*ktxExt, "source", kInvalidValue);
             }
         }
@@ -353,7 +412,7 @@ namespace engine::graphics::models {
             image.uri = std::string(path) + "/" + object["uri"].as<std::string>();
         }
 		
-        image.mimeType = mimeTypes.at(json::getValue(object, "mimeType", std::string_view("undefined")));
+        image.mimeType = getByName(mimeTypes, json::getValue(object, "mimeType", std::string_view("undefined")), MimeType::eOther);
 		image.bufferView = json::getValue(object, "bufferView", kInvalidValue);
 	}
 
@@ -361,7 +420,7 @@ namespace engine::graphics::models {
 		material.name = json::getValue(object, "name", std::string_view(""));
 		material.doubleSided = json::getValue(object, "doubleSided", false);
 		material.alphaCutoff = json::getValue(object, "alphaCutoff", 0.5f);
-		material.alphaMode = alphaModes.at(json::getValue(object, "alphaMode", std::string_view("OPAQUE")));
+		material.alphaMode = getByName(alphaModes, json::getValue(object, "alphaMode", std::string_view("OPAQUE")), AlphaMode::eOpaque);
 
         if (const auto * pbrMetallicData = json::findChild(object, "pbrMetallicRoughness")) {
             if (const auto * baseColorData = json::findChild(*pbrMetallicData, "baseColorFactor")) {

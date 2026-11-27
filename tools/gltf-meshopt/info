@@ -1,0 +1,59 @@
+
+Основные инструменты
+
+• gltfpack (из библиотеки meshoptimizer) — консольная утилита для комплексной оптимизации glTF/GLB: квантования, упрощения мешей, инстансинга, сжатия текстур и применения Meshopt-сжатия (-c, -cc, -cz).
+• glTF Transform — JavaScript/TypeScript-инструментарий, в котором есть трансформ meshopt для сжатия геометрии и анимаций через EXT_meshopt_compression.
+• Рендереры и вьюеры (например, Three.js, View3D, Babylon.js и др.) — поддерживают декодирование через WASM/JS-декодер meshoptimizer.
+
+
+Для сжатия с тонкой настройкой квантования атрибутов лучше всего использовать утилиту gltfpack, а в своем движке потребуется поддержать два расширения glTF: KHR_mesh_quantization и EXT_meshopt_compression.
+
+1. Как сжать файл и настроить квантование атрибутов
+
+Квантование переводит числа с плавающей точкой (FLOAT) в целые числа (SHORT, BYTE и т.д.), после чего Meshopt эффективно сжимает эти целочисленные буферы.
+
+Вариант А: Через CLI gltfpack (максимальный контроль битности)
+
+Установите gltfpack (через npm i -g gltfpack или скачав бинарник из релизов meshoptimizer).
+Пример команды с ручной настройкой битности:
+bash
+gltfpack -i input.glb -o output.glb -cc -vp 14 -vt 12 -vn 8 -vc 8 -at 16 -ar 12 -as 16
+Используйте код с осторожностью.
+Флаги квантования в gltfpack:
+• -c / -cc — включает сжатие Meshopt (-cc дает максимальную степень сжатия).
+• -vp N (default: 14, диапазон 1..16) — битность для позиций вершин (POSITION).
+• -vt N (default: 12, диапазон 1..16) — битность для текстурных координат (TEXCOORD_n). Если текстуры сильно тайлятся (повторяются много раз), ставьте 14–16.
+• -vn N (default: 8, диапазон 1..16) — битность для нормалей (NORMAL) и касательных (TANGENT).
+• -vc N (default: 8, диапазон 1..16) — битность для цветов вершин (COLOR_n).
+• -at N, -ar N, -as N (defaults: 16, 12, 16) — битность для анимаций: перемещения (translation), вращения (rotation) и масштаба (scale).
+• -noq — отключить квантование полностью, оставив только сжатие буферов (если движок не умеет работать с квантованными вершинами).
+
+Вариант Б: Через JS/TS (glTF Transform)
+
+Если нужно встроить сжатие в сборщик (Node.js), используйте функцию quantize и meshopt из @gltf-transform/functions:
+javascript
+import { NodeIO } from '@gltf-transform/core';
+import { KHRMeshQuantization, EXTMeshoptCompression } from '@gltf-transform/extensions';
+import { quantize, meshopt } from '@gltf-transform/functions';
+import { MeshoptEncoder } from 'meshoptimizer';
+
+await MeshoptEncoder.ready;
+
+const io = new NodeIO()
+  .registerExtensions([KHRMeshQuantization, EXTMeshoptCompression])
+  .registerDependencies({ 'meshopt.encoder': MeshoptEncoder });
+
+const doc = await io.read('input.glb');
+
+await doc.transform(
+  quantize({
+    quantizePosition: 14,
+    quantizeNormal: 8,
+    quantizeTexcoord: 12,
+    quantizeColor: 8,
+    quantizeWeight: 8,
+  }),
+  meshopt({ level: 'high' })
+);
+
+await io.write('output.glb', doc);

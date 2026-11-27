@@ -118,6 +118,8 @@ namespace graphics::models {
 		uint32_t offset = 0u;
 		uint32_t length = 0u;
 		BufferTarget target = BufferTarget::eAny_Data;
+		MeshoptMode mode = MeshoptMode::eUndefined;
+		MeshoptFilter filter = MeshoptFilter::eNone;
 	};
 
     struct AccessorSparse {

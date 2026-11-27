@@ -108,6 +108,20 @@ namespace engine::graphics::models {
 		eRepeat = 2u
 	};
 
+    enum class MeshoptMode : uint8_t {
+        eUndefined = 0u,
+        eAttributes = 1u, 
+        eIndices = 2u, 
+        eTriangles = 3u
+    };
+
+    enum class MeshoptFilter : uint8_t {
+        eNone = 0u,
+        eOctahedral = 1u,
+        eQuaternion = 2u,
+        eExponential = 3u
+    };
+
     constexpr inline uint8_t getTypeSize(AccessorComponentType type) noexcept {
         switch (type) {
         case AccessorComponentType::eByte : return 1u;
