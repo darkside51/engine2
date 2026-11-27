@@ -274,8 +274,8 @@ namespace ktx_format {
                 // maybe need to check device format support for some rhi::FormatFeatureFlags?
                 // or is this enough?
                 #if (defined ENGINE_PLATFORM_LINUX) || (defined ENGINE_PLATFORM_WINDOWS)
-                    const auto targetFormat = ktx_transcode_fmt_e::KTX_TTF_BC1_OR_3;
-                    // const auto targetFormat = ktx_transcode_fmt_e::KTX_TTF_BC7_RGBA;
+                    // const auto targetFormat = ktx_transcode_fmt_e::KTX_TTF_BC1_OR_3;
+                    const auto targetFormat = ktx_transcode_fmt_e::KTX_TTF_BC7_RGBA;
                 #endif
 
                 const auto result = ktxTexture2_TranscodeBasis(texture2, targetFormat, 0u);

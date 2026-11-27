@@ -489,22 +489,21 @@ namespace engine::graphics::models {
                         vbData.resize(vbData.size() + targetDataSize);
 
                         const BufferView & view = layout.bufferViews[accessor.bufferView];
-                        stl::span<const std::byte> bufferViewData = {&layout.buffers[view.buffer].data[accessor.offset + view.offset], count}; // const vector<byte> &
+                        const auto & buffer = layout.buffers[view.buffer];
+                        const auto elementSize = accessor.getElementSize();
+                        // glTF allows interleaved vertex attributes: several accessors may share one
+                        // bufferView with a byteStride larger than the element size. Always honour it.
+                        const auto sourceStride = view.stride != kInvalidValue ? view.stride : elementSize;
+                        const auto * srcBegin = buffer.data.data() + view.offset + accessor.offset;
 
                         const auto componentType = accessor.componentType;
-                        const auto acessorType = accessor.type;
 
-                        if (accessor.getElementSize() == semanticDimension) {
-                            memcpy(&vbData[currentBufferOffset], &bufferViewData[0u], targetDataSize);
+                        if (sourceStride == elementSize && elementSize == semanticDimension) {
+                            memcpy(&vbData[currentBufferOffset], srcBegin, targetDataSize);
                         } else {
                             const auto componentCount = accessor.componentsCount();
                             const auto targetComponentCount = static_cast<uint8_t>(kOptimalComponentCount[semanticId]);
                             const auto targetComponentDimension = semanticDimension / targetComponentCount;
-
-                            const auto * srcf = reinterpret_cast<const float*>(&bufferViewData[0u]);
-                            const auto * src8 = reinterpret_cast<const uint8_t*>(&bufferViewData[0u]);
-                            const auto * src16 = reinterpret_cast<const uint16_t*>(&bufferViewData[0u]);
-                            const auto * src32 = reinterpret_cast<const uint32_t*>(&bufferViewData[0u]);
 
                             auto * dst8 = reinterpret_cast<uint8_t*>(&vbData[currentBufferOffset]);
                             auto * dst16 = reinterpret_cast<uint16_t*>(&vbData[currentBufferOffset]);
@@ -512,7 +511,13 @@ namespace engine::graphics::models {
                             auto * dstf = reinterpret_cast<float*>(&vbData[currentBufferOffset]);
 
                             for (uint32_t i = 0u; i < accessor.count; ++i) {
-                                uint32_t sourceIndex = i * componentCount;
+                                const auto * srcElement = srcBegin + static_cast<size_t>(i) * sourceStride;
+
+                                const auto * srcf = reinterpret_cast<const float*>(srcElement);
+                                const auto * src8 = reinterpret_cast<const uint8_t*>(srcElement);
+                                const auto * src16 = reinterpret_cast<const uint16_t*>(srcElement);
+                                const auto * src32 = reinterpret_cast<const uint32_t*>(srcElement);
+
                                 uint32_t targetIndex = i * targetComponentCount;
 
                                 for (uint32_t j = 0u; j < std::min(componentCount, targetComponentCount); ++j) {
@@ -520,43 +525,43 @@ namespace engine::graphics::models {
                                     case 2u:
                                     {
                                         if (componentType == AccessorComponentType::eByte || componentType == AccessorComponentType::eUnsigned_Byte) {
-                                            dst16[targetIndex + j] = src8[sourceIndex + j];
+                                            dst16[targetIndex + j] = src8[j];
                                         } else if (componentType == AccessorComponentType::eShort || componentType == AccessorComponentType::eUnsigned_Short) {
-                                            dst16[targetIndex + j] = src16[sourceIndex + j];
+                                            dst16[targetIndex + j] = src16[j];
                                         } else if (componentType == AccessorComponentType::eUnsigned_int) {
-                                            dst16[targetIndex + j] = static_cast<uint16_t>(src32[sourceIndex + j]);
+                                            dst16[targetIndex + j] = static_cast<uint16_t>(src32[j]);
                                         }  else if (componentType == AccessorComponentType::eFloat) {
-                                            dst16[targetIndex + j] = float_to_uint16(srcf[sourceIndex + j]);
+                                            dst16[targetIndex + j] = float_to_uint16(srcf[j]);
                                         }
                                     }
                                         break;
                                     case 1u:
                                     {
                                         if (componentType == AccessorComponentType::eByte || componentType == AccessorComponentType::eUnsigned_Byte) {
-                                            dst8[targetIndex + j] = src8[sourceIndex + j];
+                                            dst8[targetIndex + j] = src8[j];
                                         } else if (componentType == AccessorComponentType::eShort || componentType == AccessorComponentType::eUnsigned_Short) {
-                                            dst8[targetIndex + j] = static_cast<uint8_t>(src16[sourceIndex + j]);
+                                            dst8[targetIndex + j] = static_cast<uint8_t>(src16[j]);
                                         } else if (componentType == AccessorComponentType::eUnsigned_int) {
-                                            dst8[targetIndex + j] = static_cast<uint8_t>(src32[sourceIndex + j]);
+                                            dst8[targetIndex + j] = static_cast<uint8_t>(src32[j]);
                                         }  else if (componentType == AccessorComponentType::eFloat) {
-                                            dst8[targetIndex + j] = float_to_snorm(srcf[sourceIndex + j], 8u);
+                                            dst8[targetIndex + j] = float_to_snorm(srcf[j], 8u);
                                         }
                                     }
                                         break;
                                     case 4u:
                                     {
                                         if (componentType == AccessorComponentType::eByte || componentType == AccessorComponentType::eUnsigned_Byte) {
-                                            dst32[targetIndex + j] = src8[sourceIndex + j];
+                                            dst32[targetIndex + j] = src8[j];
                                         } else if (componentType == AccessorComponentType::eShort || componentType == AccessorComponentType::eUnsigned_Short) {
-                                            dst32[targetIndex + j] = src16[sourceIndex + j];
+                                            dst32[targetIndex + j] = src16[j];
                                         } else if (componentType == AccessorComponentType::eUnsigned_int) {
-                                            dst32[targetIndex + j] = src32[sourceIndex + j];
+                                            dst32[targetIndex + j] = src32[j];
                                         }  else if (componentType == AccessorComponentType::eFloat) {
-                                            dstf[targetIndex + j] = srcf[sourceIndex + j];
+                                            dstf[targetIndex + j] = srcf[j];
                                         }
                                     }
                                         break;
-                                    default: 
+                                    default:
                                         assert(false);
                                         break;
                                     }

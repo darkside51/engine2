@@ -99,6 +99,7 @@ namespace engine::graphics::models {
     const static string_map<MimeType> mimeTypes = {
         {"image/jpeg", MimeType::eJpeg},
         {"image/png", MimeType::ePng},
+        {"image/ktx2", MimeType::eKtx2},
         {"undefined", MimeType::eOther}
     };
 
@@ -325,9 +326,18 @@ namespace engine::graphics::models {
 	}
 
     void parseTexture(Texture & texture, const json::Json & object) {
+        if (auto * ext = json::findChild(object, "extensions")) {
+            if (auto * ktxExt = json::findChild(*ext, "KHR_texture_basisu")) {
+                texture.source = json::getValue(*ktxExt, "source", kInvalidValue);
+            }
+        }
+
         texture.name = json::getValue(object, "name", std::string_view(""));
 		texture.sampler = json::getValue(object, "sampler", kInvalidValue);
-		texture.source = json::getValue(object, "source", kInvalidValue);
+        
+        if (texture.source == kInvalidValue) {
+		    texture.source = json::getValue(object, "source", kInvalidValue);
+        }
 	}
 
     void parseTextureInfo(TextureInfo & info, const json::Json & object) {

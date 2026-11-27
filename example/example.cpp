@@ -2020,7 +2020,7 @@ namespace example {
                 animationManager,
                 "model", 
                 "assets/models/",
-                "model.glb",
+                "model2.glb",
                 [](uint32_t modelIndex) {
                     engine::scene::MeshPipelines pipelines = {
                         .commonPipeline = 1u, 

@@ -83,7 +83,8 @@ namespace engine::graphics::models {
     enum class MimeType : uint8_t {
 		eJpeg = 0u,
 		ePng = 1u,
-        eOther = 2u
+        eKtx2 = 2u,
+        eOther = 3u
 	};
 
 	enum class AlphaMode : uint8_t {
