@@ -2,6 +2,7 @@
 
 #include <array>
 #include <cstdint>
+#include <string_view>
 #include <utility>
 
 namespace engine::graphics::models {
@@ -144,6 +145,24 @@ namespace engine::graphics::models {
         case AccessorType::eMat3 : return 9u;
         case AccessorType::eMat4 : return 16u;
         default: return 1u;
+        }
+    }
+
+    constexpr inline std::string_view getMode(MeshoptMode mode) noexcept {
+        switch (mode) {
+        case MeshoptMode::eAttributes: return "ATTRIBUTES";
+        case MeshoptMode::eIndices: return "INDICES";
+        case MeshoptMode::eTriangles: return "TRIANGLES";
+        default: return "NONE";
+        }
+    }
+
+    constexpr inline std::string_view getFilter(MeshoptFilter filter) noexcept {
+        switch (filter) {
+        case MeshoptFilter::eOctahedral: return "OCTAHEDRAL";
+        case MeshoptFilter::eQuaternion: return "QUATERNION";
+        case MeshoptFilter::eExponential: return "EXPONENTIAL";
+        default: return "NONE";
         }
     }
 }

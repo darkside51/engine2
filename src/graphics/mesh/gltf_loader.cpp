@@ -131,7 +131,7 @@ namespace engine::graphics::models {
     };
 
     constexpr stl::array<std::pair<std::string_view, MeshoptMode>, 4u> meshoptModes = {
-        std::pair{"", MeshoptMode::eUndefined},
+        std::pair{"NONE", MeshoptMode::eUndefined},
         std::pair{"ATTRIBUTES", MeshoptMode::eAttributes}, 
         std::pair{"INDICES", MeshoptMode::eIndices}, 
         std::pair{"TRIANGLES", MeshoptMode::eTriangles}
@@ -270,6 +270,7 @@ namespace engine::graphics::models {
                 bufferView.length = json::getValue(*mExt, "byteLength", 0u);
                 bufferView.stride = json::getValue(*mExt, "byteStride", kInvalidValue);
                 bufferView.offset = json::getValue(*mExt, "byteOffset", 0u);
+                bufferView.count = json::getValue(*mExt, "count", 0u);
 
                 const auto target = json::getValue<uint16_t>(*mExt, "target", 0u);
                 switch (target) {
@@ -530,6 +531,7 @@ namespace engine::graphics::models {
         parseArray(layout.images, parseImage, "images", js, path);
         parseArray(layout.materials, parseMaterial, "materials", js);
 
+        // 
         return layout;
     }
 }

@@ -117,6 +117,8 @@ namespace graphics::models {
 		uint16_t stride = kInvalidValue;
 		uint32_t offset = 0u;
 		uint32_t length = 0u;
+		// element count of the decoded data (EXT_meshopt_compression `count`)
+		uint32_t count = 0u;
 		BufferTarget target = BufferTarget::eAny_Data;
 		MeshoptMode mode = MeshoptMode::eUndefined;
 		MeshoptFilter filter = MeshoptFilter::eNone;

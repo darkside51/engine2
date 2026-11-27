@@ -1,5 +1,6 @@
 #include "mesh_data.h"
 #include "gltf_loader.h"
+#include "decoded_buffer_views.h"
 #include "graphics/texture/texture_data_loader.h"
 #include "graphics/texture/texture_manager.h"
 #include "graphics/utils/vertex_processing.h"
@@ -8,6 +9,7 @@
 
 #include "meshoptimizer.h"
 
+#include <algorithm>
 #include <cassert>
 #include <cstring>
 #include <string>
@@ -122,22 +124,31 @@ namespace engine::graphics::models {
            }
        }
 
-       inline bool isAccessorReadable(const Layout & layout, const Accessor & accessor) noexcept {
-           return accessor.bufferView != kInvalidValue
-               && accessor.bufferView < layout.bufferViews.size()
-               && layout.bufferViews[accessor.bufferView].buffer < layout.buffers.size();
+       inline bool isAccessorReadable(DecodedBufferViews & views, const Accessor & accessor) noexcept {
+           const std::byte * data = nullptr;
+           uint32_t offset = 0u;
+           return views.get(accessor.bufferView, data, offset) && data != nullptr;
        }
 
-       inline const std::byte * getAccessorElement(const Layout & layout, const Accessor & accessor, uint32_t index) noexcept {
-           const auto & view = layout.bufferViews[accessor.bufferView];
-           const auto & buffer = layout.buffers[view.buffer];
+       inline const std::byte * getAccessorElement(DecodedBufferViews & views, const Accessor & accessor, uint32_t index) noexcept {
+           const std::byte * data = nullptr;
+           uint32_t viewOffset = 0u;
+           if (!views.get(accessor.bufferView, data, viewOffset)) {
+               return nullptr;
+           }
+
+           const auto & view = views.layout().bufferViews[accessor.bufferView];
            const size_t stride = view.stride != kInvalidValue ? view.stride : accessor.getElementSize();
-           return buffer.data.data() + view.offset + accessor.offset + static_cast<size_t>(index) * stride;
+           return data + viewOffset + accessor.offset + static_cast<size_t>(index) * stride;
        }
 
        // reads an accessor element as a full precision vec3 (any source component type)
-       inline vec3f readAccessorVec3(const Layout & layout, const Accessor & accessor, uint32_t index) noexcept {
-           const std::byte * data = getAccessorElement(layout, accessor, index);
+       inline vec3f readAccessorVec3(DecodedBufferViews & views, const Accessor & accessor, uint32_t index) noexcept {
+           const std::byte * data = getAccessorElement(views, accessor, index);
+           if (!data) {
+               return {};
+           }
+
            const auto typeSize = getTypeSize(accessor.componentType);
            const auto components = std::min(accessor.componentsCount(), uint8_t{3u});
 
@@ -149,12 +160,35 @@ namespace engine::graphics::models {
        }
 
        // reads an accessor element as a full precision vec2 (any source component type)
-       inline vec2f readAccessorVec2(const Layout & layout, const Accessor & accessor, uint32_t index) noexcept {
-           const std::byte * data = getAccessorElement(layout, accessor, index);
+       inline vec2f readAccessorVec2(DecodedBufferViews & views, const Accessor & accessor, uint32_t index) noexcept {
+           const std::byte * data = getAccessorElement(views, accessor, index);
+           if (!data) {
+               return {};
+           }
+
            const auto typeSize = getTypeSize(accessor.componentType);
            const auto components = std::min(accessor.componentsCount(), uint8_t{2u});
 
            vec2f result{0.0f};
+           for (uint8_t i = 0u; i < components; ++i) {
+               result[i] = readAccessorComponent(data + i * typeSize, accessor.componentType, accessor.normalized);
+           }
+           return result;
+       }
+
+       // reads an accessor element as a full precision vec4 (any source component type).
+       // Animation data may be quantized (e.g. rotations as 4x int16 via KHR_mesh_quantization
+       // and EXT_meshopt_compression), so it must never be copied as raw floats.
+       inline vec4f readAccessorVec4(DecodedBufferViews & views, const Accessor & accessor, uint32_t index) noexcept {
+           const std::byte * data = getAccessorElement(views, accessor, index);
+           if (!data) {
+               return {};
+           }
+
+           const auto typeSize = getTypeSize(accessor.componentType);
+           const auto components = std::min(accessor.componentsCount(), uint8_t{4u});
+
+           vec4f result{0.0f};
            for (uint8_t i = 0u; i < components; ++i) {
                result[i] = readAccessorComponent(data + i * typeSize, accessor.componentType, accessor.normalized);
            }
@@ -166,7 +200,8 @@ namespace engine::graphics::models {
        // normals and half float positions/uvs are not precise enough to build a good TBN basis.
        // The result is appended to the tangent vertex stream before the mesh optimizer remaps it,
        // so the generated tangents are remapped together with all the other streams.
-       stl::vector<std::byte> generatePrimitiveTangents(const Layout & layout, const Primitives & srcPrimitive) {
+       stl::vector<std::byte> generatePrimitiveTangents(DecodedBufferViews & views, const Primitives & srcPrimitive) {
+           const auto & layout = views.layout();
            uint16_t positionAccessorId = kInvalidValue;
            uint16_t normalAccessorId = kInvalidValue;
            uint16_t uvAccessorId = kInvalidValue;
@@ -180,21 +215,22 @@ namespace engine::graphics::models {
                }
            }
 
-           if (positionAccessorId == kInvalidValue || srcPrimitive.indices == kInvalidValue) {
+           if (positionAccessorId == kInvalidValue || positionAccessorId >= layout.accessors.size()
+               || srcPrimitive.indices == kInvalidValue || srcPrimitive.indices >= layout.accessors.size()) {
                return {};
            }
 
            const auto & positionsAccessor = layout.accessors[positionAccessorId];
-           if (!isAccessorReadable(layout, positionsAccessor)) {
+           if (!isAccessorReadable(views, positionsAccessor)) {
                return {};
            }
 
            const auto vertexCount = positionsAccessor.count;
 
            const bool hasNormal = normalAccessorId != kInvalidValue && normalAccessorId < layout.accessors.size()
-               && isAccessorReadable(layout, layout.accessors[normalAccessorId]);
+               && isAccessorReadable(views, layout.accessors[normalAccessorId]);
            const bool hasUv = uvAccessorId != kInvalidValue && uvAccessorId < layout.accessors.size()
-               && isAccessorReadable(layout, layout.accessors[uvAccessorId]);
+               && isAccessorReadable(views, layout.accessors[uvAccessorId]);
 
            if (!hasNormal || !hasUv) {
                // there is no source data to build a meaningful tangent basis - emit defaults
@@ -213,7 +249,7 @@ namespace engine::graphics::models {
            const auto & uvsAccessor = layout.accessors[uvAccessorId];
 
            const auto & indicesAccessor = layout.accessors[srcPrimitive.indices];
-           if (!isAccessorReadable(layout, indicesAccessor)) {
+           if (!isAccessorReadable(views, indicesAccessor)) {
                return {};
            }
 
@@ -222,9 +258,9 @@ namespace engine::graphics::models {
            stl::vector<vec2f> uvs(vertexCount);
 
            for (uint32_t i = 0u; i < vertexCount; ++i) {
-               positions[i] = readAccessorVec3(layout, positionsAccessor, i);
-               normals[i] = readAccessorVec3(layout, normalsAccessor, i);
-               uvs[i] = readAccessorVec2(layout, uvsAccessor, i);
+               positions[i] = readAccessorVec3(views, positionsAccessor, i);
+               normals[i] = readAccessorVec3(views, normalsAccessor, i);
+               uvs[i] = readAccessorVec2(views, uvsAccessor, i);
            }
 
            // triangle lists only (the rest of the loader makes the same assumption)
@@ -232,7 +268,8 @@ namespace engine::graphics::models {
 
            stl::vector<uint32_t> indices(indexCount);
            for (uint32_t i = 0u; i < indexCount; ++i) {
-               const auto index = readAccessorIndex(getAccessorElement(layout, indicesAccessor, i), indicesAccessor.componentType);
+               const auto * element = getAccessorElement(views, indicesAccessor, i);
+               const auto index = element ? readAccessorIndex(element, indicesAccessor.componentType) : 0u;
                indices[i] = index < vertexCount ? index : 0u;
            }
 
@@ -243,8 +280,9 @@ namespace engine::graphics::models {
        // skinning shader does (weighted sum of jointMatrix * position). This is required
        // because the default pose of a skeleton may differ from its bind pose, so neither
        // the raw accessor AABB nor its transform by the node describes the rendered mesh.
-       void computePrimitiveSkinnedBounds(const Layout & layout, const Primitives & srcPrimitive,
+       void computePrimitiveSkinnedBounds(DecodedBufferViews & views, const Primitives & srcPrimitive,
            stl::span<const mat4f> jointMatrices, Primitive & primitive) noexcept {
+           const auto & layout = views.layout();
 
            uint16_t positionAccessorId = kInvalidValue;
            uint16_t jointsAccessorId = kInvalidValue;
@@ -259,7 +297,9 @@ namespace engine::graphics::models {
                }
            }
 
-           if (positionAccessorId == kInvalidValue || jointsAccessorId == kInvalidValue || weightsAccessorId == kInvalidValue) {
+           if (positionAccessorId == kInvalidValue || jointsAccessorId == kInvalidValue || weightsAccessorId == kInvalidValue
+               || positionAccessorId >= layout.accessors.size() || jointsAccessorId >= layout.accessors.size()
+               || weightsAccessorId >= layout.accessors.size()) {
                return;
            }
 
@@ -267,7 +307,7 @@ namespace engine::graphics::models {
            const auto & joints = layout.accessors[jointsAccessorId];
            const auto & weights = layout.accessors[weightsAccessorId];
 
-           if (!isAccessorReadable(layout, positions) || !isAccessorReadable(layout, joints) || !isAccessorReadable(layout, weights)) {
+           if (!isAccessorReadable(views, positions) || !isAccessorReadable(views, joints) || !isAccessorReadable(views, weights)) {
                return;
            }
 
@@ -287,9 +327,12 @@ namespace engine::graphics::models {
            vec3f maxCorner{std::numeric_limits<float>::lowest()};
 
            for (uint32_t vertexIndex = 0u; vertexIndex < count; ++vertexIndex) {
-               const auto * positionData = getAccessorElement(layout, positions, vertexIndex);
-               const auto * jointsData = getAccessorElement(layout, joints, vertexIndex);
-               const auto * weightsData = getAccessorElement(layout, weights, vertexIndex);
+               const auto * positionData = getAccessorElement(views, positions, vertexIndex);
+               const auto * jointsData = getAccessorElement(views, joints, vertexIndex);
+               const auto * weightsData = getAccessorElement(views, weights, vertexIndex);
+               if (!positionData || !jointsData || !weightsData) {
+                   return;
+               }
 
                vec3f position{0.0f};
                for (uint8_t i = 0u; i < positionComponents; ++i) {
@@ -369,6 +412,9 @@ namespace engine::graphics::models {
             }
         }
 
+        // compressed buffer views are decoded once and shared by every accessor that uses them
+        DecodedBufferViews decodedViews(layout);
+
         for (size_t meshIndex = 0u; meshIndex < layout.meshes.size(); ++meshIndex) {
             const auto & srcMesh = layout.meshes[meshIndex];
 
@@ -417,9 +463,17 @@ namespace engine::graphics::models {
                 }
 
                 { // indices
+                    if (srcPrimitive.indices == kInvalidValue || srcPrimitive.indices >= layout.accessors.size()) {
+                        continue; // the loader supports indexed primitives only
+                    }
+
                     const Accessor & accessor = layout.accessors[srcPrimitive.indices];
-                    const BufferView & view = layout.bufferViews[accessor.bufferView];
-                    const Buffer & buffer = layout.buffers[view.buffer];
+
+                    const std::byte * bufferData = nullptr;
+                    uint32_t viewOffset = 0u;
+                    if (!decodedViews.get(accessor.bufferView, bufferData, viewOffset)) {
+                        continue; // the index buffer view cannot be read
+                    }
 
                     primitive.indexCount = accessor.count;
                     primitive.firstIndex = static_cast<uint32_t>(indexBufferData.size());
@@ -430,11 +484,11 @@ namespace engine::graphics::models {
                     switch (accessor.componentType) {
 						case AccessorComponentType::eUnsigned_int:
 							for (uint32_t index = 0u; index < accessor.count; ++index) {
-								const size_t offset = accessor.offset + view.offset + index * sizeof(uint32_t);
-								const auto v1 = static_cast<uint8_t>(buffer.data[offset + 0]);
-								const auto v2 = static_cast<uint8_t>(buffer.data[offset + 1]);
-								const auto v3 = static_cast<uint8_t>(buffer.data[offset + 2]);
-								const auto v4 = static_cast<uint8_t>(buffer.data[offset + 3]);
+								const size_t offset = accessor.offset + viewOffset + index * sizeof(uint32_t);
+								const auto v1 = static_cast<uint8_t>(bufferData[offset + 0]);
+								const auto v2 = static_cast<uint8_t>(bufferData[offset + 1]);
+								const auto v3 = static_cast<uint8_t>(bufferData[offset + 2]);
+								const auto v4 = static_cast<uint8_t>(bufferData[offset + 3]);
 								const auto v = static_cast<uint32_t>((static_cast<uint32_t>(v1) << 0) | 
 									(static_cast<uint32_t>(v2) << 8) | (static_cast<uint32_t>(v3) << 16) | 
 									(static_cast<uint32_t>(v4) << 24));
@@ -443,9 +497,9 @@ namespace engine::graphics::models {
 								break;
 						case AccessorComponentType::eUnsigned_Short:
 							for (uint32_t index = 0u; index < accessor.count; ++index) {
-								const size_t offset = accessor.offset + view.offset + index * sizeof(uint16_t);
-								const auto v1 = static_cast<uint8_t>(buffer.data[offset + 0]);
-								const auto v2 = static_cast<uint8_t>(buffer.data[offset + 1]);
+								const size_t offset = accessor.offset + viewOffset + index * sizeof(uint16_t);
+								const auto v1 = static_cast<uint8_t>(bufferData[offset + 0]);
+								const auto v2 = static_cast<uint8_t>(bufferData[offset + 1]);
 								const auto v = static_cast<uint16_t>((static_cast<uint16_t>(v1) << 0) | 
 									(static_cast<uint16_t>(v2) << 8));
 								indexBufferData[primitive.firstIndex + index] = v + vertexCount;
@@ -453,7 +507,7 @@ namespace engine::graphics::models {
 								break;
 						case AccessorComponentType::eUnsigned_Byte:
 							for (uint32_t index = 0u; index < accessor.count; ++index) {
-								indexBufferData[primitive.firstIndex + index] = static_cast<uint32_t>(buffer.data[accessor.offset + view.offset + index]) + vertexCount;
+								indexBufferData[primitive.firstIndex + index] = static_cast<uint32_t>(bufferData[accessor.offset + viewOffset + index]) + vertexCount;
 							}
 							break;
 						default:
@@ -471,7 +525,7 @@ namespace engine::graphics::models {
                         ++i;
                     }
 
-                    if (i < allowedAttributes.size()) {
+                    if (i < allowedAttributes.size() && accessorId < layout.accessors.size()) {
                         const Accessor & accessor = layout.accessors[accessorId];
 
                         if (semantic == AttributeSemantic::ePosition) { // position is vec3, alltimes is true?
@@ -488,19 +542,26 @@ namespace engine::graphics::models {
                         const auto currentBufferOffset = vbData.size();
                         vbData.resize(vbData.size() + targetDataSize);
 
-                        const BufferView & view = layout.bufferViews[accessor.bufferView];
-                        const auto & buffer = layout.buffers[view.buffer];
                         const auto elementSize = accessor.getElementSize();
-                        // glTF allows interleaved vertex attributes: several accessors may share one
-                        // bufferView with a byteStride larger than the element size. Always honour it.
-                        const auto sourceStride = view.stride != kInvalidValue ? view.stride : elementSize;
-                        const auto * srcBegin = buffer.data.data() + view.offset + accessor.offset;
-
                         const auto componentType = accessor.componentType;
 
-                        if (sourceStride == elementSize && elementSize == semanticDimension) {
-                            memcpy(&vbData[currentBufferOffset], srcBegin, targetDataSize);
-                        } else {
+                        const std::byte * bufferData = nullptr;
+                        uint32_t viewOffset = 0u;
+                        if (!decodedViews.get(accessor.bufferView, bufferData, viewOffset)) {
+                            continue; // keep the stream aligned with zeros
+                        }
+
+                        // glTF allows interleaved vertex attributes: several accessors may share one
+                        // bufferView with a byteStride larger than the element size. Always honour it.
+                        const BufferView & view = layout.bufferViews[accessor.bufferView];
+                        const auto sourceStride = view.stride != kInvalidValue ? view.stride : elementSize;
+
+                        const auto * srcBegin = bufferData + viewOffset + accessor.offset;
+
+                        // no fast memcpy path: the target encoding (half float / snorm8 / uint8)
+                        // never matches a non-float glTF source bit-for-bit, so every component
+                        // is converted by value below
+                        {
                             const auto componentCount = accessor.componentsCount();
                             const auto targetComponentCount = static_cast<uint8_t>(kOptimalComponentCount[semanticId]);
                             const auto targetComponentDimension = semanticDimension / targetComponentCount;
@@ -508,58 +569,37 @@ namespace engine::graphics::models {
                             auto * dst8 = reinterpret_cast<uint8_t*>(&vbData[currentBufferOffset]);
                             auto * dst16 = reinterpret_cast<uint16_t*>(&vbData[currentBufferOffset]);
                             auto * dst32 = reinterpret_cast<uint32_t*>(&vbData[currentBufferOffset]);
-                            auto * dstf = reinterpret_cast<float*>(&vbData[currentBufferOffset]);
+
+                            // the target component is either a half float (2 bytes) or an 8-bit
+                            // normalized/unsigned value, so every source component is converted by
+                            // value: a raw byte copy is only valid for 8-bit targets, while integer
+                            // sources (KHR_mesh_quantization) must not be reinterpreted as halves
+                            const auto typeSize = getTypeSize(componentType);
+                            const auto normalized = accessor.normalized;
+                            constexpr float kMaxHalf = 65504.0f;
 
                             for (uint32_t i = 0u; i < accessor.count; ++i) {
                                 const auto * srcElement = srcBegin + static_cast<size_t>(i) * sourceStride;
 
-                                const auto * srcf = reinterpret_cast<const float*>(srcElement);
-                                const auto * src8 = reinterpret_cast<const uint8_t*>(srcElement);
-                                const auto * src16 = reinterpret_cast<const uint16_t*>(srcElement);
-                                const auto * src32 = reinterpret_cast<const uint32_t*>(srcElement);
-
                                 uint32_t targetIndex = i * targetComponentCount;
 
                                 for (uint32_t j = 0u; j < std::min(componentCount, targetComponentCount); ++j) {
+                                    const auto value = readAccessorComponent(srcElement + j * typeSize, componentType, normalized);
+
                                     switch (targetComponentDimension) {
                                     case 2u:
-                                    {
-                                        if (componentType == AccessorComponentType::eByte || componentType == AccessorComponentType::eUnsigned_Byte) {
-                                            dst16[targetIndex + j] = src8[j];
-                                        } else if (componentType == AccessorComponentType::eShort || componentType == AccessorComponentType::eUnsigned_Short) {
-                                            dst16[targetIndex + j] = src16[j];
-                                        } else if (componentType == AccessorComponentType::eUnsigned_int) {
-                                            dst16[targetIndex + j] = static_cast<uint16_t>(src32[j]);
-                                        }  else if (componentType == AccessorComponentType::eFloat) {
-                                            dst16[targetIndex + j] = float_to_uint16(srcf[j]);
-                                        }
-                                    }
+                                        // half float (position/uv/weights); clamp to the finite half range
+                                        dst16[targetIndex + j] = float_to_uint16(std::clamp(value, -kMaxHalf, kMaxHalf));
                                         break;
                                     case 1u:
-                                    {
-                                        if (componentType == AccessorComponentType::eByte || componentType == AccessorComponentType::eUnsigned_Byte) {
-                                            dst8[targetIndex + j] = src8[j];
-                                        } else if (componentType == AccessorComponentType::eShort || componentType == AccessorComponentType::eUnsigned_Short) {
-                                            dst8[targetIndex + j] = static_cast<uint8_t>(src16[j]);
-                                        } else if (componentType == AccessorComponentType::eUnsigned_int) {
-                                            dst8[targetIndex + j] = static_cast<uint8_t>(src32[j]);
-                                        }  else if (componentType == AccessorComponentType::eFloat) {
-                                            dst8[targetIndex + j] = float_to_snorm(srcf[j], 8u);
+                                        if (semantic == AttributeSemantic::eJoints) {
+                                            dst8[targetIndex + j] = static_cast<uint8_t>(value);
+                                        } else {
+                                            dst8[targetIndex + j] = static_cast<uint8_t>(float_to_snorm(value, 8u));
                                         }
-                                    }
                                         break;
                                     case 4u:
-                                    {
-                                        if (componentType == AccessorComponentType::eByte || componentType == AccessorComponentType::eUnsigned_Byte) {
-                                            dst32[targetIndex + j] = src8[j];
-                                        } else if (componentType == AccessorComponentType::eShort || componentType == AccessorComponentType::eUnsigned_Short) {
-                                            dst32[targetIndex + j] = src16[j];
-                                        } else if (componentType == AccessorComponentType::eUnsigned_int) {
-                                            dst32[targetIndex + j] = src32[j];
-                                        }  else if (componentType == AccessorComponentType::eFloat) {
-                                            dstf[targetIndex + j] = srcf[j];
-                                        }
-                                    }
+                                        dst32[targetIndex + j] = static_cast<uint32_t>(value);
                                         break;
                                     default:
                                         assert(false);
@@ -587,7 +627,7 @@ namespace engine::graphics::models {
                 // remaps the vertex streams, so the optimizer remaps the generated tangents
                 // together with all the other attributes
                 if (tangentAttributeIndex < allowedAttributes.size() && !hasSourceTangents) {
-                    const auto tangents = generatePrimitiveTangents(layout, srcPrimitive);
+                    const auto tangents = generatePrimitiveTangents(decodedViews, srcPrimitive);
                     auto & tangentBuffer = vertexBuffersData[tangentAttributeIndex];
                     const auto offset = tangentBuffer.size();
                     tangentBuffer.resize(offset + tangents.size());
@@ -597,7 +637,7 @@ namespace engine::graphics::models {
                 }
 
                 if (!jointMatrices.empty()) {
-                    computePrimitiveSkinnedBounds(layout, srcPrimitive, jointMatrices, primitive);
+                    computePrimitiveSkinnedBounds(decodedViews, srcPrimitive, jointMatrices, primitive);
                 }
             }
 
@@ -679,18 +719,26 @@ namespace engine::graphics::models {
 	}
 
     void MeshData::loadSkins(const Layout & layout) {
+        // inverse bind matrices may live in a meshopt-compressed buffer view as well
+        DecodedBufferViews decodedViews(layout);
+
         skins.reserve(layout.skins.size());
         skinMatricesCount = 0u;
         for (const auto & srcSkin : layout.skins) {
             auto & skin = skins.emplace_back(srcSkin.skeleton);
             skin.joints = srcSkin.joints; // copy
 
-            if (srcSkin.inverseBindMatrices != kInvalidValue) {
+            if (srcSkin.inverseBindMatrices != kInvalidValue && srcSkin.inverseBindMatrices < layout.accessors.size()) {
                 const auto & accessor = layout.accessors[srcSkin.inverseBindMatrices];
-				const auto & bufferView = layout.bufferViews[accessor.bufferView];
-				const auto & buffer = layout.buffers[bufferView.buffer];
-				skin.inverseBindMatrices.resize(accessor.count);
-                memcpy(&skin.inverseBindMatrices[0u], &buffer.data[accessor.offset + bufferView.offset], accessor.count * sizeof(mat4f));
+
+                const std::byte * data = nullptr;
+                uint32_t offset = 0u;
+                if (!decodedViews.get(accessor.bufferView, data, offset)) {
+                    continue;
+                }
+
+                skin.inverseBindMatrices.resize(accessor.count);
+                memcpy(&skin.inverseBindMatrices[0u], data + offset + accessor.offset, accessor.count * sizeof(mat4f));
                 skinMatricesCount += accessor.count;
             }
         }
@@ -698,105 +746,110 @@ namespace engine::graphics::models {
     }
 
     void MeshData::loadAnimations(const Layout & layout) {
-        animations.reserve(layout.animations.size());
+        // animation sampler inputs/outputs may live in meshopt-compressed buffer views as well
+        DecodedBufferViews decodedViews(layout);
 
-        size_t samplerInputsCount = 0u;
-        size_t samplerOutputsCount = 0u;
+        animations.reserve(layout.animations.size());
 
         for (const auto & srcAnimation : layout.animations) {
             auto & anim = animations.emplace_back(srcAnimation.name);
             anim.samplers.reserve(srcAnimation.samplers.size());
+            anim.channels.reserve(srcAnimation.channels.size());
 
-            for (const auto & sampler : srcAnimation.samplers) {
-                {
-                    const auto & accessor = layout.accessors[sampler.input];
-                    samplerInputsCount += accessor.count;
+            // size the keyframe storage by this animation's own samplers only
+            size_t inputsCount = 0u;
+            size_t outputsCount = 0u;
+            for (const auto & srcSampler : srcAnimation.samplers) {
+                if (srcSampler.input < layout.accessors.size()) {
+                    inputsCount += layout.accessors[srcSampler.input].count;
                 }
-                {
-                    const auto & accessor = layout.accessors[sampler.output];
-                    samplerOutputsCount += accessor.count;
+                if (srcSampler.output < layout.accessors.size()) {
+                    outputsCount += layout.accessors[srcSampler.output].count;
                 }
             }
 
-            anim.samplerInputs.resize(samplerInputsCount);
-            anim.samplerOutputs.resize(samplerOutputsCount);
+            anim.samplerInputs.resize(inputsCount);
+            anim.samplerOutputs.resize(outputsCount);
 
-            anim.channels.reserve(srcAnimation.channels.size());
-        }
-
-        size_t i = 0u;
-        size_t samplerInputsOffset = 0u;
-        size_t samplerOutputsOffset = 0u;
-        for (const auto & srcAnimation : layout.animations) {
-            auto & anim = animations[i];
+            size_t inputsOffset = 0u;
+            size_t outputsOffset = 0u;
 
             // samplers
             for (const auto & srcSampler : srcAnimation.samplers) {
                 auto & sampler = anim.samplers.emplace_back();
                 sampler.interpolation = srcSampler.interpolation;
-                // read keyframes input times
-                {
-                    const auto & accessor = layout.accessors[srcSampler.input];
-                    const auto & bufferView = layout.bufferViews[accessor.bufferView];
-                    const auto & buffer = layout.buffers[bufferView.buffer];
-                    const void * data = &buffer.data[accessor.offset + bufferView.offset];
 
-                    memcpy(&anim.samplerInputs[samplerInputsOffset], data, accessor.count * sizeof(float));
-                    sampler.inputs = {anim.samplerInputs.begin() + samplerInputsOffset, accessor.count};
-                    samplerInputsOffset += accessor.count;
+                // read keyframes input times
+                if (srcSampler.input < layout.accessors.size()) {
+                    const auto & accessor = layout.accessors[srcSampler.input];
+                    const auto available = std::min<size_t>(accessor.count, inputsCount - inputsOffset);
+
+                    for (size_t index = 0u; index < available; ++index) {
+                        const std::byte * element = getAccessorElement(decodedViews, accessor, static_cast<uint32_t>(index));
+                        anim.samplerInputs[inputsOffset + index] = element
+                            ? readAccessorComponent(element, accessor.componentType, accessor.normalized)
+                            : 0.0f;
+                    }
+
+                    sampler.inputs = {anim.samplerInputs.begin() + inputsOffset, available};
+                    inputsOffset += available;
 
                     // adjust animation's start and end times
-					for (auto input : sampler.inputs) {
-						if (input < anim.start) {
-							anim.start = input;
-						}
+                    for (auto input : sampler.inputs) {
+                        if (input < anim.start) {
+                            anim.start = input;
+                        }
 
-						if (input > anim.end) {
-							anim.end = input;
-						}
-					}
+                        if (input > anim.end) {
+                            anim.end = input;
+                        }
+                    }
                 }
 
                 // read sampler keyframe output translate/rotate/scale values
-				{
-					const auto & accessor = layout.accessors[srcSampler.output];
-					const auto & bufferView = layout.bufferViews[accessor.bufferView];
-					const auto & buffer = layout.buffers[bufferView.buffer];
-					const void * data = &buffer.data[accessor.offset + bufferView.offset];
+                if (srcSampler.output < layout.accessors.size()) {
+                    const auto & accessor = layout.accessors[srcSampler.output];
+                    const auto available = std::min<size_t>(accessor.count, outputsCount - outputsOffset);
 
-					switch (accessor.type) {
-						case AccessorType::eVec3: {
-							const vec3 * buf = static_cast<const vec3*>(data);
-							for (size_t index = 0u; index < accessor.count; ++index) {
-                                anim.samplerOutputs[samplerOutputsOffset + index] = vec4f{buf[index].x, buf[index].y, buf[index].z, 0.0f};
-							}
-							break;
-						}
-						case AccessorType::eVec4: {
-                            memcpy(&anim.samplerOutputs[samplerOutputsOffset], data, accessor.count * sizeof(vec4f));
-							break;
-						}
-						default:
-							break;
-					}
+                    // the source data may be quantized (KHR_mesh_quantization / EXT_meshopt_compression),
+                    // so every element is converted through the accessor component type, never memcpy'd
+                    switch (accessor.type) {
+                    case AccessorType::eVec4:
+                        for (size_t index = 0u; index < available; ++index) {
+                            anim.samplerOutputs[outputsOffset + index] = readAccessorVec4(decodedViews, accessor, static_cast<uint32_t>(index));
+                        }
+                        break;
+                    case AccessorType::eVec3:
+                        for (size_t index = 0u; index < available; ++index) {
+                            const vec3f value = readAccessorVec3(decodedViews, accessor, static_cast<uint32_t>(index));
+                            anim.samplerOutputs[outputsOffset + index] = vec4f{value.x, value.y, value.z, 0.0f};
+                        }
+                        break;
+                    default:
+                        for (size_t index = 0u; index < available; ++index) {
+                            const std::byte * element = getAccessorElement(decodedViews, accessor, static_cast<uint32_t>(index));
+                            const auto value = element ? readAccessorComponent(element, accessor.componentType, accessor.normalized) : 0.0f;
+                            anim.samplerOutputs[outputsOffset + index] = vec4f{value, 0.0f, 0.0f, 0.0f};
+                        }
+                        break;
+                    }
 
-                    sampler.outputs = {anim.samplerOutputs.begin() + samplerOutputsOffset, accessor.count};
-                    samplerOutputsOffset += accessor.count;
-				}
+                    sampler.outputs = {anim.samplerOutputs.begin() + outputsOffset, available};
+                    outputsOffset += available;
+                }
             }
 
             anim.duration = anim.end - anim.start;
 
             // channels
-			anim.minTargetNodeId = kInvalidValue;
-			anim.maxTargetNodeId = 0u;
-			for (const auto & srcChannel : srcAnimation.channels) {
-		        auto & channel = anim.channels.emplace_back(srcChannel.sampler, srcChannel.target_node, srcChannel.path);
-				if (channel.target_node < anim.minTargetNodeId) { anim.minTargetNodeId = channel.target_node; }
-				if (channel.target_node > anim.maxTargetNodeId) { anim.maxTargetNodeId = channel.target_node; }
+            anim.minTargetNodeId = kInvalidValue;
+            anim.maxTargetNodeId = 0u;
+            for (const auto & srcChannel : srcAnimation.channels) {
+                auto & channel = anim.channels.emplace_back(srcChannel.sampler, srcChannel.target_node, srcChannel.path);
+                if (channel.target_node < anim.minTargetNodeId) { anim.minTargetNodeId = channel.target_node; }
+                if (channel.target_node > anim.maxTargetNodeId) { anim.maxTargetNodeId = channel.target_node; }
             }
-            ++i;
         }
-	}
+    }
 
 }
